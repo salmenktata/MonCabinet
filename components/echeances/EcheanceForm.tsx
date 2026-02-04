@@ -113,7 +113,7 @@ export default function EcheanceForm({
       {/* Type d'échéance */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Type d'échéance *
+          Type d&apos;échéance *
         </label>
         <select
           {...register('type_echeance')}
@@ -225,13 +225,13 @@ export default function EcheanceForm({
                 onClick={handleCalculer}
                 className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
-                Calculer l'échéance
+                Calculer l&apos;échéance
               </button>
 
               {dateCalculee && (
                 <div className="rounded-md bg-green-50 p-3">
                   <p className="text-sm font-medium text-green-800">
-                    📅 Date d'échéance calculée :{' '}
+                    📅 Date d&apos;échéance calculée :{' '}
                     <span className="font-bold">
                       {new Date(dateCalculee).toLocaleDateString('fr-FR', {
                         weekday: 'long',
@@ -251,7 +251,7 @@ export default function EcheanceForm({
       {/* Date d'échéance */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Date d'échéance *
+          Date d&apos;échéance *
         </label>
         <input
           type="date"

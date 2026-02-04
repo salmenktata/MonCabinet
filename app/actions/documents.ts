@@ -116,7 +116,7 @@ export async function deleteDocumentAction(id: string) {
       return { error: 'Document introuvable' }
     }
 
-    if (document.dossiers.user_id !== user.id) {
+    if ((document.dossiers as any).user_id !== user.id) {
       return { error: 'Accès refusé' }
     }
 
@@ -172,7 +172,7 @@ export async function getDocumentUrlAction(id: string) {
       return { error: 'Document introuvable' }
     }
 
-    if (document.dossiers.user_id !== user.id) {
+    if ((document.dossiers as any).user_id !== user.id) {
       return { error: 'Accès refusé' }
     }
 
@@ -211,7 +211,7 @@ export async function updateDocumentAction(id: string, data: { categorie?: strin
       .eq('id', id)
       .single()
 
-    if (checkError || !document || document.dossiers.user_id !== user.id) {
+    if (checkError || !document || (document.dossiers as any).user_id !== user.id) {
       return { error: 'Document introuvable ou accès refusé' }
     }
 

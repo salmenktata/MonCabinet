@@ -60,12 +60,12 @@ export default async function TimeTrackingPage() {
   }
 
   // Statistiques
-  const aujourd hui = new Date()
-  const debutSemaine = new Date(aujourd hui)
-  debutSemaine.setDate(aujourd hui.getDate() - aujourd hui.getDay())
+  const aujourdhui = new Date()
+  const debutSemaine = new Date(aujourdhui)
+  debutSemaine.setDate(aujourdhui.getDate() - aujourdhui.getDay())
   debutSemaine.setHours(0, 0, 0, 0)
 
-  const debutMois = new Date(aujourd hui.getFullYear(), aujourd hui.getMonth(), 1)
+  const debutMois = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), 1)
 
   const entriesSemaine = timeEntries?.filter(
     (e) => new Date(e.date) >= debutSemaine

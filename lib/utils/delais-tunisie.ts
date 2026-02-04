@@ -186,13 +186,13 @@ export function calculerEcheance(
  * @returns Nombre de jours (négatif si dépassé)
  */
 export function joursRestants(dateEcheance: Date): number {
-  const aujourd hui = new Date()
-  aujourd hui.setHours(0, 0, 0, 0)
+  const aujourdhui = new Date()
+  aujourdhui.setHours(0, 0, 0, 0)
 
   const echeance = new Date(dateEcheance)
   echeance.setHours(0, 0, 0, 0)
 
-  const diffTime = echeance.getTime() - aujourd hui.getTime()
+  const diffTime = echeance.getTime() - aujourdhui.getTime()
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
   return diffDays
@@ -222,8 +222,8 @@ export function datesRappel(dateEcheance: Date): {
   j1: Date | null
 } {
   const echeance = new Date(dateEcheance)
-  const aujourd hui = new Date()
-  aujourd hui.setHours(0, 0, 0, 0)
+  const aujourdhui = new Date()
+  aujourdhui.setHours(0, 0, 0, 0)
 
   const j15 = addDays(echeance, -15)
   const j7 = addDays(echeance, -7)
@@ -231,10 +231,10 @@ export function datesRappel(dateEcheance: Date): {
   const j1 = addDays(echeance, -1)
 
   return {
-    j15: j15 > aujourd hui ? j15 : null,
-    j7: j7 > aujourd hui ? j7 : null,
-    j3: j3 > aujourd hui ? j3 : null,
-    j1: j1 > aujourd hui ? j1 : null,
+    j15: j15 > aujourdhui ? j15 : null,
+    j7: j7 > aujourdhui ? j7 : null,
+    j3: j3 > aujourdhui ? j3 : null,
+    j1: j1 > aujourdhui ? j1 : null,
   }
 }
 

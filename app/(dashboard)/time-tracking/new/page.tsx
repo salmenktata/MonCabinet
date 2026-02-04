@@ -86,8 +86,8 @@ export default async function NewTimeEntryPage({
               Conseil : Utilisez le timer
             </p>
             <p className="mt-1 text-sm text-blue-700">
-              Pour un suivi automatique, démarrez un timer depuis la page d'un dossier.
-              Vous pourrez l'arrêter quand vous aurez terminé votre travail.
+              Pour un suivi automatique, démarrez un timer depuis la page d&apos;un dossier.
+              Vous pourrez l&apos;arrêter quand vous aurez terminé votre travail.
             </p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default async function NewTimeEntryPage({
         ) : (
           <div>
             <p className="text-sm text-gray-700 mb-4">
-              Veuillez d'abord sélectionner un dossier :
+              Veuillez d&apos;abord sélectionner un dossier :
             </p>
             <Link
               href="/dossiers"

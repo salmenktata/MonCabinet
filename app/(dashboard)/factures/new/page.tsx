@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import FactureForm from '@/components/factures/FactureForm'
 
 export default async function NewFacturePage({
@@ -79,12 +80,12 @@ export default async function NewFacturePage({
                   Vous devez créer au moins un client avant de pouvoir créer une facture.
                 </p>
                 <div className="mt-4">
-                  <a
+                  <Link
                     href="/clients/new"
                     className="text-sm font-medium text-yellow-800 underline hover:text-yellow-900"
                   >
                     Créer un client →
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>

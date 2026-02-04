@@ -206,7 +206,7 @@ export default function FactureForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Date d'émission *
+            Date d&apos;émission *
           </label>
           <input
             type="date"
@@ -222,7 +222,7 @@ export default function FactureForm({
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Date d'échéance
+            Date d&apos;échéance
           </label>
           <input
             type="date"

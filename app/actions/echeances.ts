@@ -71,7 +71,7 @@ export async function updateEcheanceAction(id: string, formData: Partial<Echeanc
       .eq('id', id)
       .single()
 
-    if (checkError || !echeance || echeance.dossiers?.user_id !== user.id) {
+    if (checkError || !echeance || (echeance.dossiers as any)?.user_id !== user.id) {
       return { error: 'Échéance introuvable ou accès refusé' }
     }
 

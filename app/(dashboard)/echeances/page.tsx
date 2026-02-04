@@ -41,15 +41,15 @@ export default async function EcheancesPage() {
   }
 
   // Statistiques
-  const aujourd hui = new Date()
-  aujourd hui.setHours(0, 0, 0, 0)
+  const aujourdhui = new Date()
+  aujourdhui.setHours(0, 0, 0, 0)
 
   const stats = {
     total: echeances?.length || 0,
-    depassees: echeances?.filter((e) => new Date(e.date_echeance) < aujourd hui).length || 0,
+    depassees: echeances?.filter((e) => new Date(e.date_echeance) < aujourdhui).length || 0,
     critiques: echeances?.filter((e) => {
       const urgence = niveauUrgence(new Date(e.date_echeance))
-      return urgence === 'critique' && new Date(e.date_echeance) >= aujourd hui
+      return urgence === 'critique' && new Date(e.date_echeance) >= aujourdhui
     }).length || 0,
     urgentes: echeances?.filter((e) => {
       const urgence = niveauUrgence(new Date(e.date_echeance))
@@ -61,11 +61,11 @@ export default async function EcheancesPage() {
 
   // Grouper par urgence
   const echeancesDepassees = echeances?.filter(
-    (e) => new Date(e.date_echeance) < aujourd hui
+    (e) => new Date(e.date_echeance) < aujourdhui
   )
   const echeancesCritiques = echeances?.filter((e) => {
     const urgence = niveauUrgence(new Date(e.date_echeance))
-    return urgence === 'critique' && new Date(e.date_echeance) >= aujourd hui
+    return urgence === 'critique' && new Date(e.date_echeance) >= aujourdhui
   })
   const echeancesUrgentes = echeances?.filter((e) => {
     const urgence = niveauUrgence(new Date(e.date_echeance))
@@ -287,7 +287,7 @@ export default async function EcheancesPage() {
           {echeancesNormales && echeancesNormales.length > 0 && (
             <div>
               <h2 className="mb-3 text-lg font-semibold text-gray-700">
-                📅 À venir (>15 jours) ({echeancesNormales.length})
+                📅 À venir (&gt;15 jours) ({echeancesNormales.length})
               </h2>
               <div className="grid gap-4">
                 {echeancesNormales.map((echeance) => (

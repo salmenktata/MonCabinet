@@ -127,7 +127,7 @@ export default async function FactureDetailPage({
                   <p className="font-medium text-gray-900">{facture.numero_facture}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Date d'émission</p>
+                  <p className="text-sm text-gray-500">Date d&apos;émission</p>
                   <p className="font-medium text-gray-900">
                     {new Date(facture.date_emission).toLocaleDateString('fr-FR')}
                   </p>
@@ -137,7 +137,7 @@ export default async function FactureDetailPage({
               {facture.date_echeance && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Date d'échéance</p>
+                    <p className="text-sm text-gray-500">Date d&apos;échéance</p>
                     <p className="font-medium text-gray-900">
                       {new Date(facture.date_echeance).toLocaleDateString('fr-FR')}
                     </p>
