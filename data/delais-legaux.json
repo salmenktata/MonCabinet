@@ -1,0 +1,199 @@
+{
+  "delais_recours": [
+    {
+      "type": "appel_civil",
+      "nom": "Appel en matière civile",
+      "nom_ar": "الاستئناف في المادة المدنية",
+      "delai_jours": 20,
+      "type_jours": "calendaires",
+      "point_depart": "Signification du jugement",
+      "point_depart_ar": "تبليغ الحكم",
+      "reference_legale": "Code de Procédure Civile et Commerciale - Article 130",
+      "notes": "Le délai court à partir du jour de la signification du jugement, sans compter le jour de la signification."
+    },
+    {
+      "type": "appel_commercial",
+      "nom": "Appel en matière commerciale",
+      "nom_ar": "الاستئناف في المادة التجارية",
+      "delai_jours": 10,
+      "type_jours": "calendaires",
+      "point_depart": "Signification du jugement",
+      "point_depart_ar": "تبليغ الحكم",
+      "reference_legale": "Code de Commerce",
+      "notes": "Délai réduit pour les affaires commerciales."
+    },
+    {
+      "type": "opposition",
+      "nom": "Opposition au jugement par défaut",
+      "nom_ar": "الاعتراض على الحكم الغيابي",
+      "delai_jours": 10,
+      "type_jours": "calendaires",
+      "point_depart": "Signification du jugement",
+      "point_depart_ar": "تبليغ الحكم",
+      "reference_legale": "CPC - Article 148",
+      "notes": "Voie de recours contre un jugement rendu par défaut."
+    },
+    {
+      "type": "cassation",
+      "nom": "Pourvoi en cassation",
+      "nom_ar": "التعقيب",
+      "delai_jours": 60,
+      "type_jours": "calendaires",
+      "point_depart": "Signification de l'arrêt d'appel",
+      "point_depart_ar": "تبليغ قرار الاستئناف",
+      "reference_legale": "CPC - Article 177",
+      "notes": "Recours devant la Cour de Cassation."
+    },
+    {
+      "type": "revision",
+      "nom": "Requête en révision",
+      "nom_ar": "إعادة النظر",
+      "delai_jours": 60,
+      "type_jours": "calendaires",
+      "point_depart": "Découverte du fait nouveau ou de la fraude",
+      "point_depart_ar": "اكتشاف الواقعة الجديدة أو التدليس",
+      "reference_legale": "CPC - Article 200",
+      "notes": "Voie de recours extraordinaire basée sur un fait nouveau ou une fraude."
+    },
+    {
+      "type": "tierce_opposition",
+      "nom": "Tierce opposition",
+      "nom_ar": "الاعتراض الخارج عن الخصومة",
+      "delai_jours": 30,
+      "type_jours": "calendaires",
+      "point_depart": "Connaissance du jugement",
+      "point_depart_ar": "العلم بالحكم",
+      "reference_legale": "CPC - Article 206",
+      "notes": "Recours d'un tiers contre un jugement qui porte atteinte à ses droits."
+    }
+  ],
+  "delais_procedure": [
+    {
+      "type": "signification_assignation",
+      "nom": "Signification de l'assignation",
+      "nom_ar": "تبليغ العريضة الافتتاحية",
+      "delai_jours": 30,
+      "type_jours": "calendaires",
+      "point_depart": "Dépôt de l'assignation au greffe",
+      "point_depart_ar": "إيداع العريضة بكتابة المحكمة",
+      "reference_legale": "CPC - Article 9",
+      "notes": "L'assignation doit être signifiée dans les 30 jours suivant son dépôt au greffe, sinon elle est considérée comme nulle."
+    },
+    {
+      "type": "conclusions_defendeur",
+      "nom": "Conclusions du défendeur",
+      "nom_ar": "مذكرات المدعى عليه",
+      "delai_jours": 15,
+      "type_jours": "calendaires",
+      "point_depart": "Signification de l'assignation",
+      "point_depart_ar": "تبليغ العريضة",
+      "reference_legale": "Usage judiciaire",
+      "notes": "Délai d'usage, peut varier selon les tribunaux et la nature du dossier."
+    },
+    {
+      "type": "replique_demandeur",
+      "nom": "Réplique du demandeur",
+      "nom_ar": "مذكرة الرد للمدعي",
+      "delai_jours": 10,
+      "type_jours": "calendaires",
+      "point_depart": "Dépôt des conclusions du défendeur",
+      "point_depart_ar": "إيداع مذكرات المدعى عليه",
+      "reference_legale": "Usage judiciaire",
+      "notes": "Délai d'usage pour répliquer aux conclusions adverses."
+    },
+    {
+      "type": "duplique_defendeur",
+      "nom": "Duplique du défendeur",
+      "nom_ar": "مذكرة الدفاع الثانية",
+      "delai_jours": 10,
+      "type_jours": "calendaires",
+      "point_depart": "Dépôt de la réplique",
+      "point_depart_ar": "إيداع مذكرة الرد",
+      "reference_legale": "Usage judiciaire",
+      "notes": "Dernière série de conclusions avant l'audience de plaidoirie."
+    },
+    {
+      "type": "execution_forcee",
+      "nom": "Exécution forcée d'un jugement",
+      "nom_ar": "التنفيذ الجبري للحكم",
+      "delai_jours": 10950,
+      "type_jours": "calendaires",
+      "point_depart": "Prononcé du jugement",
+      "point_depart_ar": "صدور الحكم",
+      "reference_legale": "Code des Obligations et des Contrats",
+      "notes": "Prescription trentenaire (30 ans). Le jugement peut être exécuté pendant 30 ans."
+    }
+  ],
+  "regles_calcul": {
+    "jours_calendaires": {
+      "description": "Tous les jours sont comptés, y compris samedis, dimanches et jours fériés.",
+      "description_ar": "تحتسب كل الأيام بما في ذلك السبت والأحد والأعياد الرسمية"
+    },
+    "jour_initial": {
+      "description": "Le jour de l'acte (signification, notification, etc.) ne compte pas. Le délai commence à courir le lendemain.",
+      "description_ar": "لا يحتسب يوم الإجراء (التبليغ، الإعلام، إلخ). يبدأ الأجل من اليوم الموالي"
+    },
+    "jour_final": {
+      "description": "Le dernier jour du délai est compté. L'acte doit être accompli avant minuit de ce jour.",
+      "description_ar": "يحتسب اليوم الأخير من الأجل. يجب القيام بالإجراء قبل منتصف ليل ذلك اليوم"
+    },
+    "jour_final_ferie": {
+      "description": "Si le dernier jour tombe un jour férié ou un week-end, le délai est prorogé jusqu'au premier jour ouvrable suivant.",
+      "description_ar": "إذا صادف اليوم الأخير يوم عطلة رسمية أو نهاية أسبوع، يمدد الأجل إلى أول يوم عمل موالي"
+    },
+    "vacances_judiciaires": {
+      "periode": "1er août - 31 août",
+      "periode_ar": "من 1 أوت إلى 31 أوت",
+      "effet": "Suspension des délais (hors référés et matière pénale)",
+      "effet_ar": "توقف الآجال (باستثناء القضايا المستعجلة والجزائية)",
+      "calcul_si_commence_avant": "Si le délai commence avant le 1er août et devrait expirer pendant les vacances, il est prolongé jusqu'au 15 septembre",
+      "calcul_si_commence_avant_ar": "إذا بدأ الأجل قبل 1 أوت وكان من المفروض أن ينقضي خلال العطلة، يمدد إلى 15 سبتمبر",
+      "calcul_si_commence_pendant": "Si le délai commence pendant les vacances, il ne commence à courir qu'à partir du 1er septembre",
+      "calcul_si_commence_pendant_ar": "إذا بدأ الأجل خلال العطلة، لا يبدأ سريانه إلا من 1 سبتمبر"
+    }
+  },
+  "exemples_calcul": [
+    {
+      "scenario": "Jugement signifié le lundi 10 mars 2025",
+      "scenario_ar": "حكم تم تبليغه يوم الاثنين 10 مارس 2025",
+      "delai": "Appel civil (20 jours)",
+      "calcul": [
+        "Jour de signification (10 mars) : ne compte pas",
+        "Délai commence : 11 mars",
+        "20 jours calendaires après : 30 mars",
+        "Dernier jour pour faire appel : 30 mars 2025"
+      ],
+      "resultat": "2025-03-30"
+    },
+    {
+      "scenario": "Jugement signifié le 15 juillet 2025 (avant vacances)",
+      "scenario_ar": "حكم تم تبليغه في 15 جويلية 2025 (قبل العطلة)",
+      "delai": "Appel civil (20 jours)",
+      "calcul": [
+        "Délai commence : 16 juillet",
+        "20 jours après : 4 août (pendant vacances judiciaires)",
+        "Report : 15 septembre 2025",
+        "Dernier jour pour faire appel : 15 septembre 2025"
+      ],
+      "resultat": "2025-09-15"
+    },
+    {
+      "scenario": "Jugement signifié le vendredi 12 décembre 2025",
+      "scenario_ar": "حكم تم تبليغه يوم الجمعة 12 ديسمبر 2025",
+      "delai": "Appel commercial (10 jours)",
+      "calcul": [
+        "Délai commence : 13 décembre (samedi)",
+        "10 jours calendaires après : 22 décembre (lundi)",
+        "Dernier jour : 22 décembre 2025"
+      ],
+      "resultat": "2025-12-22"
+    }
+  ],
+  "notes_importantes": [
+    "Ces délais sont basés sur le Code de Procédure Civile et Commerciale tunisien en vigueur.",
+    "Les délais d'usage (conclusions, répliques) peuvent varier selon les tribunaux.",
+    "En cas de doute, toujours vérifier avec le greffe du tribunal compétent.",
+    "La signification à personne physique résidant à l'étranger implique des délais spéciaux.",
+    "Certains délais peuvent être augmentés en fonction de l'éloignement géographique."
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "annee": 2025,
+  "vacances_judiciaires": {
+    "debut": "2025-08-01",
+    "fin": "2025-08-31",
+    "description": "Vacances judiciaires annuelles - Suspension des délais (hors référés et pénal)"
+  },
+  "jours_feries_fixes": [
+    {
+      "date": "2025-01-01",
+      "nom": "Nouvel An",
+      "nom_ar": "رأس السنة الميلادية"
+    },
+    {
+      "date": "2025-03-20",
+      "nom": "Fête de l'Indépendance",
+      "nom_ar": "عيد الاستقلال"
+    },
+    {
+      "date": "2025-04-09",
+      "nom": "Journée des Martyrs",
+      "nom_ar": "عيد الشهداء"
+    },
+    {
+      "date": "2025-05-01",
+      "nom": "Fête du Travail",
+      "nom_ar": "عيد الشغل"
+    },
+    {
+      "date": "2025-07-25",
+      "nom": "Fête de la République",
+      "nom_ar": "عيد الجمهورية"
+    },
+    {
+      "date": "2025-08-13",
+      "nom": "Journée de la Femme",
+      "nom_ar": "عيد المرأة"
+    }
+  ],
+  "jours_feries_religieux": [
+    {
+      "date": "2025-03-30",
+      "nom": "Aïd el-Fitr (estimé)",
+      "nom_ar": "عيد الفطر",
+      "duree_jours": 3,
+      "description": "Fin du Ramadan - Dates basées sur observation lunaire, peuvent varier de ±1 jour"
+    },
+    {
+      "date": "2025-06-06",
+      "nom": "Aïd el-Adha (estimé)",
+      "nom_ar": "عيد الأضحى",
+      "duree_jours": 2,
+      "description": "Fête du Sacrifice - Dates basées sur observation lunaire, peuvent varier de ±1 jour"
+    },
+    {
+      "date": "2025-06-27",
+      "nom": "Nouvel An Hégire 1447 (estimé)",
+      "nom_ar": "رأس السنة الهجرية",
+      "duree_jours": 1
+    },
+    {
+      "date": "2025-09-05",
+      "nom": "Mouled (estimé)",
+      "nom_ar": "المولد النبوي",
+      "duree_jours": 1,
+      "description": "Anniversaire du Prophète"
+    }
+  ],
+  "note_importante": "Les dates des fêtes religieuses sont estimées et peuvent varier de ±1 jour selon l'observation de la lune. Il est recommandé de vérifier les dates officielles publiées par le Ministère des Affaires Religieuses."
+}

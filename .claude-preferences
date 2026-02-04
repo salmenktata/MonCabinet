@@ -1,0 +1,9 @@
+# Préférences Claude Code pour ce projet
+
+Voir les préférences globales dans : `~/.claude/development-preferences.md`
+
+## Résumé
+- **Qualité > Rapidité** : TOUJOURS
+- Comprendre avant coder
+- Solutions robustes et pérennes
+- Pas de dette technique
