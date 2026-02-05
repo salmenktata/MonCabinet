@@ -101,12 +101,13 @@ export async function GET(
         telephone: profile.telephone,
         matricule_avocat: profile.matricule_avocat,
         barreau: profile.barreau,
+        adresse: profile.cabinet_adresse,
+        ville: profile.cabinet_ville,
       },
       cabinet: {
-        // TODO: Ajouter logo et autres infos cabinet si disponibles
-        nom: undefined,
-        logo_url: undefined,
-        rne: undefined,
+        nom: profile.cabinet_nom,
+        logo_url: profile.logo_url,
+        rne: profile.rne,
       },
       langue: 'fr' as const, // TODO: Récupérer depuis préférences utilisateur
     }

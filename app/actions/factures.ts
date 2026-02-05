@@ -337,9 +337,9 @@ export async function envoyerFactureEmailAction(factureId: string) {
         barreau: profile.barreau,
       },
       cabinet: {
-        nom: undefined,
-        logo_url: undefined,
-        rne: undefined,
+        nom: profile.cabinet_nom,
+        logo_url: profile.logo_url,
+        rne: profile.rne,
       },
       langue: 'fr' as const,
     }
