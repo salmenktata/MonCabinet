@@ -234,6 +234,8 @@
     "draft": "Brouillon",
     "sent": "Envoyée",
     "late": "En retard",
+    "unpaid": "Impayée",
+    "invoicesCount": "facture(s)",
     "createFirstInvoice": "Créez votre première facture pour commencer"
   },
   "echeances": {

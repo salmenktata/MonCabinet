@@ -234,6 +234,8 @@
     "draft": "مسودة",
     "sent": "مرسلة",
     "late": "متأخرة",
+    "unpaid": "غير مدفوعة",
+    "invoicesCount": "فاتورة",
     "createFirstInvoice": "أنشئ فاتورتك الأولى للبدء"
   },
   "echeances": {
