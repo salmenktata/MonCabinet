@@ -200,7 +200,7 @@ async function DashboardActivity({ userId }: { userId: string }) {
 async function DashboardCharts({ userId }: { userId: string }) {
   const [facturesResult, dossiersResult] = await Promise.all([
     query('SELECT id, statut, montant_ttc, date_emission FROM factures WHERE user_id = $1', [userId]),
-    query('SELECT id, statut, type_procedure, workflow_etape_actuelle FROM dossiers WHERE user_id = $1', [userId]),
+    query('SELECT id, statut, type_procedure FROM dossiers WHERE user_id = $1', [userId]),
   ])
 
   return (

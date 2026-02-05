@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db/postgres'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth/auth-options'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import { ConventionPDF } from '@/lib/pdf/convention-pdf'

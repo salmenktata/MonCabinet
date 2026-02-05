@@ -8,7 +8,7 @@ import { hash, compare } from 'bcryptjs'
 import { z } from 'zod'
 import { query } from '@/lib/db/postgres'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth/auth-options'
 
 // Schéma de validation
 const changePasswordSchema = z.object({

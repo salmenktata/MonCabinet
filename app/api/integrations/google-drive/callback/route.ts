@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db/postgres'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth/auth-options'
 import { createGoogleDriveAuthProvider } from '@/lib/integrations/cloud-storage'
 import { encrypt } from '@/lib/crypto'
 

@@ -59,12 +59,9 @@ migration-report.json
 logs/
 *.log
 
-# NextAuth files (projet utilise Supabase Auth)
-app/api/auth/[...nextauth]/
-lib/auth/
+# Scripts de migration obsolètes
 scripts/create-test-user.ts
 scripts/create-users-table.sql
-types/next-auth.d.ts
 run-migration.js
 components/providers/SessionProvider.tsx
 apply-templates-migration.js
