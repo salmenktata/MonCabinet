@@ -16,23 +16,18 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
 
   if (!session?.user?.id) return null
 
-  // Récupérer le client
-  const clientResult = await query(
-    'SELECT * FROM clients WHERE id = $1 AND user_id = $2',
-    [id, session.user.id]
-  )
+  // Récupérer toutes les données EN PARALLÈLE (optimisation performance)
+  const [clientResult, dossiersResult] = await Promise.all([
+    query('SELECT * FROM clients WHERE id = $1 AND user_id = $2', [id, session.user.id]),
+    query('SELECT * FROM dossiers WHERE client_id = $1 AND user_id = $2 ORDER BY created_at DESC', [id, session.user.id]),
+  ])
+
   const client = clientResult.rows[0]
+  const dossiers = dossiersResult.rows
 
   if (!client) {
     notFound()
   }
-
-  // Récupérer les dossiers du client
-  const dossiersResult = await query(
-    'SELECT * FROM dossiers WHERE client_id = $1 AND user_id = $2 ORDER BY created_at DESC',
-    [id, session.user.id]
-  )
-  const dossiers = dossiersResult.rows
 
   const displayName =
     client.type_client === 'personne_physique'

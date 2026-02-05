@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import WorkflowVisualizer from '../workflows/WorkflowVisualizer'
 import ActionsList from './ActionsList'
@@ -28,22 +28,23 @@ export default function DossierDetailContent({
   const [showAddAction, setShowAddAction] = useState(false)
   const [updatingEtape, setUpdatingEtape] = useState(false)
 
-  const handleEtapeChange = async (etapeId: string) => {
+  const handleEtapeChange = useCallback(async (etapeId: string) => {
     if (!confirm('Changer l\'étape du workflow ?')) return
 
     setUpdatingEtape(true)
     await updateDossierEtapeAction(dossier.id, etapeId)
     setUpdatingEtape(false)
     router.refresh()
-  }
+  }, [dossier.id, router])
 
-  const tabs = [
+  // Mémoriser les onglets pour éviter les re-renders
+  const tabs = useMemo(() => [
     { id: 'workflow', label: 'Workflow', icon: '🔄' },
     { id: 'info', label: 'Informations', icon: 'ℹ️' },
     { id: 'actions', label: `Actions (${actions.length})`, icon: '✅' },
     { id: 'echeances', label: `Échéances (${echeances.length})`, icon: '📅' },
     { id: 'documents', label: `Documents (${documents.length})`, icon: '📁' },
-  ]
+  ], [actions.length, echeances.length, documents.length])
 
   return (
     <div className="space-y-6">

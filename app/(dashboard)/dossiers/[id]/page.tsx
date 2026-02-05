@@ -23,50 +23,47 @@ export default async function DossierDetailPage({
 
   if (!session?.user?.id) return null
 
-  // Récupérer le dossier
-  const dossierResult = await query(
-    `SELECT d.*,
-      json_build_object(
-        'id', c.id,
-        'type_client', c.type_client,
-        'nom', c.nom,
-        'prenom', c.prenom,
-        'email', c.email,
-        'telephone', c.telephone,
-        'created_at', c.created_at,
-        'user_id', c.user_id
-      ) as clients
-    FROM dossiers d
-    LEFT JOIN clients c ON d.client_id = c.id
-    WHERE d.id = $1 AND d.user_id = $2`,
-    [id, session.user.id]
-  )
+  // Récupérer toutes les données EN PARALLÈLE (optimisation performance)
+  const [dossierResult, actionsResult, echeancesResult, documentsResult] = await Promise.all([
+    query(
+      `SELECT d.*,
+        json_build_object(
+          'id', c.id,
+          'type_client', c.type_client,
+          'nom', c.nom,
+          'prenom', c.prenom,
+          'email', c.email,
+          'telephone', c.telephone,
+          'created_at', c.created_at,
+          'user_id', c.user_id
+        ) as clients
+      FROM dossiers d
+      LEFT JOIN clients c ON d.client_id = c.id
+      WHERE d.id = $1 AND d.user_id = $2`,
+      [id, session.user.id]
+    ),
+    query(
+      'SELECT * FROM actions WHERE dossier_id = $1 AND user_id = $2 ORDER BY created_at DESC',
+      [id, session.user.id]
+    ),
+    query(
+      'SELECT * FROM echeances WHERE dossier_id = $1 AND user_id = $2 ORDER BY date_evenement ASC',
+      [id, session.user.id]
+    ),
+    query(
+      'SELECT * FROM documents WHERE dossier_id = $1 AND user_id = $2 ORDER BY created_at DESC',
+      [id, session.user.id]
+    ),
+  ])
+
   const dossier = dossierResult.rows[0]
+  const actions = actionsResult.rows
+  const echeances = echeancesResult.rows
+  const documents = documentsResult.rows
 
   if (!dossier) {
     notFound()
   }
-
-  // Récupérer les actions du dossier
-  const actionsResult = await query(
-    'SELECT * FROM actions WHERE dossier_id = $1 AND user_id = $2 ORDER BY created_at DESC',
-    [id, session.user.id]
-  )
-  const actions = actionsResult.rows
-
-  // Récupérer les échéances
-  const echeancesResult = await query(
-    'SELECT * FROM echeances WHERE dossier_id = $1 AND user_id = $2 ORDER BY date_evenement ASC',
-    [id, session.user.id]
-  )
-  const echeances = echeancesResult.rows
-
-  // Récupérer les documents
-  const documentsResult = await query(
-    'SELECT * FROM documents WHERE dossier_id = $1 AND user_id = $2 ORDER BY created_at DESC',
-    [id, session.user.id]
-  )
-  const documents = documentsResult.rows
 
   const clientName =
     dossier.clients?.type_client === 'personne_physique'

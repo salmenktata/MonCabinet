@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState, useTransition, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -73,12 +73,38 @@ export default function PendingDocumentsWidget({ dossiers }: PendingDocumentsWid
   const [documentToReject, setDocumentToReject] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Charger documents en attente
-  useEffect(() => {
-    loadDocuments()
+  // Fonctions de formatage mémorisées
+  const formatFileSize = useCallback((bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }, [])
 
-  const loadDocuments = async () => {
+  const formatDate = useCallback((dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }, [])
+
+  // Obtenir nom client formaté
+  const getClientName = useCallback((doc: PendingDocument): string => {
+    if (!doc.clients) {
+      return doc.sender_name || doc.sender_phone
+    }
+
+    if (doc.clients.type === 'personne_physique') {
+      return `${doc.clients.prenom} ${doc.clients.nom}`
+    }
+
+    return doc.clients.nom
+  }, [])
+
+  // Charger documents en attente
+  const loadDocuments = useCallback(async () => {
     setLoading(true)
     const result = await getPendingDocumentsAction()
 
@@ -90,10 +116,14 @@ export default function PendingDocumentsWidget({ dossiers }: PendingDocumentsWid
 
     setDocuments(result.data || [])
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    loadDocuments()
+  }, [loadDocuments])
 
   // Rattacher un document à un dossier
-  const handleAttach = async (documentId: string) => {
+  const handleAttach = useCallback(async (documentId: string) => {
     const dossierId = selectedDossiers[documentId]
 
     if (!dossierId) {
@@ -123,10 +153,10 @@ export default function PendingDocumentsWidget({ dossiers }: PendingDocumentsWid
 
       router.refresh()
     })
-  }
+  }, [selectedDossiers, router])
 
   // Rejeter un document
-  const handleReject = async () => {
+  const handleReject = useCallback(async () => {
     if (!documentToReject) return
 
     startTransition(async () => {
@@ -146,38 +176,7 @@ export default function PendingDocumentsWidget({ dossiers }: PendingDocumentsWid
       setDocumentToReject(null)
       router.refresh()
     })
-  }
-
-  // Formater taille fichier
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
-
-  // Formater date
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
-  // Obtenir nom client formaté
-  const getClientName = (doc: PendingDocument): string => {
-    if (!doc.clients) {
-      return doc.sender_name || doc.sender_phone
-    }
-
-    if (doc.clients.type === 'personne_physique') {
-      return `${doc.clients.prenom} ${doc.clients.nom}`
-    }
-
-    return doc.clients.nom
-  }
+  }, [documentToReject, router])
 
   // Si aucun document en attente, ne pas afficher le widget
   if (!loading && documents.length === 0) {

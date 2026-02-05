@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState, useTransition, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -73,12 +73,25 @@ export default function UnclassifiedDocumentsWidget({
   const [documentToIgnore, setDocumentToIgnore] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Charger documents non classés
-  useEffect(() => {
-    loadDocuments()
+  // Fonctions de formatage mémorisées
+  const formatFileSize = useCallback((bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }, [])
 
-  const loadDocuments = async () => {
+  const formatDate = useCallback((dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }, [])
+
+  // Charger documents non classés
+  const loadDocuments = useCallback(async () => {
     setLoading(true)
     const result = await getUnclassifiedDocumentsAction()
 
@@ -90,10 +103,14 @@ export default function UnclassifiedDocumentsWidget({
 
     setDocuments(result.data || [])
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    loadDocuments()
+  }, [loadDocuments])
 
   // Classer un document
-  const handleClassify = async (documentId: string) => {
+  const handleClassify = useCallback(async (documentId: string) => {
     const dossierId = selectedDossiers[documentId]
 
     if (!dossierId) {
@@ -123,10 +140,10 @@ export default function UnclassifiedDocumentsWidget({
 
       router.refresh()
     })
-  }
+  }, [selectedDossiers, router])
 
   // Ignorer un document
-  const handleIgnore = async () => {
+  const handleIgnore = useCallback(async () => {
     if (!documentToIgnore) return
 
     startTransition(async () => {
@@ -146,25 +163,7 @@ export default function UnclassifiedDocumentsWidget({
       setDocumentToIgnore(null)
       router.refresh()
     })
-  }
-
-  // Formater taille fichier
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
-
-  // Formater date
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  }, [documentToIgnore, router])
 
   // Si aucun document non classé, ne pas afficher le widget
   if (!loading && documents.length === 0) {

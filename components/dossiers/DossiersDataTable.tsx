@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -51,18 +52,18 @@ export function DossiersDataTable({
   const t = useTranslations('dossiers')
   const { confirm, dialog } = useConfirmDialog()
 
-  // Fonction pour formater la date
-  const formatDate = (dateString: string) => {
+  // Fonction pour formater la date (mémorisée)
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
     })
-  }
+  }, [])
 
-  // Obtenir le badge de statut
-  const getStatusBadge = (statut: Dossier['statut']) => {
+  // Obtenir le badge de statut (mémorisé)
+  const getStatusBadge = useCallback((statut: Dossier['statut']) => {
     const variants = {
       actif: {
         className: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400',
@@ -90,19 +91,19 @@ export function DossiersDataTable({
         {variant.label}
       </Badge>
     )
-  }
+  }, [])
 
-  // Obtenir le nom du client
-  const getClientName = (client?: Dossier['client']) => {
+  // Obtenir le nom du client (mémorisé)
+  const getClientName = useCallback((client?: Dossier['client']) => {
     if (!client) return 'Non assigné'
     if (client.type_client === 'personne_physique') {
       return `${client.prenom || ''} ${client.nom}`.trim()
     }
     return client.nom
-  }
+  }, [])
 
-  // Gérer l'archivage
-  const handleArchive = async (dossier: Dossier) => {
+  // Gérer l'archivage (mémorisé)
+  const handleArchive = useCallback(async (dossier: Dossier) => {
     await confirm({
       title: 'Archiver le dossier ?',
       description: `Le dossier "${dossier.numero}" sera déplacé vers les archives. Vous pourrez le restaurer à tout moment.`,
@@ -119,10 +120,10 @@ export function DossiersDataTable({
         router.refresh()
       },
     })
-  }
+  }, [confirm, onArchive, router])
 
-  // Gérer la clôture
-  const handleClose = async (dossier: Dossier) => {
+  // Gérer la clôture (mémorisé)
+  const handleClose = useCallback(async (dossier: Dossier) => {
     await confirm({
       title: 'Clôturer le dossier ?',
       description: `Le dossier "${dossier.numero}" sera marqué comme clôturé. Il ne pourra plus être modifié.`,
@@ -139,10 +140,10 @@ export function DossiersDataTable({
         router.refresh()
       },
     })
-  }
+  }, [confirm, onClose, router])
 
-  // Gérer la suppression
-  const handleDelete = async (dossier: Dossier) => {
+  // Gérer la suppression (mémorisé)
+  const handleDelete = useCallback(async (dossier: Dossier) => {
     await confirm({
       title: 'Supprimer le dossier ?',
       description: `Le dossier "${dossier.numero}" et toutes ses données associées seront définitivement supprimés. Cette action est irréversible.`,
@@ -159,10 +160,10 @@ export function DossiersDataTable({
         router.refresh()
       },
     })
-  }
+  }, [confirm, onDelete, router])
 
-  // Définition des colonnes
-  const columns: DataTableColumn<Dossier>[] = [
+  // Définition des colonnes (mémorisée)
+  const columns: DataTableColumn<Dossier>[] = useMemo(() => [
     {
       id: 'numero',
       header: 'Numéro',
@@ -277,7 +278,7 @@ export function DossiersDataTable({
       ),
       className: 'w-12',
     },
-  ]
+  ], [formatDate, getStatusBadge, getClientName, handleArchive, handleClose, handleDelete])
 
   return (
     <>
