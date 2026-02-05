@@ -1,0 +1,81 @@
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+
+ASSIGNATION EN MATIÈRE CIVILE
+
+L'AN {annee} ET LE {date_aujourdhui_fr}
+
+À la requête de :
+{client.nom_complet}
+{client.qualite_juridique}
+Demeurant à {client.adresse}
+CIN n° {client.cin}
+Représenté par Maître {avocat.nom}, avocat au Barreau de {avocat.barreau}
+
+J'ai, {huissier.nom}, huissier notaire près le Tribunal de Première Instance de {huissier.residence}, soussigné,
+
+DONNÉ ASSIGNATION À :
+
+{partie_adverse}
+{partie_adverse.qualite_juridique}
+Demeurant à {partie_adverse.adresse}
+{#si_societe}Registre de Commerce n° {partie_adverse.registre_commerce}{#fin_si}
+
+En lui parlant et me faisant connaître à :
+{notification.lieu_et_conditions}
+
+De comparaître devant le Tribunal de Première Instance de {tribunal.ville}, siégeant en matière civile, à l'audience du {audience.date} à {audience.heure}, ou à toute autre audience à laquelle la cause sera appelée.
+
+OBJET DE LA DEMANDE
+
+{dossier.objet}
+
+EXPOSÉ DES FAITS
+
+{faits.description_detaillee}
+
+MOYENS EN DROIT
+
+{#pour_chaque_moyen}
+{moyen.titre}
+
+{moyen.developpement}
+
+Textes applicables : {moyen.textes_loi}
+{#fin_pour_chaque}
+
+DEMANDES
+
+Le demandeur sollicite qu'il plaise au Tribunal :
+
+{#pour_chaque_demande}
+{demande.numero}. {demande.texte}
+{#fin_pour_chaque}
+
+AU PRINCIPAL :
+- CONDAMNER le défendeur à {demande_principale}
+- DIRE ET JUGER que {demande_secondaire}
+
+SUBSIDIAIREMENT :
+- {demande_subsidiaire}
+
+EN TOUT ÉTAT DE CAUSE :
+- CONDAMNER le défendeur aux entiers dépens
+- ASSORTIR le jugement de l'exécution provisoire
+
+ÉVALUATION DU LITIGE : {montant_litige} TND
+
+J'ai laissé copie de l'exploit
+
+Et ai dressé le présent exploit pour servir et valoir ce que de droit.
+
+Coût : {cout_exploit} TND
+
+{huissier.nom}
+Huissier Notaire
+(Signature et cachet)
+
+PIÈCES COMMUNIQUÉES :
+
+{#pour_chaque_piece}
+P{piece.numero} - {piece.description}
+{#fin_pour_chaque}

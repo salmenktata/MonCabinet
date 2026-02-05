@@ -2,335 +2,400 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  updateNotificationPreferencesAction,
-  testNotificationAction,
-  type NotificationPreferences,
-} from '@/app/actions/notifications'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { Loader2, Save } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/hooks/use-toast'
 
-interface NotificationPreferencesFormProps {
-  preferences: NotificationPreferences
+interface NotificationPreferences {
+  id: string
+  user_id: string
+  enabled: boolean
+  daily_digest_enabled: boolean
+  daily_digest_time: string
+  alerte_j15_enabled: boolean
+  alerte_j7_enabled: boolean
+  alerte_j3_enabled: boolean
+  alerte_j1_enabled: boolean
+  alerte_actions_urgentes: boolean
+  alerte_actions_priorite_haute: boolean
+  alerte_audiences_semaine: boolean
+  alerte_audiences_veille: boolean
+  alerte_factures_impayees: boolean
+  alerte_factures_impayees_delai_jours: number
+  alerte_delais_appel: boolean
+  alerte_delais_cassation: boolean
+  alerte_delais_opposition: boolean
+  email_format: string
+  langue_email: string
 }
 
-export default function NotificationPreferencesForm({
-  preferences,
-}: NotificationPreferencesFormProps) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [testing, setTesting] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+interface Props {
+  preferences: NotificationPreferences | null
+  userId: string
+}
 
-  const [formData, setFormData] = useState<NotificationPreferences>(preferences)
+export default function NotificationPreferencesForm({ preferences, userId }: Props) {
+  const router = useRouter()
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const supabase = createClient()
+
+  const [formData, setFormData] = useState({
+    enabled: preferences?.enabled ?? true,
+    daily_digest_enabled: preferences?.daily_digest_enabled ?? true,
+    daily_digest_time: preferences?.daily_digest_time ?? '06:00:00',
+    alerte_j15_enabled: preferences?.alerte_j15_enabled ?? true,
+    alerte_j7_enabled: preferences?.alerte_j7_enabled ?? true,
+    alerte_j3_enabled: preferences?.alerte_j3_enabled ?? true,
+    alerte_j1_enabled: preferences?.alerte_j1_enabled ?? true,
+    alerte_actions_urgentes: preferences?.alerte_actions_urgentes ?? true,
+    alerte_actions_priorite_haute: preferences?.alerte_actions_priorite_haute ?? true,
+    alerte_audiences_semaine: preferences?.alerte_audiences_semaine ?? true,
+    alerte_audiences_veille: preferences?.alerte_audiences_veille ?? true,
+    alerte_factures_impayees: preferences?.alerte_factures_impayees ?? true,
+    alerte_factures_impayees_delai_jours: preferences?.alerte_factures_impayees_delai_jours ?? 30,
+    alerte_delais_appel: preferences?.alerte_delais_appel ?? true,
+    alerte_delais_cassation: preferences?.alerte_delais_cassation ?? true,
+    alerte_delais_opposition: preferences?.alerte_delais_opposition ?? true,
+    email_format: preferences?.email_format ?? 'html',
+    langue_email: preferences?.langue_email ?? 'fr',
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError('')
-    setSuccess('')
 
-    const result = await updateNotificationPreferencesAction(formData)
+    try {
+      const { error } = preferences
+        ? await supabase
+            .from('notification_preferences')
+            .update(formData)
+            .eq('user_id', userId)
+        : await supabase
+            .from('notification_preferences')
+            .insert({
+              user_id: userId,
+              ...formData,
+            })
 
-    if (result.error) {
-      setError(result.error)
+      if (error) throw error
+
+      toast({
+        title: 'Préférences enregistrées',
+        description: 'Vos préférences de notifications ont été mises à jour.',
+      })
+
+      router.refresh()
+    } catch (error) {
+      console.error('Erreur sauvegarde préférences:', error)
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de sauvegarder les préférences.',
+        variant: 'destructive',
+      })
+    } finally {
       setLoading(false)
-      return
     }
-
-    setSuccess('✅ Préférences mises à jour avec succès')
-    setLoading(false)
-    router.refresh()
-  }
-
-  const handleTest = async () => {
-    setTesting(true)
-    setError('')
-    setSuccess('')
-
-    const result = await testNotificationAction()
-
-    if (result.error) {
-      setError(result.error)
-      setTesting(false)
-      return
-    }
-
-    setSuccess(result.message || '✅ Email de test envoyé !')
-    setTesting(false)
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Activer/Désactiver notifications */}
-      <div className="flex items-center justify-between rounded-lg border p-4">
-        <div>
-          <h3 className="font-semibold">Activer les notifications quotidiennes</h3>
+      {/* Activer/Désactiver toutes les notifications */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-0.5">
+          <Label htmlFor="enabled" className="text-base font-semibold">
+            Activer les notifications
+          </Label>
           <p className="text-sm text-muted-foreground">
-            Recevoir un email récapitulatif chaque jour avec vos tâches importantes
+            Activer ou désactiver toutes les notifications email
           </p>
         </div>
-        <label className="relative inline-flex cursor-pointer items-center">
-          <input
-            type="checkbox"
-            checked={formData.enabled}
+        <Switch
+          id="enabled"
+          checked={formData.enabled}
+          onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked })}
+        />
+      </div>
+
+      <Separator />
+
+      {/* Email quotidien */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Email quotidien</h3>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="daily_digest_enabled">Récapitulatif quotidien</Label>
+            <p className="text-sm text-muted-foreground">
+              Email avec échéances, actions urgentes et audiences du jour
+            </p>
+          </div>
+          <Switch
+            id="daily_digest_enabled"
+            checked={formData.daily_digest_enabled}
+            onCheckedChange={(checked) => setFormData({ ...formData, daily_digest_enabled: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="daily_digest_time">Heure d'envoi</Label>
+          <Input
+            type="time"
+            id="daily_digest_time"
+            value={formData.daily_digest_time}
+            onChange={(e) => setFormData({ ...formData, daily_digest_time: e.target.value })}
+            disabled={!formData.enabled || !formData.daily_digest_enabled}
+            className="max-w-[200px]"
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Alertes échéances */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Alertes échéances</h3>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_j15_enabled">15 jours avant</Label>
+          <Switch
+            id="alerte_j15_enabled"
+            checked={formData.alerte_j15_enabled}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_j15_enabled: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_j7_enabled">7 jours avant</Label>
+          <Switch
+            id="alerte_j7_enabled"
+            checked={formData.alerte_j7_enabled}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_j7_enabled: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_j3_enabled">3 jours avant</Label>
+          <Switch
+            id="alerte_j3_enabled"
+            checked={formData.alerte_j3_enabled}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_j3_enabled: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_j1_enabled">La veille (J-1)</Label>
+          <Switch
+            id="alerte_j1_enabled"
+            checked={formData.alerte_j1_enabled}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_j1_enabled: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Alertes actions */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Alertes actions</h3>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_actions_urgentes">Actions priorité URGENTE</Label>
+          <Switch
+            id="alerte_actions_urgentes"
+            checked={formData.alerte_actions_urgentes}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_actions_urgentes: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_actions_priorite_haute">Actions priorité HAUTE</Label>
+          <Switch
+            id="alerte_actions_priorite_haute"
+            checked={formData.alerte_actions_priorite_haute}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_actions_priorite_haute: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Alertes audiences */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Alertes audiences</h3>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_audiences_semaine">Audiences de la semaine</Label>
+          <Switch
+            id="alerte_audiences_semaine"
+            checked={formData.alerte_audiences_semaine}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_audiences_semaine: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_audiences_veille">Rappel veille audience</Label>
+          <Switch
+            id="alerte_audiences_veille"
+            checked={formData.alerte_audiences_veille}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_audiences_veille: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Alertes factures */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Alertes factures</h3>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="alerte_factures_impayees">Factures impayées</Label>
+            <p className="text-sm text-muted-foreground">
+              Alerte si facture impayée au-delà du délai défini
+            </p>
+          </div>
+          <Switch
+            id="alerte_factures_impayees"
+            checked={formData.alerte_factures_impayees}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_factures_impayees: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="alerte_factures_impayees_delai_jours">Délai (jours)</Label>
+          <Input
+            type="number"
+            id="alerte_factures_impayees_delai_jours"
+            value={formData.alerte_factures_impayees_delai_jours}
             onChange={(e) =>
               setFormData({
                 ...formData,
-                enabled: e.target.checked,
+                alerte_factures_impayees_delai_jours: parseInt(e.target.value) || 30,
               })
             }
-            className="peer sr-only"
+            disabled={!formData.enabled || !formData.alerte_factures_impayees}
+            min={1}
+            className="max-w-[200px]"
           />
-          <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300"></div>
-        </label>
+          <p className="text-xs text-muted-foreground">
+            Nombre de jours avant d'être alerté (défaut: 30 jours)
+          </p>
+        </div>
       </div>
 
-      {formData.enabled && (
-        <>
-          {/* Heure d'envoi */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Heure d&apos;envoi préférée
-            </label>
-            <input
-              type="time"
-              value={formData.send_time}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  send_time: e.target.value,
-                })
-              }
-              min="06:00"
-              max="10:00"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Entre 06:00 et 10:00 (fuseau horaire Tunis)
-            </p>
+      <Separator />
+
+      {/* Alertes délais légaux */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Alertes délais légaux</h3>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_delais_appel">Délai d'appel (20j civil / 10j commercial)</Label>
+          <Switch
+            id="alerte_delais_appel"
+            checked={formData.alerte_delais_appel}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_delais_appel: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_delais_cassation">Délai de cassation (60j)</Label>
+          <Switch
+            id="alerte_delais_cassation"
+            checked={formData.alerte_delais_cassation}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_delais_cassation: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="alerte_delais_opposition">Délai d'opposition (10j)</Label>
+          <Switch
+            id="alerte_delais_opposition"
+            checked={formData.alerte_delais_opposition}
+            onCheckedChange={(checked) => setFormData({ ...formData, alerte_delais_opposition: checked })}
+            disabled={!formData.enabled}
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Format email */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Préférences email</h3>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="email_format">Format email</Label>
+            <Select
+              value={formData.email_format}
+              onValueChange={(value) => setFormData({ ...formData, email_format: value })}
+              disabled={!formData.enabled}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="html">HTML (enrichi)</SelectItem>
+                <SelectItem value="text">Texte brut</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Types de notifications - Échéances */}
-          <div className="rounded-lg border p-4">
-            <h3 className="font-semibold mb-3">Échéances à surveiller</h3>
-            <div className="space-y-2">
-              {[
-                { key: 'j15', label: 'J-15 (15 jours avant)' },
-                { key: 'j7', label: 'J-7 (7 jours avant)' },
-                { key: 'j3', label: 'J-3 (3 jours avant)' },
-                { key: 'j1', label: 'J-1 (veille)' },
-              ].map((option) => (
-                <label key={option.key} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={
-                      formData.notify_echeances[
-                        option.key as keyof typeof formData.notify_echeances
-                      ]
-                    }
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        notify_echeances: {
-                          ...formData.notify_echeances,
-                          [option.key]: e.target.checked,
-                        },
-                      })
-                    }
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm">{option.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Actions urgentes */}
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div>
-              <h3 className="font-semibold">Actions urgentes</h3>
-              <p className="text-sm text-muted-foreground">
-                Actions avec priorité HAUTE ou URGENTE
-              </p>
-            </div>
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                checked={formData.notify_actions_urgentes}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    notify_actions_urgentes: e.target.checked,
-                  })
-                }
-                className="peer sr-only"
-              />
-              <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300"></div>
-            </label>
-          </div>
-
-          {/* Audiences */}
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div>
-              <h3 className="font-semibold">Audiences de la semaine</h3>
-              <p className="text-sm text-muted-foreground">
-                Rappel des audiences prévues cette semaine
-              </p>
-            </div>
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                checked={formData.notify_audiences}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    notify_audiences: e.target.checked,
-                  })
-                }
-                className="peer sr-only"
-              />
-              <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300"></div>
-            </label>
-          </div>
-
-          {/* Factures impayées */}
-          <div className="rounded-lg border p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="font-semibold">Factures impayées</h3>
-                <p className="text-sm text-muted-foreground">
-                  Rappel des factures non payées après un certain délai
-                </p>
-              </div>
-              <label className="relative inline-flex cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.notify_factures_impayees}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      notify_factures_impayees: e.target.checked,
-                    })
-                  }
-                  className="peer sr-only"
-                />
-                <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300"></div>
-              </label>
-            </div>
-            {formData.notify_factures_impayees && (
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Seuil d&apos;alerte (jours de retard)
-                </label>
-                <input
-                  type="number"
-                  value={formData.factures_seuil_jours}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      factures_seuil_jours: parseInt(e.target.value) || 30,
-                    })
-                  }
-                  min="15"
-                  max="90"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">Entre 15 et 90 jours</p>
-              </div>
-            )}
-          </div>
-
-          {/* Langue email */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Langue de l&apos;email</label>
-            <select
+          <div className="space-y-2">
+            <Label htmlFor="langue_email">Langue</Label>
+            <Select
               value={formData.langue_email}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  langue_email: e.target.value as 'fr' | 'ar',
-                })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onValueChange={(value) => setFormData({ ...formData, langue_email: value })}
+              disabled={!formData.enabled}
             >
-              <option value="fr">Français</option>
-              <option value="ar">العربية (Arabe)</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fr">Français</SelectItem>
+                <SelectItem value="ar">العربية</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-
-          {/* Format email */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Format de l&apos;email</label>
-            <select
-              value={formData.format_email}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  format_email: e.target.value as 'html' | 'text',
-                })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="html">HTML (avec images et couleurs)</option>
-              <option value="text">Texte brut (simple)</option>
-            </select>
-          </div>
-        </>
-      )}
-
-      {/* Messages */}
-      {error && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-800">{error}</div>
-      )}
-
-      {success && (
-        <div className="rounded-md bg-green-50 p-4 text-sm text-green-800">{success}</div>
-      )}
-
-      {/* Boutons */}
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Enregistrement...' : 'Enregistrer'}
-        </button>
-
-        {formData.enabled && (
-          <button
-            type="button"
-            onClick={handleTest}
-            disabled={testing || loading}
-            className="px-6 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {testing ? 'Envoi...' : '📧 Tester maintenant'}
-          </button>
-        )}
-
-        <button
-          type="button"
-          onClick={() => router.back()}
-          disabled={loading || testing}
-          className="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-        >
-          Annuler
-        </button>
+        </div>
       </div>
 
-      {/* Info */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">ℹ️ À propos des notifications</h3>
-        <ul className="space-y-1 text-sm text-blue-800">
-          <li>• Les notifications sont envoyées automatiquement chaque jour à l&apos;heure choisie</li>
-          <li>• Seuls les éléments pertinents sont inclus (pas d&apos;email vide)</li>
-          <li>
-            • Vous pouvez tester immédiatement avec le bouton &quot;Tester maintenant&quot;
-          </li>
-          <li>• Les logs d&apos;envoi sont conservés 90 jours pour traçabilité</li>
-        </ul>
+      {/* Bouton sauvegarder */}
+      <div className="flex justify-end pt-4">
+        <Button type="submit" disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sauvegarde...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Sauvegarder les préférences
+            </>
+          )}
+        </Button>
       </div>
     </form>
   )

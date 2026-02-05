@@ -1,0 +1,103 @@
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+
+CONCLUSIONS EN DÉFENSE
+
+POUR :
+{client.nom_complet}
+{client.qualite_juridique}
+Demeurant à {client.adresse}
+Représenté par Maître {avocat.nom}, avocat au Barreau de {avocat.barreau}
+
+DÉFENDEUR
+
+CONTRE :
+
+{partie_adverse}
+Représenté par Maître {partie_adverse.avocat_nom}
+
+DEMANDEUR
+
+---
+
+Affaire n° {dossier.numero_rg}
+Audience du {audience.date}
+
+Monsieur le Président,
+Messieurs les Juges,
+
+Au vu de l'assignation qui lui a été signifiée le {date_assignation}, le défendeur a l'honneur de présenter les conclusions suivantes.
+
+I. RAPPEL DES FAITS
+
+{faits.version_defense}
+
+II. IRRECEVABILITÉ DE LA DEMANDE (le cas échéant)
+
+{#si_irrecevabilite}
+La demande du demandeur doit être déclarée irrecevable pour les motifs suivants :
+
+{irrecevabilite.motif_1}
+{irrecevabilite.motif_2}
+{#fin_si}
+
+III. NON-FONDÉ DE LA DEMANDE AU FOND
+
+La demande du demandeur n'est pas fondée pour les motifs suivants :
+
+{#pour_chaque_argument}
+{argument.titre}
+
+{argument.developpement}
+
+Textes applicables : {argument.textes_loi}
+{#fin_pour_chaque}
+
+IV. PREUVE
+
+Le défendeur verse aux débats les pièces suivantes :
+
+{#pour_chaque_piece}
+P{piece.numero} - {piece.description}
+{#fin_pour_chaque}
+
+V. DEMANDE RECONVENTIONNELLE (le cas échéant)
+
+{#si_reconventionnelle}
+À titre reconventionnel, le défendeur demande au Tribunal de :
+
+{demande_reconventionnelle}
+{#fin_si}
+
+PAR CES MOTIFS
+
+Et tous autres à déduire, suppléer ou substituer d'office, il vous plaira, Monsieur le Président, Messieurs les Juges :
+
+AU PRÉALABLE :
+- DÉCLARER la demande irrecevable {#si_irrecevabilite}pour les motifs sus-énoncés{#fin_si}
+
+AU PRINCIPAL :
+- DÉBOUTER le demandeur de l'intégralité de ses prétentions
+- DIRE ET JUGER mal fondée la demande
+
+{#si_reconventionnelle}
+À TITRE RECONVENTIONNEL :
+- CONDAMNER le demandeur à {demande_reconventionnelle_resume}
+{#fin_si}
+
+EN TOUT ÉTAT DE CAUSE :
+- CONDAMNER le demandeur aux entiers dépens
+
+SOUS LE BÉNÉFICE DE CES OBSERVATIONS.
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+Maître {avocat.nom}
+Avocat au Barreau de {avocat.barreau}
+Pour {client.nom_complet}
+(Signature et cachet)
+
+BORDEREAU DE COMMUNICATION DE PIÈCES
+
+{#pour_chaque_piece}
+Pièce n° {piece.numero} : {piece.description}
+{#fin_pour_chaque}

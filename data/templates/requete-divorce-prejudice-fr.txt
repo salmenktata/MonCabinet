@@ -1,0 +1,180 @@
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+
+REQUÊTE EN DIVORCE POUR PRÉJUDICE (DARAR)
+(Code Statut Personnel - Article 31)
+
+PRÉSENTÉE PAR :
+
+Monsieur/Madame {client.nom_complet}
+Né(e) le {client.date_naissance}
+CIN n° {client.cin}
+Demeurant à {client.adresse}
+Représenté(e) par Maître {avocat.nom}, avocat au Barreau de {avocat.barreau}
+
+CONTRE
+
+Monsieur/Madame {partie_adverse}
+Né(e) le {partie_adverse.date_naissance}
+CIN n° {partie_adverse.cin}
+Demeurant à {partie_adverse.adresse}
+
+---
+
+OBJET : Divorce pour préjudice (Darar)
+
+Monsieur le Président,
+
+J'ai l'honneur de soumettre à votre haute appréciation la présente requête en divorce pour préjudice conformément aux dispositions de l'Article 31 du Code du Statut Personnel.
+
+1. MARIAGE
+
+Le/La requérant(e) a contracté mariage avec {partie_adverse} le {dossier.date_mariage} à {dossier.lieu_mariage} sous le régime de {dossier.regime_matrimonial}.
+
+Acte de mariage n° {dossier.acte_mariage_numero}
+Durée du mariage : {dossier.duree_mariage_annees} ans
+
+2. ENFANTS ISSUS DU MARIAGE
+
+{#si_enfants}
+De cette union sont nés {dossier.nb_enfants_total} enfant(s) :
+
+{#pour_chaque_enfant}
+- {enfant.prenom} {enfant.nom}, né(e) le {enfant.date_naissance} ({enfant.age} ans) {#si_mineur}(mineur){#fin_si}
+{#fin_pour_chaque}
+
+Nombre d'enfants mineurs : {dossier.nb_enfants_mineurs}
+{#sinon}
+Le couple n'a pas d'enfants communs.
+{#fin_si}
+
+3. PRÉJUDICE SUBI (DARAR)
+
+Le/La requérant(e) expose que la vie conjugale est devenue impossible en raison des préjudices graves et répétés subis de la part du/de la défendeur(esse), à savoir :
+
+{prejudice.description_detaillee}
+
+Ces préjudices constituent des violations graves des devoirs du mariage et rendent la poursuite de la vie commune impossible.
+
+4. FAITS À L'APPUI
+
+{#pour_chaque_fait}
+{fait.date} : {fait.description}
+{#fin_pour_chaque}
+
+Ces faits sont attestés par les témoignages et pièces justificatives annexés à la présente requête.
+
+5. TENTATIVES DE CONCILIATION
+
+{#si_tentatives_conciliation}
+Des tentatives de conciliation ont été effectuées :
+- 1ère tentative : {dossier.tentative_conciliation_1}
+- 2ème tentative : {dossier.tentative_conciliation_2}
+- 3ème tentative : {dossier.tentative_conciliation_3}
+
+Échec constaté le : {dossier.echec_conciliation_date}
+
+Toutes ces tentatives se sont soldées par un échec, rendant le divorce inévitable.
+{#sinon}
+Il y a lieu de procéder aux tentatives de conciliation obligatoires prévues par le Code du Statut Personnel.
+{#fin_si}
+
+6. DEMANDES ACCESSOIRES
+
+A. GARDE DES ENFANTS
+
+{#si_enfants_mineurs}
+Le/La requérant(e) sollicite que la garde des enfants mineurs lui soit attribuée dans leur intérêt supérieur, compte tenu de :
+- {garde.motif_1}
+- {garde.motif_2}
+- {garde.motif_3}
+
+Le parent non-gardien disposera d'un droit de visite selon les modalités suivantes :
+{dossier.droit_visite}
+{#fin_si}
+
+B. PENSION ALIMENTAIRE
+
+{#si_enfants_mineurs}
+Le/La requérant(e) demande que le parent non-gardien soit condamné à verser une pension alimentaire mensuelle de :
+
+{dossier.pension_alimentaire_total} TND
+Soit {dossier.pension_alimentaire_par_enfant} TND par enfant
+
+Cette pension est calculée sur la base des revenus du parent débiteur ({dossier.revenus_pere} TND/mois) et des besoins des enfants.
+
+Fourchette suggérée : {pension.fourchette_basse} TND - {pension.fourchette_haute} TND par enfant
+{#fin_si}
+
+C. PENSION COMPENSATOIRE (MOUTAA)
+
+Le/La requérant(e) sollicite l'octroi d'une pension compensatoire (Moutaa) conformément au Code du Statut Personnel, calculée comme suit :
+
+Durée du mariage : {dossier.duree_mariage_annees} ans
+Revenus du débiteur : {dossier.revenus_epoux} TND/mois
+Formule : {dossier.duree_mariage_annees} × {dossier.coefficient_moutaa} × {dossier.revenus_epoux}
+
+Montant sollicité : {dossier.pension_compensatoire_moutaa} TND
+
+D. PARTAGE DES BIENS COMMUNS
+
+{#si_biens_communs}
+Les époux possèdent les biens communs suivants à partager par moitié :
+
+{dossier.biens_communs}
+
+Valeur totale estimée : {dossier.valeur_biens_communs} TND
+Part de chaque époux : {partage.part_individuelle} TND
+{#fin_si}
+
+E. DOMICILE CONJUGAL
+
+Le/La requérant(e) sollicite {domicile.demande}.
+
+7. MESURES PROVISOIRES
+
+En application de l'Article 32 du Code du Statut Personnel, il y a lieu d'ordonner à titre provisoire :
+
+- La garde provisoire des enfants mineurs au profit de {garde.parent_gardien}
+- Une pension alimentaire provisoire de {pension_provisoire.montant} TND/mois
+- {mesures_provisoires.autres}
+
+PAR CES MOTIFS
+
+Nous sollicitons respectueusement de Monsieur le Président du Tribunal de Première Instance de {tribunal.ville} qu'il lui plaise :
+
+AU PROVISOIRE :
+- ORDONNER les mesures provisoires sus-énoncées
+- FIXER les modalités d'exercice du droit de visite
+- FIXER une pension alimentaire provisoire
+
+AU FOND :
+- CONSTATER les préjudices graves subis par le/la requérant(e)
+- PRONONCER le divorce des époux aux torts exclusifs du/de la défendeur(esse)
+- ATTRIBUER la garde des enfants mineurs au/à la requérant(e)
+- CONDAMNER le parent non-gardien à verser une pension alimentaire de {dossier.pension_alimentaire_total} TND/mois
+- CONDAMNER le/la défendeur(esse) à verser une pension compensatoire (Moutaa) de {dossier.pension_compensatoire_moutaa} TND
+- ORDONNER le partage par moitié des biens communs
+- CONDAMNER le/la défendeur(esse) aux dépens
+- ORDONNER la transcription du jugement de divorce sur l'acte de mariage
+
+Sous le bénéfice de ces observations, nous vous prions d'agréer, Monsieur le Président, l'expression de notre haute considération.
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+Le/La Requérant(e)                        Maître {avocat.nom}
+{client.nom_complet}                      Avocat au Barreau de {avocat.barreau}
+(Signature précédée de "Lu et approuvé") (Signature et cachet)
+
+
+PIÈCES ANNEXÉES :
+
+1. Copie intégrale acte de mariage
+2. Copies CIN des deux époux
+3. Extraits de naissance des enfants
+4. Certificats médicaux (si violence physique)
+5. Témoignages écrits (3 témoins minimum)
+6. Attestations diverses (police, voisinage, famille)
+7. Justificatifs de revenus du défendeur
+8. Justificatifs de propriété des biens communs
+9. Photos, SMS, emails (preuves du préjudice)
+10. Rapport d'expertise sociale (si déjà réalisé)

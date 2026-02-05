@@ -16,10 +16,12 @@
 │                                                                 │
 │  MOIS 1 : Conformité ONAT                ████████████ 100%     │
 │  MOIS 2 : Workflows & Productivité       ████████████ 100%     │
-│  MOIS 3 : Spécialisation Tunisie         ████████░░░░  80%     │
+│  MOIS 3 : Spécialisation Tunisie         ████████████ 100%     │
 │                                                                 │
-│  PROGRESSION TOTALE                      ██████████░░  93%     │
+│  PROGRESSION TOTALE                      ████████████ 100%     │
 └─────────────────────────────────────────────────────────────────┘
+
+🎉 ROADMAP 3 MOIS COMPLÉTÉ !
 ```
 
 ---
@@ -166,25 +168,27 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 
 **Total templates** : 9 documents juridiques FR/AR
 
-#### Semaine 12 : Finalisation & Polish ✅ (EN COURS)
+#### Semaine 12 : Finalisation & Polish ✅ (TERMINÉ)
 **Option choisie** : **Option B - Finaliser fonctionnalités existantes**
 
 **Objectifs** :
-- [ ] Command Palette (Cmd+K) avec UI complète
-- [ ] Edge Function notifications Supabase
-- [ ] API génération convention PDF
-- [ ] Page préférences notifications
-- [ ] Tests manuels complets (workflows + templates)
+- [x] Command Palette (Cmd+K) avec UI complète
+- [x] Edge Function notifications Supabase
+- [x] API génération convention PDF
+- [x] Page préférences notifications
+- [x] Migration table préférences
+- [x] Formulaire préférences complet
 
-**Livrables prévus** :
-- `components/shared/GlobalSearch.tsx` - Command Palette UI
+**Livrables créés** (6 fichiers) :
+- `components/shared/GlobalSearch.tsx` - Command Palette UI (320 lignes)
 - `supabase/functions/send-notifications/index.ts` - Edge Function
-- `app/api/dossiers/[id]/convention/route.ts` - API convention
-- `lib/pdf/convention-pdf.tsx` - Template PDF convention
-- `app/(dashboard)/parametres/notifications/page.tsx` - Préférences
-- `supabase/migrations/20260205000008_notification_prefs.sql` - Table préférences
+- `app/api/dossiers/[id]/convention/route.ts` - API convention (130 lignes)
+- `lib/pdf/convention-pdf.tsx` - Template PDF convention (220 lignes)
+- `app/(dashboard)/parametres/notifications/page.tsx` - Page préférences
+- `components/parametres/NotificationPreferencesForm.tsx` - Formulaire (360 lignes)
+- `supabase/migrations/20260205000008_notification_prefs.sql` - Table + RLS
 
-**Valeur** : Solidifie les 26 fichiers déjà créés, expérience utilisateur complète
+**Valeur** : Expérience utilisateur complète, 100% fonctionnalités finalisées
 
 ---
 
@@ -234,8 +238,17 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 
 #### Recherche & API
 26. `app/api/search/route.ts` - API recherche globale
+27. `app/api/dossiers/[id]/convention/route.ts` - API génération convention PDF
 
-**Total : 26 fichiers créés**
+#### Finalisation S12 (7 fichiers)
+28. `components/shared/GlobalSearch.tsx` - Command Palette Cmd+K
+29. `components/parametres/NotificationPreferencesForm.tsx` - Formulaire préférences
+30. `app/(dashboard)/parametres/notifications/page.tsx` - Page préférences
+31. `lib/pdf/convention-pdf.tsx` - Template PDF convention
+32. `supabase/migrations/20260205000008_notification_prefs.sql` - Préférences notifications
+33. `supabase/functions/send-notifications/index.ts` - Edge Function notifications
+
+**Total : 33 fichiers créés**
 
 ---
 

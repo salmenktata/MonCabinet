@@ -1,0 +1,136 @@
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+
+REQUÊTE EN DIVORCE PAR CONSENTEMENT MUTUEL
+(Code Statut Personnel - Article 31)
+
+PRÉSENTÉE PAR :
+
+Monsieur/Madame {client.nom_complet}
+Né(e) le {client.date_naissance}
+CIN n° {client.cin}
+Demeurant à {client.adresse}
+Représenté(e) par Maître {avocat.nom}, avocat
+
+ET
+
+Monsieur/Madame {conjoint.nom_complet}
+Né(e) le {conjoint.date_naissance}
+CIN n° {conjoint.cin}
+Demeurant à {conjoint.adresse}
+Représenté(e) par Maître {conjoint.avocat_nom}, avocat
+
+---
+
+OBJET : Divorce par consentement mutuel
+
+Monsieur le Président,
+
+Les époux soussignés, mariés le {dossier.date_mariage} à {dossier.lieu_mariage} sous le régime de {dossier.regime_matrimonial}, ont décidé d'un commun accord de mettre fin à leur union matrimoniale.
+
+1. ACCORD DES ÉPOUX
+
+Les deux époux confirment leur volonté commune et irrévocable de divorcer conformément aux dispositions de l'Article 31 du Code du Statut Personnel.
+
+Durée du mariage : {dossier.duree_mariage_annees} ans
+
+2. ENFANTS COMMUNS
+
+{#si_enfants}
+Le couple a {dossier.nb_enfants_total} enfant(s) commun(s) :
+
+{#pour_chaque_enfant}
+- {enfant.prenom} {enfant.nom}, né(e) le {enfant.date_naissance} ({enfant.age} ans)
+{#fin_pour_chaque}
+
+Nombre d'enfants mineurs : {dossier.nb_enfants_mineurs}
+{#sinon}
+Le couple n'a pas d'enfants communs.
+{#fin_si}
+
+3. GARDE DES ENFANTS ET DROIT DE VISITE
+
+{#si_enfants_mineurs}
+Les époux conviennent que la garde des enfants mineurs sera attribuée à {dossier.garde_enfants_nom}.
+
+Modalités du droit de visite :
+{dossier.droit_visite}
+
+4. PENSION ALIMENTAIRE
+
+Le parent non-gardien s'engage à verser une pension alimentaire mensuelle de :
+- Par enfant : {dossier.pension_alimentaire_par_enfant} TND
+- Total mensuel : {dossier.pension_alimentaire_total} TND
+
+Cette pension sera versée le 1er de chaque mois et indexée annuellement.
+{#fin_si}
+
+5. PENSION COMPENSATOIRE (MOUTAA)
+
+Conformément aux dispositions du Code du Statut Personnel, l'époux {moutaa.debiteur} versera à l'épouse {moutaa.beneficiaire} une pension compensatoire (Moutaa) d'un montant de :
+
+{dossier.pension_compensatoire_moutaa} TND
+(Formule : {dossier.duree_mariage_annees} années × {dossier.coefficient_moutaa} × {dossier.revenus_epoux} TND)
+
+Modalités de paiement : {moutaa.modalites_paiement}
+
+6. PARTAGE DES BIENS COMMUNS
+
+{#si_biens_communs}
+Les époux déclarent posséder les biens communs suivants :
+
+{dossier.biens_communs}
+
+Valeur totale estimée : {dossier.valeur_biens_communs} TND
+
+Convention de partage :
+{partage.convention}
+{#sinon}
+Les époux déclarent n'avoir aucun bien commun à partager.
+{#fin_si}
+
+7. DOMICILE CONJUGAL
+
+{domicile.convention}
+
+8. OBLIGATIONS RÉCIPROQUES
+
+Les deux époux s'engagent à :
+- Respecter les termes de la présente convention
+- Coopérer dans l'intérêt supérieur des enfants
+- Faciliter l'exercice du droit de visite
+- Respecter les échéances de paiement des pensions
+
+PAR CES MOTIFS
+
+Nous sollicitons respectueusement de Monsieur le Président du Tribunal de Première Instance de {tribunal.ville} qu'il lui plaise :
+
+- CONSTATER l'accord des deux époux pour divorcer par consentement mutuel
+- HOMOLOGUER la présente convention
+- PRONONCER le divorce des époux par consentement mutuel
+- STATUER sur la garde des enfants conformément à la convention
+- FIXER les pensions alimentaire et compensatoire aux montants convenus
+- ORDONNER le partage des biens communs selon les modalités convenues
+- ORDONNER la transcription du jugement de divorce sur l'acte de mariage
+
+Sous le bénéfice de ces observations, nous vous prions d'agréer, Monsieur le Président, l'expression de notre haute considération.
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+L'époux                                    L'épouse
+{client.nom_complet}                      {conjoint.nom_complet}
+(Signature)                               (Signature)
+
+
+Maître {avocat.nom}                       Maître {conjoint.avocat_nom}
+Avocat du demandeur                       Avocat de la défenderesse
+(Signature et cachet)                     (Signature et cachet)
+
+
+PIÈCES ANNEXÉES :
+
+1. Copie intégrale acte de mariage
+2. Copies CIN des deux époux
+3. Extraits de naissance des enfants (si applicable)
+4. Justificatifs de revenus
+5. Justificatifs de propriété des biens communs
+6. Convention détaillée de partage

@@ -1,0 +1,90 @@
+MISE EN DEMEURE CONTRACTUELLE
+
+{client.nom_complet}
+{client.qualite_juridique}
+{client.adresse}
+{#si_societe}RC n° {client.registre_commerce}{#fin_si}
+
+À
+
+{destinataire.nom_complet}
+{destinataire.qualite_juridique}
+{destinataire.adresse}
+{#si_societe}RC n° {destinataire.registre_commerce}{#fin_si}
+
+{ville}, le {date_aujourdhui_fr}
+
+LETTRE RECOMMANDÉE AVEC ACCUSÉ DE RÉCEPTION
+
+OBJET : Mise en demeure - {objet}
+
+Monsieur/Madame,
+
+Par la présente lettre recommandée avec accusé de réception, je vous mets formellement en demeure de :
+
+{demandes_principales}
+
+RAPPEL DES FAITS
+
+{#pour_chaque_fait}
+- {fait.date} : {fait.description}
+{#fin_pour_chaque}
+
+FONDEMENT JURIDIQUE
+
+{fondement.description}
+
+Textes applicables :
+{#pour_chaque_texte}
+- {texte.reference} : {texte.extrait}
+{#fin_pour_chaque}
+
+DEMANDES
+
+Je vous mets en demeure de :
+
+{#pour_chaque_demande}
+{demande.numero}. {demande.description}
+{#fin_pour_chaque}
+
+DÉLAI
+
+Vous disposez d'un délai de {delai_jours} jours calendaires à compter de la réception de la présente pour vous exécuter.
+
+CONSÉQUENCES EN CAS DE NON-EXÉCUTION
+
+À défaut d'exécution dans le délai imparti, je me verrai contraint(e) de :
+- Saisir les juridictions compétentes sans autre mise en demeure
+- Solliciter des dommages et intérêts pour le préjudice subi
+- Demander le paiement d'intérêts moratoires au taux de {taux_interet}% l'an
+{#si_commercial}- Réclamer l'indemnité forfaitaire de recouvrement de 40 TND (Loi 2017){#fin_si}
+
+{#si_montant_du}
+DÉCOMPTE
+
+Montant principal : {montant_principal} TND
+Intérêts moratoires : {interets_mortatoires} TND (du {date_debut_interets} au {date_fin_interets})
+{#si_commercial}Indemnité forfaitaire : 40.000 TND{#fin_si}
+TOTAL DÛ : {total_du} TND
+{#fin_si}
+
+Cette mise en demeure vaut dernier avertissement avant action judiciaire.
+
+Je vous prie d'agréer, Monsieur/Madame, mes salutations distinguées.
+
+{client.nom_complet}
+(Signature)
+
+{#si_avocat}
+Pour le compte de {client.nom_complet}
+Maître {avocat.nom}
+Avocat au Barreau de {avocat.barreau}
+{avocat.adresse}
+(Signature et cachet)
+{#fin_si}
+
+PIÈCES JOINTES :
+
+{#pour_chaque_piece}
+- {piece.description}
+{#fin_pour_chaque}

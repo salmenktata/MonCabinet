@@ -1,0 +1,81 @@
+المحكمة الابتدائية بـ {tribunal.ville_ar}
+
+استدعاء في مادة مدنية
+
+سنة {annee} وفي {date_aujourdhui_ar}
+
+بناء على طلب:
+{client.nom_complet_ar}
+{client.qualite_juridique_ar}
+الساكن بـ {client.adresse_ar}
+بطاقة التعريف الوطنية عدد {client.cin}
+ينوبه الأستاذ {avocat.nom_ar}، محامي لدى هيئة المحامين بـ {avocat.barreau_ar}
+
+أنا {huissier.nom_ar}، عدل إشهاد لدى المحكمة الابتدائية بـ {huissier.residence_ar}، الممضي أسفله،
+
+استدعيت:
+
+{partie_adverse_ar}
+{partie_adverse.qualite_juridique_ar}
+الساكن بـ {partie_adverse.adresse_ar}
+{#si_societe}رقم السجل التجاري {partie_adverse.registre_commerce}{#fin_si}
+
+بعد أن خاطبته وعرّفته بصفتي في:
+{notification.lieu_et_conditions_ar}
+
+للمثول أمام المحكمة الابتدائية بـ {tribunal.ville_ar}، الناظرة في المادة المدنية، بجلسة {audience.date} على الساعة {audience.heure}، أو في أي جلسة أخرى تُحال إليها القضية.
+
+موضوع الطلب
+
+{dossier.objet_ar}
+
+عرض الوقائع
+
+{faits.description_detaillee_ar}
+
+الوسائل القانونية
+
+{#pour_chaque_moyen}
+{moyen.titre_ar}
+
+{moyen.developpement_ar}
+
+النصوص القانونية المطبقة: {moyen.textes_loi_ar}
+{#fin_pour_chaque}
+
+المطالب
+
+يلتمس المدعي من المحكمة:
+
+{#pour_chaque_demande}
+{demande.numero}. {demande.texte_ar}
+{#fin_pour_chaque}
+
+في الأصل:
+- الحكم على المدعى عليه بـ {demande_principale_ar}
+- القول والحكم بأن {demande_secondaire_ar}
+
+احتياطيا:
+- {demande_subsidiaire_ar}
+
+على كل حال:
+- تحميل المدعى عليه الصوائر
+- تمتيع الحكم بالنفاذ العاجل
+
+قيمة النزاع: {montant_litige} دينار
+
+تركت نسخة من العقد
+
+وحررت هذا العقد ليُعمل به عند الاقتضاء.
+
+الكلفة: {cout_exploit} دينار
+
+{huissier.nom_ar}
+عدل إشهاد
+(الإمضاء والختم)
+
+الوثائق المبلغة:
+
+{#pour_chaque_piece}
+و{piece.numero} - {piece.description_ar}
+{#fin_pour_chaque}

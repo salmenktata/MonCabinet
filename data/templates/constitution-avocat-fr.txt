@@ -1,0 +1,52 @@
+CONSTITUTION D'AVOCAT
+
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+
+Affaire n° {dossier.numero_rg}
+Audience du {audience.date}
+
+ENTRE :
+
+DEMANDEUR :
+{demandeur.nom_complet}
+
+ET
+
+DÉFENDEUR :
+{defendeur.nom_complet}
+
+---
+
+Je soussigné(e), Maître {avocat.nom}, Avocat au Barreau de {avocat.barreau}, inscrit(e) sous le matricule ONAT n° {avocat.matricule}, exerçant au cabinet {cabinet.nom} sis {cabinet.adresse},
+
+DÉCLARE ME CONSTITUER
+
+Pour le compte de {client.nom_complet}, {client.qualite_partie} dans l'affaire susvisée.
+
+ÉLECTION DE DOMICILE
+
+J'élis domicile en mon cabinet sis à {cabinet.adresse}.
+
+Toutes notifications, significations et communications devront être effectuées à cette adresse.
+
+COORDONNÉES
+
+Cabinet : {cabinet.nom}
+Adresse : {cabinet.adresse}
+Téléphone : {avocat.telephone}
+Email : {avocat.email}
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+Maître {avocat.nom}
+Avocat au Barreau de {avocat.barreau}
+Matricule ONAT : {avocat.matricule}
+
+(Signature et cachet)
+
+---
+
+POUR LE GREFFE :
+Reçu le : ____/____/________
+Le Greffier
+(Signature et cachet)

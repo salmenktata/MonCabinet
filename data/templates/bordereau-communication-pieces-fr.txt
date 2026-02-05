@@ -1,0 +1,52 @@
+BORDEREAU DE COMMUNICATION DE PIÈCES
+
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+
+Affaire n° {dossier.numero_rg}
+Audience du {audience.date}
+
+DEMANDEUR : {demandeur.nom_complet}
+DÉFENDEUR : {defendeur.nom_complet}
+
+---
+
+Maître {avocat.nom}, avocat au Barreau de {avocat.barreau}, pour le compte de {client.nom_complet}, {client.qualite_partie}, communique les pièces suivantes :
+
+{#pour_chaque_piece}
+PIÈCE N° {piece.numero}
+Désignation : {piece.description}
+Nature : {piece.type}
+Date : {piece.date}
+Nombre de pages : {piece.nb_pages}
+
+{#fin_pour_chaque}
+
+---
+
+RÉCAPITULATIF
+
+Nombre total de pièces : {total_pieces}
+Nombre total de pages : {total_pages}
+
+Date de communication : {date_aujourdhui_fr}
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+Maître {avocat.nom}
+Avocat au Barreau de {avocat.barreau}
+Pour {client.nom_complet}
+
+(Signature et cachet)
+
+---
+
+NOTIFICATION
+
+Je certifie avoir notifié le présent bordereau avec les pièces annexées à :
+
+Maître {avocat_adverse.nom}
+Avocat de la partie adverse
+Par {mode_notification} le {date_notification}
+
+Maître {avocat.nom}
+(Signature)

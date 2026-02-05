@@ -104,12 +104,26 @@ export const WORKFLOW_CIVIL: WorkflowTemplate = {
 }
 
 /**
- * WORKFLOW DIVORCE - Procédure de divorce en Tunisie
+ * WORKFLOW DIVORCE - Procédure de divorce en Tunisie (Code Statut Personnel)
+ *
+ * 4 TYPES DE DIVORCE CSP (Article 31):
+ * 1. Consentement mutuel - Accord des deux époux
+ * 2. Préjudice (Darar) - Divorce pour préjudice subi
+ * 3. Unilatéral époux - Volonté unilatérale du mari
+ * 4. Unilatéral épouse (Khol') - Rachat par l'épouse
+ *
+ * PARTICULARITÉS CSP:
+ * - 3 tentatives conciliation OBLIGATOIRES
+ * - Délai réflexion 2 mois minimum
+ * - Mesures provisoires: pension alimentaire + garde enfants
+ * - Expertise sociale si enfants mineurs
+ * - Transcription état civil OBLIGATOIRE
+ * - Pension compensatoire (Moutaa) selon durée mariage
  */
 export const WORKFLOW_DIVORCE: WorkflowTemplate = {
   id: 'divorce',
-  nom: 'Procédure de divorce',
-  description: 'Workflow pour une procédure de divorce devant le tribunal de première instance',
+  nom: 'Procédure de divorce (Code Statut Personnel)',
+  description: 'Workflow divorce CSP - 4 types (consentement mutuel, préjudice, unilatéral) - 3 conciliations obligatoires',
   categorie: 'DIVORCE',
   etapes: [
     {
