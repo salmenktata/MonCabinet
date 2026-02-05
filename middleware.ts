@@ -27,26 +27,5 @@ export const config = {
     '/profile/:path*',
     '/documents/:path*',
     '/time-tracking/:path*',
-
-    // API routes protégées (sauf webhooks et auth)
-    '/api/clients/:path*',
-    '/api/dossiers/:path*',
-    '/api/factures/:path*',
-    '/api/documents/:path*',
-    '/api/echeances/:path*',
-    '/api/templates/:path*',
-    '/api/user/:path*',
-
-    // Exclure explicitement les routes publiques
-    // (le ! signifie exclusion dans les patterns Next.js)
-    // Note: Les routes ci-dessous ne sont PAS matchées donc restent publiques:
-    // - /
-    // - /login
-    // - /register
-    // - /auth/*
-    // - /api/auth/*
-    // - /api/webhooks/*
-    // - /api/health
-    // - /api/cron/*
   ],
 }
