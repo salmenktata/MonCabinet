@@ -12,7 +12,6 @@ async function createDefaultUser() {
   });
 
   try {
-    await pool.connect();
     console.log('🔐 Création utilisateur par défaut...\n');
 
     const email = 'salmen.ktata@gmail.com';
@@ -64,6 +63,7 @@ async function createDefaultUser() {
     console.log('\n🌐 URL login: http://localhost:7002/login');
 
     await pool.end();
+    process.exit(0);
   } catch (error) {
     console.error('❌ Erreur:', error.message);
     await pool.end();
