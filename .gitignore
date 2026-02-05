@@ -27,6 +27,8 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.production
+.env.production.backup.*
 
 # vercel
 .vercel
@@ -50,3 +52,11 @@ Thumbs.db
 test-*.mjs
 test-*.js
 setup-database.js
+
+# VPS Deployment
+migration-report.json
+logs/
+*.log
+
+# Authentication - Ne pas utiliser NextAuth, l'app utilise Supabase Auth
+app/api/auth/[...nextauth]/
