@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { getWorkflowEtape, getWorkflowProgress } from '@/lib/workflows/civil'
 
 interface DossierCardProps {
@@ -8,13 +9,14 @@ interface DossierCardProps {
 }
 
 export default function DossierCard({ dossier }: DossierCardProps) {
+  const t = useTranslations('cards')
   const etapeActuelle = getWorkflowEtape(dossier.workflow_etape_actuelle || 'ASSIGNATION')
   const progress = getWorkflowProgress(dossier.workflow_etape_actuelle || 'ASSIGNATION')
 
   const clientName =
     dossier.clients?.type === 'PERSONNE_PHYSIQUE'
       ? `${dossier.clients.nom} ${dossier.clients.prenom || ''}`.trim()
-      : dossier.clients?.denomination || 'Client inconnu'
+      : dossier.clients?.denomination || t('unknownClient')
 
   return (
     <Link href={`/dossiers/${dossier.id}`}>
@@ -104,7 +106,7 @@ export default function DossierCard({ dossier }: DossierCardProps) {
         {/* Barre de progression */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-gray-500">Progression</span>
+            <span className="text-xs text-gray-500">{t('progression')}</span>
             <span className="text-xs font-medium text-blue-600">{progress}%</span>
           </div>
           <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">

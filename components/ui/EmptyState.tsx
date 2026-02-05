@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface EmptyStateProps {
   icon?: React.ReactNode
@@ -79,6 +82,8 @@ export function NoDataState({ entity }: { entity: string }) {
 }
 
 export function SearchEmptyState() {
+  const t = useTranslations('ui')
+
   return (
     <EmptyState
       icon={
@@ -86,13 +91,15 @@ export function SearchEmptyState() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
       }
-      title="Aucun résultat"
-      description="Essayez de modifier vos critères de recherche."
+      title={t('noResults')}
+      description={t('noResultsDescription')}
     />
   )
 }
 
 export function ErrorState({ onRetry }: { onRetry?: () => void }) {
+  const t = useTranslations('ui')
+
   return (
     <EmptyState
       icon={
@@ -100,9 +107,9 @@ export function ErrorState({ onRetry }: { onRetry?: () => void }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       }
-      title="Une erreur est survenue"
-      description="Impossible de charger les données. Veuillez réessayer."
-      actionLabel={onRetry ? "Réessayer" : undefined}
+      title={t('errorOccurred')}
+      description={t('cannotLoadData')}
+      actionLabel={onRetry ? t('retry') : undefined}
       onAction={onRetry}
     />
   )

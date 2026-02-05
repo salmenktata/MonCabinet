@@ -513,5 +513,102 @@
     "saveSuccess": "تم الحفظ بنجاح",
     "noResults": "لا توجد نتائج",
     "emptyState": "لا توجد بيانات متاحة"
+  },
+  "cards": {
+    "clientType": {
+      "physical": "طبيعي",
+      "legal": "معنوي"
+    },
+    "confirmDelete": "تأكيد الحذف؟",
+    "deleteConfirmation": "هل أنت متأكد من الحذف؟",
+    "deleting": "جاري الحذف...",
+    "yesDelete": "نعم، احذف",
+    "viewDetails": "عرض التفاصيل",
+    "delete": "حذف",
+    "unknownClient": "عميل غير معروف",
+    "progression": "التقدم",
+    "clientDeleted": "تم حذف العميل",
+    "lateWarning": "متأخرة",
+    "issuedOn": "صدرت في",
+    "dueDate": "الاستحقاق:",
+    "amountTTC": "المبلغ شامل الضريبة",
+    "paidOn": "دفعت في",
+    "actions": "الإجراءات",
+    "close": "إغلاق",
+    "markAsPaid": "تعليم كمدفوعة",
+    "markAsSent": "تعليم كمرسلة",
+    "deleteInvoice": "حذف هذه الفاتورة؟",
+    "status": {
+      "active": "نشط",
+      "closed": "مغلق",
+      "archived": "مؤرشف"
+    }
+  },
+  "actions": {
+    "confirmDeleteAction": "حذف هذا الإجراء؟",
+    "noActions": "لا توجد إجراءات لهذا الملف",
+    "addAction": "إضافة إجراء",
+    "title": "العنوان",
+    "titleRequired": "العنوان *",
+    "type": "النوع",
+    "typeRequired": "النوع *",
+    "priority": "الأولوية",
+    "priorityRequired": "الأولوية *",
+    "deadline": "الموعد النهائي",
+    "description": "الوصف",
+    "adding": "جاري الإضافة...",
+    "add": "إضافة",
+    "cancel": "إلغاء",
+    "types": {
+      "audience": "جلسة",
+      "deadline": "موعد نهائي",
+      "clientMeeting": "اجتماع مع العميل",
+      "writing": "صياغة",
+      "other": "أخرى"
+    },
+    "priorities": {
+      "low": "منخفضة",
+      "normal": "عادية",
+      "high": "عالية",
+      "urgent": "عاجلة"
+    },
+    "placeholders": {
+      "title": "مثال: إعداد المذكرات",
+      "description": "تفاصيل الإجراء..."
+    }
+  },
+  "documents": {
+    "fileTooLarge": "الملف كبير جداً (الحد الأقصى 50 ميغابايت)",
+    "pleaseSelectFile": "يرجى اختيار ملف",
+    "file": "الملف",
+    "fileRequired": "الملف *",
+    "category": "الفئة",
+    "categoryRequired": "الفئة *",
+    "description": "الوصف",
+    "clickToUpload": "انقر للرفع",
+    "dragAndDrop": "أو اسحب وأفلت",
+    "supportedFormats": "PDF، Word، Excel، صورة (حد أقصى 50 ميغابايت)",
+    "selectCategory": "اختر فئة",
+    "categories": {
+      "contrat": "عقد",
+      "jugement": "حكم",
+      "correspondance": "مراسلة",
+      "piece": "وثيقة",
+      "autre": "أخرى"
+    },
+    "descriptionPlaceholder": "وصف الوثيقة...",
+    "uploading": "جاري الرفع...",
+    "uploadDocument": "رفع الوثيقة"
+  },
+  "ui": {
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "noResults": "لا توجد نتائج",
+    "noResultsDescription": "حاول تعديل معايير البحث",
+    "errorOccurred": "حدث خطأ",
+    "cannotLoadData": "تعذر تحميل البيانات. يرجى المحاولة مرة أخرى.",
+    "retry": "إعادة المحاولة",
+    "loading": "جاري التحميل...",
+    "noData": "لا توجد بيانات متاحة"
   }
 }

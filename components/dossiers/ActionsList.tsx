@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   toggleActionStatutAction,
   deleteActionDossierAction,
@@ -29,6 +30,7 @@ const typeIcons: Record<string, string> = {
 
 export default function ActionsList({ actions, dossierId }: ActionsListProps) {
   const router = useRouter()
+  const t = useTranslations('actions')
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
 
   const handleToggle = async (actionId: string) => {
@@ -39,7 +41,7 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
   }
 
   const handleDelete = async (actionId: string) => {
-    if (!confirm('Supprimer cette action ?')) return
+    if (!confirm(t('confirmDeleteAction'))) return
 
     setLoadingAction(actionId)
     await deleteActionDossierAction(actionId, dossierId)
@@ -157,7 +159,7 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
                   onClick={() => handleDelete(action.id)}
                   disabled={loadingAction === action.id}
                   className="text-gray-400 hover:text-red-600 p-1"
-                  title="Supprimer"
+                  title={t('delete')}
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -176,7 +178,7 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
 
       {actions.length === 0 && (
         <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-          <p className="text-sm text-gray-500">Aucune action pour ce dossier</p>
+          <p className="text-sm text-gray-500">{t('noActions')}</p>
         </div>
       )}
     </div>

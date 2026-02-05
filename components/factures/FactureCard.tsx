@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { deleteFactureAction, changerStatutFactureAction } from '@/app/actions/factures'
 
 interface FactureCardProps {
@@ -18,12 +19,13 @@ const statutColors: Record<string, string> = {
 
 export default function FactureCard({ facture }: FactureCardProps) {
   const router = useRouter()
+  const t = useTranslations('cards')
   const [showActions, setShowActions] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleDelete = async () => {
-    if (!confirm('Supprimer cette facture ?')) return
+    if (!confirm(t('deleteInvoice'))) return
 
     setLoading(true)
     const result = await deleteFactureAction(facture.id)
@@ -55,7 +57,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
     ? facture.clients.type === 'PERSONNE_PHYSIQUE'
       ? `${facture.clients.nom} ${facture.clients.prenom || ''}`.trim()
       : facture.clients.denomination
-    : 'Client supprimé'
+    : t('clientDeleted')
 
   const isRetard =
     facture.statut === 'IMPAYEE' &&
@@ -79,7 +81,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
             </span>
             {isRetard && (
               <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-red-100 text-red-700">
-                ⚠️ En retard
+                ⚠️ {t('lateWarning')}
               </span>
             )}
           </div>
@@ -119,7 +121,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
                 />
               </svg>
               <span>
-                Émise le {new Date(facture.date_emission).toLocaleDateString('fr-FR')}
+                {t('issuedOn')} {new Date(facture.date_emission).toLocaleDateString('fr-FR')}
               </span>
             </div>
 
@@ -139,7 +141,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
                   />
                 </svg>
                 <span>
-                  Échéance: {new Date(facture.date_echeance).toLocaleDateString('fr-FR')}
+                  {t('dueDate')} {new Date(facture.date_echeance).toLocaleDateString('fr-FR')}
                 </span>
               </div>
             )}
@@ -147,7 +149,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
 
           <div className="mt-4 flex items-center justify-between border-t pt-4">
             <div>
-              <p className="text-sm text-gray-500">Montant TTC</p>
+              <p className="text-sm text-gray-500">{t('amountTTC')}</p>
               <p className="text-2xl font-bold text-blue-600">
                 {parseFloat(facture.montant_ttc).toFixed(3)} TND
               </p>
@@ -155,7 +157,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
 
             {facture.date_paiement && (
               <div className="text-right">
-                <p className="text-xs text-gray-500">Payée le</p>
+                <p className="text-xs text-gray-500">{t('paidOn')}</p>
                 <p className="text-sm font-medium text-green-600">
                   {new Date(facture.date_paiement).toLocaleDateString('fr-FR')}
                 </p>
@@ -177,7 +179,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
           href={`/factures/${facture.id}`}
           className="flex-1 rounded-md border border-blue-600 bg-white px-3 py-2 text-center text-sm font-medium text-blue-600 hover:bg-blue-50"
         >
-          Voir détails
+          {t('viewDetails')}
         </Link>
 
         <button
@@ -185,7 +187,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
           disabled={loading}
           className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          {showActions ? 'Fermer' : 'Actions'}
+          {showActions ? t('close') : t('actions')}
         </button>
       </div>
 
@@ -197,7 +199,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
               disabled={loading}
               className="w-full rounded-md bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
             >
-              Marquer comme payée
+              {t('markAsPaid')}
             </button>
           )}
 
@@ -207,7 +209,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
               disabled={loading}
               className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              Marquer comme envoyée
+              {t('markAsSent')}
             </button>
           )}
 
@@ -216,7 +218,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
             disabled={loading}
             className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
-            Supprimer
+            {t('delete')}
           </button>
         </div>
       )}

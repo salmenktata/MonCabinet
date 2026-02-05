@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { deleteClientAction } from '@/app/actions/clients'
 
 interface ClientCardProps {
@@ -11,6 +12,7 @@ interface ClientCardProps {
 
 export default function ClientCard({ client }: ClientCardProps) {
   const router = useRouter()
+  const t = useTranslations('cards')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
@@ -50,7 +52,7 @@ export default function ClientCard({ client }: ClientCardProps) {
                   : 'bg-purple-100 text-purple-700'
               }`}
             >
-              {client.type === 'PERSONNE_PHYSIQUE' ? 'Physique' : 'Morale'}
+              {client.type === 'PERSONNE_PHYSIQUE' ? t('clientType.physical') : t('clientType.legal')}
             </span>
           </div>
 
@@ -134,7 +136,7 @@ export default function ClientCard({ client }: ClientCardProps) {
       {showDeleteConfirm ? (
         <div className="mt-4 rounded-md bg-red-50 p-4">
           <p className="text-sm text-red-800 font-medium">
-            Confirmer la suppression ?
+            {t('confirmDelete')}
           </p>
           <div className="mt-3 flex gap-2">
             <button
@@ -142,13 +144,13 @@ export default function ClientCard({ client }: ClientCardProps) {
               disabled={deleting}
               className="rounded-md bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
             >
-              {deleting ? 'Suppression...' : 'Oui, supprimer'}
+              {deleting ? t('deleting') : t('yesDelete')}
             </button>
             <button
               onClick={() => setShowDeleteConfirm(false)}
               className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
             >
-              Annuler
+              {t('close')}
             </button>
           </div>
         </div>
@@ -158,13 +160,13 @@ export default function ClientCard({ client }: ClientCardProps) {
             href={`/clients/${client.id}`}
             className="flex-1 rounded-md border border-blue-600 bg-white px-3 py-2 text-center text-sm font-medium text-blue-600 hover:bg-blue-50"
           >
-            Voir détails
+            {t('viewDetails')}
           </Link>
           <button
             onClick={() => setShowDeleteConfirm(true)}
             className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
           >
-            Supprimer
+            {t('delete')}
           </button>
         </div>
       )}

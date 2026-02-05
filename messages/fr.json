@@ -513,5 +513,102 @@
     "saveSuccess": "Enregistré avec succès",
     "noResults": "Aucun résultat",
     "emptyState": "Aucune donnée disponible"
+  },
+  "cards": {
+    "clientType": {
+      "physical": "Physique",
+      "legal": "Morale"
+    },
+    "confirmDelete": "Confirmer la suppression ?",
+    "deleteConfirmation": "Êtes-vous sûr de vouloir supprimer ?",
+    "deleting": "Suppression...",
+    "yesDelete": "Oui, supprimer",
+    "viewDetails": "Voir détails",
+    "delete": "Supprimer",
+    "unknownClient": "Client inconnu",
+    "progression": "Progression",
+    "clientDeleted": "Client supprimé",
+    "lateWarning": "En retard",
+    "issuedOn": "Émise le",
+    "dueDate": "Échéance:",
+    "amountTTC": "Montant TTC",
+    "paidOn": "Payée le",
+    "actions": "Actions",
+    "close": "Fermer",
+    "markAsPaid": "Marquer comme payée",
+    "markAsSent": "Marquer comme envoyée",
+    "deleteInvoice": "Supprimer cette facture ?",
+    "status": {
+      "active": "Actif",
+      "closed": "Clos",
+      "archived": "Archivé"
+    }
+  },
+  "actions": {
+    "confirmDeleteAction": "Supprimer cette action ?",
+    "noActions": "Aucune action pour ce dossier",
+    "addAction": "Ajouter une action",
+    "title": "Titre",
+    "titleRequired": "Titre *",
+    "type": "Type",
+    "typeRequired": "Type *",
+    "priority": "Priorité",
+    "priorityRequired": "Priorité *",
+    "deadline": "Date limite",
+    "description": "Description",
+    "adding": "Ajout...",
+    "add": "Ajouter",
+    "cancel": "Annuler",
+    "types": {
+      "audience": "Audience",
+      "deadline": "Deadline",
+      "clientMeeting": "RDV Client",
+      "writing": "Rédaction",
+      "other": "Autre"
+    },
+    "priorities": {
+      "low": "Basse",
+      "normal": "Normale",
+      "high": "Haute",
+      "urgent": "Urgente"
+    },
+    "placeholders": {
+      "title": "Ex: Préparer les conclusions",
+      "description": "Détails de l'action..."
+    }
+  },
+  "documents": {
+    "fileTooLarge": "Le fichier est trop volumineux (maximum 50 MB)",
+    "pleaseSelectFile": "Veuillez sélectionner un fichier",
+    "file": "Fichier",
+    "fileRequired": "Fichier *",
+    "category": "Catégorie",
+    "categoryRequired": "Catégorie *",
+    "description": "Description",
+    "clickToUpload": "Cliquez pour uploader",
+    "dragAndDrop": "ou glissez-déposez",
+    "supportedFormats": "PDF, Word, Excel, Image (max 50 MB)",
+    "selectCategory": "Sélectionner une catégorie",
+    "categories": {
+      "contrat": "Contrat",
+      "jugement": "Jugement",
+      "correspondance": "Correspondance",
+      "piece": "Pièce",
+      "autre": "Autre"
+    },
+    "descriptionPlaceholder": "Description du document...",
+    "uploading": "Upload en cours...",
+    "uploadDocument": "Uploader le document"
+  },
+  "ui": {
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "noResults": "Aucun résultat",
+    "noResultsDescription": "Essayez de modifier vos critères de recherche",
+    "errorOccurred": "Une erreur est survenue",
+    "cannotLoadData": "Impossible de charger les données. Veuillez réessayer.",
+    "retry": "Réessayer",
+    "loading": "Chargement...",
+    "noData": "Aucune donnée disponible"
   }
 }

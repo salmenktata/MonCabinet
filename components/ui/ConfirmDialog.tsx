@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, createContext, useContext, ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 
 interface ConfirmOptions {
   title: string
@@ -17,6 +18,7 @@ interface ConfirmContextType {
 const ConfirmContext = createContext<ConfirmContextType | undefined>(undefined)
 
 export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
+  const t = useTranslations('ui')
   const [isOpen, setIsOpen] = useState(false)
   const [options, setOptions] = useState<ConfirmOptions | null>(null)
   const [resolver, setResolver] = useState<((value: boolean) => void) | null>(null)
@@ -103,13 +105,13 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                   onClick={handleCancel}
                   className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  {options.cancelText || 'Annuler'}
+                  {options.cancelText || t('cancel')}
                 </button>
                 <button
                   onClick={handleConfirm}
                   className={`flex-1 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors ${style.bg}`}
                 >
-                  {options.confirmText || 'Confirmer'}
+                  {options.confirmText || t('confirm')}
                 </button>
               </div>
             </div>
