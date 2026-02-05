@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import { GlobalKeyboardShortcuts } from '@/components/ui/KeyboardShortcuts'
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 
 export default async function DashboardLayout({
   children,
@@ -87,6 +88,8 @@ export default async function DashboardLayout({
             </div>
 
             <div className="flex items-center gap-4">
+              <LanguageSwitcher />
+
               <div className="text-sm">
                 <p className="font-medium text-gray-900">
                   {profile?.nom} {profile?.prenom}

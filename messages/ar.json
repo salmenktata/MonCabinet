@@ -1,0 +1,196 @@
+{
+  "common": {
+    "appName": "محامي",
+    "logout": "تسجيل الخروج",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "create": "إنشاء",
+    "search": "بحث",
+    "loading": "جاري التحميل...",
+    "noData": "لا توجد بيانات",
+    "error": "خطأ",
+    "success": "نجح",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "close": "إغلاق",
+    "yes": "نعم",
+    "no": "لا",
+    "optional": "اختياري",
+    "required": "إلزامي"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "clients": "العملاء",
+    "dossiers": "الملفات",
+    "factures": "الفواتير",
+    "echeances": "المواعيد",
+    "timeTracking": "تتبع الوقت",
+    "documents": "الوثائق",
+    "templates": "النماذج"
+  },
+  "auth": {
+    "loginTitle": "تسجيل الدخول إلى حسابك",
+    "registerTitle": "إنشاء حسابك",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "firstName": "الاسم",
+    "lastName": "اللقب",
+    "alreadyHaveAccount": "هل لديك حساب بالفعل؟",
+    "noAccount": "ليس لديك حساب بعد؟",
+    "loginButton": "تسجيل الدخول",
+    "registerButton": "إنشاء حسابي",
+    "loginError": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "registerError": "خطأ أثناء إنشاء الحساب",
+    "passwordMismatch": "كلمات المرور غير متطابقة",
+    "passwordTooShort": "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "welcome": "مرحبا",
+    "stats": {
+      "totalClients": "العملاء",
+      "activeDossiers": "الملفات النشطة",
+      "pendingInvoices": "الفواتير المعلقة",
+      "upcomingDeadlines": "المواعيد القادمة"
+    }
+  },
+  "clients": {
+    "title": "العملاء",
+    "newClient": "عميل جديد",
+    "editClient": "تعديل العميل",
+    "clientDetails": "تفاصيل العميل",
+    "type": "النوع",
+    "individual": "شخص طبيعي",
+    "company": "شخص معنوي",
+    "name": "الاسم",
+    "firstName": "اللقب",
+    "companyName": "الاسم التجاري",
+    "cin": "بطاقة التعريف",
+    "registreCommerce": "السجل التجاري",
+    "email": "البريد الإلكتروني",
+    "phone": "الهاتف",
+    "address": "العنوان",
+    "city": "المدينة",
+    "notes": "ملاحظات",
+    "createdAt": "تاريخ الإنشاء",
+    "noClients": "لا يوجد عملاء",
+    "createFirst": "أنشئ عميلك الأول للبدء"
+  },
+  "dossiers": {
+    "title": "الملفات",
+    "newDossier": "ملف جديد",
+    "editDossier": "تعديل الملف",
+    "dossierDetails": "تفاصيل الملف",
+    "number": "الرقم",
+    "client": "العميل",
+    "object": "الموضوع",
+    "category": "الفئة",
+    "status": "الحالة",
+    "tribunal": "المحكمة",
+    "workflow": "سير العمل",
+    "currentStep": "المرحلة الحالية",
+    "actions": "الإجراءات",
+    "documents": "الوثائق",
+    "notes": "ملاحظات",
+    "noDossiers": "لا توجد ملفات",
+    "categories": {
+      "CIVIL": "مدني",
+      "COMMERCIAL": "تجاري",
+      "PENAL": "جزائي",
+      "ADMINISTRATIF": "إداري",
+      "DIVORCE": "طلاق",
+      "AUTRE": "أخرى"
+    },
+    "statuses": {
+      "ACTIF": "نشط",
+      "CLOTURE": "مغلق",
+      "SUSPENDU": "معلق"
+    }
+  },
+  "factures": {
+    "title": "الفواتير",
+    "newInvoice": "فاتورة جديدة",
+    "invoiceNumber": "رقم الفاتورة",
+    "date": "التاريخ",
+    "dueDate": "تاريخ الاستحقاق",
+    "amount": "المبلغ",
+    "status": "الحالة",
+    "paid": "مدفوعة",
+    "pending": "قيد الانتظار",
+    "overdue": "متأخرة",
+    "noInvoices": "لا توجد فواتير"
+  },
+  "echeances": {
+    "title": "المواعيد",
+    "newDeadline": "موعد جديد",
+    "type": "النوع",
+    "date": "التاريخ",
+    "description": "الوصف",
+    "dossier": "الملف",
+    "status": "الحالة",
+    "active": "نشط",
+    "completed": "مكتمل",
+    "missed": "فائت",
+    "noDeadlines": "لا توجد مواعيد",
+    "daysRemaining": "{count} يوم متبقي",
+    "overdue": "متأخر بـ {count} يوم"
+  },
+  "timeTracking": {
+    "title": "تتبع الوقت",
+    "newEntry": "إدخال جديد",
+    "date": "التاريخ",
+    "duration": "المدة",
+    "description": "الوصف",
+    "hourlyRate": "السعر بالساعة",
+    "amount": "المبلغ",
+    "billable": "قابل للفوترة",
+    "noEntries": "لا توجد إدخالات",
+    "startTimer": "بدء المؤقت",
+    "stopTimer": "إيقاف المؤقت",
+    "timerRunning": "المؤقت يعمل"
+  },
+  "documents": {
+    "title": "الوثائق",
+    "upload": "رفع وثيقة",
+    "fileName": "اسم الملف",
+    "fileSize": "الحجم",
+    "uploadedAt": "تاريخ الرفع",
+    "noDocuments": "لا توجد وثائق"
+  },
+  "templates": {
+    "title": "النماذج",
+    "newTemplate": "نموذج جديد",
+    "name": "الاسم",
+    "type": "النوع",
+    "content": "المحتوى",
+    "variables": "المتغيرات",
+    "noTemplates": "لا توجد نماذج"
+  },
+  "home": {
+    "title": "محامي",
+    "subtitle": "منصة إدارة مكتب محاماة للمحامين التونسيين",
+    "loginButton": "تسجيل الدخول",
+    "registerButton": "إنشاء حساب",
+    "features": {
+      "dossiers": {
+        "title": "إدارة الملفات",
+        "description": "تتبع جميع ملفاتك القانونية في مكان واحد"
+      },
+      "delais": {
+        "title": "حساب المواعيد",
+        "description": "حساب تلقائي للمواعيد القانونية التونسية"
+      },
+      "facturation": {
+        "title": "الفوترة",
+        "description": "أنشئ وأدر فواتيرك بسهولة"
+      }
+    }
+  }
+}

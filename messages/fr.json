@@ -1,0 +1,196 @@
+{
+  "common": {
+    "appName": "Avocat",
+    "logout": "Déconnexion",
+    "login": "Se connecter",
+    "register": "Créer un compte",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher",
+    "loading": "Chargement...",
+    "noData": "Aucune donnée",
+    "error": "Erreur",
+    "success": "Succès",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "close": "Fermer",
+    "yes": "Oui",
+    "no": "Non",
+    "optional": "Optionnel",
+    "required": "Obligatoire"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "clients": "Clients",
+    "dossiers": "Dossiers",
+    "factures": "Factures",
+    "echeances": "Échéances",
+    "timeTracking": "Time Tracking",
+    "documents": "Documents",
+    "templates": "Templates"
+  },
+  "auth": {
+    "loginTitle": "Connexion à votre compte",
+    "registerTitle": "Créer votre compte",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "noAccount": "Pas encore de compte ?",
+    "loginButton": "Se connecter",
+    "registerButton": "Créer mon compte",
+    "loginError": "Email ou mot de passe incorrect",
+    "registerError": "Erreur lors de la création du compte",
+    "passwordMismatch": "Les mots de passe ne correspondent pas",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "welcome": "Bienvenue",
+    "stats": {
+      "totalClients": "Clients",
+      "activeDossiers": "Dossiers actifs",
+      "pendingInvoices": "Factures en attente",
+      "upcomingDeadlines": "Échéances à venir"
+    }
+  },
+  "clients": {
+    "title": "Clients",
+    "newClient": "Nouveau client",
+    "editClient": "Modifier le client",
+    "clientDetails": "Détails du client",
+    "type": "Type",
+    "individual": "Personne physique",
+    "company": "Personne morale",
+    "name": "Nom",
+    "firstName": "Prénom",
+    "companyName": "Dénomination sociale",
+    "cin": "CIN",
+    "registreCommerce": "Registre de commerce",
+    "email": "Email",
+    "phone": "Téléphone",
+    "address": "Adresse",
+    "city": "Ville",
+    "notes": "Notes",
+    "createdAt": "Créé le",
+    "noClients": "Aucun client",
+    "createFirst": "Créez votre premier client pour commencer"
+  },
+  "dossiers": {
+    "title": "Dossiers",
+    "newDossier": "Nouveau dossier",
+    "editDossier": "Modifier le dossier",
+    "dossierDetails": "Détails du dossier",
+    "number": "Numéro",
+    "client": "Client",
+    "object": "Objet",
+    "category": "Catégorie",
+    "status": "Statut",
+    "tribunal": "Tribunal",
+    "workflow": "Workflow",
+    "currentStep": "Étape actuelle",
+    "actions": "Actions",
+    "documents": "Documents",
+    "notes": "Notes",
+    "noDossiers": "Aucun dossier",
+    "categories": {
+      "CIVIL": "Civil",
+      "COMMERCIAL": "Commercial",
+      "PENAL": "Pénal",
+      "ADMINISTRATIF": "Administratif",
+      "DIVORCE": "Divorce",
+      "AUTRE": "Autre"
+    },
+    "statuses": {
+      "ACTIF": "Actif",
+      "CLOTURE": "Clôturé",
+      "SUSPENDU": "Suspendu"
+    }
+  },
+  "factures": {
+    "title": "Factures",
+    "newInvoice": "Nouvelle facture",
+    "invoiceNumber": "Numéro de facture",
+    "date": "Date",
+    "dueDate": "Date d'échéance",
+    "amount": "Montant",
+    "status": "Statut",
+    "paid": "Payée",
+    "pending": "En attente",
+    "overdue": "En retard",
+    "noInvoices": "Aucune facture"
+  },
+  "echeances": {
+    "title": "Échéances",
+    "newDeadline": "Nouvelle échéance",
+    "type": "Type",
+    "date": "Date",
+    "description": "Description",
+    "dossier": "Dossier",
+    "status": "Statut",
+    "active": "Active",
+    "completed": "Complétée",
+    "missed": "Manquée",
+    "noDeadlines": "Aucune échéance",
+    "daysRemaining": "{count} jours restants",
+    "overdue": "En retard de {count} jours"
+  },
+  "timeTracking": {
+    "title": "Suivi du temps",
+    "newEntry": "Nouvelle entrée",
+    "date": "Date",
+    "duration": "Durée",
+    "description": "Description",
+    "hourlyRate": "Taux horaire",
+    "amount": "Montant",
+    "billable": "Facturable",
+    "noEntries": "Aucune entrée",
+    "startTimer": "Démarrer le chrono",
+    "stopTimer": "Arrêter le chrono",
+    "timerRunning": "Chronomètre en cours"
+  },
+  "documents": {
+    "title": "Documents",
+    "upload": "Uploader un document",
+    "fileName": "Nom du fichier",
+    "fileSize": "Taille",
+    "uploadedAt": "Uploadé le",
+    "noDocuments": "Aucun document"
+  },
+  "templates": {
+    "title": "Templates",
+    "newTemplate": "Nouveau template",
+    "name": "Nom",
+    "type": "Type",
+    "content": "Contenu",
+    "variables": "Variables",
+    "noTemplates": "Aucun template"
+  },
+  "home": {
+    "title": "Avocat",
+    "subtitle": "Plateforme de gestion de cabinet juridique pour avocats tunisiens",
+    "loginButton": "Se connecter",
+    "registerButton": "Créer un compte",
+    "features": {
+      "dossiers": {
+        "title": "Gestion des dossiers",
+        "description": "Suivez tous vos dossiers juridiques en un seul endroit"
+      },
+      "delais": {
+        "title": "Calcul des délais",
+        "description": "Calcul automatique des délais légaux tunisiens"
+      },
+      "facturation": {
+        "title": "Facturation",
+        "description": "Créez et gérez vos factures facilement"
+      }
+    }
+  }
+}

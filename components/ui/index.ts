@@ -7,3 +7,4 @@ export { default as EmptyState, NoDataState, SearchEmptyState, ErrorState } from
 export { default as Tooltip, HelpTooltip } from './Tooltip'
 export { default as Pagination, SimplePagination } from './Pagination'
 export { GlobalKeyboardShortcuts, useKeyboardShortcuts } from './KeyboardShortcuts'
+export { default as LanguageSwitcher } from './LanguageSwitcher'
