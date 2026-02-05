@@ -1,7 +1,7 @@
 # État du Projet MonCabinet
 
 **Dernière mise à jour** : 5 février 2026
-**Version** : 0.2.0 (VPS Standalone Ready)
+**Version** : 0.2.1 (Schéma 100% Cohérent)
 **Architecture** : NextAuth + PostgreSQL + MinIO
 
 ---
@@ -12,8 +12,9 @@
 - ✅ **NextAuth.js** : Authentification locale (JWT + sessions)
 - ✅ **PostgreSQL 15** : Base de données standalone
 - ✅ **MinIO** : Stockage S3-compatible pour documents
-- ✅ **Wrappers de compatibilité** : `lib/supabase/*` émule l'API Supabase pour rétro-compatibilité
-- ❌ **Supabase** : Complètement supprimé (migration terminée le 5 février 2026)
+- ✅ **Schéma Database** : 100% cohérent (85+ fichiers corrigés le 5 février 2026)
+- ✅ **Migrations SQL** : Script automatisé (`scripts/migrate.ts`)
+- ❌ **Supabase** : Complètement supprimé
 
 ### Frontend
 - ✅ **Next.js 15** (App Router)
@@ -24,7 +25,8 @@
 
 ### Infrastructure
 - ✅ **Docker Compose** : PostgreSQL + MinIO
-- ✅ **Migrations SQL** : `supabase/migrations/` (28 migrations)
+- ✅ **Migrations SQL** : `supabase/migrations/` (29 migrations)
+- ✅ **Script migration** : Exécution automatisée des migrations
 - ✅ **Déploiement** : VPS standalone (pas de dépendances cloud)
 
 ---
@@ -248,9 +250,10 @@ docker-compose logs -f
 
 ### Base de Données
 - **Tables** : 13 tables principales
-- **Migrations** : 28 migrations SQL
+- **Migrations** : 29 migrations SQL
 - **Templates** : 13 templates (FR/AR)
 - **Indexes** : 35+ indexes
+- **Cohérence** : 100% (85+ fichiers alignés)
 
 ### Performance
 - **Build time** : ~45s
@@ -278,9 +281,10 @@ docker-compose logs -f
 ### Court Terme (2-4 semaines)
 1. ✅ Finaliser suppression Supabase
 2. ✅ Nettoyer doublons templates
-3. [ ] Compléter traductions arabe (100%)
-4. [ ] Tests end-to-end critiques
-5. [ ] Documentation déploiement VPS
+3. ✅ Aligner schéma codebase (85+ fichiers corrigés)
+4. [ ] Compléter traductions arabe (100%)
+5. [ ] Tests end-to-end critiques
+6. [ ] Documentation déploiement VPS
 
 ### Moyen Terme (1-3 mois)
 1. [ ] Beta privée (15 avocats testeurs)
@@ -300,7 +304,17 @@ docker-compose logs -f
 
 ## 📜 Changelog Récent
 
-### v0.2.0 (2026-02-05) - VPS Standalone Ready
+### v0.2.1 (2026-02-05 PM) - Schéma 100% Cohérent
+- ✅ **85+ fichiers** corrigés pour cohérence avec schéma PostgreSQL standalone
+- ✅ Normalisation colonnes : `numero_dossier` → `numero`, `numero_facture` → `numero`
+- ✅ Types clients standardisés : `type_client` (personne_physique/personne_morale)
+- ✅ Suppression colonnes obsolètes : `denomination`, `ville`, `code_postal`, `registre_commerce`
+- ✅ Statuts normalisés en minuscules : `ACTIF` → `en_cours`, etc.
+- ✅ Migration SQL time_entries : ajout colonnes `heure_debut`, `heure_fin`, `facture_id`
+- ✅ Script migration automatisé : `scripts/migrate.ts`
+- ✅ **Résultat** : 0 référence aux anciennes colonnes, codebase 100% cohérent
+
+### v0.2.0 (2026-02-05 AM) - VPS Standalone Ready
 - ✅ Migration complète de Supabase vers PostgreSQL standalone
 - ✅ NextAuth.js implémenté (authentification locale)
 - ✅ 13 templates juridiques bilingues FR/AR
@@ -346,7 +360,7 @@ Propriétaire - Tous droits réservés
 
 **📅 Dernière mise à jour** : 5 février 2026
 **👤 Auteur** : Claude Sonnet 4.5
-**📊 Statut** : ✅ VPS Standalone Ready - Prêt pour déploiement production
+**📊 Statut** : ✅ Production Ready - Schéma 100% cohérent, VPS autonome
 
 ---
 
