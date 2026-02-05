@@ -1,0 +1,60 @@
+CONVENTION D'HONORAIRES
+
+ENTRE LES SOUSSIGNÉS :
+
+Maître {avocat.nom} {avocat.prenom}
+Avocat inscrit au Barreau de {avocat.barreau}
+Matricule ONAT : {avocat.matricule}
+Cabinet : {cabinet.nom}
+Adresse : {cabinet.adresse}
+
+D'UNE PART,
+
+ET :
+
+{client.nom_complet}
+{client.adresse}
+CIN/Registre : {client.identification}
+
+D'AUTRE PART,
+
+IL A ÉTÉ CONVENU CE QUI SUIT :
+
+ARTICLE 1 - OBJET
+
+La présente convention a pour objet de fixer les conditions dans lesquelles Maître {avocat.nom} assistera et représentera {client.nom_complet} dans l'affaire suivante :
+
+Nature : {dossier.workflow_type}
+Objet : {dossier.objet}
+Référence : {dossier.numero_dossier}
+Tribunal : {tribunal.nom}
+
+ARTICLE 2 - HONORAIRES
+
+Type d'honoraires : {type_honoraires}
+
+{conditions_honoraires}
+
+ARTICLE 3 - DÉBOURS ET FRAIS
+
+Les débours (frais de greffe, huissier, expertise, déplacements, etc.) restent à la charge du client et seront facturés au coût réel justifié.
+
+ARTICLE 4 - MODALITÉS DE PAIEMENT
+
+Provision initiale : {provision_initiale} TND
+Modalités : {modalites_paiement}
+
+ARTICLE 5 - RUPTURE DE LA CONVENTION
+
+Chaque partie peut mettre fin à la présente convention, sous réserve du respect des règles déontologiques et du paiement des honoraires dus pour les diligences accomplies.
+
+ARTICLE 6 - CLAUSE EN CAS DE RÉSULTAT NÉGATIF
+
+En cas d'issue défavorable, l'avocat percevra les honoraires convenus pour les diligences accomplies.
+
+Fait à {ville}, le {date}
+En deux exemplaires originaux
+
+Le Client                                L'Avocat
+(Signature précédée de                  Maître {avocat.nom}
+"Lu et approuvé")                        (Signature et cachet)
