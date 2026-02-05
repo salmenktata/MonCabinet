@@ -24,79 +24,51 @@ export default async function DashboardPage() {
 
   const userId = session.user.id
 
-  // Récupérer toutes les données
-  const clientsResult = await query(
-    'SELECT id, nom, prenom, created_at FROM clients WHERE user_id = $1',
-    [userId]
-  )
+  // Récupérer toutes les données EN PARALLÈLE (optimisation performance)
+  const [
+    clientsResult,
+    dossiersResult,
+    facturesResult,
+    documentsResult,
+    echeancesResult,
+    timeEntriesResult,
+  ] = await Promise.all([
+    query('SELECT id, nom, prenom, created_at FROM clients WHERE user_id = $1', [userId]),
+    query('SELECT * FROM dossiers WHERE user_id = $1 ORDER BY created_at DESC', [userId]),
+    query('SELECT * FROM factures WHERE user_id = $1 ORDER BY created_at DESC', [userId]),
+    query('SELECT * FROM documents WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10', [userId]),
+    query(
+      `SELECT e.id, e.titre, e.description, e.date_echeance, e.type, e.terminee, e.created_at,
+        json_build_object('numero', d.numero, 'objet', d.objet) as dossier
+      FROM echeances e
+      LEFT JOIN dossiers d ON e.dossier_id = d.id
+      WHERE e.user_id = $1
+      ORDER BY e.date_echeance ASC
+      LIMIT 20`,
+      [userId]
+    ),
+    query('SELECT * FROM time_entries WHERE user_id = $1 ORDER BY date DESC', [userId]),
+  ])
+
   const clients = clientsResult.rows
-
-  const dossiersResult = await query(
-    'SELECT * FROM dossiers WHERE user_id = $1 ORDER BY created_at DESC',
-    [userId]
-  )
   const dossiers = dossiersResult.rows
-
-  const dossiersActifsResult = await query(
-    'SELECT id FROM dossiers WHERE user_id = $1 AND statut = $2',
-    [userId, 'en_cours']
-  )
-  const dossiersActifs = dossiersActifsResult.rows
-
-  const facturesResult = await query(
-    'SELECT * FROM factures WHERE user_id = $1 ORDER BY created_at DESC',
-    [userId]
-  )
   const factures = facturesResult.rows
-
-  const documentsResult = await query(
-    'SELECT * FROM documents WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10',
-    [userId]
-  )
   const documents = documentsResult.rows
-
-  // Requête avec jointure SQL pour les échéances
-  const echeancesResult = await query(
-    `SELECT
-      e.id,
-      e.titre,
-      e.description,
-      e.date_echeance,
-      e.type,
-      e.terminee,
-      e.created_at,
-      json_build_object('numero', d.numero, 'objet', d.objet) as dossier
-    FROM echeances e
-    LEFT JOIN dossiers d ON e.dossier_id = d.id
-    WHERE e.user_id = $1
-    ORDER BY e.date_echeance ASC
-    LIMIT 20`,
-    [userId]
-  )
   const echeances = echeancesResult.rows
-
-  const timeEntriesResult = await query(
-    'SELECT * FROM time_entries WHERE user_id = $1 ORDER BY date DESC',
-    [userId]
-  )
   const timeEntries = timeEntriesResult.rows
 
-  // Calculs des statistiques
-  const facturesImpayees = factures?.filter((f) => f.statut === 'envoyee' || f.statut === 'brouillon') || []
-  const montantImpaye = facturesImpayees.reduce(
-    (acc, f) => acc + parseFloat(f.montant_ttc || 0),
-    0
-  )
+  // Calculs côté JS (évite requêtes supplémentaires)
+  const dossiersActifs = dossiers.filter((d) => d.statut === 'en_cours')
+  const facturesImpayees = factures.filter((f) => f.statut === 'envoyee' || f.statut === 'brouillon')
+  const montantImpaye = facturesImpayees.reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0)
 
-  // Échéances critiques (7 prochains jours)
+  // Échéances critiques (7 prochains jours) - calculé côté JS
   const dans7Jours = new Date()
   dans7Jours.setDate(dans7Jours.getDate() + 7)
-
-  const echeancesCritiquesResult = await query(
-    'SELECT id FROM echeances WHERE user_id = $1 AND date_echeance <= $2',
-    [userId, dans7Jours.toISOString().split('T')[0]]
-  )
-  const echeancesCritiques = echeancesCritiquesResult.rows
+  const echeancesCritiques = echeances.filter((e) => {
+    const dateEcheance = new Date(e.date_echeance)
+    return dateEcheance <= dans7Jours && !e.terminee
+  })
 
   // Time tracking ce mois
   const debutMois = new Date()
