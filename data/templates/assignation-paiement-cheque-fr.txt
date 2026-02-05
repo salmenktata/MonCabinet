@@ -1,0 +1,63 @@
+TRIBUNAL DE COMMERCE DE {tribunal.ville}
+
+ASSIGNATION EN PAIEMENT
+(Chèque sans provision)
+
+ENTRE :
+
+{client.nom_complet}
+{client.qualite}
+Registre Commerce : {client.registre_commerce}
+Représenté par Maître {avocat.nom}
+Matricule ONAT : {avocat.matricule}
+
+DEMANDEUR,
+
+ET :
+
+{partie_adverse.nom}
+{partie_adverse.adresse}
+Registre Commerce : {partie_adverse.registre_commerce}
+
+DÉFENDEUR,
+
+ATTENDU QUE :
+
+1. FAITS
+
+Le {cheque.date}, le défendeur a émis le chèque n° {cheque.numero} d'un montant de {cheque.montant} TND, tiré sur la {banque_tiree}.
+
+Présenté au paiement, ledit chèque est revenu impayé pour défaut de provision, comme en atteste le certificat de non-paiement ci-joint.
+
+Une mise en demeure en date du {date_mise_en_demeure} est restée sans effet.
+
+2. DÉCOMPTE DE LA CRÉANCE
+
+Montant principal (chèque) : {cheque.montant} TND
+
+Intérêts moratoires (TMM + 7 points = {taux_interet}%) :
+Du {date_mise_en_demeure} au {date_assignation}
+Soit {jours_retard} jours : {interets_calcules} TND
+
+Indemnité forfaitaire (loi n° 2017-18) : {indemnite_forfaitaire} TND
+
+TOTAL DÛ : {total_du} TND
+
+3. EN DROIT
+
+Articles 411 et suivants du Code de Commerce tunisien
+Loi n° 2017-18 du 14 février 2017 (indemnité forfaitaire)
+
+PAR CES MOTIFS,
+
+PLAISE AU TRIBUNAL,
+
+- CONDAMNER le défendeur à payer au demandeur la somme de {total_du} TND
+
+- DIRE que les intérêts continueront à courir au taux de {taux_interet}% jusqu'à parfait paiement
+
+- CONDAMNER le défendeur aux dépens
+
+Fait à {ville}, le {date}
+
+Maître {avocat.nom}

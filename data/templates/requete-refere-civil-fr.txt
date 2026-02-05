@@ -1,0 +1,57 @@
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+
+REQUÊTE EN RÉFÉRÉ
+
+ENTRE :
+
+{client.nom_complet}
+Demeurant à {client.adresse}
+Représenté par Maître {avocat.nom}, avocat
+Matricule : {avocat.matricule}
+
+D'UNE PART,
+
+ET :
+
+{partie_adverse.nom}
+Demeurant à {partie_adverse.adresse}
+
+D'AUTRE PART,
+
+PLAISE À MONSIEUR LE PRÉSIDENT DU TRIBUNAL
+
+ATTENDU QUE :
+
+1. EXPOSÉ DES FAITS
+
+{expose_faits}
+
+2. URGENCE
+
+Il y a lieu d'ordonner en référé les mesures ci-après sollicitées, dès lors qu'il existe une situation d'urgence caractérisée par :
+
+{urgence_motif}
+
+Le préjudice imminent et irréparable réside dans :
+{prejudice_irreparable}
+
+3. ABSENCE DE CONTESTATION SÉRIEUSE
+
+{absence_contestation}
+
+PAR CES MOTIFS,
+
+PLAISE À MONSIEUR LE PRÉSIDENT,
+
+Statuant en référé, à bref délai,
+
+- ORDONNER {mesures_demandees}
+
+- CONDAMNER la partie adverse aux dépens
+
+Sous toutes réserves de droit
+
+Fait à {ville}, le {date}
+
+Maître {avocat.nom}
+Avocat
