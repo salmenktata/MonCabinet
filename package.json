@@ -1,9 +1,9 @@
 {
-  "name": "avocat-saas",
+  "name": "moncabinet",
   "version": "0.1.0",
   "private": true,
-  "description": "Plateforme SaaS de gestion de cabinet juridique pour avocats tunisiens",
-  "author": "Avocat Team",
+  "description": "MonCabinet - Plateforme SaaS de gestion de cabinet juridique pour avocats tunisiens",
+  "author": "MonCabinet Team",
   "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev -p 7002",
@@ -24,8 +24,7 @@
     "precommit": "npm run check:translations",
     "stop": "lsof -ti:7002 | xargs kill -9 2>/dev/null || true",
     "clean": "rm -rf .next",
-    "restart": "npm run stop && npm run clean && npm run dev",
-    "restart:quick": "npm run stop && npm run dev"
+    "restart": "npm run stop && npm run clean && npm run dev"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -44,10 +43,12 @@
     "@react-pdf/renderer": "^4.2.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
+    "axios": "^1.13.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "googleapis": "^171.2.0",
     "lucide-react": "^0.468.0",
     "next": "15.5.12",
     "next-intl": "^4.8.2",
@@ -62,6 +63,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@types/google-apps-script": "^2.0.8",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

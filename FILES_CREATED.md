@@ -1,4 +1,4 @@
-# 📁 Fichiers Créés - Projet Avocat SaaS
+# 📁 Fichiers Créés - Projet MonCabinet
 
 **Date** : 2025-02-04
 **Total** : 27 fichiers créés
@@ -479,7 +479,7 @@ avocat/
 1. **Setup Supabase** (15 min)
    ```bash
    # 1. Aller sur supabase.com
-   # 2. Créer projet "avocat-saas"
+   # 2. Créer projet "moncabinet"
    # 3. SQL Editor > Coller migration
    # 4. Run migration
    ```

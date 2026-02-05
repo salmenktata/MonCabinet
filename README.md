@@ -1,8 +1,8 @@
-# Avocat - Plateforme SaaS de Gestion de Cabinet Juridique
+# MonCabinet - Plateforme SaaS de Gestion de Cabinet Juridique
 
 ## 🎯 Vision
 
-Avocat est une plateforme SaaS moderne conçue spécifiquement pour les avocats tunisiens, permettant une gestion efficace des dossiers, clients, échéances et facturation.
+MonCabinet (moncabinet.tn) est une plateforme SaaS moderne conçue spécifiquement pour les avocats tunisiens, permettant une gestion efficace des dossiers, clients, échéances et facturation.
 
 ## 🚀 Objectif MVP (Extreme MVP - 2.5 mois)
 
@@ -46,7 +46,7 @@ Le MVP se concentre sur un workflow principal ultra-bien fait : **la procédure 
 ## 📁 Structure du Projet
 
 ```
-avocat/
+moncabinet/
 ├── app/                    # Next.js App Router
 │   ├── (auth)/            # Pages d'authentification
 │   ├── (dashboard)/       # Pages du dashboard
@@ -83,8 +83,8 @@ avocat/
 
 1. Cloner le repository
 ```bash
-git clone https://github.com/votre-username/avocat.git
-cd avocat
+git clone https://github.com/votre-username/moncabinet.git
+cd moncabinet
 ```
 
 2. Installer les dépendances
@@ -197,7 +197,7 @@ Ce projet est sous licence propriétaire. Tous droits réservés.
 
 ## 📞 Contact
 
-Pour toute question : contact@avocat-saas.tn
+Pour toute question : contact@moncabinet.tn
 
 ## 🙏 Remerciements
 

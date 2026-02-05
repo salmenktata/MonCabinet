@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import CabinetForm from '@/components/parametres/CabinetForm'
 
 export const metadata = {
-  title: 'Paramètres Cabinet - Avocat SaaS',
+  title: 'Paramètres Cabinet - MonCabinet',
   description: 'Gérer les informations de votre cabinet',
 }
 

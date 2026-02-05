@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Avocat",
+    "appName": "MonCabinet",
     "logout": "Déconnexion",
     "login": "Se connecter",
     "register": "Créer un compte",
@@ -349,7 +349,7 @@
     "createFirstTemplateShort": "Créer mon premier template"
   },
   "home": {
-    "title": "Avocat",
+    "title": "MonCabinet",
     "subtitle": "Plateforme de gestion de cabinet juridique pour avocats tunisiens",
     "loginButton": "Se connecter",
     "registerButton": "Créer un compte",

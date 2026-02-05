@@ -1,4 +1,4 @@
-# Guide d'Ergonomie - Avocat SaaS
+# Guide d'Ergonomie - MonCabinet
 
 ## 🎨 Composants UI Améliorés
 

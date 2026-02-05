@@ -240,7 +240,7 @@ Résumé         : IMPLEMENTATION_SUMMARY.md
 Progression    : PROJECT_STATUS.md
 Fichiers       : FILES_CREATED.md
 
-Contact        : contact@avocat-saas.tn
+Contact        : contact@moncabinet.tn
 Repository     : [GitHub URL]
 Supabase       : [Dashboard URL]
 

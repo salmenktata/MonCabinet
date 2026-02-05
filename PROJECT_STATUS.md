@@ -1,4 +1,4 @@
-# 📊 Statut du Projet Avocat SaaS
+# 📊 Statut du Projet MonCabinet
 
 **Dernière mise à jour** : 2025-02-04
 **Version** : 0.1.0 (Fondations)
@@ -384,7 +384,7 @@ Semaine 10    [░░░░░░░░] Polish + Tests + Déploiement
 
 ### ⏭️ Action #1 : Setup Supabase (15 min)
 1. Créer compte sur [supabase.com](https://supabase.com)
-2. Créer nouveau projet "avocat-saas"
+2. Créer nouveau projet "moncabinet"
 3. Récupérer `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. SQL Editor > Copier/Coller `supabase/migrations/20250204000001_init_schema.sql`
 5. Run migration

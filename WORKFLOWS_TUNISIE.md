@@ -2,7 +2,7 @@
 
 ## 📋 Vue d'Ensemble
 
-Ce document détaille les workflows juridiques tunisiens implémentés dans la plateforme Avocat, avec une attention particulière aux délais légaux et spécificités procédurales.
+Ce document détaille les workflows juridiques tunisiens implémentés dans la plateforme MonCabinet, avec une attention particulière aux délais légaux et spécificités procédurales.
 
 ## ⚖️ Procédure Civile de Première Instance (MVP)
 

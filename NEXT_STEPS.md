@@ -1,4 +1,4 @@
-# Prochaines Étapes - Avocat SaaS
+# Prochaines Étapes - MonCabinet
 
 ## ✅ Ce qui a été fait
 

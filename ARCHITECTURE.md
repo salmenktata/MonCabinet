@@ -1,8 +1,8 @@
-# Architecture Technique - Avocat SaaS
+# Architecture Technique - MonCabinet
 
 ## 🏗️ Vue d'Ensemble
 
-Avocat est construit avec une architecture moderne basée sur Next.js 14 et Supabase, privilégiant la simplicité, la maintenabilité et la scalabilité.
+MonCabinet est construit avec une architecture moderne basée sur Next.js 14 et Supabase, privilégiant la simplicité, la maintenabilité et la scalabilité.
 
 ## 📐 Principes Architecturaux
 
@@ -479,7 +479,7 @@ serve(async (req) => {
   // Envoyer emails
   for (const echeance of echeances) {
     await resend.emails.send({
-      from: 'notifications@avocat-saas.tn',
+      from: 'notifications@moncabinet.tn',
       to: echeance.user.email,
       subject: `Rappel : ${echeance.titre}`,
       html: renderEmailTemplate(echeance)
@@ -556,8 +556,8 @@ jobs:
 
 ### Environnements
 
-- **Production** : `app.avocat-saas.tn`
-- **Staging** : `staging.avocat-saas.tn`
+- **Production** : `app.moncabinet.tn`
+- **Staging** : `staging.moncabinet.tn`
 - **Development** : `localhost:3000`
 
 ## 🔄 Migrations Future

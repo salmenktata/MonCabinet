@@ -73,7 +73,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       <div className="flex h-16 items-center justify-between px-4 border-b">
         {!collapsed && (
           <Link href="/dashboard" className="text-2xl font-bold text-primary">
-            Avocat
+            MonCabinet
           </Link>
         )}
         <Button

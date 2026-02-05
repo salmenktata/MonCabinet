@@ -573,7 +573,7 @@ export const NoteHonorairesPDF: React.FC<NoteHonorairesData> = ({
         {/* Footer */}
         <View style={styles.footer}>
           <Text>
-            Note d&apos;honoraires générée par Avocat SaaS - Cabinet {cabinet.nom || avocatNom}
+            Note d&apos;honoraires générée par MonCabinet - Cabinet {cabinet.nom || avocatNom}
           </Text>
           <Text style={{ marginTop: 3 }}>
             Matricule avocat ONAT: {avocat.matricule_avocat} - Barreau: {avocat.barreau}

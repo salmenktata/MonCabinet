@@ -238,7 +238,7 @@ serve(async (req) => {
             Authorization: `Bearer ${RESEND_API_KEY}`,
           },
           body: JSON.stringify({
-            from: 'Avocat SaaS <notifications@avocat-saas.tn>',
+            from: 'MonCabinet <notifications@moncabinet.tn>',
             to: [user.email],
             subject:
               langue === 'fr'

@@ -2,7 +2,7 @@
 
 ## 📚 Vue d'ensemble
 
-L'application Avocat est entièrement bilingue (Français/Arabe). Ce document explique comment ajouter et maintenir les traductions.
+L'application MonCabinet est entièrement bilingue (Français/Arabe). Ce document explique comment ajouter et maintenir les traductions.
 
 ## 🎯 Principes fondamentaux
 

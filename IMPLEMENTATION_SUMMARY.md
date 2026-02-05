@@ -1,4 +1,4 @@
-# Résumé de l'Implémentation - Plan d'Amélioration Avocat SaaS
+# Résumé de l'Implémentation - Plan d'Amélioration MonCabinet
 
 **Date de création** : 2025-02-04
 **Statut** : ✅ Fondations complètes - Prêt pour le développement
@@ -7,7 +7,7 @@
 
 ## 📋 Vue d'Ensemble
 
-Ce document récapitule l'implémentation du **Plan d'Analyse et d'Amélioration** de la plateforme SaaS juridique "Avocat" pour avocats tunisiens.
+Ce document récapitule l'implémentation du **Plan d'Analyse et d'Amélioration** de la plateforme SaaS juridique "MonCabinet" pour avocats tunisiens.
 
 Le plan d'amélioration a identifié les forces et faiblesses du plan initial, et a proposé une approche **Extreme MVP** centrée sur un workflow unique (procédure civile) avec facturation intégrée.
 

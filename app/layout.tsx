@@ -8,8 +8,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Avocat - Gestion de Cabinet Juridique',
-  description: 'Plateforme SaaS pour la gestion de cabinet juridique en Tunisie',
+  title: 'MonCabinet - Gestion de Cabinet Juridique',
+  description: 'MonCabinet - Plateforme SaaS pour la gestion de cabinet juridique en Tunisie',
 }
 
 export default async function RootLayout({

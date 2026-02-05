@@ -1,4 +1,4 @@
-# Changelog - Refonte Ergonomique Plateforme Avocat SaaS
+# Changelog - Refonte Ergonomique Plateforme MonCabinet
 
 ## 2026-02-05 - Refonte Complète UI/UX
 

@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "محامي",
+    "appName": "مون كابينات",
     "logout": "تسجيل الخروج",
     "login": "تسجيل الدخول",
     "register": "إنشاء حساب",
@@ -349,7 +349,7 @@
     "createFirstTemplateShort": "إنشاء نموذجي الأول"
   },
   "home": {
-    "title": "محامي",
+    "title": "مون كابينات",
     "subtitle": "منصة إدارة مكتب محاماة للمحامين التونسيين",
     "loginButton": "تسجيل الدخول",
     "registerButton": "إنشاء حساب",
