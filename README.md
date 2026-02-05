@@ -33,15 +33,18 @@ Le MVP se concentre sur un workflow principal ultra-bien fait : **la procédure 
 - **@react-pdf/renderer** pour la génération de PDF
 
 ### Backend
-- **Supabase** (PostgreSQL + Auth + Storage + Functions)
+- **PostgreSQL 15** (base de données)
+- **NextAuth.js** (authentification JWT)
+- **MinIO** (stockage S3-compatible pour documents)
 - **Row-Level Security (RLS)** pour la sécurité des données
 
 ### Email
 - **Resend** pour l'envoi d'emails
 
 ### Hébergement
-- **Vercel** (frontend)
-- **Supabase** (backend et base de données)
+- **Architecture**: Docker Compose (Next.js + PostgreSQL + MinIO)
+- **Options**: VPS Contabo / DigitalOcean / AWS
+- **Reverse Proxy**: Nginx + Let's Encrypt SSL
 
 ## 📁 Structure du Projet
 
@@ -57,7 +60,9 @@ moncabinet/
 │   ├── dossiers/         # Composants dossiers
 │   └── shared/           # Composants partagés
 ├── lib/                  # Utilitaires et configurations
-│   ├── supabase/         # Client Supabase
+│   ├── db/               # Client PostgreSQL
+│   ├── auth/             # Helpers NextAuth
+│   ├── storage/          # Client MinIO
 │   ├── utils/            # Fonctions utilitaires
 │   └── validations/      # Schémas Zod
 ├── types/                # Types TypeScript
@@ -67,17 +72,17 @@ moncabinet/
 │   └── tribunaux-tunisie.json
 ├── public/               # Assets statiques
 │   └── templates/        # Templates de documents
-└── supabase/             # Configuration Supabase
-    └── migrations/       # Migrations de base de données
+└── supabase/             # Migrations PostgreSQL
+    └── migrations/       # Migrations de base de données SQL
 ```
 
 ## 🚦 Prérequis
 
 - Node.js 18+
 - npm ou yarn
-- Compte Supabase
-- Compte Vercel (pour le déploiement)
+- Docker + Docker Compose (pour PostgreSQL + MinIO)
 - Compte Resend (pour les emails)
+- Serveur VPS (optionnel, pour déploiement production)
 
 ## 💻 Installation
 
@@ -98,17 +103,50 @@ cp .env.example .env.local
 ```
 
 Remplir les variables dans `.env.local` :
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `DATABASE_URL` (PostgreSQL)
+- `NEXTAUTH_SECRET` (générer avec `openssl rand -base64 32`)
+- `NEXTAUTH_URL` (http://localhost:7002)
+- `MINIO_ROOT_USER` et `MINIO_ROOT_PASSWORD`
 - `RESEND_API_KEY`
 
-4. Lancer le serveur de développement
+4. Démarrer l'infrastructure Docker
+```bash
+docker-compose up -d postgres minio
+```
+
+5. Lancer le serveur de développement
 ```bash
 npm run dev
 ```
 
-Ouvrir [http://localhost:3000](http://localhost:3000) dans votre navigateur.
+Ouvrir [http://localhost:7002](http://localhost:7002) dans votre navigateur.
+
+## 🐳 Docker & Infrastructure
+
+Le projet utilise Docker Compose pour l'infrastructure locale :
+
+```yaml
+Services:
+- postgres:5433    # PostgreSQL 15
+- minio:9000       # MinIO (API S3)
+- minio:9001       # MinIO Console
+- nextjs:3000      # Application Next.js
+```
+
+Commandes utiles :
+```bash
+# Démarrer tous les services
+docker-compose up -d
+
+# Voir les logs
+docker-compose logs -f
+
+# Arrêter tous les services
+docker-compose down
+
+# Backup base de données
+docker exec moncabinet-postgres pg_dump -U moncabinet moncabinet > backup.sql
+```
 
 ## 📊 Schéma de Base de Données
 
@@ -134,9 +172,11 @@ Le projet utilise **shadcn/ui** basé sur Tailwind CSS.
 
 ## 🔐 Sécurité
 
-- **Authentification** : Supabase Auth (email/password)
-- **Autorisation** : Row-Level Security (RLS)
-- **Encryption** : TLS pour les communications
+- **Authentification** : NextAuth.js avec sessions JWT (30 jours)
+- **Hashing mots de passe** : bcrypt (10 rounds)
+- **Autorisation** : Row-Level Security (RLS) PostgreSQL + filtres user_id
+- **Encryption** : TLS 1.3 pour les communications (Let's Encrypt)
+- **Stockage** : MinIO avec buckets privés
 - **Conformité** : INPDP (Instance Nationale de Protection des Données Personnelles - Tunisie)
 
 ## 🇹🇳 Spécificités Tunisiennes
