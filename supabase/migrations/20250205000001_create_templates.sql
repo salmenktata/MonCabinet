@@ -1,7 +1,7 @@
 -- Création de la table templates pour les modèles de documents juridiques
 CREATE TABLE templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE, -- NULL pour templates système publics
 
   -- Informations du template
   titre TEXT NOT NULL,
@@ -40,13 +40,13 @@ ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own templates and public templates"
   ON templates FOR SELECT
   USING (
-    auth.uid() = user_id OR est_public = true
+    auth.uid() = user_id OR est_public = true OR user_id IS NULL
   );
 
 -- Politique : Les utilisateurs peuvent insérer leurs propres templates
 CREATE POLICY "Users can insert own templates"
   ON templates FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
 
 -- Politique : Les utilisateurs peuvent modifier leurs propres templates
 CREATE POLICY "Users can update own templates"
@@ -74,10 +74,10 @@ CREATE TRIGGER templates_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_templates_updated_at();
 
--- Insertion de templates par défaut pour la Tunisie
+-- Insertion de templates par défaut pour la Tunisie (templates système publics)
 INSERT INTO templates (user_id, titre, description, type_document, contenu, variables, est_public) VALUES
 (
-  (SELECT id FROM auth.users LIMIT 1), -- Premier utilisateur (à adapter)
+  NULL, -- Template système public
   'Assignation en matière civile',
   'Modèle d''assignation devant le tribunal de première instance',
   'assignation',
@@ -129,7 +129,7 @@ L''Huissier Notaire                    L''Avocat
   true
 ),
 (
-  (SELECT id FROM auth.users LIMIT 1),
+  NULL, -- Template système public
   'Constitution d''avocat',
   'Modèle de constitution d''avocat',
   'constitution_avocat',
@@ -171,7 +171,7 @@ Signature du client                    Signature de l''avocat
   true
 ),
 (
-  (SELECT id FROM auth.users LIMIT 1),
+  NULL, -- Template système public
   'Lettre de mise en demeure',
   'Modèle de lettre de mise en demeure',
   'mise_en_demeure',

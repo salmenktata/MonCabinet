@@ -58,7 +58,7 @@ SELECT
   d.*,
   CASE
     WHEN d.date_mise_en_demeure IS NOT NULL AND d.montant_principal IS NOT NULL
-    THEN EXTRACT(DAY FROM (CURRENT_DATE - d.date_mise_en_demeure))::INTEGER
+    THEN (CURRENT_DATE - d.date_mise_en_demeure)::INTEGER
     ELSE 0
   END as jours_retard,
   CASE
@@ -66,7 +66,7 @@ SELECT
     THEN (
       d.montant_principal *
       (COALESCE(d.taux_interet, 14.5) / 100) *
-      (EXTRACT(DAY FROM (CURRENT_DATE - d.date_mise_en_demeure)) / 365)
+      ((CURRENT_DATE - d.date_mise_en_demeure)::NUMERIC / 365)
     )::DECIMAL(12,3)
     ELSE 0
   END as interets_a_jour
@@ -99,7 +99,7 @@ BEGIN
   END IF;
 
   -- Calculer jours de retard
-  v_jours_retard := EXTRACT(DAY FROM (CURRENT_DATE - v_date_mise_en_demeure))::INTEGER;
+  v_jours_retard := (CURRENT_DATE - v_date_mise_en_demeure)::INTEGER;
 
   -- Calculer intérêts
   v_interets := (v_montant_principal * (v_taux_interet / 100) * (v_jours_retard::DECIMAL / 365))::DECIMAL(12,3);

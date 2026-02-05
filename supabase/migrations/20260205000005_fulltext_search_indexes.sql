@@ -21,8 +21,7 @@ USING GIN (
   to_tsvector('french',
     coalesce(numero_dossier, '') || ' ' ||
     coalesce(objet, '') || ' ' ||
-    coalesce(partie_adverse, '') || ' ' ||
-    coalesce(reference_greffe, '')
+    coalesce(partie_adverse, '')
   )
 );
 
@@ -40,7 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_documents_fulltext ON documents
 USING GIN (
   to_tsvector('french',
     coalesce(nom_fichier, '') || ' ' ||
-    coalesce(type_document, '')
+    coalesce(type_fichier, '')
   )
 );
 

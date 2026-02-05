@@ -6,6 +6,8 @@ import { QuickActions } from '@/components/dashboard/QuickActions'
 import RevenusWidget from '@/components/dashboard/RevenusWidget'
 import DossiersParWorkflowWidget from '@/components/dashboard/DossiersParWorkflowWidget'
 import TimeTrackingWidget from '@/components/dashboard/TimeTrackingWidget'
+import UnclassifiedDocumentsWidget from '@/components/dashboard/UnclassifiedDocumentsWidget'
+import PendingDocumentsWidget from '@/components/dashboard/PendingDocumentsWidget'
 import { Icons } from '@/lib/icons'
 import { getTranslations, getLocale } from 'next-intl/server'
 
@@ -223,6 +225,26 @@ export default async function DashboardPage() {
           href="/echeances"
         />
       </div>
+
+      {/* Widget Documents à Classer */}
+      <UnclassifiedDocumentsWidget
+        dossiers={dossiers?.map((d) => ({
+          id: d.id,
+          numero_dossier: d.numero,
+          objet: d.objet || '',
+          client_id: d.client_id,
+        })) || []}
+      />
+
+      {/* Widget Documents WhatsApp en Attente */}
+      <PendingDocumentsWidget
+        dossiers={dossiers?.map((d) => ({
+          id: d.id,
+          numero: d.numero,
+          objet: d.objet || '',
+          client_id: d.client_id,
+        })) || []}
+      />
 
       {/* Actions urgentes et Activité récente */}
       <div className="grid gap-6 lg:grid-cols-2">

@@ -214,6 +214,13 @@ export async function syncGoogleDriveToDatabase(
           pathAnalysis.isInUnclassifiedFolder || !pathAnalysis.dossierId
 
         // Créer entrée document en BDD
+        const clientFolderId = pathAnalysis.clientId
+          ? clientsByFolderId.get(pathAnalysis.clientId)?.google_drive_folder_id || null
+          : null
+        const dossierFolderId = pathAnalysis.dossierId
+          ? dossiersByFolderId.get(pathAnalysis.dossierId)?.google_drive_folder_id || null
+          : null
+
         const { error: insertError } = await supabase.from('documents').insert({
           user_id: userId,
           dossier_id: pathAnalysis.dossierId || null,
@@ -222,12 +229,8 @@ export async function syncGoogleDriveToDatabase(
           taille_fichier: file.size,
           storage_provider: 'google_drive',
           external_file_id: file.id,
-          external_folder_client_id: pathAnalysis.clientId
-            ? clientsByFolderId.get(pathAnalysis.clientId)?.google_drive_folder_id
-            : null,
-          external_folder_dossier_id: pathAnalysis.dossierId
-            ? dossiersByFolderId.get(pathAnalysis.dossierId)?.google_drive_folder_id
-            : null,
+          external_folder_client_id: clientFolderId,
+          external_folder_dossier_id: dossierFolderId,
           external_sharing_link: file.webViewLink,
           external_metadata: {
             createdTime: file.createdTime.toISOString(),
