@@ -3,8 +3,10 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ActiveTimer from '@/components/time-tracking/ActiveTimer'
 import TimeEntryCard from '@/components/time-tracking/TimeEntryCard'
+import { getTranslations } from 'next-intl/server'
 
 export default async function TimeTrackingPage() {
+  const t = await getTranslations('timeTracking')
   const supabase = await createClient()
 
   const {
@@ -92,16 +94,16 @@ export default async function TimeTrackingPage() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Suivi du temps</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Gérez votre temps passé sur les dossiers pour optimiser votre facturation
+            {t('subtitle')}
           </p>
         </div>
         <Link
           href="/time-tracking/new"
           className="rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700"
         >
-          + Ajouter une entrée
+          + {t('newEntry')}
         </Link>
       </div>
 
@@ -117,7 +119,7 @@ export default async function TimeTrackingPage() {
         <div className="rounded-lg border bg-white p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Semaine</p>
+              <p className="text-sm font-medium text-gray-600">{t('week')}</p>
               <p className="mt-1 text-2xl font-semibold text-blue-600">
                 {stats.heuresSemaine.toFixed(1)}h
               </p>
@@ -143,7 +145,7 @@ export default async function TimeTrackingPage() {
         <div className="rounded-lg border bg-white p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Mois</p>
+              <p className="text-sm font-medium text-gray-600">{t('month')}</p>
               <p className="mt-1 text-2xl font-semibold text-indigo-600">
                 {stats.heuresMois.toFixed(1)}h
               </p>
@@ -169,7 +171,7 @@ export default async function TimeTrackingPage() {
         <div className="rounded-lg border bg-white p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">À facturer (mois)</p>
+              <p className="text-sm font-medium text-gray-600">{t('toBillMonth')}</p>
               <p className="mt-1 text-xl font-semibold text-green-600">
                 {stats.montantMois.toFixed(0)} <span className="text-sm">TND</span>
               </p>
@@ -195,11 +197,11 @@ export default async function TimeTrackingPage() {
         <div className="rounded-lg border bg-white p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Non facturées</p>
+              <p className="text-sm font-medium text-gray-600">{t('notBilled')}</p>
               <p className="mt-1 text-2xl font-semibold text-orange-600">
                 {stats.nonFacturees}
               </p>
-              <p className="text-xs text-gray-500">entrée(s)</p>
+              <p className="text-xs text-gray-500">{t('entries')}</p>
             </div>
             <div className="rounded-full bg-orange-100 p-3">
               <svg
@@ -237,24 +239,24 @@ export default async function TimeTrackingPage() {
             />
           </svg>
           <h3 className="mt-2 text-sm font-medium text-gray-900">
-            Aucune entrée de temps
+            {t('noEntries')}
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            Commencez à suivre votre temps pour optimiser votre facturation
+            {t('createFirstEntry')}
           </p>
           <div className="mt-6">
             <Link
               href="/time-tracking/new"
               className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
-              + Ajouter une entrée
+              + {t('newEntry')}
             </Link>
           </div>
         </div>
       ) : (
         <div>
           <h2 className="mb-3 text-lg font-semibold text-gray-900">
-            Historique ({timeEntries.length} entrée(s))
+            {t('history')} ({timeEntries.length} {t('entries')})
           </h2>
           <div className="grid gap-4">
             {timeEntries.map((entry) => (

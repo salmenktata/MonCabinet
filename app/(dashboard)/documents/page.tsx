@@ -2,8 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import DocumentCard from '@/components/documents/DocumentCard'
+import { getTranslations } from 'next-intl/server'
 
 export default async function DocumentsPage() {
+  const t = await getTranslations('documents')
   const supabase = await createClient()
 
   const {
@@ -57,9 +59,9 @@ export default async function DocumentsPage() {
     <div className="space-y-6">
       {/* En-tête */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Documents</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Gérez tous vos documents juridiques
+          {t('subtitle')}
         </p>
       </div>
 
@@ -68,7 +70,7 @@ export default async function DocumentsPage() {
         <div className="rounded-lg border bg-white p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Total</p>
+              <p className="text-sm font-medium text-gray-600">{t('total')}</p>
               <p className="mt-1 text-2xl font-semibold text-gray-900">{stats.total}</p>
             </div>
             <div className="rounded-full bg-blue-100 p-3">
@@ -90,22 +92,22 @@ export default async function DocumentsPage() {
         </div>
 
         <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-600">Contrats</p>
+          <p className="text-sm font-medium text-gray-600">{t('contracts')}</p>
           <p className="mt-1 text-2xl font-semibold text-blue-600">{stats.contrats}</p>
         </div>
 
         <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-600">Jugements</p>
+          <p className="text-sm font-medium text-gray-600">{t('judgments')}</p>
           <p className="mt-1 text-2xl font-semibold text-purple-600">{stats.jugements}</p>
         </div>
 
         <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-600">Pièces</p>
+          <p className="text-sm font-medium text-gray-600">{t('pieces')}</p>
           <p className="mt-1 text-2xl font-semibold text-yellow-600">{stats.pieces}</p>
         </div>
 
         <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-gray-600">Stockage</p>
+          <p className="text-sm font-medium text-gray-600">{t('storage')}</p>
           <p className="mt-1 text-xl font-semibold text-indigo-600">
             {formatSize(stats.tailleTotal)}
           </p>
@@ -128,23 +130,23 @@ export default async function DocumentsPage() {
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun document</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">{t('noDocuments')}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Uploadez des documents depuis vos dossiers
+            {t('createFirstDocument')}
           </p>
           <div className="mt-6">
             <Link
               href="/dossiers"
               className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
-              Voir mes dossiers →
+              {t('viewDossiers')} →
             </Link>
           </div>
         </div>
       ) : (
         <div>
           <h2 className="mb-3 text-lg font-semibold text-gray-900">
-            Tous les documents ({documents.length})
+            {t('allDocuments')} ({documents.length})
           </h2>
           <div className="grid gap-4">
             {documents.map((doc) => (
