@@ -1,10 +1,14 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+
 interface RevenusWidgetProps {
   factures: any[]
 }
 
 export default function RevenusWidget({ factures }: RevenusWidgetProps) {
+  const t = useTranslations('dashboard.revenue')
+
   // Calcul des revenus
   const revenusTotal = factures.reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0)
   const revenusPayes = factures
@@ -45,33 +49,33 @@ export default function RevenusWidget({ factures }: RevenusWidgetProps) {
 
   return (
     <div className="rounded-lg border bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">💰 Revenus et Facturation</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('title')}</h2>
 
       {/* Statistiques principales */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="rounded-lg bg-green-50 p-4">
-          <p className="text-xs font-medium text-green-600">Payé</p>
+          <p className="text-xs font-medium text-green-600">{t('paid')}</p>
           <p className="mt-1 text-2xl font-bold text-green-700">
             {revenusPayes.toFixed(3)} <span className="text-sm">TND</span>
           </p>
         </div>
 
         <div className="rounded-lg bg-orange-50 p-4">
-          <p className="text-xs font-medium text-orange-600">En attente</p>
+          <p className="text-xs font-medium text-orange-600">{t('pending')}</p>
           <p className="mt-1 text-2xl font-bold text-orange-700">
             {revenusEnAttente.toFixed(3)} <span className="text-sm">TND</span>
           </p>
         </div>
 
         <div className="rounded-lg bg-red-50 p-4">
-          <p className="text-xs font-medium text-red-600">Impayé</p>
+          <p className="text-xs font-medium text-red-600">{t('unpaid')}</p>
           <p className="mt-1 text-2xl font-bold text-red-700">
             {revenusImpayes.toFixed(3)} <span className="text-sm">TND</span>
           </p>
         </div>
 
         <div className="rounded-lg bg-blue-50 p-4">
-          <p className="text-xs font-medium text-blue-600">Total</p>
+          <p className="text-xs font-medium text-blue-600">{t('total')}</p>
           <p className="mt-1 text-2xl font-bold text-blue-700">
             {revenusTotal.toFixed(3)} <span className="text-sm">TND</span>
           </p>
@@ -81,7 +85,7 @@ export default function RevenusWidget({ factures }: RevenusWidgetProps) {
       {/* Taux de paiement */}
       <div className="mb-6">
         <div className="flex items-center justify-between text-sm mb-2">
-          <span className="font-medium text-gray-700">Taux de paiement</span>
+          <span className="font-medium text-gray-700">{t('paymentRate')}</span>
           <span className="font-semibold text-green-600">{tauxPaiement.toFixed(1)}%</span>
         </div>
         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -94,7 +98,7 @@ export default function RevenusWidget({ factures }: RevenusWidgetProps) {
 
       {/* Graphique simple des 3 derniers mois */}
       <div>
-        <p className="text-sm font-medium text-gray-700 mb-3">Évolution (3 derniers mois)</p>
+        <p className="text-sm font-medium text-gray-700 mb-3">{t('evolution3Months')}</p>
         <div className="flex items-end justify-between gap-2" style={{ height: '100px' }}>
           {derniersMois.map((mois) => (
             <div key={mois.mois} className="flex-1 flex flex-col items-center">

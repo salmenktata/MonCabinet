@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { deleteTemplateAction, duplicateTemplateAction } from '@/app/actions/templates'
 import { TYPE_DOCUMENT_LABELS } from '@/lib/validations/template'
 
@@ -25,12 +26,15 @@ const typeColors: Record<string, string> = {
 
 export default function TemplateCard({ template }: TemplateCardProps) {
   const router = useRouter()
+  const t = useTranslations('templates')
+  const tConfirm = useTranslations('confirmations')
+  const tCards = useTranslations('cards')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showActions, setShowActions] = useState(false)
 
   const handleDelete = async () => {
-    if (!confirm('Supprimer ce template ? Cette action est irréversible.')) return
+    if (!confirm(tConfirm('deleteTemplate'))) return
 
     setLoading(true)
     const result = await deleteTemplateAction(template.id)
@@ -71,7 +75,7 @@ export default function TemplateCard({ template }: TemplateCardProps) {
             <h3 className="font-semibold text-gray-900 text-lg truncate">{template.titre}</h3>
             {template.est_public && (
               <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                Public
+                {t('public')}
               </span>
             )}
           </div>

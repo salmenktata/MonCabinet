@@ -1,5 +1,7 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+
 interface PaginationProps {
   currentPage: number
   totalPages: number
@@ -13,6 +15,8 @@ export default function Pagination({
   onPageChange,
   showFirstLast = true,
 }: PaginationProps) {
+  const t = useTranslations('common')
+
   const getPageNumbers = () => {
     const delta = 2
     const range = []
@@ -68,7 +72,7 @@ export default function Pagination({
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            Précédent
+            {t('previous')}
           </button>
         )}
       </div>
@@ -116,7 +120,7 @@ export default function Pagination({
             onClick={() => onPageChange(currentPage + 1)}
             className="inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
           >
-            Suivant
+            {t('next')}
             <svg
               className="ml-3 h-5 w-5 text-gray-400"
               fill="none"
@@ -143,6 +147,8 @@ export function SimplePagination({
   totalPages,
   onPageChange,
 }: Omit<PaginationProps, 'showFirstLast'>) {
+  const t = useTranslations('common')
+
   if (totalPages <= 1) return null
 
   return (
@@ -152,11 +158,11 @@ export function SimplePagination({
         disabled={currentPage === 1}
         className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        Précédent
+        {t('previous')}
       </button>
 
       <span className="text-sm text-gray-700">
-        Page {currentPage} sur {totalPages}
+        {t('pageOf', { current: currentPage, total: totalPages })}
       </span>
 
       <button
@@ -164,7 +170,7 @@ export function SimplePagination({
         disabled={currentPage === totalPages}
         className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        Suivant
+        {t('next')}
       </button>
     </div>
   )

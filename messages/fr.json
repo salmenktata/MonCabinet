@@ -11,6 +11,7 @@
     "create": "Créer",
     "search": "Rechercher",
     "loading": "Chargement...",
+    "saving": "Enregistrement...",
     "noData": "Aucune donnée",
     "error": "Erreur",
     "success": "Succès",
@@ -18,11 +19,14 @@
     "back": "Retour",
     "next": "Suivant",
     "previous": "Précédent",
+    "pageOf": "Page {current} sur {total}",
     "close": "Fermer",
     "yes": "Oui",
     "no": "Non",
     "optional": "Optionnel",
-    "required": "Obligatoire"
+    "required": "Obligatoire",
+    "settings": "Paramètres",
+    "profile": "Profil"
   },
   "nav": {
     "dashboard": "Tableau de bord",
@@ -30,9 +34,22 @@
     "dossiers": "Dossiers",
     "factures": "Factures",
     "echeances": "Échéances",
+    "deadlines": "Échéances",
     "timeTracking": "Time Tracking",
     "documents": "Documents",
-    "templates": "Templates"
+    "templates": "Templates",
+    "settings": "Paramètres"
+  },
+  "breadcrumbs": {
+    "home": "Accueil",
+    "new": "Nouveau",
+    "edit": "Modifier",
+    "details": "Détails"
+  },
+  "navGroups": {
+    "core": "Principal",
+    "finance": "Finance",
+    "documents": "Documents"
   },
   "auth": {
     "loginTitle": "Connexion à votre compte",
@@ -74,6 +91,15 @@
       "activeDossiers": "Dossiers actifs",
       "pendingInvoices": "Factures en attente",
       "upcomingDeadlines": "Échéances à venir"
+    },
+    "revenue": {
+      "title": "💰 Revenus et Facturation",
+      "paid": "Payé",
+      "pending": "En attente",
+      "unpaid": "Impayé",
+      "total": "Total",
+      "paymentRate": "Taux de paiement",
+      "evolution3Months": "Évolution (3 derniers mois)"
     }
   },
   "clients": {
@@ -229,7 +255,13 @@
     "criticalSection": "Critiques (≤ 3 jours)",
     "urgentSection": "Urgentes (≤ 7 jours)",
     "upcomingSection": "À venir (≤ 30 jours)",
-    "futureSection": "Futures (> 30 jours)"
+    "futureSection": "Futures (> 30 jours)",
+    "types": {
+      "AUDIENCE": "Audience",
+      "DELAI_LEGAL": "Délai légal",
+      "DELAI_INTERNE": "Délai interne",
+      "AUTRE": "Autre"
+    }
   },
   "timeTracking": {
     "title": "Suivi du temps",
@@ -258,7 +290,9 @@
     "toBillMonth": "À facturer (mois)",
     "notBilled": "Non facturées",
     "entries": "entrée(s)",
-    "history": "Historique"
+    "history": "Historique",
+    "notBillable": "Non facturable",
+    "billed": "✓ Facturé"
   },
   "documents": {
     "title": "Documents",
@@ -514,6 +548,12 @@
     "noResults": "Aucun résultat",
     "emptyState": "Aucune donnée disponible"
   },
+  "confirmations": {
+    "deleteDocument": "Supprimer ce document ? Cette action est irréversible.",
+    "deleteDeadline": "Supprimer cette échéance ?",
+    "deleteTimeEntry": "Supprimer cette entrée de temps ?",
+    "deleteTemplate": "Supprimer ce template ? Cette action est irréversible."
+  },
   "cards": {
     "clientType": {
       "physical": "Physique",
@@ -610,5 +650,15 @@
     "retry": "Réessayer",
     "loading": "Chargement...",
     "noData": "Aucune donnée disponible"
+  },
+  "shortcuts": {
+    "title": "Raccourcis clavier",
+    "globalSearch": "Recherche globale",
+    "backToDashboard": "Retour au tableau de bord",
+    "newClient": "Nouveau client",
+    "newDossier": "Nouveau dossier",
+    "newInvoice": "Nouvelle facture",
+    "showShortcuts": "Afficher les raccourcis",
+    "tip": "💡 Astuce : Utilisez ces raccourcis pour naviguer plus rapidement dans l'application."
   }
 }

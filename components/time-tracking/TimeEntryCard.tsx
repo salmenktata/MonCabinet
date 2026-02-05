@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { deleteTimeEntryAction } from '@/app/actions/time-entries'
 import type { TimeEntry } from '@/types/time-tracking'
 
@@ -12,12 +13,15 @@ interface TimeEntryCardProps {
 
 export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEntryCardProps) {
   const router = useRouter()
+  const t = useTranslations('timeTracking')
+  const tConfirm = useTranslations('confirmations')
+  const tCards = useTranslations('cards')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showActions, setShowActions] = useState(false)
 
   const handleDelete = async () => {
-    if (!confirm('Supprimer cette entrée de temps ?')) return
+    if (!confirm(tConfirm('deleteTimeEntry'))) return
 
     setLoading(true)
     const result = await deleteTimeEntryAction(entry.id)
@@ -64,13 +68,13 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
 
             {!entry.facturable && (
               <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
-                Non facturable
+                {t('notBillable')}
               </span>
             )}
 
             {isFacturee && (
               <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
-                ✓ Facturé
+                {t('billed')}
               </span>
             )}
           </div>

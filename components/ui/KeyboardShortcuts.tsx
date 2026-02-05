@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface Shortcut {
   key: string
@@ -35,13 +36,14 @@ export function useKeyboardShortcuts(shortcuts: Shortcut[]) {
 
 export function GlobalKeyboardShortcuts() {
   const router = useRouter()
+  const t = useTranslations('shortcuts')
   const [showHelp, setShowHelp] = useState(false)
 
   const shortcuts: Shortcut[] = [
     {
       key: 'k',
       ctrl: true,
-      description: 'Recherche globale',
+      description: t('globalSearch'),
       action: () => {
         // TODO: Ouvrir une modale de recherche
         console.log('Recherche globale')
@@ -50,34 +52,34 @@ export function GlobalKeyboardShortcuts() {
     {
       key: 'h',
       ctrl: true,
-      description: 'Retour au tableau de bord',
+      description: t('backToDashboard'),
       action: () => router.push('/dashboard'),
     },
     {
       key: 'c',
       ctrl: true,
       alt: true,
-      description: 'Nouveau client',
+      description: t('newClient'),
       action: () => router.push('/clients/new'),
     },
     {
       key: 'd',
       ctrl: true,
       alt: true,
-      description: 'Nouveau dossier',
+      description: t('newDossier'),
       action: () => router.push('/dossiers/new'),
     },
     {
       key: 'f',
       ctrl: true,
       alt: true,
-      description: 'Nouvelle facture',
+      description: t('newInvoice'),
       action: () => router.push('/factures/new'),
     },
     {
       key: '?',
       shift: true,
-      description: 'Afficher les raccourcis',
+      description: t('showShortcuts'),
       action: () => setShowHelp(true),
     },
   ]
@@ -102,7 +104,7 @@ export function GlobalKeyboardShortcuts() {
       <button
         onClick={() => setShowHelp(true)}
         className="fixed bottom-4 left-4 z-40 rounded-full bg-gray-800 p-3 text-white shadow-lg hover:bg-gray-700 transition-colors"
-        title="Raccourcis clavier (Shift + ?)"
+        title={t('title') + ' (Shift + ?)'}
       >
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -125,7 +127,7 @@ export function GlobalKeyboardShortcuts() {
 
             <div className="relative z-10 w-full max-w-2xl transform rounded-lg bg-white p-6 shadow-xl transition-all">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">Raccourcis clavier</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
                 <button
                   onClick={() => setShowHelp(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -174,7 +176,7 @@ export function GlobalKeyboardShortcuts() {
 
               <div className="mt-6 rounded-lg bg-blue-50 p-4">
                 <p className="text-sm text-blue-800">
-                  💡 Astuce : Utilisez ces raccourcis pour naviguer plus rapidement dans l&apos;application.
+                  {t('tip')}
                 </p>
               </div>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { deleteDocumentAction, getDocumentUrlAction } from '@/app/actions/documents'
 
 interface DocumentCardProps {
@@ -16,19 +17,23 @@ const categorieColors: Record<string, string> = {
   autre: 'bg-gray-100 text-gray-700',
 }
 
-const categorieLabels: Record<string, string> = {
-  contrat: 'Contrat',
-  jugement: 'Jugement',
-  correspondance: 'Correspondance',
-  piece: 'Pièce',
-  autre: 'Autre',
-}
-
 export default function DocumentCard({ document }: DocumentCardProps) {
   const router = useRouter()
+  const t = useTranslations('documents.categories')
+  const tConfirm = useTranslations('confirmations')
+  const tCommon = useTranslations('common')
+  const tCards = useTranslations('cards')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showActions, setShowActions] = useState(false)
+
+  const categorieLabels: Record<string, string> = {
+    contrat: t('contrat'),
+    jugement: t('jugement'),
+    correspondance: t('correspondance'),
+    piece: t('piece'),
+    autre: t('autre'),
+  }
 
   const handleDownload = async () => {
     setLoading(true)
@@ -51,7 +56,7 @@ export default function DocumentCard({ document }: DocumentCardProps) {
   }
 
   const handleDelete = async () => {
-    if (!confirm('Supprimer ce document ? Cette action est irréversible.')) return
+    if (!confirm(tConfirm('deleteDocument'))) return
 
     setLoading(true)
     const result = await deleteDocumentAction(document.id)
@@ -162,7 +167,7 @@ export default function DocumentCard({ document }: DocumentCardProps) {
               disabled={loading}
               className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
             >
-              {showActions ? 'Fermer' : 'Actions'}
+              {showActions ? tCards('close') : tCards('actions')}
             </button>
           </div>
         </div>
@@ -181,7 +186,7 @@ export default function DocumentCard({ document }: DocumentCardProps) {
             disabled={loading}
             className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {loading ? '⏳' : '📥'} Télécharger
+            {loading ? '⏳' : '📥'} {loading ? tCommon('loading') : 'Télécharger'}
           </button>
 
           <button
@@ -189,7 +194,7 @@ export default function DocumentCard({ document }: DocumentCardProps) {
             disabled={loading}
             className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
-            🗑️ Supprimer
+            🗑️ {tCommon('delete')}
           </button>
         </div>
       )}

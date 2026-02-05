@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { deleteEcheanceAction, marquerEcheanceRespecte } from '@/app/actions/echeances'
 import { joursRestants, niveauUrgence, formatterDelai } from '@/lib/utils/delais-tunisie'
 
@@ -25,25 +26,28 @@ const typeColors: Record<string, string> = {
   autre: 'bg-gray-100 text-gray-700',
 }
 
-const typeLabels: Record<string, string> = {
-  audience: 'Audience',
-  delai_legal: 'Délai légal',
-  delai_interne: 'Délai interne',
-  autre: 'Autre',
-}
-
 export default function EcheanceCard({ echeance, showDossierInfo = false }: EcheanceCardProps) {
   const router = useRouter()
+  const t = useTranslations('echeances.types')
+  const tConfirm = useTranslations('confirmations')
+  const tCards = useTranslations('cards')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showActions, setShowActions] = useState(false)
+
+  const typeLabels: Record<string, string> = {
+    audience: t('AUDIENCE'),
+    delai_legal: t('DELAI_LEGAL'),
+    delai_interne: t('DELAI_INTERNE'),
+    autre: t('AUTRE'),
+  }
 
   const dateEcheance = new Date(echeance.date_echeance)
   const jours = joursRestants(dateEcheance)
   const urgence = niveauUrgence(dateEcheance)
 
   const handleDelete = async () => {
-    if (!confirm('Supprimer cette échéance ?')) return
+    if (!confirm(tConfirm('deleteDeadline'))) return
 
     setLoading(true)
     const result = await deleteEcheanceAction(echeance.id)
@@ -224,7 +228,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
           disabled={loading}
           className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          {showActions ? 'Fermer' : 'Actions'}
+          {showActions ? tCards('close') : tCards('actions')}
         </button>
       </div>
 
