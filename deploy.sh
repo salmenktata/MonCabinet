@@ -23,8 +23,8 @@ NC='\033[0m' # No Color
 echo -e "${GREEN}🚀 Déploiement MonCabinet sur VPS Contabo...${NC}"
 
 # Vérifier qu'on est dans le bon répertoire
-if [ ! -f "docker-compose.yml" ]; then
-  echo -e "${RED}❌ ERREUR: docker-compose.yml non trouvé!${NC}"
+if [ ! -f "docker compose.yml" ]; then
+  echo -e "${RED}❌ ERREUR: docker compose.yml non trouvé!${NC}"
   echo "Exécuter ce script depuis /opt/moncabinet/"
   exit 1
 fi
@@ -92,7 +92,7 @@ echo -e "${YELLOW}🐳 Rebuild Docker images...${NC}"
 export $(grep -v '^#' .env.production | xargs)
 
 # Build Next.js avec --no-cache pour forcer rebuild complet
-docker-compose build --no-cache nextjs || {
+docker compose build --no-cache nextjs || {
   echo -e "${RED}❌ ERREUR: Build Docker échoué!${NC}"
   exit 1
 }
@@ -106,7 +106,7 @@ echo -e "${GREEN}✅ Build réussi${NC}"
 echo -e "${YELLOW}🛑 Arrêt containers...${NC}"
 
 # Graceful stop (10s timeout)
-docker-compose down --timeout 10 || {
+docker compose down --timeout 10 || {
   echo -e "${RED}❌ ERREUR: Arrêt containers échoué!${NC}"
   exit 1
 }
@@ -120,7 +120,7 @@ echo -e "${GREEN}✅ Containers arrêtés${NC}"
 echo -e "${YELLOW}✅ Démarrage containers...${NC}"
 
 # Start tous les services
-docker-compose up -d || {
+docker compose up -d || {
   echo -e "${RED}❌ ERREUR: Démarrage containers échoué!${NC}"
   exit 1
 }
@@ -169,7 +169,7 @@ if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
   echo -e "${YELLOW}🔄 Rollback en cours...${NC}"
 
   # Arrêter containers défectueux
-  docker-compose down
+  docker compose down
 
   # Restaurer dernière config qui marchait
   LAST_BACKUP=$(ls -t .env.production.backup.* 2>/dev/null | head -1)
@@ -180,10 +180,10 @@ if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
 
   # Redémarrer avec ancienne config
   export $(grep -v '^#' .env.production | xargs)
-  docker-compose up -d
+  docker compose up -d
 
   echo -e "${RED}❌ DÉPLOIEMENT ÉCHOUÉ - Rollback effectué${NC}"
-  echo "Vérifier les logs: docker-compose logs -f --tail=100"
+  echo "Vérifier les logs: docker compose logs -f --tail=100"
 
   exit 1
 fi
@@ -213,17 +213,17 @@ echo -e "${GREEN}✅ DÉPLOIEMENT TERMINÉ AVEC SUCCÈS!${NC}"
 echo -e "${GREEN}✅ ============================================${NC}"
 echo ""
 echo -e "${YELLOW}📊 Status containers:${NC}"
-docker-compose ps
+docker compose ps
 
 echo ""
 echo -e "${YELLOW}📝 Logs récents:${NC}"
-docker-compose logs --tail=20
+docker compose logs --tail=20
 
 echo ""
 echo -e "${YELLOW}💡 Commandes utiles:${NC}"
-echo "  - Voir logs live:     docker-compose logs -f --tail=100"
-echo "  - Redémarrer:         docker-compose restart"
-echo "  - Arrêter:            docker-compose down"
-echo "  - Status détaillé:    docker-compose ps -a"
+echo "  - Voir logs live:     docker compose logs -f --tail=100"
+echo "  - Redémarrer:         docker compose restart"
+echo "  - Arrêter:            docker compose down"
+echo "  - Status détaillé:    docker compose ps -a"
 echo ""
 echo -e "${GREEN}🌐 Application accessible sur: ${NEXT_PUBLIC_APP_URL}${NC}"
