@@ -29,6 +29,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # DATABASE_URL factice pour éviter erreurs d'import pendant le build
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+ENV NEXTAUTH_SECRET="build-secret-not-used-in-production"
+ENV NEXTAUTH_URL="http://localhost:3000"
 RUN npx next build
 
 # Stage 3: Runner
