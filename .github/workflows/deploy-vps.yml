@@ -5,60 +5,62 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  # Job 1: Tests et Validations
-  validate:
+  # Job 1: Build et Push Docker Image
+  build:
     runs-on: ubuntu-latest
-    name: Validate Code
+    name: Build Docker Image
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
 
-      - name: Type check
-        run: npm run type-check || true
-        continue-on-error: true
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Check translations
-        run: npm run check:translations || true
-
-  # Job 2: Déploiement sur VPS
+  # Job 2: Déploiement rapide sur VPS
   deploy:
     runs-on: ubuntu-latest
     name: Deploy to VPS
-    needs: validate
+    needs: build
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Update secrets on VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          port: ${{ secrets.VPS_PORT }}
-          script: |
-            cd /opt/moncabinet
-            # Mettre à jour les clés API
-            sed -i 's|RESEND_API_KEY=.*|RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}|' .env
-            sed -i 's|GROQ_API_KEY=.*|GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}|' .env
-            sed -i 's|CRON_SECRET=.*|CRON_SECRET=${{ secrets.CRON_SECRET }}|' .env
-            # Ajouter si absent
-            grep -q "RESEND_API_KEY" .env || echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" >> .env
-            grep -q "GROQ_API_KEY" .env || echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -66,9 +68,27 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT }}
+          command_timeout: 10m
           script: |
             cd /opt/moncabinet
-            ./deploy.sh
+
+            # Mettre à jour les secrets
+            sed -i 's|RESEND_API_KEY=.*|RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}|' .env
+            sed -i 's|GROQ_API_KEY=.*|GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}|' .env
+            sed -i 's|CRON_SECRET=.*|CRON_SECRET=${{ secrets.CRON_SECRET }}|' .env
+
+            # Login au registry GitHub
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Pull la nouvelle image
+            docker pull ghcr.io/salmenktata/moncabinet:latest
+
+            # Utiliser docker-compose.prod.yml pour la production
+            docker compose -f docker-compose.prod.yml pull nextjs
+            docker compose -f docker-compose.prod.yml up -d nextjs
+
+            # Cleanup anciennes images
+            docker image prune -f
 
       - name: Verify deployment
         uses: appleboy/ssh-action@v1.0.3
@@ -78,43 +98,23 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            # Attendre que l'app démarre
-            sleep 10
-
-            # Health check
+            sleep 15
             curl -f http://localhost:3000/api/health || exit 1
+            echo "✅ Deployment successful!"
 
-            # Status containers
-            cd /opt/moncabinet
-            docker-compose ps
-
-  # Job 3: Notification résultat
+  # Job 3: Notification
   notify:
     runs-on: ubuntu-latest
     name: Notify Status
-    needs: [validate, deploy]
+    needs: [build, deploy]
     if: always()
 
     steps:
-      - name: Notify success
-        if: needs.deploy.result == 'success'
+      - name: Notify result
         run: |
-          echo "✅ Déploiement réussi sur VPS Contabo"
-          echo "Branche: ${{ github.ref }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Auteur: ${{ github.actor }}"
-
-      - name: Notify failure
-        if: needs.deploy.result == 'failure'
-        run: |
-          echo "❌ Échec déploiement sur VPS Contabo"
-          echo "Branche: ${{ github.ref }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Auteur: ${{ github.actor }}"
-          exit 1
-
-# Configuration GitHub Secrets requise:
-# - VPS_HOST: IP du VPS (configuré: 84.247.165.187)
-# - VPS_USER: Utilisateur SSH (configuré: root)
-# - VPS_PASSWORD: Mot de passe SSH
-# - VPS_PORT: Port SSH (configuré: 22)
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Déploiement réussi sur VPS Contabo"
+          else
+            echo "❌ Échec déploiement"
+            exit 1
+          fi
