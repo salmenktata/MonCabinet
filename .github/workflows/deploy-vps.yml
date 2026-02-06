@@ -42,6 +42,23 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
+      - name: Update secrets on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            cd /opt/moncabinet
+            # Mettre à jour les clés API
+            sed -i 's|RESEND_API_KEY=.*|RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}|' .env
+            sed -i 's|GROQ_API_KEY=.*|GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}|' .env
+            sed -i 's|CRON_SECRET=.*|CRON_SECRET=${{ secrets.CRON_SECRET }}|' .env
+            # Ajouter si absent
+            grep -q "RESEND_API_KEY" .env || echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" >> .env
+            grep -q "GROQ_API_KEY" .env || echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
