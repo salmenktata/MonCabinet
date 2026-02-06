@@ -35,7 +35,7 @@
     "factures": "Factures",
     "echeances": "Échéances",
     "deadlines": "Échéances",
-    "timeTracking": "Time Tracking",
+    "timeTracking": "Suivi du Temps",
     "documents": "Documents",
     "templates": "Templates",
     "settings": "Paramètres",
@@ -43,7 +43,9 @@
     "notifications": "Notifications",
     "cloudStorage": "Stockage Cloud",
     "messaging": "Messagerie",
-    "knowledgeBase": "Base de connaissances"
+    "knowledgeBase": "Base de Connaissances",
+    "assistantIA": "Assistant IA",
+    "modeRapide": "Mode Rapide"
   },
   "breadcrumbs": {
     "home": "Accueil",
@@ -55,6 +57,7 @@
     "core": "Principal",
     "finance": "Finance",
     "documents": "Documents",
+    "intelligence": "Intelligence",
     "système": "Système"
   },
   "auth": {
@@ -724,6 +727,213 @@
   },
   "currency": {
     "tnd": "TND"
+  },
+  "assistantIA": {
+    "title": "Assistant IA Juridique",
+    "subtitle": "Chat conversationnel avec l'assistant IA juridique",
+    "newConversation": "Nouvelle conversation",
+    "searchConversations": "Rechercher...",
+    "noResults": "Aucun résultat",
+    "noConversations": "Aucune conversation",
+    "deleteConfirmTitle": "Supprimer la conversation ?",
+    "deleteConfirmMessage": "Cette action est irréversible. Tous les messages seront supprimés.",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "deleting": "Suppression...",
+    "placeholder": "Décrivez votre cas juridique ou posez une question...",
+    "enterToSend": "Entrée",
+    "disclaimer": "L'IA peut faire des erreurs. Vérifiez les informations importantes.",
+    "welcomeTitle": "Bienvenue sur l'Assistant IA",
+    "welcomeMessage": "Posez vos questions juridiques et obtenez des réponses contextualisées basées sur vos documents et la jurisprudence tunisienne.",
+    "exampleQuestions": "Exemples de questions :",
+    "examples": {
+      "civil": "Procédure civile",
+      "commercial": "Litige commercial",
+      "divorce": "Affaire de divorce"
+    },
+    "similarity": "Pertinence",
+    "error": "Erreur",
+    "success": "Succès",
+    "errorLoadingConversations": "Impossible de charger les conversations",
+    "errorLoadingMessages": "Impossible de charger les messages",
+    "errorDeletingConversation": "Impossible de supprimer la conversation",
+    "errorSendingMessage": "Impossible d'envoyer le message",
+    "conversationDeleted": "Conversation supprimée",
+    "actions": "Actions",
+    "createDossier": "Créer un dossier",
+    "quickMode": "Mode Rapide",
+    "viewReferences": "Voir les références",
+    "copyConversation": "Copier",
+    "exportConversation": "Exporter"
+  },
+  "assistant": {
+    "title": "Assistant IA Juridique",
+    "subtitle": "Décrivez votre dossier en langage naturel. L'IA analysera, structurera et proposera une stratégie.",
+    "tip": {
+      "title": "Conseil",
+      "description": "Décrivez les faits, les parties, les montants, les dates importantes. L'IA structurera automatiquement votre dossier et vous guidera dans la démarche juridique."
+    },
+    "input": {
+      "label": "Racontez les faits de votre dossier",
+      "placeholder": "Mon client M. Ahmed Ben Salah souhaite divorcer de son épouse Mme Fatma Trabelsi. Ils sont mariés depuis 2015 à Tunis et ont 2 enfants: Ali (6 ans) et Sarra (3 ans). Le mari est ingénieur et gagne 2500 TND/mois. L'épouse ne travaille pas...",
+      "characters": "caractères",
+      "minimum": "Minimum {min} caractères",
+      "shortcut": "Ctrl+Entrée pour analyser",
+      "analyzeButton": "Analyser et Structurer"
+    },
+    "examples": {
+      "title": "Exemples de récits :",
+      "divorce": {
+        "label": "Divorce",
+        "text": "Mon client M. Ahmed Ben Salah souhaite divorcer de son épouse Mme Fatma Trabelsi. Mariés depuis 2015 à Tunis, ils ont 2 enfants: Ali (6 ans) et Sarra (3 ans). Le mari est ingénieur et gagne 2500 TND/mois. L'épouse ne travaille pas. Ils possèdent un appartement en commun à la Marsa estimé à 250 000 TND. L'épouse demande la garde des enfants, une pension alimentaire et le maintien dans le domicile conjugal."
+      },
+      "commercial": {
+        "label": "Commercial",
+        "text": "Je représente la société ABC SARL contre M. Karim Ben Ali, ancien client qui doit 15 000 TND depuis janvier 2024. Nous avons un bon de commande signé, les factures et le chèque est revenu impayé. Plusieurs relances sont restées sans réponse."
+      },
+      "civil": {
+        "label": "Civil",
+        "text": "Mon client a été victime d'un accident de la route causé par M. Mohamed le 15 mars 2024. Il a subi des blessures nécessitant 3 mois d'arrêt de travail. Le préjudice total est estimé à 20 000 TND. L'assurance refuse d'indemniser."
+      },
+      "refere": {
+        "label": "Référé",
+        "text": "Mon client locataire est menacé d'expulsion par son bailleur qui a changé les serrures sans décision de justice. Le bail n'est pas expiré et les loyers sont payés. Il faut agir en urgence pour réintégrer les lieux."
+      }
+    },
+    "analysis": {
+      "title": "Analyse en cours...",
+      "identifyingType": "Identification du type de procédure...",
+      "extractingParties": "Extraction des parties...",
+      "extractingFacts": "Extraction des faits clés...",
+      "legalCalculations": "Calculs juridiques...",
+      "generatingTimeline": "Génération de la timeline...",
+      "searchingReferences": "Recherche références juridiques..."
+    },
+    "result": {
+      "title": "Dossier Structuré",
+      "confidence": "Confiance",
+      "type": "TYPE"
+    },
+    "tabs": {
+      "analysis": "Analyse Juridique",
+      "structure": "Structure du Dossier",
+      "documents": "Documents à Générer"
+    },
+    "procedureTypes": {
+      "divorce": "DIVORCE (Procédure CSP)",
+      "commercial": "COMMERCIAL",
+      "civil": "CIVIL (1ère Instance)",
+      "civil_premiere_instance": "CIVIL (1ère Instance)",
+      "refere": "RÉFÉRÉ (Urgence)",
+      "recouvrement": "RECOUVREMENT",
+      "penal": "PÉNAL",
+      "administratif": "ADMINISTRATIF",
+      "autre": "AUTRE"
+    },
+    "parties": {
+      "title": "Parties",
+      "clientDemandeur": "Client (Demandeur)",
+      "clientDefendeur": "Client (Défendeur)",
+      "adverseDemandeur": "Partie adverse (Demandeur)",
+      "adverseDefendeur": "Partie adverse (Défendeur)",
+      "profession": "Profession",
+      "revenus": "Revenus",
+      "adresse": "Adresse"
+    },
+    "facts": {
+      "title": "Faits Extraits",
+      "children": "Enfants",
+      "minor": "mineur",
+      "specificData": "Données spécifiques",
+      "commonAssets": "Biens communs",
+      "adverseDemands": "Demandes de la partie adverse",
+      "marriageDate": "Date de mariage",
+      "principalAmount": "Montant principal",
+      "debtDate": "Date de créance",
+      "tribunal": "Tribunal suggéré"
+    },
+    "calculations": {
+      "title": "Calculs Automatiques",
+      "formula": "Formule"
+    },
+    "timeline": {
+      "title": "Timeline Proposée",
+      "mandatory": "Obligatoire",
+      "today": "Aujourd'hui",
+      "endProcedure": "Fin de procédure"
+    },
+    "actions": {
+      "title": "Actions à Créer",
+      "selectAll": "Tout sélectionner",
+      "deselectAll": "Tout désélectionner",
+      "description": "Sélectionnez les actions qui seront créées avec le dossier.",
+      "deadline": "Délai: {days} jours",
+      "reanalyze": "Réanalyser",
+      "createDossier": "Créer le Dossier"
+    },
+    "references": {
+      "title": "Références Juridiques",
+      "code": "Codes et Lois",
+      "jurisprudence": "Jurisprudence",
+      "doctrine": "Doctrine",
+      "other": "Autres références"
+    },
+    "legalAnalysis": {
+      "qualification": {
+        "title": "Qualification Juridique",
+        "actionType": "Type d'action",
+        "applicableCode": "Code applicable",
+        "legalBasis": "Fondement juridique"
+      },
+      "admissibility": {
+        "title": "Analyse de Recevabilité"
+      },
+      "jurisdiction": {
+        "title": "Juridiction Compétente",
+        "territorial": "Compétence territoriale",
+        "material": "Compétence matérielle"
+      },
+      "evidence": {
+        "title": "Stratégie de Preuve",
+        "description": "En droit tunisien, la preuve écrite est primordiale. Voici les documents à réunir.",
+        "essential": "Essentiel"
+      },
+      "risks": {
+        "title": "Évaluation des Risques",
+        "high": "Élevé",
+        "medium": "Moyen",
+        "low": "Faible"
+      },
+      "recommendation": {
+        "title": "Recommandation Stratégique",
+        "nextSteps": "Prochaines étapes recommandées"
+      }
+    },
+    "documents": {
+      "title": "Documents à Générer",
+      "description": "L'IA peut vous aider à rédiger ces documents essentiels pour votre dossier.",
+      "generate": "Générer ce document",
+      "priority": {
+        "high": "Prioritaire"
+      }
+    },
+    "createModal": {
+      "title": "Créer le dossier",
+      "selectClient": "Sélectionner le client",
+      "chooseClient": "Choisir un client...",
+      "noClients": "Vous n'avez pas encore de clients.",
+      "createClient": "Créer un client",
+      "suggestedClient": "Client identifié dans le récit",
+      "createActions": "Créer les {count} actions sélectionnées",
+      "createDeadlines": "Créer les {count} échéances obligatoires",
+      "creating": "Création en cours...",
+      "confirm": "Confirmer et créer"
+    },
+    "errors": {
+      "narratifTooShort": "Le récit doit contenir au moins 20 caractères.",
+      "analysisError": "Erreur lors de l'analyse. Veuillez réessayer.",
+      "createError": "Erreur lors de la création du dossier."
+    }
   },
   "knowledgeBase": {
     "title": "Base de Connaissances Juridique",

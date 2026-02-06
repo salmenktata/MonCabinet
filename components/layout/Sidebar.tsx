@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'
+import { memo, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -26,6 +26,7 @@ interface SidebarProps {
   onCollapse: () => void
 }
 
+// Navigation statique - définie en dehors du composant
 const navGroups: NavGroup[] = [
   {
     group: 'Core',
@@ -51,26 +52,82 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    group: 'Intelligence',
+    items: [
+      { href: '/assistant-ia', label: 'assistantIA', icon: 'zap' },
+      { href: '/dossiers/assistant', label: 'modeRapide', icon: 'activity' },
+      { href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' },
+    ],
+  },
+  {
     group: 'Système',
     items: [
       { href: '/parametres/cabinet', label: 'cabinet', icon: 'building' },
       { href: '/parametres/notifications', label: 'notifications', icon: 'bell' },
       { href: '/parametres/cloud-storage', label: 'cloudStorage', icon: 'cloud' },
       { href: '/parametres/messagerie', label: 'messaging', icon: 'messageSquare' },
-      { href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' },
     ],
   },
 ]
 
-export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
+// Composant NavLink mémorisé
+interface NavLinkProps {
+  item: NavItem
+  isActive: boolean
+  collapsed: boolean
+  label: string
+}
+
+const NavLink = memo(function NavLink({ item, isActive, collapsed, label }: NavLinkProps) {
+  const Icon = Icons[item.icon]
+
+  return (
+    <Link href={item.href} prefetch={true}>
+      <div
+        className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          'hover:bg-accent hover:text-accent-foreground',
+          isActive && 'bg-accent text-accent-foreground border-l-4 border-primary',
+          collapsed && 'justify-center'
+        )}
+        title={collapsed ? label : undefined}
+      >
+        <Icon className="h-5 w-5 shrink-0" />
+        {!collapsed && <span>{label}</span>}
+        {!collapsed && item.badge && (
+          <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+            {item.badge}
+          </span>
+        )}
+      </div>
+    </Link>
+  )
+})
+
+function SidebarComponent({ collapsed, onCollapse }: SidebarProps) {
   const pathname = usePathname()
   const t = useTranslations('nav')
   const tGroups = useTranslations('navGroups')
 
-  React.useEffect(() => {
-    // Sauvegarder l'état dans localStorage
-    localStorage.setItem('sidebar-collapsed', JSON.stringify(collapsed))
-  }, [collapsed])
+  // Mémorise la vérification d'active state
+  const isActive = useCallback((href: string) => {
+    return pathname === href || pathname?.startsWith(href + '/')
+  }, [pathname])
+
+  // Mémorise les items avec leurs états
+  const groupsWithState = useMemo(() => {
+    return navGroups.map(group => ({
+      ...group,
+      items: group.items.map(item => ({
+        ...item,
+        isActive: isActive(item.href),
+        translatedLabel: t(item.label),
+      })),
+      translatedGroup: tGroups(group.group.toLowerCase()),
+    }))
+  }, [isActive, t, tGroups])
+
+  const settingsActive = useMemo(() => isActive('/settings'), [isActive])
 
   return (
     <aside
@@ -82,7 +139,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center justify-between px-4 border-b">
         {!collapsed && (
-          <Link href="/dashboard" className="text-2xl font-bold text-primary">
+          <Link href="/dashboard" className="text-2xl font-bold text-primary" prefetch={true}>
             MonCabinet
           </Link>
         )}
@@ -102,40 +159,23 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-6 p-4 overflow-y-auto">
-        {navGroups.map((group) => (
+        {groupsWithState.map((group, groupIndex) => (
           <div key={group.group} className="space-y-1">
             {!collapsed && (
               <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                {tGroups(group.group.toLowerCase())}
+                {group.translatedGroup}
               </h3>
             )}
-            {group.items.map((item) => {
-              const Icon = Icons[item.icon]
-              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
-
-              return (
-                <Link key={item.href} href={item.href}>
-                  <div
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
-                      'hover:bg-accent hover:text-accent-foreground',
-                      isActive && 'bg-accent text-accent-foreground border-l-4 border-primary',
-                      collapsed && 'justify-center'
-                    )}
-                    title={collapsed ? t(item.label) : undefined}
-                  >
-                    <Icon className="h-5 w-5 shrink-0" />
-                    {!collapsed && <span>{t(item.label)}</span>}
-                    {!collapsed && item.badge && (
-                      <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
-                        {item.badge}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              )
-            })}
-            {!collapsed && group.group !== 'Documents' && (
+            {group.items.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                isActive={item.isActive}
+                collapsed={collapsed}
+                label={item.translatedLabel}
+              />
+            ))}
+            {!collapsed && groupIndex < groupsWithState.length - 1 && (
               <Separator className="my-4" />
             )}
           </div>
@@ -144,12 +184,12 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
 
       {/* Footer */}
       <div className="border-t p-4">
-        <Link href="/settings">
+        <Link href="/settings" prefetch={true}>
           <div
             className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
               'hover:bg-accent hover:text-accent-foreground',
-              pathname === '/settings' && 'bg-accent text-accent-foreground',
+              settingsActive && 'bg-accent text-accent-foreground',
               collapsed && 'justify-center'
             )}
             title={collapsed ? t('settings') : undefined}
@@ -162,3 +202,5 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     </aside>
   )
 }
+
+export const Sidebar = memo(SidebarComponent)
