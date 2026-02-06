@@ -100,15 +100,15 @@ export function CategorySelector({
         <div>
           <Label className="text-slate-300">Sous-catégorie</Label>
           <Select
-            value={subcategory || ''}
-            onValueChange={(val) => onSubcategoryChange(val || null)}
+            value={subcategory || '__none__'}
+            onValueChange={(val) => onSubcategoryChange(val === '__none__' ? null : val)}
             disabled={disabled}
           >
             <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white">
               <SelectValue placeholder="Sélectionner une sous-catégorie (optionnel)" />
             </SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-600 max-h-60">
-              <SelectItem value="" className="text-slate-400 hover:bg-slate-700">
+              <SelectItem value="__none__" className="text-slate-400 hover:bg-slate-700">
                 Aucune sous-catégorie
               </SelectItem>
               {availableSubcategories.map((sub) => (
@@ -145,13 +145,13 @@ export function SimpleCategorySelect({
   includeAll?: boolean
 }) {
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled}>
+    <Select value={value || '__all__'} onValueChange={(val) => onChange(val === '__all__' ? '' : val)} disabled={disabled}>
       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
         <SelectValue placeholder="Catégorie" />
       </SelectTrigger>
       <SelectContent className="bg-slate-800 border-slate-600 max-h-80">
         {includeAll && (
-          <SelectItem value="" className="text-slate-400 hover:bg-slate-700">
+          <SelectItem value="__all__" className="text-slate-400 hover:bg-slate-700">
             Toutes les catégories
           </SelectItem>
         )}

@@ -73,6 +73,9 @@ export default function BackupsManager() {
       const json = await res.json()
 
       if (!res.ok || !json.success) {
+        if (json.error === 'Script de backup non trouvé') {
+          throw new Error('Script de backup non configuré. Cette fonctionnalité n\'est disponible qu\'en production.')
+        }
         throw new Error(json.error || 'Échec du backup')
       }
 
@@ -142,6 +145,11 @@ export default function BackupsManager() {
 
   return (
     <div className="space-y-6">
+      {/* Info mode local */}
+      <div className="rounded-lg bg-blue-900/50 border border-blue-700 p-4 text-blue-200">
+        <strong>Note:</strong> Les sauvegardes manuelles nécessitent le script de backup configuré sur le serveur de production.
+      </div>
+
       {/* Messages */}
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-red-800">

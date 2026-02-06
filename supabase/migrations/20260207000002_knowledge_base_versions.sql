@@ -200,7 +200,7 @@ BEGIN
     kbv.change_type,
     kbv.change_reason,
     kbv.changed_by,
-    u.email as changed_by_email,
+    u.email::TEXT as changed_by_email,
     kbv.changed_at
   FROM knowledge_base_versions kbv
   LEFT JOIN users u ON kbv.changed_by = u.id

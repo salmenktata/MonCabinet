@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   try {
     // Vérifier authentification admin
     const session = await getSession()
-    if (!session?.user || session.user.role !== 'admin') {
+    if (!session?.user || !['admin', 'super_admin'].includes(session.user.role || '')) {
       return NextResponse.json(
         { error: 'Non autorisé' },
         { status: 401 }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
   try {
     // Vérifier authentification admin
     const session = await getSession()
-    if (!session?.user || session.user.role !== 'admin') {
+    if (!session?.user || !['admin', 'super_admin'].includes(session.user.role || '')) {
       return NextResponse.json(
         { error: 'Non autorisé' },
         { status: 401 }
@@ -205,7 +205,7 @@ export async function DELETE(request: NextRequest) {
   try {
     // Vérifier authentification admin
     const session = await getSession()
-    if (!session?.user || session.user.role !== 'admin') {
+    if (!session?.user || !['admin', 'super_admin'].includes(session.user.role || '')) {
       return NextResponse.json(
         { error: 'Non autorisé' },
         { status: 401 }

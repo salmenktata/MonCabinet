@@ -191,14 +191,14 @@ export function FactureFormAdvanced({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Dossier (optionnel)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={(val) => field.onChange(val === '__none__' ? '' : val)} defaultValue={field.value || '__none__'}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Aucun dossier" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Aucun dossier</SelectItem>
+                    <SelectItem value="__none__">Aucun dossier</SelectItem>
                     {dossiers.map((dossier) => (
                       <SelectItem key={dossier.id} value={dossier.id}>
                         <div className="flex items-center gap-2">

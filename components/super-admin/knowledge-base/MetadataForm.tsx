@@ -193,8 +193,8 @@ function MetadataField({
             {isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
           <Select
-            value={(value as string) || ''}
-            onValueChange={(val) => onChange(val || null)}
+            value={(value as string) || '__none__'}
+            onValueChange={(val) => onChange(val === '__none__' ? null : val)}
             disabled={disabled}
           >
             <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white">
@@ -202,7 +202,7 @@ function MetadataField({
             </SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-600 max-h-60">
               {!isRequired && (
-                <SelectItem value="" className="text-slate-400 hover:bg-slate-700">
+                <SelectItem value="__none__" className="text-slate-400 hover:bg-slate-700">
                   Non spécifié
                 </SelectItem>
               )}

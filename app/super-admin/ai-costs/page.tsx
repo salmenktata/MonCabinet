@@ -4,6 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 
+// Taux de change USD -> TND (approximatif)
+const USD_TO_TND = 3.1
+
+function formatTND(usdAmount: number): string {
+  return (usdAmount * USD_TO_TND).toFixed(3)
+}
+
 // Stats globales
 async function AICostsStats() {
   const result = await query(`
@@ -11,7 +18,7 @@ async function AICostsStats() {
       COALESCE(SUM(cost_usd), 0) as total_cost,
       COUNT(*) as total_operations,
       COUNT(DISTINCT user_id) as unique_users,
-      COALESCE(SUM(tokens_used), 0) as total_tokens
+      COALESCE(SUM(input_tokens + output_tokens), 0) as total_tokens
     FROM ai_usage_logs
     WHERE created_at > NOW() - INTERVAL '30 days'
   `)
@@ -39,8 +46,9 @@ async function AICostsStats() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              ${parseFloat(stats.total_cost).toFixed(2)}
+              {formatTND(parseFloat(stats.total_cost))} TND
             </div>
+            <p className="text-xs text-slate-500">${parseFloat(stats.total_cost).toFixed(2)} USD</p>
           </CardContent>
         </Card>
 
@@ -106,8 +114,9 @@ async function AICostsStats() {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-green-500">
-                      ${parseFloat(day.cost).toFixed(2)}
+                      {formatTND(parseFloat(day.cost))} TND
                     </p>
+                    <p className="text-xs text-slate-500">${parseFloat(day.cost).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -126,7 +135,7 @@ async function TopAIUsers() {
       u.id, u.email, u.nom, u.prenom,
       COUNT(*) as operations,
       SUM(a.cost_usd) as total_cost,
-      SUM(a.tokens_used) as total_tokens
+      SUM(a.input_tokens + a.output_tokens) as total_tokens
     FROM ai_usage_logs a
     JOIN users u ON a.user_id = u.id
     WHERE a.created_at > NOW() - INTERVAL '30 days'
@@ -177,7 +186,7 @@ async function TopAIUsers() {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-green-500">
-                    ${parseFloat(user.total_cost).toFixed(2)}
+                    {formatTND(parseFloat(user.total_cost))} TND
                   </p>
                   <p className="text-xs text-slate-500">
                     {user.operations} ops • {parseInt(user.total_tokens).toLocaleString()} tokens
@@ -199,7 +208,7 @@ async function OperationTypes() {
       operation_type,
       COUNT(*) as count,
       SUM(cost_usd) as cost,
-      SUM(tokens_used) as tokens
+      SUM(input_tokens + output_tokens) as tokens
     FROM ai_usage_logs
     WHERE created_at > NOW() - INTERVAL '30 days'
     GROUP BY operation_type
@@ -249,7 +258,7 @@ async function OperationTypes() {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-green-500">
-                    ${parseFloat(op.cost).toFixed(2)}
+                    {formatTND(parseFloat(op.cost))} TND
                   </p>
                   <p className="text-xs text-slate-500">
                     {parseInt(op.tokens).toLocaleString()} tokens

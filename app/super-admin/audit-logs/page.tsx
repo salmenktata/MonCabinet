@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import Link from 'next/link'
+import { AuditLogsFilters } from '@/components/super-admin/AuditLogsFilters'
 
 interface PageProps {
   searchParams: Promise<{
@@ -75,6 +76,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
       user_rejected: 'bg-red-500/20 text-red-500 border-red-500/30',
       user_suspended: 'bg-red-500/20 text-red-500 border-red-500/30',
       user_reactivated: 'bg-green-500/20 text-green-500 border-green-500/30',
+      user_deleted: 'bg-red-500/20 text-red-500 border-red-500/30',
       role_changed: 'bg-blue-500/20 text-blue-500 border-blue-500/30',
       plan_changed: 'bg-purple-500/20 text-purple-500 border-purple-500/30',
       kb_upload: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30',
@@ -87,6 +89,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
       user_rejected: 'Rejet',
       user_suspended: 'Suspension',
       user_reactivated: 'Réactivation',
+      user_deleted: 'Suppression',
       role_changed: 'Changement rôle',
       plan_changed: 'Changement plan',
       kb_upload: 'Upload KB',
@@ -125,52 +128,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-4 items-center">
-            {/* Filtre Action */}
-            <select
-              className="bg-slate-700 border-slate-600 text-white rounded-md px-3 py-2"
-              value={action}
-              onChange={(e) => {
-                const url = new URL(window.location.href)
-                if (e.target.value === 'all') {
-                  url.searchParams.delete('action')
-                } else {
-                  url.searchParams.set('action', e.target.value)
-                }
-                url.searchParams.delete('page')
-                window.location.href = url.toString()
-              }}
-            >
-              <option value="all">Toutes les actions</option>
-              <option value="user_approved">Approbation</option>
-              <option value="user_rejected">Rejet</option>
-              <option value="user_suspended">Suspension</option>
-              <option value="user_reactivated">Réactivation</option>
-              <option value="role_changed">Changement rôle</option>
-              <option value="plan_changed">Changement plan</option>
-              <option value="kb_upload">Upload KB</option>
-              <option value="kb_delete">Suppression KB</option>
-            </select>
-
-            {/* Filtre Target */}
-            <select
-              className="bg-slate-700 border-slate-600 text-white rounded-md px-3 py-2"
-              value={target}
-              onChange={(e) => {
-                const url = new URL(window.location.href)
-                if (e.target.value === 'all') {
-                  url.searchParams.delete('target')
-                } else {
-                  url.searchParams.set('target', e.target.value)
-                }
-                url.searchParams.delete('page')
-                window.location.href = url.toString()
-              }}
-            >
-              <option value="all">Toutes les cibles</option>
-              <option value="user">Utilisateurs</option>
-              <option value="knowledge_base">Base KB</option>
-              <option value="config">Configuration</option>
-            </select>
+            <AuditLogsFilters currentAction={action} currentTarget={target} />
 
             {/* Clear */}
             {(action !== 'all' || target !== 'all') && (

@@ -23,13 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import {
   approveUserAction,
   rejectUserAction,
   suspendUserAction,
   reactivateUserAction,
   changeUserRoleAction,
-  changeUserPlanAction
+  changeUserPlanAction,
+  deleteUserAction
 } from '@/app/actions/super-admin/users'
 
 interface User {
@@ -56,11 +58,13 @@ export function UserActions({ user }: UserActionsProps) {
   const [showSuspendDialog, setShowSuspendDialog] = useState(false)
   const [showRoleDialog, setShowRoleDialog] = useState(false)
   const [showPlanDialog, setShowPlanDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   // Form values
   const [reason, setReason] = useState('')
   const [newRole, setNewRole] = useState(user.role || 'user')
   const [newPlan, setNewPlan] = useState(user.plan || 'free')
+  const [confirmEmail, setConfirmEmail] = useState('')
 
   const handleApprove = async () => {
     setLoading(true)
@@ -236,6 +240,37 @@ export function UserActions({ user }: UserActionsProps) {
     }
   }
 
+  const handleDelete = async () => {
+    setLoading(true)
+    try {
+      const result = await deleteUserAction(user.id, confirmEmail)
+      if (result.error) {
+        toast({
+          title: 'Erreur',
+          description: result.error,
+          variant: 'destructive'
+        })
+      } else {
+        toast({
+          title: 'Utilisateur supprimé',
+          description: `Le compte de ${user.email} a été supprimé définitivement.`
+        })
+        setShowDeleteDialog(false)
+        setConfirmEmail('')
+        router.push('/super-admin/users')
+        router.refresh()
+      }
+    } catch {
+      toast({
+        title: 'Erreur',
+        description: 'Une erreur est survenue',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <>
       <div className="flex flex-wrap gap-3 p-4 rounded-lg bg-slate-800 border border-slate-700">
@@ -304,6 +339,19 @@ export function UserActions({ user }: UserActionsProps) {
           <Icons.creditCard className="h-4 w-4 mr-2" />
           Changer le plan
         </Button>
+
+        {/* Supprimer - seulement si pas super_admin */}
+        {user.role !== 'super_admin' && (
+          <Button
+            onClick={() => setShowDeleteDialog(true)}
+            disabled={loading}
+            variant="destructive"
+            className="ml-auto"
+          >
+            <Icons.trash className="h-4 w-4 mr-2" />
+            Supprimer le compte
+          </Button>
+        )}
       </div>
 
       {/* Dialog Rejet */}
@@ -477,6 +525,63 @@ export function UserActions({ user }: UserActionsProps) {
               className="bg-blue-600 hover:bg-blue-700"
             >
               {loading ? 'Modification...' : 'Confirmer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Suppression */}
+      <Dialog open={showDeleteDialog} onOpenChange={(open) => {
+        setShowDeleteDialog(open)
+        if (!open) setConfirmEmail('')
+      }}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-red-500">Supprimer le compte</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Cette action est irréversible. Toutes les données de l'utilisateur seront supprimées.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-red-900/20 border border-red-700 rounded-lg">
+              <p className="text-red-400 text-sm">
+                <strong>Attention :</strong> La suppression entraînera la perte de :
+              </p>
+              <ul className="text-red-400 text-sm mt-2 list-disc list-inside">
+                <li>Tous les dossiers et clients</li>
+                <li>Toutes les factures et documents</li>
+                <li>Tout l'historique et les conversations</li>
+              </ul>
+            </div>
+            <div>
+              <Label className="text-slate-300">
+                Tapez <span className="font-mono text-red-400">{user.email}</span> pour confirmer
+              </Label>
+              <Input
+                value={confirmEmail}
+                onChange={(e) => setConfirmEmail(e.target.value)}
+                placeholder="Entrez l'email pour confirmer"
+                className="mt-2 bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowDeleteDialog(false)
+                setConfirmEmail('')
+              }}
+              className="text-slate-400"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleDelete}
+              disabled={loading || confirmEmail !== user.email}
+              variant="destructive"
+            >
+              {loading ? 'Suppression...' : 'Supprimer définitivement'}
             </Button>
           </DialogFooter>
         </DialogContent>

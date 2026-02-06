@@ -546,6 +546,67 @@ export async function changeUserPlanAction(userId: string, newPlan: string, expi
 }
 
 /**
+ * Supprimer définitivement un utilisateur
+ */
+export async function deleteUserAction(userId: string, confirmEmail: string) {
+  try {
+    const authCheck = await checkSuperAdminAccess()
+    if ('error' in authCheck) {
+      return { error: authCheck.error }
+    }
+
+    // Récupérer l'utilisateur
+    const userResult = await query(
+      'SELECT id, email, nom, prenom, role FROM users WHERE id = $1',
+      [userId]
+    )
+    const user = userResult.rows[0]
+
+    if (!user) {
+      return { error: 'Utilisateur non trouvé' }
+    }
+
+    // Vérifier la confirmation email
+    if (user.email !== confirmEmail) {
+      return { error: 'L\'email de confirmation ne correspond pas' }
+    }
+
+    // Empêcher la suppression d'un super_admin
+    if (user.role === 'super_admin') {
+      return { error: 'Impossible de supprimer un super administrateur' }
+    }
+
+    // Empêcher l'auto-suppression
+    if (user.id === authCheck.adminId) {
+      return { error: 'Impossible de supprimer votre propre compte' }
+    }
+
+    // Log d'audit AVANT suppression
+    await createAuditLog(
+      authCheck.adminId,
+      authCheck.adminEmail,
+      'user_deleted',
+      'user',
+      userId,
+      user.email,
+      { email: user.email, nom: user.nom, prenom: user.prenom, role: user.role },
+      null
+    )
+
+    // Supprimer l'utilisateur (CASCADE supprimera les données liées)
+    await query('DELETE FROM users WHERE id = $1', [userId])
+
+    revalidatePath('/super-admin/users')
+    revalidatePath('/super-admin/dashboard')
+
+    return { success: true }
+  } catch (error) {
+    console.error('Erreur suppression utilisateur:', error)
+    return { error: 'Erreur lors de la suppression' }
+  }
+}
+
+/**
  * Liste paginée des utilisateurs avec filtres
  */
 export async function listUsersAction(options: {
