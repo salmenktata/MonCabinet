@@ -100,9 +100,13 @@ export async function POST(request: NextRequest) {
     })
 
     // Définir le cookie dans la réponse HTTP
+    // Note: secure=true uniquement si HTTPS (vérifié via NEXTAUTH_URL ou x-forwarded-proto)
+    const isHttps = process.env.NEXTAUTH_URL?.startsWith('https://') ||
+                    request.headers.get('x-forwarded-proto') === 'https'
+
     response.cookies.set(COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isHttps,
       sameSite: 'lax',
       path: '/',
       maxAge: SESSION_DURATION,

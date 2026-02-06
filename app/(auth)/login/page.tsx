@@ -39,12 +39,12 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (data.success) {
-        // Rediriger vers le super-admin dashboard si super_admin
-        if (data.user?.role === 'super_admin') {
-          window.location.href = '/super-admin/dashboard'
-        } else {
-          window.location.href = '/dashboard'
-        }
+        // Récupérer le callbackUrl ou utiliser le dashboard par défaut
+        const callbackUrl = searchParams.get('callbackUrl')
+        const defaultUrl = data.user?.role === 'super_admin' ? '/super-admin/dashboard' : '/dashboard'
+        const redirectUrl = callbackUrl && callbackUrl.startsWith('/') ? callbackUrl : defaultUrl
+
+        window.location.href = redirectUrl
       } else {
         // Gérer les différents codes d'erreur
         if (data.errorCode === 'PENDING_APPROVAL') {

@@ -25,9 +25,12 @@ if (!process.env.NEXTAUTH_SECRET) {
 const SECRET_KEY = new TextEncoder().encode(process.env.NEXTAUTH_SECRET)
 
 const COOKIE_NAME = 'auth_session'
+// Note: secure=true uniquement si HTTPS (vérifié via NEXTAUTH_URL)
+const isHttps = process.env.NEXTAUTH_URL?.startsWith('https://') ?? false
+
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: isHttps,
   sameSite: 'lax' as const,
   path: '/',
 }
