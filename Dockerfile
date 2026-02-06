@@ -1,10 +1,10 @@
 # Stage 1: Dependencies
 FROM node:18-alpine AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat python3 make g++ pkgconf pixman-dev cairo-dev pango-dev jpeg-dev giflib-dev
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts && npm rebuild canvas
 
 # Stage 2: Builder
 FROM node:18-alpine AS builder
@@ -24,11 +24,15 @@ ENV NEXT_PUBLIC_APP_DOMAIN=$NEXT_PUBLIC_APP_DOMAIN
 # Désactiver telemetry Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm run build
+# Build sans prebuild (seed) car pas de DB disponible pendant le build
+RUN npx next build
 
 # Stage 3: Runner
 FROM node:18-alpine AS runner
 WORKDIR /app
+
+# Dépendances runtime pour canvas
+RUN apk add --no-cache pixman cairo pango jpeg giflib
 
 ENV NODE_ENV=production
 ENV PORT=3000
