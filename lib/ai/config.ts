@@ -312,6 +312,40 @@ FORMAT: Retourne un JSON structuré`,
 }
 
 // =============================================================================
+// RAG THRESHOLDS - Seuils de similarité par type de source
+// =============================================================================
+
+export const RAG_THRESHOLDS = {
+  documents: parseFloat(process.env.RAG_THRESHOLD_DOCUMENTS || '0.7'),
+  jurisprudence: parseFloat(process.env.RAG_THRESHOLD_JURISPRUDENCE || '0.6'),
+  knowledgeBase: parseFloat(process.env.RAG_THRESHOLD_KB || '0.65'),
+  minimum: parseFloat(process.env.RAG_THRESHOLD_MIN || '0.5'),
+}
+
+// =============================================================================
+// SOURCE BOOST - Multiplicateurs de score par type de source
+// =============================================================================
+
+export const SOURCE_BOOST: Record<string, number> = {
+  code: 1.2, // Codes juridiques prioritaires
+  jurisprudence: 1.1,
+  doctrine: 1.0,
+  modele: 0.95,
+  document: 0.9,
+  knowledge_base: 1.0,
+  autre: 0.85,
+}
+
+// =============================================================================
+// RAG DIVERSITY - Configuration de diversité des sources
+// =============================================================================
+
+export const RAG_DIVERSITY = {
+  maxChunksPerSource: parseInt(process.env.RAG_MAX_CHUNKS_PER_SOURCE || '2', 10),
+  minSources: parseInt(process.env.RAG_MIN_SOURCES || '2', 10),
+}
+
+// =============================================================================
 // COÛTS ESTIMÉS (pour le tracking)
 // =============================================================================
 

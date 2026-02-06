@@ -15,7 +15,15 @@ import {
   generateEmbedding,
   formatEmbeddingForPostgres,
 } from './embeddings-service'
-import { aiConfig, SYSTEM_PROMPTS, isChatEnabled, getChatProvider } from './config'
+import {
+  aiConfig,
+  SYSTEM_PROMPTS,
+  isChatEnabled,
+  getChatProvider,
+  RAG_THRESHOLDS,
+  SOURCE_BOOST,
+  RAG_DIVERSITY,
+} from './config'
 import { searchKnowledgeBase } from './knowledge-base-service'
 
 // =============================================================================
@@ -86,6 +94,120 @@ export interface ConversationMessage {
   content: string
 }
 
+// Interface étendue pour le re-ranking
+interface RankedSource extends ChatSource {
+  boostedScore: number
+  sourceType: string
+  sourceId: string
+}
+
+// Interface pour les métriques de recherche
+interface SearchMetrics {
+  totalFound: number
+  aboveThreshold: number
+  scoreRange: {
+    min: number
+    max: number
+    avg: number
+  }
+  sourceDistribution: Record<string, number>
+  searchTimeMs: number
+}
+
+// =============================================================================
+// RE-RANKING ET DIVERSITÉ DES SOURCES
+// =============================================================================
+
+/**
+ * Détermine le type de source à partir des métadonnées
+ */
+function getSourceType(metadata: Record<string, unknown> | undefined): string {
+  if (!metadata) return 'document'
+  const type = metadata.type as string | undefined
+  const category = metadata.category as string | undefined
+  return category || type || 'document'
+}
+
+/**
+ * Génère un identifiant unique pour une source
+ */
+function getSourceId(source: ChatSource): string {
+  const meta = source.metadata as Record<string, unknown> | undefined
+  const type = getSourceType(meta)
+  // Pour les documents, utiliser documentId; pour KB, utiliser le titre
+  if (type === 'knowledge_base') {
+    return `kb:${source.documentName}`
+  }
+  return `doc:${source.documentId}`
+}
+
+/**
+ * Re-rank les sources avec boost par type et diversité
+ */
+function rerankSources(sources: ChatSource[]): ChatSource[] {
+  if (sources.length === 0) return sources
+
+  // 1. Appliquer boost par type
+  const rankedSources: RankedSource[] = sources.map((s) => {
+    const sourceType = getSourceType(s.metadata as Record<string, unknown>)
+    const boost = SOURCE_BOOST[sourceType] || SOURCE_BOOST.autre || 1.0
+    return {
+      ...s,
+      boostedScore: s.similarity * boost,
+      sourceType,
+      sourceId: getSourceId(s),
+    }
+  })
+
+  // 2. Trier par score boosté décroissant
+  rankedSources.sort((a, b) => b.boostedScore - a.boostedScore)
+
+  // 3. Appliquer diversité : limiter chunks par source
+  const sourceCount = new Map<string, number>()
+  const diversifiedSources: ChatSource[] = []
+
+  for (const source of rankedSources) {
+    const count = sourceCount.get(source.sourceId) || 0
+    if (count < RAG_DIVERSITY.maxChunksPerSource) {
+      sourceCount.set(source.sourceId, count + 1)
+      // Retourner ChatSource sans les champs ajoutés
+      const { boostedScore, sourceType, sourceId, ...originalSource } = source
+      diversifiedSources.push(originalSource)
+    }
+  }
+
+  return diversifiedSources
+}
+
+/**
+ * Compte les sources par type
+ */
+function countSourcesByType(sources: ChatSource[]): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const source of sources) {
+    const type = getSourceType(source.metadata as Record<string, unknown>)
+    counts[type] = (counts[type] || 0) + 1
+  }
+  return counts
+}
+
+/**
+ * Log les métriques de recherche RAG
+ */
+function logSearchMetrics(metrics: SearchMetrics): void {
+  console.log('[RAG Search]', JSON.stringify({
+    totalFound: metrics.totalFound,
+    aboveThreshold: metrics.aboveThreshold,
+    scores: {
+      min: metrics.scoreRange.min.toFixed(3),
+      max: metrics.scoreRange.max.toFixed(3),
+      avg: metrics.scoreRange.avg.toFixed(3),
+    },
+    sources: metrics.sourceDistribution,
+    timeMs: metrics.searchTimeMs,
+  }))
+}
+
 // =============================================================================
 // RECHERCHE CONTEXTUELLE
 // =============================================================================
@@ -98,6 +220,7 @@ async function searchRelevantContext(
   userId: string,
   options: ChatOptions = {}
 ): Promise<ChatSource[]> {
+  const startTime = Date.now()
   const {
     dossierId,
     maxContextChunks = aiConfig.rag.maxResults,
@@ -109,7 +232,7 @@ async function searchRelevantContext(
   const queryEmbedding = await generateEmbedding(question)
   const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
 
-  const sources: ChatSource[] = []
+  const allSources: ChatSource[] = []
 
   // Recherche dans les documents du dossier ou de l'utilisateur
   let docSql: string
@@ -135,8 +258,8 @@ async function searchRelevantContext(
       embeddingStr,
       userId,
       dossierId,
-      aiConfig.rag.similarityThreshold,
-      maxContextChunks,
+      RAG_THRESHOLDS.documents,
+      maxContextChunks * 2, // Récupérer plus pour le re-ranking
     ]
   } else {
     docSql = `
@@ -156,15 +279,15 @@ async function searchRelevantContext(
     docParams = [
       embeddingStr,
       userId,
-      aiConfig.rag.similarityThreshold,
-      maxContextChunks,
+      RAG_THRESHOLDS.documents,
+      maxContextChunks * 2, // Récupérer plus pour le re-ranking
     ]
   }
 
   const docResult = await db.query(docSql, docParams)
 
   for (const row of docResult.rows) {
-    sources.push({
+    allSources.push({
       documentId: row.document_id,
       documentName: row.document_name,
       chunkContent: row.content_chunk,
@@ -198,12 +321,12 @@ async function searchRelevantContext(
 
     const juriResult = await db.query(juriSql, [
       embeddingStr,
-      aiConfig.rag.similarityThreshold - 0.1, // Seuil légèrement plus bas pour jurisprudence
-      Math.ceil(maxContextChunks / 3),
+      RAG_THRESHOLDS.jurisprudence,
+      Math.ceil(maxContextChunks / 2), // Plus de jurisprudence pour le re-ranking
     ])
 
     for (const row of juriResult.rows) {
-      sources.push({
+      allSources.push({
         documentId: row.document_id,
         documentName: row.document_name,
         chunkContent: row.content_chunk,
@@ -217,12 +340,12 @@ async function searchRelevantContext(
   if (includeKnowledgeBase) {
     try {
       const kbResults = await searchKnowledgeBase(question, {
-        limit: Math.ceil(maxContextChunks / 2), // Limiter à la moitié des résultats
-        threshold: aiConfig.rag.similarityThreshold - 0.05,
+        limit: maxContextChunks, // Plus de KB pour le re-ranking
+        threshold: RAG_THRESHOLDS.knowledgeBase,
       })
 
       for (const result of kbResults) {
-        sources.push({
+        allSources.push({
           documentId: result.knowledgeBaseId,
           documentName: `[قاعدة المعرفة] ${result.title}`,
           chunkContent: result.chunkContent,
@@ -240,8 +363,43 @@ async function searchRelevantContext(
     }
   }
 
-  // Trier par similarité décroissante
-  return sources.sort((a, b) => b.similarity - a.similarity)
+  // Filtrer par seuil minimum absolu
+  const aboveThreshold = allSources.filter(
+    (s) => s.similarity >= RAG_THRESHOLDS.minimum
+  )
+
+  // Appliquer re-ranking avec boost et diversité
+  const rerankedSources = rerankSources(aboveThreshold)
+
+  // Limiter au nombre demandé
+  const finalSources = rerankedSources.slice(0, maxContextChunks)
+
+  // Calculer et logger les métriques
+  const scores = allSources.map((s) => s.similarity)
+  const searchTimeMs = Date.now() - startTime
+
+  if (scores.length > 0) {
+    const metrics: SearchMetrics = {
+      totalFound: allSources.length,
+      aboveThreshold: aboveThreshold.length,
+      scoreRange: {
+        min: Math.min(...scores),
+        max: Math.max(...scores),
+        avg: scores.reduce((a, b) => a + b, 0) / scores.length,
+      },
+      sourceDistribution: countSourcesByType(finalSources),
+      searchTimeMs,
+    }
+    logSearchMetrics(metrics)
+  } else {
+    console.log('[RAG Search]', JSON.stringify({
+      totalFound: 0,
+      aboveThreshold: 0,
+      timeMs: searchTimeMs,
+    }))
+  }
+
+  return finalSources
 }
 
 // =============================================================================
