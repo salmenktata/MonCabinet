@@ -23,8 +23,8 @@ NC='\033[0m' # No Color
 echo -e "${GREEN}🚀 Déploiement MonCabinet sur VPS Contabo...${NC}"
 
 # Vérifier qu'on est dans le bon répertoire
-if [ ! -f "docker compose.yml" ]; then
-  echo -e "${RED}❌ ERREUR: docker compose.yml non trouvé!${NC}"
+if [ ! -f "docker-compose.yml" ]; then
+  echo -e "${RED}❌ ERREUR: docker-compose.yml non trouvé!${NC}"
   echo "Exécuter ce script depuis /opt/moncabinet/"
   exit 1
 fi
