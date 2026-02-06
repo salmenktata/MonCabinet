@@ -332,8 +332,8 @@ async function sendDigestToUser(
     }
 
     // Générer HTML et texte
-    const htmlContent = await render(DailyDigestEmailTemplate(templateProps))
-    const textContent = DailyDigestEmailText(templateProps)
+    const htmlContent = await render(DailyDigestEmailTemplate(templateProps as any))
+    const textContent = DailyDigestEmailText(templateProps as any)
 
     // Envoyer via Brevo
     const subject =
