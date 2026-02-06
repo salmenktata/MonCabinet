@@ -1,0 +1,85 @@
+المحكمة الابتدائية بـ{tribunal.ville}
+
+عريضة استصدار أمر بالدفع
+(الفصول 59 وما يليها من مجلة المرافعات المدنية والتجارية)
+
+الطالب:
+{client.nom_complet}
+{client.qualite_juridique}
+{#si_societe}المعرف الجبائي: {client.matricule_fiscal}{#fin_si}
+{#si_societe}السجل التجاري: {client.registre_commerce}{#fin_si}
+المقيم بـ{client.adresse}
+ينوبه الأستاذ {avocat.nom}، محامي لدى هيئة المحامين بـ{avocat.barreau}
+
+المطلوب ضده:
+{partie_adverse}
+{partie_adverse.qualite_juridique}
+{#si_societe}المعرف الجبائي: {partie_adverse.matricule_fiscal}{#fin_si}
+{#si_societe}السجل التجاري: {partie_adverse.registre_commerce}{#fin_si}
+المقيم بـ{partie_adverse.adresse}
+
+---
+
+السيد رئيس المحكمة الابتدائية بـ{tribunal.ville}،
+
+يتشرف الطالب بأن يعرض على سيادتكم ما يلي:
+
+أولاً: عرض الوقائع
+
+{faits.description}
+
+ثانيًا: طبيعة الدين ومصدره
+
+الدين المطالب بأدائه ناتج عن:
+
+{nature_creance}
+
+تاريخ حلول الأجل: {date_exigibilite}
+
+ثالثًا: مبلغ الدين
+
+الأصل: {montant_principal} دينار
+فوائض التأخير بالنسبة القانونية: {montant_interets} دينار
+(من {date_debut_interets} إلى {date_fin_interets})
+
+المجموع: {montant_total} دينار
+
+رابعًا: المؤيدات
+
+يُقدم الطالب دعمًا لطلبه:
+
+{#pour_chaque_piece}
+{piece.numero}. {piece.description}
+{#fin_pour_chaque}
+
+خامسًا: في شروط القبول
+
+تستوفي هذه العريضة الشروط المنصوص عليها بالفصول 59 وما يليها من م.م.م.ت:
+
+1. الدين ناشئ عن عقد أو عن التزام قانوني
+2. الدين محقق ومعين المقدار وحال الأجل
+3. الدين مثبت بوثائق كتابية
+
+سادسًا: الطلب
+
+لهذه الأسباب، يرجو الطالب من سيادتكم إصدار أمر بالدفع يُلزم المطلوب ضده بأن يؤدي للطالب:
+
+- المبلغ الأصلي: {montant_principal} دينار
+- الفوائض القانونية ابتداءً من {date_exigibilite}
+- مصاريف هذا الإجراء
+
+مع حفظ كافة الحقوق.
+
+حُرر بـ{ville}، في {date_aujourdhui_ar}
+
+الأستاذ {avocat.nom}
+محامي لدى هيئة المحامين بـ{avocat.barreau}
+(الإمضاء والختم)
+
+---
+
+المؤيدات المرفقة:
+
+{#pour_chaque_piece}
+م{piece.numero} - {piece.description}
+{#fin_pour_chaque}

@@ -1,0 +1,109 @@
+المحكمة الابتدائية بـ{tribunal.ville}
+
+اعتراض على أمر بالدفع
+(الفصل 65 من مجلة المرافعات المدنية والتجارية)
+
+المعترض:
+{client.nom_complet}
+{client.qualite_juridique}
+المقيم بـ{client.adresse}
+ينوبه الأستاذ {avocat.nom}، محامي لدى هيئة المحامين بـ{avocat.barreau}
+
+ضـــد:
+
+{partie_adverse}
+{partie_adverse.qualite_juridique}
+المقيم بـ{partie_adverse.adresse}
+
+---
+
+الأمر بالدفع عدد {numero_ordonnance}
+الصادر بتاريخ {date_ordonnance}
+عن السيد رئيس المحكمة الابتدائية بـ{tribunal.ville}
+
+السيد الرئيس،
+السادة القضاة،
+
+يتشرف المعترض بأن يُعلن اعتراضه على الأمر بالدفع المذكور أعلاه، الذي بُلّغ إليه بتاريخ {date_signification}، وذلك للأسباب التالية:
+
+أولاً: في قبول الاعتراض
+
+الاعتراض الحالي مقبول شكلاً للأسباب التالية:
+
+1. قُدم في الأجل القانوني وهو 15 يومًا من تاريخ التبليغ (الفصل 65 م.م.م.ت)
+2. تاريخ التبليغ: {date_signification}
+3. تاريخ الاعتراض الحالي: {date_aujourdhui_ar}
+
+ثانيًا: عرض الوقائع
+
+{faits.version_opposant}
+
+ثالثًا: أوجه الاعتراض
+
+أ. في عدم قبول طلب الأمر بالدفع
+
+{#si_irrecevabilite}
+كان طلب الأمر بالدفع غير مقبول للأسباب التالية:
+
+{irrecevabilite.motif}
+{#fin_si}
+
+ب. في انعدام دين محقق ومعين المقدار وحال الأجل
+
+{argument_absence_creance}
+
+ج. في الطعن في المبلغ
+
+{#si_contestation_montant}
+المبلغ المطالب به محل اعتراض للأسباب التالية:
+
+- المبلغ المطالب به: {montant_reclame} دينار
+- المبلغ المستحق فعليًا (إن وُجد): {montant_reconnu} دينار
+- المبلغ محل الاعتراض: {montant_conteste} دينار
+
+سبب الاعتراض: {motif_contestation_montant}
+{#fin_si}
+
+د. في الدفع بالمقاصة
+
+{#si_compensation}
+يتمسك المعترض بالمقاصة بالدين الذي له في ذمة الطالب والبالغ {montant_compensation} دينار، الناتج عن:
+
+{origine_compensation}
+{#fin_si}
+
+رابعًا: المؤيدات المقدمة
+
+{#pour_chaque_piece}
+م{piece.numero} - {piece.description}
+{#fin_pour_chaque}
+
+لهــذه الأسبــاب
+
+يلتمس المعترض من المحكمة:
+
+ابتــداءً:
+- قبول الاعتراض شكلاً
+
+أصليًّــا:
+- الرجوع في الأمر بالدفع عدد {numero_ordonnance} الصادر بتاريخ {date_ordonnance}
+- رفض جميع مطالب {partie_adverse}
+
+احتياطيًّــا:
+- تخفيض مبلغ الحكم إلى {montant_reconnu} دينار
+
+{#si_compensation}
+في كل الحالات:
+- الإذن بالمقاصة بين الدينين المتقابلين للطرفين
+{#fin_si}
+
+- تحميل الطالب المصاريف القانونية
+
+مع حفظ كافة الحقوق.
+
+حُرر بـ{ville}، في {date_aujourdhui_ar}
+
+الأستاذ {avocat.nom}
+محامي لدى هيئة المحامين بـ{avocat.barreau}
+عن {client.nom_complet}
+(الإمضاء والختم)
