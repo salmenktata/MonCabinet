@@ -54,8 +54,8 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Installer dépendances pour le script entrypoint
-RUN npm install --no-save pg bcryptjs
+# Installer dépendances pour le script entrypoint (ignorer les scripts pour éviter canvas)
+RUN npm install --no-save --ignore-scripts pg bcryptjs
 
 # Copier script entrypoint
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
