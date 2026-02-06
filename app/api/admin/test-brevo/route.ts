@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { sendTestEmail, isBrevoConfigured } from '@/lib/email/brevo-client'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,16 @@ export async function POST() {
     const session = await getSession()
     if (!session?.user || !['admin', 'super_admin'].includes(session.user.role || '')) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    // Rate limiting par utilisateur
+    const rateLimitKey = `test-brevo:${session.user.id}`
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.ADMIN_ACTION)
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: `Trop de requêtes. Réessayez dans ${rateLimit.resetIn} secondes.` },
+        { status: 429 }
+      )
     }
 
     // Vérifier config Brevo
