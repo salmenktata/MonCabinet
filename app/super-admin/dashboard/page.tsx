@@ -139,6 +139,9 @@ async function KnowledgeBaseStats() {
   )
 }
 
+// Taux de change USD -> TND
+const USD_TO_TND = 3.1
+
 // Composant pour les coûts IA
 async function AICostsStats() {
   const result = await query(`
@@ -150,6 +153,7 @@ async function AICostsStats() {
     WHERE created_at > NOW() - INTERVAL '30 days'
   `)
   const stats = result.rows[0]
+  const costTND = (parseFloat(stats.total_cost) * USD_TO_TND).toFixed(3)
 
   return (
     <Card className="bg-slate-800 border-slate-700">
@@ -163,7 +167,7 @@ async function AICostsStats() {
         <div className="grid gap-4 md:grid-cols-3">
           <div className="text-center">
             <div className="text-3xl font-bold text-white">
-              ${parseFloat(stats.total_cost).toFixed(2)}
+              {costTND} TND
             </div>
             <p className="text-sm text-slate-500">Coût total</p>
           </div>

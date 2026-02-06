@@ -94,10 +94,10 @@ interface DigestStats {
 async function getUsersWithDailyDigest(): Promise<UserNotificationSettings[]> {
   const result = await db.query(`
     SELECT
-      p.id as user_id,
-      p.email,
-      p.nom,
-      p.prenom,
+      u.id as user_id,
+      u.email,
+      u.nom,
+      u.prenom,
       COALESCE(np.daily_digest_enabled, true) as daily_digest_enabled,
       COALESCE(np.alerte_j15_enabled, true) as alerte_j15_enabled,
       COALESCE(np.alerte_j7_enabled, true) as alerte_j7_enabled,
@@ -111,9 +111,10 @@ async function getUsersWithDailyDigest(): Promise<UserNotificationSettings[]> {
       COALESCE(np.alerte_factures_impayees_delai_jours, 30) as alerte_factures_impayees_delai_jours,
       COALESCE(np.email_format, 'html') as email_format,
       COALESCE(np.langue_email, 'fr') as langue_email
-    FROM profiles p
-    LEFT JOIN notification_preferences np ON p.id = np.user_id
-    WHERE p.email IS NOT NULL
+    FROM users u
+    LEFT JOIN notification_preferences np ON u.id = np.user_id
+    WHERE u.email IS NOT NULL
+      AND u.status = 'approved'
       AND COALESCE(np.daily_digest_enabled, true) = true
       AND COALESCE(np.enabled, true) = true
   `)

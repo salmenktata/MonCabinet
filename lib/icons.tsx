@@ -91,6 +91,7 @@ import {
   HardDrive,
   History,
   Undo2,
+  Play,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -220,6 +221,7 @@ export const Icons = {
   // Additional icons
   x: X,
   history: History,
+  play: Play,
   undo: Undo2,
 } as const
 
