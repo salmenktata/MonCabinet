@@ -1,0 +1,109 @@
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+
+OPPOSITION À ORDONNANCE D'INJONCTION DE PAYER
+(Article 65 du Code de Procédure Civile et Commerciale)
+
+OPPOSANT :
+{client.nom_complet}
+{client.qualite_juridique}
+Demeurant à {client.adresse}
+Représenté par Maître {avocat.nom}, avocat au Barreau de {avocat.barreau}
+
+CONTRE :
+
+{partie_adverse}
+{partie_adverse.qualite_juridique}
+Demeurant à {partie_adverse.adresse}
+
+---
+
+Ordonnance d'injonction de payer n° {numero_ordonnance}
+Rendue le {date_ordonnance}
+Par Monsieur le Président du Tribunal de Première Instance de {tribunal.ville}
+
+Monsieur le Président,
+Messieurs les Juges,
+
+L'opposant a l'honneur de former opposition à l'ordonnance d'injonction de payer susvisée, qui lui a été signifiée le {date_signification}, pour les motifs suivants :
+
+I. RECEVABILITÉ DE L'OPPOSITION
+
+La présente opposition est recevable car :
+
+1. Elle est formée dans le délai légal de 15 jours à compter de la signification de l'ordonnance (Article 65 CPCC)
+2. Date de signification : {date_signification}
+3. Date de la présente opposition : {date_aujourdhui_fr}
+
+II. EXPOSÉ DES FAITS
+
+{faits.version_opposant}
+
+III. MOYENS D'OPPOSITION
+
+A. SUR L'IRRECEVABILITÉ DE LA DEMANDE D'INJONCTION
+
+{#si_irrecevabilite}
+La demande d'injonction était irrecevable pour les motifs suivants :
+
+{irrecevabilite.motif}
+{#fin_si}
+
+B. SUR L'ABSENCE DE CRÉANCE CERTAINE, LIQUIDE ET EXIGIBLE
+
+{argument_absence_creance}
+
+C. SUR LA CONTESTATION DU MONTANT
+
+{#si_contestation_montant}
+Le montant réclamé est contesté pour les raisons suivantes :
+
+- Montant réclamé : {montant_reclame} TND
+- Montant réellement dû (le cas échéant) : {montant_reconnu} TND
+- Contestation portant sur : {montant_conteste} TND
+
+Motif de la contestation : {motif_contestation_montant}
+{#fin_si}
+
+D. SUR L'EXCEPTION DE COMPENSATION
+
+{#si_compensation}
+L'opposant oppose en compensation la créance qu'il détient contre le demandeur d'un montant de {montant_compensation} TND, résultant de :
+
+{origine_compensation}
+{#fin_si}
+
+IV. PIÈCES PRODUITES
+
+{#pour_chaque_piece}
+P{piece.numero} - {piece.description}
+{#fin_pour_chaque}
+
+PAR CES MOTIFS
+
+Plaise au Tribunal :
+
+AU PRÉALABLE :
+- DÉCLARER l'opposition recevable en la forme
+
+AU PRINCIPAL :
+- RÉTRACTER l'ordonnance d'injonction de payer n° {numero_ordonnance} du {date_ordonnance}
+- DÉBOUTER {partie_adverse} de l'intégralité de ses demandes
+
+SUBSIDIAIREMENT :
+- RÉDUIRE le montant de la condamnation à la somme de {montant_reconnu} TND
+
+{#si_compensation}
+EN TOUT ÉTAT DE CAUSE :
+- CONSTATER la compensation entre les créances réciproques des parties
+{#fin_si}
+
+- CONDAMNER le demandeur aux entiers dépens
+
+SOUS LE BÉNÉFICE DE CES OBSERVATIONS.
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+Maître {avocat.nom}
+Avocat au Barreau de {avocat.barreau}
+Pour {client.nom_complet}
+(Signature et cachet)

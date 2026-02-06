@@ -1,0 +1,92 @@
+PROCURATION JUDICIAIRE
+
+Je soussigné(e),
+
+{client.civilite} {client.nom_complet}
+Né(e) le {client.date_naissance} à {client.lieu_naissance}
+De nationalité {client.nationalite}
+Titulaire de la CIN n° {client.cin}
+Demeurant à {client.adresse}
+{#si_societe}
+Agissant en qualité de {client.qualite_representant} de la société {societe.nom}
+{societe.forme_juridique} au capital de {societe.capital} TND
+Matricule fiscal : {societe.matricule_fiscal}
+Registre du commerce n° {societe.registre_commerce}
+Siège social : {societe.siege_social}
+{#fin_si}
+
+DONNE PAR LA PRÉSENTE POUVOIR À :
+
+Maître {avocat.prenom} {avocat.nom}
+Avocat inscrit au Barreau de {avocat.barreau}
+Cabinet sis à {cabinet.adresse}
+Tél : {cabinet.telephone}
+Email : {cabinet.email}
+
+AVEC FACULTÉ DE SUBSTITUTION
+
+Pour me représenter et agir en mon nom et pour mon compte dans le cadre de :
+
+{objet_procuration}
+
+Affaire n° : {dossier.numero_rg}
+Contre : {partie_adverse}
+
+À CET EFFET, le mandataire aura les pouvoirs les plus étendus pour :
+
+1. REPRÉSENTATION EN JUSTICE
+   - Comparaître devant toutes juridictions (Tribunaux de Première Instance, Cours d'Appel, Cour de Cassation)
+   - Assister aux audiences, déposer des conclusions et mémoires
+   - Produire et retirer des pièces et documents
+
+2. ACTES DE PROCÉDURE
+   - Former toutes demandes, oppositions, appels, pourvois et recours
+   - Demander l'exécution des décisions de justice
+   - Saisir les huissiers de justice pour signification et exécution
+
+3. NÉGOCIATION ET TRANSACTION
+   - Négocier avec la partie adverse
+   - Consentir toute transaction mettant fin au litige
+   - Recevoir et donner quittance de toutes sommes dues
+
+4. ACTES CONSERVATOIRES
+   - Prendre toutes inscriptions hypothécaires
+   - Faire pratiquer toutes saisies conservatoires ou exécutoires
+   - Demander toutes mesures provisoires ou de référé
+
+{#si_pouvoirs_speciaux}
+5. POUVOIRS SPÉCIAUX
+   {pouvoirs_speciaux}
+{#fin_si}
+
+Le présent pouvoir est donné :
+{#si_duree_limitee}
+- Pour une durée de {duree_procuration}
+{#sinon}
+- Sans limitation de durée
+{#fin_si}
+- Avec faculté de subdélégation
+
+Je déclare avoir pris connaissance de l'article 30 de la loi n° 89-87 du 7 septembre 1989 relative à la profession d'avocat.
+
+FAIT POUR SERVIR ET VALOIR CE QUE DE DROIT.
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+Le Mandant :                           Accepté par le Mandataire :
+{client.nom_complet}                   Maître {avocat.nom}
+                                       Avocat au Barreau de {avocat.barreau}
+
+_______________________               _______________________
+(Signature précédée de               (Signature et cachet)
+la mention "Lu et approuvé,
+Bon pour pouvoir")
+
+---
+
+LÉGALISATION DE SIGNATURE (le cas échéant)
+
+Signature légalisée à {lieu_legalisation}
+Le {date_legalisation}
+Par {autorite_legalisation}
+N° {numero_legalisation}

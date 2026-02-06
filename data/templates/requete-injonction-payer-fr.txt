@@ -1,0 +1,85 @@
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+
+REQUÊTE EN INJONCTION DE PAYER
+(Articles 59 et suivants du Code de Procédure Civile et Commerciale)
+
+REQUÉRANT :
+{client.nom_complet}
+{client.qualite_juridique}
+{#si_societe}Matricule fiscal : {client.matricule_fiscal}{#fin_si}
+{#si_societe}Registre du commerce : {client.registre_commerce}{#fin_si}
+Demeurant à {client.adresse}
+Représenté par Maître {avocat.nom}, avocat au Barreau de {avocat.barreau}
+
+REQUIS :
+{partie_adverse}
+{partie_adverse.qualite_juridique}
+{#si_societe}Matricule fiscal : {partie_adverse.matricule_fiscal}{#fin_si}
+{#si_societe}Registre du commerce : {partie_adverse.registre_commerce}{#fin_si}
+Demeurant à {partie_adverse.adresse}
+
+---
+
+Monsieur le Président du Tribunal de Première Instance de {tribunal.ville},
+
+Le requérant a l'honneur d'exposer ce qui suit :
+
+I. EXPOSÉ DES FAITS
+
+{faits.description}
+
+II. NATURE ET ORIGINE DE LA CRÉANCE
+
+La créance dont le paiement est réclamé résulte de :
+
+{nature_creance}
+
+Date d'exigibilité : {date_exigibilite}
+
+III. MONTANT DE LA CRÉANCE
+
+Principal : {montant_principal} TND
+Intérêts de retard au taux légal : {montant_interets} TND
+(du {date_debut_interets} au {date_fin_interets})
+
+TOTAL : {montant_total} TND
+
+IV. PIÈCES JUSTIFICATIVES
+
+Le requérant produit à l'appui de sa demande :
+
+{#pour_chaque_piece}
+{piece.numero}. {piece.description}
+{#fin_pour_chaque}
+
+V. SUR LES CONDITIONS DE RECEVABILITÉ
+
+La présente requête remplit les conditions posées par les articles 59 et suivants du CPCC :
+
+1. La créance a une cause contractuelle ou résulte d'une obligation statutaire
+2. Elle est certaine, liquide et exigible
+3. Elle est fondée sur des documents écrits justificatifs
+
+VI. DEMANDE
+
+Pour ces motifs, le requérant vous prie de bien vouloir rendre une ordonnance d'injonction de payer enjoignant au requis de payer au requérant :
+
+- La somme principale de {montant_principal} TND
+- Les intérêts au taux légal à compter du {date_exigibilite}
+- Les frais de la présente procédure
+
+SOUS TOUTES RÉSERVES.
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+Maître {avocat.nom}
+Avocat au Barreau de {avocat.barreau}
+(Signature et cachet)
+
+---
+
+PIÈCES JOINTES :
+
+{#pour_chaque_piece}
+P{piece.numero} - {piece.description}
+{#fin_pour_chaque}

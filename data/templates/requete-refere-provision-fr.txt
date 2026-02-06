@@ -1,0 +1,114 @@
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+JURIDICTION DES RÉFÉRÉS
+
+REQUÊTE EN RÉFÉRÉ-PROVISION
+(Articles 201 et suivants du Code de Procédure Civile et Commerciale)
+
+REQUÉRANT :
+{client.nom_complet}
+{client.qualite_juridique}
+Demeurant à {client.adresse}
+Représenté par Maître {avocat.nom}, avocat au Barreau de {avocat.barreau}
+
+DÉFENDEUR :
+{partie_adverse}
+{partie_adverse.qualite_juridique}
+Demeurant à {partie_adverse.adresse}
+
+---
+
+Monsieur le Président du Tribunal de Première Instance de {tribunal.ville},
+Statuant en référé,
+
+Le requérant a l'honneur de vous exposer ce qui suit :
+
+I. EXPOSÉ DES FAITS
+
+{faits.description}
+
+II. SUR LA COMPÉTENCE DU JUGE DES RÉFÉRÉS
+
+Conformément aux articles 201 et suivants du CPCC, le juge des référés est compétent pour accorder une provision au créancier lorsque l'obligation n'est pas sérieusement contestable.
+
+III. SUR LE CARACTÈRE NON SÉRIEUSEMENT CONTESTABLE DE L'OBLIGATION
+
+A. Nature de la créance
+
+La créance dont le paiement est sollicité résulte de :
+
+{nature_obligation}
+
+B. Caractère certain de la créance
+
+La créance est établie par les documents suivants :
+
+{#pour_chaque_piece}
+- {piece.description}
+{#fin_pour_chaque}
+
+C. Absence de contestation sérieuse
+
+{argument_non_contestable}
+
+IV. SUR L'URGENCE
+
+L'urgence est caractérisée par :
+
+{motif_urgence}
+
+Le requérant se trouve dans une situation financière qui nécessite le paiement immédiat de sa créance :
+
+{situation_financiere}
+
+V. SUR LE MONTANT DE LA PROVISION SOLLICITÉE
+
+Montant total de la créance : {montant_creance} TND
+
+Provision sollicitée : {montant_provision} TND
+
+Cette provision représente {pourcentage_provision}% du montant total et se justifie par le caractère incontestable de la créance.
+
+VI. PIÈCES PRODUITES
+
+{#pour_chaque_piece}
+P{piece.numero} - {piece.description}
+{#fin_pour_chaque}
+
+PAR CES MOTIFS
+
+Vu les articles 201 et suivants du Code de Procédure Civile et Commerciale,
+Vu l'urgence et le caractère non sérieusement contestable de l'obligation,
+
+Plaise à Monsieur le Président :
+
+AU PRINCIPAL :
+- CONDAMNER {partie_adverse} à payer au requérant, à titre de provision, la somme de {montant_provision} TND
+- DIRE que cette somme portera intérêts au taux légal à compter de la présente demande
+
+SUBSIDIAIREMENT :
+- DÉSIGNER tel expert qu'il plaira au Président avec mission d'évaluer la créance
+
+EN TOUT ÉTAT DE CAUSE :
+- CONDAMNER le défendeur aux entiers dépens, en ce compris les frais de signification de la présente ordonnance
+- RAPPELER que l'ordonnance de référé est exécutoire de plein droit à titre provisoire (Article 204 CPCC)
+
+SOUS TOUTES RÉSERVES.
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+Maître {avocat.nom}
+Avocat au Barreau de {avocat.barreau}
+Pour {client.nom_complet}
+(Signature et cachet)
+
+---
+
+PIÈCES ANNEXÉES :
+
+{#pour_chaque_piece}
+{piece.numero}. {piece.description}
+{#fin_pour_chaque}
+
+---
+
+NOTE : En vertu de l'article 204 CPCC, les ordonnances de référé sont exécutoires de plein droit à titre provisoire. Le juge peut toutefois subordonner l'exécution provisoire à la constitution d'une garantie.

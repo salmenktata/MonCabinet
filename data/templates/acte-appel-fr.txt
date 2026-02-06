@@ -1,0 +1,110 @@
+COUR D'APPEL DE {cour_appel.ville}
+
+ACTE D'APPEL
+(Articles 130 et suivants du Code de Procédure Civile et Commerciale)
+
+APPELANT :
+{client.nom_complet}
+{client.qualite_juridique}
+Demeurant à {client.adresse}
+Représenté par Maître {avocat.nom}, avocat au Barreau de {avocat.barreau}
+
+INTIMÉ :
+{partie_adverse}
+{partie_adverse.qualite_juridique}
+Demeurant à {partie_adverse.adresse}
+
+---
+
+JUGEMENT ATTAQUÉ
+
+Jugement rendu le {date_jugement}
+Par le Tribunal de Première Instance de {tribunal.ville}
+N° RG : {numero_rg}
+Signifié le {date_signification}
+
+Monsieur le Premier Président,
+Messieurs les Conseillers,
+
+L'appelant a l'honneur de déclarer par la présente faire appel du jugement susvisé, et ce dans le délai légal de {delai_appel} jours.
+
+I. RAPPEL DE LA PROCÉDURE
+
+Par le jugement entrepris, le Tribunal de Première Instance de {tribunal.ville} a :
+
+{dispositif_jugement}
+
+II. MOTIFS DE L'APPEL
+
+L'appelant conteste le jugement entrepris pour les motifs suivants :
+
+A. EN FAIT
+
+{motifs_fait}
+
+B. EN DROIT
+
+{motifs_droit}
+
+Le jugement a méconnu les dispositions de :
+{#pour_chaque_texte}
+- {texte.reference} : {texte.violation}
+{#fin_pour_chaque}
+
+III. GRIEF PRINCIPAL
+
+{grief_principal}
+
+IV. GRIEFS SUBSIDIAIRES
+
+{griefs_subsidiaires}
+
+V. DEMANDES
+
+PAR CES MOTIFS
+
+Et tous autres à déduire, suppléer ou substituer d'office, l'appelant demande à la Cour de bien vouloir :
+
+AU PRINCIPAL :
+- DÉCLARER l'appel recevable en la forme
+- INFIRMER le jugement entrepris en toutes ses dispositions
+- Statuant à nouveau :
+  - {demande_principale_1}
+  - {demande_principale_2}
+
+SUBSIDIAIREMENT :
+- RÉFORMER partiellement le jugement sur les points suivants :
+  - {demande_subsidiaire}
+
+EN TOUT ÉTAT DE CAUSE :
+- CONDAMNER l'intimé aux entiers dépens de première instance et d'appel
+- ORDONNER l'exécution provisoire de l'arrêt à intervenir
+
+SOUS LE BÉNÉFICE DE CES OBSERVATIONS.
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+Maître {avocat.nom}
+Avocat au Barreau de {avocat.barreau}
+Pour {client.nom_complet}, Appelant
+(Signature et cachet)
+
+---
+
+PIÈCES JOINTES :
+
+1. Copie du jugement entrepris
+2. Acte de signification du jugement
+{#pour_chaque_piece}
+{piece.numero}. {piece.description}
+{#fin_pour_chaque}
+
+---
+
+DÉLAI D'APPEL
+
+Matière civile : 20 jours
+Matière commerciale : 10 jours
+Matière sociale : 30 jours
+
+Le présent appel est interjeté dans le délai légal.

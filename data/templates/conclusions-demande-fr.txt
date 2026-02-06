@@ -1,0 +1,106 @@
+TRIBUNAL DE PREMIÈRE INSTANCE DE {tribunal.ville}
+
+CONCLUSIONS EN DEMANDE
+
+POUR :
+{client.nom_complet}
+{client.qualite_juridique}
+Demeurant à {client.adresse}
+Représenté par Maître {avocat.nom}, avocat au Barreau de {avocat.barreau}
+
+DEMANDEUR
+
+CONTRE :
+
+{partie_adverse}
+{partie_adverse.qualite_juridique}
+Demeurant à {partie_adverse.adresse}
+Représenté par Maître {partie_adverse.avocat_nom}
+
+DÉFENDEUR
+
+---
+
+Affaire n° {dossier.numero_rg}
+Audience du {audience.date}
+
+Monsieur le Président,
+Messieurs les Juges,
+
+Le demandeur a l'honneur de vous présenter les conclusions suivantes, en réponse aux arguments développés par le défendeur.
+
+I. RAPPEL DES FAITS ET DE LA PROCÉDURE
+
+{faits.description_detaillee}
+
+II. DISCUSSION
+
+A. SUR LA RECEVABILITÉ
+
+La demande du demandeur est parfaitement recevable :
+- Elle a été introduite dans les délais légaux
+- Le demandeur justifie d'un intérêt légitime à agir
+- La juridiction saisie est compétente tant matériellement que territorialement
+
+B. SUR LE BIEN-FONDÉ DE LA DEMANDE
+
+{#pour_chaque_argument}
+{argument.titre}
+
+{argument.developpement}
+
+Fondement juridique : {argument.textes_loi}
+{#fin_pour_chaque}
+
+C. RÉPONSE AUX ARGUMENTS DU DÉFENDEUR
+
+{reponse_arguments_defense}
+
+III. SUR LES PRÉTENTIONS
+
+Au vu de ce qui précède, le demandeur maintient l'intégralité de ses prétentions initiales :
+
+{pretentions_principales}
+
+IV. SUR LES PRÉJUDICES
+
+Le demandeur a subi les préjudices suivants du fait des agissements du défendeur :
+
+1. Préjudice matériel : {prejudice_materiel} TND
+2. Préjudice moral : {prejudice_moral} TND
+3. Frais et débours : {frais_debours} TND
+
+TOTAL : {prejudice_total} TND
+
+V. PIÈCES COMMUNIQUÉES
+
+{#pour_chaque_piece}
+P{piece.numero} - {piece.description}
+{#fin_pour_chaque}
+
+PAR CES MOTIFS
+
+Et tous autres à déduire, suppléer ou substituer d'office, plaise au Tribunal :
+
+AU PRINCIPAL :
+- DÉCLARER le demandeur recevable et bien-fondé en ses demandes
+- CONDAMNER le défendeur à payer au demandeur la somme de {montant_principal} TND
+- CONDAMNER le défendeur à payer au demandeur la somme de {dommages_interets} TND à titre de dommages et intérêts
+
+SUBSIDIAIREMENT :
+- DÉSIGNER tel expert qu'il plaira au Tribunal avec mission de {mission_expert}
+- RENVOYER l'affaire après dépôt du rapport d'expertise
+
+EN TOUT ÉTAT DE CAUSE :
+- DÉBOUTER le défendeur de toutes ses demandes, fins et conclusions
+- CONDAMNER le défendeur aux entiers dépens
+- ORDONNER l'exécution provisoire du jugement à intervenir
+
+SOUS LE BÉNÉFICE DE CES OBSERVATIONS.
+
+Fait à {ville}, le {date_aujourdhui_fr}
+
+Maître {avocat.nom}
+Avocat au Barreau de {avocat.barreau}
+Pour {client.nom_complet}
+(Signature et cachet)
