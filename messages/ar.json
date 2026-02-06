@@ -72,6 +72,7 @@
     "noAccount": "ليس لديك حساب بعد؟",
     "loginButton": "تسجيل الدخول",
     "registerButton": "إنشاء حسابي",
+    "registering": "جاري الإنشاء...",
     "loginError": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
     "registerError": "خطأ أثناء إنشاء الحساب",
     "passwordMismatch": "كلمات المرور غير متطابقة",
@@ -79,7 +80,58 @@
     "emailPlaceholder": "بريدك@الإلكتروني.com",
     "passwordPlaceholder": "••••••••",
     "firstNamePlaceholder": "اسمك الأول",
-    "lastNamePlaceholder": "اسم عائلتك"
+    "lastNamePlaceholder": "اسم عائلتك",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "forgotPasswordTitle": "نسيت كلمة المرور؟",
+    "forgotPasswordSubtitle": "أدخل بريدك الإلكتروني وسنرسل لك رابطًا لإعادة تعيين كلمة المرور.",
+    "sendResetLink": "إرسال رابط إعادة التعيين",
+    "sendingResetLink": "جاري الإرسال...",
+    "emailSent": "تم إرسال البريد!",
+    "emailSentMessage": "إذا كان بريدك الإلكتروني مسجلاً، ستتلقى رابط إعادة التعيين في غضون لحظات.",
+    "checkSpam": "تحقق أيضًا من مجلد الرسائل غير المرغوب فيها.",
+    "backToLogin": "العودة إلى تسجيل الدخول",
+    "welcomeBack": "مرحبًا بعودتك!",
+    "loginSubtitle": "الوصول إلى مساحة إدارة مكتبك",
+    "createAccount": "إنشاء حسابك",
+    "registerSubtitle": "انضم إلى مئات المحامين الذين يديرون مكاتبهم بكفاءة",
+    "passwordRequirements": "8+ أحرف مع حرف كبير وحرف صغير ورقم وحرف خاص",
+    "passwordStrength": {
+      "weak": "ضعيف",
+      "fair": "متوسط",
+      "good": "جيد",
+      "strong": "قوي"
+    },
+    "validation": {
+      "emailRequired": "البريد الإلكتروني مطلوب",
+      "emailInvalid": "بريد إلكتروني غير صالح",
+      "passwordRequired": "كلمة المرور مطلوبة",
+      "nameRequired": "الاسم مطلوب",
+      "hasUppercase": "حرف كبير",
+      "hasLowercase": "حرف صغير",
+      "hasNumber": "رقم",
+      "hasSpecial": "حرف خاص",
+      "minLength": "8 أحرف كحد أدنى"
+    },
+    "secureConnection": "اتصال آمن SSL",
+    "dataProtected": "بياناتك محمية"
+  },
+  "authLayout": {
+    "tagline": "أدر مكتبك بكل راحة بال",
+    "feature1": "إدارة ذكية للملفات",
+    "feature2": "متابعة تلقائية للمواعيد القانونية",
+    "feature3": "فوترة مبسطة",
+    "feature4": "مساعد ذكاء اصطناعي قانوني مدمج",
+    "stats": {
+      "lawyers": "+500 محامي",
+      "lawyersLabel": "يثقون بنا",
+      "cases": "+10,000 ملف",
+      "casesLabel": "يُدار شهريًا"
+    },
+    "testimonial": {
+      "quote": "مون كابينات غير طريقة إدارتي لمكتبي. أوفر وقتًا ثمينًا كل يوم.",
+      "author": "الأستاذة سارة بن علي",
+      "role": "محامية، نقابة المحامين بتونس"
+    }
   },
   "dashboard": {
     "title": "لوحة التحكم",

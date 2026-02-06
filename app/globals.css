@@ -149,4 +149,292 @@
   html.light {
     color-scheme: light;
   }
+
+  /* ============================================
+     ANIMATIONS PREMIUM
+     ============================================ */
+
+  /* Fade in from bottom */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  /* Fade in simple */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  /* Glow effect */
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 35px rgba(59, 130, 246, 0.7);
+    }
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  /* Subtle pulse */
+  @keyframes subtle-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+
+  .animate-subtle-pulse {
+    animation: subtle-pulse 2s ease-in-out infinite;
+  }
+
+  /* Slide in from left */
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.5s ease-out forwards;
+  }
+
+  /* Slide in from right */
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.5s ease-out forwards;
+  }
+
+  /* Scale in */
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+  }
+
+  /* Checkmark animation */
+  @keyframes checkmark {
+    0% {
+      stroke-dashoffset: 100;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .animate-checkmark {
+    stroke-dasharray: 100;
+    animation: checkmark 0.6s ease-out forwards;
+  }
+
+  /* Float animation for decorative elements */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* ============================================
+     GLASSMORPHISM UTILITIES
+     ============================================ */
+
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-card {
+    background: rgba(30, 41, 59, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .dark .glass-card {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .light .glass-card,
+  :root:not(.dark) .glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  /* ============================================
+     PREMIUM GRADIENTS
+     ============================================ */
+
+  .gradient-premium {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  }
+
+  .gradient-premium-blue {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1e293b 100%);
+  }
+
+  .gradient-gold {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  }
+
+  .gradient-gold-text {
+    background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 50%, #d97706 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* ============================================
+     PREMIUM BUTTON STYLES
+     ============================================ */
+
+  .btn-premium {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    transition: all 0.3s ease;
+  }
+
+  .btn-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: left 0.5s ease;
+  }
+
+  .btn-premium:hover::before {
+    left: 100%;
+  }
+
+  .btn-premium:hover {
+    box-shadow: 0 10px 40px -10px rgba(59, 130, 246, 0.5);
+    transform: translateY(-2px);
+  }
+
+  /* ============================================
+     INPUT PREMIUM STYLES
+     ============================================ */
+
+  .input-premium {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .input-premium:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .dark .input-premium {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .dark .input-premium:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(59, 130, 246, 0.5);
+  }
+
+  /* ============================================
+     PASSWORD STRENGTH INDICATOR
+     ============================================ */
+
+  .password-strength-bar {
+    transition: all 0.3s ease;
+  }
+
+  .password-strength-weak {
+    background: linear-gradient(90deg, #ef4444 0%, #ef4444 100%);
+  }
+
+  .password-strength-fair {
+    background: linear-gradient(90deg, #f59e0b 0%, #f59e0b 100%);
+  }
+
+  .password-strength-good {
+    background: linear-gradient(90deg, #22c55e 0%, #22c55e 100%);
+  }
+
+  .password-strength-strong {
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  }
+
+  /* ============================================
+     STAGGER ANIMATION DELAYS
+     ============================================ */
+
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+  .stagger-6 { animation-delay: 0.6s; }
 }

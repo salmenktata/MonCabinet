@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { LogoHorizontal, LogoIcon } from '@/components/ui/Logo'
 
 interface NavItem {
   href: string
@@ -39,6 +40,15 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     ],
   },
   {
+    group: 'Intelligence',
+    items: [
+      { href: '/assistant-ia', label: 'assistantIA', icon: 'zap' },
+      { href: '/dossiers/assistant', label: 'modeRapide', icon: 'activity' },
+      // Base de connaissances visible pour les admins (super_admin ont leur propre page)
+      ...(userRole === 'admin' ? [{ href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' as keyof typeof Icons }] : []),
+    ],
+  },
+  {
     group: 'Finance',
     items: [
       { href: '/factures', label: 'factures', icon: 'invoices' },
@@ -50,15 +60,6 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     items: [
       { href: '/documents', label: 'documents', icon: 'documents' },
       { href: '/templates', label: 'templates', icon: 'templates' },
-    ],
-  },
-  {
-    group: 'Intelligence',
-    items: [
-      { href: '/assistant-ia', label: 'assistantIA', icon: 'zap' },
-      { href: '/dossiers/assistant', label: 'modeRapide', icon: 'activity' },
-      // Base de connaissances visible pour les admins (super_admin ont leur propre page)
-      ...(userRole === 'admin' ? [{ href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' as keyof typeof Icons }] : []),
     ],
   },
   {
@@ -141,22 +142,22 @@ function SidebarComponent({ collapsed, onCollapse, userRole }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex h-16 items-center justify-between px-4 border-b">
-        {!collapsed && (
-          <Link href="/dashboard" className="text-2xl font-bold text-primary" prefetch={true}>
-            MonCabinet
+        {!collapsed ? (
+          <Link href="/dashboard" prefetch={true}>
+            <LogoHorizontal size="sm" variant="juridique" showTag={true} animate={false} />
+          </Link>
+        ) : (
+          <Link href="/dashboard" prefetch={true} className="mx-auto">
+            <LogoIcon size="sm" animate={false} />
           </Link>
         )}
         <Button
           variant="ghost"
           size="icon"
           onClick={onCollapse}
-          className={cn('transition-transform', collapsed && 'mx-auto')}
+          className={cn('transition-transform', collapsed ? 'hidden' : '')}
         >
-          {collapsed ? (
-            <Icons.chevronRight className="h-4 w-4" />
-          ) : (
-            <Icons.chevronLeft className="h-4 w-4" />
-          )}
+          <Icons.chevronLeft className="h-4 w-4" />
         </Button>
       </div>
 

@@ -8,6 +8,7 @@ import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { LogoHorizontal, LogoIcon } from '@/components/ui/Logo'
 
 interface NavItem {
   href: string
@@ -150,10 +151,13 @@ function SuperAdminSidebarComponent({
     >
       {/* Logo */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-slate-700">
-        {!collapsed && (
-          <Link href="/super-admin/dashboard" className="flex items-center gap-2" prefetch={true}>
-            <Icons.shield className="h-6 w-6 text-blue-500" />
-            <span className="text-lg font-bold text-white">Super Admin</span>
+        {!collapsed ? (
+          <Link href="/super-admin/dashboard" prefetch={true}>
+            <LogoHorizontal size="sm" variant="juridique" showTag={true} animate={false} />
+          </Link>
+        ) : (
+          <Link href="/super-admin/dashboard" prefetch={true} className="mx-auto">
+            <LogoIcon size="sm" animate={false} />
           </Link>
         )}
         <Button
@@ -162,14 +166,10 @@ function SuperAdminSidebarComponent({
           onClick={onCollapse}
           className={cn(
             'transition-transform text-slate-400 hover:text-white hover:bg-slate-800',
-            collapsed && 'mx-auto'
+            collapsed ? 'hidden' : ''
           )}
         >
-          {collapsed ? (
-            <Icons.chevronRight className="h-4 w-4" />
-          ) : (
-            <Icons.chevronLeft className="h-4 w-4" />
-          )}
+          <Icons.chevronLeft className="h-4 w-4" />
         </Button>
       </div>
 

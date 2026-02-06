@@ -72,6 +72,7 @@
     "noAccount": "Pas encore de compte ?",
     "loginButton": "Se connecter",
     "registerButton": "Créer mon compte",
+    "registering": "Création en cours...",
     "loginError": "Email ou mot de passe incorrect",
     "registerError": "Erreur lors de la création du compte",
     "passwordMismatch": "Les mots de passe ne correspondent pas",
@@ -79,7 +80,58 @@
     "emailPlaceholder": "votre@email.com",
     "passwordPlaceholder": "••••••••",
     "firstNamePlaceholder": "Votre prénom",
-    "lastNamePlaceholder": "Votre nom"
+    "lastNamePlaceholder": "Votre nom",
+    "forgotPassword": "Mot de passe oublié ?",
+    "forgotPasswordTitle": "Mot de passe oublié ?",
+    "forgotPasswordSubtitle": "Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+    "sendResetLink": "Envoyer le lien de réinitialisation",
+    "sendingResetLink": "Envoi en cours...",
+    "emailSent": "Email envoyé !",
+    "emailSentMessage": "Si votre email est enregistré, vous recevrez un lien de réinitialisation dans quelques instants.",
+    "checkSpam": "Vérifiez également vos spams si vous ne le trouvez pas.",
+    "backToLogin": "Retour à la connexion",
+    "welcomeBack": "Bon retour !",
+    "loginSubtitle": "Accédez à votre espace de gestion de cabinet",
+    "createAccount": "Créer votre compte",
+    "registerSubtitle": "Rejoignez des centaines d'avocats qui gèrent leur cabinet efficacement",
+    "passwordRequirements": "8+ caractères avec majuscule, minuscule, chiffre et caractère spécial",
+    "passwordStrength": {
+      "weak": "Faible",
+      "fair": "Moyen",
+      "good": "Bon",
+      "strong": "Fort"
+    },
+    "validation": {
+      "emailRequired": "L'email est requis",
+      "emailInvalid": "Email invalide",
+      "passwordRequired": "Le mot de passe est requis",
+      "nameRequired": "Le nom est requis",
+      "hasUppercase": "Une majuscule",
+      "hasLowercase": "Une minuscule",
+      "hasNumber": "Un chiffre",
+      "hasSpecial": "Un caractère spécial",
+      "minLength": "8 caractères minimum"
+    },
+    "secureConnection": "Connexion sécurisée SSL",
+    "dataProtected": "Vos données sont protégées"
+  },
+  "authLayout": {
+    "tagline": "Gérez votre cabinet en toute sérénité",
+    "feature1": "Gestion intelligente des dossiers",
+    "feature2": "Suivi automatique des délais légaux",
+    "feature3": "Facturation simplifiée",
+    "feature4": "Assistant IA juridique intégré",
+    "stats": {
+      "lawyers": "500+ avocats",
+      "lawyersLabel": "nous font confiance",
+      "cases": "10,000+ dossiers",
+      "casesLabel": "gérés chaque mois"
+    },
+    "testimonial": {
+      "quote": "MonCabinet a transformé ma façon de gérer mon cabinet. Je gagne un temps précieux chaque jour.",
+      "author": "Me. Sarah Ben Ali",
+      "role": "Avocate, Barreau de Tunis"
+    }
   },
   "dashboard": {
     "title": "Tableau de bord",
