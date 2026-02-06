@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'
+import { memo, useState, useEffect, useCallback } from 'react'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
@@ -17,35 +17,62 @@ interface AppLayoutProps {
   }
 }
 
-export function AppLayout({ children, user }: AppLayoutProps) {
-  const [collapsed, setCollapsed] = React.useState(false)
-  const [mobileOpen, setMobileOpen] = React.useState(false)
+// Hook personnalisé pour détecter mobile avec debounce
+function useIsMobile(breakpoint = 1024, delay = 150) {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    // Check initial
+    setIsMobile(window.innerWidth < breakpoint)
+
+    let timeoutId: NodeJS.Timeout
+
+    const handleResize = () => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        setIsMobile(window.innerWidth < breakpoint)
+      }, delay)
+    }
+
+    window.addEventListener('resize', handleResize, { passive: true })
+    return () => {
+      clearTimeout(timeoutId)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [breakpoint, delay])
+
+  return isMobile
+}
+
+function AppLayoutComponent({ children, user }: AppLayoutProps) {
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const isMobile = useIsMobile()
 
   // Charger l'état sauvegardé au montage
-  React.useEffect(() => {
+  useEffect(() => {
     const saved = localStorage.getItem('sidebar-collapsed')
     if (saved) {
       setCollapsed(JSON.parse(saved))
     }
   }, [])
 
-  // Détecter la taille d'écran pour le responsive
-  const [isMobile, setIsMobile] = React.useState(false)
-
-  React.useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024)
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+  const toggleCollapse = useCallback(() => {
+    setCollapsed(prev => {
+      const newValue = !prev
+      localStorage.setItem('sidebar-collapsed', JSON.stringify(newValue))
+      return newValue
+    })
   }, [])
+
+  const closeMobile = useCallback(() => setMobileOpen(false), [])
+  const openMobile = useCallback(() => setMobileOpen(true), [])
 
   return (
     <div className="relative flex min-h-screen">
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <Sidebar collapsed={collapsed} onCollapse={() => setCollapsed(!collapsed)} />
+        <Sidebar collapsed={collapsed} onCollapse={toggleCollapse} />
       )}
 
       {/* Mobile Menu Button */}
@@ -54,7 +81,7 @@ export function AppLayout({ children, user }: AppLayoutProps) {
           variant="ghost"
           size="icon"
           className="fixed left-4 top-4 z-50 lg:hidden"
-          onClick={() => setMobileOpen(true)}
+          onClick={openMobile}
         >
           <Icons.menu className="h-6 w-6" />
         </Button>
@@ -63,7 +90,7 @@ export function AppLayout({ children, user }: AppLayoutProps) {
       {/* Mobile Drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-64">
-          <Sidebar collapsed={false} onCollapse={() => setMobileOpen(false)} />
+          <Sidebar collapsed={false} onCollapse={closeMobile} />
         </SheetContent>
       </Sheet>
 
@@ -80,3 +107,5 @@ export function AppLayout({ children, user }: AppLayoutProps) {
     </div>
   )
 }
+
+export const AppLayout = memo(AppLayoutComponent)

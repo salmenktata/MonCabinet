@@ -1,24 +1,63 @@
 /**
  * Service d'extraction de texte depuis PDF et DOCX
- * Utilise pdf-parse pour les PDF et mammoth pour les DOCX
+ * Utilise pdf-parse pour les PDF, mammoth pour les DOCX
+ * et Tesseract (binaire natif) pour l'OCR des documents scannés
  */
 
+import tesseract from 'node-tesseract-ocr'
+import { fromBuffer } from 'pdf2pic'
+import { writeFile, unlink, mkdir, readFile, readdir } from 'fs/promises'
+import { join } from 'path'
+import { tmpdir } from 'os'
+import { randomUUID } from 'crypto'
+
 // Import dynamique pour éviter les erreurs SSR
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let pdfParse: any = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mammoth: any = null
 
 async function loadPdfParse() {
   if (!pdfParse) {
-    pdfParse = (await import('pdf-parse')).default
+    const module = await import('pdf-parse')
+    pdfParse = module.default || module
   }
   return pdfParse
 }
 
 async function loadMammoth() {
   if (!mammoth) {
-    mammoth = (await import('mammoth')).default
+    const module = await import('mammoth')
+    mammoth = module.default || module
   }
   return mammoth
+}
+
+// Configuration Tesseract pour arabe + français
+const tesseractConfig = {
+  lang: 'ara+fra',
+  oem: 1, // LSTM OCR Engine
+  psm: 3, // Fully automatic page segmentation
+}
+
+/**
+ * Fonction utilitaire pour exécuter l'OCR sur une image
+ */
+async function runOCR(imagePath: string): Promise<string> {
+  try {
+    const text = await tesseract.recognize(imagePath, tesseractConfig)
+    return text
+  } catch (error) {
+    console.error('Erreur OCR:', error)
+    throw error
+  }
+}
+
+/**
+ * Placeholder pour compatibilité (non nécessaire avec binaire natif)
+ */
+export async function terminateTesseract(): Promise<void> {
+  // Rien à faire - le binaire natif ne nécessite pas de cleanup
 }
 
 // =============================================================================
@@ -34,7 +73,14 @@ export interface ParseResult {
     title?: string
     author?: string
     creationDate?: Date
+    ocrUsed?: boolean // Indique si l'OCR a été utilisé
   }
+}
+
+export interface ExtractOptions {
+  useOcr?: boolean // Forcer l'utilisation de l'OCR
+  ocrFallback?: boolean // Utiliser OCR si le texte extrait est insuffisant (défaut: true)
+  minTextLength?: number // Longueur minimale avant fallback OCR (défaut: 100)
 }
 
 export type SupportedMimeType =
@@ -50,14 +96,48 @@ export type SupportedMimeType =
 // =============================================================================
 
 /**
- * Extrait le texte d'un fichier PDF
+ * Extrait le texte d'un fichier PDF avec support OCR
+ * @param buffer - Contenu du PDF
+ * @param options - Options d'extraction (OCR, fallback, etc.)
  */
-export async function extractTextFromPDF(buffer: Buffer): Promise<ParseResult> {
+export async function extractTextFromPDF(
+  buffer: Buffer,
+  options: ExtractOptions = {}
+): Promise<ParseResult> {
+  const { useOcr = false, ocrFallback = true, minTextLength = 100 } = options
+
+  // Si OCR forcé, aller directement à l'OCR
+  if (useOcr) {
+    console.log('📷 OCR forcé pour ce PDF')
+    return extractTextFromPDFWithOCR(buffer)
+  }
+
   try {
     const parser = await loadPdfParse()
-    const data = await parser(buffer)
 
+    // Options pour contourner les bugs de pdf-parse avec certains PDFs
+    const parseOptions = {
+      // Éviter le bug "Object.defineProperty called on non-object"
+      pagerender: function(pageData: { getTextContent: () => Promise<{ items: Array<{ str: string }> }> }) {
+        return pageData.getTextContent()
+          .then(function(textContent: { items: Array<{ str: string }> }) {
+            let text = ''
+            for (const item of textContent.items) {
+              text += item.str + ' '
+            }
+            return text
+          })
+      }
+    }
+
+    const data = await parser(buffer, parseOptions)
     const text = cleanText(data.text)
+
+    // Si le texte est trop court, c'est probablement un scan -> fallback OCR
+    if (ocrFallback && text.length < minTextLength) {
+      console.log(`📷 Texte insuffisant (${text.length} chars), fallback OCR...`)
+      return extractTextFromPDFWithOCR(buffer)
+    }
 
     return {
       text,
@@ -70,11 +150,132 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<ParseResult> {
         creationDate: data.info?.CreationDate
           ? parseDate(data.info.CreationDate)
           : undefined,
+        ocrUsed: false,
+      },
+    }
+  } catch (error) {
+    // En cas d'erreur de parsing, tenter l'OCR si autorisé
+    if (ocrFallback) {
+      console.log('📷 Erreur parsing PDF, tentative OCR...')
+      return extractTextFromPDFWithOCR(buffer)
+    }
+    const message = error instanceof Error ? error.message : 'Erreur inconnue'
+    console.error('Erreur PDF détaillée:', error)
+    throw new Error(`Erreur extraction PDF: ${message}`)
+  }
+}
+
+// =============================================================================
+// OCR - EXTRACTION DEPUIS IMAGES (utilise binaire Tesseract natif)
+// =============================================================================
+
+/**
+ * Extrait le texte d'un PDF scanné via OCR
+ * Convertit chaque page en image (via Ghostscript/pdf2pic) puis applique Tesseract
+ */
+export async function extractTextFromPDFWithOCR(buffer: Buffer): Promise<ParseResult> {
+  const tempDir = join(tmpdir(), 'ocr-' + randomUUID())
+  const tempFiles: string[] = []
+
+  try {
+    await mkdir(tempDir, { recursive: true })
+
+    console.log('📷 Conversion PDF en images (Ghostscript)...')
+
+    // Configurer pdf2pic pour convertir le PDF en images
+    const converter = fromBuffer(buffer, {
+      density: 200, // DPI pour qualité OCR
+      savePath: tempDir,
+      saveFilename: 'page',
+      format: 'png',
+      width: 2000,
+      height: 2800,
+    })
+
+    // Convertir toutes les pages (-1 = toutes)
+    const results = await converter.bulk(-1, { responseType: 'image' })
+
+    const pages: string[] = []
+    let pageCount = 0
+
+    for (const result of results) {
+      if (result.path) {
+        pageCount++
+        console.log(`📷 OCR page ${pageCount}...`)
+        tempFiles.push(result.path)
+
+        // Appliquer l'OCR via binaire natif
+        const text = await runOCR(result.path)
+        pages.push(text)
+      }
+    }
+
+    const text = cleanText(pages.join('\n\n'))
+    console.log(`📷 OCR terminé: ${pageCount} pages, ${text.length} caractères`)
+
+    return {
+      text,
+      metadata: {
+        pageCount,
+        wordCount: countWords(text),
+        charCount: text.length,
+        ocrUsed: true,
       },
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur inconnue'
-    throw new Error(`Erreur extraction PDF: ${message}`)
+    console.error('Erreur OCR PDF:', error)
+    throw new Error(`Erreur OCR PDF: ${message}`)
+  } finally {
+    // Nettoyer les fichiers temporaires
+    for (const file of tempFiles) {
+      try {
+        await unlink(file)
+      } catch {
+        // Ignorer les erreurs de suppression
+      }
+    }
+  }
+}
+
+/**
+ * Extrait le texte d'une image via OCR
+ * Supporte PNG, JPG, TIFF, BMP
+ */
+export async function extractTextFromImage(buffer: Buffer): Promise<ParseResult> {
+  const tempPath = join(tmpdir(), `ocr-${randomUUID()}.png`)
+
+  try {
+    console.log('📷 OCR image...')
+
+    // Sauvegarder l'image temporairement
+    await writeFile(tempPath, buffer)
+
+    // Appliquer l'OCR via binaire natif
+    const extractedText = await runOCR(tempPath)
+    const text = cleanText(extractedText)
+
+    console.log(`📷 OCR terminé: ${text.length} caractères`)
+
+    return {
+      text,
+      metadata: {
+        wordCount: countWords(text),
+        charCount: text.length,
+        ocrUsed: true,
+      },
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue'
+    console.error('Erreur OCR image:', error)
+    throw new Error(`Erreur OCR image: ${message}`)
+  } finally {
+    // Nettoyer le fichier temporaire
+    try {
+      await unlink(tempPath)
+    } catch {
+      // Ignorer les erreurs de suppression
+    }
   }
 }
 
@@ -144,18 +345,25 @@ export function extractTextFromPlainText(
  * Extrait le texte d'un document selon son type MIME
  * @param buffer - Contenu du fichier
  * @param mimeType - Type MIME du fichier
+ * @param options - Options d'extraction (OCR, etc.)
  * @returns Texte extrait et métadonnées
  */
 export async function extractText(
   buffer: Buffer,
-  mimeType: string
+  mimeType: string,
+  options: ExtractOptions = {}
 ): Promise<ParseResult> {
   // Normaliser le type MIME
   const normalizedMime = mimeType.toLowerCase().trim()
 
   // PDF
   if (normalizedMime === 'application/pdf') {
-    return extractTextFromPDF(buffer)
+    return extractTextFromPDF(buffer, options)
+  }
+
+  // Images (OCR)
+  if (normalizedMime.startsWith('image/')) {
+    return extractTextFromImage(buffer)
   }
 
   // DOCX
@@ -202,11 +410,20 @@ export function isSupportedMimeType(mimeType: string): boolean {
     'text/markdown',
     'text/csv',
     'application/json',
+    // Images (OCR)
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/tiff',
+    'image/bmp',
+    'image/webp',
   ]
 
   const normalizedMime = mimeType.toLowerCase().trim()
   return (
-    supported.includes(normalizedMime) || normalizedMime.startsWith('text/')
+    supported.includes(normalizedMime) ||
+    normalizedMime.startsWith('text/') ||
+    normalizedMime.startsWith('image/')
   )
 }
 
@@ -224,6 +441,13 @@ export function getExtensionFromMimeType(mimeType: string): string | null {
     'text/markdown': 'md',
     'text/csv': 'csv',
     'application/json': 'json',
+    // Images
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/tiff': 'tiff',
+    'image/bmp': 'bmp',
+    'image/webp': 'webp',
   }
 
   return mapping[mimeType.toLowerCase()] || null

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CommandDialog,
@@ -46,7 +46,22 @@ interface SemanticSearchResult {
   metadata: Record<string, unknown>
 }
 
-export default function GlobalSearch() {
+const TYPE_LABELS: Record<string, string> = {
+  client: 'Clients',
+  dossier: 'Dossiers',
+  facture: 'Factures',
+  document: 'Documents',
+  semantic: 'Documents (Recherche IA)',
+  jurisprudence: 'Jurisprudence',
+}
+
+// Utilitaire pour tronquer le texte
+function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength).trim() + '...'
+}
+
+function GlobalSearchComponent() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -55,23 +70,23 @@ export default function GlobalSearch() {
   const [semanticEnabled, setSemanticEnabled] = useState(false)
   const [semanticAvailable, setSemanticAvailable] = useState(false)
 
+  // Ref pour AbortController
+  const abortControllerRef = useRef<AbortController | null>(null)
+
   // Vérifier si la recherche sémantique est disponible
   useEffect(() => {
+    const checkSemanticAvailability = async () => {
+      try {
+        const response = await fetch('/api/search/semantic?q=test', {
+          method: 'HEAD',
+        })
+        setSemanticAvailable(response.status !== 503)
+      } catch {
+        setSemanticAvailable(false)
+      }
+    }
     checkSemanticAvailability()
   }, [])
-
-  const checkSemanticAvailability = async () => {
-    try {
-      // Simple check - on vérifie si l'API répond
-      const response = await fetch('/api/search/semantic?q=test', {
-        method: 'HEAD',
-      })
-      // Si 503, c'est désactivé. Si 401 ou autre, c'est dispo mais non auth
-      setSemanticAvailable(response.status !== 503)
-    } catch {
-      setSemanticAvailable(false)
-    }
-  }
 
   // Ouvrir avec Cmd+K / Ctrl+K
   useEffect(() => {
@@ -86,33 +101,17 @@ export default function GlobalSearch() {
     return () => document.removeEventListener('keydown', down)
   }, [])
 
-  // Recherche avec debounce
-  useEffect(() => {
-    if (!query || query.length < 2) {
-      setResults([])
-      return
-    }
-
-    const timeoutId = setTimeout(() => {
-      if (semanticEnabled && semanticAvailable) {
-        performSemanticSearch(query)
-      } else {
-        performSearch(query)
-      }
-    }, 300) // Debounce 300ms
-
-    return () => clearTimeout(timeoutId)
-  }, [query, semanticEnabled, semanticAvailable])
-
   // Recherche classique (keywords)
-  const performSearch = async (searchQuery: string) => {
-    setLoading(true)
+  const performSearch = useCallback(async (searchQuery: string, signal: AbortSignal) => {
     try {
       const response = await fetch(
-        `/api/search?q=${encodeURIComponent(searchQuery)}`
+        `/api/search?q=${encodeURIComponent(searchQuery)}`,
+        { signal }
       )
-      const data = await response.json()
 
+      if (signal.aborted) return null
+
+      const data = await response.json()
       const searchResults: SearchResult[] = []
 
       // Clients
@@ -175,18 +174,16 @@ export default function GlobalSearch() {
         })
       }
 
-      setResults(searchResults)
+      return searchResults
     } catch (error) {
+      if ((error as Error).name === 'AbortError') return null
       console.error('Erreur recherche:', error)
-      setResults([])
-    } finally {
-      setLoading(false)
+      return []
     }
-  }
+  }, [])
 
   // Recherche sémantique (IA)
-  const performSemanticSearch = async (searchQuery: string) => {
-    setLoading(true)
+  const performSemanticSearch = useCallback(async (searchQuery: string, signal: AbortSignal) => {
     try {
       const response = await fetch('/api/search/semantic', {
         method: 'POST',
@@ -196,56 +193,101 @@ export default function GlobalSearch() {
           limit: 15,
           includeJurisprudence: true,
         }),
+        signal,
       })
 
+      if (signal.aborted) return null
+
       if (!response.ok) {
-        // Fallback vers recherche classique
-        performSearch(searchQuery)
-        return
+        return null // Will fallback to regular search
       }
 
       const data = await response.json()
 
-      const searchResults: SearchResult[] = data.results.map(
-        (result: SemanticSearchResult) => {
-          const isJurisprudence =
-            (result.metadata as any)?.sourceType === 'jurisprudence'
+      return data.results.map((result: SemanticSearchResult) => {
+        const isJurisprudence = (result.metadata as any)?.sourceType === 'jurisprudence'
 
-          return {
-            id: result.documentId,
-            type: isJurisprudence ? 'jurisprudence' : 'semantic',
-            title: result.documentName,
-            subtitle: truncateText(result.contentChunk, 100),
-            badge: result.dossierNumero || (isJurisprudence ? 'Jurisprudence' : undefined),
-            url: isJurisprudence
-              ? '#' // Pour l'instant, pas de page détail jurisprudence
-              : result.dossierId
-                ? `/dashboard/dossiers/${result.dossierId}`
-                : `/dashboard/documents`,
-            similarity: result.similarity,
-          }
+        return {
+          id: result.documentId,
+          type: isJurisprudence ? 'jurisprudence' : 'semantic',
+          title: result.documentName,
+          subtitle: truncateText(result.contentChunk, 100),
+          badge: result.dossierNumero || (isJurisprudence ? 'Jurisprudence' : undefined),
+          url: isJurisprudence
+            ? '#'
+            : result.dossierId
+              ? `/dashboard/dossiers/${result.dossierId}`
+              : `/dashboard/documents`,
+          similarity: result.similarity,
         }
-      )
-
-      setResults(searchResults)
+      })
     } catch (error) {
+      if ((error as Error).name === 'AbortError') return null
       console.error('Erreur recherche sémantique:', error)
-      // Fallback vers recherche classique
-      performSearch(searchQuery)
-    } finally {
-      setLoading(false)
+      return null
     }
-  }
+  }, [])
 
-  const handleSelect = (url: string) => {
-    if (url === '#') return // Ignore jurisprudence sans page
+  // Recherche avec debounce et AbortController
+  useEffect(() => {
+    if (!query || query.length < 2) {
+      setResults([])
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      // Annuler la requête précédente
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      // Créer un nouveau controller
+      abortControllerRef.current = new AbortController()
+      const signal = abortControllerRef.current.signal
+
+      setLoading(true)
+
+      let searchResults: SearchResult[] | null = null
+
+      if (semanticEnabled && semanticAvailable) {
+        searchResults = await performSemanticSearch(query, signal)
+        // Fallback si erreur sémantique
+        if (searchResults === null && !signal.aborted) {
+          searchResults = await performSearch(query, signal)
+        }
+      } else {
+        searchResults = await performSearch(query, signal)
+      }
+
+      if (!signal.aborted && searchResults !== null) {
+        setResults(searchResults)
+        setLoading(false)
+      }
+    }, 300)
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [query, semanticEnabled, semanticAvailable, performSearch, performSemanticSearch])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
+
+  const handleSelect = useCallback((url: string) => {
+    if (url === '#') return
     setOpen(false)
     setQuery('')
     setResults([])
     router.push(url)
-  }
+  }, [router])
 
-  const getIcon = (type: string) => {
+  const getIcon = useCallback((type: string) => {
     switch (type) {
       case 'client':
         return <Users className="h-4 w-4 text-blue-600" />
@@ -262,9 +304,9 @@ export default function GlobalSearch() {
       default:
         return <Search className="h-4 w-4" />
     }
-  }
+  }, [])
 
-  const getBadgeVariant = (type: string, badge?: string) => {
+  const getBadgeVariant = useCallback((type: string, badge?: string) => {
     if (type === 'dossier') {
       if (badge === 'ACTIF') return 'default'
       if (badge === 'TERMINE') return 'secondary'
@@ -279,28 +321,21 @@ export default function GlobalSearch() {
       return 'outline'
     }
     return 'outline'
-  }
+  }, [])
 
-  // Grouper résultats par type
-  const groupedResults = results.reduce(
-    (acc, result) => {
-      if (!acc[result.type]) {
-        acc[result.type] = []
-      }
-      acc[result.type].push(result)
-      return acc
-    },
-    {} as Record<string, SearchResult[]>
-  )
-
-  const typeLabels: Record<string, string> = {
-    client: 'Clients',
-    dossier: 'Dossiers',
-    facture: 'Factures',
-    document: 'Documents',
-    semantic: 'Documents (Recherche IA)',
-    jurisprudence: 'Jurisprudence',
-  }
+  // Grouper résultats par type - mémorisé
+  const groupedResults = useMemo(() => {
+    return results.reduce(
+      (acc, result) => {
+        if (!acc[result.type]) {
+          acc[result.type] = []
+        }
+        acc[result.type].push(result)
+        return acc
+      },
+      {} as Record<string, SearchResult[]>
+    )
+  }, [results])
 
   return (
     <>
@@ -383,7 +418,7 @@ export default function GlobalSearch() {
               {Object.entries(groupedResults).map(([type, items], index) => (
                 <div key={type}>
                   {index > 0 && <CommandSeparator />}
-                  <CommandGroup heading={typeLabels[type] || type}>
+                  <CommandGroup heading={TYPE_LABELS[type] || type}>
                     {items.map((result) => (
                       <CommandItem
                         key={`${result.type}-${result.id}`}
@@ -473,7 +508,7 @@ export default function GlobalSearch() {
 
               {semanticAvailable && !semanticEnabled && (
                 <p className="mt-4 text-[10px] text-muted-foreground">
-                  💡 Activez la recherche IA pour des résultats plus pertinents
+                  Activez la recherche IA pour des résultats plus pertinents
                 </p>
               )}
             </div>
@@ -484,8 +519,4 @@ export default function GlobalSearch() {
   )
 }
 
-// Utilitaire pour tronquer le texte
-function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text
-  return text.substring(0, maxLength).trim() + '...'
-}
+export default memo(GlobalSearchComponent)

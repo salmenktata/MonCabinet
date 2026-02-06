@@ -29,23 +29,21 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
     resolver: zodResolver(clientSchema),
     defaultValues: initialData
       ? {
-          type: initialData.type_client === 'personne_physique' ? 'PERSONNE_PHYSIQUE' : 'PERSONNE_MORALE',
+          type_client: initialData.type_client === 'personne_physique' ? 'PERSONNE_PHYSIQUE' : 'PERSONNE_MORALE',
           nom: initialData.nom,
           prenom: initialData.prenom || '',
           cin: initialData.cin || '',
-          registre_commerce: initialData.registre_commerce || '',
           email: initialData.email || '',
           telephone: initialData.telephone || '',
           adresse: initialData.adresse || '',
-          ville: initialData.ville || '',
           notes: initialData.notes || '',
         }
       : {
-          type: 'PERSONNE_PHYSIQUE',
+          type_client: 'PERSONNE_PHYSIQUE',
         },
   })
 
-  const clientType = watch('type')
+  const clientType = watch('type_client')
 
   const onSubmit = async (data: ClientFormData) => {
     setError('')
@@ -88,7 +86,7 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
             <input
               type="radio"
               value="PERSONNE_PHYSIQUE"
-              {...register('type')}
+              {...register('type_client')}
               className="mr-2"
             />
             {t('options.naturalPerson')}
@@ -97,14 +95,14 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
             <input
               type="radio"
               value="PERSONNE_MORALE"
-              {...register('type')}
+              {...register('type_client')}
               className="mr-2"
             />
             {t('options.legalPerson')}
           </label>
         </div>
-        {errors.type && (
-          <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>
+        {errors.type_client && (
+          <p className="mt-1 text-sm text-red-600">{errors.type_client.message}</p>
         )}
       </div>
 

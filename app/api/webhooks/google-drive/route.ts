@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const headersList = headers()
+    const headersList = await headers()
 
     // Headers Google Drive Push Notifications
     const channelId = headersList.get('x-goog-channel-id')

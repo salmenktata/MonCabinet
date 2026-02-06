@@ -120,7 +120,7 @@ export async function GET(
     )
 
     // Retourner le PDF
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="note-honoraires-${factureRow.numero}.pdf"`,

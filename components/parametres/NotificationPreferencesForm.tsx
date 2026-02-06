@@ -324,7 +324,7 @@ export default function NotificationPreferencesForm({ preferences, userId }: Pro
             <Label htmlFor="email_format">Format email</Label>
             <Select
               value={formData.email_format}
-              onValueChange={(value) => setFormData({ ...formData, email_format: value })}
+              onValueChange={(value) => setFormData({ ...formData, email_format: value as 'html' | 'text' })}
               disabled={!formData.enabled}
             >
               <SelectTrigger>
@@ -341,7 +341,7 @@ export default function NotificationPreferencesForm({ preferences, userId }: Pro
             <Label htmlFor="langue_email">Langue</Label>
             <Select
               value={formData.langue_email}
-              onValueChange={(value) => setFormData({ ...formData, langue_email: value })}
+              onValueChange={(value) => setFormData({ ...formData, langue_email: value as 'fr' | 'ar' })}
               disabled={!formData.enabled}
             >
               <SelectTrigger>

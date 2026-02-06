@@ -4,6 +4,11 @@ import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { dossierSchema, type DossierFormData } from '@/lib/validations/dossier'
 import { revalidatePath } from 'next/cache'
+import type {
+  StructuredDossier,
+  StructuringOptions,
+  CreateDossierOptions,
+} from '@/lib/ai/dossier-structuring-service'
 
 export async function createDossierAction(formData: DossierFormData) {
   try {
@@ -158,5 +163,142 @@ export async function getDossierAction(id: string) {
   } catch (error) {
     console.error('Erreur récupération:', error)
     return { error: 'Erreur lors de la récupération du dossier' }
+  }
+}
+
+// =============================================================================
+// ACTIONS POUR L'ASSISTANT IA
+// =============================================================================
+
+/**
+ * Analyse un récit en langage naturel et retourne un dossier structuré
+ */
+export async function structurerDossierAction(
+  narratif: string,
+  options?: StructuringOptions
+): Promise<{ success?: boolean; data?: StructuredDossier; error?: string }> {
+  try {
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return { error: 'Non authentifié' }
+    }
+
+    if (!narratif || narratif.length < 20) {
+      return { error: 'Le récit doit contenir au moins 20 caractères' }
+    }
+
+    if (narratif.length > 10000) {
+      return { error: 'Le récit ne doit pas dépasser 10 000 caractères' }
+    }
+
+    // Import dynamique pour éviter les problèmes de chargement
+    const { structurerDossier } = await import(
+      '@/lib/ai/dossier-structuring-service'
+    )
+
+    const result = await structurerDossier(
+      narratif,
+      session.user.id,
+      options || {}
+    )
+
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('Erreur structuration dossier:', error)
+
+    if (error instanceof Error) {
+      if (error.message.includes('ANTHROPIC_API_KEY')) {
+        return { error: 'Service IA non configuré' }
+      }
+      if (error.message.includes('parsing')) {
+        return { error: 'Erreur d\'analyse du récit. Veuillez reformuler.' }
+      }
+    }
+
+    return { error: 'Erreur lors de l\'analyse du dossier' }
+  }
+}
+
+/**
+ * Crée un dossier complet à partir d'une structure analysée par l'IA
+ */
+export async function creerDossierDepuisStructureAction(
+  structure: StructuredDossier,
+  clientId: string,
+  options: CreateDossierOptions
+): Promise<{
+  success?: boolean
+  data?: { dossierId: string; actionsCreees: number; echeancesCreees: number }
+  error?: string
+}> {
+  try {
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return { error: 'Non authentifié' }
+    }
+
+    // Valider le clientId
+    if (!clientId) {
+      return { error: 'Client non sélectionné' }
+    }
+
+    // Vérifier que le client existe et appartient à l'utilisateur
+    const clientCheck = await query(
+      'SELECT id FROM clients WHERE id = $1 AND user_id = $2',
+      [clientId, session.user.id]
+    )
+
+    if (clientCheck.rows.length === 0) {
+      return { error: 'Client non trouvé' }
+    }
+
+    // Import dynamique pour éviter les problèmes de chargement
+    const { creerDossierDepuisStructure } = await import(
+      '@/lib/ai/dossier-structuring-service'
+    )
+
+    const result = await creerDossierDepuisStructure(
+      structure,
+      session.user.id,
+      clientId,
+      options
+    )
+
+    revalidatePath('/dossiers')
+    revalidatePath('/echeances')
+
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('Erreur création dossier depuis structure:', error)
+    return { error: 'Erreur lors de la création du dossier' }
+  }
+}
+
+/**
+ * Récupère les clients de l'utilisateur pour la sélection
+ */
+export async function getClientsForSelectionAction(): Promise<{
+  success?: boolean
+  data?: Array<{ id: string; nom: string; prenom?: string; type_client: string }>
+  error?: string
+}> {
+  try {
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return { error: 'Non authentifié' }
+    }
+
+    const result = await query(
+      `SELECT id, nom, prenom, type_client
+       FROM clients
+       WHERE user_id = $1
+       ORDER BY nom, prenom`,
+      [session.user.id]
+    )
+
+    return { success: true, data: result.rows }
+  } catch (error) {
+    console.error('Erreur récupération clients:', error)
+    return { error: 'Erreur lors de la récupération des clients' }
   }
 }

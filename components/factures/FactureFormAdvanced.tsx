@@ -30,16 +30,22 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Icons } from '@/lib/icons'
 import { createFactureAction, updateFactureAction } from '@/app/actions/factures'
 
-// Schéma de validation Zod
+// Schéma de validation Zod - aligné avec lib/validations/facture.ts
 const factureFormSchema = z.object({
   client_id: z.string().min(1, 'Le client est obligatoire'),
   dossier_id: z.string().optional(),
   objet: z.string().min(3, 'L\'objet doit contenir au moins 3 caractères'),
   montant_ht: z.number().min(0, 'Le montant HT doit être positif'),
+  montant_debours: z.number().min(0).optional().default(0),
+  provisions_recues: z.number().min(0).optional().default(0),
   taux_tva: z.number().min(0).max(100, 'Le taux de TVA doit être entre 0 et 100'),
   date_emission: z.string().min(1, 'La date d\'émission est obligatoire'),
   date_echeance: z.string().optional(),
-  statut: z.enum(['brouillon', 'envoyee', 'payee', 'impayee']),
+  statut: z.enum(['BROUILLON', 'ENVOYEE', 'PAYEE', 'IMPAYEE']),
+  type_honoraires: z.enum(['forfait', 'horaire', 'resultat', 'mixte']).optional(),
+  tarif_horaire: z.number().optional(),
+  heures_travaillees: z.number().optional(),
+  pourcentage_resultat: z.number().optional(),
   notes: z.string().optional(),
 })
 
@@ -86,7 +92,7 @@ export function FactureFormAdvanced({
       taux_tva: 19,
       date_emission: new Date().toISOString().split('T')[0],
       date_echeance: '',
-      statut: 'brouillon',
+      statut: 'BROUILLON',
       notes: '',
       ...initialData,
     },
@@ -362,10 +368,10 @@ export function FactureFormAdvanced({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="brouillon">Brouillon</SelectItem>
-                  <SelectItem value="envoyee">Envoyée</SelectItem>
-                  <SelectItem value="payee">Payée</SelectItem>
-                  <SelectItem value="impayee">Impayée</SelectItem>
+                  <SelectItem value="BROUILLON">Brouillon</SelectItem>
+                  <SelectItem value="ENVOYEE">Envoyée</SelectItem>
+                  <SelectItem value="PAYEE">Payée</SelectItem>
+                  <SelectItem value="IMPAYEE">Impayée</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

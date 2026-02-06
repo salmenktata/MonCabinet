@@ -35,6 +35,7 @@ interface PendingDocument {
   id: string
   file_name: string
   sender_phone: string
+  sender_name: string | null
   created_at: string
   client_id: string | null
   client_nom: string | null

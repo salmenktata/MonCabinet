@@ -110,6 +110,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const contentType = request.headers.get('content-type') || ''
 
     let category: KnowledgeBaseCategory
+    let language: 'ar' | 'fr' = 'fr'
     let title: string
     let description: string | undefined
     let metadata: Record<string, unknown> = {}
@@ -122,6 +123,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const formData = await request.formData()
 
       category = formData.get('category') as KnowledgeBaseCategory
+      language = (formData.get('language') as 'ar' | 'fr') || 'fr'
       title = formData.get('title') as string
       description = formData.get('description') as string | undefined
       autoIndex = formData.get('autoIndex') !== 'false'
@@ -150,6 +152,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // JSON body
       const body = await request.json()
       category = body.category
+      language = body.language || 'fr'
       title = body.title
       description = body.description
       metadata = body.metadata || {}
@@ -190,6 +193,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const document = await uploadKnowledgeDocument(
       {
         category,
+        language,
         title,
         description,
         metadata,

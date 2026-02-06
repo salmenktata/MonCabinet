@@ -32,22 +32,21 @@ import { Icons } from '@/lib/icons'
 import { calculerEcheance } from '@/lib/utils/delais-tunisie'
 import { createEcheanceAction, updateEcheanceAction } from '@/app/actions/echeances'
 
-// Schéma de validation Zod
+// Schéma de validation Zod - aligné avec lib/validations/echeance.ts
 const echeanceFormSchema = z.object({
   dossier_id: z.string().min(1, 'Le dossier est obligatoire'),
-  type_echeance: z.enum(['delai_legal', 'audience', 'rendez_vous', 'autre']),
+  type_echeance: z.enum(['audience', 'delai_legal', 'delai_interne', 'autre']),
   titre: z.string().min(3, 'Le titre doit contenir au moins 3 caractères'),
   description: z.string().optional(),
   date_echeance: z.string().min(1, 'La date d\'échéance est obligatoire'),
   date_point_depart: z.string().optional(),
   nombre_jours: z.number().optional(),
   delai_type: z.enum(['jours_calendaires', 'jours_ouvrables', 'jours_francs']).optional(),
-  priorite: z.enum(['basse', 'normale', 'haute', 'urgente']),
-  statut: z.enum(['actif', 'termine', 'annule']),
-  rappel_j15: z.boolean(),
-  rappel_j7: z.boolean(),
-  rappel_j3: z.boolean(),
-  rappel_j1: z.boolean(),
+  statut: z.enum(['actif', 'respecte', 'depasse']).default('actif'),
+  rappel_j15: z.boolean().default(false),
+  rappel_j7: z.boolean().default(true),
+  rappel_j3: z.boolean().default(true),
+  rappel_j1: z.boolean().default(true),
   notes: z.string().optional(),
 })
 
@@ -88,7 +87,6 @@ export function EcheanceFormAdvanced({
       titre: '',
       description: '',
       date_echeance: '',
-      priorite: 'normale',
       statut: 'actif',
       rappel_j15: false,
       rappel_j7: true,
@@ -156,15 +154,6 @@ export function EcheanceFormAdvanced({
     }
   }
 
-  const getPrioriteColor = (priorite: string) => {
-    const colors = {
-      basse: 'text-gray-600',
-      normale: 'text-blue-600',
-      haute: 'text-orange-600',
-      urgente: 'text-red-600',
-    }
-    return colors[priorite as keyof typeof colors] || colors.normale
-  }
 
   return (
     <Form {...form}>
@@ -178,83 +167,49 @@ export function EcheanceFormAdvanced({
         )}
 
         {/* Type et Titre */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="type_echeance"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type d'échéance *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="delai_legal">
-                      <div className="flex items-center gap-2">
-                        <Icons.gavel className="h-4 w-4" />
-                        <span>Délai légal</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="audience">
-                      <div className="flex items-center gap-2">
-                        <Icons.calendar className="h-4 w-4" />
-                        <span>Audience</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="rendez_vous">
-                      <div className="flex items-center gap-2">
-                        <Icons.clock className="h-4 w-4" />
-                        <span>Rendez-vous</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="autre">
-                      <div className="flex items-center gap-2">
-                        <Icons.calendar className="h-4 w-4" />
-                        <span>Autre</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="priorite"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Priorité *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="basse">
-                      <span className={getPrioriteColor('basse')}>● Basse</span>
-                    </SelectItem>
-                    <SelectItem value="normale">
-                      <span className={getPrioriteColor('normale')}>● Normale</span>
-                    </SelectItem>
-                    <SelectItem value="haute">
-                      <span className={getPrioriteColor('haute')}>● Haute</span>
-                    </SelectItem>
-                    <SelectItem value="urgente">
-                      <span className={getPrioriteColor('urgente')}>● Urgente</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="type_echeance"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Type d'échéance *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="delai_legal">
+                    <div className="flex items-center gap-2">
+                      <Icons.gavel className="h-4 w-4" />
+                      <span>Délai légal</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="audience">
+                    <div className="flex items-center gap-2">
+                      <Icons.calendar className="h-4 w-4" />
+                      <span>Audience</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="delai_interne">
+                    <div className="flex items-center gap-2">
+                      <Icons.timeTracking className="h-4 w-4" />
+                      <span>Délai interne</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="autre">
+                    <div className="flex items-center gap-2">
+                      <Icons.calendar className="h-4 w-4" />
+                      <span>Autre</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Titre */}
         <FormField
@@ -353,7 +308,7 @@ export function EcheanceFormAdvanced({
               </div>
               <div className="flex items-center gap-4">
                 <Button type="button" onClick={handleCalculer} variant="secondary">
-                  <Icons.calculator className="mr-2 h-4 w-4" />
+                  <Icons.calendar className="mr-2 h-4 w-4" />
                   Calculer
                 </Button>
                 {dateCalculee && (
@@ -469,8 +424,8 @@ export function EcheanceFormAdvanced({
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="actif">Actif</SelectItem>
-                  <SelectItem value="termine">Terminé</SelectItem>
-                  <SelectItem value="annule">Annulé</SelectItem>
+                  <SelectItem value="respecte">Respecté</SelectItem>
+                  <SelectItem value="depasse">Dépassé</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

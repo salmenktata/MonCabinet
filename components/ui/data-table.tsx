@@ -95,8 +95,11 @@ export function DataTable<T>({
       const bValue = column.accessor(b)
 
       let comparison = 0
-      if (aValue < bValue) comparison = -1
-      if (aValue > bValue) comparison = 1
+      if (aValue == null && bValue == null) comparison = 0
+      else if (aValue == null) comparison = -1
+      else if (bValue == null) comparison = 1
+      else if (aValue < bValue) comparison = -1
+      else if (aValue > bValue) comparison = 1
 
       return sortDirection === 'asc' ? comparison : -comparison
     })

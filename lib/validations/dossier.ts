@@ -14,6 +14,7 @@ export const dossierSchema = z.object({
   }),
   objet: z.string().min(5, "L'objet doit contenir au moins 5 caractères"),
   partie_adverse: z.string().optional(),
+  avocat_adverse: z.string().optional(),
   tribunal: z.string().optional(),
   numero_rg: z.string().optional(), // Numéro de Rôle Général
   date_ouverture: z.string().optional(),

@@ -45,12 +45,21 @@ export default async function DossiersPage() {
           </p>
         </div>
 
-        <Link
-          href="/dossiers/new"
-          className="rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          + {t('newDossier')}
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dossiers/assistant"
+            className="flex items-center gap-2 rounded-md border-2 border-blue-600 bg-blue-50 px-4 py-2 text-blue-700 font-semibold hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+          >
+            <span>&#129302;</span>
+            Nouveau avec IA
+          </Link>
+          <Link
+            href="/dossiers/new"
+            className="rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            + {t('newDossier')}
+          </Link>
+        </div>
       </div>
 
       {/* Statistiques */}

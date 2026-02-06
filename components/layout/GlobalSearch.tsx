@@ -120,7 +120,7 @@ export function GlobalSearch({ className }: GlobalSearchProps) {
     return labels[type] || type
   }
 
-  const getBadgeColor = (variant: SearchResult['badge']['variant']) => {
+  const getBadgeColor = (variant: NonNullable<SearchResult['badge']>['variant']) => {
     const colors = {
       default: 'bg-primary/10 text-primary',
       success: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400',

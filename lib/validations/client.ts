@@ -9,6 +9,7 @@ export const clientSchema = z.object({
   cin: z.string().optional(),
   date_naissance: z.string().optional(),
   sexe: z.string().optional(),
+  registre_commerce: z.string().optional(),
   email: z.string().email('Email invalide').optional().or(z.literal('')),
   telephone: z
     .string()
@@ -19,6 +20,7 @@ export const clientSchema = z.object({
     .optional()
     .or(z.literal('')),
   adresse: z.string().optional(),
+  ville: z.string().optional(),
   profession: z.string().optional(),
   notes: z.string().optional(),
 })

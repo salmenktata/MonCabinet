@@ -103,6 +103,9 @@ export async function GET(request: NextRequest) {
  * Meta envoie POST avec signature x-hub-signature-256
  */
 export async function POST(request: NextRequest) {
+  // Variable pour tracking erreur
+  let parsedMessageId: string | undefined
+
   try {
     // 1. Récupérer signature header
     const signature = request.headers.get('x-hub-signature-256')
@@ -167,6 +170,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Aucun message à traiter' })
     }
 
+    // Sauvegarder l'ID pour error logging
+    parsedMessageId = incomingMessage.messageId
+
     console.log('[WhatsApp Webhook] Message entrant:', {
       type: incomingMessage.type,
       from: incomingMessage.from,
@@ -177,9 +183,9 @@ export async function POST(request: NextRequest) {
     await logIncomingMessage({
       whatsappMessageId: incomingMessage.messageId,
       fromPhone: incomingMessage.from,
-      toPhone: incomingMessage.to || 'unknown',
+      toPhone: process.env.WHATSAPP_PHONE_NUMBER || 'unknown',
       messageType: incomingMessage.type as 'text' | 'image' | 'video' | 'audio' | 'document',
-      messageBody: incomingMessage.body || incomingMessage.caption,
+      messageBody: incomingMessage.text || incomingMessage.caption,
       mediaId: incomingMessage.mediaId,
       mediaMimeType: incomingMessage.mimeType,
       mediaFileName: incomingMessage.fileName,
@@ -427,7 +433,7 @@ export async function POST(request: NextRequest) {
 
         console.log('[WhatsApp Webhook] Document uploadé avec succès:', {
           documentId: uploadResult.documentId,
-          fileId: uploadResult.fileId,
+          externalFileId: uploadResult.externalFileId,
         })
 
         // Marquer message comme lu
@@ -684,20 +690,6 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('[WhatsApp Webhook] Erreur POST:', error)
-
-    // Logger erreur si message parsé
-    if (incomingMessage?.messageId) {
-      try {
-        await updateMessageStatus({
-          whatsappMessageId: incomingMessage.messageId,
-          status: 'error',
-          errorMessage: `Erreur webhook: ${error.message}`,
-          processedAt: new Date(),
-        })
-      } catch (logError) {
-        console.error('[WhatsApp Webhook] Erreur log erreur:', logError)
-      }
-    }
 
     return NextResponse.json(
       {

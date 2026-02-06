@@ -98,9 +98,23 @@ export async function uploadFile(
   const client = getMinioClient()
 
   try {
+    // Encoder les métadonnées pour supporter les caractères non-ASCII (arabe, etc.)
+    const safeMetadata: Record<string, string> = {}
+    if (metadata) {
+      for (const [key, value] of Object.entries(metadata)) {
+        if (value) {
+          // Encoder en Base64 si contient des caractères non-ASCII
+          const hasNonAscii = /[^\x00-\x7F]/.test(value)
+          safeMetadata[key] = hasNonAscii
+            ? `=?UTF-8?B?${Buffer.from(value, 'utf-8').toString('base64')}?=`
+            : value
+        }
+      }
+    }
+
     const metaData = {
-      'Content-Type': metadata?.contentType || 'application/octet-stream',
-      ...metadata,
+      'Content-Type': safeMetadata.contentType || metadata?.contentType || 'application/octet-stream',
+      ...safeMetadata,
     }
 
     if (Buffer.isBuffer(file)) {
