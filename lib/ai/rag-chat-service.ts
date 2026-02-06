@@ -9,19 +9,21 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { db } from '@/lib/db/postgres'
 import {
   generateEmbedding,
   formatEmbeddingForPostgres,
 } from './embeddings-service'
-import { aiConfig, SYSTEM_PROMPTS, isChatEnabled } from './config'
+import { aiConfig, SYSTEM_PROMPTS, isChatEnabled, getChatProvider } from './config'
 import { searchKnowledgeBase } from './knowledge-base-service'
 
 // =============================================================================
-// CLIENT ANTHROPIC
+// CLIENTS LLM (Groq prioritaire, puis Anthropic, puis OpenAI)
 // =============================================================================
 
 let anthropicClient: Anthropic | null = null
+let groqClient: OpenAI | null = null
 
 function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
@@ -31,6 +33,19 @@ function getAnthropicClient(): Anthropic {
     anthropicClient = new Anthropic({ apiKey: aiConfig.anthropic.apiKey })
   }
   return anthropicClient
+}
+
+function getGroqClient(): OpenAI {
+  if (!groqClient) {
+    if (!aiConfig.groq.apiKey) {
+      throw new Error('GROQ_API_KEY non configuré')
+    }
+    groqClient = new OpenAI({
+      apiKey: aiConfig.groq.apiKey,
+      baseURL: aiConfig.groq.baseUrl,
+    })
+  }
+  return groqClient
 }
 
 // =============================================================================
@@ -317,10 +332,10 @@ export async function answerQuestion(
   options: ChatOptions = {}
 ): Promise<ChatResponse> {
   if (!isChatEnabled()) {
-    throw new Error('Chat IA désactivé (vérifier ANTHROPIC_API_KEY)')
+    throw new Error('Chat IA désactivé (configurer GROQ_API_KEY, ANTHROPIC_API_KEY ou OPENAI_API_KEY)')
   }
 
-  const client = getAnthropicClient()
+  const provider = getChatProvider()
 
   // 1. Rechercher le contexte pertinent
   const sources = await searchRelevantContext(question, userId, options)
@@ -334,7 +349,7 @@ export async function answerQuestion(
     conversationHistory = await getConversationHistory(options.conversationId, 6)
   }
 
-  // 4. Construire les messages pour Claude
+  // 4. Construire les messages
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = []
 
   // Ajouter l'historique de conversation
@@ -348,31 +363,56 @@ export async function answerQuestion(
     content: `Documents du dossier:\n\n${context}\n\n---\n\nQuestion: ${question}`,
   })
 
-  // 5. Appeler Claude
-  const response = await client.messages.create({
-    model: aiConfig.anthropic.model,
-    max_tokens: aiConfig.anthropic.maxTokens,
-    system: SYSTEM_PROMPTS.qadhya,
-    messages,
-    temperature: options.temperature ?? 0.3, // Température basse pour plus de précision
-  })
+  let answer: string
+  let tokensUsed: { input: number; output: number; total: number }
+  let modelUsed: string
 
-  // 6. Extraire la réponse
-  const answer =
-    response.content[0].type === 'text' ? response.content[0].text : ''
+  // 5. Appeler le LLM selon le provider configuré
+  if (provider === 'groq') {
+    // Groq (API compatible OpenAI)
+    const client = getGroqClient()
+    const response = await client.chat.completions.create({
+      model: aiConfig.groq.model,
+      max_tokens: aiConfig.anthropic.maxTokens,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPTS.qadhya },
+        ...messages,
+      ],
+      temperature: options.temperature ?? 0.3,
+    })
 
-  // 7. Calculer les tokens
-  const tokensUsed = {
-    input: response.usage.input_tokens,
-    output: response.usage.output_tokens,
-    total: response.usage.input_tokens + response.usage.output_tokens,
+    answer = response.choices[0]?.message?.content || ''
+    tokensUsed = {
+      input: response.usage?.prompt_tokens || 0,
+      output: response.usage?.completion_tokens || 0,
+      total: response.usage?.total_tokens || 0,
+    }
+    modelUsed = aiConfig.groq.model
+  } else {
+    // Anthropic Claude (fallback)
+    const client = getAnthropicClient()
+    const response = await client.messages.create({
+      model: aiConfig.anthropic.model,
+      max_tokens: aiConfig.anthropic.maxTokens,
+      system: SYSTEM_PROMPTS.qadhya,
+      messages,
+      temperature: options.temperature ?? 0.3,
+    })
+
+    answer = response.content[0].type === 'text' ? response.content[0].text : ''
+    tokensUsed = {
+      input: response.usage.input_tokens,
+      output: response.usage.output_tokens,
+      total: response.usage.input_tokens + response.usage.output_tokens,
+    }
+    modelUsed = aiConfig.anthropic.model
   }
 
   return {
     answer,
     sources,
     tokensUsed,
-    model: aiConfig.anthropic.model,
+    model: modelUsed,
     conversationId: options.conversationId,
   }
 }

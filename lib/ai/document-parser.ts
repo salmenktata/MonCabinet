@@ -4,34 +4,51 @@
  * et Tesseract (binaire natif) pour l'OCR des documents scannés
  */
 
-import tesseract from 'node-tesseract-ocr'
-import { fromBuffer } from 'pdf2pic'
-import { writeFile, unlink, mkdir, readFile, readdir } from 'fs/promises'
+import { writeFile, unlink, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
 
-// Import dynamique pour éviter les erreurs SSR
+// Import dynamique pour éviter les erreurs SSR et réduire le bundle
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let pdfParse: any = null
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mammoth: any = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let tesseractModule: any = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let pdf2picModule: any = null
 
 async function loadPdfParse() {
   if (!pdfParse) {
-    const module = await import('pdf-parse')
-    pdfParse = module.default || module
+    const pdfModule = await import('pdf-parse') as any
+    pdfParse = pdfModule.default || pdfModule
   }
   return pdfParse
 }
 
 async function loadMammoth() {
   if (!mammoth) {
-    const module = await import('mammoth')
-    mammoth = module.default || module
+    const mammothModule = await import('mammoth') as any
+    mammoth = mammothModule.default || mammothModule
   }
   return mammoth
 }
+
+async function loadTesseract() {
+  if (!tesseractModule) {
+    tesseractModule = await import('node-tesseract-ocr') as any
+  }
+  return tesseractModule.default || tesseractModule
+}
+
+async function loadPdf2Pic() {
+  if (!pdf2picModule) {
+    pdf2picModule = await import('pdf2pic') as any
+  }
+  return pdf2picModule.fromBuffer
+}
+
 
 // Configuration Tesseract pour arabe + français
 const tesseractConfig = {
@@ -45,6 +62,7 @@ const tesseractConfig = {
  */
 async function runOCR(imagePath: string): Promise<string> {
   try {
+    const tesseract = await loadTesseract()
     const text = await tesseract.recognize(imagePath, tesseractConfig)
     return text
   } catch (error) {
@@ -181,6 +199,9 @@ export async function extractTextFromPDFWithOCR(buffer: Buffer): Promise<ParseRe
     await mkdir(tempDir, { recursive: true })
 
     console.log('📷 Conversion PDF en images (Ghostscript)...')
+
+    // Charger pdf2pic dynamiquement
+    const fromBuffer = await loadPdf2Pic()
 
     // Configurer pdf2pic pour convertir le PDF en images
     const converter = fromBuffer(buffer, {
