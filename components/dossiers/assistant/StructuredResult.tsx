@@ -217,7 +217,7 @@ export default function StructuredResult({
 function DocumentsSection({ result }: { result: StructuredDossier }) {
   const t = useTranslations('assistant')
 
-  const documents = getRecommendedDocuments(result)
+  const documents = getRecommendedDocuments(result, t)
 
   return (
     <div className="rounded-lg border bg-card p-6 shadow-sm">
@@ -241,10 +241,10 @@ function DocumentsSection({ result }: { result: StructuredDossier }) {
             <div
               className={`flex-shrink-0 rounded-lg p-2 ${
                 doc.priority === 'high'
-                  ? 'bg-red-100 text-red-700'
+                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                   : doc.priority === 'medium'
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-blue-100 text-blue-700'
+                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
               }`}
             >
               <span className="text-lg" dangerouslySetInnerHTML={{ __html: doc.icon }} />
@@ -253,7 +253,7 @@ function DocumentsSection({ result }: { result: StructuredDossier }) {
               <div className="flex items-center gap-2">
                 <h4 className="font-medium text-foreground">{doc.title}</h4>
                 {doc.priority === 'high' && (
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                  <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">
                     {t('documents.priority.high')}
                   </span>
                 )}
@@ -274,7 +274,7 @@ function DocumentsSection({ result }: { result: StructuredDossier }) {
   )
 }
 
-function getRecommendedDocuments(result: StructuredDossier) {
+function getRecommendedDocuments(result: StructuredDossier, t: (key: string) => string) {
   const docs: Array<{
     icon: string
     title: string
@@ -285,9 +285,8 @@ function getRecommendedDocuments(result: StructuredDossier) {
   // Convention d'honoraires (toujours premier)
   docs.push({
     icon: '&#128221;',
-    title: 'Convention d\'Honoraires',
-    description:
-      'Fixe les règles de facturation et définit le contour de la mission. Document obligatoire avant de commencer.',
+    title: t('documents.types.convention'),
+    description: t('documents.descriptions.convention'),
     priority: 'high',
   })
 
@@ -298,9 +297,8 @@ function getRecommendedDocuments(result: StructuredDossier) {
   ) {
     docs.push({
       icon: '&#128231;',
-      title: 'Mise en Demeure',
-      description:
-        'Lettre officielle pour tenter de résoudre le conflit à l\'amiable. Fait courir les intérêts de retard.',
+      title: t('documents.types.miseEnDemeure'),
+      description: t('documents.descriptions.miseEnDemeure'),
       priority: 'high',
     })
   }
@@ -308,17 +306,15 @@ function getRecommendedDocuments(result: StructuredDossier) {
   if (result.typeProcedure === 'refere') {
     docs.push({
       icon: '&#9889;',
-      title: 'Requête en Référé',
-      description:
-        'Procédure d\'urgence. Déposée directement au greffe du tribunal.',
+      title: t('documents.types.requeteRefere'),
+      description: t('documents.descriptions.requeteRefere'),
       priority: 'high',
     })
   } else {
     docs.push({
       icon: '&#9878;',
-      title: 'Assignation',
-      description:
-        'Acte par lequel vous informez l\'adversaire qu\'un procès est engagé. Signifiée par huissier.',
+      title: t('documents.types.assignation'),
+      description: t('documents.descriptions.assignation'),
       priority: 'medium',
     })
   }
@@ -326,9 +322,8 @@ function getRecommendedDocuments(result: StructuredDossier) {
   if (result.typeProcedure === 'divorce') {
     docs.push({
       icon: '&#128141;',
-      title: 'Requête de Divorce',
-      description:
-        'Demande initiale présentant les motifs et les demandes (garde, pension, etc.).',
+      title: t('documents.types.requeteDivorce'),
+      description: t('documents.descriptions.requeteDivorce'),
       priority: 'high',
     })
   }
@@ -336,18 +331,16 @@ function getRecommendedDocuments(result: StructuredDossier) {
   // Note d'analyse (toujours utile)
   docs.push({
     icon: '&#128209;',
-    title: 'Note d\'Analyse Juridique',
-    description:
-      'Document interne : résumé des faits, problématique juridique, jurisprudence et chances de succès.',
+    title: t('documents.types.noteAnalyse'),
+    description: t('documents.descriptions.noteAnalyse'),
     priority: 'medium',
   })
 
   // Bordereau de pièces
   docs.push({
     icon: '&#128203;',
-    title: 'Bordereau de Pièces',
-    description:
-      'Liste de toutes les preuves nécessaires (contrats, mails, factures) pour appuyer vos arguments.',
+    title: t('documents.types.bordereauPieces'),
+    description: t('documents.descriptions.bordereauPieces'),
     priority: 'low',
   })
 

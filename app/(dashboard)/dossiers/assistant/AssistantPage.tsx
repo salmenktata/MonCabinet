@@ -197,7 +197,7 @@ export default function AssistantPage({ clients }: AssistantPageProps) {
 
       {/* Erreur globale */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-red-800 dark:text-red-300">
           {error}
         </div>
       )}
@@ -206,12 +206,12 @@ export default function AssistantPage({ clients }: AssistantPageProps) {
       {step === 'input' && (
         <>
           {/* Conseil */}
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
             <div className="flex items-start gap-3">
               <span className="text-xl">&#128161;</span>
               <div>
-                <p className="font-medium text-blue-900">{t('tip.title')}</p>
-                <p className="text-sm text-blue-700">{t('tip.description')}</p>
+                <p className="font-medium text-blue-900 dark:text-blue-200">{t('tip.title')}</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300">{t('tip.description')}</p>
               </div>
             </div>
           </div>

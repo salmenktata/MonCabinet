@@ -8,14 +8,37 @@ interface ActionsSectionProps {
   onChange: (actions: SuggestedAction[]) => void
 }
 
-const PRIORITY_CONFIG: Record<
-  SuggestedAction['priorite'],
-  { colorClass: string; label: string }
-> = {
-  urgent: { colorClass: 'bg-red-100 text-red-800', label: 'Urgent' },
-  haute: { colorClass: 'bg-amber-100 text-amber-800', label: 'Haute' },
-  moyenne: { colorClass: 'bg-blue-100 text-blue-800', label: 'Moyenne' },
-  basse: { colorClass: 'bg-gray-100 text-gray-800', label: 'Basse' },
+const PRIORITY_COLORS: Record<string, string> = {
+  urgent: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
+  haute: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300',
+  moyenne: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+  basse: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
+  // Arabic mappings
+  عاجل: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
+  عالي: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300',
+  عالية: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300',
+  متوسط: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+  متوسطة: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+  منخفض: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
+  منخفضة: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
+}
+
+// Normaliser la priorité vers la clé de traduction
+const normalizePriority = (priority: string): string => {
+  const mapping: Record<string, string> = {
+    urgent: 'urgent',
+    haute: 'haute',
+    moyenne: 'moyenne',
+    basse: 'basse',
+    عاجل: 'urgent',
+    عالي: 'haute',
+    عالية: 'haute',
+    متوسط: 'moyenne',
+    متوسطة: 'moyenne',
+    منخفض: 'basse',
+    منخفضة: 'basse',
+  }
+  return mapping[priority] || 'moyenne'
 }
 
 export default function ActionsSection({
@@ -76,10 +99,9 @@ export default function ActionsSection({
 
       <div className="space-y-2">
         {actions.map((action, index) => {
-          const priorityConfig = PRIORITY_CONFIG[action.priorite] || {
-            colorClass: 'bg-gray-100 text-gray-800',
-            label: action.priorite || 'Normal',
-          }
+          const normalizedPriority = normalizePriority(action.priorite)
+          const priorityColor = PRIORITY_COLORS[action.priorite] || PRIORITY_COLORS[normalizedPriority] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'
+          const priorityLabel = t(`actions.priority.${normalizedPriority}`)
 
           return (
             <label
@@ -103,9 +125,9 @@ export default function ActionsSection({
                     {action.titre}
                   </span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${priorityConfig.colorClass}`}
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor}`}
                   >
-                    {priorityConfig.label}
+                    {priorityLabel}
                   </span>
                 </div>
                 {action.description && (

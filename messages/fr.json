@@ -180,6 +180,7 @@
     "closedDossiers": "Dossiers clôturés",
     "civilProcedures": "Procédures civiles",
     "createFirstDossier": "Créez votre premier dossier pour commencer",
+    "newWithAI": "Nouveau avec IA",
     "categories": {
       "CIVIL": "Civil",
       "COMMERCIAL": "Commercial",
@@ -481,7 +482,7 @@
       "enterHourlyRate": "Ex: 150.000",
       "enterTemplateTitle": "Ex: Assignation en matière civile",
       "templateDescription": "Description courte du template...",
-      "enterTemplateContent": "Saisissez le contenu du document avec les variables {{nom_variable}}..."
+      "enterTemplateContent": "Saisissez le contenu du document avec les variables '{{nom_variable}}'..."
     },
     "options": {
       "naturalPerson": "Personne physique",
@@ -529,7 +530,7 @@
       "amountHTLabel": "Montant HT:",
       "tvaLabel": "TVA",
       "amountTTCLabel": "Montant TTC:",
-      "variablesTip": "Utilisez le format {{variable}} pour les champs dynamiques",
+      "variablesTip": "Utilisez le format '{{variable}}' pour les champs dynamiques",
       "variablesDetected": "variable(s) détectée(s) :",
       "clientName": "Client - Nom",
       "clientFirstName": "Client - Prénom",
@@ -872,7 +873,13 @@
       "description": "Sélectionnez les actions qui seront créées avec le dossier.",
       "deadline": "Délai: {days} jours",
       "reanalyze": "Réanalyser",
-      "createDossier": "Créer le Dossier"
+      "createDossier": "Créer le Dossier",
+      "priority": {
+        "urgent": "Urgent",
+        "haute": "Haute",
+        "moyenne": "Moyenne",
+        "basse": "Basse"
+      }
     },
     "references": {
       "title": "Références Juridiques",
@@ -889,7 +896,12 @@
         "legalBasis": "Fondement juridique"
       },
       "admissibility": {
-        "title": "Analyse de Recevabilité"
+        "title": "Analyse de Recevabilité",
+        "prescription": "Prescription",
+        "qualitePourAgir": "Qualité pour agir",
+        "interetAAgir": "Intérêt à agir",
+        "delaiApplicable": "Délai applicable",
+        "documentsRequis": "Documents requis"
       },
       "jurisdiction": {
         "title": "Juridiction Compétente",
@@ -918,6 +930,24 @@
       "generate": "Générer ce document",
       "priority": {
         "high": "Prioritaire"
+      },
+      "types": {
+        "convention": "Convention d'Honoraires",
+        "miseEnDemeure": "Mise en Demeure",
+        "requeteRefere": "Requête en Référé",
+        "assignation": "Assignation",
+        "requeteDivorce": "Requête de Divorce",
+        "noteAnalyse": "Note d'Analyse Juridique",
+        "bordereauPieces": "Bordereau de Pièces"
+      },
+      "descriptions": {
+        "convention": "Fixe les règles de facturation et définit le contour de la mission. Document obligatoire avant de commencer.",
+        "miseEnDemeure": "Lettre officielle pour tenter de résoudre le conflit à l'amiable. Fait courir les intérêts de retard.",
+        "requeteRefere": "Procédure d'urgence. Déposée directement au greffe du tribunal.",
+        "assignation": "Acte par lequel vous informez l'adversaire qu'un procès est engagé. Signifiée par huissier.",
+        "requeteDivorce": "Demande initiale présentant les motifs et les demandes (garde, pension, etc.).",
+        "noteAnalyse": "Document interne : résumé des faits, problématique juridique, jurisprudence et chances de succès.",
+        "bordereauPieces": "Liste de toutes les preuves nécessaires (contrats, mails, factures) pour appuyer vos arguments."
       }
     },
     "createModal": {

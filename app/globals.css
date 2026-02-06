@@ -103,6 +103,12 @@
     direction: rtl;
   }
 
+  /* Police arabe */
+  .font-arabic {
+    font-family: 'Noto Sans Arabic', 'Tahoma', 'Segoe UI', sans-serif;
+    line-height: 1.8;
+  }
+
   [dir="rtl"] .text-left {
     text-align: right;
   }

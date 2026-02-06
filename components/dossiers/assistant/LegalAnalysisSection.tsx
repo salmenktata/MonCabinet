@@ -19,29 +19,29 @@ export default function LegalAnalysisSection({
     <div className="space-y-6">
       {/* Syllogisme Juridique (si disponible) */}
       {analysis?.syllogisme && (
-        <div className="rounded-lg border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 p-6">
+        <div className="rounded-lg border-2 border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xl">&#128161;</span>
-            <h3 className="text-lg font-semibold text-indigo-900">
+            <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-200">
               Syllogisme Juridique
             </h3>
-            <span className="text-sm text-indigo-600" dir="rtl">
+            <span className="text-sm text-indigo-600 dark:text-indigo-400" dir="rtl">
               (القياس القانوني)
             </span>
           </div>
 
           <div className="space-y-3">
-            <div className="rounded-lg bg-white/60 p-4 border-l-4 border-indigo-500">
-              <span className="text-xs font-semibold text-indigo-600 uppercase">Majeure (La règle de droit)</span>
-              <p className="mt-1 text-indigo-900">{analysis.syllogisme.majeure}</p>
+            <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4 border-l-4 border-indigo-500">
+              <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase">Majeure (La règle de droit)</span>
+              <p className="mt-1 text-indigo-900 dark:text-indigo-200">{analysis.syllogisme.majeure}</p>
             </div>
-            <div className="rounded-lg bg-white/60 p-4 border-l-4 border-purple-500">
-              <span className="text-xs font-semibold text-purple-600 uppercase">Mineure (Les faits qualifiés)</span>
-              <p className="mt-1 text-purple-900">{analysis.syllogisme.mineure}</p>
+            <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4 border-l-4 border-purple-500">
+              <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase">Mineure (Les faits qualifiés)</span>
+              <p className="mt-1 text-purple-900 dark:text-purple-200">{analysis.syllogisme.mineure}</p>
             </div>
-            <div className="rounded-lg bg-white/60 p-4 border-l-4 border-blue-500">
-              <span className="text-xs font-semibold text-blue-600 uppercase">Conclusion (La demande)</span>
-              <p className="mt-1 text-blue-900 font-medium">{analysis.syllogisme.conclusion}</p>
+            <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4 border-l-4 border-blue-500">
+              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">Conclusion (La demande)</span>
+              <p className="mt-1 text-blue-900 dark:text-blue-200 font-medium">{analysis.syllogisme.conclusion}</p>
             </div>
           </div>
         </div>
@@ -61,27 +61,27 @@ export default function LegalAnalysisSection({
 
         <div className="grid gap-4 md:grid-cols-2">
           {/* Type d'action */}
-          <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-            <h4 className="font-medium text-blue-900 mb-2">
+          <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
+            <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-2">
               {t('legalAnalysis.qualification.actionType')}
             </h4>
-            <p className="text-blue-800">
+            <p className="text-blue-800 dark:text-blue-300">
               {analysis?.qualification?.natureAction || getActionType(result)}
             </p>
           </div>
 
           {/* Code applicable */}
-          <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
-            <h4 className="font-medium text-emerald-900 mb-2">
+          <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
+            <h4 className="font-medium text-emerald-900 dark:text-emerald-200 mb-2">
               {t('legalAnalysis.qualification.applicableCode')}
             </h4>
-            <p className="text-emerald-800">
+            <p className="text-emerald-800 dark:text-emerald-300">
               {analysis?.qualification?.codeApplicable || getApplicableCode(result)}
             </p>
             {analysis?.qualification?.articlesVises && analysis.qualification.articlesVises.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {analysis.qualification.articlesVises.map((art, i) => (
-                  <span key={i} className="rounded-full bg-emerald-200 px-2 py-0.5 text-xs text-emerald-800">
+                  <span key={i} className="rounded-full bg-emerald-200 dark:bg-emerald-800 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-200">
                     {art}
                   </span>
                 ))}
@@ -90,11 +90,11 @@ export default function LegalAnalysisSection({
           </div>
 
           {/* Fondement juridique */}
-          <div className="rounded-lg bg-purple-50 border border-purple-200 p-4 md:col-span-2">
-            <h4 className="font-medium text-purple-900 mb-2">
+          <div className="rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-4 md:col-span-2">
+            <h4 className="font-medium text-purple-900 dark:text-purple-200 mb-2">
               {t('legalAnalysis.qualification.legalBasis')}
             </h4>
-            <p className="text-purple-800">
+            <p className="text-purple-800 dark:text-purple-300">
               {analysis?.qualification?.fondementJuridique || getLegalBasis(result)}
             </p>
           </div>
@@ -118,8 +118,8 @@ export default function LegalAnalysisSection({
               <div
                 className={`flex items-start gap-3 rounded-lg p-4 ${
                   analysis.recevabilite.prescription.estPrescrit
-                    ? 'bg-red-50 border border-red-200'
-                    : 'bg-green-50 border border-green-200'
+                    ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                    : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
                 }`}
               >
                 <span className="text-xl">
@@ -127,17 +127,17 @@ export default function LegalAnalysisSection({
                 </span>
                 <div>
                   <h4 className={`font-medium ${
-                    analysis.recevabilite.prescription.estPrescrit ? 'text-red-900' : 'text-green-900'
+                    analysis.recevabilite.prescription.estPrescrit ? 'text-red-900 dark:text-red-300' : 'text-green-900 dark:text-green-300'
                   }`}>
-                    Prescription (التقادم)
+                    {t('legalAnalysis.admissibility.prescription')}
                   </h4>
                   <p className={`text-sm mt-1 ${
-                    analysis.recevabilite.prescription.estPrescrit ? 'text-red-800' : 'text-green-800'
+                    analysis.recevabilite.prescription.estPrescrit ? 'text-red-800 dark:text-red-400' : 'text-green-800 dark:text-green-400'
                   }`}>
                     {analysis.recevabilite.prescription.analyse}
                   </p>
                   <span className="text-xs mt-1 opacity-75">
-                    Délai applicable: {analysis.recevabilite.prescription.delaiApplicable}
+                    {t('legalAnalysis.admissibility.delaiApplicable')}: {analysis.recevabilite.prescription.delaiApplicable}
                   </span>
                 </div>
               </div>
@@ -146,8 +146,8 @@ export default function LegalAnalysisSection({
               <div
                 className={`flex items-start gap-3 rounded-lg p-4 ${
                   analysis.recevabilite.qualitePourAgir.estVerifiee
-                    ? 'bg-green-50 border border-green-200'
-                    : 'bg-amber-50 border border-amber-200'
+                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                    : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
                 }`}
               >
                 <span className="text-xl">
@@ -155,18 +155,18 @@ export default function LegalAnalysisSection({
                 </span>
                 <div>
                   <h4 className={`font-medium ${
-                    analysis.recevabilite.qualitePourAgir.estVerifiee ? 'text-green-900' : 'text-amber-900'
+                    analysis.recevabilite.qualitePourAgir.estVerifiee ? 'text-green-900 dark:text-green-300' : 'text-amber-900 dark:text-amber-300'
                   }`}>
-                    Qualité pour agir (الصفة)
+                    {t('legalAnalysis.admissibility.qualitePourAgir')}
                   </h4>
                   <p className={`text-sm mt-1 ${
-                    analysis.recevabilite.qualitePourAgir.estVerifiee ? 'text-green-800' : 'text-amber-800'
+                    analysis.recevabilite.qualitePourAgir.estVerifiee ? 'text-green-800 dark:text-green-400' : 'text-amber-800 dark:text-amber-400'
                   }`}>
                     {analysis.recevabilite.qualitePourAgir.analyse}
                   </p>
                   {analysis.recevabilite.qualitePourAgir.documentsRequis.length > 0 && (
                     <div className="mt-2">
-                      <span className="text-xs font-medium">Documents requis:</span>
+                      <span className="text-xs font-medium">{t('legalAnalysis.admissibility.documentsRequis')}:</span>
                       <ul className="list-disc list-inside text-xs mt-1">
                         {analysis.recevabilite.qualitePourAgir.documentsRequis.map((doc, i) => (
                           <li key={i}>{doc}</li>
@@ -181,8 +181,8 @@ export default function LegalAnalysisSection({
               <div
                 className={`flex items-start gap-3 rounded-lg p-4 ${
                   analysis.recevabilite.interetAAgir.estCaracterise
-                    ? 'bg-green-50 border border-green-200'
-                    : 'bg-amber-50 border border-amber-200'
+                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                    : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
                 }`}
               >
                 <span className="text-xl">
@@ -190,12 +190,12 @@ export default function LegalAnalysisSection({
                 </span>
                 <div>
                   <h4 className={`font-medium ${
-                    analysis.recevabilite.interetAAgir.estCaracterise ? 'text-green-900' : 'text-amber-900'
+                    analysis.recevabilite.interetAAgir.estCaracterise ? 'text-green-900 dark:text-green-300' : 'text-amber-900 dark:text-amber-300'
                   }`}>
-                    Intérêt à agir (المصلحة)
+                    {t('legalAnalysis.admissibility.interetAAgir')}
                   </h4>
                   <p className={`text-sm mt-1 ${
-                    analysis.recevabilite.interetAAgir.estCaracterise ? 'text-green-800' : 'text-amber-800'
+                    analysis.recevabilite.interetAAgir.estCaracterise ? 'text-green-800 dark:text-green-400' : 'text-amber-800 dark:text-amber-400'
                   }`}>
                     {analysis.recevabilite.interetAAgir.analyse}
                   </p>
@@ -471,25 +471,25 @@ export default function LegalAnalysisSection({
       </div>
 
       {/* 6. Recommandation Stratégique */}
-      <div className="rounded-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+      <div className="rounded-lg border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-2xl">&#128161;</span>
-          <h3 className="text-lg font-semibold text-blue-900">
+          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
             {t('legalAnalysis.recommendation.title')}
           </h3>
         </div>
 
         <div className="space-y-4">
-          <p className="text-blue-900">
+          <p className="text-blue-900 dark:text-blue-200">
             {analysis?.recommandationStrategique || getStrategicRecommendation(result)}
           </p>
 
           {/* Prochaines étapes recommandées */}
-          <div className="rounded-lg bg-white/60 p-4">
-            <h4 className="font-medium text-blue-900 mb-2">
+          <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4">
+            <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-2">
               {t('legalAnalysis.recommendation.nextSteps')}
             </h4>
-            <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+            <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 dark:text-blue-300">
               {(analysis?.prochainesEtapes || getNextSteps(result)).map((step, index) => (
                 <li key={index}>{step}</li>
               ))}

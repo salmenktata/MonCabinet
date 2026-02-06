@@ -180,6 +180,7 @@
     "closedDossiers": "الملفات المغلقة",
     "civilProcedures": "الإجراءات المدنية",
     "createFirstDossier": "أنشئ ملفك الأول للبدء",
+    "newWithAI": "جديد بالذكاء الاصطناعي",
     "categories": {
       "CIVIL": "مدني",
       "COMMERCIAL": "تجاري",
@@ -481,7 +482,7 @@
       "enterHourlyRate": "مثال: 150.000",
       "enterTemplateTitle": "مثال: تكليف بالحضور في المادة المدنية",
       "templateDescription": "وصف مختصر للنموذج...",
-      "enterTemplateContent": "أدخل محتوى الوثيقة مع المتغيرات {{اسم_المتغير}}..."
+      "enterTemplateContent": "أدخل محتوى الوثيقة مع المتغيرات '{{اسم_المتغير}}'..."
     },
     "options": {
       "naturalPerson": "شخص طبيعي",
@@ -529,7 +530,7 @@
       "amountHTLabel": "المبلغ بدون ضريبة:",
       "tvaLabel": "الضريبة",
       "amountTTCLabel": "المبلغ شامل الضريبة:",
-      "variablesTip": "استخدم الصيغة {{متغير}} للحقول الديناميكية",
+      "variablesTip": "استخدم الصيغة '{{متغير}}' للحقول الديناميكية",
       "variablesDetected": "متغير(ات) مكتشف(ة):",
       "clientName": "العميل - الاسم",
       "clientFirstName": "العميل - اللقب",
@@ -872,7 +873,13 @@
       "description": "اختر الإجراءات التي ستُنشأ مع الملف.",
       "deadline": "المهلة: {days} يوم",
       "reanalyze": "إعادة التحليل",
-      "createDossier": "إنشاء الملف"
+      "createDossier": "إنشاء الملف",
+      "priority": {
+        "urgent": "عاجل",
+        "haute": "عالية",
+        "moyenne": "متوسطة",
+        "basse": "منخفضة"
+      }
     },
     "references": {
       "title": "المراجع القانونية",
@@ -889,7 +896,12 @@
         "legalBasis": "الأساس القانوني"
       },
       "admissibility": {
-        "title": "تحليل قبول الدعوى"
+        "title": "تحليل قبول الدعوى",
+        "prescription": "التقادم",
+        "qualitePourAgir": "الصفة للتقاضي",
+        "interetAAgir": "المصلحة للتقاضي",
+        "delaiApplicable": "الأجل المطبق",
+        "documentsRequis": "الوثائق المطلوبة"
       },
       "jurisdiction": {
         "title": "المحكمة المختصة",
@@ -918,6 +930,24 @@
       "generate": "إنشاء هذه الوثيقة",
       "priority": {
         "high": "أولوية"
+      },
+      "types": {
+        "convention": "اتفاقية الأتعاب",
+        "miseEnDemeure": "إنذار بالدفع",
+        "requeteRefere": "عريضة استعجالية",
+        "assignation": "التكليف بالحضور",
+        "requeteDivorce": "عريضة الطلاق",
+        "noteAnalyse": "مذكرة التحليل القانوني",
+        "bordereauPieces": "قائمة الوثائق والمستندات"
+      },
+      "descriptions": {
+        "convention": "تحدد قواعد الفوترة ونطاق المهمة. وثيقة إلزامية قبل البدء.",
+        "miseEnDemeure": "رسالة رسمية لمحاولة حل النزاع ودياً. تبدأ سريان فوائد التأخير.",
+        "requeteRefere": "إجراء عاجل. تودع مباشرة لدى كتابة المحكمة.",
+        "assignation": "الإجراء الذي تبلغ به الخصم ببدء الدعوى. يبلغ عن طريق العدل المنفذ.",
+        "requeteDivorce": "الطلب الابتدائي الذي يعرض الأسباب والمطالب (حضانة، نفقة، إلخ).",
+        "noteAnalyse": "وثيقة داخلية: ملخص الوقائع، الإشكالية القانونية، الاجتهاد القضائي وحظوظ النجاح.",
+        "bordereauPieces": "قائمة بجميع الأدلة اللازمة (عقود، رسائل إلكترونية، فواتير) لدعم حججك."
       }
     },
     "createModal": {

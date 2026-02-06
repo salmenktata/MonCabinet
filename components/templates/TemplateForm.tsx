@@ -38,8 +38,9 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
     },
   })
 
-  // Surveiller le contenu pour extraire les variables
+  // Surveiller le contenu et la langue pour extraire les variables
   const contenu = watch('contenu')
+  const langue = watch('langue')
 
   // Extraire les variables quand le contenu change
   const extractVariables = (text: string) => {
@@ -87,8 +88,8 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
     router.refresh()
   }
 
-  // Variables communes pour insertion rapide
-  const commonVariables = [
+  // Variables communes pour insertion rapide (FR et AR)
+  const commonVariablesFr = [
     { label: t('helpers.clientName'), value: '{{client.nom}}' },
     { label: t('helpers.clientFirstName'), value: '{{client.prenom}}' },
     { label: t('helpers.clientCIN'), value: '{{client.cin}}' },
@@ -100,6 +101,22 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
     { label: t('helpers.locationVar'), value: '{{lieu}}' },
     { label: t('helpers.dossierNumberVar'), value: '{{numero}}' },
   ]
+
+  const commonVariablesAr = [
+    { label: 'اسم الحريف', value: '{{اسم_الحريف}}' },
+    { label: 'لقب الحريف', value: '{{لقب_الحريف}}' },
+    { label: 'رقم ب.ت.و', value: '{{رقم_بطاقة_التعريف}}' },
+    { label: 'عنوان الحريف', value: '{{عنوان_الحريف}}' },
+    { label: 'اسم المحامي', value: '{{اسم_المحامي}}' },
+    { label: 'لقب المحامي', value: '{{لقب_المحامي}}' },
+    { label: 'المحكمة', value: '{{المحكمة}}' },
+    { label: 'التاريخ', value: '{{التاريخ}}' },
+    { label: 'المكان', value: '{{المكان}}' },
+    { label: 'رقم الملف', value: '{{رقم_الملف}}' },
+  ]
+
+  // Sélectionner les variables selon la langue
+  const commonVariables = langue === 'ar' ? commonVariablesAr : commonVariablesFr
 
   const insertVariable = (variable: string) => {
     const textarea = document.querySelector('textarea[name="contenu"]') as HTMLTextAreaElement
@@ -225,8 +242,11 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
           {...register('contenu')}
           rows={16}
           onChange={handleContenuChange}
-          className="mt-1 block w-full rounded-md border border px-3 py-2 font-mono text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          placeholder={t('placeholders.enterTemplateContent')}
+          dir={langue === 'ar' ? 'rtl' : 'ltr'}
+          className={`mt-1 block w-full rounded-md border border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
+            langue === 'ar' ? 'font-arabic text-right' : 'font-mono'
+          }`}
+          placeholder={langue === 'ar' ? 'أدخل محتوى الوثيقة...' : t('placeholders.enterTemplateContent')}
         />
         {errors.contenu && <p className="mt-1 text-sm text-red-600">{errors.contenu.message}</p>}
 

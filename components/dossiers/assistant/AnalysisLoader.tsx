@@ -44,9 +44,9 @@ export default function AnalysisLoader({ completedSteps }: AnalysisLoaderProps) 
                 key={index}
                 className={`flex items-center gap-3 rounded-lg px-4 py-2 transition-all duration-300 ${
                   isCompleted
-                    ? 'bg-green-50 text-green-800'
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300'
                     : isActive
-                      ? 'bg-blue-50 text-blue-800'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
                       : 'bg-muted/50 text-muted-foreground'
                 }`}
               >

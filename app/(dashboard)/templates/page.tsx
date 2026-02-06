@@ -32,7 +32,13 @@ export default async function TemplatesPage({ searchParams }: TemplatesPageProps
 
   // Appliquer le filtre de langue si spécifié
   if (langueFilter !== 'all') {
-    templates = templates.filter((t: any) => t.langue === langueFilter)
+    templates = templates.filter((t: any) => {
+      // Pour le français, inclure aussi les templates sans langue définie
+      if (langueFilter === 'fr') {
+        return t.langue === 'fr' || !t.langue
+      }
+      return t.langue === langueFilter
+    })
   }
 
   // Séparer mes templates des templates publics

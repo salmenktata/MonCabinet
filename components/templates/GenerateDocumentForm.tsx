@@ -427,6 +427,7 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
               content={template.contenu}
               variables={variablesValues}
               title={template.titre}
+              language={template.langue}
               showMissingVariables={true}
             />
           </div>
