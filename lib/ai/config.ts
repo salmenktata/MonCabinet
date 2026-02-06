@@ -15,11 +15,27 @@ export interface AIConfig {
     maxTokens: number
   }
 
-  // OpenAI (Embeddings uniquement)
+  // OpenAI (Embeddings + Chat alternatif)
   openai: {
     apiKey: string
     embeddingModel: string
     embeddingDimensions: number
+    chatModel: string
+  }
+
+  // Ollama (Embeddings locaux gratuits)
+  ollama: {
+    baseUrl: string
+    embeddingModel: string
+    embeddingDimensions: number
+    enabled: boolean
+  }
+
+  // Groq (LLM rapide et économique)
+  groq: {
+    apiKey: string
+    model: string
+    baseUrl: string
   }
 
   // RAG Configuration
@@ -54,6 +70,20 @@ export const aiConfig: AIConfig = {
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
     embeddingDimensions: 1536, // Fixe pour text-embedding-3-small
+    chatModel: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+  },
+
+  ollama: {
+    baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+    embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL || 'qwen3-embedding:0.6b',
+    embeddingDimensions: 1024, // Qwen3 embedding default dimension
+    enabled: process.env.OLLAMA_ENABLED === 'true',
+  },
+
+  groq: {
+    apiKey: process.env.GROQ_API_KEY || '',
+    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    baseUrl: 'https://api.groq.com/openai/v1',
   },
 
   rag: {
@@ -96,9 +126,19 @@ export function validateAIConfig(): {
       errors.push('ANTHROPIC_API_KEY manquant - Chat IA désactivé')
     }
 
-    if (!aiConfig.openai.apiKey) {
+    // Vérifier qu'au moins un provider d'embeddings est disponible
+    const hasOllama = aiConfig.ollama.enabled
+    const hasOpenAI = !!aiConfig.openai.apiKey
+
+    if (!hasOllama && !hasOpenAI) {
       errors.push(
-        'OPENAI_API_KEY manquant - Embeddings et recherche sémantique désactivés'
+        'Aucun provider d\'embeddings disponible - Configurez OLLAMA_ENABLED=true ou OPENAI_API_KEY'
+      )
+    }
+
+    if (hasOllama) {
+      warnings.push(
+        `Ollama embeddings activé (${aiConfig.ollama.embeddingModel}) - Gratuit et illimité`
       )
     }
   } else {
@@ -144,14 +184,46 @@ export function isAIEnabled(): boolean {
  * Vérifie si seulement les embeddings sont disponibles (recherche sémantique)
  */
 export function isSemanticSearchEnabled(): boolean {
-  return aiConfig.rag.enabled && !!aiConfig.openai.apiKey
+  return aiConfig.rag.enabled && (aiConfig.ollama.enabled || !!aiConfig.openai.apiKey)
 }
 
 /**
- * Vérifie si le chat IA est disponible
+ * Retourne le provider d'embeddings actif
+ * Priorité: Ollama (gratuit local) > OpenAI (payant cloud)
+ */
+export function getEmbeddingProvider(): 'ollama' | 'openai' | null {
+  if (!aiConfig.rag.enabled) return null
+  if (aiConfig.ollama.enabled) return 'ollama'
+  if (aiConfig.openai.apiKey) return 'openai'
+  return null
+}
+
+/**
+ * Retourne la dimension des embeddings selon le provider actif
+ */
+export function getEmbeddingDimensions(): number {
+  const provider = getEmbeddingProvider()
+  if (provider === 'ollama') return aiConfig.ollama.embeddingDimensions
+  return aiConfig.openai.embeddingDimensions
+}
+
+/**
+ * Vérifie si le chat IA est disponible (Groq, Anthropic OU OpenAI)
  */
 export function isChatEnabled(): boolean {
-  return aiConfig.rag.enabled && !!aiConfig.anthropic.apiKey
+  return aiConfig.rag.enabled && (!!aiConfig.groq.apiKey || !!aiConfig.anthropic.apiKey || !!aiConfig.openai.apiKey)
+}
+
+/**
+ * Retourne le provider de chat actif
+ * Priorité: Groq > Anthropic > OpenAI
+ */
+export function getChatProvider(): 'groq' | 'anthropic' | 'openai' | null {
+  if (!aiConfig.rag.enabled) return null
+  if (aiConfig.groq.apiKey) return 'groq'
+  if (aiConfig.anthropic.apiKey) return 'anthropic'
+  if (aiConfig.openai.apiKey) return 'openai'
+  return null
 }
 
 // =============================================================================

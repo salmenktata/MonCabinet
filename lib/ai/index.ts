@@ -20,12 +20,14 @@ export {
   isAIEnabled,
   isSemanticSearchEnabled,
   isChatEnabled,
+  getEmbeddingProvider,
+  getEmbeddingDimensions,
   SYSTEM_PROMPTS,
   AI_COSTS,
   estimateCost,
 } from './config'
 
-// Embeddings (OpenAI)
+// Embeddings (Ollama local gratuit ou OpenAI cloud)
 export {
   generateEmbedding,
   generateEmbeddingsBatch,
@@ -34,6 +36,10 @@ export {
   parseEmbeddingFromPostgres,
   estimateTokenCount,
   isEmbeddingsServiceAvailable,
+  checkOllamaHealth,
+  getEmbeddingProviderInfo,
+  type EmbeddingResult,
+  type BatchEmbeddingResult,
 } from './embeddings-service'
 
 // Extraction de texte
@@ -143,3 +149,30 @@ export {
   type KnowledgeBaseSearchResult,
   type KnowledgeBaseStats,
 } from './knowledge-base-service'
+
+// Structuration de dossiers par IA
+export {
+  structurerDossier,
+  creerDossierDepuisStructure,
+  calculerMoutaa,
+  calculerPensionEnfants,
+  calculerNafaqa,
+  calculerInteretsMoratoires,
+  calculerIndemniteForfaitaire,
+  genererTimeline,
+  type ProcedureType,
+  type ExtractedParty,
+  type ExtractedFact,
+  type ExtractedChild,
+  type LegalCalculation,
+  type TimelineStep,
+  type SuggestedAction,
+  type LegalReference,
+  type LegalRisk,
+  type LegalAnalysis,
+  type SpecificData,
+  type StructuredDossier,
+  type StructuringOptions,
+  type CreateDossierOptions,
+  type CreateDossierResult,
+} from './dossier-structuring-service'

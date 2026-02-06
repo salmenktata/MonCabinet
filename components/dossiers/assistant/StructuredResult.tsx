@@ -1,0 +1,355 @@
+'use client'
+
+import { useState } from 'react'
+import { useTranslations } from 'next-intl'
+import type { StructuredDossier } from '@/lib/ai/dossier-structuring-service'
+import ProcedureTypeBadge from './ProcedureTypeBadge'
+import PartiesSection from './PartiesSection'
+import FactsSection from './FactsSection'
+import CalculationsSection from './CalculationsSection'
+import TimelineSection from './TimelineSection'
+import ActionsSection from './ActionsSection'
+import ReferencesSection from './ReferencesSection'
+import LegalAnalysisSection from './LegalAnalysisSection'
+
+interface StructuredResultProps {
+  result: StructuredDossier
+  onReanalyze: () => void
+  onCreateDossier: () => void
+  onUpdateResult: (updated: StructuredDossier) => void
+}
+
+export default function StructuredResult({
+  result,
+  onReanalyze,
+  onCreateDossier,
+  onUpdateResult,
+}: StructuredResultProps) {
+  const t = useTranslations('assistant')
+  const [activeTab, setActiveTab] = useState<'analysis' | 'structure' | 'documents'>('analysis')
+
+  const confidenceColor =
+    result.confidence >= 80
+      ? 'bg-green-500'
+      : result.confidence >= 60
+        ? 'bg-amber-500'
+        : 'bg-red-500'
+
+  const handleActionsChange = (
+    newActions: StructuredDossier['actionsSuggerees']
+  ) => {
+    onUpdateResult({ ...result, actionsSuggerees: newActions })
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header avec confiance */}
+      <div className="flex items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
+        <div className="flex items-center gap-4">
+          <span className="text-2xl">&#128203;</span>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">
+              {result.titrePropose || t('result.title')}
+            </h2>
+            <p className="text-sm text-muted-foreground">{result.resumeCourt}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">
+            {t('result.confidence')}:
+          </span>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-24 rounded-full bg-muted">
+              <div
+                className={`h-2 rounded-full ${confidenceColor} transition-all`}
+                style={{ width: `${result.confidence}%` }}
+              />
+            </div>
+            <span className="text-sm font-semibold">{result.confidence}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Type de procédure */}
+      <ProcedureTypeBadge
+        type={result.typeProcedure}
+        sousType={result.sousType}
+      />
+
+      {/* Onglets */}
+      <div className="border-b">
+        <nav className="flex gap-4">
+          <button
+            onClick={() => setActiveTab('analysis')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'analysis'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="mr-2">&#128269;</span>
+            {t('tabs.analysis')}
+          </button>
+          <button
+            onClick={() => setActiveTab('structure')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'structure'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="mr-2">&#128209;</span>
+            {t('tabs.structure')}
+          </button>
+          <button
+            onClick={() => setActiveTab('documents')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'documents'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="mr-2">&#128196;</span>
+            {t('tabs.documents')}
+          </button>
+        </nav>
+      </div>
+
+      {/* Contenu des onglets */}
+      {activeTab === 'analysis' && (
+        <div className="space-y-6">
+          {/* Analyse juridique et stratégie */}
+          <LegalAnalysisSection result={result} />
+
+          {/* Références juridiques */}
+          {result.references.length > 0 && (
+            <ReferencesSection references={result.references} />
+          )}
+        </div>
+      )}
+
+      {activeTab === 'structure' && (
+        <div className="space-y-6">
+          {/* Parties */}
+          <PartiesSection
+            client={result.client}
+            partieAdverse={result.partieAdverse}
+          />
+
+          {/* Faits extraits */}
+          <FactsSection
+            faits={result.faitsExtraits}
+            enfants={result.enfants}
+            donneesSpecifiques={result.donneesSpecifiques}
+          />
+
+          {/* Calculs juridiques */}
+          {result.calculs.length > 0 && (
+            <CalculationsSection calculs={result.calculs} />
+          )}
+
+          {/* Timeline */}
+          <TimelineSection timeline={result.timeline} />
+
+          {/* Actions suggérées */}
+          <ActionsSection
+            actions={result.actionsSuggerees}
+            onChange={handleActionsChange}
+          />
+        </div>
+      )}
+
+      {activeTab === 'documents' && (
+        <div className="space-y-6">
+          {/* Section documents à générer */}
+          <DocumentsSection result={result} />
+        </div>
+      )}
+
+      {/* Actions principales */}
+      <div className="flex items-center justify-center gap-4 rounded-lg border bg-card p-4">
+        <button
+          onClick={onReanalyze}
+          className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-foreground font-medium hover:bg-muted transition-colors"
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          {t('actions.reanalyze')}
+        </button>
+
+        <button
+          onClick={onCreateDossier}
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-white font-semibold hover:bg-blue-700 transition-colors"
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          {t('actions.createDossier')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Composant pour les documents à générer
+function DocumentsSection({ result }: { result: StructuredDossier }) {
+  const t = useTranslations('assistant')
+
+  const documents = getRecommendedDocuments(result)
+
+  return (
+    <div className="rounded-lg border bg-card p-6 shadow-sm">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-xl">&#128196;</span>
+        <h3 className="text-lg font-semibold text-foreground">
+          {t('documents.title')}
+        </h3>
+      </div>
+
+      <p className="text-sm text-muted-foreground mb-6">
+        {t('documents.description')}
+      </p>
+
+      <div className="space-y-4">
+        {documents.map((doc, index) => (
+          <div
+            key={index}
+            className="flex items-start gap-4 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+          >
+            <div
+              className={`flex-shrink-0 rounded-lg p-2 ${
+                doc.priority === 'high'
+                  ? 'bg-red-100 text-red-700'
+                  : doc.priority === 'medium'
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-blue-100 text-blue-700'
+              }`}
+            >
+              <span className="text-lg" dangerouslySetInnerHTML={{ __html: doc.icon }} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-foreground">{doc.title}</h4>
+                {doc.priority === 'high' && (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                    {t('documents.priority.high')}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                {doc.description}
+              </p>
+              <div className="mt-3">
+                <button className="text-sm font-medium text-blue-600 hover:text-blue-700">
+                  {t('documents.generate')} &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function getRecommendedDocuments(result: StructuredDossier) {
+  const docs: Array<{
+    icon: string
+    title: string
+    description: string
+    priority: 'high' | 'medium' | 'low'
+  }> = []
+
+  // Convention d'honoraires (toujours premier)
+  docs.push({
+    icon: '&#128221;',
+    title: 'Convention d\'Honoraires',
+    description:
+      'Fixe les règles de facturation et définit le contour de la mission. Document obligatoire avant de commencer.',
+    priority: 'high',
+  })
+
+  // Selon le type de procédure
+  if (
+    result.typeProcedure === 'commercial' ||
+    result.typeProcedure === 'civil_premiere_instance'
+  ) {
+    docs.push({
+      icon: '&#128231;',
+      title: 'Mise en Demeure',
+      description:
+        'Lettre officielle pour tenter de résoudre le conflit à l\'amiable. Fait courir les intérêts de retard.',
+      priority: 'high',
+    })
+  }
+
+  if (result.typeProcedure === 'refere') {
+    docs.push({
+      icon: '&#9889;',
+      title: 'Requête en Référé',
+      description:
+        'Procédure d\'urgence. Déposée directement au greffe du tribunal.',
+      priority: 'high',
+    })
+  } else {
+    docs.push({
+      icon: '&#9878;',
+      title: 'Assignation',
+      description:
+        'Acte par lequel vous informez l\'adversaire qu\'un procès est engagé. Signifiée par huissier.',
+      priority: 'medium',
+    })
+  }
+
+  if (result.typeProcedure === 'divorce') {
+    docs.push({
+      icon: '&#128141;',
+      title: 'Requête de Divorce',
+      description:
+        'Demande initiale présentant les motifs et les demandes (garde, pension, etc.).',
+      priority: 'high',
+    })
+  }
+
+  // Note d'analyse (toujours utile)
+  docs.push({
+    icon: '&#128209;',
+    title: 'Note d\'Analyse Juridique',
+    description:
+      'Document interne : résumé des faits, problématique juridique, jurisprudence et chances de succès.',
+    priority: 'medium',
+  })
+
+  // Bordereau de pièces
+  docs.push({
+    icon: '&#128203;',
+    title: 'Bordereau de Pièces',
+    description:
+      'Liste de toutes les preuves nécessaires (contrats, mails, factures) pour appuyer vos arguments.',
+    priority: 'low',
+  })
+
+  return docs
+}
