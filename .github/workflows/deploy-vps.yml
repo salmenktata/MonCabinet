@@ -74,6 +74,7 @@ jobs:
 
             # Mettre à jour les secrets
             sed -i 's|RESEND_API_KEY=.*|RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}|' .env
+            sed -i 's|BREVO_API_KEY=.*|BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}|' .env
             sed -i 's|GROQ_API_KEY=.*|GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}|' .env
             sed -i 's|CRON_SECRET=.*|CRON_SECRET=${{ secrets.CRON_SECRET }}|' .env
 
