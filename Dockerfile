@@ -25,6 +25,8 @@ ENV NEXT_PUBLIC_APP_DOMAIN=$NEXT_PUBLIC_APP_DOMAIN
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build sans prebuild (seed) car pas de DB disponible pendant le build
+# Augmenter la mémoire Node.js pour le build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npx next build
 
 # Stage 3: Runner
