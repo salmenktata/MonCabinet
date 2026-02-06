@@ -13,6 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 
 interface SuperAdminTopbarProps {
   user: {
@@ -58,6 +60,12 @@ export function SuperAdminTopbar({
 
       {/* Actions */}
       <div className="flex items-center gap-4">
+        {/* Language Switcher */}
+        <LanguageSwitcher />
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
         {/* Notifications */}
         <Link href="/super-admin/notifications">
           <Button
