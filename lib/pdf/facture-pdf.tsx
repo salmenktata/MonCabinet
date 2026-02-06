@@ -30,6 +30,8 @@ interface FacturePDFProps {
     type_client: 'PERSONNE_PHYSIQUE' | 'PERSONNE_MORALE'
     cin?: string
     adresse?: string
+    ville?: string
+    code_postal?: string
     telephone?: string
     email?: string
   }
@@ -378,7 +380,7 @@ export const FacturePDF: React.FC<FacturePDFProps> = ({
           {/* Logo et info cabinet */}
           <View style={styles.logoSection}>
             {cabinet?.logo_url && (
-              <Image src={cabinet.logo_url} style={styles.logo} alt="Logo cabinet" />
+              <Image src={cabinet.logo_url} style={styles.logo} />
             )}
             <View style={styles.cabinetInfo}>
               {cabinet?.nom && (

@@ -4,7 +4,7 @@
  */
 
 import { query } from '@/lib/db/postgres'
-import { createGoogleDriveProvider } from './cloud-storage'
+import { createGoogleDriveProvider, ListFilesResult } from './cloud-storage'
 
 interface SyncResult {
   success: boolean
@@ -350,7 +350,7 @@ async function listFilesRecursively(
 
     do {
       // Lister fichiers du dossier
-      const result = await provider.listFiles({
+      const result: ListFilesResult = await provider.listFiles({
         folderId,
         pageSize: 100,
         pageToken,

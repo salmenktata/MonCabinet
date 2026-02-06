@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { unstable_cache } from 'next/cache'
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { StatCard } from '@/components/dashboard/StatCard'
@@ -38,29 +39,39 @@ const PendingDocumentsWidget = dynamic(
   { loading: () => <WidgetSkeleton /> }
 )
 
+// Fonction de récupération des stats cachée (60 secondes)
+const getCachedDashboardStats = unstable_cache(
+  async (userId: string) => {
+    const [clientsResult, dossiersResult, facturesResult, echeancesResult] = await Promise.all([
+      query('SELECT id, created_at FROM clients WHERE user_id = $1', [userId]),
+      query('SELECT id, statut, created_at FROM dossiers WHERE user_id = $1', [userId]),
+      query('SELECT id, statut, montant_ttc FROM factures WHERE user_id = $1', [userId]),
+      query(
+        `SELECT id, date_echeance, terminee FROM echeances
+         WHERE user_id = $1 AND statut = 'actif'
+         ORDER BY date_echeance ASC LIMIT 50`,
+        [userId]
+      ),
+    ])
+    return {
+      clients: clientsResult.rows,
+      dossiers: dossiersResult.rows,
+      factures: facturesResult.rows,
+      echeances: echeancesResult.rows,
+    }
+  },
+  ['dashboard-stats'],
+  { revalidate: 60 }
+)
+
 // Composant pour les stats principales (rendu en premier)
 async function DashboardStats({ userId }: { userId: string }) {
   const t = await getTranslations('dashboard')
   const tStats = await getTranslations('stats')
   const tCurrency = await getTranslations('currency')
 
-  // Requêtes optimisées - seulement les champs nécessaires
-  const [clientsResult, dossiersResult, facturesResult, echeancesResult] = await Promise.all([
-    query('SELECT id, created_at FROM clients WHERE user_id = $1', [userId]),
-    query('SELECT id, statut, created_at FROM dossiers WHERE user_id = $1', [userId]),
-    query('SELECT id, statut, montant_ttc FROM factures WHERE user_id = $1', [userId]),
-    query(
-      `SELECT id, date_echeance, terminee FROM echeances
-       WHERE user_id = $1 AND statut = 'actif'
-       ORDER BY date_echeance ASC LIMIT 50`,
-      [userId]
-    ),
-  ])
-
-  const clients = clientsResult.rows
-  const dossiers = dossiersResult.rows
-  const factures = facturesResult.rows
-  const echeances = echeancesResult.rows
+  // Requêtes optimisées avec cache de 60 secondes
+  const { clients, dossiers, factures, echeances } = await getCachedDashboardStats(userId)
 
   // Calculs
   const debutMois = new Date()

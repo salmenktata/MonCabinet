@@ -1,5 +1,6 @@
 'use client'
 
+import { memo, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { getWorkflowById } from '@/lib/workflows/workflows-config'
 
@@ -7,28 +8,35 @@ interface DossiersParWorkflowWidgetProps {
   dossiers: any[]
 }
 
-export default function DossiersParWorkflowWidget({ dossiers }: DossiersParWorkflowWidgetProps) {
+function DossiersParWorkflowWidgetComponent({ dossiers }: DossiersParWorkflowWidgetProps) {
   const t = useTranslations('widgets.dossiersParWorkflow')
-  // Regrouper par type de procédure
-  const parWorkflow = dossiers.reduce((acc: Record<string, number>, d) => {
-    const type = d.type_procedure || 'autre'
-    acc[type] = (acc[type] || 0) + 1
-    return acc
-  }, {})
 
-  const workflows = Object.entries(parWorkflow)
-    .map(([id, count]) => {
-      const workflow = getWorkflowById(id)
-      return {
-        id,
-        nom: workflow?.nom || id,
-        count: count as number,
-        couleur: getCouleur(id),
-      }
-    })
-    .sort((a, b) => b.count - a.count)
+  // Calculs mémorisés pour éviter les recalculs inutiles
+  const { workflows, total } = useMemo(() => {
+    // Regrouper par type de procédure
+    const parWorkflow = dossiers.reduce((acc: Record<string, number>, d) => {
+      const type = d.type_procedure || 'autre'
+      acc[type] = (acc[type] || 0) + 1
+      return acc
+    }, {})
 
-  const total = dossiers.length
+    const wfs = Object.entries(parWorkflow)
+      .map(([id, count]) => {
+        const workflow = getWorkflowById(id)
+        return {
+          id,
+          nom: workflow?.nom || id,
+          count: count as number,
+          couleur: getCouleur(id),
+        }
+      })
+      .sort((a, b) => b.count - a.count)
+
+    return {
+      workflows: wfs,
+      total: dossiers.length,
+    }
+  }, [dossiers])
 
   return (
     <div className="rounded-lg border bg-card p-6 shadow-sm">
@@ -82,3 +90,5 @@ function getCouleur(workflowId: string): string {
   }
   return couleurs[workflowId] || 'bg-muted0'
 }
+
+export default memo(DossiersParWorkflowWidgetComponent)

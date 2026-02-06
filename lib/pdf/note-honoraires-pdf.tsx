@@ -153,6 +153,8 @@ interface NoteHonorairesData {
     type_client: string
     cin?: string
     adresse?: string
+    ville?: string
+    code_postal?: string
     telephone?: string
     email?: string
   }

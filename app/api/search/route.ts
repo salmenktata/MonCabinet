@@ -2,6 +2,35 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 
+// =============================================================================
+// CACHE MÉMOIRE SIMPLE
+// =============================================================================
+
+const searchCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_TTL = 30000 // 30 secondes
+
+function getCachedSearch(key: string) {
+  const cached = searchCache.get(key)
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data
+  }
+  return null
+}
+
+function setCachedSearch(key: string, data: any) {
+  // Nettoyer les anciennes entrées (max 100)
+  if (searchCache.size > 100) {
+    const oldest = [...searchCache.entries()]
+      .sort((a, b) => a[1].timestamp - b[1].timestamp)[0]
+    searchCache.delete(oldest[0])
+  }
+  searchCache.set(key, { data, timestamp: Date.now() })
+}
+
+// =============================================================================
+// GET: Recherche globale
+// =============================================================================
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -18,6 +47,17 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id
     const searchTerm = `%${searchQuery.trim()}%`
+
+    // Vérifier le cache
+    const cacheKey = `${userId}:${searchQuery.trim().toLowerCase()}`
+    const cachedResult = getCachedSearch(cacheKey)
+    if (cachedResult) {
+      return NextResponse.json({ results: cachedResult }, {
+        headers: {
+          'Cache-Control': 'private, max-age=30',
+        }
+      })
+    }
 
     // Recherche parallèle dans toutes les tables
     const [clients, dossiers, factures, documents] = await Promise.all([
@@ -61,12 +101,19 @@ export async function GET(request: NextRequest) {
       )
     ])
 
-    return NextResponse.json({
-      results: {
-        clients: clients.rows || [],
-        dossiers: dossiers.rows || [],
-        factures: factures.rows || [],
-        documents: documents.rows || []
+    const results = {
+      clients: clients.rows || [],
+      dossiers: dossiers.rows || [],
+      factures: factures.rows || [],
+      documents: documents.rows || []
+    }
+
+    // Mettre en cache
+    setCachedSearch(cacheKey, results)
+
+    return NextResponse.json({ results }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30',
       }
     })
   } catch (error) {

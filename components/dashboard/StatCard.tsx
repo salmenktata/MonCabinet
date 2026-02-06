@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import Link from 'next/link'
 import { type LucideIcon } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -45,7 +46,7 @@ const variantStyles = {
   },
 }
 
-export function StatCard({
+function StatCardComponent({
   title,
   value,
   subtitle,
@@ -91,3 +92,5 @@ export function StatCard({
 
   return content
 }
+
+export const StatCard = memo(StatCardComponent)

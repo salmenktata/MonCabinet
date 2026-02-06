@@ -202,8 +202,8 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
         fileSize: file.size ? parseInt(file.size) : 0,
         mimeType: file.mimeType || params.mimeType,
         webViewLink: file.webViewLink || '',
-        webContentLink: file.webContentLink,
-        thumbnailLink: file.thumbnailLink,
+        webContentLink: file.webContentLink || undefined,
+        thumbnailLink: file.thumbnailLink || undefined,
         createdTime: file.createdTime ? new Date(file.createdTime) : new Date(),
         modifiedTime: file.modifiedTime
           ? new Date(file.modifiedTime)
@@ -407,7 +407,7 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
           modifiedTime: file.modifiedTime
             ? new Date(file.modifiedTime)
             : new Date(),
-          parents: file.parents,
+          parents: file.parents || undefined,
         })) || []
 
       return {
@@ -554,7 +554,7 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
         modifiedTime: file.modifiedTime
           ? new Date(file.modifiedTime)
           : new Date(),
-        parents: file.parents,
+        parents: file.parents || undefined,
       }
     } catch (error: any) {
       if (error.response?.status === 404) {

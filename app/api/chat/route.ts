@@ -298,68 +298,44 @@ async function checkAndIncrementQuota(userId: string): Promise<{
   limit: number
   resetDate: string
 }> {
-  // S'assurer que l'utilisateur a une entrée feature_flags
-  await db.query(
-    `INSERT INTO feature_flags (user_id)
-     VALUES ($1)
-     ON CONFLICT (user_id) DO NOTHING`,
-    [userId]
-  )
+  const now = new Date()
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  // Récupérer les infos de quota
+  // Une seule requête UPSERT avec RETURNING
   const result = await db.query(
-    `SELECT monthly_ai_queries_limit, monthly_ai_queries_used, quota_reset_date
-     FROM feature_flags
-     WHERE user_id = $1`,
-    [userId]
+    `INSERT INTO feature_flags (user_id, monthly_ai_queries_used, quota_reset_date)
+     VALUES ($1, 1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET
+       monthly_ai_queries_used = CASE
+         WHEN feature_flags.quota_reset_date < $2 THEN 1
+         ELSE feature_flags.monthly_ai_queries_used + 1
+       END,
+       quota_reset_date = CASE
+         WHEN feature_flags.quota_reset_date < $2 THEN $2
+         ELSE feature_flags.quota_reset_date
+       END
+     RETURNING monthly_ai_queries_limit, monthly_ai_queries_used, quota_reset_date`,
+    [userId, currentMonthStart.toISOString()]
   )
 
   const flags = result.rows[0]
   const limit = flags.monthly_ai_queries_limit
-  let used = flags.monthly_ai_queries_used
+  const used = flags.monthly_ai_queries_used
   const resetDate = new Date(flags.quota_reset_date)
 
-  // Vérifier si le quota doit être réinitialisé (nouveau mois)
-  const now = new Date()
-  const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-
-  if (resetDate < currentMonth) {
-    // Réinitialiser le quota
-    await db.query(
-      `UPDATE feature_flags
-       SET monthly_ai_queries_used = 1, quota_reset_date = $1
-       WHERE user_id = $2`,
-      [currentMonth.toISOString(), userId]
-    )
-    return {
-      allowed: true,
-      used: 1,
-      limit,
-      resetDate: getNextMonthDate(currentMonth),
-    }
-  }
-
-  // Vérifier si quota dépassé
-  if (used >= limit) {
+  // Vérifier si quota dépassé (on a déjà incrémenté, donc on compare avec >)
+  if (used > limit) {
     return {
       allowed: false,
-      used,
+      used: used - 1, // Retourner la valeur avant incrémentation
       limit,
       resetDate: getNextMonthDate(resetDate),
     }
   }
 
-  // Incrémenter le compteur
-  await db.query(
-    `UPDATE feature_flags
-     SET monthly_ai_queries_used = monthly_ai_queries_used + 1
-     WHERE user_id = $1`,
-    [userId]
-  )
-
   return {
     allowed: true,
-    used: used + 1,
+    used,
     limit,
     resetDate: getNextMonthDate(resetDate),
   }

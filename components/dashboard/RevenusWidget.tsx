@@ -1,52 +1,67 @@
 'use client'
 
+import { memo, useMemo } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 
 interface RevenusWidgetProps {
   factures: any[]
 }
 
-export default function RevenusWidget({ factures }: RevenusWidgetProps) {
+function RevenusWidgetComponent({ factures }: RevenusWidgetProps) {
   const t = useTranslations('dashboard.revenue')
   const locale = useLocale()
 
-  // Calcul des revenus
-  const revenusTotal = factures.reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0)
-  const revenusPayes = factures
-    .filter((f) => f.statut === 'PAYEE')
-    .reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0)
-  const revenusEnAttente = factures
-    .filter((f) => f.statut === 'ENVOYEE')
-    .reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0)
-  const revenusImpayes = factures
-    .filter((f) => f.statut === 'IMPAYEE')
-    .reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0)
+  // Calculs mémorisés pour éviter les recalculs inutiles
+  const { revenusTotal, revenusPayes, revenusEnAttente, revenusImpayes, tauxPaiement } = useMemo(() => {
+    const total = factures.reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0)
+    const payes = factures
+      .filter((f) => f.statut === 'PAYEE')
+      .reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0)
+    const enAttente = factures
+      .filter((f) => f.statut === 'ENVOYEE')
+      .reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0)
+    const impayes = factures
+      .filter((f) => f.statut === 'IMPAYEE')
+      .reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0)
+    const taux = total > 0 ? (payes / total) * 100 : 0
 
-  const tauxPaiement = revenusTotal > 0 ? (revenusPayes / revenusTotal) * 100 : 0
-
-  // Calcul des revenus par mois (3 derniers mois)
-  const derniersMois = Array.from({ length: 3 }, (_, i) => {
-    const d = new Date()
-    d.setMonth(d.getMonth() - i)
     return {
-      mois: d.toLocaleDateString(locale, { month: 'short', year: 'numeric' }),
-      montant: 0,
+      revenusTotal: total,
+      revenusPayes: payes,
+      revenusEnAttente: enAttente,
+      revenusImpayes: impayes,
+      tauxPaiement: taux,
     }
-  }).reverse()
+  }, [factures])
 
-  factures.forEach((f) => {
-    const dateFacture = new Date(f.date_emission)
-    const moisFacture = dateFacture.toLocaleDateString(locale, {
-      month: 'short',
-      year: 'numeric',
+  // Calcul des revenus par mois (3 derniers mois) - mémorisé
+  const { derniersMois, maxMontant } = useMemo(() => {
+    const mois = Array.from({ length: 3 }, (_, i) => {
+      const d = new Date()
+      d.setMonth(d.getMonth() - i)
+      return {
+        mois: d.toLocaleDateString(locale, { month: 'short', year: 'numeric' }),
+        montant: 0,
+      }
+    }).reverse()
+
+    factures.forEach((f) => {
+      const dateFacture = new Date(f.date_emission)
+      const moisFacture = dateFacture.toLocaleDateString(locale, {
+        month: 'short',
+        year: 'numeric',
+      })
+      const m = mois.find((m) => m.mois === moisFacture)
+      if (m) {
+        m.montant += parseFloat(f.montant_ttc || 0)
+      }
     })
-    const mois = derniersMois.find((m) => m.mois === moisFacture)
-    if (mois) {
-      mois.montant += parseFloat(f.montant_ttc || 0)
-    }
-  })
 
-  const maxMontant = Math.max(...derniersMois.map((m) => m.montant), 1)
+    return {
+      derniersMois: mois,
+      maxMontant: Math.max(...mois.map((m) => m.montant), 1),
+    }
+  }, [factures, locale])
 
   return (
     <div className="rounded-lg border bg-card p-6 shadow-sm">
@@ -118,3 +133,5 @@ export default function RevenusWidget({ factures }: RevenusWidgetProps) {
     </div>
   )
 }
+
+export default memo(RevenusWidgetComponent)

@@ -11,9 +11,29 @@
 
 import { Pool } from 'pg'
 import OpenAI from 'openai'
-import pdfParse from 'pdf-parse'
-import mammoth from 'mammoth'
 import * as Minio from 'minio'
+
+// Import dynamique pour pdf-parse et mammoth (ESM compatibility)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let pdfParse: any = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mammoth: any = null
+
+async function loadPdfParse() {
+  if (!pdfParse) {
+    const module = await import('pdf-parse') as any
+    pdfParse = module.default || module
+  }
+  return pdfParse
+}
+
+async function loadMammoth() {
+  if (!mammoth) {
+    const module = await import('mammoth') as any
+    mammoth = module.default || module
+  }
+  return mammoth
+}
 
 // Configuration
 const config = {
@@ -95,12 +115,14 @@ async function downloadFromMinio(path: string): Promise<Buffer> {
 
 async function extractText(buffer: Buffer, mimeType: string): Promise<string> {
   if (mimeType === 'application/pdf') {
-    const data = await pdfParse(buffer)
+    const parser = await loadPdfParse()
+    const data = await parser(buffer)
     return data.text
   }
 
   if (mimeType.includes('wordprocessingml') || mimeType.includes('docx')) {
-    const result = await mammoth.extractRawText({ buffer })
+    const mammothLib = await loadMammoth()
+    const result = await mammothLib.extractRawText({ buffer })
     return result.value
   }
 

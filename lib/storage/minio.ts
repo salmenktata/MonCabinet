@@ -6,6 +6,7 @@
  */
 
 import { Client as MinioClient, BucketItem } from 'minio'
+import { Readable } from 'stream'
 
 // Client MinIO singleton
 let minioClient: MinioClient | null = null
@@ -90,7 +91,7 @@ export async function initializeBucket(bucketName: string = defaultBucket): Prom
  * @returns URL d'accès temporaire (presigned) valide 7 jours
  */
 export async function uploadFile(
-  file: Buffer | NodeJS.ReadableStream,
+  file: Buffer | NodeJS.ReadableStream | ReadableStream,
   path: string,
   metadata?: Record<string, string>,
   bucketName: string = defaultBucket
@@ -119,8 +120,13 @@ export async function uploadFile(
 
     if (Buffer.isBuffer(file)) {
       await client.putObject(bucketName, path, file, file.length, metaData)
+    } else if (file instanceof Readable) {
+      // NodeJS ReadableStream
+      await client.putObject(bucketName, path, file, undefined, metaData)
     } else {
-      await client.putObject(bucketName, path, file, metaData)
+      // Web ReadableStream - convertir en Readable Node.js
+      const stream = Readable.fromWeb(file as any)
+      await client.putObject(bucketName, path, stream, undefined, metaData)
     }
 
     // Générer URL presigned valide 7 jours
@@ -264,7 +270,7 @@ export async function listFiles(
     const files: BucketItem[] = []
 
     return new Promise((resolve, reject) => {
-      stream.on('data', (obj) => files.push(obj))
+      stream.on('data', (obj) => files.push(obj as BucketItem))
       stream.on('end', () => resolve(files))
       stream.on('error', reject)
     })
@@ -291,8 +297,7 @@ export async function copyFile(
     await client.copyObject(
       bucketName,
       destinationPath,
-      `/${bucketName}/${sourcePath}`,
-      null
+      `/${bucketName}/${sourcePath}`
     )
     console.log(`✅ Fichier copié: ${sourcePath} → ${destinationPath}`)
   } catch (error) {
