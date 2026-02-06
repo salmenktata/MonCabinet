@@ -307,7 +307,15 @@ export default async function HomePage() {
             </div>
 
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} MonCabinet. Tous droits réservés.
+              © {new Date().getFullYear()} MonCabinet. Tous droits réservés. Developed by{' '}
+              <a
+                href="https://quelyos.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                quelyos.com
+              </a>
             </p>
           </div>
         </div>
