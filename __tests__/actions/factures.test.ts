@@ -67,6 +67,20 @@ vi.mock('resend', () => ({
 // Mock de react-pdf/renderer
 vi.mock('@react-pdf/renderer', () => ({
   renderToBuffer: vi.fn().mockResolvedValue(Buffer.from('fake-pdf')),
+  Document: ({ children }: any) => children,
+  Page: ({ children }: any) => children,
+  View: ({ children }: any) => children,
+  Text: ({ children }: any) => children,
+  Image: () => null,
+  StyleSheet: {
+    create: (styles: any) => styles,
+  },
+  Font: {
+    register: vi.fn(),
+  },
+  pdf: vi.fn().mockReturnValue({
+    toBuffer: vi.fn().mockResolvedValue(Buffer.from('fake-pdf')),
+  }),
 }))
 
 // Import après les mocks
