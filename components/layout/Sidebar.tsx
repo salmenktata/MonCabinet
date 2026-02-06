@@ -120,15 +120,17 @@ function SidebarComponent({ collapsed, onCollapse, userRole }: SidebarProps) {
   // Mémorise les items avec leurs états
   const groupsWithState = useMemo(() => {
     const navGroups = getNavGroups(userRole)
-    return navGroups.map(group => ({
-      ...group,
-      items: group.items.map(item => ({
-        ...item,
-        isActive: isActive(item.href),
-        translatedLabel: t(item.label),
-      })),
-      translatedGroup: tGroups(group.group.toLowerCase()),
-    }))
+    return navGroups
+      .filter(group => group && group.group && group.items?.length > 0)
+      .map(group => ({
+        ...group,
+        items: group.items.map(item => ({
+          ...item,
+          isActive: isActive(item.href),
+          translatedLabel: t(item.label),
+        })),
+        translatedGroup: tGroups(group.group.toLowerCase()),
+      }))
   }, [isActive, t, tGroups, userRole])
 
   const settingsActive = useMemo(() => isActive('/settings'), [isActive])
