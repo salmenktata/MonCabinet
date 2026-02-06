@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { generateDocumentAction } from '@/app/actions/templates'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Sparkles, Loader2, Check, AlertCircle } from 'lucide-react'
+import { Sparkles, Loader2, Check, AlertCircle, Eye, EyeOff, Download, FileText } from 'lucide-react'
+import TemplatePreview from './TemplatePreview'
 
 interface GenerationSuggestion {
   field: string
@@ -21,14 +22,68 @@ interface GenerateDocumentFormProps {
 export default function GenerateDocumentForm({ template, dossiers }: GenerateDocumentFormProps) {
   const [loading, setLoading] = useState(false)
   const [loadingAI, setLoadingAI] = useState(false)
+  const [loadingDocx, setLoadingDocx] = useState(false)
   const [error, setError] = useState('')
   const [generatedContent, setGeneratedContent] = useState('')
   const [selectedDossier, setSelectedDossier] = useState<any>(null)
   const [variablesValues, setVariablesValues] = useState<Record<string, string>>({})
   const [suggestions, setSuggestions] = useState<GenerationSuggestion[]>([])
   const [aiError, setAiError] = useState('')
+  const [showPreview, setShowPreview] = useState(true)
 
   const variables = Array.isArray(template.variables) ? template.variables : []
+
+  // Télécharger en DOCX
+  const handleDownloadDocx = async () => {
+    if (!selectedDossier) {
+      setError('Veuillez sélectionner un dossier')
+      return
+    }
+
+    setLoadingDocx(true)
+    setError('')
+
+    try {
+      const response = await fetch(`/api/templates/${template.id}/docx`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variables: variablesValues,
+          dossierId: selectedDossier.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erreur lors de la génération DOCX')
+      }
+
+      // Télécharger le fichier
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+
+      // Extraire le nom du fichier du header Content-Disposition
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let filename = `${template.titre}.docx`
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/)
+        if (match) filename = decodeURIComponent(match[1])
+      }
+
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      setError(message)
+    } finally {
+      setLoadingDocx(false)
+    }
+  }
 
   // Quand un dossier est sélectionné, pré-remplir les variables
   const handleDossierChange = (dossierId: string) => {
@@ -111,7 +166,6 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
   // Appliquer une suggestion
   const applySuggestion = (field: string, suggestion: string) => {
     setVariablesValues((prev) => ({ ...prev, [field]: suggestion }))
-    // Retirer la suggestion de la liste
     setSuggestions((prev) => prev.filter((s) => s.field !== field))
   }
 
@@ -151,10 +205,9 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
     if (result.success) {
       setGeneratedContent(result.contenu)
 
-      // Afficher un warning si des variables n'ont pas été remplacées
       if (result.variables_manquantes && result.variables_manquantes.length > 0) {
         setError(
-          `⚠️ Certaines variables n'ont pas été remplies : ${result.variables_manquantes.join(', ')}`
+          `Variables non remplies : ${result.variables_manquantes.join(', ')}`
         )
       }
     }
@@ -164,7 +217,7 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
 
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(generatedContent)
-    alert('✅ Document copié dans le presse-papiers !')
+    alert('Document copié dans le presse-papiers !')
   }
 
   const handleDownloadTxt = () => {
@@ -179,184 +232,206 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
     window.URL.revokeObjectURL(url)
   }
 
-  // Obtenir la suggestion pour un champ
   const getSuggestionForField = (field: string) => {
     return suggestions.find((s) => s.field === field)
   }
 
   return (
     <div className="space-y-6">
-      {/* Sélection du dossier */}
-      <div className="rounded-lg border bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-foreground mb-4">1. Sélectionner un dossier</h2>
-
-        {dossiers.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Aucun dossier disponible. Créez d&apos;abord un dossier.
-          </p>
-        ) : (
-          <select
-            value={selectedDossier?.id || ''}
-            onChange={(e) => handleDossierChange(e.target.value)}
-            className="block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          >
-            <option value="">-- Sélectionnez un dossier --</option>
-            {dossiers.map((dossier) => (
-              <option key={dossier.id} value={dossier.id}>
-                {dossier.numero} -{' '}
-                {dossier.clients?.type_client === 'PERSONNE_PHYSIQUE'
-                  ? `${dossier.clients.nom} ${dossier.clients.prenom || ''}`.trim()
-                  : dossier.clients?.nom}
-              </option>
-            ))}
-          </select>
-        )}
+      {/* En-tête avec toggle preview */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-foreground">Générer un document</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowPreview(!showPreview)}
+          className="gap-2"
+        >
+          {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {showPreview ? 'Masquer aperçu' : 'Afficher aperçu'}
+        </Button>
       </div>
 
-      {/* Remplissage des variables */}
-      {selectedDossier && variables.length > 0 && (
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              2. Remplir les variables ({variables.length})
-            </h2>
+      {/* Layout principal : formulaire + preview */}
+      <div className={`grid gap-6 ${showPreview ? 'lg:grid-cols-2' : 'grid-cols-1'}`}>
+        {/* Colonne gauche : Formulaire */}
+        <div className="space-y-6">
+          {/* Sélection du dossier */}
+          <div className="rounded-lg border bg-card p-6 shadow-sm">
+            <h3 className="text-base font-semibold text-foreground mb-4">1. Sélectionner un dossier</h3>
 
-            {/* Bouton suggestions IA */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGetAISuggestions}
-              disabled={loadingAI}
-              className="gap-2"
-            >
-              {loadingAI ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              {loadingAI ? 'Analyse...' : 'Suggestions IA'}
-            </Button>
+            {dossiers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Aucun dossier disponible. Créez d&apos;abord un dossier.
+              </p>
+            ) : (
+              <select
+                value={selectedDossier?.id || ''}
+                onChange={(e) => handleDossierChange(e.target.value)}
+                className="block w-full rounded-md border border-input px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-background"
+              >
+                <option value="">-- Sélectionnez un dossier --</option>
+                {dossiers.map((dossier) => (
+                  <option key={dossier.id} value={dossier.id}>
+                    {dossier.numero} -{' '}
+                    {dossier.clients?.type_client === 'PERSONNE_PHYSIQUE'
+                      ? `${dossier.clients.nom} ${dossier.clients.prenom || ''}`.trim()
+                      : dossier.clients?.nom}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
-          {/* Erreur IA */}
-          {aiError && (
-            <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              {aiError}
-            </div>
-          )}
+          {/* Remplissage des variables */}
+          {selectedDossier && variables.length > 0 && (
+            <div className="rounded-lg border bg-card p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-foreground">
+                  2. Remplir les variables ({variables.length})
+                </h3>
 
-          {/* Suggestions globales */}
-          {suggestions.length > 0 && (
-            <div className="mb-4 p-3 rounded-md bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  {suggestions.length} suggestion{suggestions.length > 1 ? 's' : ''} disponible{suggestions.length > 1 ? 's' : ''}
-                </span>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={applyAllSuggestions}
-                  className="text-indigo-700 dark:text-indigo-300 hover:text-indigo-900"
+                  onClick={handleGetAISuggestions}
+                  disabled={loadingAI}
+                  className="gap-2"
                 >
-                  <Check className="h-4 w-4 mr-1" />
-                  Tout appliquer
+                  {loadingAI ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {loadingAI ? 'Analyse...' : 'Suggestions IA'}
                 </Button>
+              </div>
+
+              {aiError && (
+                <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  {aiError}
+                </div>
+              )}
+
+              {suggestions.length > 0 && (
+                <div className="mb-4 p-3 rounded-md bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      {suggestions.length} suggestion{suggestions.length > 1 ? 's' : ''}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={applyAllSuggestions}
+                      className="text-indigo-700 dark:text-indigo-300"
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Tout appliquer
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {variables.map((variable: string) => {
+                  const suggestion = getSuggestionForField(variable)
+
+                  return (
+                    <div key={variable} className="space-y-1">
+                      <label className="block text-sm font-medium text-foreground">
+                        {variable}
+                      </label>
+                      <input
+                        type="text"
+                        value={variablesValues[variable] || ''}
+                        onChange={(e) => handleVariableChange(variable, e.target.value)}
+                        className="block w-full rounded-md border border-input px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-background"
+                        placeholder={`{{${variable}}}`}
+                      />
+
+                      {suggestion && suggestion.suggestion !== 'À compléter' && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <button
+                            onClick={() => applySuggestion(variable, suggestion.suggestion)}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-1 rounded"
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            {suggestion.suggestion.substring(0, 25)}
+                            {suggestion.suggestion.length > 25 ? '...' : ''}
+                          </button>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {Math.round(suggestion.confidence * 100)}%
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {variables.map((variable: string) => {
-              const suggestion = getSuggestionForField(variable)
+          {/* Boutons d'action */}
+          {selectedDossier && (
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Button onClick={handleGenerate} disabled={loading} className="gap-2">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                {loading ? 'Génération...' : 'Générer'}
+              </Button>
 
-              return (
-                <div key={variable} className="space-y-1">
-                  <label className="block text-sm font-medium text-foreground">
-                    {variable}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={variablesValues[variable] || ''}
-                      onChange={(e) => handleVariableChange(variable, e.target.value)}
-                      className="block w-full rounded-md border border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      placeholder={`Valeur pour {{${variable}}}`}
-                    />
-                  </div>
-
-                  {/* Suggestion IA pour ce champ */}
-                  {suggestion && suggestion.suggestion !== 'À compléter' && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <button
-                        onClick={() => applySuggestion(variable, suggestion.suggestion)}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-1 rounded"
-                      >
-                        <Sparkles className="h-3 w-3" />
-                        Suggestion: {suggestion.suggestion.substring(0, 30)}
-                        {suggestion.suggestion.length > 30 ? '...' : ''}
-                      </button>
-                      <Badge variant="secondary" className="text-[10px]">
-                        {Math.round(suggestion.confidence * 100)}%
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Bouton de génération */}
-      {selectedDossier && (
-        <div className="flex justify-center">
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="rounded-md bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? '⏳ Génération...' : '⚡ Générer le document'}
-          </button>
-        </div>
-      )}
-
-      {/* Message d'erreur */}
-      {error && (
-        <div className="rounded-md bg-yellow-50 p-4 text-sm text-yellow-800">{error}</div>
-      )}
-
-      {/* Document généré */}
-      {generatedContent && (
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">Document généré</h2>
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleCopyToClipboard}
-                className="rounded-md border border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
-              >
-                📋 Copier
-              </button>
-
-              <button
-                onClick={handleDownloadTxt}
-                className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                📥 Télécharger (.txt)
-              </button>
+              <Button variant="outline" onClick={handleDownloadDocx} disabled={loadingDocx} className="gap-2">
+                {loadingDocx ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {loadingDocx ? 'Export...' : 'Télécharger DOCX'}
+              </Button>
             </div>
-          </div>
+          )}
 
-          <div className="rounded-md bg-muted p-4 max-h-[600px] overflow-y-auto">
-            <pre className="whitespace-pre-wrap font-mono text-sm text-foreground">
-              {generatedContent}
-            </pre>
-          </div>
+          {/* Message d'erreur */}
+          {error && (
+            <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 p-4 text-sm text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {/* Document généré */}
+          {generatedContent && (
+            <div className="rounded-lg border bg-card p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-base font-semibold text-foreground">Document généré</h3>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleCopyToClipboard}>
+                    Copier
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDownloadTxt}>
+                    .txt
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-md bg-muted p-4 max-h-[300px] overflow-y-auto">
+                <pre className="whitespace-pre-wrap font-mono text-sm text-foreground">
+                  {generatedContent}
+                </pre>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Colonne droite : Prévisualisation en temps réel */}
+        {showPreview && (
+          <div className="rounded-lg border bg-card shadow-sm overflow-hidden h-[700px] lg:sticky lg:top-4">
+            <TemplatePreview
+              content={template.contenu}
+              variables={variablesValues}
+              title={template.titre}
+              showMissingVariables={true}
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
