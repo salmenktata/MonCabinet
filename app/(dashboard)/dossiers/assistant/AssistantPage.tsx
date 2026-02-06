@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -13,6 +13,7 @@ import {
   structurerDossierAction,
   creerDossierDepuisStructureAction,
 } from '@/app/actions/dossiers'
+import { useAssistantStore } from '@/lib/stores/assistant-store'
 import type { StructuredDossier } from '@/lib/ai/dossier-structuring-service'
 
 interface Client {
@@ -33,15 +34,29 @@ export default function AssistantPage({ clients }: AssistantPageProps) {
   const t = useTranslations('assistant')
   const tCommon = useTranslations('common')
 
-  const [step, setStep] = useState<Step>('input')
-  const [narratif, setNarratif] = useState('')
-  const [result, setResult] = useState<StructuredDossier | null>(null)
-  const [error, setError] = useState('')
+  // Store Zustand avec persistance
+  const {
+    step,
+    setStep,
+    narratif,
+    setNarratif,
+    result,
+    setResult,
+    error,
+    setError,
+    reset,
+  } = useAssistantStore()
+
+  // État local (non persisté)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
-
-  // Pour le loader
   const [analysisSteps, setAnalysisSteps] = useState<string[]>([])
+
+  // Hydratation SSR - éviter le mismatch
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
 
   const handleAnalyze = async () => {
     if (!narratif || narratif.length < 20) {
@@ -94,8 +109,7 @@ export default function AssistantPage({ clients }: AssistantPageProps) {
   }
 
   const handleReanalyze = () => {
-    setResult(null)
-    setStep('input')
+    reset()
   }
 
   const handleCreateDossier = async (
@@ -117,6 +131,8 @@ export default function AssistantPage({ clients }: AssistantPageProps) {
       }
 
       if (response.data) {
+        // Reset le store après création réussie
+        reset()
         setShowCreateModal(false)
         router.push(`/dossiers/${response.data.dossierId}`)
       }
@@ -130,8 +146,33 @@ export default function AssistantPage({ clients }: AssistantPageProps) {
     setNarratif(example)
   }
 
-  const updateResult = (updated: StructuredDossier) => {
+  const handleUpdateResult = (updated: StructuredDossier) => {
     setResult(updated)
+  }
+
+  // Attendre l'hydratation avant de rendre le contenu
+  if (!hydrated) {
+    return (
+      <div className="mx-auto max-w-5xl space-y-6 pb-12">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">&#129302;</span>
+              <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+            </div>
+            <p className="mt-2 text-muted-foreground">{t('subtitle')}</p>
+          </div>
+          <Link
+            href="/dossiers"
+            className="rounded-md border border bg-card px-4 py-2 text-foreground font-medium hover:bg-muted"
+          >
+            {tCommon('back')}
+          </Link>
+        </div>
+        {/* Placeholder pendant l'hydratation */}
+        <div className="h-64 animate-pulse rounded-lg bg-muted" />
+      </div>
+    )
   }
 
   return (
@@ -198,7 +239,7 @@ export default function AssistantPage({ clients }: AssistantPageProps) {
             result={result}
             onReanalyze={handleReanalyze}
             onCreateDossier={() => setShowCreateModal(true)}
-            onUpdateResult={updateResult}
+            onUpdateResult={handleUpdateResult}
           />
         </>
       )}
