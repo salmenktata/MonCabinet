@@ -590,7 +590,7 @@ export async function deleteUserAction(userId: string, confirmEmail: string) {
       userId,
       user.email,
       { email: user.email, nom: user.nom, prenom: user.prenom, role: user.role },
-      null
+      undefined
     )
 
     // Supprimer l'utilisateur (CASCADE supprimera les données liées)
