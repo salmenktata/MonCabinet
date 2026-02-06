@@ -28,7 +28,9 @@
     "precommit": "npm run check:translations",
     "stop": "lsof -ti:7002 | xargs kill -9 2>/dev/null || true",
     "clean": "rm -rf .next",
-    "restart": "npm run stop && npm run clean && npm run dev"
+    "restart": "npm run stop && npm run clean && npm run dev",
+    "health": "curl -s http://localhost:7002/api/health | jq . || echo 'Serveur non accessible'",
+    "monitor": "./scripts/dev-monitor.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",
@@ -61,8 +63,11 @@
     "next-auth": "^4.24.13",
     "next-intl": "^4.8.2",
     "next-themes": "^0.4.6",
+    "node-tesseract-ocr": "^2.2.1",
     "openai": "^6.18.0",
     "pdf-parse": "^2.4.5",
+    "pdf-to-img": "^4.5.0",
+    "pdf2pic": "^3.2.0",
     "pg": "^8.18.0",
     "pgvector": "^0.2.1",
     "react": "^18.3.1",
@@ -72,6 +77,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.6.1",
     "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^5.1.1",
     "zod": "^3.25.76",
     "zustand": "^5.0.2"
   },

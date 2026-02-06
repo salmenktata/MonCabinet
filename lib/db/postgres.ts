@@ -19,7 +19,9 @@ export function getPool(): Pool {
       connectionString: process.env.DATABASE_URL,
       max: 20, // Maximum 20 connexions
       idleTimeoutMillis: 30000, // Fermer connexions inactives après 30s
-      connectionTimeoutMillis: 10000, // Timeout connexion 10s
+      connectionTimeoutMillis: 5000, // Timeout connexion 5s (fail fast)
+      statement_timeout: 10000, // Timeout requêtes 10s
+      query_timeout: 10000, // Timeout queries 10s
       ssl: process.env.NODE_ENV === 'production' && process.env.DATABASE_SSL === 'true'
         ? { rejectUnauthorized: false }
         : undefined,
