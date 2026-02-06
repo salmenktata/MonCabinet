@@ -163,22 +163,17 @@ function SuperAdminSidebarComponent({
             <LogoIcon size="sm" animate={false} />
           </Link>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onCollapse}
-          className={cn(
-            'transition-transform shrink-0 text-slate-400 hover:text-white hover:bg-slate-800',
-            collapsed ? 'absolute left-12 top-4 bg-slate-900 border border-slate-700 shadow-sm' : ''
-          )}
-          title={collapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
-        >
-          {collapsed ? (
-            <Icons.chevronRight className="h-4 w-4" />
-          ) : (
+        {!collapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCollapse}
+            className="shrink-0 text-slate-400 hover:text-white hover:bg-slate-800"
+            title="Réduire le menu"
+          >
             <Icons.chevronLeft className="h-4 w-4" />
-          )}
-        </Button>
+          </Button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -206,7 +201,20 @@ function SuperAdminSidebarComponent({
       </nav>
 
       {/* Footer - Retour au dashboard utilisateur */}
-      <div className="border-t border-slate-700 p-4">
+      <div className="border-t border-slate-700 p-4 space-y-1">
+        {/* Bouton pour ouvrir la sidebar quand réduite */}
+        {collapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCollapse}
+            className="w-full h-10 text-slate-400 hover:text-white hover:bg-slate-800"
+            title="Ouvrir le menu"
+          >
+            <Icons.chevronRight className="h-5 w-5" />
+          </Button>
+        )}
+
         <Link href="/dashboard" prefetch={true}>
           <div
             className={cn(

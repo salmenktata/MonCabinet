@@ -154,22 +154,17 @@ function SidebarComponent({ collapsed, onCollapse, userRole }: SidebarProps) {
             <LogoIcon size="sm" animate={false} />
           </Link>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onCollapse}
-          className={cn(
-            'transition-transform shrink-0',
-            collapsed ? 'absolute left-12 top-4 bg-card border shadow-sm hover:bg-accent' : ''
-          )}
-          title={collapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
-        >
-          {collapsed ? (
-            <Icons.chevronRight className="h-4 w-4" />
-          ) : (
+        {!collapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCollapse}
+            className="shrink-0"
+            title="Réduire le menu"
+          >
             <Icons.chevronLeft className="h-4 w-4" />
-          )}
-        </Button>
+          </Button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -199,6 +194,19 @@ function SidebarComponent({ collapsed, onCollapse, userRole }: SidebarProps) {
 
       {/* Footer */}
       <div className="border-t p-4 space-y-1">
+        {/* Bouton pour ouvrir la sidebar quand réduite */}
+        {collapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCollapse}
+            className="w-full h-10 hover:bg-accent"
+            title="Ouvrir le menu"
+          >
+            <Icons.chevronRight className="h-5 w-5" />
+          </Button>
+        )}
+
         {/* Lien Super Admin pour les super_admin */}
         {userRole === 'super_admin' && (
           <Link href="/super-admin/dashboard" prefetch={true}>
