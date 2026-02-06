@@ -31,6 +31,8 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 ENV NEXTAUTH_SECRET="build-secret-not-used-in-production"
 ENV NEXTAUTH_URL="http://localhost:3000"
+ENV RESEND_API_KEY="re_build_placeholder"
+ENV OPENAI_API_KEY="sk-build-placeholder"
 RUN npx next build
 
 # Stage 3: Runner
