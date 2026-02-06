@@ -67,7 +67,7 @@ export default function CalculationsSection({
 
               <div className="mt-3">
                 <div className="text-3xl font-bold text-foreground">
-                  {calcul.montant.toLocaleString('fr-TN', {
+                  {(calcul.montant ?? 0).toLocaleString('fr-TN', {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2,
                   })}{' '}
