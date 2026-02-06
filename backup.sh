@@ -2,17 +2,21 @@
 #
 # Script de backup automatique MonCabinet
 #
-# Usage: ./backup.sh
+# Usage: ./backup.sh [--notify]
+#
+# Options:
+#   --notify    Envoyer notification Brevo en cas d'échec
 #
 # Fonctionnalités:
-# - Backup PostgreSQL (dump SQL)
+# - Backup PostgreSQL (dump SQL compressé)
 # - Backup MinIO (documents)
 # - Backup code source
 # - Rotation automatique (garder 14 derniers)
 # - Alerte si disque > 80%
+# - Notification Brevo en cas d'échec
 #
 # À planifier dans crontab:
-# 0 3 * * * /opt/moncabinet/backup.sh >> /var/log/moncabinet-backup.log 2>&1
+# 0 3 * * * /opt/moncabinet/backup.sh --notify >> /var/log/moncabinet-backup.log 2>&1
 #
 
 set -e
@@ -23,13 +27,64 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="/opt/backups/moncabinet"
 DATE=$(date +%Y%m%d_%H%M%S)
+NOTIFY=false
+ERRORS=""
+
+# Parser arguments
+for arg in "$@"; do
+  case $arg in
+    --notify)
+      NOTIFY=true
+      shift
+      ;;
+  esac
+done
+
+# Charger variables d'environnement
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  export $(grep -v '^#' "$SCRIPT_DIR/.env" | xargs)
+elif [ -f "/opt/moncabinet/.env" ]; then
+  export $(grep -v '^#' "/opt/moncabinet/.env" | xargs)
+fi
+
+# Fonction pour envoyer notification Brevo en cas d'échec
+send_failure_notification() {
+  local error_message="$1"
+
+  if [ "$NOTIFY" = true ] && [ -n "$BREVO_API_KEY" ]; then
+    curl -s -X POST "https://api.brevo.com/v3/smtp/email" \
+      -H "accept: application/json" \
+      -H "api-key: $BREVO_API_KEY" \
+      -H "content-type: application/json" \
+      -d "{
+        \"sender\": {\"name\": \"MonCabinet Backup\", \"email\": \"${BREVO_SENDER_EMAIL:-noreply@moncabinet.tn}\"},
+        \"to\": [{\"email\": \"${ADMIN_EMAIL:-admin@moncabinet.tn}\"}],
+        \"subject\": \"⚠️ Échec Backup MonCabinet - $DATE\",
+        \"htmlContent\": \"<h2>Échec du backup automatique</h2><p>Date: $DATE</p><p>Erreur:</p><pre>$error_message</pre><p>Vérifiez le serveur et relancez le backup manuellement.</p>\"
+      }" > /dev/null 2>&1 || true
+    echo -e "${YELLOW}📧 Notification envoyée${NC}"
+  fi
+}
+
+# Fonction cleanup en cas d'erreur
+cleanup_on_error() {
+  echo -e "${RED}❌ Backup échoué!${NC}"
+  send_failure_notification "$ERRORS"
+  exit 1
+}
 
 # Créer dossier backups
 mkdir -p "$BACKUP_DIR"
 
+# Trap pour gérer les erreurs
+trap cleanup_on_error ERR
+
 echo -e "${GREEN}🔄 Backup MonCabinet - $DATE${NC}"
+echo "Notify: $NOTIFY"
 
 # ============================================================================
 # ÉTAPE 1: Backup PostgreSQL
@@ -50,8 +105,9 @@ if [ $? -eq 0 ]; then
   SIZE=$(du -h "$BACKUP_DIR/db_$DATE.sql.gz" | cut -f1)
   echo -e "${GREEN}✅ PostgreSQL backup: db_$DATE.sql.gz ($SIZE)${NC}"
 else
-  echo -e "${RED}❌ Échec backup PostgreSQL${NC}"
-  exit 1
+  ERRORS="Échec backup PostgreSQL"
+  echo -e "${RED}❌ $ERRORS${NC}"
+  cleanup_on_error
 fi
 
 # ============================================================================
@@ -74,7 +130,7 @@ fi
 docker run --rm \
   --network moncabinet_moncabinet-network \
   -v "$MINIO_BACKUP_DIR:/backup" \
-  -e MC_HOST_myminio="http://\${MINIO_ROOT_USER}:\${MINIO_ROOT_PASSWORD}@minio:9000" \
+  -e MC_HOST_myminio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
   minio/mc:latest \
   mirror myminio/documents /backup/documents > /dev/null 2>&1
 
