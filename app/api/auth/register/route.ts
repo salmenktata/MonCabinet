@@ -85,13 +85,13 @@ export async function POST(request: NextRequest) {
     const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
 
     // 5. Créer l'utilisateur avec status='pending' pour approbation
+    // Note: email_verified est un timestamp (NULL = non vérifié), pas un boolean
     const userResult = await query(
       `INSERT INTO users (
         email,
         password_hash,
         nom,
         prenom,
-        email_verified,
         email_verification_token,
         email_verification_expires,
         status,
@@ -100,20 +100,19 @@ export async function POST(request: NextRequest) {
         plan,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
-      RETURNING id, email, nom, prenom, email_verified, status`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+      RETURNING id, email, nom, prenom, status`,
       [
         validatedData.email.toLowerCase(),
         passwordHash,
         validatedData.nom,
         validatedData.prenom,
-        false,
         emailVerificationToken,
         emailVerificationExpires,
-        'pending',  // Nouveau: status pending par défaut
-        false,      // Nouveau: is_approved false
-        'user',     // Nouveau: role user par défaut
-        'free',     // Nouveau: plan free par défaut
+        'pending',
+        false,
+        'user',
+        'free',
       ]
     )
 
