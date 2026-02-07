@@ -47,20 +47,35 @@ const Collapsible = ({
   )
 }
 
-interface CollapsibleTriggerProps {
+interface CollapsibleTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean
   children: React.ReactNode
-  className?: string
 }
 
 const CollapsibleTrigger = React.forwardRef<HTMLButtonElement, CollapsibleTriggerProps>(
-  ({ asChild, children, className, ...props }, ref) => {
+  ({ asChild, children, className, onClick, ...props }, ref) => {
     const { open, onOpenChange } = React.useContext(CollapsibleContext)
 
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => {
+      onOpenChange(!open)
+      if (onClick) {
+        onClick(e as React.MouseEvent<HTMLButtonElement>)
+      }
+    }
+
     if (asChild && React.isValidElement(children)) {
-      return React.cloneElement(children as React.ReactElement<any>, {
-        onClick: () => onOpenChange(!open),
+      const childProps = children.props as Record<string, unknown>
+      const existingOnClick = childProps.onClick as ((e: React.MouseEvent) => void) | undefined
+
+      return React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
+        onClick: (e: React.MouseEvent) => {
+          onOpenChange(!open)
+          if (existingOnClick) {
+            existingOnClick(e)
+          }
+        },
         'aria-expanded': open,
+        style: { cursor: 'pointer', ...((childProps.style as React.CSSProperties) || {}) },
       })
     }
 
@@ -68,7 +83,7 @@ const CollapsibleTrigger = React.forwardRef<HTMLButtonElement, CollapsibleTrigge
       <button
         ref={ref}
         type="button"
-        onClick={() => onOpenChange(!open)}
+        onClick={handleClick}
         aria-expanded={open}
         className={className}
         {...props}
