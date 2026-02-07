@@ -2,13 +2,23 @@
  * Service de parsing des fichiers (PDF, DOCX, etc.)
  * Extrait le texte des documents pour l'indexation RAG
  * Supporte l'OCR pour les PDFs scannés (images) via Tesseract.js
+ *
+ * IMPORTANT: Tous les imports de modules natifs sont dynamiques
+ * pour éviter les erreurs de build Next.js (File is not defined)
  */
 
-import mammoth from 'mammoth'
-
-// Import dynamique pour éviter les problèmes avec pdf-parse en RSC
+// Tous les modules sont chargés dynamiquement pour éviter les erreurs de build
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mammothModule: typeof import('mammoth') | null = null
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let PDFParseClass: any = null
+
+async function getMammoth(): Promise<typeof import('mammoth')> {
+  if (!mammothModule) {
+    mammothModule = await import('mammoth')
+  }
+  return mammothModule
+}
 
 async function getPDFParse() {
   if (!PDFParseClass) {
@@ -278,6 +288,7 @@ function parsePdfDate(dateStr: string): Date | undefined {
  */
 export async function parseDocx(buffer: Buffer): Promise<ParsedFile> {
   try {
+    const mammoth = await getMammoth()
     const result = await mammoth.extractRawText({ buffer })
 
     const text = cleanText(result.value)
