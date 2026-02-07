@@ -26,32 +26,11 @@ const RERANKER_MODEL = process.env.RERANKER_MODEL || 'Xenova/ms-marco-MiniLM-L-6
 let transformersModule: { pipeline: any; env: any } | null = null
 
 async function loadTransformers() {
-  // Bloquer pendant le build Next.js car @xenova/transformers utilise des APIs navigateur
-  if (isNextBuildPhase || !RERANKER_ENABLED) {
-    return null
-  }
-
-  if (transformersModule) return transformersModule
-
-  try {
-    // Utiliser une variable pour cacher le nom du module de Webpack
-    // Cela empêche Webpack d'analyser et bundler le module pendant le build
-    const moduleName = '@xenova/transformers'
-    // @ts-ignore - @xenova/transformers n'a pas de types TypeScript complets
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const module = await import(/* webpackIgnore: true */ moduleName)
-    transformersModule = module
-
-    // Configurer le cache après le chargement
-    module.env.cacheDir = process.env.TRANSFORMERS_CACHE || './.cache/transformers'
-    module.env.allowLocalModels = true
-    module.env.allowRemoteModels = true
-
-    return module
-  } catch (error) {
-    console.error('[Reranker] Erreur chargement transformers:', error)
-    return null
-  }
+  // Désactivé complètement - @xenova/transformers cause des erreurs de build
+  // Le reranker utilise des APIs navigateur (File) non disponibles côté serveur
+  // TODO: Réactiver quand @xenova/transformers supporte Node.js proprement
+  console.log('[Reranker] Désactivé temporairement (problème de compatibilité build)')
+  return null
 }
 
 // =============================================================================
