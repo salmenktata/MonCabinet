@@ -94,6 +94,7 @@ import {
   Play,
   PanelLeftOpen,
   PanelLeftClose,
+  Link2,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -227,6 +228,7 @@ export const Icons = {
   history: History,
   play: Play,
   undo: Undo2,
+  link: Link2,
 } as const
 
 export type IconName = keyof typeof Icons

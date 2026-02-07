@@ -36,6 +36,19 @@ import {
   DetectedLanguage,
 } from './language-utils'
 import { translateQuery, isTranslationAvailable } from './translation-service'
+import {
+  getConversationContext,
+  triggerSummaryGenerationIfNeeded,
+  SUMMARY_CONFIG,
+} from './conversation-summary-service'
+import { encode } from 'gpt-tokenizer'
+import { getDynamicBoostFactors } from './feedback-service'
+import {
+  rerankDocuments,
+  combineScores,
+  isRerankerEnabled,
+  DocumentToRerank,
+} from './reranker-service'
 
 // Configuration Query Expansion
 const ENABLE_QUERY_EXPANSION = process.env.ENABLE_QUERY_EXPANSION !== 'false'
@@ -167,15 +180,26 @@ function getSourceId(source: ChatSource): string {
 }
 
 /**
- * Re-rank les sources avec boost par type et diversité
+ * Re-rank les sources avec boost par type, cross-encoder et diversité
+ * Utilise:
+ * 1. Boost factors dynamiques basés sur le feedback utilisateur
+ * 2. Cross-encoder pour re-scorer les paires (query, document)
+ * 3. Diversité pour limiter les chunks par source
  */
-function rerankSources(sources: ChatSource[]): ChatSource[] {
+async function rerankSources(
+  sources: ChatSource[],
+  query?: string,
+  boostFactors?: Record<string, number>
+): Promise<ChatSource[]> {
   if (sources.length === 0) return sources
 
-  // 1. Appliquer boost par type
-  const rankedSources: RankedSource[] = sources.map((s) => {
+  // Récupérer les boosts dynamiques si non fournis
+  const boosts = boostFactors || (await getDynamicBoostFactors()).factors
+
+  // 1. Appliquer boost par type (dynamique ou statique)
+  let rankedSources: RankedSource[] = sources.map((s) => {
     const sourceType = getSourceType(s.metadata as Record<string, unknown>)
-    const boost = SOURCE_BOOST[sourceType] || SOURCE_BOOST.autre || 1.0
+    const boost = boosts[sourceType] || boosts.autre || SOURCE_BOOST.autre || 1.0
     return {
       ...s,
       boostedScore: s.similarity * boost,
@@ -184,8 +208,38 @@ function rerankSources(sources: ChatSource[]): ChatSource[] {
     }
   })
 
-  // 2. Trier par score boosté décroissant
-  rankedSources.sort((a, b) => b.boostedScore - a.boostedScore)
+  // 2. Appliquer cross-encoder re-ranking si activé et query fournie
+  if (isRerankerEnabled() && query && rankedSources.length > 1) {
+    try {
+      const docsToRerank: DocumentToRerank[] = rankedSources.map((s) => ({
+        content: s.chunkContent,
+        originalScore: s.boostedScore,
+        metadata: s.metadata as Record<string, unknown>,
+      }))
+
+      const rerankedResults = await rerankDocuments(query, docsToRerank)
+
+      // Combiner scores cross-encoder avec boosts existants
+      rankedSources = rerankedResults.map((result) => {
+        const original = rankedSources[result.index]
+        const finalScore = combineScores(result.score, original.boostedScore)
+        return {
+          ...original,
+          boostedScore: finalScore,
+        }
+      })
+
+      // Re-trier par score combiné
+      rankedSources.sort((a, b) => b.boostedScore - a.boostedScore)
+    } catch (error) {
+      console.error('[RAG] Erreur cross-encoder, fallback boost simple:', error)
+      // Continuer avec le tri par boost simple
+      rankedSources.sort((a, b) => b.boostedScore - a.boostedScore)
+    }
+  } else {
+    // Trier par score boosté décroissant
+    rankedSources.sort((a, b) => b.boostedScore - a.boostedScore)
+  }
 
   // 3. Appliquer diversité : limiter chunks par source
   const sourceCount = new Map<string, number>()
@@ -402,8 +456,8 @@ async function searchRelevantContext(
     (s) => s.similarity >= RAG_THRESHOLDS.minimum
   )
 
-  // Appliquer re-ranking avec boost et diversité
-  const rerankedSources = rerankSources(aboveThreshold)
+  // Appliquer re-ranking avec boost dynamique, cross-encoder et diversité
+  const rerankedSources = await rerankSources(aboveThreshold, question)
 
   // Limiter au nombre demandé
   const finalSources = rerankedSources.slice(0, maxContextChunks)
@@ -528,11 +582,16 @@ async function searchRelevantContextBilingual(
 const RAG_MAX_CONTEXT_TOKENS = parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '2000', 10)
 
 /**
- * Estime le nombre de tokens dans un texte
- * Approximation: ~4 caractères = 1 token pour le français/arabe
+ * Compte le nombre de tokens dans un texte de manière précise
+ * Utilise gpt-tokenizer pour un comptage exact compatible GPT-4/Claude
  */
-function estimateContextTokens(text: string): number {
-  return Math.ceil(text.length / 4)
+function countTokens(text: string): number {
+  try {
+    return encode(text).length
+  } catch {
+    // Fallback si erreur d'encodage (caractères spéciaux)
+    return Math.ceil(text.length / 4)
+  }
 }
 
 /**
@@ -573,8 +632,8 @@ function buildContextFromSources(sources: ChatSource[]): string {
       part = `[وثيقة ${i + 1}] ${source.documentName}\n\n` + source.chunkContent
     }
 
-    const partTokens = estimateContextTokens(part)
-    const separatorTokens = contextParts.length > 0 ? estimateContextTokens('\n\n---\n\n') : 0
+    const partTokens = countTokens(part)
+    const separatorTokens = contextParts.length > 0 ? countTokens('\n\n---\n\n') : 0
 
     // Vérifier si on dépasse la limite
     if (totalTokens + partTokens + separatorTokens > RAG_MAX_CONTEXT_TOKENS) {
@@ -593,7 +652,7 @@ function buildContextFromSources(sources: ChatSource[]): string {
 }
 
 /**
- * Récupère l'historique de conversation pour le contexte
+ * Récupère l'historique de conversation pour le contexte (version simple)
  */
 async function getConversationHistory(
   conversationId: string,
@@ -618,6 +677,30 @@ async function getConversationHistory(
     }))
 }
 
+/**
+ * Récupère l'historique de conversation avec résumé si disponible
+ * Retourne le résumé + les messages récents pour un contexte optimal
+ */
+async function getConversationHistoryWithSummary(
+  conversationId: string,
+  recentLimit: number = SUMMARY_CONFIG.recentMessagesLimit
+): Promise<{
+  summary: string | null
+  messages: ConversationMessage[]
+  totalCount: number
+}> {
+  const context = await getConversationContext(conversationId, recentLimit)
+
+  return {
+    summary: context.summary,
+    messages: context.messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    })),
+    totalCount: context.totalCount,
+  }
+}
+
 // =============================================================================
 // FONCTION PRINCIPALE: RÉPONDRE À UNE QUESTION
 // =============================================================================
@@ -636,33 +719,82 @@ export async function answerQuestion(
 
   const provider = getChatProvider()
 
-  // 1. Rechercher le contexte pertinent (bilingue si activé)
-  const sources = ENABLE_QUERY_EXPANSION
-    ? await searchRelevantContextBilingual(question, userId, options)
-    : await searchRelevantContext(question, userId, options)
+  // 1. Rechercher le contexte pertinent (bilingue si activé) avec fallback dégradé
+  let sources: ChatSource[] = []
+  let isDegradedMode = false
 
-  // 2. Construire le contexte
-  const context = buildContextFromSources(sources)
-
-  // 3. Récupérer l'historique si conversation existante
-  let conversationHistory: ConversationMessage[] = []
-  if (options.conversationId) {
-    conversationHistory = await getConversationHistory(options.conversationId, 6)
+  try {
+    sources = ENABLE_QUERY_EXPANSION
+      ? await searchRelevantContextBilingual(question, userId, options)
+      : await searchRelevantContext(question, userId, options)
+  } catch (error) {
+    // Mode dégradé: continuer sans contexte RAG
+    console.error('[RAG] FALLBACK MODE - Erreur recherche contexte:', error instanceof Error ? error.message : error)
+    isDegradedMode = true
+    sources = []
   }
 
-  // 4. Construire les messages
-  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  // 2. Construire le contexte (adapté si mode dégradé)
+  const context = isDegradedMode
+    ? 'خطأ في الوصول إلى الوثائق. أجب بناءً على معرفتك العامة بالقانون التونسي. / Erreur d\'accès aux documents. Réponds selon tes connaissances générales du droit tunisien.'
+    : buildContextFromSources(sources)
 
-  // Ajouter l'historique de conversation
+  // 3. Récupérer l'historique avec résumé si conversation existante
+  let conversationHistory: ConversationMessage[] = []
+  let conversationSummary: string | null = null
+  let totalMessageCount = 0
+
+  if (options.conversationId) {
+    const historyContext = await getConversationHistoryWithSummary(
+      options.conversationId,
+      SUMMARY_CONFIG.recentMessagesLimit
+    )
+    conversationHistory = historyContext.messages
+    conversationSummary = historyContext.summary
+    totalMessageCount = historyContext.totalCount
+  }
+
+  // 4. Construire les messages (format OpenAI-compatible pour Ollama/Groq)
+  const messagesOpenAI: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = []
+
+  // Injecter le résumé de la conversation si disponible (pour Ollama/Groq)
+  if (conversationSummary) {
+    messagesOpenAI.push({
+      role: 'system',
+      content: `[Résumé de la conversation précédente]\n${conversationSummary}`,
+    })
+  }
+
+  // Ajouter l'historique de conversation récent
   for (const msg of conversationHistory) {
-    messages.push({ role: msg.role, content: msg.content })
+    messagesOpenAI.push({ role: msg.role, content: msg.content })
   }
 
   // Ajouter la nouvelle question avec le contexte
-  messages.push({
+  messagesOpenAI.push({
     role: 'user',
     content: `Documents du dossier:\n\n${context}\n\n---\n\nQuestion: ${question}`,
   })
+
+  // Messages format Anthropic (sans 'system' dans les messages)
+  const messagesAnthropic: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  for (const msg of conversationHistory) {
+    messagesAnthropic.push({ role: msg.role, content: msg.content })
+  }
+  messagesAnthropic.push({
+    role: 'user',
+    content: `Documents du dossier:\n\n${context}\n\n---\n\nQuestion: ${question}`,
+  })
+
+  // Log si résumé utilisé
+  if (conversationSummary) {
+    console.log(`[RAG] Conversation ${options.conversationId}: résumé injecté (${totalMessageCount} messages total)`)
+  }
+
+  // Construire le système prompt avec résumé pour Anthropic
+  const systemPromptWithSummary = conversationSummary
+    ? `${SYSTEM_PROMPTS.qadhya}\n\n[Résumé de la conversation précédente]\n${conversationSummary}`
+    : SYSTEM_PROMPTS.qadhya
 
   let answer: string
   let tokensUsed: { input: number; output: number; total: number }
@@ -678,7 +810,7 @@ export async function answerQuestion(
       max_tokens: aiConfig.anthropic.maxTokens,
       messages: [
         { role: 'system', content: SYSTEM_PROMPTS.qadhya },
-        ...messages,
+        ...messagesOpenAI,
       ],
       temperature: options.temperature ?? 0.3,
     })
@@ -698,7 +830,7 @@ export async function answerQuestion(
       max_tokens: aiConfig.anthropic.maxTokens,
       messages: [
         { role: 'system', content: SYSTEM_PROMPTS.qadhya },
-        ...messages,
+        ...messagesOpenAI,
       ],
       temperature: options.temperature ?? 0.3,
     })
@@ -716,8 +848,8 @@ export async function answerQuestion(
     const response = await client.messages.create({
       model: aiConfig.anthropic.model,
       max_tokens: aiConfig.anthropic.maxTokens,
-      system: SYSTEM_PROMPTS.qadhya,
-      messages,
+      system: systemPromptWithSummary,
+      messages: messagesAnthropic,
       temperature: options.temperature ?? 0.3,
     })
 
@@ -728,6 +860,13 @@ export async function answerQuestion(
       total: response.usage.input_tokens + response.usage.output_tokens,
     }
     modelUsed = aiConfig.anthropic.model
+  }
+
+  // Déclencher génération de résumé en async si seuil atteint
+  if (options.conversationId && totalMessageCount >= SUMMARY_CONFIG.triggerMessageCount) {
+    triggerSummaryGenerationIfNeeded(options.conversationId).catch((err) =>
+      console.error('[RAG] Erreur trigger résumé:', err)
+    )
   }
 
   return {

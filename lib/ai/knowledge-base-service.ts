@@ -11,6 +11,7 @@
 import { db } from '@/lib/db/postgres'
 import { uploadFile, deleteFile } from '@/lib/storage/minio'
 import { aiConfig, isSemanticSearchEnabled } from './config'
+import { onKnowledgeDocumentChange } from './related-documents-service'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse en RSC
 async function getDocumentParser() {
@@ -339,6 +340,9 @@ export async function indexKnowledgeDocument(documentId: string): Promise<{
 
     await client.query('COMMIT')
 
+    // Invalider le cache des documents similaires
+    await onKnowledgeDocumentChange(documentId, 'index')
+
     return { success: true, chunksCreated: chunks.length }
   } catch (error) {
     await client.query('ROLLBACK')
@@ -647,6 +651,9 @@ export async function updateKnowledgeDocument(
     return null
   }
 
+  // Invalider le cache des documents similaires
+  await onKnowledgeDocumentChange(documentId, 'update')
+
   return mapRowToKnowledgeBase(result.rows[0])
 }
 
@@ -685,6 +692,9 @@ export async function deleteKnowledgeDocument(documentId: string): Promise<boole
       // Continue sans échouer
     }
   }
+
+  // Invalider le cache des documents similaires
+  await onKnowledgeDocumentChange(documentId, 'delete')
 
   return true
 }

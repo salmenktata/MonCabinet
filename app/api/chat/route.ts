@@ -25,6 +25,7 @@ import {
   ChatSource,
 } from '@/lib/ai/rag-chat-service'
 import { isChatEnabled } from '@/lib/ai/config'
+import { triggerSummaryGenerationIfNeeded } from '@/lib/ai/conversation-summary-service'
 
 // =============================================================================
 // TYPES
@@ -151,11 +152,20 @@ export async function POST(
       `SELECT COUNT(*) as count FROM chat_messages WHERE conversation_id = $1`,
       [activeConversationId]
     )
-    if (parseInt(messageCount.rows[0].count) <= 2) {
+    const msgCount = parseInt(messageCount.rows[0].count)
+
+    if (msgCount <= 2) {
       const title = await generateConversationTitle(activeConversationId)
       await db.query(
         `UPDATE chat_conversations SET title = $1 WHERE id = $2`,
         [title, activeConversationId]
+      )
+    }
+
+    // Déclencher génération de résumé en async si seuil atteint (10+ messages)
+    if (msgCount >= 10) {
+      triggerSummaryGenerationIfNeeded(activeConversationId).catch((err) =>
+        console.error('[Chat API] Erreur trigger résumé:', err)
       )
     }
 

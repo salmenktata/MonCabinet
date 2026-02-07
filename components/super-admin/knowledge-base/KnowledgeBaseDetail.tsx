@@ -29,6 +29,7 @@ import { CategoryBadge } from './CategorySelector'
 import { TagsList } from './TagsInput'
 import { MetadataDisplay } from './MetadataForm'
 import { VersionHistory, VersionBadge } from './VersionHistory'
+import { RelatedDocuments } from './RelatedDocuments'
 import type { KnowledgeCategory } from '@/lib/knowledge-base/categories'
 
 interface KnowledgeDocument {
@@ -322,6 +323,11 @@ export function KnowledgeBaseDetail({ document, versions }: KnowledgeBaseDetailP
                 />
               </CardContent>
             </Card>
+          )}
+
+          {/* Documents similaires */}
+          {document.isIndexed && (
+            <RelatedDocuments documentId={document.id} limit={5} threshold={0.6} />
           )}
 
           {/* Historique des versions */}

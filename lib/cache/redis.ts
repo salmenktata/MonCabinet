@@ -18,6 +18,8 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379'
 export const CACHE_TTL = {
   embedding: parseInt(process.env.EMBEDDING_CACHE_TTL || '604800', 10), // 7 jours
   search: parseInt(process.env.SEARCH_CACHE_TTL || '3600', 10), // 1 heure
+  translation: parseInt(process.env.TRANSLATION_CACHE_TTL || '2592000', 10), // 30 jours
+  feedbackBoost: parseInt(process.env.FEEDBACK_CACHE_TTL || '86400', 10), // 24 heures
 }
 
 // Seuil de similarité pour considérer un cache hit

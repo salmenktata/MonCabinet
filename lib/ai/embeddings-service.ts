@@ -9,6 +9,7 @@
 import OpenAI from 'openai'
 import { aiConfig, getEmbeddingProvider } from './config'
 import { getCachedEmbedding, setCachedEmbedding } from '@/lib/cache/embedding-cache'
+import { encode } from 'gpt-tokenizer'
 
 // =============================================================================
 // CLIENTS
@@ -85,7 +86,7 @@ async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResul
 
   return {
     embedding: data.embedding,
-    tokenCount: estimateTokenCount(text),
+    tokenCount: countTokens(text),
     provider: 'ollama',
   }
 }
@@ -222,7 +223,7 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
   if (cached) {
     return {
       embedding: cached.embedding,
-      tokenCount: estimateTokenCount(text),
+      tokenCount: countTokens(text),
       provider: cached.provider,
     }
   }
@@ -400,11 +401,23 @@ export function validateEmbedding(
 // =============================================================================
 
 /**
- * Estime le nombre de tokens dans un texte
- * Approximation: ~4 caractères = 1 token pour le français
+ * Compte le nombre de tokens dans un texte de manière précise
+ * Utilise gpt-tokenizer pour un comptage exact compatible GPT-4/Claude
+ */
+export function countTokens(text: string): number {
+  try {
+    return encode(text).length
+  } catch {
+    // Fallback si erreur d'encodage (caractères spéciaux)
+    return Math.ceil(text.length / 4)
+  }
+}
+
+/**
+ * @deprecated Utiliser countTokens à la place
  */
 export function estimateTokenCount(text: string): number {
-  return Math.ceil(text.length / 4)
+  return countTokens(text)
 }
 
 /**

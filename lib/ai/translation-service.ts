@@ -7,6 +7,10 @@
 
 import OpenAI from 'openai'
 import { aiConfig } from './config'
+import {
+  getCachedTranslation,
+  setCachedTranslation,
+} from '@/lib/cache/translation-cache'
 
 // =============================================================================
 // CONFIGURATION
@@ -89,6 +93,18 @@ export async function translateQuery(
     }
   }
 
+  // Vérifier le cache de traduction
+  const cachedTranslation = await getCachedTranslation(text, from, to)
+  if (cachedTranslation) {
+    return {
+      originalText: text,
+      translatedText: cachedTranslation,
+      sourceLanguage: from,
+      targetLanguage: to,
+      success: true,
+    }
+  }
+
   const client = getGroqClient()
 
   if (!client) {
@@ -135,6 +151,9 @@ export async function translateQuery(
     }
 
     console.log(`[Translation] ${from}→${to}: "${text.substring(0, 50)}..." → "${translatedText.substring(0, 50)}..."`)
+
+    // Mettre en cache la traduction
+    await setCachedTranslation(text, translatedText, from, to, 'groq')
 
     return {
       originalText: text,
