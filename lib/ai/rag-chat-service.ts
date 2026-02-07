@@ -457,7 +457,19 @@ async function searchRelevantContext(
   )
 
   // Appliquer re-ranking avec boost dynamique, cross-encoder et diversité
-  const rerankedSources = await rerankSources(aboveThreshold, question)
+  let rerankedSources = await rerankSources(aboveThreshold, question)
+
+  // Seuils adaptatifs: si moins de 3 résultats, baisser le seuil de 20%
+  if (rerankedSources.length < 3 && allSources.length > rerankedSources.length) {
+    const adaptiveThreshold = RAG_THRESHOLDS.minimum * 0.8
+    const adaptiveResults = allSources.filter(
+      (s) => s.similarity >= adaptiveThreshold
+    )
+    if (adaptiveResults.length > rerankedSources.length) {
+      console.log(`[RAG Search] Seuil adaptatif: ${rerankedSources.length} → ${adaptiveResults.length} résultats (seuil ${adaptiveThreshold.toFixed(2)})`)
+      rerankedSources = await rerankSources(adaptiveResults, question)
+    }
+  }
 
   // Limiter au nombre demandé
   const finalSources = rerankedSources.slice(0, maxContextChunks)
@@ -578,8 +590,8 @@ async function searchRelevantContextBilingual(
 // CONSTRUCTION DU PROMPT
 // =============================================================================
 
-// Limite de tokens pour le contexte RAG
-const RAG_MAX_CONTEXT_TOKENS = parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '2000', 10)
+// Limite de tokens pour le contexte RAG (4000 par défaut pour les LLM modernes 8k+)
+const RAG_MAX_CONTEXT_TOKENS = parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '4000', 10)
 
 /**
  * Compte le nombre de tokens dans un texte de manière précise
@@ -713,25 +725,34 @@ export async function answerQuestion(
   userId: string,
   options: ChatOptions = {}
 ): Promise<ChatResponse> {
+  const startTotal = Date.now()
+
   if (!isChatEnabled()) {
     throw new Error('Chat IA désactivé (activer OLLAMA_ENABLED ou configurer GROQ_API_KEY)')
   }
 
   const provider = getChatProvider()
 
+  // Métriques RAG
+  let searchTimeMs = 0
+  let cacheHit = false
+
   // 1. Rechercher le contexte pertinent (bilingue si activé) avec fallback dégradé
   let sources: ChatSource[] = []
   let isDegradedMode = false
 
+  const startSearch = Date.now()
   try {
     sources = ENABLE_QUERY_EXPANSION
       ? await searchRelevantContextBilingual(question, userId, options)
       : await searchRelevantContext(question, userId, options)
+    searchTimeMs = Date.now() - startSearch
   } catch (error) {
     // Mode dégradé: continuer sans contexte RAG
     console.error('[RAG] FALLBACK MODE - Erreur recherche contexte:', error instanceof Error ? error.message : error)
     isDegradedMode = true
     sources = []
+    searchTimeMs = Date.now() - startSearch
   }
 
   // 2. Construire le contexte (adapté si mode dégradé)
@@ -868,6 +889,22 @@ export async function answerQuestion(
       console.error('[RAG] Erreur trigger résumé:', err)
     )
   }
+
+  // Logging métriques RAG structuré
+  const totalTimeMs = Date.now() - startTotal
+  const llmTimeMs = totalTimeMs - searchTimeMs
+  console.log('RAG_METRICS', JSON.stringify({
+    searchTimeMs,
+    llmTimeMs,
+    totalTimeMs,
+    contextTokens: tokensUsed.input,
+    outputTokens: tokensUsed.output,
+    resultsCount: sources.length,
+    degradedMode: isDegradedMode,
+    provider: modelUsed,
+    conversationId: options.conversationId || null,
+    dossierId: options.dossierId || null,
+  }))
 
   return {
     answer,

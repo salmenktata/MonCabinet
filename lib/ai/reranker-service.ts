@@ -248,3 +248,24 @@ export function getRerankerInfo(): {
     loaded: rerankerPipeline !== null,
   }
 }
+
+// =============================================================================
+// PRELOAD AU DÉMARRAGE
+// =============================================================================
+
+/**
+ * Précharge le modèle cross-encoder au démarrage si PRELOAD_RERANKER=true
+ * Élimine la latence +500ms sur la première requête de chaque session
+ */
+if (process.env.PRELOAD_RERANKER === 'true' && RERANKER_ENABLED) {
+  console.log('[Reranker] Préchargement du modèle au démarrage...')
+  preloadReranker()
+    .then((success) => {
+      if (success) {
+        console.log('[Reranker] Modèle préchargé avec succès')
+      }
+    })
+    .catch((err) => {
+      console.error('[Reranker] Erreur préchargement:', err)
+    })
+}

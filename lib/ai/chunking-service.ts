@@ -6,6 +6,30 @@
 import { aiConfig } from './config'
 
 // =============================================================================
+// OVERLAP PAR CATÉGORIE - Contexte adapté au type de document juridique
+// =============================================================================
+
+/**
+ * Overlap variable par catégorie de document
+ * Plus d'overlap pour les documents où le contexte inter-paragraphes est crucial
+ */
+export const OVERLAP_BY_CATEGORY: Record<string, number> = {
+  code: 100,           // Codes juridiques: contexte légal important entre articles
+  jurisprudence: 80,   // Jurisprudence: attendus liés entre paragraphes
+  doctrine: 60,        // Doctrine: argumentation continue
+  modele: 40,          // Modèles: sections plus indépendantes
+  default: 50,         // Valeur par défaut
+}
+
+/**
+ * Retourne l'overlap approprié pour une catégorie de document
+ */
+export function getOverlapForCategory(category?: string): number {
+  if (!category) return OVERLAP_BY_CATEGORY.default
+  return OVERLAP_BY_CATEGORY[category.toLowerCase()] ?? OVERLAP_BY_CATEGORY.default
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -27,12 +51,14 @@ export interface ChunkMetadata {
 export interface ChunkingOptions {
   /** Taille cible des chunks en mots (défaut: config RAG) */
   chunkSize?: number
-  /** Nombre de mots de chevauchement entre chunks (défaut: config RAG) */
+  /** Nombre de mots de chevauchement entre chunks (défaut: config RAG ou catégorie) */
   overlap?: number
   /** Préserver les paragraphes si possible */
   preserveParagraphs?: boolean
   /** Préserver les phrases si possible */
   preserveSentences?: boolean
+  /** Catégorie du document pour overlap adaptatif (code, jurisprudence, doctrine, modele) */
+  category?: string
 }
 
 // =============================================================================
@@ -48,10 +74,16 @@ export interface ChunkingOptions {
 export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] {
   const {
     chunkSize = aiConfig.rag.chunkSize,
-    overlap = aiConfig.rag.chunkOverlap,
+    overlap = options.category ? getOverlapForCategory(options.category) : aiConfig.rag.chunkOverlap,
     preserveParagraphs = true,
     preserveSentences = true,
+    category,
   } = options
+
+  // Log si overlap adaptatif utilisé
+  if (category && overlap !== aiConfig.rag.chunkOverlap) {
+    console.log(`[Chunking] Overlap adaptatif pour catégorie "${category}": ${overlap} mots`)
+  }
 
   if (!text || text.trim().length === 0) {
     return []

@@ -50,15 +50,19 @@ interface SummaryResult {
 }
 
 // =============================================================================
-// CLIENT LLM
+// CLIENTS LLM (avec fallback chain: DeepSeek → Groq → Ollama)
 // =============================================================================
 
 let groqClient: OpenAI | null = null
+let deepseekClient: OpenAI | null = null
+let ollamaClient: OpenAI | null = null
+
+type SummaryProvider = 'deepseek' | 'groq' | 'ollama'
 
 function getGroqClient(): OpenAI {
   if (!groqClient) {
     if (!aiConfig.groq.apiKey) {
-      throw new Error('GROQ_API_KEY non configuré pour les résumés')
+      throw new Error('GROQ_API_KEY non configuré')
     }
     groqClient = new OpenAI({
       apiKey: aiConfig.groq.apiKey,
@@ -66,6 +70,109 @@ function getGroqClient(): OpenAI {
     })
   }
   return groqClient
+}
+
+function getDeepSeekClient(): OpenAI {
+  if (!deepseekClient) {
+    if (!aiConfig.deepseek.apiKey) {
+      throw new Error('DEEPSEEK_API_KEY non configuré')
+    }
+    deepseekClient = new OpenAI({
+      apiKey: aiConfig.deepseek.apiKey,
+      baseURL: aiConfig.deepseek.baseUrl,
+    })
+  }
+  return deepseekClient
+}
+
+function getOllamaClient(): OpenAI {
+  if (!ollamaClient) {
+    ollamaClient = new OpenAI({
+      apiKey: 'ollama',
+      baseURL: `${aiConfig.ollama.baseUrl}/v1`,
+    })
+  }
+  return ollamaClient
+}
+
+/**
+ * Retourne la liste des providers disponibles pour les résumés
+ * Priorité: DeepSeek (économique) → Groq (rapide) → Ollama (local)
+ */
+function getAvailableSummaryProviders(): SummaryProvider[] {
+  const providers: SummaryProvider[] = []
+  if (aiConfig.deepseek.apiKey) providers.push('deepseek')
+  if (aiConfig.groq.apiKey) providers.push('groq')
+  if (aiConfig.ollama.enabled) providers.push('ollama')
+  return providers
+}
+
+/**
+ * Génère un résumé avec un provider spécifique
+ */
+async function generateSummaryWithProvider(
+  provider: SummaryProvider,
+  systemPrompt: string,
+  userContent: string
+): Promise<{ content: string; tokensUsed: number }> {
+  let client: OpenAI
+  let model: string
+
+  switch (provider) {
+    case 'deepseek':
+      client = getDeepSeekClient()
+      model = aiConfig.deepseek.model
+      break
+    case 'groq':
+      client = getGroqClient()
+      model = SUMMARY_CONFIG.llmModel
+      break
+    case 'ollama':
+      client = getOllamaClient()
+      model = aiConfig.ollama.chatModel
+      break
+  }
+
+  const response = await client.chat.completions.create({
+    model,
+    max_tokens: SUMMARY_CONFIG.maxSummaryTokens,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userContent },
+    ],
+    temperature: 0.3,
+  })
+
+  return {
+    content: response.choices[0]?.message?.content || '',
+    tokensUsed: response.usage?.total_tokens || 0,
+  }
+}
+
+/**
+ * Génère un résumé avec fallback chain
+ * Essaie chaque provider disponible jusqu'à succès
+ */
+async function generateSummaryWithFallback(
+  systemPrompt: string,
+  userContent: string
+): Promise<{ content: string; tokensUsed: number; provider: SummaryProvider }> {
+  const providers = getAvailableSummaryProviders()
+
+  if (providers.length === 0) {
+    throw new Error('Aucun provider LLM disponible pour les résumés (configurer DEEPSEEK_API_KEY, GROQ_API_KEY ou OLLAMA_ENABLED)')
+  }
+
+  for (const provider of providers) {
+    try {
+      const result = await generateSummaryWithProvider(provider, systemPrompt, userContent)
+      return { ...result, provider }
+    } catch (error) {
+      console.warn(`[Summary] ${provider} failed, trying next...`, error instanceof Error ? error.message : error)
+    }
+  }
+
+  throw new Error(`Tous les providers ont échoué: ${providers.join(', ')}`)
 }
 
 // =============================================================================
@@ -169,20 +276,14 @@ export async function generateConversationSummary(
       .map((m) => `${m.role === 'user' ? 'Utilisateur' : 'Assistant'}: ${m.content}`)
       .join('\n\n')
 
-    // Générer le résumé
-    const client = getGroqClient()
-    const response = await client.chat.completions.create({
-      model: SUMMARY_CONFIG.llmModel,
-      max_tokens: SUMMARY_CONFIG.maxSummaryTokens,
-      messages: [
-        { role: 'system', content: SUMMARY_PROMPT },
-        { role: 'user', content: `Voici la conversation à résumer:\n\n${conversationText}` },
-      ],
-      temperature: 0.3,
-    })
+    // Générer le résumé avec fallback chain
+    const result = await generateSummaryWithFallback(
+      SUMMARY_PROMPT,
+      `Voici la conversation à résumer:\n\n${conversationText}`
+    )
 
-    const summary = response.choices[0]?.message?.content || ''
-    const tokensUsed = response.usage?.total_tokens || 0
+    const summary = result.content
+    const tokensUsed = result.tokensUsed
 
     // Sauvegarder le résumé
     await db.query(
@@ -250,23 +351,14 @@ export async function updateConversationSummary(
       .map((m) => `${m.role === 'user' ? 'Utilisateur' : 'Assistant'}: ${m.content}`)
       .join('\n\n')
 
-    // Mettre à jour le résumé
-    const client = getGroqClient()
-    const response = await client.chat.completions.create({
-      model: SUMMARY_CONFIG.llmModel,
-      max_tokens: SUMMARY_CONFIG.maxSummaryTokens,
-      messages: [
-        { role: 'system', content: UPDATE_SUMMARY_PROMPT },
-        {
-          role: 'user',
-          content: `RÉSUMÉ EXISTANT:\n${existingSummary}\n\nNOUVEAUX MESSAGES À INTÉGRER:\n${newMessagesText}`,
-        },
-      ],
-      temperature: 0.3,
-    })
+    // Mettre à jour le résumé avec fallback chain
+    const result = await generateSummaryWithFallback(
+      UPDATE_SUMMARY_PROMPT,
+      `RÉSUMÉ EXISTANT:\n${existingSummary}\n\nNOUVEAUX MESSAGES À INTÉGRER:\n${newMessagesText}`
+    )
 
-    const updatedSummary = response.choices[0]?.message?.content || ''
-    const tokensUsed = response.usage?.total_tokens || 0
+    const updatedSummary = result.content
+    const tokensUsed = result.tokensUsed
     const newTotalCount = lastSummaryCount + newMessagesResult.rows.length
 
     // Sauvegarder le résumé mis à jour
