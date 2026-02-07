@@ -1,21 +1,62 @@
 /**
  * Service de parsing des fichiers (PDF, DOCX, etc.)
  * Extrait le texte des documents pour l'indexation RAG
+ * Supporte l'OCR pour les PDFs scannés (images) via Tesseract.js
  */
 
 import mammoth from 'mammoth'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse en RSC
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let pdfParseModule: any = null
+let PDFParseClass: any = null
 
-async function getPdfParse() {
-  if (!pdfParseModule) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod = await import('pdf-parse') as any
-    pdfParseModule = mod.default || mod
+async function getPDFParse() {
+  if (!PDFParseClass) {
+    const mod = await import('pdf-parse')
+    PDFParseClass = mod.PDFParse
   }
-  return pdfParseModule
+  return PDFParseClass
+}
+
+// =============================================================================
+// CONFIGURATION OCR
+// =============================================================================
+
+const OCR_CONFIG = {
+  // Seuil minimum de caractères pour considérer qu'un PDF a du texte extractible
+  MIN_TEXT_THRESHOLD: 50,
+  // Nombre maximum de pages à traiter avec OCR (performance)
+  MAX_OCR_PAGES: 20,
+  // Langues supportées pour l'OCR (arabe + français)
+  LANGUAGES: 'ara+fra',
+  // Résolution DPI pour la conversion PDF -> image (scale factor for pdf-to-img)
+  SCALE: 2.0,
+}
+
+// Modules chargés dynamiquement pour éviter les erreurs de build
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let tesseractModule: typeof import('tesseract.js') | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let pdfToImgModule: typeof import('pdf-to-img') | null = null
+
+/**
+ * Charge Tesseract.js dynamiquement
+ */
+async function loadTesseract(): Promise<typeof import('tesseract.js')> {
+  if (!tesseractModule) {
+    tesseractModule = await import('tesseract.js')
+  }
+  return tesseractModule
+}
+
+/**
+ * Charge pdf-to-img dynamiquement
+ */
+async function loadPdfToImg(): Promise<typeof import('pdf-to-img')> {
+  if (!pdfToImgModule) {
+    pdfToImgModule = await import('pdf-to-img')
+  }
+  return pdfToImgModule
 }
 
 // =============================================================================
@@ -31,6 +72,8 @@ export interface ParsedFile {
     creationDate?: Date
     pageCount?: number
     wordCount: number
+    ocrApplied?: boolean
+    ocrPagesProcessed?: number
   }
   error?: string
 }
@@ -43,26 +86,65 @@ export type SupportedFileType = 'pdf' | 'docx' | 'doc' | 'txt'
 
 /**
  * Extrait le texte d'un fichier PDF
+ * Utilise OCR si le texte extrait est insuffisant (PDF scanné)
  */
 export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
   try {
-    const pdfParse = await getPdfParse()
-    const data = await pdfParse(buffer)
+    // pdf-parse v2 utilise une classe PDFParse (import dynamique)
+    const PDFParse = await getPDFParse()
+    const parser = new PDFParse({ data: buffer })
 
-    const text = cleanText(data.text)
-    const wordCount = countWords(text)
+    // Récupérer le texte avec pdf-parse (rapide)
+    const textResult = await parser.getText()
+    let text = cleanText(textResult.text)
+    let wordCount = countWords(text)
+
+    // Récupérer les métadonnées
+    const infoResult = await parser.getInfo()
+    const info = infoResult.info
+    const pageCount = textResult.total || infoResult.total || 0
+
+    // Vérifier si le PDF nécessite l'OCR (texte insuffisant)
+    const needsOcr = text.length < OCR_CONFIG.MIN_TEXT_THRESHOLD
+
+    let ocrApplied = false
+    let ocrPagesProcessed = 0
+
+    if (needsOcr) {
+      console.log(
+        `[FileParser] PDF avec peu de texte (${text.length} chars), application de l'OCR...`
+      )
+
+      try {
+        const ocrResult = await extractTextWithOcr(buffer, pageCount)
+        if (ocrResult.text.length > text.length) {
+          text = ocrResult.text
+          wordCount = countWords(text)
+          ocrApplied = true
+          ocrPagesProcessed = ocrResult.pagesProcessed
+          console.log(
+            `[FileParser] OCR terminé: ${ocrPagesProcessed} pages, ${wordCount} mots extraits`
+          )
+        }
+      } catch (ocrError) {
+        console.error('[FileParser] Erreur OCR (fallback au texte original):', ocrError)
+        // On continue avec le texte original (même vide)
+      }
+    }
 
     return {
       success: true,
       text,
       metadata: {
-        title: data.info?.Title || undefined,
-        author: data.info?.Author || undefined,
-        creationDate: data.info?.CreationDate
-          ? parsePdfDate(data.info.CreationDate)
+        title: info?.Title || undefined,
+        author: info?.Author || undefined,
+        creationDate: info?.CreationDate
+          ? parsePdfDate(info.CreationDate)
           : undefined,
-        pageCount: data.numpages,
+        pageCount,
         wordCount,
+        ocrApplied,
+        ocrPagesProcessed: ocrApplied ? ocrPagesProcessed : undefined,
       },
     }
   } catch (error) {
@@ -73,6 +155,93 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
       metadata: { wordCount: 0 },
       error: error instanceof Error ? error.message : 'Erreur parsing PDF',
     }
+  }
+}
+
+// =============================================================================
+// OCR POUR PDFS SCANNÉS
+// =============================================================================
+
+/**
+ * Extrait le texte d'un PDF scanné en utilisant l'OCR
+ * Utilise pdftoppm (poppler) pour convertir en images, puis Tesseract pour l'OCR
+ */
+async function extractTextWithOcr(
+  buffer: Buffer,
+  totalPages: number
+): Promise<{ text: string; pagesProcessed: number }> {
+  const pagesToProcess = Math.min(totalPages || OCR_CONFIG.MAX_OCR_PAGES, OCR_CONFIG.MAX_OCR_PAGES)
+  const textParts: string[] = []
+
+  console.log(`[FileParser] OCR: traitement de ${pagesToProcess} pages (max: ${OCR_CONFIG.MAX_OCR_PAGES})`)
+
+  // Imports dynamiques
+  const { execSync } = await import('child_process')
+  const fs = await import('fs')
+  const path = await import('path')
+  const os = await import('os')
+  const Tesseract = await loadTesseract()
+
+  // Créer un dossier temporaire
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ocr-'))
+  const pdfPath = path.join(tmpDir, 'input.pdf')
+
+  try {
+    // Écrire le PDF dans un fichier temporaire
+    fs.writeFileSync(pdfPath, buffer)
+
+    // Convertir le PDF en images PNG avec pdftoppm
+    const outputPrefix = path.join(tmpDir, 'page')
+    execSync(`pdftoppm -png -r 200 -l ${pagesToProcess} "${pdfPath}" "${outputPrefix}"`, {
+      timeout: 60000,
+    })
+
+    // Lister les images générées
+    const images = fs.readdirSync(tmpDir)
+      .filter((f: string) => f.startsWith('page') && f.endsWith('.png'))
+      .sort()
+      .slice(0, pagesToProcess)
+
+    console.log(`[FileParser] OCR: ${images.length} images générées`)
+
+    // Créer un worker Tesseract
+    const worker = await Tesseract.createWorker(OCR_CONFIG.LANGUAGES, 1)
+
+    try {
+      for (let i = 0; i < images.length; i++) {
+        const imagePath = path.join(tmpDir, images[i])
+
+        try {
+          const imageBuffer = fs.readFileSync(imagePath)
+          const { data } = await worker.recognize(imageBuffer)
+          const pageText = cleanText(data.text)
+
+          if (pageText.length > 0) {
+            textParts.push(`--- Page ${i + 1} ---\n${pageText}`)
+          }
+        } catch (pageError) {
+          console.error(`[FileParser] Erreur OCR page ${i + 1}:`, pageError)
+        }
+      }
+    } finally {
+      await worker.terminate()
+    }
+  } finally {
+    // Nettoyer les fichiers temporaires
+    try {
+      const files = fs.readdirSync(tmpDir)
+      for (const file of files) {
+        fs.unlinkSync(path.join(tmpDir, file))
+      }
+      fs.rmdirSync(tmpDir)
+    } catch {
+      // Ignorer les erreurs de nettoyage
+    }
+  }
+
+  return {
+    text: textParts.join('\n\n'),
+    pagesProcessed: textParts.length,
   }
 }
 

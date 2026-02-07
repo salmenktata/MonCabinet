@@ -253,6 +253,15 @@ export function WebSourceActions({ source }: WebSourceActionsProps) {
                 Modifier
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link
+                href={`/super-admin/web-sources/${source.id}/files`}
+                className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+              >
+                <Icons.file className="h-4 w-4 mr-2" />
+                Voir les fichiers
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleCrawl('full_crawl')}
               disabled={!source.is_active}

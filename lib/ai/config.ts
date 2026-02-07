@@ -245,12 +245,13 @@ export function isChatEnabled(): boolean {
 
 /**
  * Retourne le provider de chat actif
- * Priorité: DeepSeek (économique) > Groq (rapide) > Ollama (local) > Anthropic > OpenAI
+ * Priorité: Groq (rapide et gratuit) > DeepSeek (économique) > Ollama (local) > Anthropic > OpenAI
+ * Note: DeepSeek est maintenant en 2ème position car nécessite un solde crédit
  */
 export function getChatProvider(): 'deepseek' | 'groq' | 'ollama' | 'anthropic' | 'openai' | null {
   if (!aiConfig.rag.enabled) return null
-  if (aiConfig.deepseek.apiKey) return 'deepseek'
   if (aiConfig.groq.apiKey) return 'groq'
+  if (aiConfig.deepseek.apiKey) return 'deepseek'
   if (aiConfig.ollama.enabled) return 'ollama'
   if (aiConfig.anthropic.apiKey) return 'anthropic'
   if (aiConfig.openai.apiKey) return 'openai'

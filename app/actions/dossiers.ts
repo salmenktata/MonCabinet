@@ -204,18 +204,45 @@ export async function structurerDossierAction(
 
     return { success: true, data: result }
   } catch (error) {
-    console.error('Erreur structuration dossier:', error)
+    // Logging détaillé pour diagnostic
+    console.error('=== ERREUR STRUCTURATION DOSSIER ===')
+    console.error('Type:', typeof error)
+    console.error('Message:', error instanceof Error ? error.message : String(error))
+    console.error('Stack:', error instanceof Error ? error.stack : 'N/A')
+    console.error('=== FIN ERREUR ===')
 
     if (error instanceof Error) {
-      if (error.message.includes('ANTHROPIC_API_KEY')) {
-        return { error: 'Service IA non configuré' }
+      const msg = error.message.toLowerCase()
+
+      // Erreurs de configuration
+      if (msg.includes('anthropic_api_key') || msg.includes('openai_api_key') || msg.includes('groq_api_key') || msg.includes('deepseek_api_key')) {
+        return { error: 'Service IA non configuré. Contactez l\'administrateur.' }
       }
-      if (error.message.includes('parsing')) {
-        return { error: 'Erreur d\'analyse du récit. Veuillez reformuler.' }
+      if (msg.includes('chat ia désactivé') || msg.includes('rag_enabled')) {
+        return { error: 'Service IA désactivé. Vérifiez la configuration RAG_ENABLED.' }
       }
+
+      // Erreurs de parsing
+      if (msg.includes('parsing') || msg.includes('json')) {
+        return { error: 'Erreur d\'analyse du récit. Veuillez reformuler ou simplifier.' }
+      }
+
+      // Erreurs API
+      if (msg.includes('rate limit') || msg.includes('quota')) {
+        return { error: 'Limite d\'utilisation IA atteinte. Réessayez dans quelques minutes.' }
+      }
+      if (msg.includes('timeout') || msg.includes('econnrefused')) {
+        return { error: 'Service IA temporairement indisponible. Réessayez.' }
+      }
+      if (msg.includes('401') || msg.includes('unauthorized')) {
+        return { error: 'Clé API invalide. Contactez l\'administrateur.' }
+      }
+
+      // Log le message pour debug
+      console.error('Message d\'erreur IA:', error.message)
     }
 
-    return { error: 'Erreur lors de l\'analyse du dossier' }
+    return { error: 'Erreur lors de l\'analyse du dossier. Vérifiez les logs serveur.' }
   }
 }
 

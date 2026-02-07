@@ -32,6 +32,11 @@ export interface DownloadResult {
   error?: string
 }
 
+export interface DeleteResult {
+  success: boolean
+  error?: string
+}
+
 // =============================================================================
 // CONFIGURATION
 // =============================================================================
@@ -326,6 +331,36 @@ export async function isStorageConfigured(): Promise<{
       configured: false,
       provider,
       error: error instanceof Error ? error.message : 'MinIO non configuré',
+    }
+  }
+}
+
+/**
+ * Supprime un fichier du stockage
+ */
+export async function deleteWebFile(
+  path: string,
+  provider?: StorageProvider
+): Promise<DeleteResult> {
+  const actualProvider = provider || getStorageProvider()
+
+  try {
+    if (actualProvider === 'google_drive') {
+      // Google Drive: le path contient le fileId
+      const drive = await getGoogleDriveClient()
+      await drive.files.delete({ fileId: path })
+      return { success: true }
+    }
+
+    // MinIO
+    const { deleteFile } = await import('@/lib/storage/minio')
+    await deleteFile('web-files', path)
+    return { success: true }
+  } catch (error) {
+    console.error('[StorageAdapter] Erreur suppression:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur suppression',
     }
   }
 }

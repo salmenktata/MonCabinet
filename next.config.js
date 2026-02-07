@@ -87,6 +87,9 @@ const nextConfig = {
     ],
   },
 
+  // Modules natifs externalisés (nécessaires pour OCR et conversion PDF)
+  serverExternalPackages: ['canvas', 'pdf-to-img', 'tesseract.js', 'pdf-parse', 'pdfjs-dist'],
+
   // Exclure les polyfills Node.js côté client pour réduire le bundle
   webpack: (config, { isServer }) => {
     if (!isServer) {
