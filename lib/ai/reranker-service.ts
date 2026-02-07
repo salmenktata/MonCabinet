@@ -15,7 +15,9 @@
 // =============================================================================
 
 // Activer/désactiver le re-ranking
-const RERANKER_ENABLED = process.env.RERANKER_ENABLED !== 'false'
+// Désactivé pendant le build Next.js car @xenova/transformers utilise des APIs navigateur
+const isNextBuildPhase = process.env.NEXT_PHASE === 'phase-production-build'
+const RERANKER_ENABLED = !isNextBuildPhase && process.env.RERANKER_ENABLED !== 'false'
 
 // Modèle cross-encoder (téléchargé automatiquement au premier appel)
 const RERANKER_MODEL = process.env.RERANKER_MODEL || 'Xenova/ms-marco-MiniLM-L-6-v2'
@@ -25,22 +27,31 @@ let transformersModule: { pipeline: any; env: any } | null = null
 
 async function loadTransformers() {
   // Bloquer pendant le build Next.js car @xenova/transformers utilise des APIs navigateur
-  if (process.env.NEXT_PHASE === 'phase-production-build') {
-    throw new Error('Transformers module not available during build')
+  if (isNextBuildPhase || !RERANKER_ENABLED) {
+    return null
   }
 
   if (transformersModule) return transformersModule
 
-  // @ts-ignore - @xenova/transformers n'a pas de types TypeScript complets
-  const module = await import('@xenova/transformers')
-  transformersModule = module
+  try {
+    // Utiliser une variable pour cacher le nom du module de Webpack
+    // Cela empêche Webpack d'analyser et bundler le module pendant le build
+    const moduleName = '@xenova/transformers'
+    // @ts-ignore - @xenova/transformers n'a pas de types TypeScript complets
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const module = await import(/* webpackIgnore: true */ moduleName)
+    transformersModule = module
 
-  // Configurer le cache après le chargement
-  module.env.cacheDir = process.env.TRANSFORMERS_CACHE || './.cache/transformers'
-  module.env.allowLocalModels = true
-  module.env.allowRemoteModels = true
+    // Configurer le cache après le chargement
+    module.env.cacheDir = process.env.TRANSFORMERS_CACHE || './.cache/transformers'
+    module.env.allowLocalModels = true
+    module.env.allowRemoteModels = true
 
-  return module
+    return module
+  } catch (error) {
+    console.error('[Reranker] Erreur chargement transformers:', error)
+    return null
+  }
 }
 
 // =============================================================================
