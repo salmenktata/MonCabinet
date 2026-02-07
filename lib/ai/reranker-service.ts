@@ -1,37 +1,12 @@
 /**
  * Service de Re-ranking avec Cross-Encoder
  *
- * Utilise @xenova/transformers pour charger un modèle cross-encoder
- * qui score la pertinence de chaque paire (query, document).
+ * TEMPORAIREMENT DÉSACTIVÉ: @xenova/transformers cause des erreurs de build
+ * Le module utilise des APIs navigateur (File) non disponibles côté serveur Next.js
  *
- * Le cross-encoder améliore significativement la qualité du ranking
- * car il peut capturer les interactions sémantiques entre query et document.
- *
- * OPTIMISATION: Import dynamique pour éviter de charger le module au démarrage
+ * TODO: Réactiver quand @xenova/transformers supporte Node.js proprement
+ * ou migrer vers une alternative compatible (ex: API externe de reranking)
  */
-
-// =============================================================================
-// CONFIGURATION
-// =============================================================================
-
-// Activer/désactiver le re-ranking
-// Désactivé pendant le build Next.js car @xenova/transformers utilise des APIs navigateur
-const isNextBuildPhase = process.env.NEXT_PHASE === 'phase-production-build'
-const RERANKER_ENABLED = !isNextBuildPhase && process.env.RERANKER_ENABLED !== 'false'
-
-// Modèle cross-encoder (téléchargé automatiquement au premier appel)
-const RERANKER_MODEL = process.env.RERANKER_MODEL || 'Xenova/ms-marco-MiniLM-L-6-v2'
-
-// Variables pour le module chargé dynamiquement
-let transformersModule: { pipeline: any; env: any } | null = null
-
-async function loadTransformers() {
-  // Désactivé complètement - @xenova/transformers cause des erreurs de build
-  // Le reranker utilise des APIs navigateur (File) non disponibles côté serveur
-  // TODO: Réactiver quand @xenova/transformers supporte Node.js proprement
-  console.log('[Reranker] Désactivé temporairement (problème de compatibilité build)')
-  return null
-}
 
 // =============================================================================
 // TYPES
@@ -49,148 +24,46 @@ export interface DocumentToRerank {
   metadata?: Record<string, unknown>
 }
 
-// Type pour le pipeline de reranking
-type TextClassificationPipeline = (
-  inputs: Array<{ text: string; text_pair: string }>,
-  options?: { topk?: number }
-) => Promise<Array<{ label: string; score: number }[]>>
-
 // =============================================================================
-// SINGLETON PIPELINE
+// CONFIGURATION
 // =============================================================================
 
-let rerankerPipeline: TextClassificationPipeline | null = null
-let pipelineLoading: Promise<TextClassificationPipeline | null> | null = null
-
-/**
- * Charge le modèle cross-encoder (singleton, lazy loading)
- * Le premier appel télécharge le modèle (~80MB), les suivants utilisent le cache
- */
-async function getRerankerPipeline(): Promise<TextClassificationPipeline | null> {
-  if (!RERANKER_ENABLED) {
-    return null
-  }
-
-  if (rerankerPipeline) {
-    return rerankerPipeline
-  }
-
-  if (pipelineLoading) {
-    return pipelineLoading
-  }
-
-  console.log(`[Reranker] Chargement du modèle ${RERANKER_MODEL}...`)
-  const startTime = Date.now()
-
-  pipelineLoading = (async () => {
-    try {
-      // Charger le module dynamiquement
-      const transformers = await loadTransformers()
-
-      // Si le module n'est pas disponible (désactivé ou erreur), retourner null
-      if (!transformers) {
-        console.log('[Reranker] Module non disponible, désactivé')
-        return null
-      }
-
-      // Charger le pipeline pour le reranking (text-classification avec paires)
-      const pipe = await transformers.pipeline('text-classification', RERANKER_MODEL, {
-        quantized: true, // Utiliser le modèle quantifié (plus rapide, moins de mémoire)
-      })
-
-      rerankerPipeline = pipe as unknown as TextClassificationPipeline
-      console.log(`[Reranker] Modèle chargé en ${Date.now() - startTime}ms`)
-      return rerankerPipeline
-    } catch (error) {
-      console.error('[Reranker] Erreur chargement modèle:', error)
-      return null
-    } finally {
-      pipelineLoading = null
-    }
-  })()
-
-  return pipelineLoading
-}
+// Reranker désactivé temporairement - @xenova/transformers incompatible avec build Next.js
+const RERANKER_ENABLED = false
+const RERANKER_MODEL = process.env.RERANKER_MODEL || 'Xenova/ms-marco-MiniLM-L-6-v2'
 
 // =============================================================================
-// RE-RANKING
+// RE-RANKING (FALLBACK - RERANKER DÉSACTIVÉ)
 // =============================================================================
 
 /**
- * Re-rank des documents avec un cross-encoder
+ * Re-rank des documents
+ *
+ * NOTE: Actuellement désactivé, retourne les documents dans l'ordre original
+ * avec leurs scores de similarité vectorielle
  *
  * @param query - La question de l'utilisateur
  * @param documents - Les documents à re-rank
  * @param topK - Nombre de résultats à retourner (défaut: tous)
- * @returns Documents triés par score cross-encoder décroissant
+ * @returns Documents avec scores originaux
  */
 export async function rerankDocuments(
   query: string,
   documents: DocumentToRerank[],
   topK?: number
 ): Promise<RerankerResult[]> {
-  if (!RERANKER_ENABLED || documents.length === 0) {
-    // Fallback: retourner les documents dans l'ordre original
-    return documents.map((_, index) => ({
-      index,
-      score: documents[index].originalScore,
-      originalScore: documents[index].originalScore,
-    }))
-  }
+  // Fallback: retourner les documents triés par score original décroissant
+  const results = documents.map((doc, index) => ({
+    index,
+    score: doc.originalScore,
+    originalScore: doc.originalScore,
+  }))
 
-  try {
-    const pipe = await getRerankerPipeline()
-    if (!pipe) {
-      // Fallback si pipeline non disponible
-      return documents.map((_, index) => ({
-        index,
-        score: documents[index].originalScore,
-        originalScore: documents[index].originalScore,
-      }))
-    }
+  // Trier par score décroissant
+  results.sort((a, b) => b.score - a.score)
 
-    const startTime = Date.now()
-
-    // Préparer les paires (query, document) pour le modèle
-    const pairs = documents.map((doc) => ({
-      text: query,
-      text_pair: doc.content.substring(0, 512), // Limiter la longueur
-    }))
-
-    // Scorer toutes les paires
-    const results = await pipe(pairs) as Array<{ label: string; score: number }[] | { label: string; score: number }>
-
-    // Extraire les scores et combiner avec les scores originaux
-    const rankedResults: RerankerResult[] = results.map((result, index) => {
-      // Le modèle retourne un score entre 0 et 1
-      const crossEncoderScore = Array.isArray(result) ? result[0]?.score || 0 : (result as { score: number })?.score || 0
-
-      return {
-        index,
-        score: crossEncoderScore,
-        originalScore: documents[index].originalScore,
-      }
-    })
-
-    // Trier par score cross-encoder décroissant
-    rankedResults.sort((a, b) => b.score - a.score)
-
-    // Limiter au topK si spécifié
-    const finalResults = topK ? rankedResults.slice(0, topK) : rankedResults
-
-    console.log(`[Reranker] ${documents.length} documents re-ranked en ${Date.now() - startTime}ms`)
-
-    return finalResults
-  } catch (error) {
-    console.error('[Reranker] Erreur re-ranking:', error instanceof Error ? error.message : error)
-
-    // Fallback: retourner les documents dans l'ordre original
-    return documents.map((_, index) => ({
-      index,
-      score: documents[index].originalScore,
-      originalScore: documents[index].originalScore,
-    }))
-  }
+  // Limiter au topK si spécifié
+  return topK ? results.slice(0, topK) : results
 }
 
 /**
@@ -219,20 +92,11 @@ export function isRerankerEnabled(): boolean {
 }
 
 /**
- * Précharge le modèle cross-encoder (à appeler au démarrage de l'app)
+ * Précharge le modèle cross-encoder (no-op quand désactivé)
  */
 export async function preloadReranker(): Promise<boolean> {
-  if (!RERANKER_ENABLED) {
-    console.log('[Reranker] Désactivé (RERANKER_ENABLED=false)')
-    return false
-  }
-
-  try {
-    await getRerankerPipeline()
-    return true
-  } catch {
-    return false
-  }
+  console.log('[Reranker] Désactivé temporairement (problème de compatibilité build)')
+  return false
 }
 
 /**
@@ -246,35 +110,6 @@ export function getRerankerInfo(): {
   return {
     enabled: RERANKER_ENABLED,
     model: RERANKER_MODEL,
-    loaded: rerankerPipeline !== null,
+    loaded: false,
   }
-}
-
-// =============================================================================
-// PRELOAD AU DÉMARRAGE
-// =============================================================================
-
-/**
- * Précharge le modèle cross-encoder au démarrage par défaut (sauf si PRELOAD_RERANKER=false)
- * Élimine la latence +500ms sur la première requête de chaque session
- *
- * IMPORTANT: Désactivé pendant le build Next.js (NEXT_PHASE=phase-production-build)
- * car @xenova/transformers utilise des APIs navigateur (File) non disponibles
- */
-const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build'
-
-if (!isNextBuild && process.env.PRELOAD_RERANKER !== 'false' && RERANKER_ENABLED) {
-  // Utiliser setTimeout pour éviter de bloquer le démarrage
-  setTimeout(() => {
-    console.log('[Reranker] Préchargement du modèle au démarrage...')
-    preloadReranker()
-      .then((success) => {
-        if (success) {
-          console.log('[Reranker] Modèle préchargé avec succès')
-        }
-      })
-      .catch((err) => {
-        console.error('[Reranker] Erreur préchargement:', err)
-      })
-  }, 1000)
 }
