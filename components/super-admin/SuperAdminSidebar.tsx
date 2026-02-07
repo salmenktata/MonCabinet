@@ -5,10 +5,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
-import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { LogoHorizontal, LogoIcon } from '@/components/ui/Logo'
+import { LogoHorizontal } from '@/components/ui/Logo'
 
 interface NavItem {
   href: string
@@ -24,8 +23,6 @@ interface NavGroup {
 }
 
 interface SuperAdminSidebarProps {
-  collapsed: boolean
-  onCollapse: () => void
   pendingCount?: number
   unreadNotifications?: number
 }
@@ -84,10 +81,9 @@ const getNavGroups = (pendingCount: number, unreadNotifications: number): NavGro
 interface NavLinkProps {
   item: NavItem
   isActive: boolean
-  collapsed: boolean
 }
 
-const NavLink = memo(function NavLink({ item, isActive, collapsed }: NavLinkProps) {
+const NavLink = memo(function NavLink({ item, isActive }: NavLinkProps) {
   const Icon = Icons[item.icon]
 
   return (
@@ -96,14 +92,12 @@ const NavLink = memo(function NavLink({ item, isActive, collapsed }: NavLinkProp
         className={cn(
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
           'hover:bg-slate-800 hover:text-white',
-          isActive && 'bg-slate-800 text-white border-l-4 border-blue-500',
-          collapsed && 'justify-center'
+          isActive && 'bg-slate-800 text-white border-l-4 border-blue-500'
         )}
-        title={collapsed ? item.label : undefined}
       >
         <Icon className="h-5 w-5 shrink-0" />
-        {!collapsed && <span>{item.label}</span>}
-        {!collapsed && item.badge && (
+        <span>{item.label}</span>
+        {item.badge && (
           <Badge
             variant={item.badgeVariant || 'default'}
             className="ml-auto"
@@ -117,8 +111,6 @@ const NavLink = memo(function NavLink({ item, isActive, collapsed }: NavLinkProp
 })
 
 function SuperAdminSidebarComponent({
-  collapsed,
-  onCollapse,
   pendingCount = 0,
   unreadNotifications = 0
 }: SuperAdminSidebarProps) {
@@ -143,57 +135,29 @@ function SuperAdminSidebarComponent({
   }, [isActive, navGroups])
 
   return (
-    <aside
-      className={cn(
-        'flex h-screen flex-col border-r border-slate-700 bg-slate-900 text-slate-300 transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64'
-      )}
-    >
+    <aside className="flex h-screen w-64 flex-col border-r border-slate-700 bg-slate-900 text-slate-300">
       {/* Logo */}
-      <div className={cn(
-        'flex h-16 items-center border-b border-slate-700',
-        collapsed ? 'justify-center px-2' : 'justify-between px-4'
-      )}>
-        {!collapsed ? (
-          <Link href="/super-admin/dashboard" prefetch={true}>
-            <LogoHorizontal size="sm" variant="juridique" showTag={true} animate={false} />
-          </Link>
-        ) : (
-          <Link href="/super-admin/dashboard" prefetch={true}>
-            <LogoIcon size="sm" animate={false} />
-          </Link>
-        )}
-        {!collapsed && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onCollapse}
-            className="shrink-0 text-slate-400 hover:text-white hover:bg-slate-800"
-            title="Réduire le menu"
-          >
-            <Icons.chevronLeft className="h-4 w-4" />
-          </Button>
-        )}
+      <div className="flex h-16 items-center justify-between px-4 border-b border-slate-700">
+        <Link href="/super-admin/dashboard" prefetch={true}>
+          <LogoHorizontal size="sm" variant="juridique" showTag={true} animate={false} />
+        </Link>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-6 p-4 overflow-y-auto">
         {groupsWithState.map((group, groupIndex) => (
           <div key={group.group} className="space-y-1">
-            {!collapsed && (
-              <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                {group.group}
-              </h3>
-            )}
+            <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              {group.group}
+            </h3>
             {group.items.map((item) => (
               <NavLink
                 key={item.href}
                 item={item}
                 isActive={item.isActive}
-                collapsed={collapsed}
               />
             ))}
-            {!collapsed && groupIndex < groupsWithState.length - 1 && (
+            {groupIndex < groupsWithState.length - 1 && (
               <Separator className="my-4 bg-slate-700" />
             )}
           </div>
@@ -202,30 +166,15 @@ function SuperAdminSidebarComponent({
 
       {/* Footer - Retour au dashboard utilisateur */}
       <div className="border-t border-slate-700 p-4 space-y-1">
-        {/* Bouton pour ouvrir la sidebar quand réduite */}
-        {collapsed && (
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onCollapse}
-            className="w-10 h-10 mx-auto border-2 border-blue-500/50 bg-blue-500/10 hover:bg-blue-500/20 hover:border-blue-500 text-blue-400"
-            title="Ouvrir le menu"
-          >
-            <Icons.panelLeftOpen className="h-5 w-5" />
-          </Button>
-        )}
-
         <Link href="/dashboard" prefetch={true}>
           <div
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              'text-slate-400 hover:bg-slate-800 hover:text-white',
-              collapsed && 'justify-center'
+              'text-slate-400 hover:bg-slate-800 hover:text-white'
             )}
-            title={collapsed ? 'Retour au Dashboard' : undefined}
           >
             <Icons.arrowLeft className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>Retour au Dashboard</span>}
+            <span>Retour au Dashboard</span>
           </div>
         </Link>
       </div>

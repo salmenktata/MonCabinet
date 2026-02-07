@@ -46,34 +46,17 @@ function useIsMobile(breakpoint = 1024, delay = 150) {
 }
 
 function AppLayoutComponent({ children, user }: AppLayoutProps) {
-  const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const isMobile = useIsMobile()
-
-  // Charger l'état sauvegardé au montage
-  useEffect(() => {
-    const saved = localStorage.getItem('sidebar-collapsed')
-    if (saved) {
-      setCollapsed(JSON.parse(saved))
-    }
-  }, [])
-
-  const toggleCollapse = useCallback(() => {
-    setCollapsed(prev => {
-      const newValue = !prev
-      localStorage.setItem('sidebar-collapsed', JSON.stringify(newValue))
-      return newValue
-    })
-  }, [])
 
   const closeMobile = useCallback(() => setMobileOpen(false), [])
   const openMobile = useCallback(() => setMobileOpen(true), [])
 
   return (
     <div className="relative flex min-h-screen">
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar - Toujours étendu */}
       {!isMobile && (
-        <Sidebar collapsed={collapsed} onCollapse={toggleCollapse} userRole={user.role} />
+        <Sidebar userRole={user.role} />
       )}
 
       {/* Mobile Menu Button */}
@@ -91,7 +74,7 @@ function AppLayoutComponent({ children, user }: AppLayoutProps) {
       {/* Mobile Drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-64">
-          <Sidebar collapsed={false} onCollapse={closeMobile} userRole={user.role} />
+          <Sidebar userRole={user.role} onClose={closeMobile} />
         </SheetContent>
       </Sheet>
 
