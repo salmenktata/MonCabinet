@@ -14,7 +14,8 @@ import { hash } from 'bcryptjs'
 import { z } from 'zod'
 import { query } from '@/lib/db/postgres'
 import crypto from 'crypto'
-import { registerLimiter, getClientIP, getRateLimitHeaders } from '@/lib/rate-limiter'
+// Rate limiting désactivé temporairement
+// import { registerLimiter, getClientIP, getRateLimitHeaders } from '@/lib/rate-limiter'
 import { createLogger } from '@/lib/logger'
 import { sendVerificationEmail } from '@/lib/email/templates/verification-email'
 
@@ -40,23 +41,23 @@ const registerSchema = z.object({
   })
 
 export async function POST(request: NextRequest) {
-  // Rate limiting par IP
-  const clientIP = getClientIP(request)
-  const rateLimitResult = registerLimiter.check(clientIP)
-
-  if (!rateLimitResult.allowed) {
-    log.warn('Rate limit atteint', { ip: clientIP, retryAfter: rateLimitResult.retryAfter })
-    return NextResponse.json(
-      {
-        error: 'Trop de tentatives d\'inscription. Veuillez réessayer plus tard.',
-        retryAfter: rateLimitResult.retryAfter,
-      },
-      {
-        status: 429,
-        headers: getRateLimitHeaders(rateLimitResult),
-      }
-    )
-  }
+  // Rate limiting désactivé temporairement
+  // const clientIP = getClientIP(request)
+  // const rateLimitResult = registerLimiter.check(clientIP)
+  //
+  // if (!rateLimitResult.allowed) {
+  //   log.warn('Rate limit atteint', { ip: clientIP, retryAfter: rateLimitResult.retryAfter })
+  //   return NextResponse.json(
+  //     {
+  //       error: 'Trop de tentatives d\'inscription. Veuillez réessayer plus tard.',
+  //       retryAfter: rateLimitResult.retryAfter,
+  //     },
+  //     {
+  //       status: 429,
+  //       headers: getRateLimitHeaders(rateLimitResult),
+  //     }
+  //   )
+  // }
 
   try {
     // 1. Parser et valider les données
