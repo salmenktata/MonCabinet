@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "MonCabinet",
+    "appName": "Qadhya",
     "logout": "Déconnexion",
     "login": "Se connecter",
     "register": "Créer un compte",
@@ -128,7 +128,7 @@
       "casesLabel": "gérés chaque mois"
     },
     "testimonial": {
-      "quote": "MonCabinet a transformé ma façon de gérer mon cabinet. Je gagne un temps précieux chaque jour.",
+      "quote": "Qadhya a transformé ma façon de gérer mon cabinet. Je gagne un temps précieux chaque jour.",
       "author": "Me. Sarah Ben Ali",
       "role": "Avocate, Barreau de Tunis"
     }
@@ -425,7 +425,7 @@
     }
   },
   "home": {
-    "title": "MonCabinet",
+    "title": "Qadhya",
     "subtitle": "Plateforme de gestion de cabinet juridique pour avocats tunisiens",
     "loginButton": "Se connecter",
     "registerButton": "Créer un compte",

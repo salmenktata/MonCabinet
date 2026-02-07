@@ -1,79 +1,133 @@
-# MonCabinet - Plateforme SaaS de Gestion de Cabinet Juridique
+# Qadhya - Plateforme SaaS de Gestion de Cabinet Juridique
 
 ## 🎯 Vision
 
-MonCabinet (moncabinet.tn) est une plateforme SaaS moderne conçue spécifiquement pour les avocats tunisiens, permettant une gestion efficace des dossiers, clients, échéances et facturation.
+Qadhya (qadhya.tn) est une plateforme SaaS moderne conçue spécifiquement pour les avocats tunisiens, permettant une gestion efficace des dossiers, clients, échéances et facturation, avec un assistant IA juridique intégré.
 
-## 🚀 Objectif MVP (Extreme MVP - 2.5 mois)
+## 🚀 Fonctionnalités Implémentées
 
-Le MVP se concentre sur un workflow principal ultra-bien fait : **la procédure civile de première instance**.
+### Core - Gestion Cabinet
 
-### Fonctionnalités MVP
-
-- ✅ Authentification (email/password)
-- ✅ Gestion des clients (CRUD simple)
-- ✅ Gestion des dossiers (procédure civile uniquement)
-- ✅ Workflow prédéfini (civil 1ère instance)
-- ✅ Actions et tâches par dossier
-- ✅ Calcul des échéances et délais
-- ✅ Upload et gestion de documents
+- ✅ Authentification (email/password, JWT HttpOnly)
+- ✅ Vérification email, réinitialisation mot de passe
+- ✅ Gestion des clients (CRUD complet)
+- ✅ Gestion des dossiers (tous workflows juridiques tunisiens)
+- ✅ Workflows prédéfinis (civil, pénal, famille, commercial, etc.)
+- ✅ Actions et tâches par dossier avec suivi
+- ✅ Calcul des échéances et délais légaux tunisiens
+- ✅ Upload et gestion de documents (MinIO S3)
 - ✅ Dashboard avec indicateurs clés
-- ✅ Notifications par email
-- ✅ Facturation basique (création, PDF, suivi paiement)
-- ✅ Recherche de dossiers
+- ✅ Facturation (création, PDF, notes d'honoraires)
+- ✅ Paiement en ligne (Flouci)
+- ✅ Recherche full-text et sémantique
+
+### IA & RAG
+
+- ✅ Chat IA juridique avec RAG (Retrieval-Augmented Generation)
+- ✅ Base de connaissances juridique (lois, jurisprudence, procédures)
+- ✅ Embeddings vectoriels (OpenAI/Ollama avec pgvector)
+- ✅ Re-ranking cross-encoder pour pertinence optimale
+- ✅ Cache Redis pour traductions et embeddings
+- ✅ Support bilingue arabe/français avec traduction automatique
+- ✅ Feedback utilisateur pour amélioration continue
+- ✅ Clustering sémantique des documents liés
+
+### Intégrations
+
+- ✅ WhatsApp Business API (messagerie clients)
+- ✅ Google Drive (sync documents)
+- ✅ Flouci (paiements tunisiens)
+- ✅ Resend/Brevo (emails transactionnels)
+
+### Administration
+
+- ✅ Interface super-admin complète
+- ✅ Gestion de la base de connaissances (CRUD, indexation)
+- ✅ Monitoring des coûts IA
+- ✅ Backups automatisés
+- ✅ Migrations de base de données
 
 ## 🛠️ Stack Technique
 
 ### Frontend
-- **Next.js 14** (App Router)
+- **Next.js 15** (App Router, Server Components)
 - **TailwindCSS** pour le styling
 - **shadcn/ui** pour les composants UI
 - **Zustand** pour la gestion d'état
 - **React Hook Form + Zod** pour les formulaires
 - **@react-pdf/renderer** pour la génération de PDF
+- **i18n** : Support FR/AR (RTL natif)
 
 ### Backend
-- **PostgreSQL 15** (base de données)
-- **NextAuth.js** (authentification JWT)
+- **PostgreSQL 15** avec **pgvector** (embeddings vectoriels)
+- **JWT HttpOnly (jose)** pour l'authentification
 - **MinIO** (stockage S3-compatible pour documents)
-- **Row-Level Security (RLS)** pour la sécurité des données
+- **Redis** (cache embeddings, traductions, recherche)
+- **Isolation multi-tenant** via filtres `user_id` côté requêtes
 
-### Email
-- **Resend** pour l'envoi d'emails
+### IA / RAG Pipeline
+- **Embeddings** : OpenAI text-embedding-3-large / Ollama (nomic-embed-text)
+- **LLM** : Groq (prioritaire), Anthropic Claude, OpenAI
+- **Re-ranking** : Cross-encoder Xenova/ms-marco-MiniLM-L-6-v2
+- **Clustering** : UMAP + HDBSCAN pour documents similaires
+- **Traduction** : Groq avec cache 30 jours
+
+### Intégrations
+- **Email** : Resend / Brevo (transactionnel)
+- **WhatsApp** : Meta Business API
+- **Paiement** : Flouci
+- **Cloud Storage** : Google Drive (optionnel)
 
 ### Hébergement
-- **Architecture**: Docker Compose (Next.js + PostgreSQL + MinIO)
-- **Options**: VPS Contabo / DigitalOcean / AWS
-- **Reverse Proxy**: Nginx + Let's Encrypt SSL
+- **Architecture** : Docker Compose (Next.js + PostgreSQL + MinIO + Redis)
+- **Serveur** : VPS Contabo / DigitalOcean / AWS
+- **Reverse Proxy** : Nginx + Let's Encrypt SSL
+- **Backup** : Script automatisé pg_dump + MinIO
 
 ## 📁 Structure du Projet
 
 ```
-moncabinet/
+qadhya/
 ├── app/                    # Next.js App Router
 │   ├── (auth)/            # Pages d'authentification
-│   ├── (dashboard)/       # Pages du dashboard
-│   └── api/               # API Routes
+│   ├── (dashboard)/       # Pages du dashboard avocat
+│   ├── (super-admin)/     # Interface super-admin
+│   └── api/               # 42+ API Routes
+│       ├── auth/          # Auth (login, register, password reset)
+│       ├── admin/         # Admin (knowledge-base, backups, migrations)
+│       ├── chat/          # Chat IA avec feedback
+│       ├── search/        # Recherche full-text et sémantique
+│       ├── webhooks/      # WhatsApp, Flouci, Google Drive
+│       └── cron/          # Jobs planifiés
 ├── components/            # Composants React réutilisables
-│   ├── ui/               # Composants UI (shadcn)
+│   ├── ui/               # shadcn/ui (50+ composants)
 │   ├── clients/          # Composants clients
 │   ├── dossiers/         # Composants dossiers
-│   └── shared/           # Composants partagés
-├── lib/                  # Utilitaires et configurations
+│   ├── chat/             # Interface chat IA
+│   └── super-admin/      # Interface administration
+├── lib/                  # Services et utilitaires
 │   ├── db/               # Client PostgreSQL
-│   ├── auth/             # Helpers NextAuth
+│   ├── auth/             # Auth JWT (HttpOnly)
 │   ├── storage/          # Client MinIO
-│   ├── utils/            # Fonctions utilitaires
+│   ├── cache/            # Redis (embeddings, traductions)
+│   ├── ai/               # 20 services IA/RAG
+│   │   ├── rag-chat-service.ts
+│   │   ├── embeddings-service.ts
+│   │   ├── knowledge-base-service.ts
+│   │   ├── reranker-service.ts
+│   │   └── ...
 │   └── validations/      # Schémas Zod
-├── types/                # Types TypeScript
-├── data/                 # Données de référence
-│   ├── calendrier-judiciaire-2025.json
+├── locales/              # Traductions FR/AR
+├── data/                 # Données de référence tunisiennes
+│   ├── calendrier-judiciaire.json
 │   ├── delais-legaux.json
 │   └── tribunaux-tunisie.json
-├── public/               # Assets statiques
-│   └── templates/        # Templates de documents
-└── supabase/             # Migrations PostgreSQL
-    └── migrations/       # Migrations de base de données SQL
+├── docs/                 # Documentation technique
+│   ├── architecture/     # Architecture technique
+│   ├── deployment/       # Guides déploiement VPS
+│   ├── features/         # Documentation fonctionnalités
+│   └── guides/           # Guides d'utilisation
+└── db/migrations/        # 40+ migrations SQL
 ```
 
 ## 🚦 Prérequis
@@ -128,6 +182,7 @@ Le projet utilise Docker Compose pour l'infrastructure locale :
 ```yaml
 Services:
 - postgres:5433    # PostgreSQL 15
+- redis:6379       # Cache Redis
 - minio:9000       # MinIO (API S3)
 - minio:9001       # MinIO Console
 - nextjs:3000      # Application Next.js
@@ -150,16 +205,32 @@ docker exec moncabinet-postgres pg_dump -U moncabinet moncabinet > backup.sql
 
 ## 📊 Schéma de Base de Données
 
-Voir `supabase/migrations/` pour les migrations SQL complètes.
+Voir `db/migrations/` pour les 40+ migrations SQL.
 
-### Tables principales
-- `users` - Utilisateurs (avocats)
+### Tables principales (50+)
+
+**Core**
+- `users` - Utilisateurs (avocats, admins)
+- `profiles` - Profils cabinet
 - `clients` - Clients
 - `dossiers` - Dossiers juridiques
 - `actions` - Actions et tâches
 - `echeances` - Échéances et délais
 - `documents` - Documents uploadés
 - `factures` - Factures
+
+**IA / RAG**
+- `knowledge_base` - Documents base de connaissances
+- `knowledge_base_chunks` - Chunks pour RAG
+- `knowledge_base_embeddings` - Embeddings vectoriels (pgvector)
+- `chat_messages` - Historique conversations IA
+- `chat_message_feedback` - Feedback utilisateurs
+- `document_embeddings` - Embeddings documents utilisateur
+
+**Intégrations**
+- `whatsapp_conversations` - Conversations WhatsApp
+- `whatsapp_messages` - Messages WhatsApp
+- `payment_transactions` - Paiements Flouci
 
 ## 🎨 Design System
 
@@ -172,9 +243,9 @@ Le projet utilise **shadcn/ui** basé sur Tailwind CSS.
 
 ## 🔐 Sécurité
 
-- **Authentification** : NextAuth.js avec sessions JWT (30 jours)
+- **Authentification** : JWT HttpOnly (30 jours)
 - **Hashing mots de passe** : bcrypt (10 rounds)
-- **Autorisation** : Row-Level Security (RLS) PostgreSQL + filtres user_id
+- **Autorisation** : filtres `user_id` côté requêtes + contrôles rôle
 - **Encryption** : TLS 1.3 pour les communications (Let's Encrypt)
 - **Stockage** : MinIO avec buckets privés
 - **Conformité** : INPDP (Instance Nationale de Protection des Données Personnelles - Tunisie)
@@ -189,33 +260,26 @@ Le projet utilise **shadcn/ui** basé sur Tailwind CSS.
 
 ## 📈 Roadmap
 
-### Phase 1 : Beta Privée (3 mois)
+### ✅ Phase 1 : MVP Complet (Terminé)
+- Gestion cabinet complète (clients, dossiers, actions, échéances)
+- Facturation avec paiement Flouci
+- Chat IA juridique avec RAG
+- Base de connaissances juridique tunisienne
+- Support bilingue FR/AR
+- Intégration WhatsApp
+- Interface super-admin
+
+### 🚧 Phase 2 : Beta Privée (En cours)
 - 15 avocats testeurs
 - Onboarding personnalisé
-- Feedback bi-mensuel
+- Amélioration continue du RAG
 
-### Phase 2 : Beta Publique (3 mois)
-- Ouverture inscription
-- 100 premiers utilisateurs : -50% pendant 1 an
-- Support email
-
-### Phase 3 : Lancement Commercial (Mois 7)
-- Plans payants activés
-- Support chat en direct
-- Programme de parrainage
-
-### V1.5 (Mois 10-12)
-- Autres workflows (divorce, commercial, pénal)
+### 📋 Phase 3 : Améliorations Prévues
 - Time tracking intégré
-- Templates de documents juridiques
-- Support de la langue arabe
-- Rapports clients PDF
-
-### V2.0 (Mois 15-18)
-- Module comptabilité cabinet
-- Intégration email (Outlook/Gmail)
-- Analytics avancées
+- Templates de documents juridiques enrichis
 - Mode offline (PWA)
+- Analytics avancées cabinet
+- Intégration email (Outlook/Gmail)
 
 ## 💰 Pricing
 
@@ -237,7 +301,7 @@ Ce projet est sous licence propriétaire. Tous droits réservés.
 
 ## 📞 Contact
 
-Pour toute question : contact@moncabinet.tn
+Pour toute question : contact@qadhya.tn
 
 ## 🙏 Remerciements
 

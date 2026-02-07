@@ -1,4 +1,4 @@
-# 🗺️ ROADMAP AVOCAT SAAS - TUNISIE
+# 🗺️ ROADMAP QADHYA - SaaS Juridique Tunisie
 ## Roadmap Consolidé - Version Officielle
 
 **Date de consolidation** : 6 février 2026
@@ -313,6 +313,16 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 51. `lib/ai/config.ts` - Seuils centralisés RAG_THRESHOLDS, SOURCE_BOOST
 52. `lib/ai/rag-chat-service.ts` - Re-ranking, diversité sources, monitoring
 
+#### Améliorations RAG Avancées (Fév 2026)
+61. `lib/cache/translation-cache.ts` - Cache traductions AR↔FR (TTL 30j)
+62. `lib/ai/feedback-service.ts` - Boost dynamique basé feedback utilisateurs
+63. `lib/ai/reranker-service.ts` - Cross-encoder re-ranking (Xenova)
+64. `lib/ai/clustering-service.ts` - Clustering UMAP + HDBSCAN
+65. `lib/ai/related-documents-service.ts` - Documents similaires avec cache
+66. `lib/ai/conversation-summary-service.ts` - Résumé conversations longues
+67. `db/migrations/20260207000003_related_documents_function.sql` - Fonction SQL find_related_documents
+68. `db/migrations/20260208000003_kb_clustering.sql` - Colonne cluster_id + fonctions SQL
+
 #### Système de Backups & Admin
 53. `backup.sh` - Script backup PostgreSQL + MinIO + Code avec notifications Brevo
 54. `restore.sh` - Script restauration avec options --list/--db/--minio/--latest
@@ -325,7 +335,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 59. `components/templates/TemplateLanguageFilter.tsx` - Filtre FR/AR
 60. `supabase/migrations/20260206300000_templates_add_langue.sql` - Colonne langue + trigger
 
-**Total : 60+ fichiers créés**
+**Total : 68+ fichiers créés**
 
 ---
 
@@ -389,6 +399,15 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - ✅ Classification automatique documents (`lib/ai/document-classifier.ts`)
 - ✅ Import jurisprudence tunisienne (`lib/ai/jurisprudence-importer.ts`)
 - ✅ Monitoring coûts IA (`lib/ai/usage-tracker.ts`)
+- ✅ **Améliorations RAG (Fév 2026)**
+  - Cache traductions AR↔FR (TTL 30j) (`lib/cache/translation-cache.ts`)
+  - Fallback dégradé si embeddings échouent
+  - Comptage tokens précis gpt-tokenizer
+  - Résumé conversations longues (>10 messages)
+  - Feedback loop dynamique pour boost sources (`lib/ai/feedback-service.ts`)
+  - Re-ranking cross-encoder Xenova/ms-marco (`lib/ai/reranker-service.ts`)
+  - Clustering sémantique UMAP+HDBSCAN (`lib/ai/clustering-service.ts`)
+  - Documents similaires avec cache Redis (`lib/ai/related-documents-service.ts`)
 
 ### Notifications
 - ✅ Logique notifications (échéances J-15/7/3/1)
@@ -431,6 +450,14 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - [x] **Persistance état Assistant IA** ✅ (Zustand + sessionStorage)
 
 ### Priorité 3 (Améliorations IA Qadhya)
+- [x] **Pipeline RAG optimisé** ✅
+  - Cache traductions 30j
+  - Fallback dégradé
+  - Comptage tokens précis
+  - Résumé conversations longues
+  - Feedback loop dynamique
+  - Re-ranking cross-encoder
+  - Clustering sémantique KB
 - [ ] **Enrichissement base jurisprudence** (10,000+ décisions)
 - [ ] **Fine-tuning prompts spécialisés** par type de dossier
 - [ ] **Amélioration OCR** documents scannés
@@ -500,8 +527,8 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 
 ## 🎯 AVANTAGES COMPÉTITIFS
 
-| Critère | MonCabinet | Concurrents EU |
-|---------|-------------|----------------|
+| Critère | Qadhya | Concurrents EU |
+|---------|--------|----------------|
 | Prix | 49-199 TND/mois | 400-800 TND/mois |
 | Délais tunisiens | ✅ 11 types auto | ❌ Génériques |
 | Workflows tunisiens | ✅ Divorce CSP, Commercial TMM+7 | ❌ Droit français |
@@ -540,7 +567,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - **CONTRIBUTING.md** - Guidelines contribution
 
 ### Ressources
-- **Repository** : GitHub (salmenktata/MonCabinet)
+- **Repository** : GitHub (salmenktata/Qadhya)
 - **VPS** : Contabo (Docker + PM2 + Nginx)
 - **PostgreSQL** : Docker container (port 5433)
 - **MinIO** : Docker container (ports 9000/9001)
@@ -573,8 +600,8 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 
 ---
 
-**📅 Dernière mise à jour** : 6 février 2026
-**📊 Statut** : Roadmap 3 mois complété - Backups automatisés + Templates bilingues complets
+**📅 Dernière mise à jour** : 7 février 2026
+**📊 Statut** : Roadmap 3 mois complété - Pipeline RAG optimisé + Clustering KB
 **🚀 Prochain milestone** : Tests E2E workflows + E-facture TTN
 
 ---

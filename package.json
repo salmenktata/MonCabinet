@@ -1,9 +1,9 @@
 {
-  "name": "moncabinet",
+  "name": "qadhya",
   "version": "0.1.0",
   "private": true,
-  "description": "MonCabinet - Plateforme SaaS de gestion de cabinet juridique pour avocats tunisiens",
-  "author": "MonCabinet Team",
+  "description": "Qadhya - Plateforme SaaS de gestion de cabinet juridique pour avocats tunisiens",
+  "author": "Qadhya Team",
   "license": "UNLICENSED",
   "scripts": {
     "seed": "node scripts/create-default-user.js",

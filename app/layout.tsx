@@ -15,8 +15,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'MonCabinet - Gestion de Cabinet Juridique',
-  description: 'MonCabinet - Plateforme SaaS pour la gestion de cabinet juridique en Tunisie',
+  title: 'Qadhya - Gestion de Cabinet Juridique',
+  description: 'Qadhya - Plateforme SaaS pour la gestion de cabinet juridique en Tunisie',
 }
 
 export const viewport: Viewport = {

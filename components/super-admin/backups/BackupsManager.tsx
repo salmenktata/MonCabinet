@@ -310,14 +310,14 @@ export default function BackupsManager() {
         <CardContent className="space-y-2 text-sm">
           <p>
             <span className="font-medium">Répertoire:</span>{' '}
-            <code className="rounded bg-muted px-2 py-1">{data?.backupDir || '/opt/backups/moncabinet'}</code>
+            <code className="rounded bg-muted px-2 py-1">{data?.backupDir || '/opt/backups/qadhya'}</code>
           </p>
           <p>
             <span className="font-medium">Rétention:</span> 14 jours
           </p>
           <p>
             <span className="font-medium">Cron recommandé:</span>{' '}
-            <code className="rounded bg-muted px-2 py-1">0 3 * * * /opt/moncabinet/backup.sh --notify</code>
+            <code className="rounded bg-muted px-2 py-1">0 3 * * * /opt/qadhya/backup.sh --notify</code>
           </p>
         </CardContent>
       </Card>

@@ -200,7 +200,7 @@ export function Logo({
             text
           )}
         >
-          MonCabinet
+          Qadhya
         </span>
       )}
 
@@ -323,7 +323,7 @@ export function LogoHorizontal({
             text
           )}
         >
-          MonCabinet
+          Qadhya
         </span>
         {showTag && (
           <span

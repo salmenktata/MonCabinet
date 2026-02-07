@@ -94,7 +94,7 @@ export function DailyDigestStatus({ brevoConfigured, cronConfigured }: DailyDige
           <pre className="mt-2 p-3 bg-slate-800 rounded text-xs text-slate-300 overflow-x-auto">
 {`# Brevo API (obtenir sur https://app.brevo.com/settings/keys/api)
 BREVO_API_KEY=xkeysib-...
-BREVO_SENDER_EMAIL=notifications@moncabinet.tn
+BREVO_SENDER_EMAIL=notifications@qadhya.tn
 
 # Secret pour sécuriser le cron (générer avec: openssl rand -hex 32)
 CRON_SECRET=votre-secret-32-chars-minimum`}

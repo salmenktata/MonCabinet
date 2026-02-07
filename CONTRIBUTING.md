@@ -1,8 +1,8 @@
-# Guide de Contribution - MonCabinet
+# Guide de Contribution - Qadhya
 
 ## 🤝 Bienvenue
 
-Merci de votre intérêt pour contribuer à MonCabinet ! Ce guide vous aidera à démarrer.
+Merci de votre intérêt pour contribuer à Qadhya ! Ce guide vous aidera à démarrer.
 
 ## 📋 Table des Matières
 
@@ -473,7 +473,7 @@ console.log('test', data)
 
 - **Bugs/Features** : [GitHub Issues](https://github.com/votre-org/avocat/issues)
 - **Questions générales** : [Discussions](https://github.com/votre-org/avocat/discussions)
-- **Contact direct** : dev@moncabinet.tn
+- **Contact direct** : dev@qadhya.tn
 
 ### FAQ
 

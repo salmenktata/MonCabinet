@@ -9,8 +9,8 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Configuration email
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'notifications@moncabinet.tn'
-const FROM_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'MonCabinet'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'notifications@qadhya.tn'
+const FROM_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Qadhya'
 
 export interface SendEmailParams {
   to: string | string[]

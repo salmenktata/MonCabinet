@@ -4,17 +4,16 @@
 # Script d'installation automatique MonCabinet sur VPS Contabo
 #
 # Ce script installe et configure automatiquement :
-# - Node.js 18+ & npm
+# - Docker + Docker Compose
 # - Nginx (reverse proxy)
-# - PM2 (process manager)
 # - Certbot (SSL Let's Encrypt)
 # - Configuration firewall
-# - Déploiement de l'application Next.js
+# - Deploiement de l'application via Docker Compose
 #
 # Usage: sudo bash setup-vps.sh
 ################################################################################
 
-set -e  # Arrêter en cas d'erreur
+set -e  # Arreter en cas d'erreur
 
 # Couleurs pour les messages
 RED='\033[0;31m'
@@ -40,9 +39,9 @@ print_error() {
     echo -e "${RED}✗${NC} $1"
 }
 
-# Vérifier que le script est exécuté en tant que root
+# Verifier que le script est execute en tant que root
 if [ "$EUID" -ne 0 ]; then
-    print_error "Ce script doit être exécuté en tant que root (sudo)"
+    print_error "Ce script doit etre execute en tant que root (sudo)"
     exit 1
 fi
 
@@ -56,34 +55,35 @@ echo "╚═══════════════════════�
 echo ""
 
 # ============================================================================
-# ÉTAPE 1 : COLLECTE DES INFORMATIONS
+# ETAPE 1 : COLLECTE DES INFORMATIONS
 # ============================================================================
 
-print_message "Configuration initiale - Veuillez répondre aux questions suivantes :"
+print_message "Configuration initiale - Veuillez repondre aux questions suivantes :"
 echo ""
 
 read -p "Nom de domaine (ex: moncabinet.tn) : " DOMAIN_NAME
 read -p "Email pour les certificats SSL (ex: admin@moncabinet.tn) : " SSL_EMAIL
-read -p "Port de l'application Next.js (défaut: 7002) : " APP_PORT
-APP_PORT=${APP_PORT:-7002}
-
 read -p "URL du repository Git (ex: https://github.com/user/Avocat.git) : " GIT_REPO
 
-# Créer un utilisateur non-root
-read -p "Créer un utilisateur non-root ? (o/n, défaut: o) : " CREATE_USER
+# Creer un utilisateur non-root
+read -p "Creer un utilisateur non-root ? (o/n, defaut: o) : " CREATE_USER
 CREATE_USER=${CREATE_USER:-o}
 
 if [ "$CREATE_USER" = "o" ]; then
-    read -p "Nom d'utilisateur (défaut: moncabinet) : " USERNAME
+    read -p "Nom d'utilisateur (defaut: moncabinet) : " USERNAME
     USERNAME=${USERNAME:-moncabinet}
 fi
 
+APP_PORT=3000
+APP_DIR="/opt/moncabinet"
+
 echo ""
-print_message "Récapitulatif de la configuration :"
+print_message "Recapitulatif de la configuration :"
 echo "  - Domaine : $DOMAIN_NAME"
 echo "  - Email SSL : $SSL_EMAIL"
-echo "  - Port application : $APP_PORT"
 echo "  - Repository : $GIT_REPO"
+echo "  - Port application (Nginx -> Docker) : $APP_PORT"
+echo "  - Repertoire : $APP_DIR"
 if [ "$CREATE_USER" = "o" ]; then
     echo "  - Utilisateur : $USERNAME"
 fi
@@ -91,42 +91,42 @@ echo ""
 
 read -p "Confirmer et continuer ? (o/n) : " CONFIRM
 if [ "$CONFIRM" != "o" ]; then
-    print_error "Installation annulée"
+    print_error "Installation annulee"
     exit 1
 fi
 
 # ============================================================================
-# ÉTAPE 2 : MISE À JOUR DU SYSTÈME
+# ETAPE 2 : MISE A JOUR DU SYSTEME
 # ============================================================================
 
-print_message "Étape 1/8 : Mise à jour du système..."
+print_message "Etape 1/7 : Mise a jour du systeme..."
 
 apt update && apt upgrade -y
-apt install -y curl wget git ufw build-essential
+apt install -y curl wget git ufw ca-certificates
 
-print_success "Système mis à jour"
+print_success "Systeme mis a jour"
 
 # ============================================================================
-# ÉTAPE 3 : CRÉATION UTILISATEUR NON-ROOT
+# ETAPE 3 : CREATION UTILISATEUR NON-ROOT
 # ============================================================================
 
 if [ "$CREATE_USER" = "o" ]; then
-    print_message "Étape 2/8 : Création de l'utilisateur $USERNAME..."
+    print_message "Etape 2/7 : Creation de l'utilisateur $USERNAME..."
 
     if id "$USERNAME" &>/dev/null; then
-        print_warning "L'utilisateur $USERNAME existe déjà"
+        print_warning "L'utilisateur $USERNAME existe deja"
     else
         useradd -m -s /bin/bash "$USERNAME"
         usermod -aG sudo "$USERNAME"
-        print_success "Utilisateur $USERNAME créé"
+        print_success "Utilisateur $USERNAME cree"
     fi
 fi
 
 # ============================================================================
-# ÉTAPE 4 : CONFIGURATION FIREWALL
+# ETAPE 4 : CONFIGURATION FIREWALL
 # ============================================================================
 
-print_message "Étape 3/8 : Configuration du firewall..."
+print_message "Etape 3/7 : Configuration du firewall..."
 
 ufw --force disable
 ufw --force reset
@@ -138,54 +138,37 @@ ufw allow 22/tcp
 ufw allow 80/tcp
 ufw allow 443/tcp
 
-# Autoriser le port de l'application (en local seulement)
-# ufw allow from 127.0.0.1 to any port $APP_PORT
-
 # Activer le firewall
 ufw --force enable
 
-print_success "Firewall configuré (SSH:22, HTTP:80, HTTPS:443)"
+print_success "Firewall configure (SSH:22, HTTP:80, HTTPS:443)"
 
 # ============================================================================
-# ÉTAPE 5 : INSTALLATION NODE.JS
+# ETAPE 5 : INSTALLATION DOCKER
 # ============================================================================
 
-print_message "Étape 4/8 : Installation de Node.js 18.x..."
+print_message "Etape 4/7 : Installation de Docker + Compose..."
 
-# Supprimer les anciennes versions
-apt remove -y nodejs npm || true
+apt install -y docker.io docker-compose-plugin
+systemctl enable --now docker
 
-# Installer Node.js 18.x
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-apt install -y nodejs
+# Ajouter l'utilisateur au groupe docker
+if [ "$CREATE_USER" = "o" ]; then
+    usermod -aG docker "$USERNAME"
+fi
 
-# Vérifier l'installation
-NODE_VERSION=$(node -v)
-NPM_VERSION=$(npm -v)
-
-print_success "Node.js $NODE_VERSION installé"
-print_success "npm $NPM_VERSION installé"
+print_success "Docker installe"
 
 # ============================================================================
-# ÉTAPE 6 : INSTALLATION PM2
+# ETAPE 6 : INSTALLATION ET CONFIGURATION NGINX
 # ============================================================================
 
-print_message "Étape 5/8 : Installation de PM2..."
-
-npm install -g pm2
-
-print_success "PM2 installé"
-
-# ============================================================================
-# ÉTAPE 7 : INSTALLATION ET CONFIGURATION NGINX
-# ============================================================================
-
-print_message "Étape 6/8 : Installation et configuration de Nginx..."
+print_message "Etape 5/7 : Installation et configuration de Nginx..."
 
 apt install -y nginx
 
-# Créer la configuration Nginx
-cat > /etc/nginx/sites-available/$DOMAIN_NAME <<EOF
+# Creer la configuration Nginx
+cat > /etc/nginx/sites-available/$DOMAIN_NAME <<NGINX_EOF
 server {
     listen 80;
     listen [::]:80;
@@ -217,7 +200,7 @@ server {
         proxy_http_version 1.1;
         proxy_cache_bypass \$http_upgrade;
 
-        # Cache côté navigateur pour 1 an
+        # Cache cote navigateur pour 1 an
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
@@ -226,271 +209,193 @@ server {
     access_log /var/log/nginx/$DOMAIN_NAME.access.log;
     error_log /var/log/nginx/$DOMAIN_NAME.error.log;
 }
-EOF
+NGINX_EOF
 
 # Activer le site
 ln -sf /etc/nginx/sites-available/$DOMAIN_NAME /etc/nginx/sites-enabled/
 
-# Désactiver le site par défaut
+# Desactiver le site par defaut
 rm -f /etc/nginx/sites-enabled/default
 
 # Tester la configuration
 nginx -t
 
-# Redémarrer Nginx
+# Redemarrer Nginx
 systemctl restart nginx
 systemctl enable nginx
 
-print_success "Nginx configuré pour $DOMAIN_NAME"
+print_success "Nginx configure pour $DOMAIN_NAME"
 
 # ============================================================================
-# ÉTAPE 8 : INSTALLATION CERTBOT
+# ETAPE 7 : INSTALLATION CERTBOT
 # ============================================================================
 
-print_message "Étape 7/8 : Installation de Certbot..."
+print_message "Etape 6/7 : Installation de Certbot..."
 
 apt install -y certbot python3-certbot-nginx
 
-print_success "Certbot installé"
+print_success "Certbot installe"
 
 # ============================================================================
-# ÉTAPE 9 : DÉPLOIEMENT DE L'APPLICATION
+# ETAPE 8 : DEPLOIEMENT DE L'APPLICATION
 # ============================================================================
 
-print_message "Étape 8/8 : Déploiement de l'application..."
+print_message "Etape 7/7 : Deploiement de l'application..."
 
-# Déterminer l'utilisateur et le répertoire
-if [ "$CREATE_USER" = "o" ]; then
-    APP_USER=$USERNAME
-    APP_DIR="/home/$USERNAME/moncabinet"
-else
-    APP_USER="root"
-    APP_DIR="/var/www/moncabinet"
-fi
-
-# Créer le répertoire
-mkdir -p $APP_DIR
-cd $APP_DIR
+# Creer le repertoire
+mkdir -p "$APP_DIR"
+cd "$APP_DIR"
 
 # Cloner le repository
 print_message "Clonage du repository..."
 if [ -d "$APP_DIR/.git" ]; then
-    print_warning "Le repository existe déjà, mise à jour..."
+    print_warning "Le repository existe deja, mise a jour..."
     git pull origin main || git pull origin master
 else
-    git clone $GIT_REPO .
+    git clone "$GIT_REPO" .
 fi
 
-# Créer le fichier .env.production
+# Creer le fichier .env.production
 print_message "Configuration des variables d'environnement..."
+if [ ! -f "$APP_DIR/.env.production" ]; then
+    cp "$APP_DIR/.env.production.example" "$APP_DIR/.env.production"
+fi
 
-cat > $APP_DIR/.env.production <<EOF
-# Application
-NEXT_PUBLIC_APP_URL=https://$DOMAIN_NAME
-NEXT_PUBLIC_APP_NAME=MonCabinet
-NEXT_PUBLIC_APP_DOMAIN=$DOMAIN_NAME
-NODE_ENV=production
+# Mettre a jour le domaine dans .env.production
+sed -i "s|^NEXT_PUBLIC_APP_URL=.*|NEXT_PUBLIC_APP_URL=https://$DOMAIN_NAME|" "$APP_DIR/.env.production"
+sed -i "s|^NEXT_PUBLIC_APP_DOMAIN=.*|NEXT_PUBLIC_APP_DOMAIN=$DOMAIN_NAME|" "$APP_DIR/.env.production"
+sed -i "s|^NEXTAUTH_URL=.*|NEXTAUTH_URL=https://$DOMAIN_NAME|" "$APP_DIR/.env.production"
 
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+print_warning "IMPORTANT : Editez le fichier $APP_DIR/.env.production pour ajouter vos cles API"
 
-# Resend (Email Service)
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=notifications@$DOMAIN_NAME
+# S'assurer que les scripts sont executables
+chmod +x "$APP_DIR/deploy.sh" "$APP_DIR/backup.sh" || true
 
-# Google Drive OAuth
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=https://$DOMAIN_NAME/api/integrations/google-drive/callback
-GOOGLE_DRIVE_WEBHOOK_VERIFY_TOKEN=
+# Demarrer les services
+read -p "Utiliser docker-compose.prod.yml (image pre-build)? (o/n, defaut: n) : " USE_PREBUILT
+USE_PREBUILT=${USE_PREBUILT:-n}
 
-# WhatsApp Business API
-WHATSAPP_WEBHOOK_VERIFY_TOKEN=
-WHATSAPP_APP_SECRET=
-EOF
+if [ "$USE_PREBUILT" = "o" ]; then
+    docker compose -f docker-compose.prod.yml up -d
+else
+    docker compose up -d --build
+fi
 
-print_warning "IMPORTANT : Éditez le fichier $APP_DIR/.env.production pour ajouter vos clés API"
+# Health check
+print_message "Health check..."
+MAX_RETRIES=10
+RETRY_COUNT=0
+HEALTH_URL="http://localhost:$APP_PORT/api/health"
 
-# Installer les dépendances
-print_message "Installation des dépendances npm..."
-npm install
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+  if curl -f -s "$HEALTH_URL" > /dev/null 2>&1; then
+    print_success "Application demarree avec succes"
+    break
+  else
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    sleep 5
+  fi
+done
 
-# Build production
-print_message "Build de l'application en mode production..."
-npm run build
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+  print_warning "Health check echoue. Verifier les logs: docker compose logs -f --tail=100"
+fi
 
 # Changer les permissions
 if [ "$CREATE_USER" = "o" ]; then
-    chown -R $APP_USER:$APP_USER $APP_DIR
+    chown -R "$USERNAME:$USERNAME" "$APP_DIR"
 fi
-
-# Démarrer l'application avec PM2
-print_message "Démarrage de l'application avec PM2..."
-
-if [ "$CREATE_USER" = "o" ]; then
-    su - $APP_USER -c "cd $APP_DIR && pm2 start npm --name 'moncabinet' -- start"
-    su - $APP_USER -c "pm2 save"
-    su - $APP_USER -c "pm2 startup"
-else
-    cd $APP_DIR
-    pm2 start npm --name "moncabinet" -- start
-    pm2 save
-    pm2 startup
-fi
-
-print_success "Application démarrée avec PM2"
 
 # ============================================================================
-# ÉTAPE 10 : CONFIGURATION SSL (optionnel)
+# CONFIGURATION SSL (optionnel)
 # ============================================================================
 
 echo ""
 print_message "Configuration SSL Let's Encrypt"
 print_warning "Avant de continuer, assurez-vous que :"
 print_warning "  1. Votre domaine $DOMAIN_NAME pointe vers ce serveur"
-print_warning "  2. Les enregistrements DNS sont propagés (peut prendre jusqu'à 48h)"
+print_warning "  2. Les enregistrements DNS sont propages (peut prendre jusqu'a 48h)"
 echo ""
 
 read -p "Voulez-vous configurer SSL maintenant ? (o/n) : " CONFIGURE_SSL
 
 if [ "$CONFIGURE_SSL" = "o" ]; then
-    print_message "Génération du certificat SSL..."
+    print_message "Generation du certificat SSL..."
 
-    certbot --nginx -d $DOMAIN_NAME -d www.$DOMAIN_NAME \
+    certbot --nginx -d "$DOMAIN_NAME" -d "www.$DOMAIN_NAME" \
         --non-interactive \
         --agree-tos \
-        --email $SSL_EMAIL \
+        --email "$SSL_EMAIL" \
         --redirect
 
     if [ $? -eq 0 ]; then
-        print_success "Certificat SSL configuré avec succès"
+        print_success "Certificat SSL configure avec succes"
         print_success "Votre site est accessible sur https://$DOMAIN_NAME"
     else
         print_error "Erreur lors de la configuration SSL"
-        print_warning "Vous pouvez réessayer plus tard avec :"
+        print_warning "Vous pouvez reessayer plus tard avec :"
         print_warning "  sudo certbot --nginx -d $DOMAIN_NAME -d www.$DOMAIN_NAME"
     fi
 else
-    print_warning "SSL non configuré. Pour le configurer plus tard :"
+    print_warning "SSL non configure. Pour le configurer plus tard :"
     print_warning "  sudo certbot --nginx -d $DOMAIN_NAME -d www.$DOMAIN_NAME"
 fi
 
 # ============================================================================
-# CRÉATION DES SCRIPTS UTILES
-# ============================================================================
-
-print_message "Création des scripts de gestion..."
-
-# Script de mise à jour
-cat > $APP_DIR/deploy.sh <<'DEPLOY_EOF'
-#!/bin/bash
-
-echo "🚀 Déploiement MonCabinet..."
-
-# Pull dernières modifications
-echo "📥 Récupération des dernières modifications..."
-git pull origin main || git pull origin master
-
-# Installer les nouvelles dépendances
-echo "📦 Installation des dépendances..."
-npm install
-
-# Build production
-echo "🔨 Build production..."
-npm run build
-
-# Redémarrer PM2
-echo "♻️  Redémarrage de l'application..."
-pm2 restart moncabinet
-
-echo "✅ Déploiement terminé !"
-echo "📊 Logs : pm2 logs moncabinet"
-DEPLOY_EOF
-
-chmod +x $APP_DIR/deploy.sh
-
-# Script de backup
-cat > $APP_DIR/backup.sh <<'BACKUP_EOF'
-#!/bin/bash
-
-BACKUP_DIR="/var/backups/moncabinet"
-DATE=$(date +%Y%m%d_%H%M%S)
-
-mkdir -p $BACKUP_DIR
-
-echo "💾 Backup de MonCabinet..."
-
-# Backup de l'application
-tar -czf $BACKUP_DIR/app_$DATE.tar.gz .
-
-echo "✅ Backup créé : $BACKUP_DIR/app_$DATE.tar.gz"
-
-# Garder seulement les 7 derniers backups
-ls -t $BACKUP_DIR/app_*.tar.gz | tail -n +8 | xargs -r rm
-
-echo "🧹 Anciens backups supprimés"
-BACKUP_EOF
-
-chmod +x $APP_DIR/backup.sh
-
-print_success "Scripts créés dans $APP_DIR/"
-
-# ============================================================================
-# RÉCAPITULATIF FINAL
+# RECAPITULATIF FINAL
 # ============================================================================
 
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║                                                            ║"
-echo "║              ✅ INSTALLATION TERMINÉE !                    ║"
+echo "║              ✅ INSTALLATION TERMINEE !                    ║"
 echo "║                                                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-print_success "MonCabinet est maintenant installé sur votre VPS"
+print_success "MonCabinet est maintenant installe sur votre VPS"
 echo ""
 echo "📋 INFORMATIONS IMPORTANTES :"
 echo ""
 echo "  🌐 Domaine : $DOMAIN_NAME"
-echo "  📁 Répertoire : $APP_DIR"
+echo "  📁 Repertoire : $APP_DIR"
 echo "  🔧 Port application : $APP_PORT"
 if [ "$CREATE_USER" = "o" ]; then
-    echo "  👤 Utilisateur : $APP_USER"
+    echo "  👤 Utilisateur : $USERNAME"
+    echo "  ⚠  Pensez a vous reconnecter pour utiliser Docker sans sudo"
 fi
 echo ""
-echo "📝 PROCHAINES ÉTAPES :"
+echo "📝 PROCHAINES ETAPES :"
 echo ""
-echo "  1️⃣  Éditez les variables d'environnement :"
+echo "  1️⃣  Editez les variables d'environnement :"
 echo "      nano $APP_DIR/.env.production"
 echo ""
-echo "  2️⃣  Redémarrez l'application après modification :"
-echo "      pm2 restart moncabinet"
+echo "  2️⃣  Redemarrez la stack apres modification :"
+echo "      cd $APP_DIR && docker compose up -d"
 echo ""
-echo "  3️⃣  Dans Cloudflare, mettez à jour l'enregistrement A :"
+echo "  3️⃣  Dans Cloudflare, mettez a jour l'enregistrement A :"
 echo "      Type: A"
 echo "      Nom: @"
 echo "      Contenu: $(curl -s ifconfig.me)"
-echo "      Proxy: Activé (☁️)"
+echo "      Proxy: Active (☁️)"
 echo ""
 echo "  4️⃣  Configurez SSL/TLS dans Cloudflare :"
 echo "      Mode: Full (strict)"
 echo ""
 echo "🔧 COMMANDES UTILES :"
 echo ""
-echo "  • Voir les logs : pm2 logs moncabinet"
-echo "  • Redémarrer : pm2 restart moncabinet"
-echo "  • Statut : pm2 status"
-echo "  • Déployer : cd $APP_DIR && ./deploy.sh"
+echo "  • Voir les logs : docker compose logs -f --tail=100"
+echo "  • Redemarrer : docker compose restart"
+echo "  • Statut : docker compose ps"
+echo "  • Deployer : cd $APP_DIR && ./deploy.sh"
 echo "  • Backup : cd $APP_DIR && ./backup.sh"
 echo "  • Logs Nginx : tail -f /var/log/nginx/$DOMAIN_NAME.error.log"
 echo ""
 echo "📚 DOCUMENTATION :"
 echo "  • Voir : $APP_DIR/README-DEPLOYMENT.md"
 echo ""
-echo "🔒 SÉCURITÉ :"
+echo "🔒 SECURITE :"
 echo "  • Firewall UFW actif (SSH:22, HTTP:80, HTTPS:443)"
-echo "  • SSL Let's Encrypt : $([ "$CONFIGURE_SSL" = "o" ] && echo "✅ Configuré" || echo "⚠️  À configurer")"
+echo "  • SSL Let's Encrypt : $([ "$CONFIGURE_SSL" = "o" ] && echo "✅ Configure" || echo "⚠️  A configurer")"
 echo ""
-print_warning "N'oubliez pas de configurer vos clés API dans .env.production !"
+print_warning "N'oubliez pas de configurer vos cles API dans .env.production !"
 echo ""

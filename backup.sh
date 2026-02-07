@@ -126,22 +126,34 @@ if ! docker ps | grep -q moncabinet-minio; then
   exit 1
 fi
 
-# Mirror bucket documents via MinIO client
-docker run --rm \
+# Vérifier si le bucket documents existe
+BUCKET_EXISTS=$(docker run --rm \
   --network moncabinet_moncabinet-network \
-  -v "$MINIO_BACKUP_DIR:/backup" \
   -e MC_HOST_myminio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
   minio/mc:latest \
-  mirror myminio/documents /backup/documents > /dev/null 2>&1
+  ls myminio/documents 2>&1 || true)
 
-if [ $? -eq 0 ]; then
-  # Compter fichiers et taille totale
-  FILE_COUNT=$(find "$MINIO_BACKUP_DIR" -type f | wc -l)
-  TOTAL_SIZE=$(du -sh "$MINIO_BACKUP_DIR" | cut -f1)
-  echo -e "${GREEN}✅ MinIO backup: minio_$DATE ($FILE_COUNT fichiers, $TOTAL_SIZE)${NC}"
+if echo "$BUCKET_EXISTS" | grep -q "does not exist"; then
+  echo -e "${YELLOW}⚠️  Bucket 'documents' n'existe pas encore (aucun fichier uploadé)${NC}"
+  rmdir "$MINIO_BACKUP_DIR" 2>/dev/null || true
 else
-  echo -e "${RED}❌ Échec backup MinIO${NC}"
-  # Ne pas exit, continuer avec backup code
+  # Mirror bucket documents via MinIO client
+  docker run --rm \
+    --network moncabinet_moncabinet-network \
+    -v "$MINIO_BACKUP_DIR:/backup" \
+    -e MC_HOST_myminio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
+    minio/mc:latest \
+    mirror myminio/documents /backup/documents > /dev/null 2>&1 || true
+
+  # Compter fichiers et taille totale
+  FILE_COUNT=$(find "$MINIO_BACKUP_DIR" -type f 2>/dev/null | wc -l)
+  if [ "$FILE_COUNT" -gt 0 ]; then
+    TOTAL_SIZE=$(du -sh "$MINIO_BACKUP_DIR" | cut -f1)
+    echo -e "${GREEN}✅ MinIO backup: minio_$DATE ($FILE_COUNT fichiers, $TOTAL_SIZE)${NC}"
+  else
+    echo -e "${YELLOW}⚠️  MinIO: aucun fichier à sauvegarder${NC}"
+    rmdir "$MINIO_BACKUP_DIR" 2>/dev/null || true
+  fi
 fi
 
 # ============================================================================

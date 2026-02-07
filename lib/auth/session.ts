@@ -59,6 +59,36 @@ interface TokenPayload extends JWTPayload {
 }
 
 // =============================================================================
+// HELPERS
+// =============================================================================
+
+/**
+ * Récupère l'utilisateur depuis la base pour valider la session
+ * Permet d'invalider les sessions si le compte est suspendu/rejeté
+ */
+async function fetchUserForSession(userId: string): Promise<SessionUser | null> {
+  const result = await query(
+    'SELECT id, email, nom, prenom, role, status, plan FROM users WHERE id = $1',
+    [userId]
+  )
+
+  const user = result.rows[0]
+  if (!user) return null
+
+  const status = user.status || 'approved'
+  if (status !== 'approved') return null
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.nom && user.prenom ? `${user.prenom} ${user.nom}` : user.email,
+    role: user.role || 'user',
+    status,
+    plan: user.plan || 'free',
+  }
+}
+
+// =============================================================================
 // FONCTIONS JWT
 // =============================================================================
 
@@ -127,7 +157,11 @@ export async function getSession(): Promise<Session | null> {
 
     if (!token) return null
 
-    const user = await verifyToken(token)
+    const tokenUser = await verifyToken(token)
+    if (!tokenUser?.id) return null
+
+    // Validation côté base pour éviter les sessions périmées après changement de statut
+    const user = await fetchUserForSession(tokenUser.id)
     if (!user) return null
 
     return {

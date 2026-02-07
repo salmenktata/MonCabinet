@@ -3,8 +3,8 @@
  * Design professionnel et minimaliste avec support bilingue (FR/AR)
  */
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'MonCabinet'
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://moncabinet.tn'
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Qadhya'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://qadhya.tn'
 
 export type EmailLocale = 'fr' | 'ar'
 

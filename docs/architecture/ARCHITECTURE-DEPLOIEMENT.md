@@ -40,15 +40,11 @@ Vue d'ensemble de l'architecture de déploiement de MonCabinet sur VPS Contabo a
 │                       │ HTTP (localhost)                        │
 │                       ▼                                         │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │                  PM2 PROCESS MANAGER                      │  │
-│  │  ┌────────────────────────────────────────────────────┐  │  │
-│  │  │         Next.js Application (Port 7002)            │  │  │
-│  │  │                                                     │  │  │
-│  │  │  • Server Components                               │  │  │
-│  │  │  • API Routes                                      │  │  │
-│  │  │  • Static Generation                               │  │  │
-│  │  │  • Server Actions                                  │  │  │
-│  │  └────────────────────────────────────────────────────┘  │  │
+│  │                  DOCKER COMPOSE                          │  │
+│  │  • Next.js (port 3000)                                   │  │
+│  │  • PostgreSQL (port 5432)                                │  │
+│  │  • Redis (port 6379)                                     │  │
+│  │  • MinIO (ports 9000/9001)                               │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
@@ -64,11 +60,11 @@ Vue d'ensemble de l'architecture de déploiement de MonCabinet sur VPS Contabo a
 ┌─────────────────────────────────────────────────────────────────┐
 │                    SERVICES EXTERNES                            │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │   SUPABASE   │  │    RESEND    │  │ GOOGLE DRIVE │          │
+│  │ RESEND/BREVO │  │ GOOGLE DRIVE │  │ WHATSAPP/IA  │          │
 │  │              │  │              │  │              │          │
-│  │ • PostgreSQL │  │ • Email API  │  │ • Storage    │          │
-│  │ • Auth       │  │ • Templates  │  │ • OAuth      │          │
-│  │ • Storage    │  │              │  │              │          │
+│  │ • Email API  │  │ • Storage    │  │ • Webhooks   │          │
+│  │ • Templates  │  │ • OAuth      │  │ • LLM APIs   │          │
+│  │              │  │              │  │              │          │
 │  └──────────────┘  └──────────────┘  └──────────────┘          │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -122,17 +118,18 @@ Vue d'ensemble de l'architecture de déploiement de MonCabinet sur VPS Contabo a
 │     └─> Vérifie SSL Certificate         │
 │                                         │
 │  2. Reverse Proxy                       │
-│     └─> Transfert vers localhost:7002   │
+│     └─> Transfert vers localhost:3000   │
 │                                         │
-│  3. PM2 gère le processus Next.js       │
-│     ├─> Keep-alive                      │
-│     ├─> Auto-restart si crash           │
-│     └─> Load balancing (si cluster)     │
+│  3. Docker Compose route vers Next.js   │
+│     ├─> Containers internes             │
+│     ├─> PostgreSQL / Redis / MinIO      │
+│     └─> Restart policies                │
 │                                         │
 │  4. Next.js traite la requête           │
 │     ├─> Server Component rendering      │
 │     ├─> API route execution             │
-│     └─> Database queries (Supabase)     │
+│     ├─> Database queries (PostgreSQL)   │
+│     └─> Cache/Storage (Redis/MinIO)     │
 │                                         │
 │  5. Réponse renvoyée                    │
 │     └─> Nginx → Cloudflare → User       │
@@ -145,16 +142,17 @@ Vue d'ensemble de l'architecture de déploiement de MonCabinet sur VPS Contabo a
 ## 📁 Structure des Fichiers sur le VPS
 
 ```
-/home/moncabinet/
+/opt/moncabinet/
 └── moncabinet/                    # Application principale
     ├── .env.production            # Variables d'environnement (secret)
-    ├── .next/                     # Build Next.js
+    ├── docker-compose.yml         # Stack Docker (build local)
+    ├── docker-compose.prod.yml    # Stack Docker (image pré-buildée)
     ├── app/                       # Source Next.js App Router
     ├── components/                # Composants React
     ├── lib/                       # Bibliothèques et utilitaires
     ├── public/                    # Assets statiques
-    ├── node_modules/              # Dépendances npm
-    ├── package.json               # Configuration npm
+    ├── db/                        # Migrations SQL
+    ├── logs/                      # Logs applicatifs (volume)
     ├── deploy.sh                  # Script de déploiement
     └── backup.sh                  # Script de backup
 
@@ -169,9 +167,9 @@ Vue d'ensemble de l'architecture de déploiement de MonCabinet sur VPS Contabo a
 ├── moncabinet.tn.access.log       # Logs d'accès
 └── moncabinet.tn.error.log        # Logs d'erreur
 
-/var/backups/moncabinet/           # Backups de l'application
-├── app_20260205_020000.tar.gz
-├── app_20260204_020000.tar.gz
+/opt/backups/moncabinet/           # Backups PostgreSQL/MinIO
+├── db_20260205_020000.sql.gz
+├── minio_20260205/
 └── ...
 
 /etc/letsencrypt/
@@ -211,17 +209,17 @@ Vue d'ensemble de l'architecture de déploiement de MonCabinet sur VPS Contabo a
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  COUCHE 4 : Application Next.js                              │
-│  • Authentification Supabase                                 │
+│  • Authentification JWT HttpOnly                             │
 │  • Validation des entrées (Zod)                              │
 │  • CSRF Protection                                           │
-│  • SQL Injection Prevention (Supabase)                       │
+│  • Requêtes SQL paramétrées (pg)                             │
 └──────────────────────────────────────────────────────────────┘
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  COUCHE 5 : Services Externes                                │
-│  • Supabase Row Level Security (RLS)                         │
 │  • API Keys protégées (env variables)                        │
 │  • OAuth 2.0 (Google Drive)                                  │
+│  • HMAC Webhooks (WhatsApp)                                  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -289,19 +287,19 @@ Vue d'ensemble de l'architecture de déploiement de MonCabinet sur VPS Contabo a
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │     PM2      │  │    Nginx     │  │  Cloudflare  │     │
+│  │   Docker     │  │    Nginx     │  │  Cloudflare  │     │
 │  │              │  │              │  │              │     │
 │  │ • CPU Usage  │  │ • Access Log │  │ • Analytics  │     │
 │  │ • Memory     │  │ • Error Log  │  │ • Threats    │     │
-│  │ • Restart    │  │ • Status     │  │ • Cache Hit  │     │
+│  │ • Restarts   │  │ • Status     │  │ • Cache Hit  │     │
 │  │ • Logs       │  │              │  │   Ratio      │     │
 │  └──────────────┘  └──────────────┘  └──────────────┘     │
 │                                                             │
 │  Commandes :                                                │
-│  • pm2 monit                                                │
-│  • pm2 logs moncabinet                                      │
-│  • tail -f /var/log/nginx/moncabinet.tn.error.log          │
-│  • Cloudflare Dashboard Analytics                          │
+│  • docker compose ps                                        │
+│  • docker compose logs -f --tail=100                        │
+│  • tail -f /var/log/nginx/moncabinet.tn.error.log           │
+│  • Cloudflare Dashboard Analytics                           │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -325,11 +323,11 @@ Developer Machine
        ▼
    VPS Contabo
        │
-       ├─> npm install      (Nouvelles dépendances)
+       ├─> docker compose build   (Build images)
        │
-       ├─> npm run build    (Build production)
+       ├─> docker compose up -d   (Restart containers)
        │
-       └─> pm2 restart      (Redémarrage app)
+       └─> health check           (API /health)
 
 Automatisé par : ./deploy.sh
 ```
@@ -347,15 +345,22 @@ Automatisé par : ./deploy.sh
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │  • Application Code                                   │  │
 │  │  • Configuration (.env.production)                   │  │
-│  │  • Stocké dans /var/backups/moncabinet/               │  │
-│  │  • Rotation : 7 jours                                 │  │
+│  │  • Stocké dans /opt/backups/moncabinet/               │  │
+│  │  • Rotation : 14 jours                                │  │
 │  └──────────────────────────────────────────────────────┘  │
 │                                                             │
-│  Base de Données (Supabase)                                 │
+│  Base de Données (PostgreSQL)                               │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │  • Géré par Supabase                                  │  │
-│  │  • Backups automatiques quotidiens                    │  │
-│  │  • Point-in-time recovery disponible                  │  │
+│  │  • Dump SQL via docker exec                           │  │
+│  │  • Backups quotidiens                                 │  │
+│  │  • Compression gzip                                   │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  Stockage Documents (MinIO)                                 │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  • Mirror bucket documents                            │  │
+│  │  • Backups quotidiens                                 │  │
+│  │  • Stockés avec les backups                           │  │
 │  └──────────────────────────────────────────────────────┘  │
 │                                                             │
 │  Certificats SSL                                            │
@@ -375,12 +380,12 @@ Automatisé par : ./deploy.sh
 
 - **Horizontal** : Possibilité d'ajouter des VPS derrière Cloudflare
 - **Vertical** : Upgrade facile du VPS (CPU/RAM)
-- **Database** : Supabase gère automatiquement le scaling
+- **Database** : PostgreSQL auto-hébergé (scale vertical ou service managé)
 
 ### Haute Disponibilité
 
 - **Cloudflare CDN** : 300+ datacenters mondiaux
-- **PM2** : Redémarrage automatique en cas de crash
+- **Docker** : Restart policies + health checks
 - **Let's Encrypt** : Renouvellement SSL automatique
 
 ### Performance

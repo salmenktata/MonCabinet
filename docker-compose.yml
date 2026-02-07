@@ -3,10 +3,10 @@ version: '3.9'
 services:
   postgres:
     image: pgvector/pgvector:pg15
-    container_name: moncabinet-postgres
+    container_name: qadhya-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: moncabinet
+      POSTGRES_DB: qadhya
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
@@ -16,12 +16,12 @@ services:
     ports:
       - "127.0.0.1:5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d moncabinet"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d qadhya"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - moncabinet-network
+      - qadhya-network
     shm_size: 256mb
     command:
       - "postgres"
@@ -59,7 +59,7 @@ services:
   # Redis pour caching (sessions, rate limiting)
   redis:
     image: redis:7-alpine
-    container_name: moncabinet-redis
+    container_name: qadhya-redis
     restart: unless-stopped
     command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save ""
     volumes:
@@ -72,7 +72,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - moncabinet-network
+      - qadhya-network
     deploy:
       resources:
         limits:
@@ -82,7 +82,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: moncabinet-minio
+    container_name: qadhya-minio
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -99,7 +99,7 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - moncabinet-network
+      - qadhya-network
     deploy:
       resources:
         limits:
@@ -115,7 +115,7 @@ services:
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME}
         NEXT_PUBLIC_APP_DOMAIN: ${NEXT_PUBLIC_APP_DOMAIN}
-    container_name: moncabinet-nextjs
+    container_name: qadhya-nextjs
     restart: unless-stopped
     depends_on:
       postgres:
@@ -127,7 +127,7 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       NODE_ENV: production
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/moncabinet
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/qadhya
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
       MINIO_USE_SSL: "false"
@@ -149,7 +149,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     networks:
-      - moncabinet-network
+      - qadhya-network
     deploy:
       resources:
         limits:
@@ -160,7 +160,7 @@ services:
   # Optionnel: PgAdmin pour gestion BDD
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: moncabinet-pgadmin
+    container_name: qadhya-pgadmin
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
@@ -172,7 +172,7 @@ services:
     depends_on:
       - postgres
     networks:
-      - moncabinet-network
+      - qadhya-network
     profiles:
       - tools
 
@@ -185,5 +185,5 @@ volumes:
     driver: local
 
 networks:
-  moncabinet-network:
+  qadhya-network:
     driver: bridge
