@@ -308,12 +308,12 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
           />
         </div>
 
-        <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
+        <Select value={sourceFilter || 'all'} onValueChange={(v) => { setSourceFilter(v === 'all' ? '' : v); setPage(1); }}>
           <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white">
             <SelectValue placeholder="Toutes les sources" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-700">
-            <SelectItem value="" className="text-slate-200">Toutes les sources</SelectItem>
+            <SelectItem value="all" className="text-slate-200">Toutes les sources</SelectItem>
             {sources.map((source) => (
               <SelectItem key={source.id} value={source.id} className="text-slate-200">
                 {source.name}
@@ -322,24 +322,24 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
           </SelectContent>
         </Select>
 
-        <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
+        <Select value={typeFilter || 'all'} onValueChange={(v) => { setTypeFilter(v === 'all' ? '' : v); setPage(1); }}>
           <SelectTrigger className="w-[140px] bg-slate-800 border-slate-700 text-white">
             <SelectValue placeholder="Tous types" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-700">
-            <SelectItem value="" className="text-slate-200">Tous types</SelectItem>
+            <SelectItem value="all" className="text-slate-200">Tous types</SelectItem>
             <SelectItem value="pdf" className="text-slate-200">PDF</SelectItem>
             <SelectItem value="docx" className="text-slate-200">DOCX</SelectItem>
             <SelectItem value="doc" className="text-slate-200">DOC</SelectItem>
           </SelectContent>
         </Select>
 
-        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+        <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
           <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white">
             <SelectValue placeholder="Tous états" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-700">
-            <SelectItem value="" className="text-slate-200">Tous états</SelectItem>
+            <SelectItem value="all" className="text-slate-200">Tous états</SelectItem>
             <SelectItem value="indexed" className="text-green-400">Indexé</SelectItem>
             <SelectItem value="downloaded" className="text-blue-400">Téléchargé</SelectItem>
             <SelectItem value="pending" className="text-slate-400">En attente</SelectItem>
