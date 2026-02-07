@@ -20,7 +20,7 @@ export interface StorageManagerUploadParams {
   mimeType: string
   categorie?: string
   description?: string
-  sourceType?: 'manual' | 'whatsapp' | 'google_drive_sync'
+  sourceType?: 'manual' | 'google_drive_sync'
   sourceMetadata?: Record<string, any>
 }
 

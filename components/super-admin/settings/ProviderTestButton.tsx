@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 
 type EmailProvider = 'brevo' | 'resend'
 type AIProvider = 'deepseek' | 'groq' | 'openai' | 'anthropic' | 'ollama'
-type AllProvider = EmailProvider | AIProvider | 'whatsapp'
+type AllProvider = EmailProvider | AIProvider
 
 interface ProviderTestButtonProps {
   provider: AllProvider
@@ -40,9 +40,7 @@ export function ProviderTestButton({
       let url: string
       let body: Record<string, string> | undefined
 
-      if (provider === 'whatsapp') {
-        url = '/api/super-admin/providers/whatsapp/test'
-      } else if (isAIProvider) {
+      if (isAIProvider) {
         url = '/api/super-admin/providers/ai/test'
         body = { provider }
       } else {
@@ -87,9 +85,6 @@ export function ProviderTestButton({
   const getIcon = () => {
     if (loading) {
       return <Icons.spinner className="h-4 w-4 animate-spin" />
-    }
-    if (provider === 'whatsapp') {
-      return <Icons.messageSquare className="h-4 w-4" />
     }
     if (isAIProvider) {
       return <Icons.zap className="h-4 w-4" />

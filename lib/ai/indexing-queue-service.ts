@@ -11,7 +11,16 @@ import { db } from '@/lib/db/postgres'
 // TYPES
 // =============================================================================
 
-export type JobType = 'document' | 'knowledge_base' | 'reindex'
+export type JobType =
+  | 'document'
+  | 'knowledge_base'
+  | 'reindex'
+  | 'web_page_index'
+  // Nouveaux types pour le pipeline intelligent
+  | 'content_analysis'       // Analyse qualité du contenu
+  | 'legal_classification'   // Classification juridique
+  | 'contradiction_check'    // Détection contradictions
+  | 'full_pipeline'          // Pipeline complet (analyse + classification + contradictions)
 
 export interface IndexingJob {
   id: string
@@ -156,6 +165,56 @@ export async function processNextJob(): Promise<boolean> {
       const { indexKnowledgeDocument } = await import('./knowledge-base-service')
       const result = await indexKnowledgeDocument(job.targetId)
       await completeJob(job.id, result.success, result.error)
+    } else if (job.jobType === 'web_page_index') {
+      // Indexer une page web crawlée
+      const { indexWebPage } = await import('../web-scraper/web-indexer-service')
+      const result = await indexWebPage(job.targetId)
+
+      if (result.success) {
+        await completeJob(job.id, true)
+        console.log(
+          `[IndexingQueue] Page web indexée: ${job.targetId} (${result.chunksCreated} chunks)`
+        )
+      } else {
+        await completeJob(job.id, false, result.error)
+      }
+    } else if (job.jobType === 'content_analysis') {
+      // Analyse qualité du contenu
+      const { analyzeContentQuality } = await import('../web-scraper/content-analyzer-service')
+      const result = await analyzeContentQuality(job.targetId)
+      await completeJob(job.id, true)
+      console.log(
+        `[IndexingQueue] Analyse qualité terminée: ${job.targetId} (score: ${result.overallScore})`
+      )
+    } else if (job.jobType === 'legal_classification') {
+      // Classification juridique
+      const { classifyLegalContent } = await import('../web-scraper/legal-classifier-service')
+      const result = await classifyLegalContent(job.targetId)
+      await completeJob(job.id, true)
+      console.log(
+        `[IndexingQueue] Classification terminée: ${job.targetId} ` +
+        `(${result.primaryCategory}/${result.domain}, confiance: ${result.confidenceScore.toFixed(2)})`
+      )
+    } else if (job.jobType === 'contradiction_check') {
+      // Détection des contradictions
+      const { detectContradictions } = await import('../web-scraper/contradiction-detector-service')
+      const result = await detectContradictions(job.targetId)
+      await completeJob(job.id, true)
+      console.log(
+        `[IndexingQueue] Vérification contradictions terminée: ${job.targetId} ` +
+        `(${result.contradictions.length} trouvées, sévérité: ${result.severity})`
+      )
+    } else if (job.jobType === 'full_pipeline') {
+      // Pipeline complet: analyse + classification + contradictions + décision
+      const { processPage } = await import('../web-scraper/intelligent-pipeline-service')
+      const result = await processPage(job.targetId)
+
+      await completeJob(job.id, result.errors.length === 0, result.errors.join('; ') || undefined)
+      console.log(
+        `[IndexingQueue] Pipeline complet terminé: ${job.targetId} ` +
+        `(score: ${result.qualityScore}, décision: ${result.decision}, ` +
+        `${result.processingTimeMs}ms)`
+      )
     }
 
     return true

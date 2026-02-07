@@ -34,14 +34,6 @@ const settingsCards = [
     color: 'text-purple-600',
     bgColor: 'bg-purple-50',
   },
-  {
-    title: 'Messagerie',
-    description: 'Configuration WhatsApp et webhooks',
-    icon: 'messageSquare' as const,
-    href: '/parametres/messagerie',
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-  },
 ]
 
 export default async function SettingsPage() {

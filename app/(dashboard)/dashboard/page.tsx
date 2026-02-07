@@ -34,10 +34,6 @@ const UnclassifiedDocumentsWidget = dynamic(
   () => import('@/components/dashboard/UnclassifiedDocumentsWidget'),
   { loading: () => <WidgetSkeleton /> }
 )
-const PendingDocumentsWidget = dynamic(
-  () => import('@/components/dashboard/PendingDocumentsWidget'),
-  { loading: () => <WidgetSkeleton /> }
-)
 
 // Fonction de récupération des stats cachée (60 secondes)
 const getCachedDashboardStats = unstable_cache(
@@ -244,12 +240,7 @@ async function DashboardDocumentsWidgets({ userId }: { userId: string }) {
     client_id: d.client_id,
   }))
 
-  return (
-    <>
-      <UnclassifiedDocumentsWidget dossiers={dossiers} />
-      <PendingDocumentsWidget dossiers={dossiers} />
-    </>
-  )
+  return <UnclassifiedDocumentsWidget dossiers={dossiers} />
 }
 
 export default async function DashboardPage() {

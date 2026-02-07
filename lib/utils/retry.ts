@@ -293,17 +293,3 @@ export async function retryAnthropic<T>(fn: () => Promise<T>): Promise<T> {
   })
 }
 
-/**
- * Retry pour WhatsApp/Twilio
- * 3 tentatives, 1s initial
- */
-export async function retryWhatsApp<T>(fn: () => Promise<T>): Promise<T> {
-  return withRetry(fn, {
-    maxRetries: 3,
-    initialDelayMs: 1000,
-    backoffMultiplier: 2,
-    maxDelayMs: 10000,
-    isRetryable: isNetworkError,
-    operationName: 'WhatsApp',
-  })
-}

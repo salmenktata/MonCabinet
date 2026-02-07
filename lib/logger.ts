@@ -158,7 +158,6 @@ export const loggers = {
   webhook: createLogger('Webhook'),
   email: createLogger('Email'),
   flouci: createLogger('Flouci'),
-  whatsapp: createLogger('WhatsApp'),
   ai: createLogger('AI'),
   storage: createLogger('Storage'),
 }

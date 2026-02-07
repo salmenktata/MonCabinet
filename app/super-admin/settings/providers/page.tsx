@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Icons } from '@/lib/icons'
 import { EmailProvidersConfig } from '@/components/super-admin/settings/EmailProvidersConfig'
-import { WhatsAppProviderConfig } from '@/components/super-admin/settings/WhatsAppProviderConfig'
 import { AIProvidersConfig } from '@/components/super-admin/settings/AIProvidersConfig'
 
 export default function ProvidersPage() {
@@ -29,13 +28,6 @@ export default function ProvidersPage() {
             Email
           </TabsTrigger>
           <TabsTrigger
-            value="whatsapp"
-            className="data-[state=active]:bg-slate-700 data-[state=active]:text-white"
-          >
-            <Icons.messageSquare className="h-4 w-4 mr-2" />
-            WhatsApp
-          </TabsTrigger>
-          <TabsTrigger
             value="ai"
             className="data-[state=active]:bg-slate-700 data-[state=active]:text-white"
           >
@@ -46,10 +38,6 @@ export default function ProvidersPage() {
 
         <TabsContent value="email" className="space-y-6">
           <EmailProvidersConfig />
-        </TabsContent>
-
-        <TabsContent value="whatsapp" className="space-y-6">
-          <WhatsAppProviderConfig />
         </TabsContent>
 
         <TabsContent value="ai" className="space-y-6">

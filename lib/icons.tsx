@@ -99,9 +99,17 @@ import {
   History,
   Undo2,
   Play,
+  Pause,
   PanelLeftOpen,
   PanelLeftClose,
   Link2,
+  Box,
+  File,
+  Inbox,
+  ClipboardCheck,
+  Tag,
+  Sparkles,
+  SkipForward,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -234,8 +242,18 @@ export const Icons = {
   x: X,
   history: History,
   play: Play,
+  pause: Pause,
   undo: Undo2,
   link: Link2,
+  box: Box,
+  file: File,
+  plus: Plus,
+  inbox: Inbox,
+  clipboardCheck: ClipboardCheck,
+  tag: Tag,
+  sparkles: Sparkles,
+  skip: SkipForward,
+  chartBar: BarChart,
 } as const
 
 export type IconName = keyof typeof Icons

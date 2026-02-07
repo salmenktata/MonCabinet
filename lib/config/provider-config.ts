@@ -1,5 +1,5 @@
 /**
- * Service de configuration des providers (Email, WhatsApp, IA)
+ * Service de configuration des providers (Email, IA)
  * Gère la lecture/écriture des préférences providers depuis la base de données
  */
 
@@ -25,11 +25,6 @@ export interface EmailProviderConfig {
   }
 }
 
-export interface WhatsAppConfig {
-  enabled: boolean
-  configured: boolean
-  phoneNumberId: string | null
-}
 
 // =============================================================================
 // HELPERS
@@ -111,35 +106,6 @@ export async function isEmailProviderConfigured(provider: 'brevo' | 'resend'): P
 }
 
 // =============================================================================
-// GETTERS - WHATSAPP
-// =============================================================================
-
-/**
- * Vérifie si WhatsApp est activé globalement
- */
-export async function isWhatsAppEnabled(): Promise<boolean> {
-  const enabled = await getConfig('WHATSAPP_ENABLED')
-  return enabled === 'true'
-}
-
-/**
- * Récupère la configuration WhatsApp complète
- */
-export async function getWhatsAppConfig(): Promise<WhatsAppConfig> {
-  const [enabled, token, phoneNumberId] = await Promise.all([
-    getConfig('WHATSAPP_ENABLED'),
-    getConfig('WHATSAPP_TOKEN'),
-    getConfig('WHATSAPP_PHONE_NUMBER_ID'),
-  ])
-
-  return {
-    enabled: enabled === 'true',
-    configured: !!token && !!phoneNumberId,
-    phoneNumberId: phoneNumberId || null,
-  }
-}
-
-// =============================================================================
 // SETTERS - EMAIL
 // =============================================================================
 
@@ -172,17 +138,6 @@ export async function setEmailApiKey(
     category: 'email',
     isSecret: true,
   })
-}
-
-// =============================================================================
-// SETTERS - WHATSAPP
-// =============================================================================
-
-/**
- * Active ou désactive WhatsApp globalement
- */
-export async function setWhatsAppEnabled(enabled: boolean): Promise<boolean> {
-  return setConfig('WHATSAPP_ENABLED', enabled ? 'true' : 'false')
 }
 
 // =============================================================================

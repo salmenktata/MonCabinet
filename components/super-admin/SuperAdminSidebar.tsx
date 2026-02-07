@@ -25,10 +25,17 @@ interface NavGroup {
 interface SuperAdminSidebarProps {
   pendingCount?: number
   unreadNotifications?: number
+  pendingReviews?: number
+  pendingContradictions?: number
 }
 
 // Navigation Super Admin
-const getNavGroups = (pendingCount: number, unreadNotifications: number): NavGroup[] => [
+const getNavGroups = (
+  pendingCount: number,
+  unreadNotifications: number,
+  pendingReviews: number,
+  pendingContradictions: number
+): NavGroup[] => [
   {
     group: 'Vue d\'ensemble',
     items: [
@@ -59,6 +66,21 @@ const getNavGroups = (pendingCount: number, unreadNotifications: number): NavGro
     group: 'Contenu',
     items: [
       { href: '/super-admin/knowledge-base', label: 'Base de connaissances', icon: 'bookOpen' },
+      { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
+      {
+        href: '/super-admin/content-review',
+        label: 'Revue de Contenu',
+        icon: 'clipboardCheck',
+        badge: pendingReviews || undefined,
+        badgeVariant: 'destructive' as const
+      },
+      {
+        href: '/super-admin/contradictions',
+        label: 'Contradictions',
+        icon: 'alertTriangle',
+        badge: pendingContradictions || undefined,
+        badgeVariant: 'secondary' as const
+      },
     ],
   },
   {
@@ -74,7 +96,6 @@ const getNavGroups = (pendingCount: number, unreadNotifications: number): NavGro
     items: [
       { href: '/super-admin/settings', label: 'Paramètres', icon: 'settings' },
       { href: '/super-admin/settings/providers', label: 'Providers', icon: 'zap' },
-      { href: '/super-admin/settings/messagerie', label: 'WhatsApp Business', icon: 'messageSquare' },
     ],
   },
 ]
@@ -114,7 +135,9 @@ const NavLink = memo(function NavLink({ item, isActive }: NavLinkProps) {
 
 function SuperAdminSidebarComponent({
   pendingCount = 0,
-  unreadNotifications = 0
+  unreadNotifications = 0,
+  pendingReviews = 0,
+  pendingContradictions = 0
 }: SuperAdminSidebarProps) {
   const pathname = usePathname()
 
@@ -124,7 +147,10 @@ function SuperAdminSidebarComponent({
   }, [pathname])
 
   // Mémorise les items avec leurs états
-  const navGroups = useMemo(() => getNavGroups(pendingCount, unreadNotifications), [pendingCount, unreadNotifications])
+  const navGroups = useMemo(
+    () => getNavGroups(pendingCount, unreadNotifications, pendingReviews, pendingContradictions),
+    [pendingCount, unreadNotifications, pendingReviews, pendingContradictions]
+  )
 
   const groupsWithState = useMemo(() => {
     return navGroups.map(group => ({

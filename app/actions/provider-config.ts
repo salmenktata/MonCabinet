@@ -6,13 +6,9 @@ import {
   getEmailProviderConfig,
   setEmailProviderMode,
   setEmailApiKey,
-  isWhatsAppEnabled,
-  setWhatsAppEnabled,
-  getWhatsAppConfig,
   type EmailProviderMode,
 } from '@/lib/config/provider-config'
 import { testEmailProvider } from '@/lib/email/email-service'
-import { getConfig } from '@/lib/config/platform-config'
 
 // =============================================================================
 // HELPERS
@@ -51,24 +47,6 @@ export async function getEmailProvidersConfigAction() {
   try {
     await requireSuperAdmin()
     const config = await getEmailProviderConfig()
-    return { success: true, data: config }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erreur inconnue'
-    return { success: false, error: message }
-  }
-}
-
-// =============================================================================
-// LECTURE - WHATSAPP
-// =============================================================================
-
-/**
- * Récupère le statut WhatsApp
- */
-export async function getWhatsAppStatusAction() {
-  try {
-    await requireSuperAdmin()
-    const config = await getWhatsAppConfig()
     return { success: true, data: config }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur inconnue'
@@ -134,32 +112,6 @@ export async function updateEmailProviderAction(params: {
 }
 
 // =============================================================================
-// ÉCRITURE - WHATSAPP
-// =============================================================================
-
-/**
- * Active ou désactive WhatsApp globalement
- */
-export async function updateWhatsAppEnabledAction(enabled: boolean) {
-  try {
-    await requireSuperAdmin()
-
-    const success = await setWhatsAppEnabled(enabled)
-    if (!success) {
-      return { success: false, error: 'Échec mise à jour WhatsApp' }
-    }
-
-    return {
-      success: true,
-      message: enabled ? 'WhatsApp activé' : 'WhatsApp désactivé',
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erreur inconnue'
-    return { success: false, error: message }
-  }
-}
-
-// =============================================================================
 // TESTS
 // =============================================================================
 
@@ -200,57 +152,3 @@ export async function testEmailProviderAction(
   }
 }
 
-/**
- * Teste la connexion WhatsApp (vérifie le token)
- */
-export async function testWhatsAppConnectionAction() {
-  try {
-    await requireSuperAdmin()
-
-    const [token, phoneNumberId] = await Promise.all([
-      getConfig('WHATSAPP_TOKEN'),
-      getConfig('WHATSAPP_PHONE_NUMBER_ID'),
-    ])
-
-    if (!token || !phoneNumberId) {
-      return {
-        success: false,
-        error: 'Configuration WhatsApp incomplète (token ou phoneNumberId manquant)',
-      }
-    }
-
-    // Appel API Meta pour vérifier le token
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${phoneNumberId}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return {
-        success: false,
-        error: `Erreur API Meta: ${errorData.error?.message || response.statusText}`,
-      }
-    }
-
-    const data = await response.json()
-
-    return {
-      success: true,
-      message: 'Connexion WhatsApp validée',
-      data: {
-        phoneNumber: data.display_phone_number,
-        verifiedName: data.verified_name,
-        qualityRating: data.quality_rating,
-      },
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erreur inconnue'
-    return { success: false, error: message }
-  }
-}

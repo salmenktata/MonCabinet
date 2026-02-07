@@ -221,8 +221,6 @@ export default function UnclassifiedDocumentsWidget({
                         <Badge variant="outline" className="text-xs">
                           {doc.source_type === 'google_drive_sync'
                             ? 'Ajouté manuellement dans Drive'
-                            : doc.source_type === 'whatsapp'
-                            ? 'Reçu par WhatsApp'
                             : 'Upload manuel'}
                         </Badge>
                       </div>
@@ -302,8 +300,7 @@ export default function UnclassifiedDocumentsWidget({
                   <p className="font-medium">Comment ces documents sont-ils arrivés ici ?</p>
                   <p className="mt-1 text-xs">
                     Ces documents ont été ajoutés manuellement dans le dossier "Documents non
-                    classés/" de votre Google Drive, ou reçus par WhatsApp sans dossier unique
-                    identifié. Veuillez les rattacher à un dossier juridique.
+                    classés/" de votre Google Drive. Veuillez les rattacher à un dossier juridique.
                   </p>
                 </div>
               </div>
