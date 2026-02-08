@@ -3,6 +3,8 @@
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { getChatProvider, aiConfig, SYSTEM_PROMPTS } from '@/lib/ai/config'
+import { detectLanguage, type DetectedLanguage } from '@/lib/ai/language-utils'
+import { translateQuery, isTranslationAvailable } from '@/lib/ai/translation-service'
 
 // Types
 export interface ConsultationSource {
@@ -32,6 +34,86 @@ interface ActionResult {
   error?: string
 }
 
+// Labels bilingues pour le contexte dossier
+const DOSSIER_LABELS = {
+  fr: {
+    header: 'DOSSIER LIÉ:',
+    titre: 'Titre',
+    numero: 'Numéro',
+    typeAffaire: "Type d'affaire",
+    description: 'Description',
+    faits: 'Faits',
+  },
+  ar: {
+    header: 'الملف المرتبط:',
+    titre: 'العنوان',
+    numero: 'الرقم',
+    typeAffaire: 'نوع القضية',
+    description: 'الوصف',
+    faits: 'الوقائع',
+  },
+} as const
+
+// Labels bilingues pour le prompt
+const PROMPT_LABELS = {
+  fr: {
+    sourcesHeader: 'SOURCES DISPONIBLES:',
+    noSources: 'Aucune source trouvée dans la base de connaissances.',
+    questionHeader: "QUESTION DE L'UTILISATEUR:",
+    contextHeader: 'CONTEXTE ADDITIONNEL:',
+  },
+  ar: {
+    sourcesHeader: 'المصادر المتوفرة:',
+    noSources: 'لم يتم العثور على مصادر في قاعدة المعرفة.',
+    questionHeader: 'سؤال المستخدم:',
+    contextHeader: 'سياق إضافي:',
+  },
+} as const
+
+// Prompt consultation bilingue
+const CONSULTATION_PROMPTS = {
+  fr: `MODE CONSULTATION:
+Tu es en mode consultation juridique rapide. L'utilisateur te pose une question juridique et attend un conseil clair et actionnable.
+
+INSTRUCTIONS SPÉCIFIQUES:
+1. Fournis un conseil juridique structuré et pratique
+2. Cite les articles de loi pertinents avec le format [Source N]
+3. Termine par 2-4 actions recommandées concrètes
+4. Reste concis mais complet (réponse de 200-400 mots idéalement)`,
+  ar: `وضع الاستشارة القانونية السريعة:
+أنت في وضع الاستشارة القانونية السريعة. المستخدم يطرح عليك سؤالاً قانونياً وينتظر نصيحة واضحة وقابلة للتطبيق.
+
+تعليمات محددة:
+1. قدّم نصيحة قانونية منظمة وعملية
+2. استشهد بالمواد القانونية ذات الصلة بصيغة [Source N]
+3. اختم بـ 2-4 إجراءات موصى بها وملموسة
+4. كن موجزاً ولكن شاملاً (200-400 كلمة مثالياً)`,
+} as const
+
+const RESPONSE_FORMAT = {
+  fr: `FORMAT DE RÉPONSE:
+Fournis ta réponse en Markdown avec:
+- Un conseil juridique clair
+- Les références aux articles de loi
+- Les citations des sources avec [Source N]
+
+À LA FIN, ajoute une section "## Actions Recommandées" avec une liste numérotée de 2-4 actions concrètes.`,
+  ar: `صيغة الرد:
+قدّم ردك بصيغة Markdown مع:
+- نصيحة قانونية واضحة
+- الإشارة إلى المواد القانونية
+- الاستشهاد بالمصادر بصيغة [Source N]
+
+في النهاية، أضف قسم "## الإجراءات الموصى بها" مع قائمة مرقمة من 2-4 إجراءات ملموسة.`,
+} as const
+
+/**
+ * Détermine la clé de langue pour les labels (ar ou fr)
+ */
+function getLangKey(lang: DetectedLanguage): 'ar' | 'fr' {
+  return lang === 'ar' ? 'ar' : 'fr'
+}
+
 /**
  * Server action pour soumettre une consultation juridique
  */
@@ -42,6 +124,10 @@ export async function submitConsultation(input: ConsultationInput): Promise<Acti
     if (!session?.user?.id) {
       return { success: false, error: 'Non autorisé' }
     }
+
+    // Détecter la langue de la question
+    const questionLang = detectLanguage(input.question)
+    const langKey = getLangKey(questionLang)
 
     // Récupérer le contexte du dossier si fourni
     let dossierContext = ''
@@ -55,19 +141,20 @@ export async function submitConsultation(input: ConsultationInput): Promise<Acti
 
       if (dossierResult.rows.length > 0) {
         const dossier = dossierResult.rows[0]
+        const labels = DOSSIER_LABELS[langKey]
         dossierContext = `
-DOSSIER LIÉ:
-- Titre: ${dossier.titre}
-- Numéro: ${dossier.numero}
-- Type d'affaire: ${dossier.type_affaire}
-- Description: ${dossier.description || 'N/A'}
-- Faits: ${dossier.faits || 'N/A'}
+${labels.header}
+- ${labels.titre}: ${dossier.titre}
+- ${labels.numero}: ${dossier.numero}
+- ${labels.typeAffaire}: ${dossier.type_affaire}
+- ${labels.description}: ${dossier.description || 'N/A'}
+- ${labels.faits}: ${dossier.faits || 'N/A'}
 `
       }
     }
 
-    // Rechercher dans la base de connaissances (simplifiée)
-    const sources = await searchKnowledgeBase(input.question, session.user.id)
+    // Rechercher dans la base de connaissances (avec support traduction)
+    const sources = await searchKnowledgeBase(input.question, session.user.id, questionLang)
 
     // Construire le contexte RAG
     const ragContext = sources
@@ -77,35 +164,23 @@ DOSSIER LIÉ:
       )
       .join('\n\n')
 
-    // Prompt système optimisé pour consultation
+    // Prompt système bilingue
+    const labels = PROMPT_LABELS[langKey]
     const systemPrompt = `${SYSTEM_PROMPTS.qadhya}
 
-MODE CONSULTATION:
-Tu es en mode consultation juridique rapide. L'utilisateur te pose une question juridique et attend un conseil clair et actionnable.
-
-INSTRUCTIONS SPÉCIFIQUES:
-1. Fournis un conseil juridique structuré et pratique
-2. Cite les articles de loi pertinents avec le format [Source N]
-3. Termine par 2-4 actions recommandées concrètes
-4. Reste concis mais complet (réponse de 200-400 mots idéalement)
+${CONSULTATION_PROMPTS[langKey]}
 
 ${dossierContext}
 
-SOURCES DISPONIBLES:
-${ragContext || 'Aucune source trouvée dans la base de connaissances.'}
+${labels.sourcesHeader}
+${ragContext || labels.noSources}
 
-QUESTION DE L'UTILISATEUR:
+${labels.questionHeader}
 ${input.question}
 
-${input.context ? `CONTEXTE ADDITIONNEL:\n${input.context}` : ''}
+${input.context ? `${labels.contextHeader}\n${input.context}` : ''}
 
-FORMAT DE RÉPONSE:
-Fournis ta réponse en Markdown avec:
-- Un conseil juridique clair
-- Les références aux articles de loi
-- Les citations des sources avec [Source N]
-
-À LA FIN, ajoute une section "## Actions Recommandées" avec une liste numérotée de 2-4 actions concrètes.`
+${RESPONSE_FORMAT[langKey]}`
 
     // Appeler le LLM
     const provider = getChatProvider()
@@ -127,6 +202,7 @@ Fournis ta réponse en Markdown avec:
     // Nettoyer le conseil (retirer la section actions qui sera affichée séparément)
     const cleanedConseil = conseil
       .replace(/## Actions Recommandées[\s\S]*$/i, '')
+      .replace(/## الإجراءات الموصى بها[\s\S]*$/, '')
       .trim()
 
     return {
@@ -149,23 +225,34 @@ Fournis ta réponse en Markdown avec:
 
 /**
  * Recherche simplifiée dans la base de connaissances
+ * Avec support traduction pour les questions arabes
  */
 async function searchKnowledgeBase(
   query: string,
-  userId: string
+  userId: string,
+  questionLang: DetectedLanguage
 ): Promise<ConsultationSource[]> {
   try {
     const sources: ConsultationSource[] = []
     const searchTerms = query.split(' ').slice(0, 3).join('%')
 
-    // Recherche textuelle simple dans les documents
-    const docsResult = await db.query(
-      `SELECT id, nom, type, contenu_extrait
-       FROM documents
-       WHERE nom ILIKE $1 OR contenu_extrait ILIKE $1
-       LIMIT 5`,
-      [`%${searchTerms}%`]
-    )
+    // Recherche avec les termes originaux
+    const [docsResult, kbResult] = await Promise.all([
+      db.query(
+        `SELECT id, nom, type, contenu_extrait
+         FROM documents
+         WHERE nom ILIKE $1 OR contenu_extrait ILIKE $1
+         LIMIT 5`,
+        [`%${searchTerms}%`]
+      ),
+      db.query(
+        `SELECT id, titre, type, contenu
+         FROM knowledge_base
+         WHERE titre ILIKE $1 OR contenu ILIKE $1
+         LIMIT 5`,
+        [`%${searchTerms}%`]
+      ),
+    ])
 
     for (const doc of docsResult.rows) {
       sources.push({
@@ -173,18 +260,9 @@ async function searchKnowledgeBase(
         titre: doc.nom,
         type: doc.type || 'document',
         extrait: doc.contenu_extrait?.substring(0, 500) || '',
-        pertinence: 0.75, // Score par défaut pour recherche textuelle
+        pertinence: 0.75,
       })
     }
-
-    // Recherche dans la base de connaissances juridique
-    const kbResult = await db.query(
-      `SELECT id, titre, type, contenu
-       FROM knowledge_base
-       WHERE titre ILIKE $1 OR contenu ILIKE $1
-       LIMIT 5`,
-      [`%${searchTerms}%`]
-    )
 
     for (const article of kbResult.rows) {
       sources.push({
@@ -194,6 +272,58 @@ async function searchKnowledgeBase(
         extrait: article.contenu?.substring(0, 500) || '',
         pertinence: 0.8,
       })
+    }
+
+    // Si la question est en arabe, tenter une recherche traduite en FR
+    if ((questionLang === 'ar' || questionLang === 'mixed') && isTranslationAvailable()) {
+      const translation = await translateQuery(query, 'ar', 'fr')
+      if (translation.success && translation.translatedText !== query) {
+        const translatedTerms = translation.translatedText.split(' ').slice(0, 3).join('%')
+        const seenIds = new Set(sources.map((s) => s.id))
+
+        const [translatedDocsResult, translatedKbResult] = await Promise.all([
+          db.query(
+            `SELECT id, nom, type, contenu_extrait
+             FROM documents
+             WHERE nom ILIKE $1 OR contenu_extrait ILIKE $1
+             LIMIT 5`,
+            [`%${translatedTerms}%`]
+          ),
+          db.query(
+            `SELECT id, titre, type, contenu
+             FROM knowledge_base
+             WHERE titre ILIKE $1 OR contenu ILIKE $1
+             LIMIT 5`,
+            [`%${translatedTerms}%`]
+          ),
+        ])
+
+        for (const doc of translatedDocsResult.rows) {
+          if (!seenIds.has(doc.id)) {
+            sources.push({
+              id: doc.id,
+              titre: doc.nom,
+              type: doc.type || 'document',
+              extrait: doc.contenu_extrait?.substring(0, 500) || '',
+              pertinence: 0.7, // Légèrement inférieur car traduit
+            })
+            seenIds.add(doc.id)
+          }
+        }
+
+        for (const article of translatedKbResult.rows) {
+          if (!seenIds.has(article.id)) {
+            sources.push({
+              id: article.id,
+              titre: article.titre,
+              type: article.type || 'knowledge_base',
+              extrait: article.contenu?.substring(0, 500) || '',
+              pertinence: 0.75,
+            })
+            seenIds.add(article.id)
+          }
+        }
+      }
     }
 
     // Trier par pertinence et limiter
@@ -281,10 +411,13 @@ async function callOllama(prompt: string): Promise<string> {
 }
 
 /**
- * Extrait les actions recommandées du texte
+ * Extrait les actions recommandées du texte (FR et AR)
  */
 function extractActions(text: string): string[] {
-  const actionsMatch = text.match(/## Actions Recommandées[\s\S]*/i)
+  // Matcher les deux patterns : FR et AR
+  const actionsMatch =
+    text.match(/## Actions Recommandées[\s\S]*/i) ||
+    text.match(/## الإجراءات الموصى بها[\s\S]*/)
   if (!actionsMatch) return []
 
   const actionsSection = actionsMatch[0]
@@ -292,7 +425,8 @@ function extractActions(text: string): string[] {
 
   const actions: string[] = []
   for (const line of lines) {
-    const match = line.match(/^\d+\.\s*(.+)$/)
+    // Supporte numérotation latine et arabe (١٢٣...)
+    const match = line.match(/^[\d١٢٣٤٥٦٧٨٩٠]+[.\.]\s*(.+)$/)
     if (match) {
       actions.push(match[1].trim())
     }
