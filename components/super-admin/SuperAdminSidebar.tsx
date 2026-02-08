@@ -41,7 +41,7 @@ const getNavGroups = (
   {
     group: 'Vue d\'ensemble',
     items: [
-      { href: '/super-admin/dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { href: '/super-admin/dashboard', label: 'Tableau de bord', icon: 'dashboard' },
       {
         href: '/super-admin/notifications',
         label: 'Notifications',
@@ -69,10 +69,22 @@ const getNavGroups = (
     items: [
       { href: '/super-admin/knowledge-base', label: 'Base de connaissances', icon: 'bookOpen' },
       { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
-      { href: '/super-admin/web-files', label: 'Fichiers', icon: 'file' },
+      { href: '/super-admin/web-files', label: 'Fichiers Web', icon: 'file' },
+      {
+        href: '/super-admin/taxonomy',
+        label: 'Taxonomie',
+        icon: 'folder',
+        badge: pendingTaxonomySuggestions || undefined,
+        badgeVariant: 'secondary' as const
+      },
+    ],
+  },
+  {
+    group: 'Qualité',
+    items: [
       {
         href: '/super-admin/content-review',
-        label: 'Revue de Contenu',
+        label: 'Revue de contenu',
         icon: 'clipboardCheck',
         badge: pendingReviews || undefined,
         badgeVariant: 'destructive' as const
@@ -84,28 +96,17 @@ const getNavGroups = (
         badge: pendingContradictions || undefined,
         badgeVariant: 'secondary' as const
       },
+      { href: '/super-admin/classification/metrics', label: 'Classification', icon: 'barChart' },
     ],
   },
   {
-    group: 'Monitoring',
+    group: 'Système',
     items: [
       { href: '/super-admin/ai-costs', label: 'Coûts IA', icon: 'dollar' },
-      { href: '/super-admin/audit-logs', label: 'Audit Logs', icon: 'shield' },
-      { href: '/super-admin/backups', label: 'Backups', icon: 'database' },
-    ],
-  },
-  {
-    group: 'Configuration',
-    items: [
+      { href: '/super-admin/audit-logs', label: 'Journal d\'audit', icon: 'shield' },
+      { href: '/super-admin/backups', label: 'Sauvegardes', icon: 'database' },
       { href: '/super-admin/settings', label: 'Paramètres', icon: 'settings' },
-      { href: '/super-admin/settings/providers', label: 'Providers', icon: 'zap' },
-      {
-        href: '/super-admin/taxonomy',
-        label: 'Taxonomie',
-        icon: 'folder',
-        badge: pendingTaxonomySuggestions || undefined,
-        badgeVariant: 'secondary' as const
-      },
+      { href: '/super-admin/settings/providers', label: 'Fournisseurs IA', icon: 'zap' },
     ],
   },
 ]
