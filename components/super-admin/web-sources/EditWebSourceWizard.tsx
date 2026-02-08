@@ -95,6 +95,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
 
     return {
       name: formData.name,
+      baseUrl: formData.baseUrl,
       description: formData.description,
       category: formData.category,
       language: formData.language,

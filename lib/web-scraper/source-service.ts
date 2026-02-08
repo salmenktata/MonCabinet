@@ -193,6 +193,11 @@ export async function updateWebSource(
     params.push(input.name)
   }
 
+  if (input.baseUrl !== undefined) {
+    setClauses.push(`base_url = $${paramIndex++}`)
+    params.push(input.baseUrl)
+  }
+
   if (input.description !== undefined) {
     setClauses.push(`description = $${paramIndex++}`)
     params.push(input.description)

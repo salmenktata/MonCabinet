@@ -472,6 +472,7 @@ export interface CreateWebSourceInput {
 
 export interface UpdateWebSourceInput {
   name?: string
+  baseUrl?: string
   description?: string
   category?: WebSourceCategory
   language?: WebSourceLanguage

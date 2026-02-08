@@ -129,6 +129,7 @@ export async function PUT(
 
     // Copier les champs fournis
     if (body.name !== undefined) input.name = body.name
+    if (body.baseUrl !== undefined) input.baseUrl = body.baseUrl
     if (body.description !== undefined) input.description = body.description
     if (body.category !== undefined) input.category = body.category
     if (body.language !== undefined) input.language = body.language
