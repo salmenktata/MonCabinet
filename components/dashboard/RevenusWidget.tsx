@@ -64,35 +64,35 @@ function RevenusWidgetComponent({ factures }: RevenusWidgetProps) {
   }, [factures, locale])
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm">
+    <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-card-foreground mb-4">{t('title')}</h2>
 
       {/* Statistiques principales */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div className="rounded-lg bg-green-100 dark:bg-green-900/20 p-4">
           <p className="text-xs font-medium text-green-600 dark:text-green-400">{t('paid')}</p>
-          <p className="mt-1 text-2xl font-bold text-green-700 dark:text-green-400">
+          <p className="mt-1 text-xl sm:text-2xl font-bold text-green-700 dark:text-green-400">
             {revenusPayes.toFixed(3)} <span className="text-sm">TND</span>
           </p>
         </div>
 
         <div className="rounded-lg bg-orange-100 dark:bg-orange-900/20 p-4">
           <p className="text-xs font-medium text-orange-600 dark:text-orange-400">{t('pending')}</p>
-          <p className="mt-1 text-2xl font-bold text-orange-700 dark:text-orange-400">
+          <p className="mt-1 text-xl sm:text-2xl font-bold text-orange-700 dark:text-orange-400">
             {revenusEnAttente.toFixed(3)} <span className="text-sm">TND</span>
           </p>
         </div>
 
         <div className="rounded-lg bg-red-100 dark:bg-red-900/20 p-4">
           <p className="text-xs font-medium text-red-600 dark:text-red-400">{t('unpaid')}</p>
-          <p className="mt-1 text-2xl font-bold text-red-700 dark:text-red-400">
+          <p className="mt-1 text-xl sm:text-2xl font-bold text-red-700 dark:text-red-400">
             {revenusImpayes.toFixed(3)} <span className="text-sm">TND</span>
           </p>
         </div>
 
         <div className="rounded-lg bg-blue-100 dark:bg-blue-900/20 p-4">
           <p className="text-xs font-medium text-blue-600 dark:text-blue-400">{t('total')}</p>
-          <p className="mt-1 text-2xl font-bold text-blue-700 dark:text-blue-400">
+          <p className="mt-1 text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-400">
             {revenusTotal.toFixed(3)} <span className="text-sm">TND</span>
           </p>
         </div>

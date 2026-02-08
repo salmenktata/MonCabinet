@@ -153,7 +153,7 @@ export function GlobalSearch({ className }: GlobalSearchProps) {
       >
         <Icons.search className="h-4 w-4 shrink-0" />
         <span className="flex-1 text-left">Rechercher...</span>
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 md:flex">
           <span className="text-xs">⌘</span>K
         </kbd>
       </button>
@@ -256,7 +256,7 @@ export function GlobalSearch({ className }: GlobalSearchProps) {
         </CommandList>
 
         {/* Footer avec raccourcis */}
-        <div className="border-t border-border px-4 py-2 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="hidden sm:flex border-t border-border px-4 py-2 items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 bg-muted rounded">↑↓</kbd>

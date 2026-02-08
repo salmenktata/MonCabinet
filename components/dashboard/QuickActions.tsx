@@ -60,14 +60,14 @@ export function QuickActions() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
           {actions.map((action) => {
             const Icon = Icons[action.icon]
             return (
               <Link key={action.href} href={action.href}>
                 <div
                   className={cn(
-                    'flex flex-col items-center gap-3 rounded-lg border p-4 transition-all hover:shadow-md',
+                    'flex flex-col items-center gap-2 sm:gap-3 rounded-lg border p-3 sm:p-4 transition-all hover:shadow-md',
                     'text-center'
                   )}
                 >

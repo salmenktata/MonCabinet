@@ -57,8 +57,8 @@ export function UrgentActions({ echeances }: UrgentActionsProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-xl font-semibold">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-3 sm:pb-4">
+        <CardTitle className="text-lg sm:text-xl font-semibold">
           <div className="flex items-center gap-2">
             <Icons.alertCircle className="h-5 w-5 text-orange-600" />
             {tUrgent('title')}

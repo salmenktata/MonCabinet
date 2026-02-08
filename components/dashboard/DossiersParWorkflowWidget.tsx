@@ -39,7 +39,7 @@ function DossiersParWorkflowWidgetComponent({ dossiers }: DossiersParWorkflowWid
   }, [dossiers])
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm">
+    <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-card-foreground mb-4">{t('title')}</h2>
 
       {workflows.length === 0 ? (
@@ -52,7 +52,7 @@ function DossiersParWorkflowWidgetComponent({ dossiers }: DossiersParWorkflowWid
             return (
               <div key={w.id}>
                 <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="font-medium text-foreground">{w.nom}</span>
+                  <span className="font-medium text-foreground truncate">{w.nom}</span>
                   <span className="font-semibold text-foreground">
                     {w.count} ({pourcentage.toFixed(0)}%)
                   </span>

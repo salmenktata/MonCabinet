@@ -265,8 +265,8 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       {/* Header - rendu immédiat */}
       <div>
-        <h1 className="text-3xl font-bold">{tStats('hello')}</h1>
-        <p className="text-muted-foreground mt-1">{dateFormatted}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold">{tStats('hello')}</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">{dateFormatted}</p>
       </div>
 
       {/* Stats principales - priorité haute */}

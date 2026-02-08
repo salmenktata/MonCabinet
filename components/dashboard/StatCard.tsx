@@ -59,11 +59,11 @@ function StatCardComponent({
 
   const content = (
     <Card className={cn('transition-all hover:shadow-md', href && 'cursor-pointer')}>
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className={cn('mt-2 text-3xl font-bold', styles.value)}>{value}</p>
+            <p className={cn('mt-2 text-2xl sm:text-3xl font-bold', styles.value)}>{value}</p>
             {subtitle && (
               <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
             )}
@@ -78,8 +78,8 @@ function StatCardComponent({
               </div>
             )}
           </div>
-          <div className={cn('rounded-full p-3', styles.icon)}>
-            <Icon className="h-6 w-6" />
+          <div className={cn('rounded-full p-2 sm:p-3', styles.icon)}>
+            <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
         </div>
       </CardContent>

@@ -39,7 +39,11 @@ function verifyCronSecret(request: NextRequest): boolean {
     return false
   }
 
+  console.log('[WebCrawler Cron] Auth header:', authHeader)
+  console.log('[WebCrawler Cron] Expected:', `Bearer ${cronSecret}`)
+
   if (authHeader !== `Bearer ${cronSecret}`) {
+    console.warn('[WebCrawler Cron] Auth header mismatch')
     return false
   }
 
