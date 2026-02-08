@@ -21,12 +21,10 @@ function normalizeCrawlFrequency(pgInterval: string): string {
     '01:00:00': '1 hour',
     '06:00:00': '6 hours',
     '12:00:00': '12 hours',
+    '24:00:00': '24 hours',
     '1 day': '24 hours',
-    '1 day 00:00:00': '24 hours',
     '7 days': '7 days',
-    '7 days 00:00:00': '7 days',
     '30 days': '30 days',
-    '30 days 00:00:00': '30 days',
   }
   return mapping[pgInterval] || pgInterval
 }
