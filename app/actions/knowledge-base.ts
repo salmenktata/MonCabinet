@@ -511,6 +511,69 @@ export async function getKnowledgeCategoriesAction() {
 }
 
 /**
+ * Déclencher l'analyse qualité d'un document KB
+ */
+export async function analyzeKBDocumentQualityAction(documentId: string) {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { error: authCheck.error }
+    }
+
+    const { addToQueue } = await import('@/lib/ai/indexing-queue-service')
+    await addToQueue('kb_quality_analysis', documentId, 7)
+
+    return { success: true, message: 'Analyse qualité ajoutée à la queue' }
+  } catch (error) {
+    console.error('Erreur analyse qualité:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Erreur analyse qualité',
+    }
+  }
+}
+
+/**
+ * Récupérer les documents nécessitant une revue qualité
+ */
+export async function getKBDocumentsRequiringReviewAction(options?: {
+  limit?: number
+  offset?: number
+}) {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { error: authCheck.error }
+    }
+
+    const { limit = 20, offset = 0 } = options || {}
+
+    const result = await query(
+      `SELECT id, title, category, quality_score, quality_requires_review, quality_assessed_at
+       FROM knowledge_base
+       WHERE quality_requires_review = true AND is_active = true
+       ORDER BY quality_score ASC NULLS LAST
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    )
+
+    const countResult = await query(
+      `SELECT COUNT(*) FROM knowledge_base WHERE quality_requires_review = true AND is_active = true`
+    )
+
+    return {
+      success: true,
+      documents: result.rows,
+      total: parseInt(countResult.rows[0].count) || 0,
+    }
+  } catch (error) {
+    console.error('Erreur récupération documents revue:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Erreur récupération documents',
+    }
+  }
+}
+
+/**
  * Actions groupées sur plusieurs documents
  */
 export async function bulkKnowledgeDocumentAction(

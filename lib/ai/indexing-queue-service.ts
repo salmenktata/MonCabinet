@@ -21,6 +21,9 @@ export type JobType =
   | 'legal_classification'   // Classification juridique
   | 'contradiction_check'    // Détection contradictions
   | 'full_pipeline'          // Pipeline complet (analyse + classification + contradictions)
+  // Types KB quality & duplicates
+  | 'kb_quality_analysis'    // Analyse qualité document KB
+  | 'kb_duplicate_check'     // Détection doublons KB
 
 export interface IndexingJob {
   id: string
@@ -214,6 +217,23 @@ export async function processNextJob(): Promise<boolean> {
         `[IndexingQueue] Pipeline complet terminé: ${job.targetId} ` +
         `(score: ${result.qualityScore}, décision: ${result.decision}, ` +
         `${result.processingTimeMs}ms)`
+      )
+    } else if (job.jobType === 'kb_quality_analysis') {
+      // Analyse qualité document KB
+      const { analyzeKBDocumentQuality } = await import('./kb-quality-analyzer-service')
+      const result = await analyzeKBDocumentQuality(job.targetId)
+      await completeJob(job.id, true)
+      console.log(
+        `[IndexingQueue] Qualité KB analysée: ${job.targetId} (score: ${result.qualityScore})`
+      )
+    } else if (job.jobType === 'kb_duplicate_check') {
+      // Détection doublons KB
+      const { detectDuplicatesAndContradictions } = await import('./kb-duplicate-detector-service')
+      const result = await detectDuplicatesAndContradictions(job.targetId)
+      await completeJob(job.id, true)
+      console.log(
+        `[IndexingQueue] Doublons KB vérifiés: ${job.targetId} ` +
+        `(${result.duplicates.length} doublons, ${result.contradictions.length} contradictions)`
       )
     }
 

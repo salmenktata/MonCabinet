@@ -287,7 +287,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
             </Link>
           </CardHeader>
           <CardContent>
-            <WebSourcePages pages={pages} />
+            <WebSourcePages pages={pages} sourceId={id} />
           </CardContent>
         </Card>
 

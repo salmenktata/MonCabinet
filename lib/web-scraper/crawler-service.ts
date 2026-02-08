@@ -479,7 +479,7 @@ async function insertPage(
 ): Promise<void> {
   const { content, contentHash, files, fetchResult } = data
 
-  await db.query(
+  const insertResult = await db.query(
     `INSERT INTO web_pages (
       web_source_id, url, url_hash, canonical_url,
       title, content_hash, extracted_text, word_count, language_detected,
@@ -492,7 +492,7 @@ async function insertPage(
       $10, $11, $12, $13, $14,
       $15, $16, $17, $18,
       'crawled', $19, NOW(), NOW()
-    )`,
+    ) RETURNING id`,
     [
       sourceId,
       url,
@@ -515,6 +515,16 @@ async function insertPage(
       depth,
     ]
   )
+
+  // Créer la version initiale
+  if (insertResult.rows[0]?.id) {
+    try {
+      const { createWebPageVersion } = await import('./source-service')
+      await createWebPageVersion(insertResult.rows[0].id, 'initial_crawl')
+    } catch (err) {
+      console.error('[Crawler] Erreur création version initiale:', err)
+    }
+  }
 }
 
 /**
@@ -530,6 +540,14 @@ async function updatePage(
   }
 ): Promise<void> {
   const { content, contentHash, files, fetchResult } = data
+
+  // Créer un snapshot de l'état actuel AVANT la mise à jour
+  try {
+    const { createWebPageVersion } = await import('./source-service')
+    await createWebPageVersion(pageId, 'content_change')
+  } catch (err) {
+    console.error('[Crawler] Erreur création version:', err)
+  }
 
   await db.query(
     `UPDATE web_pages SET

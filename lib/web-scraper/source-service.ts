@@ -133,14 +133,14 @@ export async function createWebSource(
       css_selectors, url_patterns, excluded_patterns,
       sitemap_url, rss_feed_url, use_sitemap, download_files,
       respect_robots_txt, rate_limit_ms, custom_headers,
-      created_by, next_crawl_at
+      created_by, next_crawl_at, ignore_ssl_errors
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7::interval, $8, $9, $10,
       $11, $12, $13,
       $14, $15, $16, $17,
       $18, $19, $20,
-      $21, NOW()
+      $21, NOW(), $22
     )
     RETURNING *`,
     [
@@ -165,6 +165,7 @@ export async function createWebSource(
       input.rateLimitMs || 1000,
       JSON.stringify(input.customHeaders || {}),
       createdBy,
+      input.ignoreSSLErrors || false,
     ]
   )
 
@@ -280,6 +281,11 @@ export async function updateWebSource(
   if (input.isActive !== undefined) {
     setClauses.push(`is_active = $${paramIndex++}`)
     params.push(input.isActive)
+  }
+
+  if (input.ignoreSSLErrors !== undefined) {
+    setClauses.push(`ignore_ssl_errors = $${paramIndex++}`)
+    params.push(input.ignoreSSLErrors)
   }
 
   if (setClauses.length === 0) {
@@ -499,6 +505,107 @@ export async function getSourcesToCrawl(limit: number = 10): Promise<WebSource[]
 }
 
 // =============================================================================
+// WEB PAGE VERSIONING
+// =============================================================================
+
+/**
+ * Crée une version snapshot d'une page web
+ */
+export async function createWebPageVersion(
+  pageId: string,
+  changeType: 'initial_crawl' | 'content_change' | 'metadata_change' | 'restore' = 'content_change'
+): Promise<void> {
+  try {
+    await db.query('SELECT create_web_page_version($1, $2)', [pageId, changeType])
+  } catch (error) {
+    console.error(`[WebSources] Erreur création version pour page ${pageId}:`, error)
+  }
+}
+
+/**
+ * Récupère l'historique des versions d'une page
+ */
+export async function getWebPageVersions(
+  pageId: string,
+  options: { limit?: number; offset?: number } = {}
+): Promise<{ versions: Array<Record<string, unknown>>; total: number }> {
+  const { limit = 20, offset = 0 } = options
+
+  const countResult = await db.query(
+    'SELECT COUNT(*) FROM web_page_versions WHERE web_page_id = $1',
+    [pageId]
+  )
+  const total = parseInt(countResult.rows[0].count) || 0
+
+  const result = await db.query(
+    `SELECT * FROM web_page_versions
+     WHERE web_page_id = $1
+     ORDER BY version DESC
+     LIMIT $2 OFFSET $3`,
+    [pageId, limit, offset]
+  )
+
+  return { versions: result.rows, total }
+}
+
+/**
+ * Récupère une version spécifique
+ */
+export async function getWebPageVersion(
+  versionId: string
+): Promise<Record<string, unknown> | null> {
+  const result = await db.query(
+    'SELECT * FROM web_page_versions WHERE id = $1',
+    [versionId]
+  )
+  return result.rows[0] || null
+}
+
+/**
+ * Restaure une version antérieure d'une page web
+ */
+export async function restoreWebPageVersion(
+  pageId: string,
+  versionId: string
+): Promise<boolean> {
+  const version = await getWebPageVersion(versionId)
+  if (!version || version.web_page_id !== pageId) return false
+
+  // Créer un snapshot de l'état actuel avant la restauration
+  await createWebPageVersion(pageId, 'restore')
+
+  // Restaurer les données de la version
+  await db.query(
+    `UPDATE web_pages SET
+      title = $2,
+      extracted_text = $3,
+      word_count = $4,
+      content_hash = $5,
+      meta_description = $6,
+      meta_author = $7,
+      meta_date = $8,
+      meta_keywords = $9,
+      status = 'crawled',
+      is_indexed = false,
+      updated_at = NOW()
+    WHERE id = $1`,
+    [
+      pageId,
+      version.title,
+      version.extracted_text,
+      version.word_count,
+      version.content_hash,
+      version.meta_description,
+      version.meta_author,
+      version.meta_date,
+      version.meta_keywords,
+    ]
+  )
+
+  return true
+}
+
+// =============================================================================
 // MAPPERS
 // =============================================================================
 
@@ -542,6 +649,7 @@ function mapRowToWebSource(row: Record<string, unknown>): WebSource {
     totalPagesIndexed: row.total_pages_indexed as number,
     avgPagesPerCrawl: row.avg_pages_per_crawl as number,
     avgCrawlDurationMs: row.avg_crawl_duration_ms as number,
+    ignoreSSLErrors: (row.ignore_ssl_errors as boolean) || false,
     createdBy: row.created_by as string | null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),

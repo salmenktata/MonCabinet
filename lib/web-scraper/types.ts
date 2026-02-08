@@ -191,6 +191,9 @@ export interface WebSource {
   maxPagesPerHour?: number           // Quota horaire
   maxPagesPerDay?: number            // Quota journalier
 
+  // SSL
+  ignoreSSLErrors?: boolean          // Ignorer les certificats SSL invalides (sites gouvernementaux)
+
   // Configuration avancée pour sites dynamiques (Livewire, React, Vue, etc.)
   dynamicConfig: DynamicSiteConfig | null
 
@@ -441,6 +444,7 @@ export interface CreateWebSourceInput {
   customHeaders?: Record<string, string>
   dynamicConfig?: DynamicSiteConfig
   extractionConfig?: ExtractionConfig
+  ignoreSSLErrors?: boolean
 }
 
 export interface UpdateWebSourceInput {
@@ -466,6 +470,7 @@ export interface UpdateWebSourceInput {
   dynamicConfig?: DynamicSiteConfig
   extractionConfig?: ExtractionConfig
   isActive?: boolean
+  ignoreSSLErrors?: boolean
 }
 
 // ============================================================================
@@ -1129,6 +1134,71 @@ export interface WebPageExtended extends WebPage {
   legalDomain: LegalDomain | null
   requiresHumanReview: boolean
   processingStatus: ProcessingStatus
+}
+
+// =============================================================================
+// TYPES POUR LE VERSIONING DES PAGES
+// =============================================================================
+
+export interface WebPageVersion {
+  id: string
+  webPageId: string
+  version: number
+  title: string | null
+  contentHash: string | null
+  wordCount: number | null
+  changeType: 'initial_crawl' | 'content_change' | 'metadata_change' | 'restore'
+  diffSummary: string | null
+  createdAt: Date
+}
+
+// =============================================================================
+// TYPES POUR LES MÉTADONNÉES STRUCTURÉES
+// =============================================================================
+
+export interface WebPageStructuredMetadata {
+  id: string
+  webPageId: string
+  documentType: string | null
+  documentDate: Date | null
+  documentNumber: string | null
+  titleOfficial: string | null
+  language: string | null
+  tribunal: string | null
+  chambre: string | null
+  decisionNumber: string | null
+  decisionDate: Date | null
+  parties: Record<string, unknown> | null
+  textType: string | null
+  textNumber: string | null
+  publicationDate: Date | null
+  effectiveDate: Date | null
+  jortReference: string | null
+  author: string | null
+  publicationName: string | null
+  keywords: string[]
+  abstract: string | null
+  extractionConfidence: number
+  llmProvider: string | null
+  llmModel: string | null
+  extractedAt: Date
+}
+
+// =============================================================================
+// TYPES POUR LE SCHEDULER
+// =============================================================================
+
+export interface WebSchedulerConfig {
+  isEnabled: boolean
+  maxConcurrentCrawls: number
+  maxCrawlsPerHour: number
+  defaultFrequency: string
+  scheduleStartHour: number
+  scheduleEndHour: number
+  lastRunAt: Date | null
+  lastRunResult: Record<string, unknown> | null
+  totalRuns: number
+  totalErrors: number
 }
 
 // =============================================================================

@@ -30,6 +30,8 @@ import { TagsList } from './TagsInput'
 import { MetadataDisplay } from './MetadataForm'
 import { VersionHistory, VersionBadge } from './VersionHistory'
 import { RelatedDocuments } from './RelatedDocuments'
+import { QualityIndicator } from './QualityIndicator'
+import { ContradictionsList } from './ContradictionsList'
 import type { KnowledgeCategory } from '@/lib/knowledge-base/categories'
 
 interface KnowledgeDocument {
@@ -51,6 +53,15 @@ interface KnowledgeDocument {
   uploadedByEmail?: string
   createdAt: Date | string
   updatedAt: Date | string
+  qualityScore?: number | null
+  qualityClarity?: number
+  qualityStructure?: number
+  qualityCompleteness?: number
+  qualityReliability?: number
+  qualityAnalysisSummary?: string | null
+  qualityDetectedIssues?: string[]
+  qualityRecommendations?: string[]
+  qualityRequiresReview?: boolean
 }
 
 interface Version {
@@ -64,12 +75,28 @@ interface Version {
   changedAt: Date | string
 }
 
+interface Relation {
+  id: string
+  sourceDocumentId: string
+  targetDocumentId: string
+  relationType: string
+  similarityScore: number
+  contradictionType: string | null
+  contradictionSeverity: 'low' | 'medium' | 'high' | 'critical' | null
+  description: string | null
+  sourceExcerpt: string | null
+  targetExcerpt: string | null
+  suggestedResolution: string | null
+  status: 'pending' | 'confirmed' | 'dismissed' | 'resolved'
+}
+
 interface KnowledgeBaseDetailProps {
   document: KnowledgeDocument
   versions: Version[]
+  relations?: Relation[]
 }
 
-export function KnowledgeBaseDetail({ document, versions }: KnowledgeBaseDetailProps) {
+export function KnowledgeBaseDetail({ document, versions, relations = [] }: KnowledgeBaseDetailProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -321,6 +348,84 @@ export function KnowledgeBaseDetail({ document, versions }: KnowledgeBaseDetailP
                   category={document.category as KnowledgeCategory}
                   metadata={document.metadata}
                 />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Score qualité */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white text-base flex items-center justify-between">
+                <span>Qualité</span>
+                <QualityIndicator
+                  score={document.qualityScore ?? null}
+                  requiresReview={document.qualityRequiresReview}
+                  size="sm"
+                  showTooltip={true}
+                  details={{
+                    clarity: document.qualityClarity,
+                    structure: document.qualityStructure,
+                    completeness: document.qualityCompleteness,
+                    reliability: document.qualityReliability,
+                    summary: document.qualityAnalysisSummary || undefined,
+                  }}
+                />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {document.qualityScore != null ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    {document.qualityClarity !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Clarté</span>
+                        <span className="text-slate-200">{document.qualityClarity}/100</span>
+                      </div>
+                    )}
+                    {document.qualityStructure !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Structure</span>
+                        <span className="text-slate-200">{document.qualityStructure}/100</span>
+                      </div>
+                    )}
+                    {document.qualityCompleteness !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Complétude</span>
+                        <span className="text-slate-200">{document.qualityCompleteness}/100</span>
+                      </div>
+                    )}
+                    {document.qualityReliability !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Fiabilité</span>
+                        <span className="text-slate-200">{document.qualityReliability}/100</span>
+                      </div>
+                    )}
+                  </div>
+                  {document.qualityDetectedIssues && document.qualityDetectedIssues.length > 0 && (
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">Problèmes détectés:</p>
+                      <ul className="text-xs text-yellow-400 space-y-0.5">
+                        {document.qualityDetectedIssues.slice(0, 3).map((issue, i) => (
+                          <li key={i}>- {issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-slate-500 text-xs">Analyse non effectuée</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Relations (doublons & contradictions) */}
+          {relations.length > 0 && (
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white text-base">Relations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ContradictionsList relations={relations} currentDocumentId={document.id} />
               </CardContent>
             </Card>
           )}

@@ -142,6 +142,18 @@ export async function processPage(
       `[Pipeline] Classification: ${classification.primaryCategory}/${classification.domain} ` +
       `(confiance: ${classification.confidenceScore.toFixed(2)})`
     )
+
+    // Extraction métadonnées structurées si classification confidence suffisante
+    if (classification.confidenceScore > 0.6) {
+      try {
+        const { extractStructuredMetadata } = await import('./metadata-extractor-service')
+        await extractStructuredMetadata(pageId)
+        console.log(`[Pipeline] Métadonnées extraites pour ${pageId}`)
+      } catch (metadataError) {
+        errors.push(`Extraction métadonnées: ${metadataError instanceof Error ? metadataError.message : 'Erreur'}`)
+        console.error('[Pipeline] Erreur extraction métadonnées:', metadataError)
+      }
+    }
   } catch (error) {
     errors.push(`Classification: ${error instanceof Error ? error.message : 'Erreur'}`)
     console.error('[Pipeline] Erreur classification:', error)

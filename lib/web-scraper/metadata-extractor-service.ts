@@ -1,0 +1,454 @@
+/**
+ * Service d'extraction de métadonnées structurées de pages web juridiques
+ *
+ * Utilise un LLM pour analyser le contenu d'une page et extraire
+ * les métadonnées structurées (type de document, dates, références, etc.)
+ *
+ * Utilise un fallback entre providers: Ollama → DeepSeek → Groq
+ */
+
+import OpenAI from 'openai'
+import { db } from '@/lib/db/postgres'
+import { aiConfig } from '@/lib/ai/config'
+import {
+  METADATA_EXTRACTION_SYSTEM_PROMPT,
+  METADATA_EXTRACTION_USER_PROMPT,
+  formatPrompt,
+  truncateContent,
+} from '@/lib/ai/prompts/legal-analysis'
+import type { WebPageStructuredMetadata } from './types'
+
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
+// Longueur minimum pour extraire des métadonnées
+const MIN_CONTENT_LENGTH = 200
+
+// =============================================================================
+// CLIENTS LLM
+// =============================================================================
+
+let ollamaClient: OpenAI | null = null
+let deepseekClient: OpenAI | null = null
+let groqClient: OpenAI | null = null
+
+function getOllamaClient(): OpenAI {
+  if (!ollamaClient) {
+    ollamaClient = new OpenAI({
+      apiKey: 'ollama',
+      baseURL: `${aiConfig.ollama.baseUrl}/v1`,
+    })
+  }
+  return ollamaClient
+}
+
+function getDeepSeekClient(): OpenAI {
+  if (!deepseekClient) {
+    if (!aiConfig.deepseek.apiKey) {
+      throw new Error('DEEPSEEK_API_KEY non configuré')
+    }
+    deepseekClient = new OpenAI({
+      apiKey: aiConfig.deepseek.apiKey,
+      baseURL: aiConfig.deepseek.baseUrl,
+    })
+  }
+  return deepseekClient
+}
+
+function getGroqClient(): OpenAI {
+  if (!groqClient) {
+    if (!aiConfig.groq.apiKey) {
+      throw new Error('GROQ_API_KEY non configuré')
+    }
+    groqClient = new OpenAI({
+      apiKey: aiConfig.groq.apiKey,
+      baseURL: aiConfig.groq.baseUrl,
+    })
+  }
+  return groqClient
+}
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+interface LLMResult {
+  content: string
+  provider: string
+  model: string
+  tokensUsed: number
+}
+
+interface LLMMetadataResponse {
+  document_type: string | null
+  document_date: string | null
+  document_number: string | null
+  title_official: string | null
+  language: string | null
+  tribunal: string | null
+  chambre: string | null
+  decision_number: string | null
+  decision_date: string | null
+  parties: Record<string, unknown> | null
+  text_type: string | null
+  text_number: string | null
+  publication_date: string | null
+  effective_date: string | null
+  jort_reference: string | null
+  author: string | null
+  publication_name: string | null
+  keywords: string[] | null
+  abstract: string | null
+  extraction_confidence: number
+}
+
+// =============================================================================
+// FONCTIONS PRINCIPALES
+// =============================================================================
+
+/**
+ * Extrait les métadonnées structurées d'une page web et les stocke en base
+ */
+export async function extractStructuredMetadata(
+  pageId: string
+): Promise<WebPageStructuredMetadata> {
+  // Récupérer la page et sa source
+  const pageResult = await db.query<{
+    id: string
+    url: string
+    title: string | null
+    extracted_text: string | null
+    source_name: string
+    source_category: string
+  }>(
+    `SELECT wp.id, wp.url, wp.title, wp.extracted_text,
+            ws.name as source_name,
+            ws.category as source_category
+     FROM web_pages wp
+     JOIN web_sources ws ON wp.web_source_id = ws.id
+     WHERE wp.id = $1`,
+    [pageId]
+  )
+
+  if (pageResult.rows.length === 0) {
+    throw new Error(`Page non trouvée: ${pageId}`)
+  }
+
+  const page = pageResult.rows[0]
+
+  // Vérifier le contenu minimum
+  const content = page.extracted_text || ''
+  if (content.length < MIN_CONTENT_LENGTH) {
+    // Contenu trop court - stocker des métadonnées minimales
+    const minimalMetadata = getDefaultMetadataResponse()
+    minimalMetadata.extraction_confidence = 0
+
+    await upsertStructuredMetadata(pageId, minimalMetadata, 'none', 'none')
+
+    return getStructuredMetadata(pageId) as Promise<WebPageStructuredMetadata>
+  }
+
+  // Préparer le prompt
+  const userPrompt = formatPrompt(METADATA_EXTRACTION_USER_PROMPT, {
+    url: page.url,
+    title: page.title || 'Sans titre',
+    category: page.source_category,
+    content: truncateContent(content, 6000),
+  })
+
+  // Appeler le LLM avec fallback
+  const llmResult = await callLLMWithFallback(
+    METADATA_EXTRACTION_SYSTEM_PROMPT,
+    userPrompt
+  )
+
+  // Parser la réponse
+  const parsed = parseMetadataResponse(llmResult.content)
+
+  // UPSERT dans la table web_page_structured_metadata
+  await upsertStructuredMetadata(
+    pageId,
+    parsed,
+    llmResult.provider,
+    llmResult.model
+  )
+
+  // Retourner les métadonnées structurées
+  return getStructuredMetadata(pageId) as Promise<WebPageStructuredMetadata>
+}
+
+/**
+ * Récupère les métadonnées structurées existantes d'une page
+ */
+export async function getStructuredMetadata(
+  pageId: string
+): Promise<WebPageStructuredMetadata | null> {
+  const result = await db.query(
+    `SELECT * FROM web_page_structured_metadata WHERE web_page_id = $1`,
+    [pageId]
+  )
+
+  if (result.rows.length === 0) {
+    return null
+  }
+
+  return mapRowToStructuredMetadata(result.rows[0])
+}
+
+// =============================================================================
+// FONCTIONS INTERNES
+// =============================================================================
+
+/**
+ * Appelle le LLM avec fallback entre providers
+ * Priorité: Ollama → DeepSeek → Groq
+ */
+async function callLLMWithFallback(
+  systemPrompt: string,
+  userPrompt: string
+): Promise<LLMResult> {
+  const errors: string[] = []
+
+  // 1. Essayer Ollama (gratuit, local)
+  if (aiConfig.ollama.enabled) {
+    try {
+      const client = getOllamaClient()
+      const response = await client.chat.completions.create({
+        model: aiConfig.ollama.chatModel,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+      })
+
+      return {
+        content: response.choices[0]?.message?.content || '',
+        provider: 'ollama',
+        model: aiConfig.ollama.chatModel,
+        tokensUsed: response.usage?.total_tokens || 0,
+      }
+    } catch (error) {
+      errors.push(`Ollama: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
+    }
+  }
+
+  // 2. Essayer DeepSeek (économique)
+  if (aiConfig.deepseek.apiKey) {
+    try {
+      const client = getDeepSeekClient()
+      const response = await client.chat.completions.create({
+        model: aiConfig.deepseek.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+      })
+
+      return {
+        content: response.choices[0]?.message?.content || '',
+        provider: 'deepseek',
+        model: aiConfig.deepseek.model,
+        tokensUsed: response.usage?.total_tokens || 0,
+      }
+    } catch (error) {
+      errors.push(`DeepSeek: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
+    }
+  }
+
+  // 3. Essayer Groq (rapide)
+  if (aiConfig.groq.apiKey) {
+    try {
+      const client = getGroqClient()
+      const response = await client.chat.completions.create({
+        model: aiConfig.groq.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+      })
+
+      return {
+        content: response.choices[0]?.message?.content || '',
+        provider: 'groq',
+        model: aiConfig.groq.model,
+        tokensUsed: response.usage?.total_tokens || 0,
+      }
+    } catch (error) {
+      errors.push(`Groq: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
+    }
+  }
+
+  throw new Error(`Aucun LLM disponible. Erreurs: ${errors.join('; ')}`)
+}
+
+/**
+ * Parse la réponse JSON du LLM pour extraire les métadonnées
+ */
+function parseMetadataResponse(content: string): LLMMetadataResponse {
+  // Essayer de trouver le JSON dans la réponse
+  const jsonMatch = content.match(/\{[\s\S]*\}/)
+
+  if (!jsonMatch) {
+    console.error('[MetadataExtractor] Réponse LLM sans JSON valide:', content.substring(0, 500))
+    return getDefaultMetadataResponse()
+  }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]) as LLMMetadataResponse
+    // S'assurer que extraction_confidence a une valeur valide
+    if (
+      typeof parsed.extraction_confidence !== 'number' ||
+      parsed.extraction_confidence < 0 ||
+      parsed.extraction_confidence > 1
+    ) {
+      parsed.extraction_confidence = 0.5
+    }
+    return parsed
+  } catch (error) {
+    console.error('[MetadataExtractor] Erreur parsing JSON:', error)
+    return getDefaultMetadataResponse()
+  }
+}
+
+/**
+ * Retourne une réponse de métadonnées par défaut en cas d'erreur
+ */
+function getDefaultMetadataResponse(): LLMMetadataResponse {
+  return {
+    document_type: null,
+    document_date: null,
+    document_number: null,
+    title_official: null,
+    language: null,
+    tribunal: null,
+    chambre: null,
+    decision_number: null,
+    decision_date: null,
+    parties: null,
+    text_type: null,
+    text_number: null,
+    publication_date: null,
+    effective_date: null,
+    jort_reference: null,
+    author: null,
+    publication_name: null,
+    keywords: null,
+    abstract: null,
+    extraction_confidence: 0,
+  }
+}
+
+/**
+ * UPSERT les métadonnées structurées dans la base de données
+ */
+async function upsertStructuredMetadata(
+  pageId: string,
+  metadata: LLMMetadataResponse,
+  llmProvider: string,
+  llmModel: string
+): Promise<void> {
+  await db.query(
+    `INSERT INTO web_page_structured_metadata (
+      web_page_id,
+      document_type, document_date, document_number,
+      title_official, language,
+      tribunal, chambre, decision_number, decision_date, parties,
+      text_type, text_number, publication_date, effective_date, jort_reference,
+      author, publication_name, keywords, abstract,
+      extraction_confidence,
+      llm_provider, llm_model,
+      extracted_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW())
+    ON CONFLICT (web_page_id) DO UPDATE SET
+      document_type = EXCLUDED.document_type,
+      document_date = EXCLUDED.document_date,
+      document_number = EXCLUDED.document_number,
+      title_official = EXCLUDED.title_official,
+      language = EXCLUDED.language,
+      tribunal = EXCLUDED.tribunal,
+      chambre = EXCLUDED.chambre,
+      decision_number = EXCLUDED.decision_number,
+      decision_date = EXCLUDED.decision_date,
+      parties = EXCLUDED.parties,
+      text_type = EXCLUDED.text_type,
+      text_number = EXCLUDED.text_number,
+      publication_date = EXCLUDED.publication_date,
+      effective_date = EXCLUDED.effective_date,
+      jort_reference = EXCLUDED.jort_reference,
+      author = EXCLUDED.author,
+      publication_name = EXCLUDED.publication_name,
+      keywords = EXCLUDED.keywords,
+      abstract = EXCLUDED.abstract,
+      extraction_confidence = EXCLUDED.extraction_confidence,
+      llm_provider = EXCLUDED.llm_provider,
+      llm_model = EXCLUDED.llm_model,
+      extracted_at = NOW()`,
+    [
+      pageId,
+      metadata.document_type,
+      metadata.document_date,
+      metadata.document_number,
+      metadata.title_official,
+      metadata.language,
+      metadata.tribunal,
+      metadata.chambre,
+      metadata.decision_number,
+      metadata.decision_date,
+      metadata.parties ? JSON.stringify(metadata.parties) : null,
+      metadata.text_type,
+      metadata.text_number,
+      metadata.publication_date,
+      metadata.effective_date,
+      metadata.jort_reference,
+      metadata.author,
+      metadata.publication_name,
+      metadata.keywords ? JSON.stringify(metadata.keywords) : null,
+      metadata.abstract,
+      metadata.extraction_confidence,
+      llmProvider,
+      llmModel,
+    ]
+  )
+}
+
+/**
+ * Mapper une row DB vers l'interface WebPageStructuredMetadata
+ */
+function mapRowToStructuredMetadata(
+  row: Record<string, unknown>
+): WebPageStructuredMetadata {
+  return {
+    id: row.id as string,
+    webPageId: row.web_page_id as string,
+    documentType: row.document_type as string | null,
+    documentDate: row.document_date ? new Date(row.document_date as string) : null,
+    documentNumber: row.document_number as string | null,
+    titleOfficial: row.title_official as string | null,
+    language: row.language as string | null,
+    tribunal: row.tribunal as string | null,
+    chambre: row.chambre as string | null,
+    decisionNumber: row.decision_number as string | null,
+    decisionDate: row.decision_date ? new Date(row.decision_date as string) : null,
+    parties: row.parties as Record<string, unknown> | null,
+    textType: row.text_type as string | null,
+    textNumber: row.text_number as string | null,
+    publicationDate: row.publication_date ? new Date(row.publication_date as string) : null,
+    effectiveDate: row.effective_date ? new Date(row.effective_date as string) : null,
+    jortReference: row.jort_reference as string | null,
+    author: row.author as string | null,
+    publicationName: row.publication_name as string | null,
+    keywords: (row.keywords as string[]) || [],
+    abstract: row.abstract as string | null,
+    extractionConfidence: row.extraction_confidence as number,
+    llmProvider: row.llm_provider as string | null,
+    llmModel: row.llm_model as string | null,
+    extractedAt: new Date(row.extracted_at as string),
+  }
+}

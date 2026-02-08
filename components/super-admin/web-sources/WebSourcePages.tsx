@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 
 interface Page {
@@ -12,10 +14,15 @@ interface Page {
   word_count: number
   chunks_count: number
   last_crawled_at: string | null
+  has_metadata?: boolean
+  version_count?: number
 }
 
 interface WebSourcePagesProps {
   pages: Page[]
+  sourceId: string
+  onViewVersions?: (pageId: string) => void
+  onViewMetadata?: (pageId: string) => void
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -26,7 +33,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   unchanged: { label: 'Inchangée', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
 }
 
-export function WebSourcePages({ pages }: WebSourcePagesProps) {
+export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata }: WebSourcePagesProps) {
   if (pages.length === 0) {
     return (
       <div className="text-center py-8 text-slate-500">
@@ -65,10 +72,30 @@ export function WebSourcePages({ pages }: WebSourcePagesProps) {
               <Badge className={statusInfo.color + ' text-xs'}>
                 {statusInfo.label}
               </Badge>
+              {page.has_metadata && (
+                <Badge
+                  className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs cursor-pointer"
+                  onClick={() => onViewMetadata?.(page.id)}
+                >
+                  Meta
+                </Badge>
+              )}
               {page.chunks_count > 0 && (
                 <span className="text-xs text-slate-500">
                   {page.chunks_count} chunks
                 </span>
+              )}
+              {(page.version_count ?? 0) > 0 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onViewVersions?.(page.id)}
+                  className="text-slate-400 hover:text-white h-6 px-1.5 text-xs"
+                  title="Historique des versions"
+                >
+                  <Icons.clock className="h-3 w-3 mr-0.5" />
+                  {page.version_count}
+                </Button>
               )}
             </div>
           </div>

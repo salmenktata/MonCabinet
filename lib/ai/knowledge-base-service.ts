@@ -343,6 +343,15 @@ export async function indexKnowledgeDocument(documentId: string): Promise<{
     // Invalider le cache des documents similaires
     await onKnowledgeDocumentChange(documentId, 'index')
 
+    // Ajouter les jobs d'analyse qualité et détection doublons à la queue
+    try {
+      const { addToQueue } = await import('./indexing-queue-service')
+      await addToQueue('kb_quality_analysis', documentId, 3)
+      await addToQueue('kb_duplicate_check', documentId, 2)
+    } catch (queueError) {
+      console.error('[KnowledgeBase] Erreur ajout jobs qualité/doublons:', queueError)
+    }
+
     return { success: true, chunksCreated: chunks.length }
   } catch (error) {
     await client.query('ROLLBACK')

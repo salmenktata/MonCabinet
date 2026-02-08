@@ -209,9 +209,40 @@ async function processPendingJobs(): Promise<{
 async function scheduleSourceCrawls(): Promise<{
   sourcesChecked: number
   jobsCreated: number
+  schedulerEnabled: boolean
 }> {
-  // Récupérer les sources qui doivent être crawlées
-  const sources = await getSourcesToCrawl(5)
+  // Vérifier la config du scheduler
+  let schedulerEnabled = true
+  let maxConcurrentCrawls = 3
+  let scheduleStartHour = 0
+  let scheduleEndHour = 24
+
+  try {
+    const { getSchedulerConfig, recordSchedulerRun } = await import('@/lib/web-scraper/scheduler-service')
+    const config = await getSchedulerConfig()
+
+    schedulerEnabled = config.isEnabled
+    maxConcurrentCrawls = config.maxConcurrentCrawls
+    scheduleStartHour = config.scheduleStartHour
+    scheduleEndHour = config.scheduleEndHour
+
+    if (!schedulerEnabled) {
+      console.log('[WebCrawler Cron] Scheduler désactivé')
+      return { sourcesChecked: 0, jobsCreated: 0, schedulerEnabled: false }
+    }
+
+    // Vérifier la fenêtre horaire
+    const currentHour = new Date().getHours()
+    if (currentHour < scheduleStartHour || currentHour >= scheduleEndHour) {
+      console.log(`[WebCrawler Cron] Hors fenêtre horaire (${scheduleStartHour}h-${scheduleEndHour}h)`)
+      return { sourcesChecked: 0, jobsCreated: 0, schedulerEnabled: true }
+    }
+  } catch {
+    // Scheduler config table may not exist yet, continue with defaults
+  }
+
+  // Récupérer les sources qui doivent être crawlées (filtrer auto_crawl_enabled)
+  const sources = await getSourcesToCrawl(maxConcurrentCrawls)
 
   let jobsCreated = 0
 
@@ -229,9 +260,22 @@ async function scheduleSourceCrawls(): Promise<{
     }
   }
 
+  // Logger le résultat dans la config scheduler
+  try {
+    const { recordSchedulerRun } = await import('@/lib/web-scraper/scheduler-service')
+    await recordSchedulerRun({
+      sourcesProcessed: sources.length,
+      crawlsStarted: jobsCreated,
+      errors: 0,
+    })
+  } catch {
+    // Ignorer si la table n'existe pas encore
+  }
+
   return {
     sourcesChecked: sources.length,
     jobsCreated,
+    schedulerEnabled,
   }
 }
 

@@ -160,6 +160,9 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
           <TabsTrigger value="extraction" className="data-[state=active]:bg-slate-700">
             Extraction
           </TabsTrigger>
+          <TabsTrigger value="scheduling" className="data-[state=active]:bg-slate-700">
+            Planification
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab Général */}
@@ -431,6 +434,55 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                   className="mt-1 bg-slate-900 border-slate-600 text-white"
                   rows={3}
                 />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* Tab Planification */}
+        <TabsContent value="scheduling">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white">Planification automatique</CardTitle>
+              <CardDescription>Configurez le crawl automatique de cette source</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                <div>
+                  <Label className="text-slate-300">Crawl automatique</Label>
+                  <p className="text-xs text-slate-500">
+                    Active le crawl automatique via le scheduler global
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.isActive}
+                  onCheckedChange={(v) => updateField('isActive', v)}
+                />
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Fréquence de crawl</Label>
+                <Select
+                  value={formData.crawlFrequency}
+                  onValueChange={(v) => updateField('crawlFrequency', v)}
+                >
+                  <SelectTrigger className="mt-1 bg-slate-900 border-slate-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    {FREQUENCIES.map((freq) => (
+                      <SelectItem key={freq.value} value={freq.value} className="text-white">
+                        {freq.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="p-3 bg-slate-900/50 rounded-lg">
+                <p className="text-xs text-slate-400">
+                  Le scheduler global doit être activé pour que le crawl automatique fonctionne.
+                  Configurez-le dans la page des sources web.
+                </p>
               </div>
             </CardContent>
           </Card>

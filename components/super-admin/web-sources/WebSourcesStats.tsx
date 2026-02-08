@@ -12,12 +12,14 @@ interface WebSourcesStatsProps {
     indexedPages: number
     pendingJobs: number
     runningJobs: number
+    schedulerEnabled?: boolean
+    nextScheduledCrawl?: string | null
   }
 }
 
 export function WebSourcesStats({ stats }: WebSourcesStatsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
       <StatCard
         icon={<Icons.globe className="h-5 w-5" />}
         label="Sources actives"
@@ -45,6 +47,13 @@ export function WebSourcesStats({ stats }: WebSourcesStatsProps) {
         value={stats.runningJobs}
         subValue={`${stats.pendingJobs} en attente`}
         color={stats.runningJobs > 0 ? 'orange' : 'slate'}
+      />
+      <StatCard
+        icon={<Icons.clock className="h-5 w-5" />}
+        label="Scheduler"
+        value={stats.schedulerEnabled ? 1 : 0}
+        subValue={stats.schedulerEnabled ? 'Actif' : 'Inactif'}
+        color={stats.schedulerEnabled ? 'green' : 'slate'}
       />
     </div>
   )

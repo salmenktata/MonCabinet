@@ -31,6 +31,7 @@ import { uploadKnowledgeDocumentAction } from '@/app/actions/knowledge-base'
 import { CategorySelector } from './CategorySelector'
 import { TagsInput, SUGGESTED_TAGS } from './TagsInput'
 import { MetadataForm } from './MetadataForm'
+import { KnowledgeBaseBulkUpload } from './KnowledgeBaseBulkUpload'
 import type { KnowledgeCategory } from '@/lib/knowledge-base/categories'
 
 export function KnowledgeBaseUpload() {
@@ -39,6 +40,7 @@ export function KnowledgeBaseUpload() {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
+  const [uploadMode, setUploadMode] = useState<'single' | 'bulk'>('single')
 
   // Nouveaux états pour les champs
   const [category, setCategory] = useState<KnowledgeCategory>('legislation')
@@ -124,6 +126,33 @@ export function KnowledgeBaseUpload() {
 
         <CollapsibleContent>
           <CardContent>
+            {/* Toggle mode */}
+            <div className="flex items-center gap-2 mb-6">
+              <Button
+                type="button"
+                variant={uploadMode === 'single' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setUploadMode('single')}
+                className={uploadMode === 'single' ? 'bg-blue-600' : 'text-slate-400'}
+              >
+                <Icons.fileText className="h-4 w-4 mr-1" />
+                Upload unique
+              </Button>
+              <Button
+                type="button"
+                variant={uploadMode === 'bulk' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setUploadMode('bulk')}
+                className={uploadMode === 'bulk' ? 'bg-blue-600' : 'text-slate-400'}
+              >
+                <Icons.layers className="h-4 w-4 mr-1" />
+                Upload groupé
+              </Button>
+            </div>
+
+            {uploadMode === 'bulk' ? (
+              <KnowledgeBaseBulkUpload onComplete={() => { setIsOpen(false); router.refresh() }} />
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Section: Informations de base */}
               <div className="grid gap-4 md:grid-cols-2">
@@ -268,6 +297,7 @@ export function KnowledgeBaseUpload() {
                 </Button>
               </div>
             </form>
+            )}
           </CardContent>
         </CollapsibleContent>
       </Card>

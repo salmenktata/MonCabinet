@@ -32,6 +32,7 @@ import {
 } from '@/app/actions/knowledge-base'
 import { CategoryBadge } from './CategorySelector'
 import { TagsList } from './TagsInput'
+import { QualityIndicator } from './QualityIndicator'
 
 interface Document {
   id: string
@@ -48,6 +49,8 @@ interface Document {
   file_type: string
   uploaded_by_email: string
   created_at: Date
+  quality_score?: number | null
+  quality_requires_review?: boolean
 }
 
 interface KnowledgeBaseListProps {
@@ -320,6 +323,12 @@ export function KnowledgeBaseList({
                     Non indexé
                   </Badge>
                 )}
+                <QualityIndicator
+                  score={doc.quality_score ?? null}
+                  requiresReview={doc.quality_requires_review}
+                  size="xs"
+                  showTooltip={false}
+                />
               </div>
 
               {doc.description && (
