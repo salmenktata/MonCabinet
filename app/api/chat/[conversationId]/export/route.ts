@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ conversationId: string }> }
 ) {
   try {
-    const { id } = await params
+    const { conversationId } = await params
 
     // Vérifier l'authentification
     const session = await getSession()
@@ -37,7 +37,7 @@ export async function GET(
       `SELECT id, titre, created_at, updated_at
        FROM chat_conversations
        WHERE id = $1 AND user_id = $2`,
-      [id, session.user.id]
+      [conversationId, session.user.id]
     )
 
     if (convResult.rows.length === 0) {
@@ -55,7 +55,7 @@ export async function GET(
        FROM chat_messages
        WHERE conversation_id = $1
        ORDER BY created_at ASC`,
-      [id]
+      [conversationId]
     )
 
     // Formater les données pour l'export
@@ -95,7 +95,7 @@ export async function GET(
     }
 
     // Retourner le fichier
-    const filename = `qadhya-chat-${id.substring(0, 8)}.${extensions[format]}`
+    const filename = `qadhya-chat-${conversationId.substring(0, 8)}.${extensions[format]}`
 
     return new NextResponse(content, {
       status: 200,
