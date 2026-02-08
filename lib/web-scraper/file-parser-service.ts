@@ -510,6 +510,13 @@ function cleanText(text: string): string {
     .normalize('NFC')
     // Supprimer les caractères de contrôle (sauf newlines et tabs)
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    // Supprimer les URLs de header/footer PDF (ex: http://www.cassation.tn/ doublées)
+    .replace(/https?:\/\/[^\s]+\s+https?:\/\/[^\s]+/g, '')
+    .replace(/^https?:\/\/[^\s]+$/gm, '')
+    // Supprimer les marqueurs de page PDF (ex: -- 1 of 5 --)
+    .replace(/--\s*\d+\s+of\s+\d+\s*--/gi, '')
+    // Supprimer les numéros de page isolés (ligne avec juste un chiffre)
+    .replace(/^\s*\d{1,3}\s*$/gm, '')
     // Normaliser les espaces multiples
     .replace(/[ \t]+/g, ' ')
     // Normaliser les sauts de ligne multiples

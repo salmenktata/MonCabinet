@@ -226,7 +226,7 @@ async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResul
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: aiConfig.ollama.embeddingModel,
-        prompt: text.substring(0, 30000), // Tronquer si trop long
+        prompt: text.substring(0, 8000), // Tronquer pour contexte qwen3-embedding (~8192 tokens)
       }),
       signal: controller.signal,
     })
