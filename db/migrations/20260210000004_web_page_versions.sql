@@ -62,7 +62,7 @@ BEGIN
   )
   SELECT
     id, v_new_version, title, extracted_text,
-    content_hash, word_count, metadata, p_change_type, p_diff_summary
+    content_hash, word_count, structured_data, p_change_type, p_diff_summary
   FROM web_pages
   WHERE id = p_web_page_id
   RETURNING id INTO v_version_id;
