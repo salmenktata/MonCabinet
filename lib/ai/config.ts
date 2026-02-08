@@ -300,10 +300,14 @@ export const LLM_FALLBACK_CONFIG = {
 // =============================================================================
 // PROMPTS SYSTÈME
 // =============================================================================
+// NOTE: Les prompts juridiques structurés (méthode IRAC) sont définis dans
+// lib/ai/legal-reasoning-prompts.ts et utilisés dans rag-chat-service.ts.
+// Les prompts ci-dessous sont conservés pour compatibilité avec d'autres services.
 
 export const SYSTEM_PROMPTS = {
   /**
    * Prompt système pour l'assistant juridique Qadhya
+   * @deprecated Utiliser getSystemPromptForContext() de legal-reasoning-prompts.ts
    */
   qadhya: `Tu es Qadhya (قاضية), assistant juridique spécialisé en droit tunisien.
 

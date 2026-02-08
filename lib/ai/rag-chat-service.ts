@@ -24,6 +24,12 @@ import {
   SOURCE_BOOST,
   RAG_DIVERSITY,
 } from './config'
+import {
+  getSystemPromptForContext,
+  PROMPT_CONFIG,
+  type PromptContextType,
+  type SupportedLanguage,
+} from './legal-reasoning-prompts'
 import { searchKnowledgeBase } from './knowledge-base-service'
 import {
   getCachedSearchResults,
@@ -150,6 +156,8 @@ export interface ChatOptions {
   includeJurisprudence?: boolean
   includeKnowledgeBase?: boolean
   temperature?: number
+  /** Type de contexte pour sélectionner le prompt approprié */
+  contextType?: PromptContextType
 }
 
 export interface ConversationMessage {
@@ -971,6 +979,12 @@ export async function answerQuestion(
     totalMessageCount = historyContext.totalCount
   }
 
+  // Sélectionner le prompt système approprié selon le contexte
+  // Par défaut: 'chat' si conversation, 'consultation' sinon
+  const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
+  const supportedLang: SupportedLanguage = questionLang === 'ar' ? 'ar' : 'fr'
+  const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang)
+
   // 4. Construire les messages (format OpenAI-compatible pour Ollama/Groq)
   const messagesOpenAI: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = []
 
@@ -1010,8 +1024,10 @@ export async function answerQuestion(
 
   // Construire le système prompt avec résumé pour Anthropic
   const systemPromptWithSummary = conversationSummary
-    ? `${SYSTEM_PROMPTS.qadhya}\n\n[Résumé de la conversation précédente]\n${conversationSummary}`
-    : SYSTEM_PROMPTS.qadhya
+    ? `${baseSystemPrompt}\n\n[Résumé de la conversation précédente]\n${conversationSummary}`
+    : baseSystemPrompt
+
+  console.log(`[RAG] Utilisation du prompt structuré: contextType=${contextType}, langue=${supportedLang}`)
 
   let answer: string
   let tokensUsed: { input: number; output: number; total: number }
@@ -1026,14 +1042,19 @@ export async function answerQuestion(
     if (provider === 'ollama') {
       // Ollama (local, gratuit, illimité) - pas de fallback
       const client = getOllamaClient()
+
+      // Adapter température selon le contexte (consultation = plus précis)
+      const promptConfig = PROMPT_CONFIG[contextType]
+      const temperature = options.temperature ?? promptConfig.temperature
+
       const response = await client.chat.completions.create({
         model: aiConfig.ollama.chatModel,
-        max_tokens: aiConfig.anthropic.maxTokens,
+        max_tokens: promptConfig.maxTokens,
         messages: [
-          { role: 'system', content: SYSTEM_PROMPTS.qadhya },
+          { role: 'system', content: baseSystemPrompt },
           ...messagesOpenAI,
         ],
-        temperature: options.temperature ?? 0.3,
+        temperature,
       })
 
       answer = response.choices[0]?.message?.content || ''
@@ -1051,9 +1072,13 @@ export async function answerQuestion(
         content: m.content,
       }))
 
+      // Adapter température et maxTokens selon le contexte
+      const promptConfig = PROMPT_CONFIG[contextType]
+      const temperature = options.temperature ?? promptConfig.temperature
+
       const llmResponse = await callLLMWithFallback(llmMessages, {
-        temperature: options.temperature ?? 0.3,
-        maxTokens: aiConfig.anthropic.maxTokens,
+        temperature,
+        maxTokens: promptConfig.maxTokens,
         systemPrompt: systemPromptWithSummary,
       })
 
