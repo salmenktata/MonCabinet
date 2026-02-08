@@ -37,8 +37,9 @@ const OCR_CONFIG = {
   MIN_TEXT_THRESHOLD: 50,
   // Seuil minimum de caractères par page (détecte les PDFs avec peu de texte réparti)
   MIN_CHARS_PER_PAGE: 100,
-  // Nombre maximum de pages à traiter avec OCR (performance)
-  MAX_OCR_PAGES: 20,
+  // Nombre maximum de pages à traiter avec OCR
+  // 250 permet de couvrir les gros codes juridiques (COC = 218 pages)
+  MAX_OCR_PAGES: 250,
   // Langues supportées pour l'OCR (arabe + français)
   LANGUAGES: 'ara+fra',
   // Scale factor pour pdf-to-img (3.0 ≈ 300 DPI, meilleur pour l'arabe)
@@ -47,6 +48,11 @@ const OCR_CONFIG = {
   MIN_OCR_CONFIDENCE: 40,
   // Nombre maximum d'utilisations du worker avant recyclage
   MAX_WORKER_USES: 50,
+  // Ratio minimum de caractères arabes pour valider le texte extrait
+  // En dessous, le texte est considéré comme garbled (police encodée) → OCR forcé
+  MIN_ARABIC_RATIO: 0.10,
+  // Seuil de caractères minimum pour déclencher la détection de texte garbled
+  GARBLED_DETECTION_MIN_CHARS: 200,
 }
 
 // Modules chargés dynamiquement pour éviter les erreurs de build
@@ -121,19 +127,28 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
     const info = infoResult.info
     const pageCount = textResult.total || infoResult.total || 0
 
-    // Vérifier si le PDF nécessite l'OCR (texte insuffisant ou trop peu par page)
+    // Vérifier si le PDF nécessite l'OCR
     const avgCharsPerPage = pageCount > 0 ? text.length / pageCount : text.length
-    const needsOcr = text.length < OCR_CONFIG.MIN_TEXT_THRESHOLD
+    const tooLittleText = text.length < OCR_CONFIG.MIN_TEXT_THRESHOLD
       || (pageCount > 0 && avgCharsPerPage < OCR_CONFIG.MIN_CHARS_PER_PAGE)
+
+    // Détection de texte garbled : le PDF a du texte mais c'est du bruit
+    // (police encodée personnalisée — fréquent sur les PDFs gouvernementaux arabes)
+    const garbledText = !tooLittleText
+      && text.length >= OCR_CONFIG.GARBLED_DETECTION_MIN_CHARS
+      && isTextGarbled(text)
+
+    const needsOcr = tooLittleText || garbledText
 
     let ocrApplied = false
     let ocrPagesProcessed = 0
     let ocrConfidence: number | undefined
 
     if (needsOcr) {
-      console.log(
-        `[FileParser] PDF avec peu de texte (${text.length} chars, ${avgCharsPerPage.toFixed(0)} chars/page), application de l'OCR...`
-      )
+      const reason = garbledText
+        ? `texte garbled (ratio arabe trop bas pour un PDF arabe)`
+        : `peu de texte (${text.length} chars, ${avgCharsPerPage.toFixed(0)} chars/page)`
+      console.log(`[FileParser] PDF: ${reason}, application de l'OCR...`)
 
       try {
         const ocrResult = await extractTextWithOcr(buffer, pageCount)
@@ -269,6 +284,8 @@ async function extractTextWithOcr(
   let pageIndex = 0
   const doc = await pdf(buffer, { scale: OCR_CONFIG.SCALE })
 
+  const ocrStartTime = Date.now()
+
   for await (const pageImage of doc) {
     if (pageIndex >= pagesToProcess) break
 
@@ -297,6 +314,15 @@ async function extractTextWithOcr(
     }
 
     pageIndex++
+
+    // Progression toutes les 25 pages (utile pour les gros PDFs)
+    if (pageIndex % 25 === 0) {
+      const elapsedSec = ((Date.now() - ocrStartTime) / 1000).toFixed(0)
+      const pagesPerMin = (pageIndex / (Date.now() - ocrStartTime) * 60000).toFixed(1)
+      console.log(
+        `[FileParser] OCR progression: ${pageIndex}/${pagesToProcess} pages | ${elapsedSec}s | ${pagesPerMin} pages/min`
+      )
+    }
   }
 
   const avgConfidence = confidences.length > 0
@@ -436,6 +462,44 @@ export function isTextExtractable(fileType: string): boolean {
 // =============================================================================
 // UTILITAIRES
 // =============================================================================
+
+/**
+ * Détecte si le texte extrait est "garbled" (encodage de police personnalisé)
+ * Fréquent sur les PDFs gouvernementaux arabes : les glyphes arabes sont mappés
+ * sur des codes Latin, donnant un texte long mais illisible.
+ *
+ * Heuristique : on échantillonne le texte et on vérifie le ratio de caractères arabes.
+ * Si le texte contient assez de lettres mais quasi aucune arabe → garbled.
+ */
+function isTextGarbled(text: string): boolean {
+  // Échantillonner le texte (début + milieu + fin) pour performance sur gros PDFs
+  const sampleSize = 2000
+  const mid = Math.floor(text.length / 2)
+  const sample = text.substring(0, sampleSize)
+    + text.substring(Math.max(0, mid - sampleSize / 2), mid + sampleSize / 2)
+    + text.substring(Math.max(0, text.length - sampleSize))
+
+  const arabicChars = (sample.match(/[\u0600-\u06FF]/g) || []).length
+  const latinChars = (sample.match(/[a-zA-Z]/g) || []).length
+  const totalLetters = arabicChars + latinChars
+
+  // Pas assez de lettres pour conclure
+  if (totalLetters < 100) return false
+
+  const arabicRatio = arabicChars / totalLetters
+
+  // Un PDF juridique tunisien devrait avoir > 10% d'arabe.
+  // Si < MIN_ARABIC_RATIO et beaucoup de latin → texte garbled
+  if (arabicRatio < OCR_CONFIG.MIN_ARABIC_RATIO && latinChars > 100) {
+    console.log(
+      `[FileParser] Texte garbled détecté: ratio arabe ${(arabicRatio * 100).toFixed(1)}% ` +
+      `(${arabicChars} arabe / ${latinChars} latin sur échantillon ${sample.length} chars)`
+    )
+    return true
+  }
+
+  return false
+}
 
 /**
  * Nettoie le texte extrait
