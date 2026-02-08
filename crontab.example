@@ -1,0 +1,64 @@
+# ============================================================================
+# Crontab pour Moncabinet - Apprentissage Automatique
+# ============================================================================
+#
+# Installation:
+#   1. Copier ce fichier: cp crontab.example crontab.local
+#   2. Éditer les chemins si nécessaire
+#   3. Installer: crontab crontab.local
+#
+# Vérification:
+#   crontab -l
+#
+# Logs:
+#   tail -f /var/log/syslog | grep CRON
+#
+# ============================================================================
+
+# Variables d'environnement
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+NODE_ENV=production
+
+# ============================================================================
+# APPRENTISSAGE AUTOMATIQUE
+# ============================================================================
+
+# Cycle d'apprentissage quotidien (2h du matin)
+# Génère automatiquement des règles à partir des corrections
+0 2 * * * cd /path/to/moncabinet && npx tsx scripts/run-learning-cycle.ts >> /var/log/moncabinet/learning-cycle.log 2>&1
+
+# Alternative: Utiliser node directement
+# 0 2 * * * cd /path/to/moncabinet && node --loader tsx scripts/run-learning-cycle.ts >> /var/log/moncabinet/learning-cycle.log 2>&1
+
+# ============================================================================
+# MONITORING (optionnel)
+# ============================================================================
+
+# Vérification de santé toutes les heures
+# 0 * * * * curl -s http://localhost:3000/api/health >> /var/log/moncabinet/health-check.log 2>&1
+
+# ============================================================================
+# NETTOYAGE (optionnel)
+# ============================================================================
+
+# Nettoyage des logs anciens (tous les dimanches à 3h)
+# 0 3 * * 0 find /var/log/moncabinet -name "*.log" -mtime +30 -delete
+
+# ============================================================================
+# NOTES
+# ============================================================================
+#
+# Format crontab: MIN HOUR DAY MONTH WEEKDAY COMMAND
+#
+# Exemples de planification:
+#   0 2 * * *     = Tous les jours à 2h
+#   0 */6 * * *   = Toutes les 6 heures
+#   0 2 * * 1     = Tous les lundis à 2h
+#   0 0 1 * *     = Le 1er de chaque mois à minuit
+#
+# Timezones:
+#   Par défaut, cron utilise la timezone système
+#   Pour forcer une timezone, utilisez: TZ=Africa/Tunis
+#
+# ============================================================================

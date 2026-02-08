@@ -5,6 +5,11 @@
  * - Catégorie principale (législation, jurisprudence, doctrine...)
  * - Domaine juridique (civil, commercial, pénal, famille...)
  * - Nature du document (loi, décret, arrêt, modèle...)
+ *
+ * Utilise une approche multi-signaux:
+ * 1. Structure du site (breadcrumbs, URL, navigation) - poids: 0.3
+ * 2. Règles de mapping configurées - poids: 0.4
+ * 3. LLM (Ollama, DeepSeek, Groq) - poids: 0.3
  */
 
 import OpenAI from 'openai'
@@ -22,7 +27,29 @@ import type {
   LegalDomain,
   DocumentNature,
   AlternativeClassification,
+  SiteStructure,
 } from './types'
+import {
+  extractSiteStructure,
+  generateStructuralHints,
+  fuseStructuralHints,
+  type StructuralHint,
+} from './site-structure-extractor'
+import {
+  matchRules,
+  incrementRuleMatch,
+  type RuleMatch,
+} from './classification-rules-service'
+import {
+  extractLegalKeywords,
+  suggestDomainFromKeywords,
+  analyzeLegalDensity,
+  type KeywordMatch,
+} from './legal-keywords-extractor'
+import {
+  enrichWithContext,
+  type EnrichmentResult,
+} from './contextual-enrichment-service'
 
 // =============================================================================
 // CONFIGURATION
@@ -35,6 +62,16 @@ export const CLASSIFICATION_CONFIDENCE_THRESHOLD = parseFloat(
 
 // Longueur minimum pour classifier
 const MIN_CONTENT_LENGTH = 100
+
+// Poids des différentes sources de signaux
+const SIGNAL_WEIGHTS = {
+  structure: 0.3,  // Indices structurels (breadcrumbs, URL)
+  rules: 0.4,      // Règles de mapping configurées
+  llm: 0.3,        // Classification LLM
+}
+
+// Seuil pour utiliser le LLM (si structure+rules donnent confiance < ce seuil)
+const LLM_THRESHOLD = 0.6
 
 // =============================================================================
 // CLIENTS LLM
@@ -98,6 +135,33 @@ export interface ClassificationResult {
   llmProvider: string
   llmModel: string
   tokensUsed: number
+  // Nouveaux champs pour multi-signaux
+  classificationSource: 'llm' | 'rules' | 'structure' | 'hybrid'
+  signalsUsed: ClassificationSignal[]
+  rulesMatched: string[]
+  structureHints: StructuralHint[] | null
+}
+
+export interface ClassificationSignal {
+  source: 'structure' | 'rules' | 'llm'
+  category: string | null
+  domain: string | null
+  documentType: string | null
+  confidence: number
+  weight: number
+  evidence: string
+}
+
+export interface EnrichedClassificationContext {
+  pageId: string
+  url: string
+  title: string
+  content: string
+  webSourceId: string
+  sourceName: string
+  sourceCategory: string
+  html?: string
+  siteStructure?: SiteStructure
 }
 
 interface LLMClassificationResponse {
@@ -124,6 +188,7 @@ interface LLMClassificationResponse {
 
 /**
  * Classifie le contenu juridique d'une page web
+ * Utilise une approche multi-signaux (structure, règles, LLM)
  */
 export async function classifyLegalContent(
   pageId: string
@@ -134,10 +199,13 @@ export async function classifyLegalContent(
     url: string
     title: string | null
     extracted_text: string | null
+    web_source_id: string
     source_name: string
     source_category: string
+    site_structure: SiteStructure | null
   }>(
-    `SELECT wp.id, wp.url, wp.title, wp.extracted_text,
+    `SELECT wp.id, wp.url, wp.title, wp.extracted_text, wp.web_source_id,
+            wp.site_structure,
             ws.name as source_name, ws.category as source_category
      FROM web_pages wp
      JOIN web_sources ws ON wp.web_source_id = ws.id
@@ -169,56 +237,35 @@ export async function classifyLegalContent(
       llmProvider: 'fallback',
       llmModel: 'source-category',
       tokensUsed: 0,
+      classificationSource: 'structure',
+      signalsUsed: [],
+      rulesMatched: [],
+      structureHints: null,
     }
 
     await saveClassification(pageId, result)
     return result
   }
 
-  // Préparer le prompt
-  const userPrompt = formatPrompt(LEGAL_CLASSIFICATION_USER_PROMPT, {
+  // Contexte enrichi pour la classification
+  const context: EnrichedClassificationContext = {
+    pageId,
     url: page.url,
     title: page.title || 'Sans titre',
-    source_name: page.source_name,
-    declared_category: page.source_category,
-    content: truncateContent(content, 6000),
-  })
-
-  // Appeler le LLM avec fallback
-  const llmResult = await callLLMWithFallback(
-    LEGAL_CLASSIFICATION_SYSTEM_PROMPT,
-    userPrompt
-  )
-
-  // Parser la réponse
-  const parsed = parseClassificationResponse(llmResult.content)
-
-  // Construire le résultat
-  const result: ClassificationResult = {
-    primaryCategory: validateCategory(parsed.primary_category),
-    subcategory: parsed.subcategory,
-    domain: validateDomain(parsed.domain),
-    subdomain: parsed.subdomain,
-    documentNature: validateDocumentNature(parsed.document_nature),
-    confidenceScore: parsed.confidence_score,
-    requiresValidation: parsed.confidence_score < CLASSIFICATION_CONFIDENCE_THRESHOLD || parsed.requires_validation,
-    validationReason: parsed.validation_reason,
-    alternativeClassifications: (parsed.alternative_classifications || []).map((alt) => ({
-      category: validateCategory(alt.category),
-      domain: validateDomain(alt.domain),
-      confidence: alt.confidence,
-      reason: alt.reason,
-    })),
-    legalKeywords: parsed.legal_keywords || [],
-    llmProvider: llmResult.provider,
-    llmModel: llmResult.model,
-    tokensUsed: llmResult.tokensUsed,
+    content,
+    webSourceId: page.web_source_id,
+    sourceName: page.source_name,
+    sourceCategory: page.source_category,
+    siteStructure: page.site_structure || undefined,
   }
+
+  // Classification multi-signaux
+  const result = await classifyWithMultiSignals(context)
 
   // Sauvegarder la classification
   await saveClassification(pageId, result)
 
-  // Mettre à jour la page avec le domaine juridique
+  // Mettre à jour la page avec le domaine juridique et la structure
   await db.query(
     `UPDATE web_pages
      SET legal_domain = $1,
@@ -232,6 +279,299 @@ export async function classifyLegalContent(
   )
 
   return result
+}
+
+/**
+ * Classification multi-signaux avec fusion intelligente
+ */
+async function classifyWithMultiSignals(
+  context: EnrichedClassificationContext
+): Promise<ClassificationResult> {
+  const signals: ClassificationSignal[] = []
+  let structureHints: StructuralHint[] | null = null
+  const rulesMatched: string[] = []
+
+  // 1. SIGNAL: Structure du site (breadcrumbs, URL, navigation)
+  if (context.siteStructure) {
+    structureHints = generateStructuralHints(context.siteStructure)
+    const structureFusion = fuseStructuralHints(structureHints)
+
+    if (structureFusion.category || structureFusion.domain || structureFusion.documentType) {
+      signals.push({
+        source: 'structure',
+        category: structureFusion.category,
+        domain: structureFusion.domain,
+        documentType: structureFusion.documentType,
+        confidence: structureFusion.confidence,
+        weight: SIGNAL_WEIGHTS.structure,
+        evidence: `${structureHints.length} indices structurels détectés`,
+      })
+    }
+  }
+
+  // 2. SIGNAL: Règles de mapping configurées
+  const ruleMatches = await matchRules(context.webSourceId, {
+    url: context.url,
+    title: context.title,
+    structure: context.siteStructure,
+  })
+
+  if (ruleMatches.length > 0) {
+    // Prendre la meilleure règle
+    const bestMatch = ruleMatches[0]
+    rulesMatched.push(bestMatch.rule.id)
+
+    signals.push({
+      source: 'rules',
+      category: bestMatch.rule.targetCategory,
+      domain: bestMatch.rule.targetDomain,
+      documentType: bestMatch.rule.targetDocumentType,
+      confidence: bestMatch.confidence,
+      weight: SIGNAL_WEIGHTS.rules,
+      evidence: `Règle "${bestMatch.rule.name}" (${bestMatch.matchedConditions}/${bestMatch.totalConditions} conditions)`,
+    })
+
+    // Incrémenter le compteur de match
+    await incrementRuleMatch(bestMatch.rule.id)
+  }
+
+  // 3. EXTRACTION DE MOTS-CLÉS (gratuit, sans LLM)
+  const keywords = extractLegalKeywords(context.content, {
+    minOccurrences: 1,
+    maxKeywords: 15,
+    includePositions: false,
+  })
+
+  const keywordDomain = suggestDomainFromKeywords(keywords)
+  const legalDensity = analyzeLegalDensity(context.content)
+
+  // Si les mots-clés suggèrent fortement un domaine et qu'on n'en a pas encore
+  if (keywordDomain.confidence > 0.7 && !signals.some(s => s.domain)) {
+    signals.push({
+      source: 'structure', // Catégorisé comme structure car c'est de l'analyse de contenu
+      category: null,
+      domain: keywordDomain.domain,
+      documentType: null,
+      confidence: keywordDomain.confidence,
+      weight: 0.15, // Poids modéré
+      evidence: keywordDomain.evidence,
+    })
+  }
+
+  console.log(`[Keywords] Trouvés: ${keywords.length}, Densité: ${(legalDensity.density * 100).toFixed(2)}%`)
+
+  // 4. SIGNAL: LLM (seulement si les autres signaux ne sont pas suffisants)
+  const structureRulesConfidence = calculateCombinedConfidence(
+    signals.filter(s => s.source !== 'llm')
+  )
+
+  let llmResult: LLMResult | null = null
+  let parsedLLM: LLMClassificationResponse | null = null
+
+  if (structureRulesConfidence < LLM_THRESHOLD || signals.length === 0) {
+    // Préparer le prompt
+    const userPrompt = formatPrompt(LEGAL_CLASSIFICATION_USER_PROMPT, {
+      url: context.url,
+      title: context.title,
+      source_name: context.sourceName,
+      declared_category: context.sourceCategory,
+      content: truncateContent(context.content, 6000),
+    })
+
+    try {
+      llmResult = await callLLMWithFallback(
+        LEGAL_CLASSIFICATION_SYSTEM_PROMPT,
+        userPrompt
+      )
+      parsedLLM = parseClassificationResponse(llmResult.content)
+
+      signals.push({
+        source: 'llm',
+        category: parsedLLM.primary_category,
+        domain: parsedLLM.domain,
+        documentType: parsedLLM.document_nature,
+        confidence: parsedLLM.confidence_score,
+        weight: SIGNAL_WEIGHTS.llm,
+        evidence: `LLM ${llmResult.provider}/${llmResult.model}`,
+      })
+    } catch (error) {
+      console.warn('[LegalClassifier] LLM indisponible, utilisation des autres signaux uniquement')
+    }
+  }
+
+  // 4. ENRICHISSEMENT CONTEXTUEL (pages voisines)
+  let contextualEnrichment: EnrichmentResult | null = null
+  try {
+    const preliminaryFusion = fuseClassificationSignals(signals)
+    contextualEnrichment = await enrichWithContext(
+      context.pageId,
+      context.url,
+      context.webSourceId,
+      {
+        category: validateCategory(preliminaryFusion.category),
+        domain: validateDomain(preliminaryFusion.domain),
+        documentType: validateDocumentNature(preliminaryFusion.documentType),
+      }
+    )
+
+    // Ajouter les signaux contextuels
+    for (const contextSignal of contextualEnrichment.signals) {
+      signals.push({
+        source: 'structure', // Catégorisé comme structure car basé sur analyse
+        category: contextSignal.category,
+        domain: contextSignal.domain,
+        documentType: contextSignal.documentType,
+        confidence: contextSignal.confidence,
+        weight: 0.10, // Poids modéré pour contexte
+        evidence: `Contexte: ${contextSignal.evidence}`,
+      })
+    }
+
+    console.log(`[Context] ${contextualEnrichment.signals.length} signaux contextuels, boost: +${(contextualEnrichment.confidenceBoost * 100).toFixed(0)}%`)
+  } catch (error) {
+    console.warn('[Context] Erreur enrichissement contextuel:', error)
+  }
+
+  // 5. FUSION DES SIGNAUX
+  const fused = fuseClassificationSignals(signals)
+
+  // Déterminer la source principale
+  let classificationSource: 'llm' | 'rules' | 'structure' | 'hybrid' = 'hybrid'
+  if (signals.length === 1) {
+    classificationSource = signals[0].source
+  } else if (signals.length > 1) {
+    // Trouver le signal dominant
+    const dominant = signals.reduce((a, b) =>
+      (a.confidence * a.weight) > (b.confidence * b.weight) ? a : b
+    )
+    if ((dominant.confidence * dominant.weight) > 0.5) {
+      classificationSource = dominant.source
+    }
+  }
+
+  // Appliquer le boost de confiance du contexte
+  const finalConfidence = contextualEnrichment
+    ? Math.min(0.98, fused.confidence + contextualEnrichment.confidenceBoost)
+    : fused.confidence
+
+  // Utiliser les suggestions contextuelles si nécessaire
+  const finalDomain = fused.domain || contextualEnrichment?.suggestedDomain
+
+  // Construire le résultat final
+  const result: ClassificationResult = {
+    primaryCategory: validateCategory(fused.category),
+    subcategory: null,
+    domain: validateDomain(finalDomain),
+    subdomain: null,
+    documentNature: validateDocumentNature(fused.documentType),
+    confidenceScore: finalConfidence,
+    requiresValidation: finalConfidence < CLASSIFICATION_CONFIDENCE_THRESHOLD,
+    validationReason: fused.confidence < CLASSIFICATION_CONFIDENCE_THRESHOLD
+      ? `Confiance faible (${(fused.confidence * 100).toFixed(0)}%)`
+      : null,
+    alternativeClassifications: parsedLLM?.alternative_classifications?.map(alt => ({
+      category: validateCategory(alt.category),
+      domain: validateDomain(alt.domain),
+      confidence: alt.confidence,
+      reason: alt.reason,
+    })) || [],
+    legalKeywords: [
+      ...keywords.slice(0, 10).map(kw => kw.keyword),
+      ...(parsedLLM?.legal_keywords || []),
+    ],
+    llmProvider: llmResult?.provider || 'none',
+    llmModel: llmResult?.model || 'none',
+    tokensUsed: llmResult?.tokensUsed || 0,
+    classificationSource,
+    signalsUsed: signals,
+    rulesMatched,
+    structureHints,
+  }
+
+  return result
+}
+
+/**
+ * Calcule la confiance combinée de plusieurs signaux
+ */
+function calculateCombinedConfidence(signals: ClassificationSignal[]): number {
+  if (signals.length === 0) return 0
+
+  let totalWeight = 0
+  let weightedConfidence = 0
+
+  for (const signal of signals) {
+    weightedConfidence += signal.confidence * signal.weight
+    totalWeight += signal.weight
+  }
+
+  return totalWeight > 0 ? weightedConfidence / totalWeight : 0
+}
+
+/**
+ * Fusionne plusieurs signaux de classification en une classification finale
+ */
+function fuseClassificationSignals(signals: ClassificationSignal[]): {
+  category: string | null
+  domain: string | null
+  documentType: string | null
+  confidence: number
+} {
+  if (signals.length === 0) {
+    return { category: null, domain: null, documentType: null, confidence: 0 }
+  }
+
+  // Vote pondéré pour chaque attribut
+  const categoryVotes: Record<string, number> = {}
+  const domainVotes: Record<string, number> = {}
+  const documentTypeVotes: Record<string, number> = {}
+
+  let totalWeight = 0
+
+  for (const signal of signals) {
+    const effectiveWeight = signal.confidence * signal.weight
+
+    if (signal.category) {
+      categoryVotes[signal.category] = (categoryVotes[signal.category] || 0) + effectiveWeight
+    }
+    if (signal.domain) {
+      domainVotes[signal.domain] = (domainVotes[signal.domain] || 0) + effectiveWeight
+    }
+    if (signal.documentType) {
+      documentTypeVotes[signal.documentType] = (documentTypeVotes[signal.documentType] || 0) + effectiveWeight
+    }
+
+    totalWeight += signal.weight
+  }
+
+  // Sélectionner les gagnants
+  const getWinner = (votes: Record<string, number>): string | null => {
+    const entries = Object.entries(votes)
+    if (entries.length === 0) return null
+    entries.sort((a, b) => b[1] - a[1])
+    return entries[0][0]
+  }
+
+  const category = getWinner(categoryVotes)
+  const domain = getWinner(domainVotes)
+  const documentType = getWinner(documentTypeVotes)
+
+  // Calculer la confiance finale
+  const categoryConfidence = category ? (categoryVotes[category] / totalWeight) : 0
+  const domainConfidence = domain ? (domainVotes[domain] / totalWeight) : 0
+  const documentTypeConfidence = documentType ? (documentTypeVotes[documentType] / totalWeight) : 0
+
+  // Moyenne pondérée des confiances
+  let confidenceSum = 0
+  let confidenceCount = 0
+
+  if (category) { confidenceSum += categoryConfidence; confidenceCount++ }
+  if (domain) { confidenceSum += domainConfidence; confidenceCount++ }
+  if (documentType) { confidenceSum += documentTypeConfidence; confidenceCount++ }
+
+  const confidence = confidenceCount > 0 ? confidenceSum / confidenceCount : 0
+
+  return { category, domain, documentType, confidence }
 }
 
 /**
@@ -589,8 +929,9 @@ async function saveClassification(
       primary_category, subcategory, domain, subdomain, document_nature,
       confidence_score, requires_validation, validation_reason,
       alternative_classifications, legal_keywords,
-      llm_provider, llm_model, tokens_used
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      llm_provider, llm_model, tokens_used,
+      classification_source, signals_used, rules_matched, structure_hints
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
     ON CONFLICT (web_page_id) DO UPDATE SET
       primary_category = EXCLUDED.primary_category,
       subcategory = EXCLUDED.subcategory,
@@ -605,6 +946,10 @@ async function saveClassification(
       llm_provider = EXCLUDED.llm_provider,
       llm_model = EXCLUDED.llm_model,
       tokens_used = EXCLUDED.tokens_used,
+      classification_source = EXCLUDED.classification_source,
+      signals_used = EXCLUDED.signals_used,
+      rules_matched = EXCLUDED.rules_matched,
+      structure_hints = EXCLUDED.structure_hints,
       classified_at = NOW()`,
     [
       pageId,
@@ -621,6 +966,10 @@ async function saveClassification(
       result.llmProvider,
       result.llmModel,
       result.tokensUsed,
+      result.classificationSource,
+      JSON.stringify(result.signalsUsed),
+      result.rulesMatched,
+      result.structureHints ? JSON.stringify(result.structureHints) : null,
     ]
   )
 }
