@@ -54,8 +54,9 @@ import { recordRAGMetric } from '@/lib/metrics/rag-metrics'
 // Configuration Query Expansion
 const ENABLE_QUERY_EXPANSION = process.env.ENABLE_QUERY_EXPANSION !== 'false'
 
-// Timeout global pour la recherche bilingue (10 secondes par défaut)
-const BILINGUAL_SEARCH_TIMEOUT_MS = parseInt(process.env.BILINGUAL_SEARCH_TIMEOUT_MS || '10000', 10)
+// Timeout global pour la recherche bilingue (15 secondes par défaut)
+// Augmenté de 10s à 15s pour laisser plus de temps à la recherche secondaire
+const BILINGUAL_SEARCH_TIMEOUT_MS = parseInt(process.env.BILINGUAL_SEARCH_TIMEOUT_MS || '15000', 10)
 
 // =============================================================================
 // CLIENTS LLM (Ollama prioritaire, puis Groq, puis Anthropic)
@@ -64,6 +65,7 @@ const BILINGUAL_SEARCH_TIMEOUT_MS = parseInt(process.env.BILINGUAL_SEARCH_TIMEOU
 let anthropicClient: Anthropic | null = null
 let groqClient: OpenAI | null = null
 let ollamaClient: OpenAI | null = null
+let deepseekClient: OpenAI | null = null
 
 function getOllamaClient(): OpenAI {
   if (!ollamaClient) {
@@ -96,6 +98,19 @@ function getGroqClient(): OpenAI {
     })
   }
   return groqClient
+}
+
+function getDeepSeekClient(): OpenAI {
+  if (!deepseekClient) {
+    if (!aiConfig.deepseek.apiKey) {
+      throw new Error('DEEPSEEK_API_KEY non configuré')
+    }
+    deepseekClient = new OpenAI({
+      apiKey: aiConfig.deepseek.apiKey,
+      baseURL: aiConfig.deepseek.baseUrl,
+    })
+  }
+  return deepseekClient
 }
 
 // =============================================================================
@@ -469,15 +484,19 @@ async function searchRelevantContext(
   // Appliquer re-ranking avec boost dynamique, cross-encoder et diversité
   let rerankedSources = await rerankSources(aboveThreshold, question)
 
-  // Seuils adaptatifs: si moins de 3 résultats, baisser le seuil de 20%
+  // Seuils adaptatifs: si moins de 3 résultats, baisser le seuil de 20% (une seule fois)
+  // Plancher absolu à 0.35 pour éviter d'inclure du bruit
+  const ADAPTIVE_FLOOR = 0.35
   if (rerankedSources.length < 3 && allSources.length > rerankedSources.length) {
-    const adaptiveThreshold = RAG_THRESHOLDS.minimum * 0.8
-    const adaptiveResults = allSources.filter(
-      (s) => s.similarity >= adaptiveThreshold
-    )
-    if (adaptiveResults.length > rerankedSources.length) {
-      console.log(`[RAG Search] Seuil adaptatif: ${rerankedSources.length} → ${adaptiveResults.length} résultats (seuil ${adaptiveThreshold.toFixed(2)})`)
-      rerankedSources = await rerankSources(adaptiveResults, question)
+    const adaptiveThreshold = Math.max(RAG_THRESHOLDS.minimum * 0.8, ADAPTIVE_FLOOR)
+    if (adaptiveThreshold < RAG_THRESHOLDS.minimum) {
+      const adaptiveResults = allSources.filter(
+        (s) => s.similarity >= adaptiveThreshold
+      )
+      if (adaptiveResults.length > rerankedSources.length) {
+        console.log(`[RAG Search] Seuil adaptatif: ${rerankedSources.length} → ${adaptiveResults.length} résultats (seuil ${adaptiveThreshold.toFixed(2)}, plancher ${ADAPTIVE_FLOOR})`)
+        rerankedSources = await rerankSources(adaptiveResults, question)
+      }
     }
   }
 
@@ -669,12 +688,57 @@ async function searchRelevantContextBilingual(
 // Limite de tokens pour le contexte RAG (4000 par défaut pour les LLM modernes 8k+)
 const RAG_MAX_CONTEXT_TOKENS = parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '4000', 10)
 
+// Labels bilingues pour le contexte RAG
+const CONTEXT_LABELS = {
+  ar: {
+    jurisprudence: 'اجتهاد قضائي',
+    chamber: 'الغرفة',
+    date: 'التاريخ',
+    articles: 'الفصول المذكورة',
+    na: 'غ/م',
+    knowledgeBase: 'قاعدة المعرفة',
+    document: 'وثيقة',
+    noDocuments: 'لا توجد وثائق ذات صلة.',
+    categoryLabels: {
+      jurisprudence: 'اجتهاد قضائي',
+      code: 'قانون',
+      doctrine: 'فقه',
+      modele: 'نموذج',
+      autre: 'أخرى',
+    } as Record<string, string>,
+    defaultCategory: 'مرجع',
+  },
+  fr: {
+    jurisprudence: 'Jurisprudence',
+    chamber: 'Chambre',
+    date: 'Date',
+    articles: 'Articles cités',
+    na: 'N/D',
+    knowledgeBase: 'Base de connaissances',
+    document: 'Document',
+    noDocuments: 'Aucun document pertinent trouvé.',
+    categoryLabels: {
+      jurisprudence: 'Jurisprudence',
+      code: 'Code',
+      doctrine: 'Doctrine',
+      modele: 'Modèle',
+      autre: 'Autre',
+    } as Record<string, string>,
+    defaultCategory: 'Référence',
+  },
+}
+
 /**
  * Construit le contexte à partir des sources avec limite de tokens
+ * Les labels sont adaptés à la langue détectée de la question
  */
-function buildContextFromSources(sources: ChatSource[]): string {
+function buildContextFromSources(sources: ChatSource[], questionLang?: DetectedLanguage): string {
+  // Choisir les labels selon la langue
+  const lang = questionLang === 'ar' ? 'ar' : 'fr'
+  const labels = CONTEXT_LABELS[lang]
+
   if (sources.length === 0) {
-    return 'لا توجد وثائق ذات صلة. / Aucun document pertinent trouvé.'
+    return labels.noDocuments
   }
 
   const contextParts: string[] = []
@@ -688,23 +752,16 @@ function buildContextFromSources(sources: ChatSource[]): string {
 
     let part: string
     if (sourceType === 'jurisprudence') {
-      part = `[اجتهاد قضائي ${i + 1}] ${source.documentName}\n` +
-        `الغرفة: ${meta?.chamber || 'غ/م'}, التاريخ: ${meta?.date || 'غ/م'}\n` +
-        `الفصول المذكورة: ${meta?.articles?.join(', ') || 'غ/م'}\n\n` +
+      part = `[${labels.jurisprudence} ${i + 1}] ${source.documentName}\n` +
+        `${labels.chamber}: ${meta?.chamber || labels.na}, ${labels.date}: ${meta?.date || labels.na}\n` +
+        `${labels.articles}: ${meta?.articles?.join(', ') || labels.na}\n\n` +
         source.chunkContent
     } else if (sourceType === 'knowledge_base') {
-      const categoryLabels: Record<string, string> = {
-        jurisprudence: 'اجتهاد قضائي',
-        code: 'قانون',
-        doctrine: 'فقه',
-        modele: 'نموذج',
-        autre: 'أخرى',
-      }
-      const categoryLabel = categoryLabels[meta?.category] || 'مرجع'
-      part = `[قاعدة المعرفة - ${categoryLabel} ${i + 1}] ${source.documentName}\n\n` +
+      const categoryLabel = labels.categoryLabels[meta?.category] || labels.defaultCategory
+      part = `[${labels.knowledgeBase} - ${categoryLabel} ${i + 1}] ${source.documentName}\n\n` +
         source.chunkContent
     } else {
-      part = `[وثيقة ${i + 1}] ${source.documentName}\n\n` + source.chunkContent
+      part = `[${labels.document} ${i + 1}] ${source.documentName}\n\n` + source.chunkContent
     }
 
     const partTokens = countTokens(part)
@@ -813,17 +870,40 @@ export async function answerQuestion(
     cacheHit = searchResult.cacheHit
     searchTimeMs = Date.now() - startSearch
   } catch (error) {
-    // Mode dégradé: continuer sans contexte RAG
-    console.error('[RAG] FALLBACK MODE - Erreur recherche contexte:', error instanceof Error ? error.message : error)
+    // Mode dégradé: retourner une erreur claire au lieu de continuer sans contexte
+    // Évite les hallucinations juridiques en mode sans source
+    console.error('[RAG] ERREUR RECHERCHE CONTEXTE - Sources indisponibles:', error instanceof Error ? error.message : error)
     isDegradedMode = true
     sources = []
     searchTimeMs = Date.now() - startSearch
   }
 
-  // 2. Construire le contexte (adapté si mode dégradé)
-  const context = isDegradedMode
-    ? 'خطأ في الوصول إلى الوثائق. أجب بناءً على معرفتك العامة بالقانون التونسي. / Erreur d\'accès aux documents. Réponds selon tes connaissances générales du droit tunisien.'
-    : buildContextFromSources(sources)
+  // 2. Construire le contexte (bloquer si mode dégradé pour éviter les hallucinations)
+  if (isDegradedMode) {
+    // Enregistrer la métrique d'erreur
+    const totalTimeMs = Date.now() - startTotal
+    recordRAGMetric({
+      searchTimeMs,
+      llmTimeMs: 0,
+      totalTimeMs,
+      inputTokens: 0,
+      outputTokens: 0,
+      resultsCount: 0,
+      cacheHit: false,
+      degradedMode: true,
+      provider: provider || 'unknown',
+      error: 'Sources indisponibles - mode dégradé bloqué',
+    })
+
+    throw new Error(
+      'Sources juridiques temporairement indisponibles. Veuillez réessayer dans quelques instants. ' +
+      '/ المصادر القانونية غير متوفرة مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل.'
+    )
+  }
+
+  // Détecter la langue de la question pour adapter les labels du contexte
+  const questionLang = detectLanguage(question)
+  const context = buildContextFromSources(sources, questionLang)
 
   // 3. Récupérer l'historique avec résumé si conversation existante
   let conversationHistory: ConversationMessage[] = []
@@ -930,6 +1010,26 @@ export async function answerQuestion(
         total: response.usage?.total_tokens || 0,
       }
       modelUsed = aiConfig.groq.model
+    } else if (provider === 'deepseek') {
+      // DeepSeek (API compatible OpenAI, économique)
+      const client = getDeepSeekClient()
+      const response = await client.chat.completions.create({
+        model: aiConfig.deepseek.model,
+        max_tokens: aiConfig.anthropic.maxTokens,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPTS.qadhya },
+          ...messagesOpenAI,
+        ],
+        temperature: options.temperature ?? 0.3,
+      })
+
+      answer = response.choices[0]?.message?.content || ''
+      tokensUsed = {
+        input: response.usage?.prompt_tokens || 0,
+        output: response.usage?.completion_tokens || 0,
+        total: response.usage?.total_tokens || 0,
+      }
+      modelUsed = `deepseek/${aiConfig.deepseek.model}`
     } else {
       // Anthropic Claude (dernier fallback)
       const client = getAnthropicClient()

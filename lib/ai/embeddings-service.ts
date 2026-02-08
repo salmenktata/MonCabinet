@@ -567,13 +567,14 @@ export function validateEmbedding(
     return { valid: false, error: 'Embedding null ou non-tableau' }
   }
 
-  // Vérifier les dimensions
+  // Vérifier les dimensions - BLOQUANT pour éviter erreurs pgvector
   const expectedDim = EXPECTED_DIMENSIONS[provider]
   if (embedding.length !== expectedDim) {
-    console.warn(
-      `[Embeddings] Dimensions inattendues: ${embedding.length} (attendu: ${expectedDim})`
-    )
-    // On ne bloque pas, juste un warning car les modèles peuvent varier
+    return {
+      valid: false,
+      error: `Dimensions incorrectes: ${embedding.length} (attendu: ${expectedDim} pour ${provider}). ` +
+        `Vecteur incompatible avec la colonne vector(${expectedDim}).`,
+    }
   }
 
   // Vérifier que toutes les valeurs sont des nombres finis
@@ -593,15 +594,20 @@ export function validateEmbedding(
     return { valid: false, error: 'Embedding contient des valeurs non-finies (NaN/Infinity)' }
   }
 
-  // Vérifier que la norme n'est pas nulle (vecteur nul = inutile)
+  // Vérifier que la norme n'est pas nulle ou quasi-nulle
+  // Norme < 0.5 = embedding quasi-nul → similarité cosinus erratique
   const norm = Math.sqrt(normSquared)
-  if (norm === 0) {
-    return { valid: false, error: 'Embedding norme nulle (vecteur nul)' }
+  if (norm < 0.5) {
+    return {
+      valid: false,
+      error: `Embedding norme trop faible: ${norm.toFixed(4)} (minimum: 0.5). ` +
+        `Similarité cosinus non fiable avec un vecteur quasi-nul.`,
+    }
   }
 
-  // Vérifier que la norme est raisonnable (typiquement proche de 1 pour embeddings normalisés)
-  if (norm < 0.1 || norm > 100) {
-    console.warn(`[Embeddings] Norme inhabituelle: ${norm.toFixed(4)}`)
+  // Warning pour normes inhabituelles (mais pas bloquant)
+  if (norm > 100) {
+    console.warn(`[Embeddings] Norme inhabituellement élevée: ${norm.toFixed(4)}`)
   }
 
   return { valid: true }

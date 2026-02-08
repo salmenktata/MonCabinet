@@ -23,8 +23,9 @@ export const CACHE_TTL = {
 }
 
 // Seuil de similarité pour considérer un cache hit
+// 0.85 offre un bon compromis entre pertinence et taux de cache hit
 export const SEARCH_CACHE_THRESHOLD = parseFloat(
-  process.env.SEARCH_CACHE_THRESHOLD || '0.95'
+  process.env.SEARCH_CACHE_THRESHOLD || '0.85'
 )
 
 // =============================================================================

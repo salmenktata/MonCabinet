@@ -12,6 +12,7 @@ import {
   REDIS_KEYS,
   CACHE_TTL,
 } from './redis'
+import { getEmbeddingProvider, getEmbeddingDimensions } from '@/lib/ai/config'
 
 // =============================================================================
 // TYPES
@@ -28,7 +29,18 @@ interface CachedEmbedding {
 // =============================================================================
 
 /**
+ * Génère une clé de cache versionnée par provider+dimensions
+ * Évite de retourner un embedding Ollama (1024-dim) quand on utilise OpenAI (1536-dim)
+ */
+function getVersionedCacheKey(textHash: string): string {
+  const provider = getEmbeddingProvider() || 'unknown'
+  const dimensions = getEmbeddingDimensions()
+  return REDIS_KEYS.embedding(`${provider}:${dimensions}:${textHash}`)
+}
+
+/**
  * Récupère un embedding du cache
+ * Le cache est versionné par provider+dimensions pour éviter les conflits
  * @param text - Texte original
  * @returns Embedding si trouvé, null sinon
  */
@@ -44,7 +56,7 @@ export async function getCachedEmbedding(
     if (!client) return null
 
     const hash = await hashKey(text)
-    const key = REDIS_KEYS.embedding(hash)
+    const key = getVersionedCacheKey(hash)
     const cached = await client.get(key)
 
     if (cached) {
@@ -64,6 +76,7 @@ export async function getCachedEmbedding(
 
 /**
  * Stocke un embedding dans le cache
+ * Le cache est versionné par provider+dimensions pour éviter les conflits
  * @param text - Texte original
  * @param embedding - Vecteur embedding
  * @param provider - Provider utilisé
@@ -82,7 +95,7 @@ export async function setCachedEmbedding(
     if (!client) return
 
     const hash = await hashKey(text)
-    const key = REDIS_KEYS.embedding(hash)
+    const key = getVersionedCacheKey(hash)
 
     const data: CachedEmbedding = {
       embedding,
@@ -113,7 +126,7 @@ export async function invalidateCachedEmbedding(text: string): Promise<void> {
     if (!client) return
 
     const hash = await hashKey(text)
-    const key = REDIS_KEYS.embedding(hash)
+    const key = getVersionedCacheKey(hash)
     await client.del(key)
     console.log(`[EmbeddingCache] DEL: ${hash.substring(0, 8)}...`)
   } catch (error) {

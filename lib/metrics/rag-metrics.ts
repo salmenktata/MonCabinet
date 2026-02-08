@@ -64,8 +64,9 @@ export interface RAGMetricsSummary {
 // CONFIGURATION
 // =============================================================================
 
-// Fenêtre de rétention des métriques (15 minutes par défaut)
-const METRICS_RETENTION_MS = parseInt(process.env.RAG_METRICS_RETENTION_MS || '900000', 10)
+// Fenêtre de rétention des métriques (1 heure par défaut)
+// Augmenté de 15min à 1h pour détecter les tendances et anomalies
+const METRICS_RETENTION_MS = parseInt(process.env.RAG_METRICS_RETENTION_MS || '3600000', 10)
 
 // Taille max du buffer (éviter memory leak)
 const MAX_METRICS_BUFFER = 1000

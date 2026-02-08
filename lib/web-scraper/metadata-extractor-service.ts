@@ -104,6 +104,132 @@ interface LLMMetadataResponse {
 }
 
 // =============================================================================
+// LISTES DE RÉFÉRENCE POUR VALIDATION
+// =============================================================================
+
+/**
+ * Juridictions tunisiennes reconnues (AR et FR)
+ * Utilisé pour valider le champ "tribunal" extrait par le LLM
+ */
+const KNOWN_TRIBUNALS: string[] = [
+  // Cour de Cassation
+  'محكمة التعقيب', 'Cour de Cassation',
+  // Cours d'Appel
+  "محكمة الاستئناف بتونس", "Cour d'Appel de Tunis",
+  "محكمة الاستئناف بسوسة", "Cour d'Appel de Sousse",
+  "محكمة الاستئناف بصفاقس", "Cour d'Appel de Sfax",
+  "محكمة الاستئناف بالمنستير", "Cour d'Appel de Monastir",
+  "محكمة الاستئناف بنابل", "Cour d'Appel de Nabeul",
+  "محكمة الاستئناف بقفصة", "Cour d'Appel de Gafsa",
+  "محكمة الاستئناف بالكاف", "Cour d'Appel du Kef",
+  "محكمة الاستئناف بقابس", "Cour d'Appel de Gabès",
+  "محكمة الاستئناف بمدنين", "Cour d'Appel de Médenine",
+  "محكمة الاستئناف ببنزرت", "Cour d'Appel de Bizerte",
+  // Tribunaux de Première Instance (principaux)
+  'المحكمة الابتدائية بتونس', 'Tribunal de Première Instance de Tunis',
+  'المحكمة الابتدائية بتونس 2', 'Tribunal de Première Instance de Tunis 2',
+  'المحكمة الابتدائية بأريانة', 'Tribunal de Première Instance de Ariana',
+  'المحكمة الابتدائية ببن عروس', 'Tribunal de Première Instance de Ben Arous',
+  'المحكمة الابتدائية بمنوبة', 'Tribunal de Première Instance de Manouba',
+  'المحكمة الابتدائية بسوسة', 'Tribunal de Première Instance de Sousse',
+  'المحكمة الابتدائية بصفاقس', 'Tribunal de Première Instance de Sfax',
+  'المحكمة الابتدائية بنابل', 'Tribunal de Première Instance de Nabeul',
+  'المحكمة الابتدائية بقابس', 'Tribunal de Première Instance de Gabès',
+  'المحكمة الابتدائية بالقيروان', 'Tribunal de Première Instance de Kairouan',
+  'المحكمة الابتدائية ببنزرت', 'Tribunal de Première Instance de Bizerte',
+  // Tribunal Administratif
+  'المحكمة الإدارية', 'Tribunal Administratif',
+  // Formes génériques acceptées
+  'محكمة الاستئناف', "Cour d'Appel",
+  'المحكمة الابتدائية', 'Tribunal de Première Instance',
+]
+
+/**
+ * Chambres connues
+ */
+const KNOWN_CHAMBERS: string[] = [
+  // Arabe
+  'مدنية', 'جزائية', 'تجارية', 'اجتماعية', 'أحوال شخصية', 'عقارية',
+  // Français
+  'civile', 'pénale', 'commerciale', 'sociale', 'statut personnel', 'immobilière',
+]
+
+/**
+ * Valide et corrige le champ tribunal par rapport aux juridictions connues
+ * Utilise la distance de Levenshtein simplifiée pour détecter les typos
+ */
+function validateTribunal(tribunal: string | null): { value: string | null; corrected: boolean } {
+  if (!tribunal) return { value: null, corrected: false }
+
+  const normalized = tribunal.trim()
+
+  // Vérifier correspondance exacte
+  if (KNOWN_TRIBUNALS.includes(normalized)) {
+    return { value: normalized, corrected: false }
+  }
+
+  // Rechercher la meilleure correspondance approximative
+  let bestMatch: string | null = null
+  let bestScore = 0
+
+  for (const known of KNOWN_TRIBUNALS) {
+    const score = similarityScore(normalized.toLowerCase(), known.toLowerCase())
+    if (score > bestScore && score >= 0.75) {
+      bestScore = score
+      bestMatch = known
+    }
+  }
+
+  if (bestMatch) {
+    console.warn(`[MetadataExtractor] Tribunal corrigé: "${normalized}" → "${bestMatch}" (similarité: ${(bestScore * 100).toFixed(0)}%)`)
+    return { value: bestMatch, corrected: true }
+  }
+
+  // Pas de correspondance trouvée - garder la valeur mais logger un warning
+  console.warn(`[MetadataExtractor] Tribunal non reconnu: "${normalized}"`)
+  return { value: normalized, corrected: false }
+}
+
+/**
+ * Valide le champ chambre
+ */
+function validateChambre(chambre: string | null): string | null {
+  if (!chambre) return null
+
+  const normalized = chambre.trim().toLowerCase()
+
+  for (const known of KNOWN_CHAMBERS) {
+    if (normalized.includes(known.toLowerCase())) {
+      return known
+    }
+  }
+
+  return chambre.trim()
+}
+
+/**
+ * Score de similarité simple entre deux chaînes (Dice coefficient)
+ */
+function similarityScore(a: string, b: string): number {
+  if (a === b) return 1
+  if (a.length < 2 || b.length < 2) return 0
+
+  const bigramsA = new Set<string>()
+  for (let i = 0; i < a.length - 1; i++) {
+    bigramsA.add(a.substring(i, i + 2))
+  }
+
+  let intersection = 0
+  for (let i = 0; i < b.length - 1; i++) {
+    if (bigramsA.has(b.substring(i, i + 2))) {
+      intersection++
+    }
+  }
+
+  return (2 * intersection) / (a.length - 1 + b.length - 1)
+}
+
+// =============================================================================
 // FONCTIONS PRINCIPALES
 // =============================================================================
 
@@ -165,6 +291,11 @@ export async function extractStructuredMetadata(
 
   // Parser la réponse
   const parsed = parseMetadataResponse(llmResult.content)
+
+  // Valider les champs juridiques contre les listes de référence
+  const tribunalValidation = validateTribunal(parsed.tribunal)
+  parsed.tribunal = tribunalValidation.value
+  parsed.chambre = validateChambre(parsed.chambre)
 
   // UPSERT dans la table web_page_structured_metadata
   await upsertStructuredMetadata(

@@ -104,6 +104,60 @@ const LEGAL_KEYWORDS: KeywordDefinition[] = [
   { ar: 'فصل', fr: 'article', domain: null, type: 'structure', weight: 7 },
   { ar: 'باب', fr: 'titre', domain: null, type: 'structure', weight: 5 },
   { ar: 'قسم', fr: 'section', domain: null, type: 'structure', weight: 5 },
+
+  // ===== DROIT IMMOBILIER =====
+  { ar: 'عقار', fr: 'immeuble', domain: 'immobilier', type: 'concept', weight: 8 },
+  { ar: 'تسجيل عقاري', fr: 'immatriculation foncière', domain: 'immobilier', type: 'concept', weight: 8 },
+  { ar: 'رسم عقاري', fr: 'titre foncier', domain: 'immobilier', type: 'concept', weight: 8 },
+  { ar: 'إدارة الملكية العقارية', fr: 'Conservation de la Propriété Foncière', domain: 'immobilier', type: 'institution', weight: 7 },
+  { ar: 'حق ارتفاق', fr: 'servitude', domain: 'immobilier', type: 'concept', weight: 6 },
+  { ar: 'شفعة', fr: 'droit de préemption', domain: 'immobilier', type: 'concept', weight: 7 },
+  { ar: 'حق انتفاع', fr: 'usufruit', domain: 'immobilier', type: 'concept', weight: 6 },
+  { ar: 'قسمة', fr: 'partage', domain: 'immobilier', type: 'concept', weight: 6 },
+  { ar: 'ترسيم', fr: 'inscription', domain: 'immobilier', type: 'procedure', weight: 6 },
+  { ar: 'حيازة', fr: 'possession', domain: 'immobilier', type: 'concept', weight: 6 },
+
+  // ===== DROIT FISCAL =====
+  { ar: 'ضريبة', fr: 'impôt', domain: 'fiscal', type: 'concept', weight: 9 },
+  { ar: 'ضريبة على الدخل', fr: 'impôt sur le revenu', domain: 'fiscal', type: 'concept', weight: 8 },
+  { ar: 'ضريبة على الشركات', fr: 'impôt sur les sociétés', domain: 'fiscal', type: 'concept', weight: 8 },
+  { ar: 'أداء على القيمة المضافة', fr: 'TVA', domain: 'fiscal', type: 'concept', weight: 8 },
+  { ar: 'معلوم', fr: 'taxe', domain: 'fiscal', type: 'concept', weight: 7 },
+  { ar: 'تصريح جبائي', fr: 'déclaration fiscale', domain: 'fiscal', type: 'procedure', weight: 7 },
+  { ar: 'مراقبة جبائية', fr: 'contrôle fiscal', domain: 'fiscal', type: 'procedure', weight: 7 },
+  { ar: 'توظيف إجباري', fr: 'taxation d\'office', domain: 'fiscal', type: 'procedure', weight: 7 },
+  { ar: 'إعفاء جبائي', fr: 'exonération fiscale', domain: 'fiscal', type: 'concept', weight: 7 },
+  { ar: 'تهرب ضريبي', fr: 'fraude fiscale', domain: 'fiscal', type: 'infraction', weight: 8 },
+
+  // ===== DROIT NUMÉRIQUE / PROTECTION DES DONNÉES =====
+  { ar: 'حماية المعطيات الشخصية', fr: 'protection des données personnelles', domain: 'autre', type: 'concept', weight: 8 },
+  { ar: 'معطيات شخصية', fr: 'données personnelles', domain: 'autre', type: 'concept', weight: 7 },
+  { ar: 'تجارة إلكترونية', fr: 'commerce électronique', domain: 'commercial', type: 'concept', weight: 7 },
+  { ar: 'إمضاء إلكتروني', fr: 'signature électronique', domain: 'autre', type: 'concept', weight: 7 },
+  { ar: 'جريمة معلوماتية', fr: 'cybercriminalité', domain: 'penal', type: 'infraction', weight: 8 },
+  { ar: 'إساءة استعمال الأنظمة المعلوماتية', fr: 'abus des systèmes informatiques', domain: 'penal', type: 'infraction', weight: 7 },
+
+  // ===== DROIT BANCAIRE =====
+  { ar: 'بنك', fr: 'banque', domain: 'bancaire', type: 'institution', weight: 7 },
+  { ar: 'قرض', fr: 'crédit', domain: 'bancaire', type: 'concept', weight: 7 },
+  { ar: 'ضمان', fr: 'garantie', domain: 'bancaire', type: 'concept', weight: 7 },
+  { ar: 'كفالة', fr: 'cautionnement', domain: 'bancaire', type: 'concept', weight: 7 },
+  { ar: 'فائدة', fr: 'intérêt', domain: 'bancaire', type: 'concept', weight: 6 },
+  { ar: 'حساب بنكي', fr: 'compte bancaire', domain: 'bancaire', type: 'concept', weight: 6 },
+
+  // ===== DROIT ADMINISTRATIF =====
+  { ar: 'تجاوز السلطة', fr: 'excès de pouvoir', domain: 'administratif', type: 'concept', weight: 8 },
+  { ar: 'قرار إداري', fr: 'décision administrative', domain: 'administratif', type: 'document', weight: 8 },
+  { ar: 'مرفق عام', fr: 'service public', domain: 'administratif', type: 'concept', weight: 7 },
+  { ar: 'صفقة عمومية', fr: 'marché public', domain: 'administratif', type: 'concept', weight: 7 },
+  { ar: 'ترخيص', fr: 'autorisation', domain: 'administratif', type: 'procedure', weight: 6 },
+
+  // ===== DROIT DE LA FAMILLE (compléments) =====
+  { ar: 'تبني', fr: 'adoption', domain: 'famille', type: 'concept', weight: 7 },
+  { ar: 'كفالة', fr: 'kafala', domain: 'famille', type: 'concept', weight: 7 },
+  { ar: 'نسب', fr: 'filiation', domain: 'famille', type: 'concept', weight: 7 },
+  { ar: 'ولاية', fr: 'tutelle', domain: 'famille', type: 'concept', weight: 7 },
+  { ar: 'تقسيم أملاك', fr: 'liquidation du régime', domain: 'famille', type: 'concept', weight: 6 },
 ]
 
 // Index inversé pour recherche rapide

@@ -221,8 +221,9 @@ function chunkBySentences(
   chunkSize: number,
   overlap: number
 ): Chunk[] {
-  // Regex pour détecter les fins de phrases (., !, ?, suivis d'un espace ou fin)
-  const sentences = text.match(/[^.!?]+[.!?]+[\s]*/g) || [text]
+  // Regex pour détecter les fins de phrases
+  // Supporte la ponctuation latine (. ! ?) et arabe (؟ ، ؛)
+  const sentences = text.match(/[^.!?؟،؛]+[.!?؟،؛]+[\s]*/g) || [text]
   const chunks: Chunk[] = []
 
   let currentChunk = ''

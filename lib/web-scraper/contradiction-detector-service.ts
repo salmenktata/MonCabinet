@@ -38,10 +38,33 @@ import type {
 // =============================================================================
 
 // Seuil de similarité pour considérer deux documents comme potentiellement liés
-const SIMILARITY_THRESHOLD = parseFloat(process.env.CONTRADICTION_SIMILARITY_MIN || '0.7')
+// Baissé de 0.7 à 0.6 pour capturer plus d'abrogations/modifications
+const SIMILARITY_THRESHOLD = parseFloat(process.env.CONTRADICTION_SIMILARITY_MIN || '0.6')
 
 // Nombre maximum de documents similaires à analyser
-const MAX_SIMILAR_DOCS = parseInt(process.env.CONTRADICTION_MAX_SIMILAR || '10', 10)
+// Augmenté de 10 à 25 pour mieux détecter les abrogations
+const MAX_SIMILAR_DOCS = parseInt(process.env.CONTRADICTION_MAX_SIMILAR || '25', 10)
+
+// Patterns d'abrogation/modification pour détection rapide (sans LLM)
+const ABROGATION_PATTERNS = [
+  // Arabe
+  /ألغي\s*بموجب/i,
+  /ألغي\s*بمقتضى/i,
+  /نقح\s*بموجب/i,
+  /نقح\s*بمقتضى/i,
+  /عوض\s*بموجب/i,
+  /وقع\s*تنقيحه/i,
+  /وقع\s*إلغاؤه/i,
+  /وقع\s*تعويضه/i,
+  // Français
+  /abrogé\s*par/i,
+  /modifié\s*par/i,
+  /remplacé\s*par/i,
+  /annulé\s*par/i,
+  /amendé\s*par/i,
+  /complété\s*par/i,
+  /abroge\s*(?:les?\s*)?(?:dispositions|articles?)/i,
+]
 
 // =============================================================================
 // CLIENTS LLM
@@ -179,6 +202,20 @@ export async function detectContradictions(pageId: string): Promise<{
 
   if (sourceContent.length < 100) {
     return { contradictions: [], severity: 'none' }
+  }
+
+  // 2b. Vérifier les patterns d'abrogation dans le contenu source
+  // Si le contenu mentionne des abrogations, marquer comme potentiel de conflit
+  for (const similar of similarDocs) {
+    if (!similar.potentialConflict) {
+      for (const pattern of ABROGATION_PATTERNS) {
+        if (pattern.test(sourceContent)) {
+          similar.potentialConflict = true
+          similar.conflictReason = "Pattern d'abrogation/modification détecté dans le contenu source"
+          break
+        }
+      }
+    }
   }
 
   // 3. Analyser les documents avec potentiel de conflit
@@ -325,18 +362,34 @@ export async function findSimilarDocuments(
   const similarDocs: SimilarDocument[] = []
 
   for (const row of result.rows) {
-    // Simple heuristique: si similarité > 0.85, potentiel de conflit
-    const potentialConflict = row.similarity > 0.85
+    const similarity = parseFloat(row.similarity)
+
+    // Heuristique améliorée pour le potentiel de conflit
+    let potentialConflict = similarity > 0.85
+    let conflictReason: string | undefined
+
+    if (potentialConflict) {
+      conflictReason = 'Haute similarité - possible version différente ou doublon'
+    }
+
+    // Vérifier les patterns d'abrogation dans le titre (même si similarité < 0.85)
+    if (!potentialConflict && row.title) {
+      for (const pattern of ABROGATION_PATTERNS) {
+        if (pattern.test(row.title)) {
+          potentialConflict = true
+          conflictReason = `Pattern d'abrogation/modification détecté dans le titre`
+          break
+        }
+      }
+    }
 
     similarDocs.push({
       pageId: row.page_id,
       url: row.url,
       title: row.title,
-      similarity: parseFloat(row.similarity),
+      similarity,
       potentialConflict,
-      conflictReason: potentialConflict
-        ? 'Haute similarité - possible version différente ou doublon'
-        : undefined,
+      conflictReason,
     })
   }
 
