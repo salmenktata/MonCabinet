@@ -8,6 +8,7 @@ import { Icons } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SourcesPanel } from './SourcesPanel'
+import { useVirtualizedMessages, useShouldVirtualize } from '@/lib/hooks/useVirtualizedMessages'
 
 const MarkdownMessage = dynamic(
   () => import('./MarkdownMessage').then(mod => mod.MarkdownMessage),
@@ -20,7 +21,6 @@ const MarkdownMessage = dynamic(
     ),
   }
 )
-import { useVirtualizedMessages, useShouldVirtualize } from '@/lib/hooks/useVirtualizedMessages'
 
 export interface ChatSource {
   documentId: string
