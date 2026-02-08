@@ -314,16 +314,22 @@ export async function crawlSource(
   }
 
   const durationSec = ((Date.now() - crawlStartTime) / 1000).toFixed(1)
+
+  // Crawl incrémental sans nouvelles pages = succès normal (rien à mettre à jour)
+  const isEmptyIncremental = incrementalMode && state.pagesProcessed === 0 && state.pagesFailed === 0
+
   const statusMessage = state.status === 'banned'
     ? `INTERROMPU (bannissement détecté)`
     : shutdownRequested
       ? `ARRÊT GRACIEUX après ${state.pagesProcessed} pages en ${durationSec}s`
-      : `Terminé: ${state.pagesProcessed} pages, ${state.pagesNew} nouvelles, ${state.pagesChanged} modifiées, ${state.pagesFailed} erreurs en ${durationSec}s`
+      : isEmptyIncremental
+        ? `Aucune page nouvelle à crawler (incrémental, ${durationSec}s)`
+        : `Terminé: ${state.pagesProcessed} pages, ${state.pagesNew} nouvelles, ${state.pagesChanged} modifiées, ${state.pagesFailed} erreurs en ${durationSec}s`
 
   console.log(`[Crawler] ${statusMessage}`)
 
   return {
-    success: state.status === 'completed' && (state.pagesProcessed === 0 || state.pagesFailed < state.pagesProcessed / 2),
+    success: isEmptyIncremental || (state.status === 'completed' && (state.pagesProcessed === 0 || state.pagesFailed < state.pagesProcessed / 2)),
     pagesProcessed: state.pagesProcessed,
     pagesNew: state.pagesNew,
     pagesChanged: state.pagesChanged,

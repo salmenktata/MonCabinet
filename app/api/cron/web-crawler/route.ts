@@ -132,7 +132,7 @@ async function processPendingJobs(): Promise<{
     console.log(`[WebCrawler Cron] Traitement job ${job.job_id} (${job.job_type}) pour ${job.source_name}`)
 
     try {
-      // Construire l'objet source
+      // Construire l'objet source avec les valeurs de la DB
       const source = {
         id: job.web_source_id,
         name: job.source_name,
@@ -147,10 +147,13 @@ async function processPendingJobs(): Promise<{
         respectRobotsTxt: job.respect_robots_txt,
         userAgent: job.user_agent,
         customHeaders: job.custom_headers || {},
-        urlPatterns: [],
-        excludedPatterns: [],
-        followLinks: true,
-        downloadFiles: true,
+        seedUrls: job.seed_urls || [],
+        formCrawlConfig: job.form_crawl_config || null,
+        ignoreSSLErrors: job.ignore_ssl_errors || false,
+        urlPatterns: job.url_patterns || [],
+        excludedPatterns: job.excluded_patterns || [],
+        followLinks: job.follow_links ?? true,
+        downloadFiles: job.download_files ?? true,
       }
 
       // Exécuter le crawl
