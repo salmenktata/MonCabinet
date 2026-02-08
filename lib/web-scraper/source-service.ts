@@ -126,9 +126,13 @@ export async function createWebSource(
   input: CreateWebSourceInput,
   createdBy: string
 ): Promise<WebSource> {
-  // Normaliser l'URL
-  const url = new URL(input.baseUrl)
-  const normalizedUrl = url.origin + url.pathname.replace(/\/$/, '')
+  // Pour Google Drive, pas de normalisation nécessaire
+  let normalizedUrl = input.baseUrl
+  if (!input.baseUrl.startsWith('gdrive://')) {
+    // Normaliser l'URL pour les sources web
+    const url = new URL(input.baseUrl)
+    normalizedUrl = url.origin + url.pathname.replace(/\/$/, '')
+  }
 
   // Vérifier l'unicité
   const existing = await getWebSourceByUrl(normalizedUrl)
@@ -144,7 +148,7 @@ export async function createWebSource(
       sitemap_url, rss_feed_url, use_sitemap, download_files,
       respect_robots_txt, rate_limit_ms, custom_headers,
       created_by, next_crawl_at, ignore_ssl_errors,
-      seed_urls, form_crawl_config, auto_index_files
+      seed_urls, form_crawl_config, auto_index_files, drive_config
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7::interval, $8, $9, $10,
@@ -152,7 +156,7 @@ export async function createWebSource(
       $14, $15, $16, $17,
       $18, $19, $20,
       $21, NOW(), $22,
-      $23, $24, $25
+      $23, $24, $25, $26
     )
     RETURNING *`,
     [
@@ -181,6 +185,7 @@ export async function createWebSource(
       input.seedUrls || [],
       input.formCrawlConfig ? JSON.stringify(input.formCrawlConfig) : null,
       input.autoIndexFiles || false,
+      input.driveConfig ? JSON.stringify(input.driveConfig) : null,
     ]
   )
 
