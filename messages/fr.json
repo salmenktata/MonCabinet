@@ -1236,6 +1236,8 @@
     "tipTitle2": "Références juridiques",
     "tipDescription2": "Les réponses incluent les articles de loi et la jurisprudence tunisienne pertinents.",
     "tipTitle3": "Dossiers liés",
-    "tipDescription3": "Liez votre question à un dossier existant pour un conseil personnalisé."
+    "tipDescription3": "Liez votre question à un dossier existant pour un conseil personnalisé.",
+    "errorTitle": "Erreur de consultation",
+    "errorGeneric": "Une erreur est survenue lors de la consultation. Veuillez réessayer."
   }
 }

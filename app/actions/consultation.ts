@@ -2,9 +2,10 @@
 
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
-import { getChatProvider, aiConfig, SYSTEM_PROMPTS } from '@/lib/ai/config'
+import { aiConfig, SYSTEM_PROMPTS } from '@/lib/ai/config'
 import { detectLanguage, type DetectedLanguage } from '@/lib/ai/language-utils'
 import { translateQuery, isTranslationAvailable } from '@/lib/ai/translation-service'
+import { callLLMWithFallback } from '@/lib/ai/llm-fallback-service'
 
 // Types
 export interface ConsultationSource {
@@ -182,18 +183,22 @@ ${input.context ? `${labels.contextHeader}\n${input.context}` : ''}
 
 ${RESPONSE_FORMAT[langKey]}`
 
-    // Appeler le LLM
-    const provider = getChatProvider()
-    let conseil = ''
+    // Appeler le LLM avec fallback automatique (Groq → DeepSeek → Anthropic → OpenAI)
+    const llmResponse = await callLLMWithFallback(
+      [{ role: 'user', content: systemPrompt }],
+      {
+        temperature: 0.3,
+        maxTokens: 2000,
+      }
+    )
 
-    if (provider === 'groq') {
-      conseil = await callGroq(systemPrompt)
-    } else if (provider === 'anthropic') {
-      conseil = await callAnthropic(systemPrompt)
-    } else if (provider === 'ollama') {
-      conseil = await callOllama(systemPrompt)
-    } else {
-      return { success: false, error: 'Aucun provider LLM disponible' }
+    const conseil = llmResponse.answer
+
+    // Log du provider utilisé (pour monitoring)
+    if (llmResponse.fallbackUsed) {
+      console.log(
+        `[Consultation] Fallback utilisé: ${llmResponse.originalProvider} → ${llmResponse.provider}`
+      )
     }
 
     // Extraire les actions recommandées du conseil
@@ -335,80 +340,88 @@ async function searchKnowledgeBase(
 }
 
 /**
- * Appel à Groq
+ * @deprecated Ces fonctions sont dépréciées et ne sont plus utilisées.
+ * Utiliser callLLMWithFallback() du service llm-fallback-service.ts à la place,
+ * qui gère automatiquement le fallback entre providers (Groq → DeepSeek → Anthropic → OpenAI).
+ *
+ * Ces fonctions peuvent être supprimées dans une prochaine version.
  */
-async function callGroq(prompt: string): Promise<string> {
-  const response = await fetch(`${aiConfig.groq.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${aiConfig.groq.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: aiConfig.groq.model,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 2000,
-      temperature: 0.3,
-    }),
-  })
 
-  if (!response.ok) {
-    throw new Error(`Erreur Groq: ${response.status}`)
-  }
+// /**
+//  * Appel à Groq
+//  */
+// async function callGroq(prompt: string): Promise<string> {
+//   const response = await fetch(`${aiConfig.groq.baseUrl}/chat/completions`, {
+//     method: 'POST',
+//     headers: {
+//       'Authorization': `Bearer ${aiConfig.groq.apiKey}`,
+//       'Content-Type': 'application/json',
+//     },
+//     body: JSON.stringify({
+//       model: aiConfig.groq.model,
+//       messages: [{ role: 'user', content: prompt }],
+//       max_tokens: 2000,
+//       temperature: 0.3,
+//     }),
+//   })
 
-  const data = await response.json()
-  return data.choices[0]?.message?.content || ''
-}
+//   if (!response.ok) {
+//     throw new Error(`Erreur Groq: ${response.status}`)
+//   }
 
-/**
- * Appel à Anthropic
- */
-async function callAnthropic(prompt: string): Promise<string> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': aiConfig.anthropic.apiKey,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: aiConfig.anthropic.model,
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  })
+//   const data = await response.json()
+//   return data.choices[0]?.message?.content || ''
+// }
 
-  if (!response.ok) {
-    throw new Error(`Erreur Anthropic: ${response.status}`)
-  }
+// /**
+//  * Appel à Anthropic
+//  */
+// async function callAnthropic(prompt: string): Promise<string> {
+//   const response = await fetch('https://api.anthropic.com/v1/messages', {
+//     method: 'POST',
+//     headers: {
+//       'x-api-key': aiConfig.anthropic.apiKey,
+//       'anthropic-version': '2023-06-01',
+//       'Content-Type': 'application/json',
+//     },
+//     body: JSON.stringify({
+//       model: aiConfig.anthropic.model,
+//       max_tokens: 2000,
+//       messages: [{ role: 'user', content: prompt }],
+//     }),
+//   })
 
-  const data = await response.json()
-  return data.content[0]?.text || ''
-}
+//   if (!response.ok) {
+//     throw new Error(`Erreur Anthropic: ${response.status}`)
+//   }
 
-/**
- * Appel à Ollama
- */
-async function callOllama(prompt: string): Promise<string> {
-  const response = await fetch(`${aiConfig.ollama.baseUrl}/api/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: aiConfig.ollama.chatModel,
-      messages: [{ role: 'user', content: prompt }],
-      stream: false,
-    }),
-  })
+//   const data = await response.json()
+//   return data.content[0]?.text || ''
+// }
 
-  if (!response.ok) {
-    throw new Error(`Erreur Ollama: ${response.status}`)
-  }
+// /**
+//  * Appel à Ollama
+//  */
+// async function callOllama(prompt: string): Promise<string> {
+//   const response = await fetch(`${aiConfig.ollama.baseUrl}/api/chat`, {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json',
+//     },
+//     body: JSON.stringify({
+//       model: aiConfig.ollama.chatModel,
+//       messages: [{ role: 'user', content: prompt }],
+//       stream: false,
+//     }),
+//   })
 
-  const data = await response.json()
-  return data.message?.content || ''
-}
+//   if (!response.ok) {
+//     throw new Error(`Erreur Ollama: ${response.status}`)
+//   }
+
+//   const data = await response.json()
+//   return data.message?.content || ''
+// }
 
 /**
  * Extrait les actions recommandées du texte (FR et AR)

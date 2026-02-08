@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -78,9 +79,15 @@ export function ConsultationInput({
         onComplete(result.data)
       } else {
         console.error('Erreur consultation:', result.error)
+        toast.error(t('errorTitle'), {
+          description: result.error || t('errorGeneric'),
+        })
       }
     } catch (error) {
       console.error('Erreur consultation:', error)
+      toast.error(t('errorTitle'), {
+        description: error instanceof Error ? error.message : t('errorGeneric'),
+      })
     } finally {
       setIsLoading(false)
     }

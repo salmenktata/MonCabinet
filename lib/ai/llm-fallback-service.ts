@@ -51,8 +51,8 @@ export interface LLMResponse {
 // CONFIGURATION
 // =============================================================================
 
-/** Ordre de fallback des providers */
-const FALLBACK_ORDER: LLMProvider[] = ['groq', 'deepseek', 'anthropic', 'openai']
+/** Ordre de fallback des providers (Ollama en dernier car local mais plus lent) */
+const FALLBACK_ORDER: LLMProvider[] = ['groq', 'deepseek', 'anthropic', 'openai', 'ollama']
 
 /** Nombre maximum de retries par provider avant de passer au suivant */
 const MAX_RETRIES_PER_PROVIDER = 2
@@ -106,6 +106,39 @@ function getOpenAIClient(): OpenAI {
     })
   }
   return openaiClient
+}
+
+/**
+ * Appelle Ollama directement via fetch (pas de SDK nécessaire)
+ */
+async function callOllamaAPI(
+  messages: Array<{ role: string; content: string }>,
+  temperature: number,
+  maxTokens: number
+): Promise<{ content: string; tokens?: number }> {
+  const response = await fetch(`${aiConfig.ollama.baseUrl}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: aiConfig.ollama.chatModel,
+      messages,
+      stream: false,
+      options: {
+        temperature,
+        num_predict: maxTokens,
+      },
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Erreur Ollama: ${response.status}`)
+  }
+
+  const data = await response.json()
+  return {
+    content: data.message?.content || '',
+    tokens: data.eval_count || 0,
+  }
 }
 
 // =============================================================================
@@ -178,6 +211,8 @@ export function getAvailableProviders(): LLMProvider[] {
         return !!aiConfig.anthropic.apiKey
       case 'openai':
         return !!aiConfig.openai.apiKey
+      case 'ollama':
+        return aiConfig.ollama.enabled
       default:
         return false
     }
@@ -295,6 +330,26 @@ async function callProvider(
         },
         modelUsed: aiConfig.openai.chatModel,
         provider: 'openai',
+        fallbackUsed: false,
+      }
+    }
+
+    case 'ollama': {
+      const ollamaResponse = await callOllamaAPI(
+        [{ role: 'system', content: systemPrompt }, ...userMessages],
+        temperature,
+        maxTokens
+      )
+
+      return {
+        answer: ollamaResponse.content,
+        tokensUsed: {
+          input: 0, // Ollama ne retourne pas toujours les tokens d'entrée
+          output: ollamaResponse.tokens || 0,
+          total: ollamaResponse.tokens || 0,
+        },
+        modelUsed: `ollama/${aiConfig.ollama.chatModel}`,
+        provider: 'ollama',
         fallbackUsed: false,
       }
     }
