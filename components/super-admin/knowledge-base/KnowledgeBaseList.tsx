@@ -287,6 +287,7 @@ export function KnowledgeBaseList({
 
             <Link
               href={`/super-admin/knowledge-base/${doc.id}`}
+              aria-label="Voir le document"
               className="h-10 w-10 rounded-lg bg-slate-600 flex items-center justify-center shrink-0 hover:bg-slate-500 transition"
             >
               <Icons.fileText className="h-5 w-5 text-slate-300" />

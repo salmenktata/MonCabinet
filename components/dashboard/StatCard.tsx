@@ -27,22 +27,22 @@ const variantStyles = {
   primary: {
     icon: 'bg-primary/10 text-primary',
     value: 'text-primary',
-    trend: 'text-primary/70',
+    trend: 'text-primary',
   },
   success: {
     icon: 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400',
     value: 'text-green-600 dark:text-green-400',
-    trend: 'text-green-600/70 dark:text-green-400/70',
+    trend: 'text-green-700 dark:text-green-400',
   },
   warning: {
     icon: 'bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400',
     value: 'text-orange-600 dark:text-orange-400',
-    trend: 'text-orange-600/70 dark:text-orange-400/70',
+    trend: 'text-orange-700 dark:text-orange-400',
   },
   danger: {
     icon: 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400',
     value: 'text-red-600 dark:text-red-400',
-    trend: 'text-red-600/70 dark:text-red-400/70',
+    trend: 'text-red-700 dark:text-red-400',
   },
 }
 
