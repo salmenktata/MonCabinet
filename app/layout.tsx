@@ -32,6 +32,9 @@ export const viewport: Viewport = {
   ],
 }
 
+// Optimisation: générer les pages statiques quand possible
+export const dynamic = 'auto'
+
 export default async function RootLayout({
   children,
 }: {
@@ -46,8 +49,6 @@ export default async function RootLayout({
         {/* Preconnect pour accélérer le chargement des fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* DNS prefetch pour les services externes */}
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
       </head>
       <body className={inter.className}>
         <SessionProvider>

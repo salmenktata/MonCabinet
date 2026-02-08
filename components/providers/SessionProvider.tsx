@@ -89,16 +89,9 @@ function isCacheStale(timestamp: number): boolean {
 }
 
 export function SessionProvider({ children }: SessionProviderProps) {
-  const [user, setUser] = useState<SessionUser | null>(() => {
-    // Initialisation synchrone depuis le cache
-    const cached = getCachedSession()
-    return cached?.user ?? null
-  })
-  const [loading, setLoading] = useState(() => {
-    // Si on a un cache valide, pas de loading initial
-    const cached = getCachedSession()
-    return !cached || isCacheStale(cached.timestamp)
-  })
+  // Éviter l'accès localStorage synchrone au render initial (cause forced reflow)
+  const [user, setUser] = useState<SessionUser | null>(null)
+  const [loading, setLoading] = useState(true)
 
   const fetchSession = useCallback(async () => {
     try {
@@ -121,18 +114,26 @@ export function SessionProvider({ children }: SessionProviderProps) {
   }, [])
 
   useEffect(() => {
-    const cached = getCachedSession()
+    // Chargement asynchrone du cache pour éviter forced reflow
+    const loadSession = async () => {
+      // Lire le cache après le premier paint
+      await new Promise(resolve => requestAnimationFrame(resolve))
 
-    if (cached && !isCacheStale(cached.timestamp)) {
-      // Cache valide: afficher immédiatement, revalider en background
-      setUser(cached.user)
-      setLoading(false)
-      // Stale-while-revalidate: mise à jour silencieuse en arrière-plan
-      fetchSession()
-    } else {
-      // Pas de cache ou cache périmé: fetch bloquant
-      fetchSession()
+      const cached = getCachedSession()
+
+      if (cached && !isCacheStale(cached.timestamp)) {
+        // Cache valide: afficher immédiatement, revalider en background
+        setUser(cached.user)
+        setLoading(false)
+        // Stale-while-revalidate: mise à jour silencieuse en arrière-plan
+        fetchSession()
+      } else {
+        // Pas de cache ou cache périmé: fetch bloquant
+        fetchSession()
+      }
     }
+
+    loadSession()
   }, [fetchSession])
 
   return (
