@@ -38,6 +38,7 @@ function getOllamaClient(): OpenAI {
     ollamaClient = new OpenAI({
       apiKey: 'ollama',
       baseURL: `${aiConfig.ollama.baseUrl}/v1`,
+      timeout: 120000,
     })
   }
   return ollamaClient

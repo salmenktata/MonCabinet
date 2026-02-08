@@ -332,7 +332,7 @@ async function processIntelligentPipeline(): Promise<{
     // Traiter le batch
     const { summary } = await processPipelineBatch(pendingPageIds, {
       skipContradictionCheck: false, // Activer la détection de contradictions
-      concurrency: 2, // Limiter la concurrence pour éviter la surcharge
+      concurrency: 1, // Séquentiel pour éviter la surcharge Ollama sur VPS
     })
 
     console.log(`[WebCrawler Cron] Pipeline terminé: ${summary.indexed} indexées, ${summary.reviewRequired} en revue, ${summary.rejected} rejetées`)

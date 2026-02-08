@@ -128,6 +128,7 @@ async function callOllamaAPI(
         model: aiConfig.ollama.chatModel,
         messages,
         stream: false,
+        think: false,
         options: {
           temperature,
           num_predict: maxTokens,

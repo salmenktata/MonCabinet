@@ -68,7 +68,7 @@ let groqClient: OpenAI | null = null
 
 function getOllamaClient(): OpenAI {
   if (!ollamaClient) {
-    ollamaClient = new OpenAI({ apiKey: 'ollama', baseURL: `${aiConfig.ollama.baseUrl}/v1` })
+    ollamaClient = new OpenAI({ apiKey: 'ollama', baseURL: `${aiConfig.ollama.baseUrl}/v1`, timeout: 120000 })
   }
   return ollamaClient
 }
