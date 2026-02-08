@@ -76,20 +76,12 @@ export async function GET(request: NextRequest) {
 
     const whereClause = conditions.join(' AND ')
 
-    // Compter le total
-    const countResult = await db.query(
-      `SELECT COUNT(*) as total
-       FROM chat_messages m
-       INNER JOIN chat_conversations c ON c.id = m.conversation_id
-       WHERE ${whereClause}`,
-      params
-    )
-    const total = parseInt(countResult.rows[0]?.total || '0', 10)
-
-    // Récupérer les messages
+    // Récupérer les messages avec le total en une seule requête (COUNT OVER)
     params.push(limit, offset)
     const messagesResult = await db.query(
-      `SELECT m.id, m.role, m.content, m.created_at, m.conversation_id, c.titre as conversation_title
+      `SELECT m.id, m.role, m.content, m.created_at, m.conversation_id,
+              c.titre as conversation_title,
+              COUNT(*) OVER() as total_count
        FROM chat_messages m
        INNER JOIN chat_conversations c ON c.id = m.conversation_id
        WHERE ${whereClause}
@@ -97,6 +89,9 @@ export async function GET(request: NextRequest) {
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       params
     )
+
+    // Extraire le total du premier résultat (ou 0 si aucun résultat)
+    const total = parseInt(messagesResult.rows[0]?.total_count || '0', 10)
 
     // Formater les résultats avec mise en surbrillance
     const results: SearchResult[] = messagesResult.rows.map((msg) => {

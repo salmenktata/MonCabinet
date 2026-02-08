@@ -212,8 +212,18 @@ async function rerankSources(
 ): Promise<ChatSource[]> {
   if (sources.length === 0) return sources
 
-  // Récupérer les boosts dynamiques si non fournis
-  const boosts = boostFactors || (await getDynamicBoostFactors()).factors
+  // Récupérer les boosts dynamiques si non fournis (avec fallback sur valeurs statiques)
+  let boosts: Record<string, number>
+  if (boostFactors) {
+    boosts = boostFactors
+  } else {
+    try {
+      boosts = (await getDynamicBoostFactors()).factors
+    } catch (err) {
+      console.warn('[RAG] Erreur getDynamicBoostFactors, utilisation valeurs statiques:', err)
+      boosts = SOURCE_BOOST
+    }
+  }
 
   // 1. Appliquer boost par type (dynamique ou statique)
   let rankedSources: RankedSource[] = sources.map((s) => {

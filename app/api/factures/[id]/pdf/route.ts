@@ -109,7 +109,7 @@ export async function GET(
         logo_url: profile.logo_url,
         rne: profile.rne,
       },
-      langue: 'fr' as const, // TODO: Récupérer depuis préférences utilisateur
+      langue: (profile.langue === 'ar' ? 'ar' : 'fr') as 'fr' | 'ar',
     }
 
     // Générer le PDF (import dynamique pour réduire le bundle initial)
