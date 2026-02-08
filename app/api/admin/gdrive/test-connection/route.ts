@@ -9,7 +9,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { validateDriveFolderAccess } from '@/lib/web-scraper/gdrive-utils'
+import {
+  validateDriveFolderAccess,
+  parseGoogleDriveFolderUrl
+} from '@/lib/web-scraper/gdrive-utils'
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,8 +26,21 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Parser l'URL pour extraire le folderId si nécessaire
+    const parsedFolderId = parseGoogleDriveFolderUrl(folderId)
+
+    if (!parsedFolderId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Format d\'URL invalide. Utilisez l\'URL complète ou le folderId directement.'
+        },
+        { status: 400 }
+      )
+    }
+
     // Valider l'accès au dossier
-    const result = await validateDriveFolderAccess(folderId)
+    const result = await validateDriveFolderAccess(parsedFolderId)
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 })
