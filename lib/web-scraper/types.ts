@@ -2,15 +2,43 @@
  * Types pour le système d'ingestion web
  */
 
+/**
+ * Catégories de sources web
+ * Alignées avec la classification 9anoun.tn
+ */
 export type WebSourceCategory =
-  | 'legislation'
-  | 'jurisprudence'
-  | 'doctrine'
-  | 'jort'
-  | 'modeles'
-  | 'procedures'
-  | 'formulaires'
-  | 'autre'
+  | 'legislation'      // النصوص القانونية - Textes législatifs
+  | 'jurisprudence'    // الفقه القضائي - Jurisprudence
+  | 'doctrine'         // الفقه - Doctrine
+  | 'jort'             // الجريدة الرسمية - Journal Officiel (JORT)
+  | 'codes'            // المجلات القانونية - Codes juridiques
+  | 'constitution'     // الدساتير - Constitutions
+  | 'conventions'      // الاتفاقيات الدولية - Conventions internationales
+  | 'modeles'          // النماذج - Modèles de documents
+  | 'procedures'       // الإجراءات - Procédures
+  | 'formulaires'      // الاستمارات - Formulaires
+  | 'guides'           // الأدلة - Guides pratiques
+  | 'lexique'          // المصطلحات - Lexique juridique
+  | 'autre'            // أخرى - Autres
+
+/**
+ * Mapping des catégories arabe <-> français
+ */
+export const CATEGORY_TRANSLATIONS: Record<WebSourceCategory, { ar: string; fr: string }> = {
+  legislation: { ar: 'النصوص القانونية', fr: 'Textes législatifs' },
+  jurisprudence: { ar: 'الفقه القضائي', fr: 'Jurisprudence' },
+  doctrine: { ar: 'الفقه', fr: 'Doctrine' },
+  jort: { ar: 'الجريدة الرسمية', fr: 'Journal Officiel (JORT)' },
+  codes: { ar: 'المجلات القانونية', fr: 'Codes juridiques' },
+  constitution: { ar: 'الدساتير', fr: 'Constitutions' },
+  conventions: { ar: 'الاتفاقيات الدولية', fr: 'Conventions internationales' },
+  modeles: { ar: 'النماذج', fr: 'Modèles de documents' },
+  procedures: { ar: 'الإجراءات', fr: 'Procédures' },
+  formulaires: { ar: 'الاستمارات', fr: 'Formulaires' },
+  guides: { ar: 'الأدلة', fr: 'Guides pratiques' },
+  lexique: { ar: 'المصطلحات', fr: 'Lexique juridique' },
+  autre: { ar: 'أخرى', fr: 'Autres' },
+}
 
 export type WebSourceLanguage = 'ar' | 'fr' | 'mixed'
 
@@ -36,6 +64,33 @@ export interface CssSelectors {
   author?: string
   date?: string
   description?: string
+}
+
+/**
+ * Configuration avancée pour les sites dynamiques
+ * (Livewire, React, Vue, Angular, etc.)
+ */
+export interface DynamicSiteConfig {
+  /** Sélecteur CSS à attendre avant d'extraire le contenu */
+  waitForSelector?: string
+  /** Délai supplémentaire après chargement (ms) */
+  postLoadDelayMs?: number
+  /** Scroller la page pour déclencher le lazy loading */
+  scrollToLoad?: boolean
+  /** Nombre de scrolls à effectuer */
+  scrollCount?: number
+  /** Attendre la disparition des indicateurs de chargement */
+  waitForLoadingToDisappear?: boolean
+  /** Sélecteurs des indicateurs de chargement à surveiller */
+  loadingIndicators?: string[]
+  /** Cliquer sur un élément avant l'extraction (ex: "Voir plus") */
+  clickBeforeExtract?: string[]
+  /** Exécuter du JavaScript personnalisé avant extraction */
+  customScript?: string
+  /** Mode d'attente: 'networkidle' | 'domcontentloaded' | 'load' */
+  waitUntil?: 'networkidle' | 'domcontentloaded' | 'load'
+  /** Timeout spécifique pour le chargement dynamique (ms) */
+  dynamicTimeoutMs?: number
 }
 
 export interface WebSource {
@@ -68,6 +123,9 @@ export interface WebSource {
   timeoutMs: number
   respectRobotsTxt: boolean
   customHeaders: Record<string, string>
+
+  // Configuration avancée pour sites dynamiques (Livewire, React, Vue, etc.)
+  dynamicConfig: DynamicSiteConfig | null
 
   // Sitemap & RSS
   sitemapUrl: string | null
@@ -119,6 +177,9 @@ export interface WebPage {
 
   // Fichiers liés
   linkedFiles: LinkedFile[]
+
+  // Structure du site (pour classification)
+  siteStructure: Record<string, unknown> | null
 
   // HTTP Caching
   etag: string | null
@@ -220,6 +281,10 @@ export interface ScrapedContent {
   links: string[]
   files: LinkedFile[]
   structuredData: Record<string, unknown> | null
+  /** Contexte juridique extrait (type de document, code parent, etc.) */
+  legalContext?: LegalContext
+  /** Structure du site extraite (breadcrumbs, URL, navigation) */
+  siteStructure?: SiteStructure
 }
 
 export interface CrawlResult {
@@ -272,6 +337,7 @@ export interface CreateWebSourceInput {
   respectRobotsTxt?: boolean
   rateLimitMs?: number
   customHeaders?: Record<string, string>
+  dynamicConfig?: DynamicSiteConfig
 }
 
 export interface UpdateWebSourceInput {
@@ -294,6 +360,7 @@ export interface UpdateWebSourceInput {
   respectRobotsTxt?: boolean
   rateLimitMs?: number
   customHeaders?: Record<string, string>
+  dynamicConfig?: DynamicSiteConfig
   isActive?: boolean
 }
 
@@ -313,20 +380,67 @@ export type ProcessingStatus =
 
 /**
  * Domaines juridiques tunisiens
+ * Avec traductions arabe <-> français
  */
 export type LegalDomain =
-  | 'civil'
-  | 'commercial'
-  | 'penal'
-  | 'famille'
-  | 'fiscal'
-  | 'social'
-  | 'administratif'
-  | 'immobilier'
-  | 'bancaire'
-  | 'propriete_intellectuelle'
-  | 'international'
-  | 'autre'
+  | 'civil'                    // القانون المدني - Droit civil
+  | 'commercial'               // القانون التجاري - Droit commercial
+  | 'penal'                    // القانون الجزائي - Droit pénal
+  | 'famille'                  // قانون الأسرة - Droit de la famille
+  | 'fiscal'                   // القانون الجبائي - Droit fiscal
+  | 'social'                   // القانون الاجتماعي - Droit social/travail
+  | 'administratif'            // القانون الإداري - Droit administratif
+  | 'constitutionnel'          // القانون الدستوري - Droit constitutionnel
+  | 'immobilier'               // القانون العقاري - Droit immobilier
+  | 'bancaire'                 // القانون البنكي - Droit bancaire
+  | 'assurance'                // قانون التأمين - Droit des assurances
+  | 'douanier'                 // القانون الديواني - Droit douanier
+  | 'propriete_intellectuelle' // الملكية الفكرية - Propriété intellectuelle
+  | 'environnement'            // قانون البيئة - Droit de l'environnement
+  | 'maritime'                 // القانون البحري - Droit maritime
+  | 'aerien'                   // القانون الجوي - Droit aérien
+  | 'numerique'                // القانون الرقمي - Droit numérique
+  | 'consommation'             // قانون الاستهلاك - Droit de la consommation
+  | 'concurrence'              // قانون المنافسة - Droit de la concurrence
+  | 'international_prive'      // القانون الدولي الخاص - Droit international privé
+  | 'international_public'     // القانون الدولي العام - Droit international public
+  | 'humanitaire'              // القانون الإنساني - Droit humanitaire
+  | 'procedure_civile'         // الإجراءات المدنية - Procédure civile
+  | 'procedure_penale'         // الإجراءات الجزائية - Procédure pénale
+  | 'arbitrage'                // التحكيم - Arbitrage
+  | 'autre'                    // أخرى - Autre
+
+/**
+ * Mapping des domaines juridiques arabe <-> français
+ */
+export const LEGAL_DOMAIN_TRANSLATIONS: Record<LegalDomain, { ar: string; fr: string }> = {
+  civil: { ar: 'القانون المدني', fr: 'Droit civil' },
+  commercial: { ar: 'القانون التجاري', fr: 'Droit commercial' },
+  penal: { ar: 'القانون الجزائي', fr: 'Droit pénal' },
+  famille: { ar: 'قانون الأسرة', fr: 'Droit de la famille' },
+  fiscal: { ar: 'القانون الجبائي', fr: 'Droit fiscal' },
+  social: { ar: 'القانون الاجتماعي', fr: 'Droit social/travail' },
+  administratif: { ar: 'القانون الإداري', fr: 'Droit administratif' },
+  constitutionnel: { ar: 'القانون الدستوري', fr: 'Droit constitutionnel' },
+  immobilier: { ar: 'القانون العقاري', fr: 'Droit immobilier' },
+  bancaire: { ar: 'القانون البنكي', fr: 'Droit bancaire' },
+  assurance: { ar: 'قانون التأمين', fr: 'Droit des assurances' },
+  douanier: { ar: 'القانون الديواني', fr: 'Droit douanier' },
+  propriete_intellectuelle: { ar: 'الملكية الفكرية', fr: 'Propriété intellectuelle' },
+  environnement: { ar: 'قانون البيئة', fr: "Droit de l'environnement" },
+  maritime: { ar: 'القانون البحري', fr: 'Droit maritime' },
+  aerien: { ar: 'القانون الجوي', fr: 'Droit aérien' },
+  numerique: { ar: 'القانون الرقمي', fr: 'Droit numérique' },
+  consommation: { ar: 'قانون الاستهلاك', fr: 'Droit de la consommation' },
+  concurrence: { ar: 'قانون المنافسة', fr: 'Droit de la concurrence' },
+  international_prive: { ar: 'القانون الدولي الخاص', fr: 'Droit international privé' },
+  international_public: { ar: 'القانون الدولي العام', fr: 'Droit international public' },
+  humanitaire: { ar: 'القانون الإنساني', fr: 'Droit humanitaire' },
+  procedure_civile: { ar: 'الإجراءات المدنية', fr: 'Procédure civile' },
+  procedure_penale: { ar: 'الإجراءات الجزائية', fr: 'Procédure pénale' },
+  arbitrage: { ar: 'التحكيم', fr: 'Arbitrage' },
+  autre: { ar: 'أخرى', fr: 'Autre' },
+}
 
 /**
  * Catégories de contenu juridique (étendu)
@@ -344,28 +458,113 @@ export type LegalContentCategory =
 
 /**
  * Nature des documents juridiques
+ * Avec traductions arabe <-> français
  */
 export type DocumentNature =
-  | 'loi'
-  | 'decret'
-  | 'arrete'
-  | 'circulaire'
-  | 'ordonnance'
-  | 'arret'
-  | 'jugement'
-  | 'ordonnance_jud'
-  | 'avis'
-  | 'article_doctrine'
-  | 'these'
-  | 'commentaire'
-  | 'note'
-  | 'modele_contrat'
-  | 'modele_acte'
-  | 'formulaire'
-  | 'guide_pratique'
-  | 'faq'
-  | 'actualite'
-  | 'autre'
+  // Législation
+  | 'loi'                  // قانون - Loi
+  | 'loi_organique'        // قانون أساسي - Loi organique
+  | 'loi_constitutionnelle' // قانون دستوري - Loi constitutionnelle
+  | 'decret'               // أمر / مرسوم - Décret
+  | 'decret_gouvernemental' // أمر حكومي - Décret gouvernemental
+  | 'decret_presidentiel'  // أمر رئاسي - Décret présidentiel
+  | 'decret_loi'           // مرسوم - Décret-loi
+  | 'arrete'               // قرار - Arrêté
+  | 'arrete_ministeriel'   // قرار وزاري - Arrêté ministériel
+  | 'arrete_conjoint'      // قرار مشترك - Arrêté conjoint
+  | 'circulaire'           // منشور - Circulaire
+  | 'ordonnance'           // أمر قانوني - Ordonnance
+  | 'note_generale'        // مذكرة عامة - Note générale
+  // Jurisprudence
+  | 'arret'                // قرار - Arrêt
+  | 'arret_cassation'      // قرار تعقيب - Arrêt de cassation
+  | 'arret_appel'          // قرار استئناف - Arrêt d'appel
+  | 'jugement'             // حكم - Jugement
+  | 'ordonnance_jud'       // أمر على عريضة - Ordonnance sur requête
+  | 'ordonnance_refere'    // أمر استعجالي - Ordonnance de référé
+  | 'avis'                 // رأي - Avis
+  | 'avis_juridique'       // رأي قانوني - Avis juridique
+  // Doctrine
+  | 'article_doctrine'     // مقال فقهي - Article de doctrine
+  | 'these'                // أطروحة - Thèse
+  | 'memoire'              // رسالة - Mémoire
+  | 'commentaire'          // تعليق - Commentaire
+  | 'note'                 // تعليقة - Note
+  | 'chronique'            // حولية - Chronique
+  // Pratique
+  | 'modele_contrat'       // نموذج عقد - Modèle de contrat
+  | 'modele_acte'          // نموذج محرر - Modèle d'acte
+  | 'formulaire'           // استمارة - Formulaire
+  | 'guide_pratique'       // دليل عملي - Guide pratique
+  | 'faq'                  // أسئلة شائعة - FAQ
+  // Constitutionnel
+  | 'constitution'         // دستور - Constitution
+  | 'amendement_const'     // تعديل دستوري - Amendement constitutionnel
+  // International
+  | 'convention'           // اتفاقية - Convention
+  | 'traite'               // معاهدة - Traité
+  | 'protocole'            // بروتوكول - Protocole
+  | 'accord'               // اتفاق - Accord
+  // JORT
+  | 'jort_publication'     // نشر بالرائد الرسمي - Publication au JORT
+  // Autres
+  | 'actualite'            // خبر - Actualité
+  | 'autre'                // أخرى - Autre
+
+/**
+ * Mapping des natures de documents arabe <-> français
+ */
+export const DOCUMENT_NATURE_TRANSLATIONS: Record<DocumentNature, { ar: string; fr: string }> = {
+  // Législation
+  loi: { ar: 'قانون', fr: 'Loi' },
+  loi_organique: { ar: 'قانون أساسي', fr: 'Loi organique' },
+  loi_constitutionnelle: { ar: 'قانون دستوري', fr: 'Loi constitutionnelle' },
+  decret: { ar: 'أمر', fr: 'Décret' },
+  decret_gouvernemental: { ar: 'أمر حكومي', fr: 'Décret gouvernemental' },
+  decret_presidentiel: { ar: 'أمر رئاسي', fr: 'Décret présidentiel' },
+  decret_loi: { ar: 'مرسوم', fr: 'Décret-loi' },
+  arrete: { ar: 'قرار', fr: 'Arrêté' },
+  arrete_ministeriel: { ar: 'قرار وزاري', fr: 'Arrêté ministériel' },
+  arrete_conjoint: { ar: 'قرار مشترك', fr: 'Arrêté conjoint' },
+  circulaire: { ar: 'منشور', fr: 'Circulaire' },
+  ordonnance: { ar: 'أمر قانوني', fr: 'Ordonnance' },
+  note_generale: { ar: 'مذكرة عامة', fr: 'Note générale' },
+  // Jurisprudence
+  arret: { ar: 'قرار', fr: 'Arrêt' },
+  arret_cassation: { ar: 'قرار تعقيب', fr: 'Arrêt de cassation' },
+  arret_appel: { ar: 'قرار استئناف', fr: "Arrêt d'appel" },
+  jugement: { ar: 'حكم', fr: 'Jugement' },
+  ordonnance_jud: { ar: 'أمر على عريضة', fr: 'Ordonnance sur requête' },
+  ordonnance_refere: { ar: 'أمر استعجالي', fr: 'Ordonnance de référé' },
+  avis: { ar: 'رأي', fr: 'Avis' },
+  avis_juridique: { ar: 'رأي قانوني', fr: 'Avis juridique' },
+  // Doctrine
+  article_doctrine: { ar: 'مقال فقهي', fr: 'Article de doctrine' },
+  these: { ar: 'أطروحة', fr: 'Thèse' },
+  memoire: { ar: 'رسالة', fr: 'Mémoire' },
+  commentaire: { ar: 'تعليق', fr: 'Commentaire' },
+  note: { ar: 'تعليقة', fr: 'Note' },
+  chronique: { ar: 'حولية', fr: 'Chronique' },
+  // Pratique
+  modele_contrat: { ar: 'نموذج عقد', fr: 'Modèle de contrat' },
+  modele_acte: { ar: 'نموذج محرر', fr: "Modèle d'acte" },
+  formulaire: { ar: 'استمارة', fr: 'Formulaire' },
+  guide_pratique: { ar: 'دليل عملي', fr: 'Guide pratique' },
+  faq: { ar: 'أسئلة شائعة', fr: 'FAQ' },
+  // Constitutionnel
+  constitution: { ar: 'دستور', fr: 'Constitution' },
+  amendement_const: { ar: 'تعديل دستوري', fr: 'Amendement constitutionnel' },
+  // International
+  convention: { ar: 'اتفاقية', fr: 'Convention' },
+  traite: { ar: 'معاهدة', fr: 'Traité' },
+  protocole: { ar: 'بروتوكول', fr: 'Protocole' },
+  accord: { ar: 'اتفاق', fr: 'Accord' },
+  // JORT
+  jort_publication: { ar: 'نشر بالرائد الرسمي', fr: 'Publication au JORT' },
+  // Autres
+  actualite: { ar: 'خبر', fr: 'Actualité' },
+  autre: { ar: 'أخرى', fr: 'Autre' },
+}
 
 /**
  * Types de contradictions détectées
@@ -489,6 +688,107 @@ export interface LegalReference {
   reference: string
   date?: string
   description?: string
+}
+
+/**
+ * Contexte juridique extrait de la page
+ * Permet de comprendre la hiérarchie du document (ex: article dans un code)
+ */
+export interface LegalContext {
+  /** Type de document détecté */
+  documentType: 'code' | 'code_article' | 'law' | 'decree' | 'convention' | 'jurisprudence' | 'jort' | 'constitution' | 'unknown'
+  /** Code parent (si c'est un article de code) */
+  parentCode?: {
+    nameAr: string     // Ex: مجلة الالتزامات والعقود
+    nameFr?: string    // Ex: Code des Obligations et Contrats
+    slug?: string      // Ex: code-obligations-contrats
+  }
+  /** Numéro d'article/فصل (si c'est un article) */
+  articleNumber?: string  // Ex: 3, 142-bis, مكرر
+  /** Chapitre/باب (si applicable) */
+  chapter?: string
+  /** Section/قسم (si applicable) */
+  section?: string
+  /** Livre/كتاب (si applicable) */
+  book?: string
+  /** Titre/عنوان (si applicable) */
+  title?: string
+}
+
+/**
+ * Mapping des codes tunisiens avec leurs noms AR/FR et slugs
+ */
+export const TUNISIAN_CODES: Record<string, { ar: string; fr: string; domain: LegalDomain }> = {
+  'code-obligations-contrats': {
+    ar: 'مجلة الالتزامات والعقود',
+    fr: 'Code des Obligations et des Contrats',
+    domain: 'civil',
+  },
+  'code-commerce': {
+    ar: 'المجلة التجارية',
+    fr: 'Code de Commerce',
+    domain: 'commercial',
+  },
+  'code-travail': {
+    ar: 'مجلة الشغل',
+    fr: 'Code du Travail',
+    domain: 'social',
+  },
+  'code-penal': {
+    ar: 'المجلة الجزائية',
+    fr: 'Code Pénal',
+    domain: 'penal',
+  },
+  'code-procedure-penale': {
+    ar: 'مجلة الإجراءات الجزائية',
+    fr: 'Code de Procédure Pénale',
+    domain: 'procedure_penale',
+  },
+  'code-procedure-civile': {
+    ar: 'مجلة المرافعات المدنية والتجارية',
+    fr: 'Code de Procédure Civile et Commerciale',
+    domain: 'procedure_civile',
+  },
+  'code-statut-personnel': {
+    ar: 'مجلة الأحوال الشخصية',
+    fr: 'Code du Statut Personnel',
+    domain: 'famille',
+  },
+  'code-droits-reels': {
+    ar: 'مجلة الحقوق العينية',
+    fr: 'Code des Droits Réels',
+    domain: 'immobilier',
+  },
+  'code-douanes': {
+    ar: 'مجلة الديوانة',
+    fr: 'Code des Douanes',
+    domain: 'douanier',
+  },
+  'code-fiscal': {
+    ar: 'مجلة الضريبة على دخل الأشخاص الطبيعيين والضريبة على الشركات',
+    fr: 'Code de l\'Impôt sur le Revenu des Personnes Physiques et de l\'Impôt sur les Sociétés',
+    domain: 'fiscal',
+  },
+  'code-comptabilite-publique': {
+    ar: 'مجلة المحاسبة العمومية',
+    fr: 'Code de la Comptabilité Publique',
+    domain: 'administratif',
+  },
+  'code-collectivites-locales': {
+    ar: 'مجلة الجماعات المحلية',
+    fr: 'Code des Collectivités Locales',
+    domain: 'administratif',
+  },
+  'code-commerce-maritime': {
+    ar: 'مجلة التجارة البحرية',
+    fr: 'Code de Commerce Maritime',
+    domain: 'maritime',
+  },
+  'code-droit-international-prive': {
+    ar: 'مجلة القانون الدولي الخاص',
+    fr: 'Code de Droit International Privé',
+    domain: 'international_prive',
+  },
 }
 
 /**
@@ -725,4 +1025,74 @@ export interface WebPageExtended extends WebPage {
   legalDomain: LegalDomain | null
   requiresHumanReview: boolean
   processingStatus: ProcessingStatus
+}
+
+// =============================================================================
+// TYPES POUR LA STRUCTURE DU SITE (utilisés pour la classification)
+// =============================================================================
+
+/**
+ * Structure extraite du site web
+ */
+export interface SiteStructure {
+  breadcrumbs: Breadcrumb[]
+  urlPath: UrlPathAnalysis
+  navigation: NavigationItem[]
+  headings: HeadingHierarchy
+  sectionContext: SectionContext | null
+}
+
+export interface Breadcrumb {
+  label: string
+  url: string | null
+  level: number
+}
+
+export interface UrlPathAnalysis {
+  fullPath: string
+  segments: UrlSegment[]
+  queryParams: Record<string, string>
+  detectedPatterns: UrlPattern[]
+}
+
+export interface UrlSegment {
+  value: string
+  position: number
+  isNumeric: boolean
+  isDate: boolean
+  suggestedMeaning: string | null
+}
+
+export interface UrlPattern {
+  pattern: string
+  confidence: number
+  suggestedCategory: string | null
+  suggestedDomain: string | null
+  suggestedDocumentType: string | null
+}
+
+export interface NavigationItem {
+  label: string
+  url: string | null
+  isActive: boolean
+  level: number
+}
+
+export interface HeadingHierarchy {
+  h1: string | null
+  h2: string[]
+  h3: string[]
+  structure: HeadingNode[]
+}
+
+export interface HeadingNode {
+  level: number
+  text: string
+  children: HeadingNode[]
+}
+
+export interface SectionContext {
+  parentSection: string | null
+  currentSection: string | null
+  siblingPages: string[]
 }

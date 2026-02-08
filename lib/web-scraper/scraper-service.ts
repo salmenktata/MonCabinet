@@ -3,7 +3,7 @@
  * Supporte les sites statiques (fetch + cheerio) et dynamiques (Playwright)
  */
 
-import type { WebSource, ScrapedContent } from './types'
+import type { WebSource, ScrapedContent, DynamicSiteConfig } from './types'
 import { extractContent, hashUrl, hashContent } from './content-extractor'
 import { isUrlAllowed } from './robots-parser'
 
@@ -18,6 +18,7 @@ interface FetchOptions {
   timeout?: number
   headers?: Record<string, string>
   respectRobotsTxt?: boolean
+  dynamicConfig?: DynamicSiteConfig
 }
 
 interface FetchResult {
@@ -129,7 +130,237 @@ export async function fetchHtml(
 }
 
 /**
+ * Types de frameworks détectables
+ */
+type DetectedFramework =
+  | 'livewire'
+  | 'alpine'
+  | 'react'
+  | 'vue'
+  | 'angular'
+  | 'svelte'
+  | 'htmx'
+  | 'turbo'
+  | 'stimulus'
+  | 'jquery-ajax'
+  | 'spa-generic'
+  | 'static'
+
+/**
+ * Profils de configuration par framework
+ */
+const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> = {
+  livewire: {
+    waitForLoadingToDisappear: true,
+    loadingIndicators: [
+      '[wire\\:loading]:not([wire\\:loading\\.remove])',
+      '[wire\\:loading\\.delay]',
+      '.livewire-loading',
+      '[wire\\:loading\\.class]',
+      '[wire\\:cloak]',
+      '.loading',
+      '.skeleton',
+    ],
+    postLoadDelayMs: 4000,  // Délai plus long pour Livewire
+    scrollToLoad: true,
+    scrollCount: 5,  // Plus de scrolls
+    waitUntil: 'networkidle',
+    dynamicTimeoutMs: 25000,  // Timeout plus long
+  },
+  alpine: {
+    waitForLoadingToDisappear: true,
+    loadingIndicators: ['[x-show][x-transition]', '.loading'],
+    postLoadDelayMs: 500,
+    waitUntil: 'networkidle',
+  },
+  react: {
+    waitForLoadingToDisappear: true,
+    loadingIndicators: ['.loading', '.spinner', '[data-loading]', '.skeleton'],
+    postLoadDelayMs: 800,
+    scrollToLoad: true,
+    scrollCount: 2,
+    waitUntil: 'networkidle',
+    dynamicTimeoutMs: 10000,
+  },
+  vue: {
+    waitForLoadingToDisappear: true,
+    loadingIndicators: ['.v-progress-circular', '.v-skeleton-loader', '.loading'],
+    postLoadDelayMs: 600,
+    scrollToLoad: true,
+    waitUntil: 'networkidle',
+  },
+  angular: {
+    waitForLoadingToDisappear: true,
+    loadingIndicators: ['mat-spinner', 'mat-progress-bar', '.ng-loading'],
+    postLoadDelayMs: 800,
+    scrollToLoad: true,
+    waitUntil: 'networkidle',
+    dynamicTimeoutMs: 12000,
+  },
+  svelte: {
+    waitForLoadingToDisappear: true,
+    loadingIndicators: ['.loading', '.spinner'],
+    postLoadDelayMs: 400,
+    waitUntil: 'networkidle',
+  },
+  htmx: {
+    waitForLoadingToDisappear: true,
+    loadingIndicators: ['.htmx-request', '.htmx-indicator'],
+    postLoadDelayMs: 500,
+    waitUntil: 'networkidle',
+  },
+  turbo: {
+    waitForLoadingToDisappear: true,
+    loadingIndicators: ['.turbo-progress-bar', '[data-turbo-progress]'],
+    postLoadDelayMs: 400,
+    waitUntil: 'networkidle',
+  },
+  stimulus: {
+    postLoadDelayMs: 300,
+    waitUntil: 'domcontentloaded',
+  },
+  'jquery-ajax': {
+    waitForLoadingToDisappear: true,
+    loadingIndicators: ['.loading', '.ajax-loading', '#loading'],
+    postLoadDelayMs: 500,
+    waitUntil: 'networkidle',
+  },
+  'spa-generic': {
+    waitForLoadingToDisappear: true,
+    loadingIndicators: ['.loading', '.spinner', '.skeleton', '[data-loading]'],
+    postLoadDelayMs: 800,
+    scrollToLoad: true,
+    scrollCount: 2,
+    waitUntil: 'networkidle',
+    dynamicTimeoutMs: 10000,
+  },
+  static: {
+    postLoadDelayMs: 0,
+    waitUntil: 'domcontentloaded',
+  },
+}
+
+/**
+ * Configuration par défaut pour les sites dynamiques
+ */
+const DEFAULT_DYNAMIC_CONFIG: DynamicSiteConfig = {
+  waitForLoadingToDisappear: true,
+  loadingIndicators: [
+    // Livewire
+    '[wire\\:loading]:not([wire\\:loading\\.remove])',
+    '.livewire-loading',
+    // Indicateurs génériques
+    '.loading',
+    '.spinner',
+    '.skeleton',
+    '[data-loading="true"]',
+    '.is-loading',
+  ],
+  scrollToLoad: false,
+  scrollCount: 3,
+  postLoadDelayMs: 500,
+  waitUntil: 'networkidle',
+  dynamicTimeoutMs: 10000,
+}
+
+/**
+ * Détecte le framework utilisé par une page
+ */
+async function detectFramework(
+  page: Awaited<ReturnType<Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>>['newPage']>>
+): Promise<DetectedFramework[]> {
+  const detected: DetectedFramework[] = []
+
+  const checks = await page.evaluate(() => {
+    const html = document.documentElement.outerHTML
+    const head = document.head.innerHTML
+    const scripts = Array.from(document.querySelectorAll('script')).map(s => s.src + ' ' + (s.textContent || ''))
+
+    return {
+      // Livewire (Laravel)
+      livewire: html.includes('wire:') || html.includes('livewire') || !!window.Livewire,
+      // Alpine.js
+      alpine: html.includes('x-data') || html.includes('x-show') || html.includes('x-if'),
+      // React
+      react: html.includes('data-reactroot') || html.includes('__NEXT_DATA__') ||
+             scripts.some(s => s.includes('react')) || !!document.querySelector('[data-reactroot]'),
+      // Vue
+      vue: html.includes('data-v-') || scripts.some(s => s.includes('vue')) ||
+           !!document.querySelector('[data-v-]'),
+      // Angular
+      angular: html.includes('ng-') || html.includes('_ngcontent') ||
+               scripts.some(s => s.includes('angular')) || !!document.querySelector('[ng-version]'),
+      // Svelte
+      svelte: scripts.some(s => s.includes('svelte')) || html.includes('svelte-'),
+      // HTMX
+      htmx: html.includes('hx-') || scripts.some(s => s.includes('htmx')),
+      // Turbo (Hotwire)
+      turbo: html.includes('data-turbo') || scripts.some(s => s.includes('turbo')),
+      // Stimulus
+      stimulus: html.includes('data-controller') || scripts.some(s => s.includes('stimulus')),
+      // jQuery avec AJAX patterns
+      jqueryAjax: (scripts.some(s => s.includes('jquery')) && html.includes('ajax')) ||
+                  html.includes('$.ajax') || html.includes('$.get') || html.includes('$.post'),
+      // SPA générique (hashtag routing, history API patterns)
+      spaGeneric: html.includes('router') || html.includes('app-root') ||
+                  !!document.querySelector('#app') || !!document.querySelector('#root'),
+    }
+  })
+
+  if (checks.livewire) detected.push('livewire')
+  if (checks.alpine) detected.push('alpine')
+  if (checks.react) detected.push('react')
+  if (checks.vue) detected.push('vue')
+  if (checks.angular) detected.push('angular')
+  if (checks.svelte) detected.push('svelte')
+  if (checks.htmx) detected.push('htmx')
+  if (checks.turbo) detected.push('turbo')
+  if (checks.stimulus) detected.push('stimulus')
+  if (checks.jqueryAjax) detected.push('jquery-ajax')
+  if (checks.spaGeneric && detected.length === 0) detected.push('spa-generic')
+  if (detected.length === 0) detected.push('static')
+
+  return detected
+}
+
+/**
+ * Fusionne les profils de frameworks détectés
+ */
+function mergeFrameworkProfiles(frameworks: DetectedFramework[]): DynamicSiteConfig {
+  let merged: DynamicSiteConfig = { ...DEFAULT_DYNAMIC_CONFIG }
+
+  for (const framework of frameworks) {
+    const profile = FRAMEWORK_PROFILES[framework]
+    if (profile) {
+      merged = {
+        ...merged,
+        ...profile,
+        // Fusionner les indicateurs de chargement
+        loadingIndicators: [
+          ...(merged.loadingIndicators || []),
+          ...(profile.loadingIndicators || []),
+        ].filter((v, i, a) => a.indexOf(v) === i), // Dédupliquer
+      }
+
+      // Prendre le délai le plus long
+      if (profile.postLoadDelayMs && profile.postLoadDelayMs > (merged.postLoadDelayMs || 0)) {
+        merged.postLoadDelayMs = profile.postLoadDelayMs
+      }
+
+      // Prendre le timeout le plus long
+      if (profile.dynamicTimeoutMs && profile.dynamicTimeoutMs > (merged.dynamicTimeoutMs || 0)) {
+        merged.dynamicTimeoutMs = profile.dynamicTimeoutMs
+      }
+    }
+  }
+
+  return merged
+}
+
+/**
  * Récupère le contenu HTML d'une URL dynamique (Playwright)
+ * Supporte les sites SPA: Livewire, React, Vue, Angular, etc.
+ * Détection automatique des frameworks et adaptation du scraping
  * Nécessite Playwright installé
  */
 export async function fetchHtmlDynamic(
@@ -141,7 +372,14 @@ export async function fetchHtmlDynamic(
     timeout = DEFAULT_TIMEOUT_MS,
     headers = {},
     respectRobotsTxt = true,
+    dynamicConfig = {},
   } = options
+
+  // La config sera fusionnée après détection du framework
+  let config: DynamicSiteConfig = {
+    ...DEFAULT_DYNAMIC_CONFIG,
+    ...dynamicConfig,
+  }
 
   // Vérifier robots.txt si demandé
   if (respectRobotsTxt) {
@@ -167,14 +405,16 @@ export async function fetchHtmlDynamic(
       const context = await browser.newContext({
         userAgent,
         extraHTTPHeaders: headers,
+        // Viewport standard pour déclencher le contenu responsive
+        viewport: { width: 1920, height: 1080 },
       })
 
       const page = await context.newPage()
 
-      // Naviguer vers l'URL
+      // Naviguer vers l'URL avec le mode d'attente configuré
       const response = await page.goto(url, {
         timeout,
-        waitUntil: 'networkidle',
+        waitUntil: config.waitUntil || 'networkidle',
       })
 
       if (!response) {
@@ -194,6 +434,80 @@ export async function fetchHtmlDynamic(
 
       // Attendre que le contenu soit chargé
       await page.waitForLoadState('domcontentloaded')
+
+      // Détection automatique des frameworks et adaptation
+      const detectedFrameworks = await detectFramework(page)
+      if (detectedFrameworks.length > 0 && detectedFrameworks[0] !== 'static') {
+        const adaptedConfig = mergeFrameworkProfiles(detectedFrameworks)
+        // Fusionner avec la config utilisateur (priorité à l'utilisateur)
+        config = {
+          ...adaptedConfig,
+          ...dynamicConfig,
+        }
+        console.log(`[Scraper] Frameworks détectés: ${detectedFrameworks.join(', ')} - Configuration adaptée`)
+      }
+
+      // Attendre un sélecteur spécifique si configuré
+      if (config.waitForSelector) {
+        try {
+          await page.waitForSelector(config.waitForSelector, {
+            timeout: config.dynamicTimeoutMs || 10000,
+            state: 'visible',
+          })
+        } catch {
+          // Log mais ne pas échouer si le sélecteur n'apparaît pas
+          console.warn(`[Scraper] Selector "${config.waitForSelector}" not found after timeout`)
+        }
+      }
+
+      // Attendre la disparition des indicateurs de chargement
+      if (config.waitForLoadingToDisappear && config.loadingIndicators?.length) {
+        await waitForLoadingIndicatorsToDisappear(page, config.loadingIndicators, config.dynamicTimeoutMs || 10000)
+      }
+
+      // Scroller la page pour déclencher le lazy loading
+      if (config.scrollToLoad) {
+        await scrollPageForLazyLoading(page, config.scrollCount || 3)
+      }
+
+      // Cliquer sur des éléments si configuré (ex: "Voir plus", "Charger plus")
+      if (config.clickBeforeExtract?.length) {
+        for (const selector of config.clickBeforeExtract) {
+          try {
+            const element = page.locator(selector).first()
+            if (await element.isVisible()) {
+              await element.click()
+              // Attendre après le clic
+              await page.waitForTimeout(1000)
+            }
+          } catch {
+            // Ignorer les erreurs de clic
+          }
+        }
+      }
+
+      // Exécuter du JavaScript personnalisé si configuré
+      if (config.customScript) {
+        try {
+          await page.evaluate(config.customScript)
+        } catch (e) {
+          console.warn('[Scraper] Custom script error:', e)
+        }
+      }
+
+      // Délai supplémentaire après chargement
+      if (config.postLoadDelayMs && config.postLoadDelayMs > 0) {
+        await page.waitForTimeout(config.postLoadDelayMs)
+      }
+
+      // Pour Livewire: attendre que le contenu principal soit chargé
+      // On attend que des éléments de contenu significatifs apparaissent
+      await waitForContentToLoad(page, config.dynamicTimeoutMs || 10000)
+
+      // Stratégie agressive pour Livewire: forcer le re-rendu
+      if (detectedFrameworks.includes('livewire')) {
+        await forceLivewireRerender(page)
+      }
 
       // Récupérer le HTML rendu
       const html = await page.content()
@@ -250,24 +564,228 @@ export async function fetchHtmlDynamic(
 }
 
 /**
+ * Attend que tous les indicateurs de chargement disparaissent
+ */
+async function waitForLoadingIndicatorsToDisappear(
+  page: Awaited<ReturnType<Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>>['newPage']>>,
+  indicators: string[],
+  timeoutMs: number
+): Promise<void> {
+  const startTime = Date.now()
+
+  for (const indicator of indicators) {
+    try {
+      // Vérifier si l'indicateur existe
+      const elements = page.locator(indicator)
+      const count = await elements.count()
+
+      if (count > 0) {
+        // Attendre que l'indicateur disparaisse
+        await page.waitForSelector(indicator, {
+          state: 'hidden',
+          timeout: Math.max(1000, timeoutMs - (Date.now() - startTime)),
+        })
+      }
+    } catch {
+      // Continuer si le timeout est atteint pour cet indicateur
+    }
+
+    // Vérifier le timeout global
+    if (Date.now() - startTime > timeoutMs) {
+      break
+    }
+  }
+}
+
+/**
+ * Force le re-rendu des composants Livewire
+ * Utile quand le contenu est chargé via Websocket/XHR
+ */
+async function forceLivewireRerender(
+  page: Awaited<ReturnType<Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>>['newPage']>>
+): Promise<void> {
+  try {
+    await page.evaluate(() => {
+      // Forcer Livewire à rafraîchir tous les composants
+      if (typeof (window as typeof window & { Livewire?: { rescan?: () => void; emit?: (event: string) => void } }).Livewire !== 'undefined') {
+        const Livewire = (window as typeof window & { Livewire: { rescan?: () => void; emit?: (event: string) => void } }).Livewire
+        if (Livewire.rescan) {
+          Livewire.rescan()
+        }
+        // Émettre un événement de rafraîchissement
+        if (Livewire.emit) {
+          Livewire.emit('refresh')
+        }
+      }
+
+      // Déclencher les événements de scroll pour le lazy loading
+      window.dispatchEvent(new Event('scroll'))
+      window.dispatchEvent(new Event('resize'))
+    })
+
+    // Attendre que Livewire traite les événements
+    await page.waitForTimeout(2000)
+
+    // Attendre la stabilisation du réseau
+    try {
+      await page.waitForLoadState('networkidle', { timeout: 5000 })
+    } catch {
+      // Ignorer le timeout
+    }
+
+    console.log('[Scraper] Livewire re-render forcé')
+  } catch (e) {
+    console.warn('[Scraper] Erreur lors du re-render Livewire:', e)
+  }
+}
+
+/**
+ * Attend que le contenu principal soit chargé
+ * Vérifie que la page contient suffisamment de texte visible
+ * Attend aussi la disparition des indicateurs de chargement arabes/français
+ */
+async function waitForContentToLoad(
+  page: Awaited<ReturnType<Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>>['newPage']>>,
+  timeoutMs: number
+): Promise<void> {
+  const startTime = Date.now()
+  const minContentLength = 500 // Minimum de caractères attendus
+  const checkInterval = 800 // Vérifier toutes les 800ms
+
+  // Textes indicateurs de chargement en cours
+  const loadingTexts = [
+    'التحميل...',      // arabe: "Chargement..."
+    'جاري التحميل',    // arabe: "En cours de chargement"
+    'Loading...',
+    'Chargement...',
+    'يتم التحميل',     // arabe: "En train de charger"
+  ]
+
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      const result = await page.evaluate((loadingIndicators) => {
+        // Vérifier si des indicateurs de chargement sont visibles
+        const bodyText = document.body.textContent || ''
+        const hasLoadingText = loadingIndicators.some(text => bodyText.includes(text))
+
+        // Calculer le contenu total (sans scripts/styles/nav)
+        const body = document.body.cloneNode(true) as HTMLElement
+        body.querySelectorAll('script, style, noscript, nav, header, footer, .cookie-banner').forEach(el => el.remove())
+        const cleanText = body.textContent?.trim() || ''
+
+        return {
+          hasLoadingText,
+          contentLength: cleanText.length,
+          preview: cleanText.substring(0, 200),
+        }
+      }, loadingTexts)
+
+      // Si pas d'indicateur de chargement et contenu suffisant
+      if (!result.hasLoadingText && result.contentLength >= minContentLength) {
+        console.log(`[Scraper] Contenu chargé: ${result.contentLength} caractères`)
+        return
+      }
+
+      // Si contenu très long même avec chargement en cours, on accepte
+      if (result.contentLength >= 2000) {
+        console.log(`[Scraper] Contenu suffisant (${result.contentLength} chars) malgré chargement en cours`)
+        return
+      }
+
+      // Attendre avant la prochaine vérification
+      await page.waitForTimeout(checkInterval)
+
+    } catch {
+      break
+    }
+  }
+
+  console.log('[Scraper] Timeout en attendant le chargement du contenu')
+}
+
+/**
+ * Scroll la page pour déclencher le lazy loading
+ */
+async function scrollPageForLazyLoading(
+  page: Awaited<ReturnType<Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>>['newPage']>>,
+  scrollCount: number
+): Promise<void> {
+  const viewportHeight = await page.evaluate(() => window.innerHeight)
+  const documentHeight = await page.evaluate(() => document.body.scrollHeight)
+
+  // Calculer les positions de scroll
+  const scrollStep = documentHeight / (scrollCount + 1)
+
+  for (let i = 1; i <= scrollCount; i++) {
+    const scrollTo = Math.min(scrollStep * i, documentHeight - viewportHeight)
+
+    await page.evaluate((y) => {
+      window.scrollTo({ top: y, behavior: 'smooth' })
+    }, scrollTo)
+
+    // Attendre que le contenu se charge
+    await page.waitForTimeout(800)
+
+    // Attendre la stabilisation du réseau
+    try {
+      await page.waitForLoadState('networkidle', { timeout: 3000 })
+    } catch {
+      // Ignorer le timeout
+    }
+  }
+
+  // Revenir en haut de la page
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+  await page.waitForTimeout(300)
+}
+
+/**
  * Scrape une URL et extrait le contenu
+ * Mode AUTO-ADAPTATIF: détecte automatiquement si le site est dynamique
  */
 export async function scrapeUrl(
   url: string,
   source: Partial<WebSource>
-): Promise<{ success: boolean; content?: ScrapedContent; error?: string; fetchResult?: FetchResult }> {
+): Promise<{ success: boolean; content?: ScrapedContent; error?: string; fetchResult?: FetchResult; detectedFrameworks?: string[] }> {
 
   const fetchOptions: FetchOptions = {
     userAgent: source.userAgent || DEFAULT_USER_AGENT,
     timeout: source.timeoutMs || DEFAULT_TIMEOUT_MS,
     headers: source.customHeaders || {},
     respectRobotsTxt: source.respectRobotsTxt !== false,
+    dynamicConfig: source.dynamicConfig || undefined,
   }
 
-  // Choisir la méthode de fetch
-  const fetchResult = source.requiresJavascript
-    ? await fetchHtmlDynamic(url, fetchOptions)
-    : await fetchHtml(url, fetchOptions)
+  let fetchResult: FetchResult
+  let detectedFrameworks: string[] = []
+
+  // Si requiresJavascript est explicitement défini, l'utiliser
+  if (source.requiresJavascript !== undefined) {
+    fetchResult = source.requiresJavascript
+      ? await fetchHtmlDynamic(url, fetchOptions)
+      : await fetchHtml(url, fetchOptions)
+  } else {
+    // Mode AUTO-ADAPTATIF: essayer d'abord en statique
+    fetchResult = await fetchHtml(url, fetchOptions)
+
+    if (fetchResult.success && fetchResult.html) {
+      // Analyser si le contenu semble incomplet ou dynamique
+      const needsDynamic = detectDynamicContent(fetchResult.html)
+
+      if (needsDynamic) {
+        console.log(`[Scraper] Contenu dynamique détecté pour ${url}, passage en mode Playwright`)
+        // Réessayer avec Playwright
+        const dynamicResult = await fetchHtmlDynamic(url, fetchOptions)
+        if (dynamicResult.success) {
+          fetchResult = dynamicResult
+        }
+      }
+    } else if (!fetchResult.success) {
+      // Si le fetch statique échoue, essayer dynamique
+      console.log(`[Scraper] Fetch statique échoué pour ${url}, tentative dynamique`)
+      fetchResult = await fetchHtmlDynamic(url, fetchOptions)
+    }
+  }
 
   if (!fetchResult.success || !fetchResult.html) {
     return {
@@ -285,10 +803,17 @@ export async function scrapeUrl(
       source.cssSelectors
     )
 
+    // Vérifier la qualité du contenu extrait
+    if (content.content.length < 100) {
+      // Contenu trop court, peut-être qu'on n'a pas capturé le contenu dynamique
+      console.log(`[Scraper] Contenu trop court (${content.content.length} chars), possible contenu dynamique non chargé`)
+    }
+
     return {
       success: true,
       content,
       fetchResult,
+      detectedFrameworks,
     }
 
   } catch (error) {
@@ -298,6 +823,94 @@ export async function scrapeUrl(
       fetchResult,
     }
   }
+}
+
+/**
+ * Détecte si le HTML contient des indices de contenu dynamique non chargé
+ */
+function detectDynamicContent(html: string): boolean {
+  const lowerHtml = html.toLowerCase()
+
+  // Indicateurs de frameworks JavaScript
+  const jsFrameworkIndicators = [
+    // Livewire
+    'wire:',
+    'livewire',
+    '@livewireScripts',
+    // Alpine.js
+    'x-data=',
+    'x-show=',
+    'x-if=',
+    // React
+    'data-reactroot',
+    '__NEXT_DATA__',
+    'react-app',
+    // Vue
+    'data-v-',
+    'v-if=',
+    'v-for=',
+    ':class=',
+    'vue-app',
+    // Angular
+    'ng-app',
+    'ng-controller',
+    '_ngcontent',
+    'ng-version',
+    // Svelte
+    'svelte-',
+    // HTMX
+    'hx-get',
+    'hx-post',
+    'hx-trigger',
+    // Turbo
+    'data-turbo',
+    // SPA patterns
+    'app-root',
+    '#app',
+    '#root',
+  ]
+
+  // Indicateurs de contenu en cours de chargement
+  const loadingIndicators = [
+    'loading...',
+    'chargement...',
+    'التحميل...',
+    'جاري التحميل',
+    '<div id="app"></div>',
+    '<div id="root"></div>',
+    'data-loading',
+    'is-loading',
+    'skeleton',
+  ]
+
+  // Vérifier les indicateurs de frameworks
+  for (const indicator of jsFrameworkIndicators) {
+    if (lowerHtml.includes(indicator.toLowerCase())) {
+      return true
+    }
+  }
+
+  // Vérifier les indicateurs de chargement
+  for (const indicator of loadingIndicators) {
+    if (lowerHtml.includes(indicator.toLowerCase())) {
+      return true
+    }
+  }
+
+  // Vérifier si le body est presque vide (SPA non rendu)
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
+  if (bodyMatch) {
+    const bodyContent = bodyMatch[1].replace(/<script[\s\S]*?<\/script>/gi, '')
+                                    .replace(/<style[\s\S]*?<\/style>/gi, '')
+                                    .replace(/<[^>]+>/g, '')
+                                    .trim()
+    // Si le body a moins de 500 caractères de texte visible, c'est probablement un SPA
+    if (bodyContent.length < 500) {
+      return true
+    }
+  }
+
+  return false
 }
 
 /**

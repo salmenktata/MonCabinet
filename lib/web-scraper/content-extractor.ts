@@ -6,8 +6,10 @@
 import * as cheerio from 'cheerio'
 import type { CheerioAPI, Cheerio } from 'cheerio'
 import type { Element } from 'domhandler'
-import type { CssSelectors, LinkedFile, ScrapedContent } from './types'
+import type { CssSelectors, LinkedFile, ScrapedContent, LegalContext, SiteStructure } from './types'
+import { TUNISIAN_CODES } from './types'
 import crypto from 'crypto'
+import { extractSiteStructure } from './site-structure-extractor'
 
 // Sélecteurs par défaut pour le contenu principal
 const DEFAULT_CONTENT_SELECTORS = [
@@ -26,6 +28,171 @@ const DEFAULT_CONTENT_SELECTORS = [
   '.post',
   '.entry',
 ]
+
+// Sélecteurs spécifiques pour le contenu juridique
+const LEGAL_CONTENT_SELECTORS = [
+  // Contenu législatif
+  '.law-content',
+  '.legal-text',
+  '.legislation',
+  '.code-text',
+  '.article-law',
+  '.texte-loi',
+  '.contenu-juridique',
+  // Jurisprudence
+  '.decision',
+  '.jugement',
+  '.arret',
+  '.jurisprudence',
+  '.verdict',
+  // JORT (Journal Officiel)
+  '.jort-content',
+  '.official-journal',
+  '.journal-officiel',
+  // Sites juridiques tunisiens connus
+  '.code-article',
+  '.law-article',
+  '#law-content',
+  '#legal-content',
+  '.texte-integral',
+  '.contenu-texte',
+  // 9anoun.tn patterns
+  '.prose',
+  '.kb-content',
+  '.code-content',
+  '[class*="content"]',
+  // Patterns arabes
+  '[dir="rtl"] article',
+  '[dir="rtl"] main',
+  '[lang="ar"] article',
+  '[lang="ar"] main',
+]
+
+// Patterns pour détecter les références juridiques dans le texte
+const LEGAL_REFERENCE_PATTERNS = {
+  // ========== LÉGISLATION TUNISIENNE ==========
+  // Lois
+  lois: [
+    /(?:قانون\s*(?:أساسي\s*)?عدد|loi\s*(?:organique\s*)?n[°o]?\.?)\s*(\d+[-/]\d+)/gi,
+    /(?:قانون|loi)\s+(\d{4}[-/]\d+)/gi,
+    /(?:القانون\s*عدد|la loi n[°o]?)\s*(\d+)\s*(?:لسنة|de l'année|pour l'année)?\s*(\d{4})/gi,
+  ],
+  // Décrets
+  decrets: [
+    /(?:أمر\s*(?:حكومي\s*)?عدد|décret\s*(?:gouvernemental\s*)?n[°o]?\.?)\s*(\d+[-/]\d+)/gi,
+    /(?:أمر\s*رئاسي|décret\s*présidentiel)\s*(?:عدد|n[°o]?\.?)?\s*(\d+[-/]\d+)/gi,
+    /(?:مرسوم|décret[-\s]loi)\s*(?:عدد|n[°o]?\.?)?\s*(\d+[-/]\d+)/gi,
+  ],
+  // Arrêtés
+  arretes: [
+    /(?:قرار|arrêté)\s*(?:من\s*)?(?:وزير|ministre)\s*(\w+)/gi,
+    /(?:قرار\s*مشترك|arrêté\s*conjoint)/gi,
+    /(?:قرار\s*عدد|arrêté\s*n[°o]?\.?)\s*(\d+[-/]\d+)/gi,
+  ],
+  // Circulaires
+  circulaires: [
+    /(?:منشور|circulaire)\s*(?:عدد|n[°o]?\.?)?\s*(\d+[-/]?\d*)/gi,
+    /(?:مذكرة\s*عامة|note\s*générale)\s*(?:عدد|n[°o]?\.?)?\s*(\d+)/gi,
+  ],
+  // Ordonnances
+  ordonnances: [
+    /(?:أمر\s*قانوني|ordonnance)\s*(?:عدد|n[°o]?\.?)?\s*(\d+[-/]\d+)/gi,
+  ],
+
+  // ========== CODES ET MAJELLAT ==========
+  codes: [
+    /(?:مجلة|code)\s+(?:ال)?(\w+)/gi,
+    // Codes spécifiques tunisiens
+    /(?:م\.?إ\.?ع|C\.?O\.?C)/gi,  // Code des Obligations et des Contrats
+    /(?:م\.?ت|C\.?C\.?om)/gi,      // Code de Commerce
+    /(?:م\.?ش|C\.?T)/gi,           // Code du Travail
+    /(?:م\.?م\.?م\.?ت|C\.?P\.?C\.?C)/gi,  // Code de Procédure Civile
+    /(?:م\.?ج|C\.?P)/gi,           // Code Pénal
+    /(?:م\.?إ\.?ج|C\.?P\.?P)/gi,  // Code de Procédure Pénale
+    /(?:م\.?أ\.?ش|C\.?S\.?P)/gi,  // Code du Statut Personnel
+    /(?:م\.?ح\.?ع|C\.?D\.?R)/gi,  // Code des Droits Réels
+    /(?:م\.?ض|C\.?F)/gi,          // Code Fiscal
+    /(?:م\.?د|C\.?D)/gi,          // Code des Douanes
+    /(?:م\.?ت\.?ه|C\.?U)/gi,      // Code de l'Urbanisme
+  ],
+
+  // ========== ARTICLES ET CHAPITRES ==========
+  articles: [
+    /(?:الفصل|article|art\.?)\s*(\d+)\s*(?:[-–]\s*(\d+))?/gi,
+    /(?:الفصول|articles)\s*(?:من\s*)?(\d+)\s*(?:إلى|à|au)\s*(\d+)/gi,
+    /(?:الفقرة|alinéa|al\.?)\s*(\d+)/gi,
+    /(?:النقطة|point)\s*(\d+)/gi,
+    /(?:البند|paragraphe|§)\s*(\d+)/gi,
+  ],
+  chapitres: [
+    /(?:الباب|titre|chapitre)\s*(?:ال)?(\w+|\d+)/gi,
+    /(?:القسم|section)\s*(\d+)/gi,
+    /(?:الكتاب|livre)\s*(\d+)/gi,
+  ],
+
+  // ========== JURISPRUDENCE ==========
+  jurisprudence: [
+    // Cour de Cassation
+    /(?:قرار\s*(?:محكمة\s*)?التعقيب|arrêt\s*(?:de\s*)?cassation)\s*(?:عدد|n[°o]?\.?)?\s*(\d+)/gi,
+    /(?:تعقيب\s*(?:مدني|جزائي)|pourvoi\s*(?:civil|pénal))\s*(?:عدد|n[°o]?\.?)?\s*(\d+)/gi,
+    // Cour d'Appel
+    /(?:قرار\s*(?:محكمة\s*)?الاستئناف|arrêt\s*(?:de\s*)?(?:la\s*)?cour\s*d'appel)/gi,
+    // Tribunal de première instance
+    /(?:حكم\s*(?:محكمة\s*)?(?:ابتدائي|ابتدائية)|jugement\s*(?:du\s*)?tribunal)/gi,
+    // Tribunal administratif
+    /(?:المحكمة\s*الإدارية|tribunal\s*administratif)/gi,
+  ],
+
+  // ========== JORT - Journal Officiel ==========
+  jort: [
+    /(?:الرائد\s*الرسمي|J\.?O\.?R\.?T\.?|journal\s*officiel)/gi,
+    /(?:ر\.?ر\.?ت\.?ج|JORT)\s*(?:عدد|n[°o]?\.?)?\s*(\d+)/gi,
+    /(?:صفحة|page)\s*(\d+)/gi,
+  ],
+
+  // ========== DATES ==========
+  dates: [
+    /(?:المؤرخ\s*في|en\s*date\s*du|du)\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/gi,
+    /(?:بتاريخ|le)\s*(\d{1,2})\s*(\w+)\s*(\d{4})/gi,
+    // Mois arabes
+    /(\d{1,2})\s*(?:جانفي|فيفري|مارس|أفريل|ماي|جوان|جويلية|أوت|سبتمبر|أكتوبر|نوفمبر|ديسمبر)\s*(\d{4})/gi,
+    // Mois français
+    /(\d{1,2})\s*(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s*(\d{4})/gi,
+  ],
+
+  // ========== INSTITUTIONS ==========
+  institutions: [
+    /(?:رئاسة\s*الجمهورية|présidence\s*de\s*la\s*république)/gi,
+    /(?:رئاسة\s*الحكومة|présidence\s*du\s*gouvernement)/gi,
+    /(?:مجلس\s*نواب\s*الشعب|assemblée\s*des\s*représentants\s*du\s*peuple)/gi,
+    /(?:المجلس\s*الأعلى\s*للقضاء|conseil\s*supérieur\s*de\s*la\s*magistrature)/gi,
+    /(?:المحكمة\s*الدستورية|cour\s*constitutionnelle)/gi,
+    /(?:البنك\s*المركزي|banque\s*centrale)/gi,
+    /(?:هيئة\s*مكافحة\s*الفساد|instance\s*nationale\s*de\s*lutte\s*contre\s*la\s*corruption)/gi,
+  ],
+
+  // ========== TERMES JURIDIQUES CLÉS ==========
+  termesJuridiques: [
+    /(?:الإلغاء|abrogation)/gi,
+    /(?:التعديل|modification|amendement)/gi,
+    /(?:النفاذ|entrée\s*en\s*vigueur)/gi,
+    /(?:الأثر\s*الرجعي|effet\s*rétroactif)/gi,
+    /(?:القوة\s*القاهرة|force\s*majeure)/gi,
+    /(?:حسن\s*النية|bonne\s*foi)/gi,
+    /(?:النظام\s*العام|ordre\s*public)/gi,
+    /(?:الضرر|préjudice|dommage)/gi,
+    /(?:التعويض|indemnisation|réparation)/gi,
+    /(?:المسؤولية|responsabilité)/gi,
+    /(?:العقد|contrat)/gi,
+    /(?:الالتزام|obligation)/gi,
+    /(?:الملكية|propriété)/gi,
+    /(?:الإرث|succession|héritage)/gi,
+    /(?:الزواج|mariage)/gi,
+    /(?:الطلاق|divorce)/gi,
+    /(?:الحضانة|garde|hadana)/gi,
+    /(?:النفقة|pension\s*alimentaire|nafaqa)/gi,
+  ],
+}
 
 // Éléments à exclure systématiquement
 // Note: iframe est traité séparément pour extraire les fichiers avant suppression
@@ -69,6 +236,51 @@ const DEFAULT_EXCLUDE_SELECTORS = [
   '.author-bio',
   '#disqus',
   '.fb-comments',
+  // Éléments de feedback/interaction
+  '.feedback',
+  '.rating',
+  '.vote',
+  '.like',
+  '.share',
+  '[class*="feedback"]',
+  '[class*="rating"]',
+  // Boutons et actions
+  'button',
+  '[role="button"]',
+  '.btn',
+  '.button',
+  // Éléments de navigation interne
+  '.next-prev',
+  '.prev-next',
+  '.article-nav',
+  '.post-nav',
+]
+
+// Patterns de texte "bruit" à filtrer du contenu extrait
+// Ces textes seront supprimés du contenu final
+const NOISE_TEXT_PATTERNS = [
+  // Éléments d'interface 9anoun.tn
+  /متوفر باللغة\s*(FR|AR|EN)(\s*(FR|AR|EN))*/g,
+  /تقرير\s*انشر/g,
+  /هل كانت هذه المعلومات مفيدة لك\s*[؟?]?/g,
+  /النص الموالي/g,
+  /أو إكتشف أكثر نصوص قانونية على منصة قانون/g,
+  /جميع النصوص\s*(المجلات القانونية)?\s*(الاتفاقيات الدولية)?/g,
+  /اطلع على الدليل والبودكاست/g,
+  /عرض الدليل\s*←?/g,
+  /صعبوا عليك القوانين\s*[؟?]?/g,
+  /القوانين المتعلقة بالمواضيع إلي يهموك أكثر/g,
+  /ملخصة في أقل من \d+ نقطة/g,
+  /تحميل المزيد من العناصر/g,
+  /التحميل\.\.\./g,
+  /'?9anoun'?\s*لقراءة مبسطة\s*،?/g,
+  /نبدأ\s+/g,
+  // Boutons de langue
+  /\b(FR|AR|EN)\s+(FR|AR|EN)\b/g,
+  // Boutons génériques
+  /^(partager|share|signaler|report|imprimer|print)$/gim,
+  // Navigation
+  /نبدأ\s*(الفصل|المادة)\s*\d+/g,
 ]
 
 // Extensions de fichiers téléchargeables
@@ -187,14 +399,48 @@ export function extractContent(
   const structuredData = extractStructuredData($)
 
   // Trouver le contenu principal
+  // Priorité: sélecteurs custom > sélecteurs juridiques > sélecteurs par défaut
   const contentSelectors = customSelectors?.content?.length
     ? customSelectors.content
-    : DEFAULT_CONTENT_SELECTORS
+    : [...LEGAL_CONTENT_SELECTORS, ...DEFAULT_CONTENT_SELECTORS]
 
   let contentElement = findContentElement($, contentSelectors)
+  const currentLength = contentElement?.text().trim().length || 0
 
-  // Si aucun contenu trouvé, utiliser le body
-  if (!contentElement || contentElement.length === 0) {
+  // Si contenu trop court, essayer d'autres stratégies
+  if (currentLength < 500) {
+    // Stratégie 1: Chercher les composants Livewire (échappement pour cheerio)
+    const livewireContent = $('[wire\\:id]')
+    if (livewireContent.length > 0) {
+      let maxLength = currentLength
+      livewireContent.each((_, el) => {
+        const text = $(el).text().trim()
+        if (text.length > maxLength) {
+          maxLength = text.length
+          contentElement = $(el) as Cheerio<Element>
+        }
+      })
+    }
+
+    // Stratégie 2: Chercher les divs avec beaucoup de contenu
+    if ((contentElement?.text().trim().length || 0) < 500) {
+      $('div, section').each((_, el) => {
+        const $el = $(el) as Cheerio<Element>
+        const text = $el.text().trim()
+        // Ignorer les éléments de navigation, cookie banners, etc.
+        const classes = ($el.attr('class') || '').toLowerCase()
+        const isExcluded = ['nav', 'menu', 'cookie', 'modal', 'popup', 'footer', 'header'].some(
+          (exc) => classes.includes(exc)
+        )
+        if (!isExcluded && text.length > (contentElement?.text().trim().length || 0)) {
+          contentElement = $el
+        }
+      })
+    }
+  }
+
+  // Stratégie 3: Si toujours pas assez de contenu, utiliser le body entier
+  if (!contentElement || contentElement.length === 0 || contentElement.text().trim().length < 300) {
     contentElement = $('body')
   }
 
@@ -213,6 +459,17 @@ export function extractContent(
   // Garder le HTML du contenu pour référence
   const contentHtml = contentElement.html() || ''
 
+  // Extraire le contexte juridique (type de document, code parent, etc.)
+  const legalContext = extractLegalContext(baseUrl, title, content)
+
+  // Extraire la structure du site (breadcrumbs, URL, navigation)
+  let siteStructure: SiteStructure | undefined
+  try {
+    siteStructure = extractSiteStructure(html, baseUrl)
+  } catch (err) {
+    console.warn('[ContentExtractor] Erreur extraction structure site:', err)
+  }
+
   return {
     url: baseUrl,
     title,
@@ -226,6 +483,8 @@ export function extractContent(
     links,
     files,
     structuredData,
+    legalContext,
+    siteStructure,
   }
 }
 
@@ -733,11 +992,144 @@ function extractCleanText(element: Cheerio<Element>): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+
+  // Supprimer le bruit (textes d'interface, navigation, etc.)
+  for (const pattern of NOISE_TEXT_PATTERNS) {
+    text = text.replace(pattern, '')
+  }
+
+  // Nettoyer les espaces
+  text = text
     .replace(/\s+/g, ' ')
     .replace(/\n\s*\n/g, '\n\n')
     .trim()
 
   return text
+}
+
+/**
+ * Extrait le contexte juridique à partir de l'URL et du contenu
+ * Détecte automatiquement si c'est un code, un article de code, une loi, etc.
+ */
+export function extractLegalContext(url: string, title: string, content: string): LegalContext {
+  const context: LegalContext = {
+    documentType: 'unknown',
+  }
+
+  try {
+    const urlObj = new URL(url)
+    const pathname = urlObj.pathname
+
+    // Pattern pour les articles de codes sur 9anoun.tn
+    // Ex: /kb/codes/code-obligations-contrats/code-obligations-contrats-article-3
+    const codeArticleMatch = pathname.match(/\/kb\/codes\/([^/]+)\/[^/]+-article-(\d+(?:-bis|-ter|-quater)?)/i)
+    if (codeArticleMatch) {
+      const codeSlug = codeArticleMatch[1]
+      const articleNum = codeArticleMatch[2]
+      const codeInfo = TUNISIAN_CODES[codeSlug]
+
+      context.documentType = 'code_article'
+      context.articleNumber = articleNum
+      if (codeInfo) {
+        context.parentCode = {
+          nameAr: codeInfo.ar,
+          nameFr: codeInfo.fr,
+          slug: codeSlug,
+        }
+      } else {
+        context.parentCode = {
+          nameAr: codeSlug.replace(/-/g, ' '),
+          slug: codeSlug,
+        }
+      }
+      return context
+    }
+
+    // Pattern pour les pages de codes (liste des articles)
+    // Ex: /kb/codes/code-obligations-contrats
+    const codeMatch = pathname.match(/\/kb\/codes\/([^/]+)\/?$/i)
+    if (codeMatch) {
+      const codeSlug = codeMatch[1]
+      const codeInfo = TUNISIAN_CODES[codeSlug]
+
+      context.documentType = 'code'
+      if (codeInfo) {
+        context.parentCode = {
+          nameAr: codeInfo.ar,
+          nameFr: codeInfo.fr,
+          slug: codeSlug,
+        }
+      }
+      return context
+    }
+
+    // Pattern pour les constitutions
+    if (pathname.includes('/kb/constitutions')) {
+      context.documentType = 'constitution'
+      return context
+    }
+
+    // Pattern pour les conventions internationales
+    if (pathname.includes('/kb/conventions')) {
+      context.documentType = 'convention'
+      return context
+    }
+
+    // Pattern pour le JORT
+    if (pathname.includes('/kb/jorts')) {
+      context.documentType = 'jort'
+      return context
+    }
+
+    // Détection par le titre
+    if (title) {
+      // Article de code (الفصل X)
+      const articleTitleMatch = title.match(/الفصل\s*(\d+(?:\s*مكرر)?)/i)
+      if (articleTitleMatch) {
+        context.documentType = 'code_article'
+        context.articleNumber = articleTitleMatch[1]
+
+        // Essayer de trouver le code parent dans le titre
+        for (const [slug, codeInfo] of Object.entries(TUNISIAN_CODES)) {
+          if (title.includes(codeInfo.ar)) {
+            context.parentCode = {
+              nameAr: codeInfo.ar,
+              nameFr: codeInfo.fr,
+              slug,
+            }
+            break
+          }
+        }
+        return context
+      }
+
+      // Loi (قانون عدد)
+      if (title.match(/قانون\s*(أساسي\s*)?عدد/i)) {
+        context.documentType = 'law'
+        return context
+      }
+
+      // Décret (أمر عدد / مرسوم)
+      if (title.match(/(?:أمر|مرسوم)\s*(?:حكومي\s*)?عدد/i)) {
+        context.documentType = 'decree'
+        return context
+      }
+    }
+
+    // Détection par le contenu
+    if (content) {
+      // Vérifier si c'est un texte juridique structuré
+      if (content.match(/الفصل\s*\d+/)) {
+        context.documentType = 'code_article'
+      }
+    }
+
+  } catch (e) {
+    // En cas d'erreur, retourner unknown
+    console.warn('[ContentExtractor] Erreur extraction contexte juridique:', e)
+  }
+
+  return context
 }
 
 /**
