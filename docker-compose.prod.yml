@@ -103,7 +103,7 @@ services:
 
   nextjs:
     # Image pré-buildée depuis GitHub Container Registry
-    image: ghcr.io/salmenktata/qadhya:latest
+    image: ghcr.io/salmenktata/moncabinet:latest
     container_name: qadhya-nextjs
     extra_hosts:
       - "host.docker.internal:host-gateway"

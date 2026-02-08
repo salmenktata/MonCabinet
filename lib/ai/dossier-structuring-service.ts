@@ -18,6 +18,7 @@ import { aiConfig, isChatEnabled, getChatProvider } from './config'
 import { searchKnowledgeBase } from './knowledge-base-service'
 import { STRUCTURATION_SYSTEM_PROMPT } from './prompts/structuration-prompt'
 import { createLogger } from '@/lib/logger'
+import { callLLMWithFallback } from './llm-fallback-service'
 
 const log = createLogger('AI:Structuration')
 
@@ -1070,11 +1071,6 @@ export async function structurerDossier(
   userId: string,
   options: StructuringOptions = {}
 ): Promise<StructuredDossier> {
-  const provider = getChatProvider()
-  if (!provider) {
-    throw new Error('Chat IA désactivé (vérifier OPENAI_API_KEY ou ANTHROPIC_API_KEY)')
-  }
-
   // Détecter la langue approximativement
   const arabicRegex = /[\u0600-\u06FF]/
   const langue = arabicRegex.test(narratif) ? 'ar' : 'fr'
@@ -1108,109 +1104,27 @@ Langue détectée: ${langue}`
 
 IMPORTANT: Retourne UNIQUEMENT le JSON, sans texte avant ou après.`
 
-  let jsonStr: string
-  let tokensUsed = { input: 0, output: 0, total: 0 }
-
-  if (provider === 'deepseek') {
-    // Appeler DeepSeek (API compatible OpenAI, économique)
-    const client = getDeepSeekClient()
-    log.info('Appel DeepSeek avec modèle:', aiConfig.deepseek.model)
-    const response = await client.chat.completions.create({
-      model: aiConfig.deepseek.model,
-      max_tokens: 4000,
+  // Utiliser le service de fallback automatique pour plus de résilience
+  log.info('[Structuration] Appel LLM avec fallback automatique')
+  const llmResponse = await callLLMWithFallback(
+    [
+      { role: 'system', content: STRUCTURATION_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    {
       temperature: 0.3,
-      messages: [
-        { role: 'system', content: STRUCTURATION_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-    })
-
-    const content = response.choices[0]?.message?.content
-    if (!content) {
-      throw new Error('Réponse IA vide ou invalide')
+      maxTokens: 4000,
     }
-    jsonStr = content.trim()
+  )
 
-    tokensUsed = {
-      input: response.usage?.prompt_tokens || 0,
-      output: response.usage?.completion_tokens || 0,
-      total: response.usage?.total_tokens || 0,
-    }
-  } else if (provider === 'groq') {
-    // Appeler Groq (API compatible OpenAI)
-    const client = getGroqClient()
-    log.info('Appel Groq avec modèle:', aiConfig.groq.model)
-    const response = await client.chat.completions.create({
-      model: aiConfig.groq.model,
-      max_tokens: 4000,
-      temperature: 0.3,
-      messages: [
-        { role: 'system', content: STRUCTURATION_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-    })
-
-    const content = response.choices[0]?.message?.content
-    if (!content) {
-      throw new Error('Réponse IA vide ou invalide')
-    }
-    jsonStr = content.trim()
-
-    // Tracker les tokens pour Groq
-    tokensUsed = {
-      input: response.usage?.prompt_tokens || 0,
-      output: response.usage?.completion_tokens || 0,
-      total: response.usage?.total_tokens || 0,
-    }
-  } else if (provider === 'openai') {
-    // Appeler OpenAI
-    const client = getOpenAIClient()
-    const response = await client.chat.completions.create({
-      model: aiConfig.openai.chatModel,
-      max_tokens: 4000,
-      temperature: 0.3,
-      messages: [
-        { role: 'system', content: STRUCTURATION_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-    })
-
-    const content = response.choices[0]?.message?.content
-    if (!content) {
-      throw new Error('Réponse IA vide ou invalide')
-    }
-    jsonStr = content.trim()
-
-    // Tracker les tokens pour OpenAI
-    tokensUsed = {
-      input: response.usage?.prompt_tokens || 0,
-      output: response.usage?.completion_tokens || 0,
-      total: response.usage?.total_tokens || 0,
-    }
-  } else {
-    // Appeler Anthropic (Claude)
-    const client = getAnthropicClient()
-    const response = await client.messages.create({
-      model: aiConfig.anthropic.model,
-      max_tokens: 4000,
-      system: STRUCTURATION_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
-      temperature: 0.3,
-    })
-
-    const textContent = response.content.find((c) => c.type === 'text')
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('Réponse IA vide ou invalide')
-    }
-    jsonStr = textContent.text.trim()
-
-    // Tracker les tokens pour Anthropic
-    tokensUsed = {
-      input: response.usage.input_tokens,
-      output: response.usage.output_tokens,
-      total: response.usage.input_tokens + response.usage.output_tokens,
-    }
+  if (llmResponse.fallbackUsed) {
+    log.info(
+      `[Structuration] Fallback utilisé: ${llmResponse.originalProvider} → ${llmResponse.provider}`
+    )
   }
+
+  let jsonStr = llmResponse.answer.trim()
+  const tokensUsed = llmResponse.tokensUsed
 
   // Nettoyer la réponse si elle contient des marqueurs de code
   if (jsonStr.startsWith('```json')) {
