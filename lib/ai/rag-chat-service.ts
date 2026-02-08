@@ -756,7 +756,68 @@ const CONTEXT_LABELS = {
  * Construit le contexte à partir des sources avec limite de tokens
  * Les labels sont adaptés à la langue détectée de la question
  */
-function buildContextFromSources(sources: ChatSource[], questionLang?: DetectedLanguage): string {
+/**
+ * Enrichit les métadonnées d'une source avec les données structurées de la DB
+ */
+async function enrichSourceWithStructuredMetadata(source: ChatSource): Promise<any> {
+  if (!source.documentId) return source.metadata
+
+  try {
+    const result = await db.query(
+      `SELECT
+        meta.tribunal_code,
+        trib_tax.label_ar AS tribunal_label_ar,
+        trib_tax.label_fr AS tribunal_label_fr,
+        meta.chambre_code,
+        chambre_tax.label_ar AS chambre_label_ar,
+        chambre_tax.label_fr AS chambre_label_fr,
+        meta.decision_date,
+        meta.decision_number,
+        meta.legal_basis,
+        meta.solution,
+        meta.extraction_confidence,
+        -- Compteurs relations
+        (SELECT COUNT(*) FROM kb_legal_relations WHERE source_kb_id = $1 AND validated = true) AS cites_count,
+        (SELECT COUNT(*) FROM kb_legal_relations WHERE target_kb_id = $1 AND validated = true) AS cited_by_count
+      FROM kb_structured_metadata meta
+      LEFT JOIN legal_taxonomy trib_tax ON meta.tribunal_code = trib_tax.code
+      LEFT JOIN legal_taxonomy chambre_tax ON meta.chambre_code = chambre_tax.code
+      WHERE meta.knowledge_base_id = $1`,
+      [source.documentId]
+    )
+
+    if (result.rows.length > 0) {
+      const row = result.rows[0]
+      return {
+        ...source.metadata,
+        structuredMetadata: {
+          tribunalCode: row.tribunal_code,
+          tribunalLabelAr: row.tribunal_label_ar,
+          tribunalLabelFr: row.tribunal_label_fr,
+          chambreCode: row.chambre_code,
+          chambreLabelAr: row.chambre_label_ar,
+          chambreLabelFr: row.chambre_label_fr,
+          decisionDate: row.decision_date,
+          decisionNumber: row.decision_number,
+          legalBasis: row.legal_basis,
+          solution: row.solution,
+          extractionConfidence: row.extraction_confidence,
+          citesCount: parseInt(row.cites_count || '0', 10),
+          citedByCount: parseInt(row.cited_by_count || '0', 10),
+        },
+      }
+    }
+  } catch (error) {
+    console.error('[RAG Context] Erreur enrichissement métadonnées:', error)
+  }
+
+  return source.metadata
+}
+
+/**
+ * Construit le contexte à partir des sources avec métadonnées enrichies
+ */
+async function buildContextFromSources(sources: ChatSource[], questionLang?: DetectedLanguage): Promise<string> {
   // Choisir les labels selon la langue
   const lang = questionLang === 'ar' ? 'ar' : 'fr'
   const labels = CONTEXT_LABELS[lang]
@@ -769,21 +830,101 @@ function buildContextFromSources(sources: ChatSource[], questionLang?: DetectedL
   let totalTokens = 0
   let sourcesUsed = 0
 
-  for (let i = 0; i < sources.length; i++) {
-    const source = sources[i]
+  // Enrichir sources avec métadonnées structurées (parallèle)
+  const enrichedSources = await Promise.all(
+    sources.map(async (source) => ({
+      ...source,
+      metadata: await enrichSourceWithStructuredMetadata(source),
+    }))
+  )
+
+  for (let i = 0; i < enrichedSources.length; i++) {
+    const source = enrichedSources[i]
     const meta = source.metadata as any
     const sourceType = meta?.type
+    const structuredMeta = meta?.structuredMetadata
 
     // Labels fixes [Source-N], [Juris-N], [KB-N] — compatibles avec le regex frontend
     let part: string
     if (sourceType === 'jurisprudence') {
-      part = `[Juris-${i + 1}] ${source.documentName}\n` +
-        `${labels.chamber}: ${meta?.chamber || labels.na}, ${labels.date}: ${meta?.date || labels.na}\n` +
-        `${labels.articles}: ${meta?.articles?.join(', ') || labels.na}\n\n` +
-        source.chunkContent
+      // Format enrichi pour jurisprudence
+      let enrichedHeader = `[Juris-${i + 1}] ${source.documentName}\n`
+
+      // Ajouter métadonnées structurées si disponibles
+      if (structuredMeta) {
+        const tribunalLabel = lang === 'ar' ? structuredMeta.tribunalLabelAr : structuredMeta.tribunalLabelFr
+        const chambreLabel = lang === 'ar' ? structuredMeta.chambreLabelAr : structuredMeta.chambreLabelFr
+
+        enrichedHeader += lang === 'ar' ? '🏛️ ' : '🏛️ '
+        enrichedHeader += `${lang === 'ar' ? 'المحكمة' : 'Tribunal'}: ${tribunalLabel || labels.na}\n`
+
+        if (chambreLabel) {
+          enrichedHeader += lang === 'ar' ? '⚖️ ' : '⚖️ '
+          enrichedHeader += `${labels.chamber}: ${chambreLabel}\n`
+        }
+
+        if (structuredMeta.decisionDate) {
+          enrichedHeader += '📅 '
+          enrichedHeader += `${labels.date}: ${new Date(structuredMeta.decisionDate).toLocaleDateString(lang === 'ar' ? 'ar-TN' : 'fr-TN')}\n`
+        }
+
+        if (structuredMeta.decisionNumber) {
+          enrichedHeader += lang === 'ar' ? '📋 عدد القرار: ' : '📋 N° décision: '
+          enrichedHeader += `${structuredMeta.decisionNumber}\n`
+        }
+
+        if (structuredMeta.legalBasis && structuredMeta.legalBasis.length > 0) {
+          enrichedHeader += '📚 '
+          enrichedHeader += `${labels.articles}: ${structuredMeta.legalBasis.join(', ')}\n`
+        }
+
+        if (structuredMeta.solution) {
+          enrichedHeader += lang === 'ar' ? '✅ المنطوق: ' : '✅ Solution: '
+          enrichedHeader += `${structuredMeta.solution}\n`
+        }
+
+        // Relations juridiques
+        if (structuredMeta.citesCount > 0 || structuredMeta.citedByCount > 0) {
+          enrichedHeader += '🔗 '
+          enrichedHeader += lang === 'ar' ? 'علاقات: ' : 'Relations: '
+          if (structuredMeta.citesCount > 0) {
+            enrichedHeader += lang === 'ar' ? `يشير إلى ${structuredMeta.citesCount}` : `Cite ${structuredMeta.citesCount}`
+          }
+          if (structuredMeta.citedByCount > 0) {
+            if (structuredMeta.citesCount > 0) enrichedHeader += ', '
+            enrichedHeader += lang === 'ar' ? `مشار إليه من ${structuredMeta.citedByCount}` : `Cité par ${structuredMeta.citedByCount}`
+          }
+          enrichedHeader += '\n'
+        }
+      } else {
+        // Fallback sur métadonnées legacy
+        enrichedHeader += `${labels.chamber}: ${meta?.chamber || labels.na}, ${labels.date}: ${meta?.date || labels.na}\n`
+        enrichedHeader += `${labels.articles}: ${meta?.articles?.join(', ') || labels.na}\n`
+      }
+
+      part = enrichedHeader + '\n' + source.chunkContent
     } else if (sourceType === 'knowledge_base') {
-      part = `[KB-${i + 1}] ${source.documentName}\n\n` +
-        source.chunkContent
+      let enrichedHeader = `[KB-${i + 1}] ${source.documentName}\n`
+
+      // Ajouter métadonnées structurées KB si disponibles
+      if (structuredMeta) {
+        if (structuredMeta.author) {
+          enrichedHeader += lang === 'ar' ? '✍️ المؤلف: ' : '✍️ Auteur: '
+          enrichedHeader += `${structuredMeta.author}\n`
+        }
+
+        if (structuredMeta.publicationDate) {
+          enrichedHeader += '📅 '
+          enrichedHeader += `${labels.date}: ${new Date(structuredMeta.publicationDate).toLocaleDateString(lang === 'ar' ? 'ar-TN' : 'fr-TN')}\n`
+        }
+
+        if (structuredMeta.keywords && structuredMeta.keywords.length > 0) {
+          enrichedHeader += lang === 'ar' ? '🔑 كلمات مفتاحية: ' : '🔑 Mots-clés: '
+          enrichedHeader += `${structuredMeta.keywords.join(', ')}\n`
+        }
+      }
+
+      part = enrichedHeader + '\n' + source.chunkContent
     } else {
       part = `[Source-${i + 1}] ${source.documentName}\n\n` + source.chunkContent
     }
@@ -802,7 +943,7 @@ function buildContextFromSources(sources: ChatSource[], questionLang?: DetectedL
     sourcesUsed++
   }
 
-  console.log(`[RAG Context] ${sourcesUsed}/${sources.length} sources, ~${totalTokens} tokens`)
+  console.log(`[RAG Context] ${sourcesUsed}/${sources.length} sources, ~${totalTokens} tokens, métadonnées enrichies`)
 
   return contextParts.join('\n\n---\n\n')
 }
@@ -962,7 +1103,7 @@ export async function answerQuestion(
 
   // Détecter la langue de la question pour adapter les labels du contexte
   const questionLang = detectLanguage(question)
-  const context = buildContextFromSources(sources, questionLang)
+  const context = await buildContextFromSources(sources, questionLang)
 
   // 3. Récupérer l'historique avec résumé si conversation existante
   let conversationHistory: ConversationMessage[] = []

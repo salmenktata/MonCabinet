@@ -652,7 +652,7 @@ async function runAllTests(): Promise<void> {
   console.log(`\nRésultats détaillés sauvegardés dans: ${resultsPath}`)
 
   // Fermer la connexion DB
-  await db.end()
+  await db.closePool()
 
   // Exit code selon résultats
   process.exit(failedCount > 0 ? 1 : 0)

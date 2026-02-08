@@ -13,15 +13,11 @@
 
 import { db } from '@/lib/db/postgres'
 import { callLLMWithFallback, type LLMMessage } from '@/lib/ai/llm-fallback-service'
-import {
-  jurisprudenceMetadataSchema,
-  legislationMetadataSchema,
-  doctrineMetadataSchema,
-  type JurisprudenceMetadata,
-  type LegislationMetadata,
-  type DoctrineMetadata,
+import type {
+  JurisprudenceMetadata,
+  LegislationMetadata,
+  DoctrineMetadata,
 } from './metadata-schemas'
-import type { ZodError } from 'zod'
 
 // =============================================================================
 // TYPES
