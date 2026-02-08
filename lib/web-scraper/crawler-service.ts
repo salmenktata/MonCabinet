@@ -24,6 +24,9 @@ import { recordCrawlMetric, markSourceAsBanned, canSourceCrawl } from './monitor
 
 // Configuration du crawl
 const KNOWLEDGE_BASE_BUCKET = 'knowledge-base'
+const MAX_ERRORS_KEPT = 200          // Limiter les erreurs en mémoire
+const PROGRESS_LOG_INTERVAL = 25     // Log progression toutes les N pages
+const MAX_CONSECUTIVE_FAILURES = 20  // Arrêter après N échecs consécutifs
 
 interface CrawlOptions {
   maxPages?: number
@@ -139,8 +142,23 @@ export async function crawlSource(
     }
   }
 
+  const crawlStartTime = Date.now()
+
+  // Graceful shutdown sur SIGINT/SIGTERM
+  let shutdownRequested = false
+  const onShutdown = () => {
+    if (!shutdownRequested) {
+      shutdownRequested = true
+      console.log(`[Crawler] Arrêt demandé, finalisation en cours...`)
+    }
+  }
+  process.on('SIGINT', onShutdown)
+  process.on('SIGTERM', onShutdown)
+
+  let consecutiveFailures = 0
+
   // Boucle principale de crawl
-  while (state.queue.length > 0 && state.pagesProcessed < maxPages) {
+  while (state.queue.length > 0 && state.pagesProcessed < maxPages && !shutdownRequested) {
     const { url, depth } = state.queue.shift()!
 
     // Vérifier la profondeur max
@@ -150,6 +168,11 @@ export async function crawlSource(
     const urlHash = hashUrl(url)
     if (state.visited.has(urlHash)) continue
     state.visited.add(urlHash)
+
+    // Ignorer les URLs de fichiers (PDF, DOCX, etc.) — gérés par downloadLinkedFiles()
+    if (/\.(pdf|docx?|xlsx?|pptx?|zip|rar)$/i.test(url)) {
+      continue
+    }
 
     // Vérifier les patterns d'exclusion
     if (excludePatterns.some((p: RegExp) => p.test(url))) {
@@ -190,6 +213,8 @@ export async function crawlSource(
       )
 
       if (result.success) {
+        consecutiveFailures = 0
+
         // Ajouter les liens découverts à la queue
         if (sourceFollowLinks && result.links) {
           for (const link of result.links) {
@@ -218,44 +243,46 @@ export async function crawlSource(
             console.log(`[Crawler] Formulaire: ${formLinks.length} liens découverts depuis ${url}`)
           } catch (formError) {
             console.error(`[Crawler] Erreur crawl formulaire pour ${url}:`, formError)
-            state.errors.push({
-              url,
-              error: `Form crawl: ${formError instanceof Error ? formError.message : 'Erreur inconnue'}`,
-              timestamp: new Date().toISOString(),
-            })
+            pushError(state, url, `Form crawl: ${formError instanceof Error ? formError.message : 'Erreur inconnue'}`)
           }
         }
       }
 
       state.pagesProcessed++
 
+      // Log de progression périodique
+      if (state.pagesProcessed % PROGRESS_LOG_INTERVAL === 0) {
+        const elapsed = ((Date.now() - crawlStartTime) / 1000).toFixed(0)
+        const rate = (state.pagesProcessed / (Date.now() - crawlStartTime) * 60000).toFixed(1)
+        console.log(
+          `[Crawler] Progression: ${state.pagesProcessed} pages (${state.pagesNew} new, ${state.pagesFailed} err) | ` +
+          `Queue: ${state.queue.length} | Visité: ${state.visited.size} | ${elapsed}s | ${rate} pages/min`
+        )
+      }
+
     } catch (error) {
       state.pagesFailed++
+      consecutiveFailures++
 
       // Vérifier si c'est un bannissement
       if (error instanceof Error && error.message.includes('BAN_DETECTED')) {
         console.error(
-          `[Crawler] 🚨 BANNISSEMENT DÉTECTÉ pour ${sourceName}: ${error.message}`
+          `[Crawler] BANNISSEMENT DÉTECTÉ pour ${sourceName}: ${error.message}`
         )
-
-        state.errors.push({
-          url,
-          error: `BANNISSEMENT: ${error.message}`,
-          timestamp: new Date().toISOString(),
-        })
-
+        pushError(state, url, `BANNISSEMENT: ${error.message}`)
         state.status = 'banned'
-
-        // Arrêter le crawl immédiatement
         break
       }
 
-      state.errors.push({
-        url,
-        error: error instanceof Error ? error.message : 'Erreur inconnue',
-        timestamp: new Date().toISOString(),
-      })
-      console.error(`[Crawler] Erreur page ${url}:`, error)
+      pushError(state, url, error instanceof Error ? error.message : 'Erreur inconnue')
+      console.error(`[Crawler] Erreur page ${url}:`, error instanceof Error ? error.message : error)
+
+      // Protection: arrêter si trop d'échecs consécutifs
+      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        console.error(`[Crawler] ${MAX_CONSECUTIVE_FAILURES} échecs consécutifs, arrêt du crawl`)
+        state.status = 'failed'
+        break
+      }
     }
 
     // Rate limiting avec randomisation
@@ -273,14 +300,23 @@ export async function crawlSource(
     }
   }
 
+  // Nettoyer les listeners
+  process.removeListener('SIGINT', onShutdown)
+  process.removeListener('SIGTERM', onShutdown)
+
   // Mettre à jour le statut final
   if (state.status === 'running') {
-    state.status = state.pagesFailed < state.pagesProcessed / 2 ? 'completed' : 'failed'
+    state.status = shutdownRequested
+      ? 'completed'
+      : state.pagesFailed < state.pagesProcessed / 2 ? 'completed' : 'failed'
   }
 
+  const durationSec = ((Date.now() - crawlStartTime) / 1000).toFixed(1)
   const statusMessage = state.status === 'banned'
     ? `INTERROMPU (bannissement détecté)`
-    : `Terminé: ${state.pagesProcessed} pages, ${state.pagesNew} nouvelles, ${state.pagesChanged} modifiées, ${state.pagesFailed} erreurs`
+    : shutdownRequested
+      ? `ARRÊT GRACIEUX après ${state.pagesProcessed} pages en ${durationSec}s`
+      : `Terminé: ${state.pagesProcessed} pages, ${state.pagesNew} nouvelles, ${state.pagesChanged} modifiées, ${state.pagesFailed} erreurs en ${durationSec}s`
 
   console.log(`[Crawler] ${statusMessage}`)
 
@@ -545,29 +581,26 @@ async function crawlFormResults(
           ? href
           : `${baseOrigin}${href.startsWith('/') ? '' : '/'}${href}`
 
-        // Exclure les liens externes et les ancres
-        if (absoluteUrl.startsWith(baseOrigin) && !absoluteUrl.includes('#')) {
+        // Exclure les liens externes, les ancres et les PDFs
+        if (
+          absoluteUrl.startsWith(baseOrigin) &&
+          !absoluteUrl.includes('#') &&
+          !absoluteUrl.toLowerCase().endsWith('.pdf')
+        ) {
           allLinks.push(absoluteUrl)
         }
       })
 
-      // Extraire les liens PDF
-      $('a[href$=".pdf"], a[href$=".PDF"]').each((_, el) => {
-        const href = $(el).attr('href')
-        if (!href) return
-
-        const absoluteUrl = href.startsWith('http')
-          ? href
-          : `${baseOrigin}${href.startsWith('/') ? '' : '/'}${href}`
-
-        allLinks.push(absoluteUrl)
-      })
+      // NOTE: On ne collecte PAS les liens PDF ici.
+      // Les PDFs seront découverts naturellement quand processPage()
+      // crawlera les pages de détail, et downloadLinkedFiles() les gérera.
 
       const themeName = CASSATION_THEMES[themeCode]?.fr || themeCode
-      console.log(`[Crawler] Thème "${themeName}": liens trouvés dans résultats`)
+      const themeIdx = themeCodes.indexOf(themeCode) + 1
+      console.log(`[Crawler] Thème ${themeIdx}/${themeCodes.length} "${themeName}": ${allLinks.length} liens cumulés`)
 
     } catch (themeError) {
-      console.error(`[Crawler] Erreur thème ${themeCode}:`, themeError)
+      console.error(`[Crawler] Erreur thème ${themeCode}:`, themeError instanceof Error ? themeError.message : themeError)
     }
 
     // Rate limiting entre chaque POST
@@ -832,6 +865,22 @@ function mapRowToWebPage(row: Record<string, unknown>): WebPage {
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * Ajoute une erreur au state en limitant la taille du tableau
+ */
+function pushError(state: CrawlState, url: string, error: string): void {
+  if (state.errors.length < MAX_ERRORS_KEPT) {
+    state.errors.push({ url, error, timestamp: new Date().toISOString() })
+  } else if (state.errors.length === MAX_ERRORS_KEPT) {
+    state.errors.push({
+      url: '',
+      error: `... erreurs tronquées après ${MAX_ERRORS_KEPT} entrées`,
+      timestamp: new Date().toISOString(),
+    })
+  }
+  // Au-delà de MAX_ERRORS_KEPT+1, on ne stocke plus (évite OOM)
 }
 
 /**
