@@ -153,13 +153,13 @@ export const KNOWLEDGE_CATEGORIES: CategoryInfo[] = [
       { id: 'appel_gabes', labelFr: "Cour d'Appel de Gabès", labelAr: 'محكمة الاستئناف بقابس' },
       { id: 'appel_gafsa', labelFr: "Cour d'Appel de Gafsa", labelAr: 'محكمة الاستئناف بقفصة' },
       { id: 'appel_kairouan', labelFr: "Cour d'Appel de Kairouan", labelAr: 'محكمة الاستئناف بالقيروان' },
-      { id: 'appel_kef', labelFr: "Cour d'Appel du Kef", labelAr: 'محكمة الاستئناف بالكاف' },
       { id: 'appel_medenine', labelFr: "Cour d'Appel de Médenine", labelAr: 'محكمة الاستئناف بمدنين' },
       { id: 'appel_monastir', labelFr: "Cour d'Appel de Monastir", labelAr: 'محكمة الاستئناف بالمنستير' },
       { id: 'appel_nabeul', labelFr: "Cour d'Appel de Nabeul", labelAr: 'محكمة الاستئناف بنابل' },
       { id: 'appel_sfax', labelFr: "Cour d'Appel de Sfax", labelAr: 'محكمة الاستئناف بصفاقس' },
       { id: 'appel_sousse', labelFr: "Cour d'Appel de Sousse", labelAr: 'محكمة الاستئناف بسوسة' },
       { id: 'appel_tunis', labelFr: "Cour d'Appel de Tunis", labelAr: 'محكمة الاستئناف بتونس' },
+      { id: 'appel_kef', labelFr: "Cour d'Appel du Kef", labelAr: 'محكمة الاستئناف بالكاف' },
 
       // Tribunaux de première instance
       { id: 'premiere_instance', labelFr: 'Première Instance', labelAr: 'المحكمة الابتدائية' },

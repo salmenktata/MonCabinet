@@ -1,0 +1,72 @@
+feat: Enrichissement taxonomie tribunaux tunisiens - 24 juridictions
+
+Implémentation complète de l'enrichissement de la taxonomie des tribunaux
+tunisiens basée sur la structure officielle du Ministère de la Justice.
+
+## Résumé
+
+- 24 tribunaux actifs (18 principaux + 6 chambres Cassation)
+- 11 cours d'appel couvrant tout le territoire
+- 4 juridictions spécialisées
+- 6 chambres de la Cour de Cassation pour classification fine
+
+## Migrations SQL
+
+### Migration principale (20260210100000)
+- 8 nouvelles cours d'appel régionales
+- 2 juridictions spécialisées (Commerce, Travail)
+
+### Migration complémentaire (20260210100001)
+- 2 cours d'appel manquantes (Sousse, Sfax)
+- 2 juridictions spécialisées (Immobilier, Administratif)
+- 1 haute juridiction (Conseil Constitutionnel)
+- 6 chambres Cour de Cassation
+- Correction label appel_tunis
+
+## Code TypeScript
+
+### lib/knowledge-base/categories.ts
+- Type JurisprudenceSubcategory: 18 valeurs
+- Array subcategories: 18 objets avec labels FR/AR
+- Ordre alphabétique respecté
+
+## Tests & Validation
+
+- ✅ Tests TypeScript: TOUS PASSENT
+- ✅ Migration SQL: Appliquée et vérifiée
+- ✅ Cohérence base/code: Validée
+- ✅ Labels bilingues: Complets (FR/AR)
+
+## Scripts & Documentation
+
+### Scripts créés
+- apply-tribunals-migration.js: Application automatique
+- test-tribunals-types.ts: Tests de validation
+- verify-tribunals-migration.sql: Vérifications SQL
+
+### Documentation
+- RAPPORT-FINAL-MIGRATION-TRIBUNAUX.md: État complet
+- MIGRATION-TRIBUNAUX-README.md: Guide d'application
+- docs/implementation-tribunaux-enrichissement.md: Doc technique
+- .migration-checklist.md: Checklist validation
+
+## Impact
+
+Avant: 3 tribunaux
+Après: 24 tribunaux (+700%)
+- Cassation: 1 → 1 (+ 6 chambres)
+- Cours d'appel: 1 → 11 (+1000%)
+- Spécialisées: 1 → 4 (+300%)
+- Haute juridiction: 0 → 1
+
+## Breaking Changes
+
+Aucun - Migration additive uniquement
+Tous les nouveaux tribunaux avec is_system=true
+
+## Source
+
+Ministère de la Justice tunisien
+https://www.justice.gov.tn/index.php?id=255&L=3
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
