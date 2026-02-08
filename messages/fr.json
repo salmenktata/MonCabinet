@@ -46,7 +46,9 @@
     "knowledgeBase": "Base de Connaissances",
     "assistantIA": "Qadhya Chat",
     "modeRapide": "Mode Rapide",
-    "consultation": "Consultation"
+    "consultation": "Consultation",
+    "structurationIA": "Structuration IA",
+    "conseilIA": "Conseil Juridique"
   },
   "breadcrumbs": {
     "home": "Accueil",
@@ -58,7 +60,7 @@
     "core": "Principal",
     "finance": "Finance",
     "documents": "Documents",
-    "intelligence": "Intelligence",
+    "intelligence": "Qadhya IA",
     "système": "Système"
   },
   "auth": {

@@ -46,7 +46,9 @@
     "knowledgeBase": "قاعدة المعرفة",
     "assistantIA": "دردشة قضية",
     "modeRapide": "الوضع السريع",
-    "consultation": "استشارة"
+    "consultation": "استشارة",
+    "structurationIA": "هيكلة بالذكاء الاصطناعي",
+    "conseilIA": "استشارة قانونية"
   },
   "breadcrumbs": {
     "home": "الرئيسية",
@@ -58,7 +60,7 @@
     "core": "الرئيسي",
     "finance": "المالية",
     "documents": "الوثائق",
-    "intelligence": "الذكاء الاصطناعي",
+    "intelligence": "قضية - ذكاء اصطناعي",
     "système": "النظام"
   },
   "auth": {

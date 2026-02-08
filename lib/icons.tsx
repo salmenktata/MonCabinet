@@ -117,6 +117,7 @@ import {
   FileSearch,
   ArrowUpDown,
   ArrowDownNarrowWide,
+  Brain,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -265,6 +266,7 @@ export const Icons = {
   merge: GitMerge,
   target: Target,
   scale: Scale,
+  brain: Brain,
   fileSearch: FileSearch,
   arrowUpDown: ArrowUpDown,
   sortAsc: ArrowDownNarrowWide,

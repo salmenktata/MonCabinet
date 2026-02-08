@@ -19,6 +19,8 @@ interface NavItem {
 interface NavGroup {
   group: string
   items: NavItem[]
+  variant?: 'default' | 'highlighted'
+  groupIcon?: keyof typeof Icons
 }
 
 interface SidebarProps {
@@ -39,10 +41,12 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
   },
   {
     group: 'Intelligence',
+    variant: 'highlighted',
+    groupIcon: 'sparkles',
     items: [
-      { href: '/assistant-ia', label: 'assistantIA', icon: 'zap' },
-      { href: '/dossiers/assistant', label: 'modeRapide', icon: 'activity' },
-      { href: '/dossiers/consultation', label: 'consultation', icon: 'messageSquare' },
+      { href: '/assistant-ia', label: 'assistantIA', icon: 'sparkles' },
+      { href: '/dossiers/assistant', label: 'structurationIA', icon: 'brain' },
+      { href: '/dossiers/consultation', label: 'conseilIA', icon: 'scale' },
       // Base de connaissances visible pour les admins (super_admin ont leur propre page)
       ...(userRole === 'admin' ? [{ href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' as keyof typeof Icons }] : []),
     ],
@@ -59,14 +63,6 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     items: [
       { href: '/documents', label: 'documents', icon: 'documents' },
       { href: '/templates', label: 'templates', icon: 'templates' },
-    ],
-  },
-  {
-    group: 'Système',
-    items: [
-      { href: '/parametres/cabinet', label: 'cabinet', icon: 'building' },
-      { href: '/parametres/notifications', label: 'notifications', icon: 'bell' },
-      { href: '/parametres/cloud-storage', label: 'cloudStorage', icon: 'cloud' },
     ],
   },
 ]
@@ -88,7 +84,7 @@ const NavLink = memo(function NavLink({ item, isActive, label, onClick }: NavLin
         className={cn(
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
           'hover:bg-accent hover:text-accent-foreground',
-          isActive && 'bg-accent text-accent-foreground border-l-4 border-primary'
+          isActive && 'bg-accent text-accent-foreground border-s-4 border-primary'
         )}
       >
         <Icon className="h-5 w-5 shrink-0" />
@@ -120,6 +116,8 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
       .filter(group => group && group.group && group.items?.length > 0)
       .map(group => ({
         ...group,
+        variant: group.variant ?? 'default',
+        groupIcon: group.groupIcon,
         items: group.items.map(item => ({
           ...item,
           isActive: isActive(item.href),
@@ -142,25 +140,49 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-6 p-4 overflow-y-auto">
-        {groupsWithState.map((group, groupIndex) => (
-          <div key={group.group} className="space-y-1">
-            <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              {group.translatedGroup}
-            </h3>
-            {group.items.map((item) => (
-              <NavLink
-                key={item.href}
-                item={item}
-                isActive={item.isActive}
-                label={item.translatedLabel}
-                onClick={onClose}
-              />
-            ))}
-            {groupIndex < groupsWithState.length - 1 && (
-              <Separator className="my-4" />
-            )}
-          </div>
-        ))}
+        {groupsWithState.map((group, groupIndex) => {
+          const isHighlighted = group.variant === 'highlighted'
+          const GroupIcon = group.groupIcon ? Icons[group.groupIcon] : null
+
+          const groupContent = (
+            <>
+              <h3 className={cn(
+                'px-3 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5',
+                isHighlighted ? 'text-indigo-700 dark:text-indigo-300' : 'text-muted-foreground'
+              )}>
+                {GroupIcon && <GroupIcon className="h-3.5 w-3.5" />}
+                {group.translatedGroup}
+              </h3>
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  isActive={item.isActive}
+                  label={item.translatedLabel}
+                  onClick={onClose}
+                />
+              ))}
+            </>
+          )
+
+          return (
+            <div key={group.group}>
+              {isHighlighted ? (
+                <div className="relative rounded-lg border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/60 dark:bg-indigo-950/30 p-2 space-y-1">
+                  <div className="absolute inset-y-1 start-0 w-1 rounded-full bg-gradient-to-b from-indigo-500 to-violet-500" />
+                  {groupContent}
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {groupContent}
+                </div>
+              )}
+              {groupIndex < groupsWithState.length - 1 && (
+                <Separator className="my-4" />
+              )}
+            </div>
+          )
+        })}
       </nav>
 
       {/* Footer */}
