@@ -59,7 +59,7 @@ const TEST_SITE_STRUCTURE: SiteStructure = {
     ],
   },
   navigation: [
-    { label: 'الفصل 2', url: '/kb/codes/code-obligations-contrats/code-obligations-contrats-article-2', isActive: false },
+    { label: 'الفصل 2', url: '/kb/codes/code-obligations-contrats/code-obligations-contrats-article-2', isActive: false, level: 1 },
   ],
   headings: {
     h1: 'Code des Obligations et Contrats - Article 1 - مجلة الالتزامات والعقود - الفصل 1',
@@ -70,7 +70,7 @@ const TEST_SITE_STRUCTURE: SiteStructure = {
   sectionContext: {
     parentSection: 'Codes',
     currentSection: 'Code des Obligations et Contrats',
-    relatedSections: ['Code Civil', 'Code de Procédure Civile'],
+    siblingPages: ['Code Civil', 'Code de Procédure Civile'],
   },
 }
 
@@ -137,7 +137,7 @@ async function main() {
     console.log('\n3️⃣  Classification en cours...\n')
 
     const startTime = Date.now()
-    const result = await classifyLegalContent(pageId)
+    const result = await classifyLegalContent(pageId!)
     const duration = Date.now() - startTime
 
     // 4. Afficher les résultats détaillés
@@ -176,10 +176,10 @@ async function main() {
     if (result.structureHints && result.structureHints.length > 0) {
       console.log(`\n🏗️  Indices structurels détectés (${result.structureHints.length}):`)
       for (const hint of result.structureHints) {
-        console.log(`   • ${hint.source}: ${hint.hint} (confiance: ${(hint.confidence * 100).toFixed(0)}%)`)
-        if (hint.category) console.log(`     → Catégorie: ${hint.category}`)
-        if (hint.domain) console.log(`     → Domaine: ${hint.domain}`)
-        if (hint.documentType) console.log(`     → Type: ${hint.documentType}`)
+        console.log(`   • ${hint.source}: ${hint.evidence} (confiance: ${(hint.confidence * 100).toFixed(0)}%)`)
+        if (hint.suggestedCategory) console.log(`     → Catégorie: ${hint.suggestedCategory}`)
+        if (hint.suggestedDomain) console.log(`     → Domaine: ${hint.suggestedDomain}`)
+        if (hint.suggestedDocumentType) console.log(`     → Type: ${hint.suggestedDocumentType}`)
       }
     }
 

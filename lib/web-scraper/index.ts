@@ -123,3 +123,15 @@ export {
   getPendingPages,
   getPipelineStats,
 } from './intelligent-pipeline-service'
+
+export {
+  // Utilitaires TYPO3 CSRF (cassation.tn)
+  extractCsrfTokens,
+  buildSearchPostBody,
+  searchCassationJurisprudence,
+  CASSATION_THEMES,
+} from './typo3-csrf-utils'
+export type {
+  Typo3CsrfTokens,
+  CassationSearchParams,
+} from './typo3-csrf-utils'

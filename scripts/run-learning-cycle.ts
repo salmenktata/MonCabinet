@@ -80,8 +80,8 @@ async function main() {
       console.log('   👉 Utilisez le dashboard Super Admin > Classification > Règles')
     }
 
-    if (statsAfter.pendingValidation > 50) {
-      console.log(`   ⚠️  ${statsAfter.pendingValidation} pages en attente de validation`)
+    if (statsAfter.unusedCorrections > 50) {
+      console.log(`   ⚠️  ${statsAfter.unusedCorrections} corrections non utilisées`)
       console.log('   👉 Validez quelques pages pour améliorer le système')
     }
 

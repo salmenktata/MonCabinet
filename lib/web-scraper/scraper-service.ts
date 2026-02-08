@@ -247,6 +247,10 @@ interface FetchOptions {
   dynamicConfig?: DynamicSiteConfig
   stealthMode?: boolean
   referrer?: string
+  method?: 'GET' | 'POST'
+  body?: string | URLSearchParams
+  contentType?: string
+  ignoreSSLErrors?: boolean
 }
 
 interface FetchResult {
@@ -273,13 +277,17 @@ export async function fetchHtml(
     respectRobotsTxt = true,
     stealthMode = false,
     referrer,
+    method = 'GET',
+    body,
+    contentType,
+    ignoreSSLErrors = false,
   } = options
 
   // Sélectionner User-Agent (stealth ou bot)
   const selectedUserAgent = selectUserAgent(stealthMode, userAgent)
 
-  // Vérifier robots.txt si demandé
-  if (respectRobotsTxt) {
+  // Vérifier robots.txt si demandé (skip pour les POST — soumission de formulaire intentionnelle)
+  if (respectRobotsTxt && method === 'GET') {
     const robotsCheck = await isUrlAllowed(url, selectedUserAgent)
     if (!robotsCheck.allowed) {
       return {
@@ -290,6 +298,21 @@ export async function fetchHtml(
     }
   }
 
+  // SSL bypass pour les sites avec certificats invalides (ex: sites gouvernementaux)
+  let sslAgent: import('undici').Agent | undefined
+  const originalTls = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+  if (ignoreSSLErrors) {
+    try {
+      const { Agent } = await import('undici')
+      sslAgent = new Agent({
+        connect: { rejectUnauthorized: false },
+      })
+    } catch {
+      // Fallback: variable d'environnement Node.js
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    }
+  }
+
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeout)
@@ -297,16 +320,38 @@ export async function fetchHtml(
     // Générer headers réalistes
     const browserHeaders = getBrowserHeaders(url, referrer)
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        ...browserHeaders,
-        'User-Agent': selectedUserAgent,
-        ...headers, // Custom headers override defaults
-      },
+    // Auto-détecter Content-Type pour POST
+    const requestHeaders: Record<string, string> = {
+      ...browserHeaders,
+      'User-Agent': selectedUserAgent,
+      ...headers,
+    }
+    if (method === 'POST' && body) {
+      if (contentType) {
+        requestHeaders['Content-Type'] = contentType
+      } else if (body instanceof URLSearchParams) {
+        requestHeaders['Content-Type'] = 'application/x-www-form-urlencoded'
+      }
+    }
+
+    const fetchInit: RequestInit & { dispatcher?: import('undici').Agent } = {
+      method,
+      headers: requestHeaders,
       redirect: 'follow',
       signal: controller.signal,
-    })
+    }
+
+    // Ajouter le body pour POST
+    if (method === 'POST' && body) {
+      fetchInit.body = body instanceof URLSearchParams ? body.toString() : body
+    }
+
+    // Ajouter l'agent SSL si disponible
+    if (sslAgent) {
+      fetchInit.dispatcher = sslAgent
+    }
+
+    const response = await fetch(url, fetchInit as RequestInit)
 
     clearTimeout(timeoutId)
 
@@ -332,11 +377,11 @@ export async function fetchHtml(
     }
 
     // Vérifier le type de contenu
-    const contentType = response.headers.get('content-type') || ''
-    if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
+    const responseContentType = response.headers.get('content-type') || ''
+    if (!responseContentType.includes('text/html') && !responseContentType.includes('application/xhtml')) {
       return {
         success: false,
-        error: `Type de contenu non HTML: ${contentType}`,
+        error: `Type de contenu non HTML: ${responseContentType}`,
         statusCode: response.status,
       }
     }
@@ -371,6 +416,15 @@ export async function fetchHtml(
     return {
       success: false,
       error: 'Erreur inconnue',
+    }
+  } finally {
+    // Restaurer NODE_TLS_REJECT_UNAUTHORIZED si modifié
+    if (ignoreSSLErrors && !sslAgent) {
+      if (originalTls === undefined) {
+        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
+      } else {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalTls
+      }
     }
   }
 }
@@ -673,6 +727,7 @@ export async function fetchHtmlDynamic(
       extraHTTPHeaders: headers,
       // Viewport standard pour déclencher le contenu responsive
       viewport: { width: 1920, height: 1080 },
+      ...(options.ignoreSSLErrors ? { ignoreHTTPSErrors: true } : {}),
     })
 
     try {
@@ -1076,6 +1131,7 @@ export async function scrapeUrl(
     headers: source.customHeaders || {},
     respectRobotsTxt: source.respectRobotsTxt !== false,
     dynamicConfig: source.dynamicConfig || undefined,
+    ignoreSSLErrors: source.ignoreSSLErrors || false,
   }
 
   let fetchResult: FetchResult

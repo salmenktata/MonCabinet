@@ -293,7 +293,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 31. `lib/pdf/convention-pdf.tsx` - Template PDF convention
 
 #### Post-Roadmap (VPS Standalone)
-38. `lib/stores/assistant-store.ts` - Store Zustand persistance Assistant IA
+38. `lib/stores/assistant-store.ts` - Store Zustand persistance Qadhya Chat
 39. `lib/db/postgres.ts` - Client PostgreSQL standalone
 40. `lib/storage/minio.ts` - Client MinIO S3-compatible
 41. `lib/auth/session.ts` - Auth JWT custom
@@ -382,7 +382,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - ✅ API recherche globale
 - ✅ UI Command Palette Cmd+K
 
-### Assistant IA Qadhya ✅
+### Qadhya Chat Qadhya ✅
 - ✅ Chat conversationnel RAG (`/assistant-ia`)
   - Pipeline RAG complet (`lib/ai/rag-chat-service.ts`)
   - Base de connaissances vectorisée (`lib/ai/knowledge-base-service.ts`)
@@ -447,7 +447,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - [x] **Preview templates temps réel** ✅ (remplacement variables en direct)
 - [x] **Pipeline RAG amélioré** ✅ (re-ranking, monitoring, diversité sources)
 - [ ] **Moteur génération avancé** (tables, numérotation)
-- [x] **Persistance état Assistant IA** ✅ (Zustand + sessionStorage)
+- [x] **Persistance état Qadhya Chat** ✅ (Zustand + sessionStorage)
 
 ### Priorité 3 (Améliorations IA Qadhya)
 - [x] **Pipeline RAG optimisé** ✅
@@ -502,7 +502,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
    - Livre recettes/dépenses tunisien
 
 ### Phase 3 : Différenciation IA (Mois 7-12)
-1. ✅ **Assistant IA Qadhya** (TERMINÉ)
+1. ✅ **Qadhya Chat Qadhya** (TERMINÉ)
    - Premier assistant juridique droit tunisien
    - Chat conversationnel RAG opérationnel (`/assistant-ia`)
    - Structuration dossiers par récit (`/dossiers/assistant`)

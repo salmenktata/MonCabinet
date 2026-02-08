@@ -143,7 +143,7 @@ async function testAntibanSystem() {
 
   console.log('\n✅ Tests terminés\n')
 
-  await db.end()
+  await db.closePool()
 }
 
 // Exécuter les tests
