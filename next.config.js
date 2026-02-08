@@ -161,11 +161,9 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
 
   // Compiler moins de polyfills pour les navigateurs modernes
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn'],
-    } : false,
-  },
+  // Note: removeConsole désactivé car les logs serveur (crawler, pipeline, cron)
+  // sont essentiels pour le monitoring en production
+  compiler: {},
 }
 
 module.exports = withNextIntl(nextConfig)
