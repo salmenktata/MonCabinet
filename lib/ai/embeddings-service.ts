@@ -210,8 +210,9 @@ interface OllamaEmbeddingsResponse {
 // OLLAMA EMBEDDINGS
 // =============================================================================
 
-// Timeout pour les appels Ollama (30 secondes)
-const OLLAMA_TIMEOUT_MS = 30000
+// Timeout pour les appels Ollama (120 secondes)
+// CPU-only sur VPS 4 cores → le chargement du modèle peut prendre 30s+
+const OLLAMA_TIMEOUT_MS = 120000
 
 /**
  * Génère un embedding via Ollama (local, gratuit)
@@ -227,6 +228,7 @@ async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResul
       body: JSON.stringify({
         model: aiConfig.ollama.embeddingModel,
         prompt: text.substring(0, 8000), // Tronquer pour contexte qwen3-embedding (~8192 tokens)
+        keep_alive: '10m', // Garder le modèle en mémoire 10min (évite le rechargement)
       }),
       signal: controller.signal,
     })
@@ -278,10 +280,9 @@ async function generateEmbeddingsBatchWithOllama(
     return { embeddings: [], totalTokens: 0, provider: 'ollama' }
   }
 
-  // Ollama peut traiter plusieurs textes en une seule requête
-  // On utilise des requêtes parallèles pour éviter les timeouts sur de gros batches
-  // Batch size augmenté de 10 à 20 pour améliorer le throughput (~+30%)
-  const batchSize = 20
+  // Ollama traite sur CPU uniquement (pas de GPU)
+  // Parallélisme réduit à 2 pour éviter la saturation CPU (4 cores VPS)
+  const batchSize = 2
   const allEmbeddings: number[][] = []
   let totalTokens = 0
 
@@ -321,16 +322,30 @@ async function generateEmbeddingWithOpenAI(text: string): Promise<EmbeddingResul
 
   const truncatedText = text.substring(0, 30000)
 
+  // Si Ollama est le provider principal, la DB utilise vector(1024)
+  // text-embedding-3-small supporte le paramètre dimensions pour tronquer
+  const targetDimensions = aiConfig.ollama.enabled
+    ? aiConfig.ollama.embeddingDimensions // 1024 pour correspondre à la DB
+    : undefined // dimension native OpenAI
+
   const response = await client.embeddings.create({
     model: aiConfig.openai.embeddingModel,
     input: truncatedText,
     encoding_format: 'float',
+    ...(targetDimensions ? { dimensions: targetDimensions } : {}),
   })
 
   const embedding = response.data[0].embedding
 
-  // Valider l'embedding
-  const validation = validateEmbedding(embedding, 'openai')
+  // Valider l'embedding (contre les dimensions cibles, pas les natives)
+  const expectedDim = targetDimensions || aiConfig.openai.embeddingDimensions
+  if (embedding.length !== expectedDim) {
+    throw new Error(
+      `Embedding OpenAI invalide: ${embedding.length} dimensions (attendu: ${expectedDim})`
+    )
+  }
+
+  const validation = validateEmbedding(embedding, targetDimensions ? 'ollama' : 'openai')
   if (!validation.valid) {
     console.error(`[Embeddings] OpenAI embedding invalide: ${validation.error}`)
     throw new Error(`Embedding OpenAI invalide: ${validation.error}`)
@@ -357,6 +372,11 @@ async function generateEmbeddingsBatchWithOpenAI(
 
   const truncatedTexts = texts.map((t) => t.substring(0, 30000))
 
+  // Si Ollama est le provider principal, la DB utilise vector(1024)
+  const targetDimensions = aiConfig.ollama.enabled
+    ? aiConfig.ollama.embeddingDimensions
+    : undefined
+
   const batchSize = 100
   const allEmbeddings: number[][] = []
   let totalTokens = 0
@@ -368,6 +388,7 @@ async function generateEmbeddingsBatchWithOpenAI(
       model: aiConfig.openai.embeddingModel,
       input: batch,
       encoding_format: 'float',
+      ...(targetDimensions ? { dimensions: targetDimensions } : {}),
     })
 
     for (const item of response.data) {
