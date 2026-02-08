@@ -258,6 +258,45 @@ export function getChatProvider(): 'deepseek' | 'groq' | 'ollama' | 'anthropic' 
   return null
 }
 
+/** Type des providers LLM disponibles pour le fallback */
+export type LLMProviderType = 'groq' | 'deepseek' | 'anthropic' | 'openai'
+
+/** Ordre de fallback des providers LLM (du plus économique au plus cher) */
+const LLM_FALLBACK_ORDER: LLMProviderType[] = ['groq', 'deepseek', 'anthropic', 'openai']
+
+/**
+ * Retourne la liste ordonnée des providers LLM disponibles pour le fallback
+ * Seuls les providers avec une clé API configurée sont inclus
+ *
+ * Ordre: Groq (rapide, économique) → DeepSeek (économique) → Anthropic (puissant) → OpenAI (dernier recours)
+ */
+export function getAvailableLLMProviders(): LLMProviderType[] {
+  return LLM_FALLBACK_ORDER.filter((provider) => {
+    switch (provider) {
+      case 'groq':
+        return !!aiConfig.groq.apiKey
+      case 'deepseek':
+        return !!aiConfig.deepseek.apiKey
+      case 'anthropic':
+        return !!aiConfig.anthropic.apiKey
+      case 'openai':
+        return !!aiConfig.openai.apiKey
+      default:
+        return false
+    }
+  })
+}
+
+/** Configuration du fallback LLM */
+export const LLM_FALLBACK_CONFIG = {
+  /** Activer/désactiver le fallback automatique */
+  enabled: process.env.LLM_FALLBACK_ENABLED !== 'false',
+  /** Nombre max de retries par provider avant fallback */
+  maxRetriesPerProvider: parseInt(process.env.LLM_MAX_RETRIES_PER_PROVIDER || '2', 10),
+  /** Délai initial avant retry (ms), double à chaque essai */
+  initialRetryDelayMs: parseInt(process.env.LLM_INITIAL_RETRY_DELAY_MS || '1000', 10),
+}
+
 // =============================================================================
 // PROMPTS SYSTÈME
 // =============================================================================

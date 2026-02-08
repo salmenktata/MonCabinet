@@ -422,8 +422,8 @@ BEGIN
         WHEN consecutive_failures >= 3 THEN 'failing'
         ELSE 'degraded'
       END,
-      total_pages_discovered = total_pages_discovered + p_pages_new,
-      total_pages_indexed = total_pages_indexed + p_pages_changed + p_pages_new - p_pages_failed,
+      total_pages_discovered = GREATEST(0, total_pages_discovered + p_pages_new),
+      total_pages_indexed = GREATEST(0, total_pages_indexed + p_pages_changed + p_pages_new - p_pages_failed),
       avg_crawl_duration_ms = CASE
         WHEN avg_crawl_duration_ms = 0 THEN v_duration_ms
         ELSE (avg_crawl_duration_ms + v_duration_ms) / 2

@@ -50,6 +50,11 @@ import {
   DocumentToRerank,
 } from './reranker-service'
 import { recordRAGMetric } from '@/lib/metrics/rag-metrics'
+import {
+  callLLMWithFallback,
+  LLMMessage,
+  LLMResponse,
+} from './llm-fallback-service'
 
 // Configuration Query Expansion
 const ENABLE_QUERY_EXPANSION = process.env.ENABLE_QUERY_EXPANSION !== 'false'
@@ -976,12 +981,14 @@ export async function answerQuestion(
   let tokensUsed: { input: number; output: number; total: number }
   let modelUsed: string
   let llmError: string | undefined
+  let fallbackUsed = false
 
-  // 5. Appeler le LLM selon le provider configuré
-  // Priorité: Ollama (local gratuit) > Groq (cloud rapide) > Anthropic
+  // 5. Appeler le LLM avec fallback automatique sur erreur 429
+  // Ollama est traité séparément (local, pas de fallback cloud)
+  // Pour les autres: Groq → DeepSeek → Anthropic → OpenAI
   try {
     if (provider === 'ollama') {
-      // Ollama (local, gratuit, illimité)
+      // Ollama (local, gratuit, illimité) - pas de fallback
       const client = getOllamaClient()
       const response = await client.chat.completions.create({
         model: aiConfig.ollama.chatModel,
@@ -1000,64 +1007,31 @@ export async function answerQuestion(
         total: response.usage?.total_tokens || 0,
       }
       modelUsed = `ollama/${aiConfig.ollama.chatModel}`
-    } else if (provider === 'groq') {
-      // Groq (API compatible OpenAI, fallback cloud)
-      const client = getGroqClient()
-      const response = await client.chat.completions.create({
-        model: aiConfig.groq.model,
-        max_tokens: aiConfig.anthropic.maxTokens,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPTS.qadhya },
-          ...messagesOpenAI,
-        ],
-        temperature: options.temperature ?? 0.3,
-      })
-
-      answer = response.choices[0]?.message?.content || ''
-      tokensUsed = {
-        input: response.usage?.prompt_tokens || 0,
-        output: response.usage?.completion_tokens || 0,
-        total: response.usage?.total_tokens || 0,
-      }
-      modelUsed = aiConfig.groq.model
-    } else if (provider === 'deepseek') {
-      // DeepSeek (API compatible OpenAI, économique)
-      const client = getDeepSeekClient()
-      const response = await client.chat.completions.create({
-        model: aiConfig.deepseek.model,
-        max_tokens: aiConfig.anthropic.maxTokens,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPTS.qadhya },
-          ...messagesOpenAI,
-        ],
-        temperature: options.temperature ?? 0.3,
-      })
-
-      answer = response.choices[0]?.message?.content || ''
-      tokensUsed = {
-        input: response.usage?.prompt_tokens || 0,
-        output: response.usage?.completion_tokens || 0,
-        total: response.usage?.total_tokens || 0,
-      }
-      modelUsed = `deepseek/${aiConfig.deepseek.model}`
     } else {
-      // Anthropic Claude (dernier fallback)
-      const client = getAnthropicClient()
-      const response = await client.messages.create({
-        model: aiConfig.anthropic.model,
-        max_tokens: aiConfig.anthropic.maxTokens,
-        system: systemPromptWithSummary,
-        messages: messagesAnthropic,
+      // Utiliser le service de fallback pour les providers cloud
+      // Convertir les messages au format LLMMessage
+      const llmMessages: LLMMessage[] = messagesOpenAI.map((m) => ({
+        role: m.role as 'user' | 'assistant' | 'system',
+        content: m.content,
+      }))
+
+      const llmResponse = await callLLMWithFallback(llmMessages, {
         temperature: options.temperature ?? 0.3,
+        maxTokens: aiConfig.anthropic.maxTokens,
+        systemPrompt: systemPromptWithSummary,
       })
 
-      answer = response.content[0].type === 'text' ? response.content[0].text : ''
-      tokensUsed = {
-        input: response.usage.input_tokens,
-        output: response.usage.output_tokens,
-        total: response.usage.input_tokens + response.usage.output_tokens,
+      answer = llmResponse.answer
+      tokensUsed = llmResponse.tokensUsed
+      modelUsed = llmResponse.modelUsed
+      fallbackUsed = llmResponse.fallbackUsed
+
+      // Log si fallback utilisé
+      if (fallbackUsed && llmResponse.originalProvider) {
+        console.log(
+          `[RAG] Fallback LLM activé: ${llmResponse.originalProvider} → ${llmResponse.provider}`
+        )
       }
-      modelUsed = aiConfig.anthropic.model
     }
   } catch (error) {
     // Enregistrer l'erreur LLM dans les métriques
@@ -1078,7 +1052,7 @@ export async function answerQuestion(
       error: llmError,
     })
 
-    console.error('[RAG] Erreur LLM:', error)
+    console.error('[RAG] Erreur LLM (tous providers épuisés):', error)
     throw error // Re-throw pour que l'appelant puisse gérer
   }
 
@@ -1115,6 +1089,7 @@ export async function answerQuestion(
     resultsCount: sources.length,
     degradedMode: isDegradedMode,
     provider: modelUsed,
+    fallbackUsed,
     conversationId: options.conversationId || null,
     dossierId: options.dossierId || null,
   }))
