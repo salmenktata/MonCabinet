@@ -127,7 +127,8 @@ export async function getGoogleDriveClient() {
     )
 
     if (saResult.rows.length > 0) {
-      const serviceAccountJson = JSON.parse(saResult.rows[0].value)
+      // PostgreSQL JSONB retourne déjà un objet JavaScript, pas besoin de JSON.parse()
+      const serviceAccountJson = saResult.rows[0].value
       const auth = new google.auth.GoogleAuth({
         credentials: serviceAccountJson,
         scopes: [
@@ -149,7 +150,8 @@ export async function getGoogleDriveClient() {
     )
 
     if (tokenResult.rows.length > 0) {
-      const tokenData = JSON.parse(tokenResult.rows[0].value)
+      // PostgreSQL JSONB retourne déjà un objet JavaScript, pas besoin de JSON.parse()
+      const tokenData = tokenResult.rows[0].value
 
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
