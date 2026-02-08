@@ -23,8 +23,8 @@ async function PlansStats() {
 
   const planInfo = {
     free: { label: 'Free', color: 'text-slate-400', bg: 'bg-slate-600', limits: '5 dossiers, 10 clients' },
-    pro: { label: 'Pro', color: 'text-blue-500', bg: 'bg-blue-500/20', limits: '50 dossiers, 100 clients' },
-    enterprise: { label: 'Enterprise', color: 'text-purple-500', bg: 'bg-purple-500/20', limits: 'Illimité' }
+    pro: { label: 'Pro', color: 'text-blue-400', bg: 'bg-blue-500/20', limits: '50 dossiers, 100 clients' },
+    enterprise: { label: 'Enterprise', color: 'text-purple-400', bg: 'bg-purple-500/20', limits: 'Illimité' }
   }
 
   return (
@@ -73,9 +73,9 @@ async function UsersByPlan() {
   const getPlanBadge = (plan: string) => {
     switch (plan) {
       case 'pro':
-        return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30">Pro</Badge>
+        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Pro</Badge>
       case 'enterprise':
-        return <Badge className="bg-purple-500/20 text-purple-500 border-purple-500/30">Enterprise</Badge>
+        return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Enterprise</Badge>
       default:
         return <Badge variant="secondary">{plan}</Badge>
     }
@@ -241,8 +241,8 @@ export default function PlansPage() {
                 <tr className="border-b border-slate-700">
                   <th className="text-left py-3 px-4 text-slate-400 font-medium">Fonctionnalité</th>
                   <th className="text-center py-3 px-4 text-slate-400 font-medium">Free</th>
-                  <th className="text-center py-3 px-4 text-blue-500 font-medium">Pro</th>
-                  <th className="text-center py-3 px-4 text-purple-500 font-medium">Enterprise</th>
+                  <th className="text-center py-3 px-4 text-blue-400 font-medium">Pro</th>
+                  <th className="text-center py-3 px-4 text-purple-400 font-medium">Enterprise</th>
                 </tr>
               </thead>
               <tbody className="text-white">

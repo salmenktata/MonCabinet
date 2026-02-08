@@ -190,7 +190,7 @@ export function ReviewQueue({
                     {formatDate(item.createdAt)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Link href={`/super-admin/content-review/${item.id}`}>
+                    <Link href={`/super-admin/content-review/${item.id}`} aria-label="Voir le détail">
                       <Button variant="ghost" size="sm">
                         <Icons.eye className="h-4 w-4" />
                       </Button>
@@ -217,6 +217,7 @@ export function ReviewQueue({
               onClick={() =>
                 router.push(`?page=${currentPage - 1}`)
               }
+              aria-label="Page précédente"
             >
               <Icons.chevronLeft className="h-4 w-4" />
             </Button>
@@ -227,6 +228,7 @@ export function ReviewQueue({
               onClick={() =>
                 router.push(`?page=${currentPage + 1}`)
               }
+              aria-label="Page suivante"
             >
               <Icons.chevronRight className="h-4 w-4" />
             </Button>

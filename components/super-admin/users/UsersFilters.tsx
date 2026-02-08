@@ -73,6 +73,7 @@ export function UsersFilters({
           onClick={handleSearch}
           variant="secondary"
           className="bg-slate-700 hover:bg-slate-600"
+          aria-label="Rechercher"
         >
           <Icons.search className="h-4 w-4" />
         </Button>
@@ -80,7 +81,7 @@ export function UsersFilters({
 
       {/* Filtre Status */}
       <Select value={currentStatus} onValueChange={(v) => updateFilters('status', v)}>
-        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-600 text-white">
+        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-600 text-white" aria-label="Filtrer par statut">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-600">
@@ -94,7 +95,7 @@ export function UsersFilters({
 
       {/* Filtre Rôle */}
       <Select value={currentRole} onValueChange={(v) => updateFilters('role', v)}>
-        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-600 text-white">
+        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-600 text-white" aria-label="Filtrer par rôle">
           <SelectValue placeholder="Rôle" />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-600">
@@ -107,7 +108,7 @@ export function UsersFilters({
 
       {/* Filtre Plan */}
       <Select value={currentPlan} onValueChange={(v) => updateFilters('plan', v)}>
-        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-600 text-white">
+        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-600 text-white" aria-label="Filtrer par plan">
           <SelectValue placeholder="Plan" />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-600">

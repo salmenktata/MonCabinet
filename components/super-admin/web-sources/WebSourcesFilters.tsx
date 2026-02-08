@@ -81,7 +81,7 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
       </div>
 
       <Select value={category || 'all'} onValueChange={handleCategoryChange}>
-        <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white">
+        <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par catégorie">
           <SelectValue placeholder="Catégorie" />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-700">
@@ -98,7 +98,7 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
       </Select>
 
       <Select value={status || 'all'} onValueChange={handleStatusChange}>
-        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-700 text-white">
+        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par statut">
           <SelectValue placeholder="Statut" />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-700">

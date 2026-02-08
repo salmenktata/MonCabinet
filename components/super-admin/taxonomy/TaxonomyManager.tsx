@@ -313,6 +313,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => openEditDialog(item)}
+                      aria-label="Modifier"
                     >
                       <Icons.edit className="h-4 w-4" />
                     </Button>
@@ -323,6 +324,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                         className="text-red-500 hover:text-red-400"
                         onClick={() => handleDelete(item.code, item.isSystem)}
                         disabled={isLoading}
+                        aria-label="Supprimer"
                       >
                         <Icons.trash className="h-4 w-4" />
                       </Button>
@@ -350,6 +352,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => openEditDialog(child)}
+                            aria-label="Modifier"
                           >
                             <Icons.edit className="h-3 w-3" />
                           </Button>
@@ -360,6 +363,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                               className="text-red-500 hover:text-red-400"
                               onClick={() => handleDelete(child.code, child.isSystem)}
                               disabled={isLoading}
+                              aria-label="Supprimer"
                             >
                               <Icons.trash className="h-3 w-3" />
                             </Button>

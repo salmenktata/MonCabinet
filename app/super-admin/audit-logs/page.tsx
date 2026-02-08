@@ -238,6 +238,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
             <div className="flex items-center justify-center gap-2 mt-6">
               <Link
                 href={`/super-admin/audit-logs?action=${action}&target=${target}&page=${Math.max(1, page - 1)}`}
+                aria-label="Page précédente"
               >
                 <Button
                   variant="outline"
@@ -255,6 +256,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
 
               <Link
                 href={`/super-admin/audit-logs?action=${action}&target=${target}&page=${Math.min(totalPages, page + 1)}`}
+                aria-label="Page suivante"
               >
                 <Button
                   variant="outline"

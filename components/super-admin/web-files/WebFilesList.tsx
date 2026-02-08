@@ -263,7 +263,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         <div className="bg-green-500/10 rounded-lg p-4 border border-green-500/20">
           <p className="text-xs text-green-400 mb-1">Indexés</p>
           <p className="text-2xl font-bold text-green-400">{stats.byStatus.indexed}</p>
-          <p className="text-xs text-green-400/60 mt-1">
+          <p className="text-xs text-green-400 mt-1">
             {stats.totalFiles > 0 ? Math.round((stats.byStatus.indexed / stats.totalFiles) * 100) : 0}%
           </p>
         </div>
@@ -309,7 +309,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         </div>
 
         <Select value={sourceFilter || 'all'} onValueChange={(v) => { setSourceFilter(v === 'all' ? '' : v); setPage(1); }}>
-          <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white">
+          <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par source">
             <SelectValue placeholder="Toutes les sources" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-700">
@@ -323,7 +323,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         </Select>
 
         <Select value={typeFilter || 'all'} onValueChange={(v) => { setTypeFilter(v === 'all' ? '' : v); setPage(1); }}>
-          <SelectTrigger className="w-[140px] bg-slate-800 border-slate-700 text-white">
+          <SelectTrigger className="w-[140px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par type">
             <SelectValue placeholder="Tous types" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-700">
@@ -335,7 +335,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         </Select>
 
         <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-          <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white">
+          <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par état">
             <SelectValue placeholder="Tous états" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-700">
@@ -469,6 +469,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
                             size="sm"
                             disabled={actionLoading === file.id}
                             className="h-8 w-8 p-0"
+                            aria-label="Options du fichier"
                           >
                             {actionLoading === file.id ? (
                               <Icons.loader className="h-4 w-4 animate-spin" />
@@ -532,6 +533,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
               className="border-slate-600"
+              aria-label="Page précédente"
             >
               <Icons.chevronLeft className="h-4 w-4" />
             </Button>
@@ -541,6 +543,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
               onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
               disabled={page === pagination.totalPages || loading}
               className="border-slate-600"
+              aria-label="Page suivante"
             >
               <Icons.chevronRight className="h-4 w-4" />
             </Button>

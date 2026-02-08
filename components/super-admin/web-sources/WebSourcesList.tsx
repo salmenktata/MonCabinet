@@ -297,6 +297,7 @@ export function WebSourcesList({
                 disabled={loading === source.id || !source.is_active}
                 className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
                 title="Lancer un crawl"
+                aria-label="Lancer un crawl"
               >
                 {loading === source.id ? (
                   <Icons.loader className="h-4 w-4 animate-spin" />
@@ -311,6 +312,7 @@ export function WebSourcesList({
                     size="sm"
                     variant="ghost"
                     className="text-slate-400 hover:text-white"
+                    aria-label="Actions"
                   >
                     <Icons.moreVertical className="h-4 w-4" />
                   </Button>
@@ -379,7 +381,7 @@ export function WebSourcesList({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">
-          <Link href={buildUrl({ page: Math.max(1, currentPage - 1) })}>
+          <Link href={buildUrl({ page: Math.max(1, currentPage - 1) })} aria-label="Page précédente">
             <Button
               variant="outline"
               size="sm"
@@ -394,7 +396,7 @@ export function WebSourcesList({
             Page {currentPage} / {totalPages}
           </span>
 
-          <Link href={buildUrl({ page: Math.min(totalPages, currentPage + 1) })}>
+          <Link href={buildUrl({ page: Math.min(totalPages, currentPage + 1) })} aria-label="Page suivante">
             <Button
               variant="outline"
               size="sm"

@@ -90,7 +90,7 @@ export function ReviewFilters({ currentFilters }: ReviewFiltersProps) {
             updateFilter('status', value === 'all' ? null : value)
           }
         >
-          <SelectTrigger className="w-36 bg-slate-800 border-slate-600">
+          <SelectTrigger className="w-36 bg-slate-800 border-slate-600" aria-label="Filtrer par statut">
             <SelectValue placeholder="Tous" />
           </SelectTrigger>
           <SelectContent>
@@ -113,7 +113,7 @@ export function ReviewFilters({ currentFilters }: ReviewFiltersProps) {
             updateFilter('type', value === 'all' ? null : value)
           }
         >
-          <SelectTrigger className="w-48 bg-slate-800 border-slate-600">
+          <SelectTrigger className="w-48 bg-slate-800 border-slate-600" aria-label="Filtrer par type">
             <SelectValue placeholder="Tous" />
           </SelectTrigger>
           <SelectContent>
@@ -136,7 +136,7 @@ export function ReviewFilters({ currentFilters }: ReviewFiltersProps) {
             updateFilter('priority', value === 'all' ? null : value)
           }
         >
-          <SelectTrigger className="w-32 bg-slate-800 border-slate-600">
+          <SelectTrigger className="w-32 bg-slate-800 border-slate-600" aria-label="Filtrer par priorité">
             <SelectValue placeholder="Toutes" />
           </SelectTrigger>
           <SelectContent>

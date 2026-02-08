@@ -263,6 +263,7 @@ export function KnowledgeBaseList({
           checked={selectedIds.size === documents.length && documents.length > 0}
           onCheckedChange={toggleSelectAll}
           className="border-slate-500"
+          aria-label="Sélectionner tous les documents"
         />
         <span className="text-sm text-slate-400">
           {documents.length} document(s)
@@ -283,6 +284,7 @@ export function KnowledgeBaseList({
               checked={selectedIds.has(doc.id)}
               onCheckedChange={() => toggleSelect(doc.id)}
               className="mt-2 border-slate-500"
+              aria-label={`Sélectionner ${doc.title}`}
             />
 
             <Link
@@ -434,7 +436,7 @@ export function KnowledgeBaseList({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">
-          <Link href={buildUrl({ page: Math.max(1, currentPage - 1) })}>
+          <Link href={buildUrl({ page: Math.max(1, currentPage - 1) })} aria-label="Page précédente">
             <Button
               variant="outline"
               size="sm"
@@ -449,7 +451,7 @@ export function KnowledgeBaseList({
             Page {currentPage} / {totalPages}
           </span>
 
-          <Link href={buildUrl({ page: Math.min(totalPages, currentPage + 1) })}>
+          <Link href={buildUrl({ page: Math.min(totalPages, currentPage + 1) })} aria-label="Page suivante">
             <Button
               variant="outline"
               size="sm"
