@@ -1,23 +1,11 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
-import { unstable_cache } from 'next/cache'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import { Logo } from '@/components/ui/Logo'
 
-// Forcer le rendu statique de la page pour améliorer TTFB
-export const dynamic = 'force-static'
-export const revalidate = 3600 // 1 heure
-
-// Cache des traductions pour réduire le TTFB
-const getCachedTranslations = unstable_cache(
-  async (namespace: string) => getTranslations(namespace),
-  ['home-translations'],
-  {
-    revalidate: 3600, // 1 heure
-    tags: ['translations'],
-  }
-)
+// La page utilise getTranslations (cookies) → pas de force-static
+export const dynamic = 'force-dynamic'
 
 function CheckIcon({ className }: { className?: string }) {
   return (
@@ -96,10 +84,9 @@ function StatItem({ value, label, delay }: StatItemProps) {
 }
 
 export default async function HomePage() {
-  // Charger les traductions en parallèle avec cache
   const [t, tAuth] = await Promise.all([
-    getCachedTranslations('home'),
-    getCachedTranslations('authLayout'),
+    getTranslations('home'),
+    getTranslations('authLayout'),
   ])
 
   return (
