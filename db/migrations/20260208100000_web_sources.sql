@@ -306,7 +306,14 @@ RETURNS TABLE (
   timeout_ms INTEGER,
   respect_robots_txt BOOLEAN,
   user_agent TEXT,
-  custom_headers JSONB
+  custom_headers JSONB,
+  seed_urls TEXT[],
+  form_crawl_config JSONB,
+  ignore_ssl_errors BOOLEAN,
+  url_patterns TEXT[],
+  excluded_patterns TEXT[],
+  follow_links BOOLEAN,
+  download_files BOOLEAN
 ) AS $$
 DECLARE
   v_job_id UUID;
@@ -348,7 +355,14 @@ BEGIN
     s.timeout_ms,
     s.respect_robots_txt,
     s.user_agent,
-    s.custom_headers
+    s.custom_headers,
+    s.seed_urls,
+    s.form_crawl_config,
+    s.ignore_ssl_errors,
+    s.url_patterns,
+    s.excluded_patterns,
+    s.follow_links,
+    s.download_files
   FROM web_crawl_jobs j
   JOIN web_sources s ON j.web_source_id = s.id
   WHERE j.id = v_job_id;

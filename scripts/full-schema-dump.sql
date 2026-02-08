@@ -794,7 +794,7 @@ $$;
 -- Name: claim_next_crawl_job(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.claim_next_crawl_job(p_worker_id text DEFAULT NULL::text) RETURNS TABLE(job_id uuid, web_source_id uuid, job_type text, params jsonb, source_name text, base_url text, category text, requires_javascript boolean, css_selectors jsonb, max_depth integer, max_pages integer, rate_limit_ms integer, timeout_ms integer, respect_robots_txt boolean, user_agent text, custom_headers jsonb)
+CREATE FUNCTION public.claim_next_crawl_job(p_worker_id text DEFAULT NULL::text) RETURNS TABLE(job_id uuid, web_source_id uuid, job_type text, params jsonb, source_name text, base_url text, category text, requires_javascript boolean, css_selectors jsonb, max_depth integer, max_pages integer, rate_limit_ms integer, timeout_ms integer, respect_robots_txt boolean, user_agent text, custom_headers jsonb, seed_urls text[], form_crawl_config jsonb, ignore_ssl_errors boolean, url_patterns text[], excluded_patterns text[], follow_links boolean, download_files boolean)
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -837,7 +837,14 @@ BEGIN
     s.timeout_ms,
     s.respect_robots_txt,
     s.user_agent,
-    s.custom_headers
+    s.custom_headers,
+    s.seed_urls,
+    s.form_crawl_config,
+    s.ignore_ssl_errors,
+    s.url_patterns,
+    s.excluded_patterns,
+    s.follow_links,
+    s.download_files
   FROM web_crawl_jobs j
   JOIN web_sources s ON j.web_source_id = s.id
   WHERE j.id = v_job_id;

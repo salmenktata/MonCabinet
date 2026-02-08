@@ -13,6 +13,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Installer Playwright Chromium (utilisé pour les sources nécessitant JavaScript)
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
+RUN npx playwright install chromium
+
 # Build avec variables d'environnement de build
 ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_APP_NAME
@@ -36,24 +40,36 @@ ENV RESEND_API_KEY="re_build_placeholder"
 ENV OPENAI_API_KEY="sk-build-placeholder"
 RUN npx next build
 
-# Stage 3: Runner
-FROM node:18-alpine AS runner
+# Stage 3: Runner (Debian slim pour support Playwright)
+FROM node:18-slim AS runner
 WORKDIR /app
 
-# Dépendances runtime pour canvas
-RUN apk add --no-cache pixman cairo pango jpeg giflib
+# Dépendances runtime pour canvas et Playwright Chromium
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpixman-1-0 libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
+    libjpeg62-turbo libgif7 \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+    libdrm2 libdbus-1-3 libxkbcommon0 libatspi2.0-0 libxcomposite1 \
+    libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Playwright : pointer vers les browsers installés dans le builder
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
+
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 --gid nodejs nextjs
 
 # Copier fichiers nécessaires depuis builder
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
+
+# Copier les browsers Playwright depuis le builder
+COPY --from=builder /app/.playwright ./.playwright
 
 # Créer le polyfill File API inline pour le runtime
 RUN mkdir -p scripts && cat > scripts/polyfill-file.js << 'POLYFILL'
