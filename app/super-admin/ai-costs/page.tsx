@@ -48,7 +48,7 @@ async function AICostsStats() {
             <div className="text-2xl font-bold text-white">
               {formatTND(parseFloat(stats.total_cost))} TND
             </div>
-            <p className="text-xs text-slate-500">${parseFloat(stats.total_cost).toFixed(2)} USD</p>
+            <p className="text-xs text-slate-400">${parseFloat(stats.total_cost).toFixed(2)} USD</p>
           </CardContent>
         </Card>
 
@@ -92,7 +92,7 @@ async function AICostsStats() {
         </CardHeader>
         <CardContent>
           {periodsResult.rows.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-slate-400">
               Aucune donnée disponible
             </div>
           ) : (
@@ -116,7 +116,7 @@ async function AICostsStats() {
                     <p className="text-lg font-bold text-green-500">
                       {formatTND(parseFloat(day.cost))} TND
                     </p>
-                    <p className="text-xs text-slate-500">${parseFloat(day.cost).toFixed(2)}</p>
+                    <p className="text-xs text-slate-400">${parseFloat(day.cost).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -154,7 +154,7 @@ async function TopAIUsers() {
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
+          <div className="text-center py-8 text-slate-400">
             <Icons.zap className="h-12 w-12 mx-auto mb-2" />
             <p>Aucune utilisation IA</p>
           </div>
@@ -188,7 +188,7 @@ async function TopAIUsers() {
                   <p className="text-lg font-bold text-green-500">
                     {formatTND(parseFloat(user.total_cost))} TND
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-400">
                     {user.operations} ops • {parseInt(user.total_tokens).toLocaleString()} tokens
                   </p>
                 </div>
@@ -234,7 +234,7 @@ async function OperationTypes() {
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
+          <div className="text-center py-8 text-slate-400">
             <Icons.pieChart className="h-12 w-12 mx-auto mb-2" />
             <p>Aucune donnée</p>
           </div>
@@ -260,7 +260,7 @@ async function OperationTypes() {
                   <p className="text-lg font-bold text-green-500">
                     {formatTND(parseFloat(op.cost))} TND
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-400">
                     {parseInt(op.tokens).toLocaleString()} tokens
                   </p>
                 </div>

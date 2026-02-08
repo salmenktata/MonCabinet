@@ -66,6 +66,7 @@ function AppLayoutComponent({ children, user }: AppLayoutProps) {
           size="icon"
           className="fixed left-4 top-4 z-50 lg:hidden"
           onClick={openMobile}
+          aria-label="Ouvrir le menu"
         >
           <Icons.menu className="h-6 w-6" />
         </Button>

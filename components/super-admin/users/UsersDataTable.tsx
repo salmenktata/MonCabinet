@@ -74,7 +74,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
 
   if (users.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-500">
+      <div className="text-center py-12 text-slate-400">
         <Icons.users className="h-12 w-12 mx-auto mb-4" />
         <p>Aucun utilisateur trouvé</p>
       </div>
@@ -103,7 +103,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
                   <p className="font-medium text-white">
                     {user.prenom} {user.nom}
                   </p>
-                  <p className="text-sm text-slate-500">{user.email}</p>
+                  <p className="text-sm text-slate-400">{user.email}</p>
                 </div>
               </TableCell>
               <TableCell>{getRoleBadge(user.role)}</TableCell>
@@ -113,10 +113,10 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
                 {user.last_login_at ? (
                   <div>
                     <p>{new Date(user.last_login_at).toLocaleDateString('fr-FR')}</p>
-                    <p className="text-xs text-slate-500">{user.login_count} connexions</p>
+                    <p className="text-xs text-slate-400">{user.login_count} connexions</p>
                   </div>
                 ) : (
-                  <span className="text-slate-500">Jamais</span>
+                  <span className="text-slate-400">Jamais</span>
                 )}
               </TableCell>
               <TableCell className="text-slate-400">

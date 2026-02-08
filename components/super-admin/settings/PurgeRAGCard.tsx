@@ -720,7 +720,7 @@ function SelectionItem({
             <span className="text-xs text-blue-400 font-normal">(forcé par dépendance)</span>
           )}
         </Label>
-        <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+        <p className="text-xs text-slate-400 mt-0.5">{description}</p>
       </div>
     </div>
   )

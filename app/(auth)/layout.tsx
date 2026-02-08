@@ -190,7 +190,7 @@ export default async function AuthLayout({
               href="https://quelyos.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors underline underline-offset-2"
             >
               quelyos.com
             </a>

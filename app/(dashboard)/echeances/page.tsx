@@ -216,7 +216,7 @@ export default async function EcheancesPage() {
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-foreground">{t('noDeadlines')}</h3>
+          <p className="mt-2 text-sm font-medium text-foreground">{t('noDeadlines')}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {t('deadlinesWillAppear')}
           </p>

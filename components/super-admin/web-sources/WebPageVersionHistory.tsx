@@ -153,7 +153,7 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6 text-slate-500">
+          <div className="text-center py-6 text-slate-400">
             <Icons.history className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm">Aucune version enregistrée pour cette page.</p>
           </div>
@@ -168,7 +168,7 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
         <CardTitle className="text-white text-base flex items-center gap-2">
           <Icons.history className="h-4 w-4" />
           Historique des versions
-          <span className="text-xs text-slate-500 font-normal ml-1">
+          <span className="text-xs text-slate-400 font-normal ml-1">
             ({versions.length})
           </span>
         </CardTitle>
@@ -249,7 +249,7 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <div className="flex items-center gap-3 text-xs text-slate-400">
                       <span className="flex items-center gap-1" title={version.contentHash}>
                         <Icons.hash className="h-3 w-3" />
                         {truncateHash(version.contentHash)}

@@ -221,7 +221,7 @@ export function BulkImportProgress({ batchId, onComplete }: BulkImportProgressPr
                       <Icons.loader className="h-4 w-4 text-blue-400 animate-spin" />
                     )}
                     {file.status === 'pending' && (
-                      <Icons.clock className="h-4 w-4 text-slate-500" />
+                      <Icons.clock className="h-4 w-4 text-slate-400" />
                     )}
                   </div>
 
@@ -230,7 +230,7 @@ export function BulkImportProgress({ batchId, onComplete }: BulkImportProgressPr
                       {file.title || file.filename}
                     </p>
                     {file.filename !== file.title && (
-                      <p className="text-xs text-slate-500 truncate">{file.filename}</p>
+                      <p className="text-xs text-slate-400 truncate">{file.filename}</p>
                     )}
                     {file.error && (
                       <p className="text-xs text-red-400 mt-0.5">{file.error}</p>

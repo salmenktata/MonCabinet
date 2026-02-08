@@ -80,7 +80,7 @@ export function DuplicateWarning({ duplicates, onDismiss }: DuplicateWarningProp
                 {dup.title}
               </Link>
             </div>
-            <span className="text-xs text-slate-500 shrink-0 ml-2">
+            <span className="text-xs text-slate-400 shrink-0 ml-2">
               {dup.category}
             </span>
           </div>

@@ -41,7 +41,7 @@ function ApiKeyRow({ apiKey, showFull }: { apiKey: ApiKey; showFull: boolean }) 
             </Badge>
           )}
         </div>
-        <p className="text-xs text-slate-500 font-mono mt-1">{apiKey.name}</p>
+        <p className="text-xs text-slate-400 font-mono mt-1">{apiKey.name}</p>
       </div>
       <div className="flex items-center gap-3">
         <code className={cn(

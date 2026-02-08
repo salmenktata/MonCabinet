@@ -112,7 +112,7 @@ export function TagsInput({
             tags.length >= maxTags ? `Maximum ${maxTags} tags` : placeholder
           }
           disabled={disabled || tags.length >= maxTags}
-          className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
+          className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
         />
 
         {/* Suggestions dropdown */}
@@ -132,7 +132,7 @@ export function TagsInput({
         )}
       </div>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-400">
         Appuyez sur Entrée pour ajouter un tag ({tags.length}/{maxTags})
       </p>
     </div>

@@ -212,9 +212,9 @@ export default async function TimeTrackingPage() {
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-foreground">
+          <p className="mt-2 text-sm font-medium text-foreground">
             {t('noEntries')}
-          </h3>
+          </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {t('createFirstEntry')}
           </p>

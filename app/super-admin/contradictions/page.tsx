@@ -181,7 +181,7 @@ export default async function ContradictionsPage({ searchParams }: PageProps) {
           <TableBody>
             {contradictionsData.items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                <TableCell colSpan={6} className="text-center py-8 text-slate-400">
                   <Icons.check className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   Aucune contradiction trouvée
                 </TableCell>
@@ -209,7 +209,7 @@ export default async function ContradictionsPage({ searchParams }: PageProps) {
                         {pageTitles[contradiction.sourcePageId] || 'Page source'}
                       </div>
                       {contradiction.targetPageId && (
-                        <div className="text-slate-500 truncate flex items-center gap-1">
+                        <div className="text-slate-400 truncate flex items-center gap-1">
                           <Icons.arrowRight className="h-3 w-3" />
                           {pageTitles[contradiction.targetPageId] || 'Page cible'}
                         </div>

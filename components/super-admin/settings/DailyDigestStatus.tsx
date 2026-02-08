@@ -111,7 +111,7 @@ CRON_SECRET=votre-secret-32-chars-minimum`}
           </div>
           <Badge className="bg-blue-500">Automatique</Badge>
         </div>
-        <div className="mt-3 text-xs text-slate-500">
+        <div className="mt-3 text-xs text-slate-400">
           <p>Endpoint: <code className="bg-slate-800 px-1 rounded">POST /api/cron/daily-digest</code></p>
           <p className="mt-1">
             Configurez un service cron externe (cron-job.org, Render, etc.) pour appeler cet endpoint.

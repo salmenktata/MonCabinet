@@ -25,7 +25,7 @@ function EnvelopeAnimatedIcon() {
     <div className="relative w-20 h-20 mx-auto">
       {/* Enveloppe principale */}
       <svg
-        className="w-full h-full text-blue-400 animate-float"
+        className="w-full h-full text-blue-500 animate-float"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -169,7 +169,7 @@ export default function ForgotPasswordPage() {
 
             <Link
               href="/login"
-              className="flex items-center justify-center gap-2 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              className="flex items-center justify-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
             >
               <ArrowLeftIcon className="w-4 h-4" />
               {t('backToLogin')}
@@ -182,7 +182,7 @@ export default function ForgotPasswordPage() {
           {/* Header avec illustration */}
           <div className="text-center space-y-4">
             <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-2xl flex items-center justify-center">
-              <LockKeyIcon className="w-8 h-8 text-blue-400" />
+              <LockKeyIcon className="w-8 h-8 text-blue-500" />
             </div>
             <div className="space-y-2">
               <h1 className="text-2xl font-bold text-foreground">
@@ -244,7 +244,7 @@ export default function ForgotPasswordPage() {
             <div className="text-center">
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
               >
                 <ArrowLeftIcon className="w-4 h-4" />
                 {t('backToLogin')}

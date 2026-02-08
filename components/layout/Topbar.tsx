@@ -59,7 +59,7 @@ export function Topbar({ user }: TopbarProps) {
           <ThemeToggle />
 
           {/* Notifications - TODO: implémenter */}
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
             <Icons.bell className="h-5 w-5" />
             {/* Badge de notification */}
             <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />

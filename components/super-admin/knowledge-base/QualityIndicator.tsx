@@ -32,7 +32,7 @@ export function QualityIndicator({
 }: QualityIndicatorProps) {
   if (score === null || score === undefined) {
     return (
-      <Badge variant="outline" className="border-slate-600 text-slate-500 text-xs">
+      <Badge variant="outline" className="border-slate-600 text-slate-400 text-xs">
         Non analysé
       </Badge>
     )

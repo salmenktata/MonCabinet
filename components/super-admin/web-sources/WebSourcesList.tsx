@@ -203,7 +203,7 @@ export function WebSourcesList({
 
   if (sources.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-500 bg-slate-800/50 rounded-lg">
+      <div className="text-center py-12 text-slate-400 bg-slate-800/50 rounded-lg">
         <Icons.globe className="h-12 w-12 mx-auto mb-4" />
         <p>Aucune source trouvée</p>
         <Link href="/super-admin/web-sources/new">
@@ -241,7 +241,7 @@ export function WebSourcesList({
                   {CATEGORY_LABELS[source.category] || source.category}
                 </Badge>
                 {!source.is_active && (
-                  <Badge variant="outline" className="border-slate-600 text-slate-500">
+                  <Badge variant="outline" className="border-slate-600 text-slate-400">
                     Inactive
                   </Badge>
                 )}
@@ -253,7 +253,7 @@ export function WebSourcesList({
               </div>
 
               <div className="flex items-center gap-2 mt-1">
-                <Icons.link className="h-3 w-3 text-slate-500" />
+                <Icons.link className="h-3 w-3 text-slate-400" />
                 <a
                   href={source.base_url}
                   target="_blank"
@@ -270,7 +270,7 @@ export function WebSourcesList({
                 </p>
               )}
 
-              <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+              <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
                 <span className="flex items-center gap-1">
                   <Icons.fileText className="h-3 w-3" />
                   {source.pages_count} pages ({source.indexed_count} indexées)

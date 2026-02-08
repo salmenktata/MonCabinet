@@ -26,7 +26,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <Button variant="ghost" size="icon" disabled>
+      <Button variant="ghost" size="icon" disabled aria-label="Changer le thème">
         <Icons.sun className="h-5 w-5" />
       </Button>
     )

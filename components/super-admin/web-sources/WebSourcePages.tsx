@@ -36,7 +36,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata }: WebSourcePagesProps) {
   if (pages.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-500">
+      <div className="text-center py-8 text-slate-400">
         <Icons.fileText className="h-8 w-8 mx-auto mb-2" />
         <p className="text-sm">Aucune page crawlée</p>
       </div>
@@ -57,7 +57,7 @@ export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata
               {page.is_indexed ? (
                 <Icons.checkCircle className="h-4 w-4 text-green-400" />
               ) : (
-                <Icons.file className="h-4 w-4 text-slate-500" />
+                <Icons.file className="h-4 w-4 text-slate-400" />
               )}
             </div>
 
@@ -65,7 +65,7 @@ export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata
               <p className="text-sm text-white truncate" title={page.title || page.url}>
                 {page.title || extractPath(page.url)}
               </p>
-              <p className="text-xs text-slate-500 truncate">{page.url}</p>
+              <p className="text-xs text-slate-400 truncate">{page.url}</p>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
@@ -81,7 +81,7 @@ export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata
                 </Badge>
               )}
               {page.chunks_count > 0 && (
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-400">
                   {page.chunks_count} chunks
                 </span>
               )}

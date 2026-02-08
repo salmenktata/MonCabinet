@@ -23,7 +23,7 @@ interface WebSourceLogsProps {
 export function WebSourceLogs({ logs }: WebSourceLogsProps) {
   if (logs.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-500">
+      <div className="text-center py-8 text-slate-400">
         <Icons.history className="h-8 w-8 mx-auto mb-2" />
         <p className="text-sm">Aucun historique</p>
       </div>
@@ -56,7 +56,7 @@ export function WebSourceLogs({ logs }: WebSourceLogsProps) {
               </Badge>
             </div>
 
-            <div className="flex items-center gap-4 text-xs text-slate-500">
+            <div className="flex items-center gap-4 text-xs text-slate-400">
               <span className="flex items-center gap-1">
                 <Icons.fileText className="h-3 w-3" />
                 {log.pages_crawled} pages

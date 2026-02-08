@@ -115,15 +115,15 @@ export default async function UserDetailPage({ params }: PageProps) {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-slate-500">Email</p>
+                <p className="text-sm text-slate-400">Email</p>
                 <p className="text-white">{user.email}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">Rôle</p>
+                <p className="text-sm text-slate-400">Rôle</p>
                 <p className="text-white capitalize">{user.role || 'user'}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">Inscrit le</p>
+                <p className="text-sm text-slate-400">Inscrit le</p>
                 <p className="text-white">
                   {new Date(user.created_at).toLocaleDateString('fr-FR', {
                     day: '2-digit',
@@ -133,7 +133,7 @@ export default async function UserDetailPage({ params }: PageProps) {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">Dernière connexion</p>
+                <p className="text-sm text-slate-400">Dernière connexion</p>
                 <p className="text-white">
                   {user.last_login_at
                     ? new Date(user.last_login_at).toLocaleString('fr-FR')
@@ -142,11 +142,11 @@ export default async function UserDetailPage({ params }: PageProps) {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">Nombre de connexions</p>
+                <p className="text-sm text-slate-400">Nombre de connexions</p>
                 <p className="text-white">{user.login_count || 0}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">Email vérifié</p>
+                <p className="text-sm text-slate-400">Email vérifié</p>
                 <p className="text-white">
                   {user.email_verified ? (
                     <Icons.checkCircle className="h-5 w-5 text-green-500" />
@@ -160,7 +160,7 @@ export default async function UserDetailPage({ params }: PageProps) {
             {/* Infos d'approbation */}
             {user.approved_at && (
               <div className="pt-4 border-t border-slate-700">
-                <p className="text-sm text-slate-500 mb-2">Approbation</p>
+                <p className="text-sm text-slate-400 mb-2">Approbation</p>
                 <p className="text-white">
                   Approuvé le {new Date(user.approved_at).toLocaleDateString('fr-FR')}
                   {user.approved_by_email && ` par ${user.approved_by_email}`}
@@ -170,7 +170,7 @@ export default async function UserDetailPage({ params }: PageProps) {
 
             {user.rejected_at && (
               <div className="pt-4 border-t border-slate-700">
-                <p className="text-sm text-slate-500 mb-2">Rejet</p>
+                <p className="text-sm text-slate-400 mb-2">Rejet</p>
                 <p className="text-white">
                   Rejeté le {new Date(user.rejected_at).toLocaleDateString('fr-FR')}
                 </p>
@@ -182,7 +182,7 @@ export default async function UserDetailPage({ params }: PageProps) {
 
             {user.suspended_at && (
               <div className="pt-4 border-t border-slate-700">
-                <p className="text-sm text-slate-500 mb-2">Suspension</p>
+                <p className="text-sm text-slate-400 mb-2">Suspension</p>
                 <p className="text-white">
                   Suspendu le {new Date(user.suspended_at).toLocaleDateString('fr-FR')}
                 </p>
@@ -257,7 +257,7 @@ export default async function UserDetailPage({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           {auditResult.rows.length === 0 ? (
-            <div className="text-center py-6 text-slate-500">
+            <div className="text-center py-6 text-slate-400">
               <Icons.activity className="h-12 w-12 mx-auto mb-2" />
               <p>Aucun historique</p>
             </div>
@@ -282,7 +282,7 @@ export default async function UserDetailPage({ params }: PageProps) {
                     <p className="text-sm font-medium text-white">
                       {log.action_type.replace(/_/g, ' ')}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400">
                       Par {log.admin_email}
                     </p>
                     {log.new_value && (
@@ -291,7 +291,7 @@ export default async function UserDetailPage({ params }: PageProps) {
                       </p>
                     )}
                   </div>
-                  <span className="text-xs text-slate-500 shrink-0">
+                  <span className="text-xs text-slate-400 shrink-0">
                     {new Date(log.created_at).toLocaleString('fr-FR')}
                   </span>
                 </div>

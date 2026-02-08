@@ -154,7 +154,7 @@ export default async function SettingsPage() {
           <div className="text-slate-400 text-center py-8">
             <Icons.settings className="h-12 w-12 mx-auto mb-4 text-slate-600" />
             <p>Configuration des plans à venir</p>
-            <p className="text-sm text-slate-500 mt-2">
+            <p className="text-sm text-slate-400 mt-2">
               Les limites sont actuellement codées en dur dans l'application
             </p>
           </div>

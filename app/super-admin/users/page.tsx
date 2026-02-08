@@ -157,7 +157,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                   <p className="text-2xl font-bold text-slate-400">{stats.rejected}</p>
                   <p className="text-sm text-slate-400">Rejetés</p>
                 </div>
-                <Icons.xCircle className="h-8 w-8 text-slate-500/20" />
+                <Icons.xCircle className="h-8 w-8 text-slate-400/20" />
               </div>
             </CardContent>
           </Card>

@@ -120,7 +120,7 @@ export function VersionHistory({
         </CardHeader>
         <CardContent>
           {versions.length === 0 ? (
-            <p className="text-slate-500 text-sm">
+            <p className="text-slate-400 text-sm">
               {lang === 'fr' ? 'Aucune version enregistrée.' : 'لا توجد نسخ مسجلة.'}
             </p>
           ) : (
@@ -157,7 +157,7 @@ export function VersionHistory({
                         </p>
                       )}
 
-                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                      <div className="flex items-center gap-3 text-xs text-slate-400">
                         <span>{formatDate(version.changedAt)}</span>
                         {version.changedByEmail && (
                           <>

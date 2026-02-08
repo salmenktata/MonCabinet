@@ -187,7 +187,7 @@ function SuperAdminSidebarComponent({
       <nav className="flex-1 space-y-6 p-4 overflow-y-auto">
         {groupsWithState.map((group, groupIndex) => (
           <div key={group.group} className="space-y-1">
-            <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <h3 className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {group.group}
             </h3>
             {group.items.map((item) => (

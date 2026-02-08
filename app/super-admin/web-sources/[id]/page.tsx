@@ -160,7 +160,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
                 {CATEGORY_LABELS[source.category] || source.category}
               </Badge>
               {!source.is_active && (
-                <Badge variant="outline" className="border-slate-600 text-slate-500">
+                <Badge variant="outline" className="border-slate-600 text-slate-400">
                   Inactive
                 </Badge>
               )}
@@ -231,31 +231,31 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <span className="text-slate-500">Fréquence</span>
+              <span className="text-slate-400">Fréquence</span>
               <p className="text-white">{source.crawl_frequency}</p>
             </div>
             <div>
-              <span className="text-slate-500">Profondeur max</span>
+              <span className="text-slate-400">Profondeur max</span>
               <p className="text-white">{source.max_depth} niveaux</p>
             </div>
             <div>
-              <span className="text-slate-500">Limite pages</span>
+              <span className="text-slate-400">Limite pages</span>
               <p className="text-white">{source.max_pages}</p>
             </div>
             <div>
-              <span className="text-slate-500">Rate limit</span>
+              <span className="text-slate-400">Rate limit</span>
               <p className="text-white">{source.rate_limit_ms}ms</p>
             </div>
             <div>
-              <span className="text-slate-500">JavaScript</span>
+              <span className="text-slate-400">JavaScript</span>
               <p className="text-white">{source.requires_javascript ? 'Oui' : 'Non'}</p>
             </div>
             <div>
-              <span className="text-slate-500">Téléchargement fichiers</span>
+              <span className="text-slate-400">Téléchargement fichiers</span>
               <p className="text-white">{source.download_files ? 'Oui' : 'Non'}</p>
             </div>
             <div>
-              <span className="text-slate-500">Dernier crawl</span>
+              <span className="text-slate-400">Dernier crawl</span>
               <p className="text-white">
                 {source.last_crawl_at
                   ? new Date(source.last_crawl_at).toLocaleString('fr-FR')
@@ -263,7 +263,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
               </p>
             </div>
             <div>
-              <span className="text-slate-500">Prochain crawl</span>
+              <span className="text-slate-400">Prochain crawl</span>
               <p className="text-white">
                 {source.next_crawl_at
                   ? new Date(source.next_crawl_at).toLocaleString('fr-FR')

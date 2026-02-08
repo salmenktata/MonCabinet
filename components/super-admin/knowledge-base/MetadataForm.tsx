@@ -45,7 +45,7 @@ export function MetadataForm({
 
   if (fields.length === 0) {
     return (
-      <div className="text-sm text-slate-500 italic py-2">
+      <div className="text-sm text-slate-400 italic py-2">
         Aucun champ de métadonnées spécifique pour cette catégorie.
       </div>
     )
@@ -113,7 +113,7 @@ function MetadataField({
             placeholder={field.placeholder}
             disabled={disabled}
             required={isRequired}
-            className="mt-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
+            className="mt-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
           />
         </div>
       )
@@ -132,7 +132,7 @@ function MetadataField({
             disabled={disabled}
             required={isRequired}
             rows={3}
-            className="mt-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
+            className="mt-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
           />
         </div>
       )

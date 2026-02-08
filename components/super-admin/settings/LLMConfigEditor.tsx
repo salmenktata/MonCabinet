@@ -124,7 +124,7 @@ export function LLMConfigEditor({ configs: initialConfigs }: LLMConfigEditorProp
                       <Badge className="bg-blue-500 text-xs">Prioritaire</Badge>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500">{config.description}</p>
+                  <p className="text-xs text-slate-400">{config.description}</p>
                 </div>
                 <Badge className={config.value ? 'bg-green-500' : 'bg-red-500'}>
                   {config.value ? 'Configuré' : 'Manquant'}

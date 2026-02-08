@@ -480,7 +480,7 @@ export default function RegisterPage() {
         {t('alreadyHaveAccount')}{' '}
         <Link
           href="/login"
-          className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
+          className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
         >
           {t('loginButton')}
         </Link>

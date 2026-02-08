@@ -125,7 +125,7 @@ function FiltersForm({
           <div className="flex-1 min-w-[200px]">
             <label className="text-sm text-slate-400 mb-1 block">Recherche</label>
             <div className="relative">
-              <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 name="search"
                 defaultValue={search}
@@ -137,8 +137,9 @@ function FiltersForm({
 
           {/* Catégorie */}
           <div className="w-48">
-            <label className="text-sm text-slate-400 mb-1 block">Catégorie</label>
+            <label htmlFor="filter-category" className="text-sm text-slate-400 mb-1 block">Catégorie</label>
             <select
+              id="filter-category"
               name="category"
               defaultValue={category}
               className="w-full h-10 px-3 rounded-md bg-slate-700 border border-slate-600 text-white text-sm"
@@ -159,8 +160,9 @@ function FiltersForm({
 
           {/* Statut indexation */}
           <div className="w-40">
-            <label className="text-sm text-slate-400 mb-1 block">Indexation</label>
+            <label htmlFor="filter-indexed" className="text-sm text-slate-400 mb-1 block">Indexation</label>
             <select
+              id="filter-indexed"
               name="indexed"
               defaultValue={indexed}
               className="w-full h-10 px-3 rounded-md bg-slate-700 border border-slate-600 text-white text-sm"

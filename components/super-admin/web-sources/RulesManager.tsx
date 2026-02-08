@@ -438,7 +438,7 @@ export function RulesManager({
                             ))}
                           </div>
 
-                          <div className="flex items-center gap-4 text-xs text-slate-500">
+                          <div className="flex items-center gap-4 text-xs text-slate-400">
                             {rule.targetCategory && (
                               <span>
                                 <Icons.tag className="h-3 w-3 inline mr-1" />
@@ -509,7 +509,7 @@ export function RulesManager({
             </CardHeader>
             <CardContent>
               {globalRules.length === 0 ? (
-                <p className="text-sm text-slate-500 text-center py-4">
+                <p className="text-sm text-slate-400 text-center py-4">
                   Aucune règle globale
                 </p>
               ) : (
@@ -530,7 +530,7 @@ export function RulesManager({
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-slate-400 mt-1">
                         {rule.timesMatched} match(es)
                       </p>
                     </div>
@@ -662,7 +662,7 @@ export function RulesManager({
               <Label className="mb-2 block">Classification cible</Label>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label className="text-xs text-slate-500">Catégorie</Label>
+                  <Label className="text-xs text-slate-400">Catégorie</Label>
                   <Select
                     value={formData.targetCategory}
                     onValueChange={(value) => setFormData({ ...formData, targetCategory: value })}
@@ -682,7 +682,7 @@ export function RulesManager({
                 </div>
 
                 <div>
-                  <Label className="text-xs text-slate-500">Domaine</Label>
+                  <Label className="text-xs text-slate-400">Domaine</Label>
                   <Select
                     value={formData.targetDomain}
                     onValueChange={(value) => setFormData({ ...formData, targetDomain: value })}
@@ -702,7 +702,7 @@ export function RulesManager({
                 </div>
 
                 <div>
-                  <Label className="text-xs text-slate-500">Type de document</Label>
+                  <Label className="text-xs text-slate-400">Type de document</Label>
                   <Select
                     value={formData.targetDocumentType}
                     onValueChange={(value) => setFormData({ ...formData, targetDocumentType: value })}

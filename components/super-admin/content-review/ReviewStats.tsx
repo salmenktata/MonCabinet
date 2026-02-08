@@ -105,7 +105,7 @@ export function ReviewStatsCompact({
         <span className="text-slate-400">{queueStats.completedToday} traitées</span>
       </div>
       {queueStats.avgDecisionTimeMs > 0 && (
-        <div className="text-slate-500">
+        <div className="text-slate-400">
           ~{Math.round(queueStats.avgDecisionTimeMs / 1000)}s / décision
         </div>
       )}

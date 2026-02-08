@@ -123,7 +123,7 @@ export function ReviewQueue({
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                <TableCell colSpan={7} className="text-center py-8 text-slate-400">
                   <Icons.inbox className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   Aucun item dans la queue
                 </TableCell>
@@ -142,7 +142,7 @@ export function ReviewQueue({
                       {item.title}
                     </Link>
                     {item.description && (
-                      <p className="text-xs text-slate-500 truncate max-w-xs mt-1">
+                      <p className="text-xs text-slate-400 truncate max-w-xs mt-1">
                         {item.description}
                       </p>
                     )}
@@ -167,10 +167,10 @@ export function ReviewQueue({
                         {item.qualityScore}
                       </span>
                     ) : (
-                      <span className="text-slate-500">-</span>
+                      <span className="text-slate-400">-</span>
                     )}
                     {item.confidenceScore !== null && (
-                      <span className="text-xs text-slate-500 ml-1">
+                      <span className="text-xs text-slate-400 ml-1">
                         ({(item.confidenceScore * 100).toFixed(0)}%)
                       </span>
                     )}

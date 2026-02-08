@@ -291,10 +291,10 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-white">{item.labelFr}</span>
-                        <span className="text-slate-500">/</span>
+                        <span className="text-slate-400">/</span>
                         <span className="text-slate-400" dir="rtl">{item.labelAr}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
                         <code className="bg-slate-700 px-1 rounded">{item.code}</code>
                         {item.isSystem && (
                           <Badge variant="outline" className="text-xs">Système</Badge>
@@ -340,7 +340,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-white">{child.labelFr}</span>
-                            <span className="text-slate-500">/</span>
+                            <span className="text-slate-400">/</span>
                             <span className="text-sm text-slate-400" dir="rtl">{child.labelAr}</span>
                           </div>
                           <code className="text-xs text-slate-600">{child.code}</code>
@@ -372,7 +372,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
               </div>
             ))}
             {filteredItems.length === 0 && (
-              <p className="text-slate-500 text-center py-4">
+              <p className="text-slate-400 text-center py-4">
                 Aucun élément trouvé
               </p>
             )}
@@ -403,7 +403,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
           {/* Recherche */}
           <div className="mb-4">
             <div className="relative">
-              <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Rechercher..."
                 value={searchTerm}

@@ -66,7 +66,7 @@ function ProviderCard({
               Actif
             </Badge>
           )}
-          <span className="text-xs text-slate-500">Priorité: {priority}</span>
+          <span className="text-xs text-slate-400">Priorité: {priority}</span>
         </div>
         <ProviderTestButton
           provider={provider}
@@ -342,7 +342,7 @@ export function AIProvidersConfig() {
                   Actif
                 </Badge>
               )}
-              <span className="text-xs text-slate-500">Priorité: 3</span>
+              <span className="text-xs text-slate-400">Priorité: 3</span>
             </div>
             <div className="flex items-center gap-2">
               <Button

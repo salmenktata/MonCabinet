@@ -213,7 +213,7 @@ export function ReviewDetail({
             <div className="max-h-96 overflow-y-auto text-sm text-slate-300 whitespace-pre-wrap bg-slate-800/50 p-4 rounded-lg">
               {targetDetails.page.content.substring(0, 3000)}
               {targetDetails.page.content.length > 3000 && (
-                <span className="text-slate-500">
+                <span className="text-slate-400">
                   ... [{targetDetails.page.content.length - 3000} caractères tronqués]
                 </span>
               )}

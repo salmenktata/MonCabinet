@@ -236,12 +236,12 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
             }
           `}
         >
-          <Icons.upload className={`h-10 w-10 ${isDragOver ? 'text-blue-400' : 'text-slate-500'}`} />
+          <Icons.upload className={`h-10 w-10 ${isDragOver ? 'text-blue-400' : 'text-slate-400'}`} />
           <div className="text-center">
             <p className={`text-sm font-medium ${isDragOver ? 'text-blue-300' : 'text-slate-300'}`}>
               {isDragOver ? 'Déposez les fichiers ici' : 'Glissez-déposez vos fichiers ici'}
             </p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               ou cliquez pour parcourir - PDF, DOCX, DOC, TXT
             </p>
           </div>
@@ -261,7 +261,7 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
             <div className="flex items-center justify-between">
               <Label className="text-slate-300">
                 {files.length} fichier(s) sélectionné(s)
-                <span className="text-slate-500 ml-2">
+                <span className="text-slate-400 ml-2">
                   ({(totalSize / 1024 / 1024).toFixed(2)} Mo)
                 </span>
               </Label>
@@ -283,14 +283,14 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
                   key={entry.id}
                   className="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50"
                 >
-                  <Icons.fileText className="h-4 w-4 text-slate-500 shrink-0" />
+                  <Icons.fileText className="h-4 w-4 text-slate-400 shrink-0" />
                   <Input
                     value={entry.title}
                     onChange={(e) => updateFileTitle(entry.id, e.target.value)}
                     className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
                     placeholder="Titre du document"
                   />
-                  <span className="text-xs text-slate-500 shrink-0 w-16 text-right">
+                  <span className="text-xs text-slate-400 shrink-0 w-16 text-right">
                     {(entry.file.size / 1024).toFixed(0)} Ko
                   </span>
                   <Button
@@ -349,7 +349,7 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-slate-300">Indexation automatique</Label>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Indexer automatiquement les documents après l'upload
               </p>
             </div>

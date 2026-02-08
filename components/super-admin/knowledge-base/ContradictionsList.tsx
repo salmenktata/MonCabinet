@@ -62,7 +62,7 @@ export function ContradictionsList({ relations, currentDocumentId }: Contradicti
 
   if (relations.length === 0) {
     return (
-      <div className="text-center py-6 text-slate-500 text-sm">
+      <div className="text-center py-6 text-slate-400 text-sm">
         Aucune relation détectée
       </div>
     )
@@ -134,13 +134,13 @@ export function ContradictionsList({ relations, currentDocumentId }: Contradicti
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       {c.sourceExcerpt && (
                         <div className="p-2 bg-slate-800 rounded">
-                          <div className="text-slate-500 mb-1">Source</div>
+                          <div className="text-slate-400 mb-1">Source</div>
                           <div className="text-slate-300 line-clamp-3">{c.sourceExcerpt}</div>
                         </div>
                       )}
                       {c.targetExcerpt && (
                         <div className="p-2 bg-slate-800 rounded">
-                          <div className="text-slate-500 mb-1">Cible</div>
+                          <div className="text-slate-400 mb-1">Cible</div>
                           <div className="text-slate-300 line-clamp-3">{c.targetExcerpt}</div>
                         </div>
                       )}

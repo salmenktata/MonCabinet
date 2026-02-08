@@ -34,7 +34,7 @@ const TYPE_LABELS: Record<string, string> = {
 export function ContradictionViewer({ contradictions }: ContradictionViewerProps) {
   if (contradictions.length === 0) {
     return (
-      <div className="text-center py-4 text-slate-500">
+      <div className="text-center py-4 text-slate-400">
         Aucune contradiction détectée
       </div>
     )
@@ -92,7 +92,7 @@ function ContradictionCard({ contradiction }: { contradiction: ContentContradict
         <div className="grid grid-cols-2 gap-2 p-3 border-t border-slate-700 bg-slate-800/30">
           {contradiction.sourceExcerpt && (
             <div>
-              <div className="text-xs text-slate-500 mb-1 flex items-center gap-1">
+              <div className="text-xs text-slate-400 mb-1 flex items-center gap-1">
                 <Icons.fileText className="h-3 w-3" />
                 Document source
               </div>
@@ -103,7 +103,7 @@ function ContradictionCard({ contradiction }: { contradiction: ContentContradict
           )}
           {contradiction.targetExcerpt && (
             <div>
-              <div className="text-xs text-slate-500 mb-1 flex items-center gap-1">
+              <div className="text-xs text-slate-400 mb-1 flex items-center gap-1">
                 <Icons.fileText className="h-3 w-3" />
                 Document cible
               </div>
@@ -136,7 +136,7 @@ function ContradictionCard({ contradiction }: { contradiction: ContentContradict
       {/* Références affectées */}
       {contradiction.affectedReferences && contradiction.affectedReferences.length > 0 && (
         <div className="p-3 border-t border-slate-700">
-          <span className="text-xs text-slate-500">Références affectées:</span>
+          <span className="text-xs text-slate-400">Références affectées:</span>
           <div className="flex flex-wrap gap-1 mt-1">
             {contradiction.affectedReferences.map((ref, i) => (
               <Badge key={i} variant="outline" className="text-xs bg-slate-800">

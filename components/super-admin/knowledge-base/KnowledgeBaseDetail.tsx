@@ -403,7 +403,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                   </div>
                   {document.qualityDetectedIssues && document.qualityDetectedIssues.length > 0 && (
                     <div>
-                      <p className="text-xs text-slate-500 mb-1">Problèmes détectés:</p>
+                      <p className="text-xs text-slate-400 mb-1">Problèmes détectés:</p>
                       <ul className="text-xs text-yellow-400 space-y-0.5">
                         {document.qualityDetectedIssues.slice(0, 3).map((issue, i) => (
                           <li key={i}>- {issue}</li>
@@ -413,7 +413,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                   )}
                 </>
               ) : (
-                <p className="text-slate-500 text-xs">Analyse non effectuée</p>
+                <p className="text-slate-400 text-xs">Analyse non effectuée</p>
               )}
             </CardContent>
           </Card>

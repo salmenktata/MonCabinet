@@ -76,7 +76,7 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
           value={searchValue}
           onChange={handleSearchChange}
           placeholder="Rechercher par nom ou URL..."
-          className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+          className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
         />
       </div>
 

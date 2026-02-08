@@ -177,12 +177,12 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
                       <span className="font-medium text-white">{suggestion.suggestedLabelFr}</span>
                       {suggestion.suggestedLabelAr && (
                         <>
-                          <span className="text-slate-500">/</span>
+                          <span className="text-slate-400">/</span>
                           <span className="text-slate-400" dir="rtl">{suggestion.suggestedLabelAr}</span>
                         </>
                       )}
                     </div>
-                    <code className="text-xs text-slate-500 bg-slate-700 px-2 py-0.5 rounded">
+                    <code className="text-xs text-slate-400 bg-slate-700 px-2 py-0.5 rounded">
                       {suggestion.suggestedCode}
                     </code>
                   </div>
@@ -195,7 +195,7 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
                   )}
 
                   {suggestion.sampleUrls.length > 0 && (
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-slate-400">
                       <p className="mb-1">URLs d'exemple:</p>
                       <ul className="list-disc list-inside">
                         {suggestion.sampleUrls.slice(0, 3).map((url, i) => (

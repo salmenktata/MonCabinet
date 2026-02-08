@@ -80,7 +80,7 @@ export function CategorySelector({
             ))}
             {/* Anciennes catégories pour rétrocompatibilité */}
             <SelectGroup>
-              <SelectLabel className="text-slate-500">Anciennes catégories</SelectLabel>
+              <SelectLabel className="text-slate-400">Anciennes catégories</SelectLabel>
               <SelectItem value="code" className="text-slate-400 hover:bg-slate-700">
                 Code (ancien)
               </SelectItem>

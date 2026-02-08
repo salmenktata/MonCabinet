@@ -49,7 +49,7 @@ export function ChatMessages({ messages, isLoading, streamingContent }: ChatMess
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <Icons.messageSquare className="h-8 w-8 text-primary" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">{t('welcomeTitle')}</h3>
+          <h2 className="text-lg font-semibold mb-2">{t('welcomeTitle')}</h2>
           <p className="text-muted-foreground text-sm">{t('welcomeMessage')}</p>
           <div className="mt-6 space-y-2">
             <p className="text-xs font-medium text-muted-foreground">{t('exampleQuestions')}</p>

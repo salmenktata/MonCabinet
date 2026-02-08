@@ -263,7 +263,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-end">
           <Link
             href="/forgot-password"
-            className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors underline underline-offset-2"
           >
             {t('forgotPassword')}
           </Link>
@@ -291,7 +291,7 @@ export default function LoginPage() {
         {t('noAccount')}{' '}
         <Link
           href="/register"
-          className="font-medium text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
+          className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors underline underline-offset-2"
         >
           {tCommon('register')}
         </Link>

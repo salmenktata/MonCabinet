@@ -256,9 +256,9 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
       {/* Stats Dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-          <p className="text-xs text-slate-500 mb-1">Total fichiers</p>
+          <p className="text-xs text-slate-400 mb-1">Total fichiers</p>
           <p className="text-2xl font-bold text-white">{stats.totalFiles}</p>
-          <p className="text-xs text-slate-500 mt-1">{formatFileSize(stats.totalSize)}</p>
+          <p className="text-xs text-slate-400 mt-1">{formatFileSize(stats.totalSize)}</p>
         </div>
         <div className="bg-green-500/10 rounded-lg p-4 border border-green-500/20">
           <p className="text-xs text-green-400 mb-1">Indexés</p>
@@ -299,12 +299,12 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
-          <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             placeholder="Rechercher un fichier..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+            className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
           />
         </div>
 
@@ -380,7 +380,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
 
       {/* Empty state */}
       {!loading && files.length === 0 && (
-        <div className="text-center py-12 text-slate-500 bg-slate-800/30 rounded-lg">
+        <div className="text-center py-12 text-slate-400 bg-slate-800/30 rounded-lg">
           <Icons.file className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p className="text-lg">Aucun fichier trouvé</p>
           {hasFilters && (
@@ -457,7 +457,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-slate-400">
                         {formatDate(file.indexedAt || file.downloadedAt || file.createdAt)}
                       </span>
                     </td>
@@ -522,7 +522,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
       {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-400">
             Page {pagination.page} sur {pagination.totalPages} ({pagination.total} fichiers)
           </p>
           <div className="flex gap-2">

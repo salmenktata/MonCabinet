@@ -146,7 +146,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
               </Link>
             )}
 
-            <div className="ml-auto text-sm text-slate-500">
+            <div className="ml-auto text-sm text-slate-400">
               {total} entrées
             </div>
           </div>
@@ -163,7 +163,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
         </CardHeader>
         <CardContent>
           {logsResult.rows.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-slate-400">
               <Icons.shield className="h-12 w-12 mx-auto mb-4" />
               <p>Aucun log d'audit</p>
             </div>
@@ -203,7 +203,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
                       </p>
                     )}
                     {(log.old_value || log.new_value) && (
-                      <div className="mt-2 text-xs text-slate-500 font-mono bg-slate-800 rounded p-2 overflow-x-auto">
+                      <div className="mt-2 text-xs text-slate-400 font-mono bg-slate-800 rounded p-2 overflow-x-auto">
                         {log.old_value && (
                           <div>
                             <span className="text-red-400">-</span> {JSON.stringify(log.old_value)}
@@ -221,7 +221,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
                     <p className="text-sm text-white">
                       {new Date(log.created_at).toLocaleDateString('fr-FR')}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400">
                       {new Date(log.created_at).toLocaleTimeString('fr-FR')}
                     </p>
                     {log.ip_address && (

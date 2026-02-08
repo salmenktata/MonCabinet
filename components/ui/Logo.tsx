@@ -192,9 +192,7 @@ export function Logo({
       {showText && (
         <span
           className={cn(
-            'font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent',
-            'dark:from-slate-100 dark:to-slate-300',
-            'light:from-slate-800 light:to-slate-600',
+            'font-bold tracking-tight bg-gradient-to-r from-slate-700 to-slate-900 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent',
             text
           )}
         >

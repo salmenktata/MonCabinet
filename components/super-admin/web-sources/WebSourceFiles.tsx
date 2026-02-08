@@ -216,7 +216,7 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
 
   if (files.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-500">
+      <div className="text-center py-12 text-slate-400">
         <Icons.file className="h-12 w-12 mx-auto mb-3 opacity-50" />
         <p className="text-lg">Aucun fichier</p>
         <p className="text-sm mt-1">Les fichiers (PDF, DOCX) apparaîtront ici après le crawl</p>
@@ -229,7 +229,7 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-slate-800/50 rounded-lg p-3">
-          <p className="text-xs text-slate-500 mb-1">Total</p>
+          <p className="text-xs text-slate-400 mb-1">Total</p>
           <p className="text-xl font-semibold text-white">{stats.totalFiles}</p>
         </div>
         <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
@@ -307,7 +307,7 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
                     </span>
                   </td>
                   <td className="py-3 px-2">
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-400">
                       {formatDate(file.indexedAt || file.downloadedAt || file.createdAt)}
                     </span>
                   </td>
@@ -371,7 +371,7 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
       {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-400">
             Page {pagination.page} sur {pagination.totalPages} ({pagination.total} fichiers)
           </p>
           <div className="flex gap-2">

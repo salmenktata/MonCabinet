@@ -190,7 +190,7 @@ export function KnowledgeBaseList({
 
   if (documents.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-500">
+      <div className="text-center py-12 text-slate-400">
         <Icons.bookOpen className="h-12 w-12 mx-auto mb-4" />
         <p>Aucun document trouvé</p>
       </div>
@@ -301,7 +301,7 @@ export function KnowledgeBaseList({
                   {doc.title}
                 </Link>
                 {doc.version && doc.version > 1 && (
-                  <span className="text-xs text-slate-500 bg-slate-700 px-1.5 py-0.5 rounded">
+                  <span className="text-xs text-slate-400 bg-slate-700 px-1.5 py-0.5 rounded">
                     v{doc.version}
                   </span>
                 )}
@@ -343,7 +343,7 @@ export function KnowledgeBaseList({
                 </div>
               )}
 
-              <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+              <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
                 {doc.file_name && (
                   <span className="flex items-center gap-1">
                     <Icons.attachment className="h-3 w-3" />

@@ -69,7 +69,7 @@ function MetadataField({ label, value }: { label: string; value: string | null |
   if (!value) return null
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-slate-500">{label}</span>
+      <span className="text-xs text-slate-400">{label}</span>
       <span className="text-sm text-white">{value}</span>
     </div>
   )
@@ -215,7 +215,7 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6 text-slate-500">
+          <div className="text-center py-6 text-slate-400">
             <Icons.fileSearch className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm mb-3">Aucune métadonnée extraite pour cette page.</p>
             <Button
@@ -295,7 +295,7 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
         {/* Confidence indicator */}
         {metadata.confidence != null && (
           <div className="space-y-1">
-            <span className="text-xs text-slate-500">Confiance d'extraction</span>
+            <span className="text-xs text-slate-400">Confiance d'extraction</span>
             <ConfidenceIndicator confidence={metadata.confidence} />
           </div>
         )}
@@ -340,7 +340,7 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
             <MetadataField label="Publication" value={metadata.publicationName} />
             {metadata.keywords && metadata.keywords.length > 0 && (
               <div className="flex flex-col gap-1 sm:col-span-2">
-                <span className="text-xs text-slate-500">Mots-clés</span>
+                <span className="text-xs text-slate-400">Mots-clés</span>
                 <div className="flex flex-wrap gap-1">
                   {metadata.keywords.map((kw) => (
                     <span
@@ -355,7 +355,7 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
             )}
             {metadata.abstract && (
               <div className="flex flex-col gap-0.5 sm:col-span-2">
-                <span className="text-xs text-slate-500">Résumé</span>
+                <span className="text-xs text-slate-400">Résumé</span>
                 <p className="text-sm text-white leading-relaxed">{metadata.abstract}</p>
               </div>
             )}

@@ -377,7 +377,7 @@ export function AddWebSourceWizard() {
                 step={1}
                 className="mt-2"
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 Nombre de niveaux de liens à suivre depuis la page d'accueil
               </p>
             </div>
@@ -410,7 +410,7 @@ export function AddWebSourceWizard() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-slate-300">Site dynamique (JavaScript)</Label>
-                  <p className="text-xs text-slate-500">Utilise Playwright pour les sites SPA</p>
+                  <p className="text-xs text-slate-400">Utilise Playwright pour les sites SPA</p>
                 </div>
                 <Switch
                   checked={formData.requiresJavascript}
@@ -421,7 +421,7 @@ export function AddWebSourceWizard() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-slate-300">Télécharger les fichiers (PDF, DOCX)</Label>
-                  <p className="text-xs text-slate-500">Indexe les documents liés</p>
+                  <p className="text-xs text-slate-400">Indexe les documents liés</p>
                 </div>
                 <Switch
                   checked={formData.downloadFiles}
@@ -432,7 +432,7 @@ export function AddWebSourceWizard() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-slate-300">Respecter robots.txt</Label>
-                  <p className="text-xs text-slate-500">Recommandé pour rester éthique</p>
+                  <p className="text-xs text-slate-400">Recommandé pour rester éthique</p>
                 </div>
                 <Switch
                   checked={formData.respectRobotsTxt}
@@ -443,7 +443,7 @@ export function AddWebSourceWizard() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-slate-300">Utiliser le sitemap</Label>
-                  <p className="text-xs text-slate-500">Découvre les URLs via sitemap.xml</p>
+                  <p className="text-xs text-slate-400">Découvre les URLs via sitemap.xml</p>
                 </div>
                 <Switch
                   checked={formData.useSitemap}
@@ -483,7 +483,7 @@ export function AddWebSourceWizard() {
                 placeholder="article, .content, #main-content"
                 className="mt-1 bg-slate-900 border-slate-600 text-white"
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 Séparez par des virgules. Laissez vide pour la détection auto.
               </p>
             </div>
@@ -549,7 +549,7 @@ export function AddWebSourceWizard() {
                       <p className="text-sm text-slate-400">
                         {testResult.extraction?.linksCount} liens, {testResult.extraction?.filesCount} fichiers
                       </p>
-                      <p className="text-xs text-slate-500 line-clamp-3">
+                      <p className="text-xs text-slate-400 line-clamp-3">
                         {testResult.extraction?.contentPreview}
                       </p>
                     </div>

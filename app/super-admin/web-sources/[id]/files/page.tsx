@@ -107,23 +107,23 @@ export default async function WebSourceFilesPage({ params }: PageProps) {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
           <div>
             <p className="text-2xl font-bold text-white">{stats.total_files}</p>
-            <p className="text-xs text-slate-500">Fichiers</p>
+            <p className="text-xs text-slate-400">Fichiers</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-green-400">{indexationRate}%</p>
-            <p className="text-xs text-slate-500">Taux indexation</p>
+            <p className="text-xs text-slate-400">Taux indexation</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-blue-400">{stats.total_chunks}</p>
-            <p className="text-xs text-slate-500">Chunks</p>
+            <p className="text-xs text-slate-400">Chunks</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-red-400">{stats.error_files}</p>
-            <p className="text-xs text-slate-500">Erreurs</p>
+            <p className="text-xs text-slate-400">Erreurs</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-purple-400">{formatBytes(parseInt(stats.total_size))}</p>
-            <p className="text-xs text-slate-500">Stockage</p>
+            <p className="text-xs text-slate-400">Stockage</p>
           </div>
         </div>
       </div>

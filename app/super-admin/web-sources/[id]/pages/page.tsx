@@ -187,7 +187,7 @@ export default async function WebSourcePagesPage({
         </CardHeader>
         <CardContent>
           {pages.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-slate-400">
               <Icons.fileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Aucune page trouvée</p>
             </div>

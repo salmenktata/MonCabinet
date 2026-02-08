@@ -84,7 +84,7 @@ function StatCard({ icon, label, value, subValue, color }: StatCardProps) {
         <span className="text-sm text-slate-300">{label}</span>
       </div>
       <div className="text-2xl font-bold text-white">{value}</div>
-      <div className="text-xs text-slate-500 mt-1">{subValue}</div>
+      <div className="text-xs text-slate-400 mt-1">{subValue}</div>
     </div>
   )
 }

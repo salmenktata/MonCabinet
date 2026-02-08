@@ -67,7 +67,7 @@ export function UsersFilters({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+          className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-400"
         />
         <Button
           onClick={handleSearch}

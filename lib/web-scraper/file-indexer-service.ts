@@ -310,9 +310,9 @@ export async function indexFile(
       // Créer le document dans knowledge_base
       const kbResult = await client.query(
         `INSERT INTO knowledge_base (
-          title, content, category, language, source_type, source_url,
-          is_indexed, word_count
-        ) VALUES ($1, $2, $3, $4, 'web_file', $5, true, $6)
+          title, full_text, category, language, source_file,
+          file_name, file_type, is_indexed, chunk_count
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8)
         RETURNING id`,
         [
           parsed.metadata.title || file.filename,
@@ -320,7 +320,9 @@ export async function indexFile(
           category,
           language,
           file.url,
-          parsed.metadata.wordCount,
+          file.filename,
+          file.type,
+          chunks.length,
         ]
       )
 
@@ -333,19 +335,16 @@ export async function indexFile(
 
         if (!embedding) continue
 
-        // Estimer les tokens (~1.3 tokens par mot en moyenne)
-        const tokenCount = Math.ceil(chunk.metadata.wordCount * 1.3)
-
         await client.query(
           `INSERT INTO knowledge_base_chunks (
-            knowledge_base_id, chunk_index, content, token_count, embedding
+            knowledge_base_id, chunk_index, content, embedding, metadata
           ) VALUES ($1, $2, $3, $4, $5)`,
           [
             knowledgeBaseId,
             i,
             chunk.content,
-            tokenCount,
             formatEmbeddingForPostgres(embedding),
+            JSON.stringify({ wordCount: chunk.metadata.wordCount, tokenCount: Math.ceil(chunk.metadata.wordCount * 1.3) }),
           ]
         )
       }

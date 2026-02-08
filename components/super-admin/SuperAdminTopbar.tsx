@@ -100,7 +100,7 @@ export function SuperAdminTopbar({
             <DropdownMenuLabel className="text-slate-400">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium text-white">{displayName}</p>
-                <p className="text-xs text-slate-500">{user.email}</p>
+                <p className="text-xs text-slate-400">{user.email}</p>
                 <Badge variant="secondary" className="w-fit mt-1 bg-blue-600 text-white">
                   Super Admin
                 </Badge>

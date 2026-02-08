@@ -47,7 +47,7 @@ async function PlansStats() {
             <CardContent>
               <div className="flex items-center gap-4">
                 <div className="text-4xl font-bold text-white">{stats.count}</div>
-                <p className="text-sm text-slate-500">utilisateurs</p>
+                <p className="text-sm text-slate-400">utilisateurs</p>
               </div>
             </CardContent>
           </Card>
@@ -91,7 +91,7 @@ async function UsersByPlan() {
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
+          <div className="text-center py-8 text-slate-400">
             <Icons.creditCard className="h-12 w-12 mx-auto mb-2" />
             <p>Aucun abonné payant</p>
           </div>
@@ -121,7 +121,7 @@ async function UsersByPlan() {
                   {getPlanBadge(user.plan)}
                   {user.plan_expires_at && (
                     <div className="text-right">
-                      <p className="text-xs text-slate-500">Expire le</p>
+                      <p className="text-xs text-slate-400">Expire le</p>
                       <p className="text-sm text-white">
                         {new Date(user.plan_expires_at).toLocaleDateString('fr-FR')}
                       </p>
@@ -165,7 +165,7 @@ async function ExpiringPlans() {
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
+          <div className="text-center py-8 text-slate-400">
             <Icons.checkCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
             <p>Aucune expiration prévue</p>
           </div>
@@ -199,7 +199,7 @@ async function ExpiringPlans() {
                     <Badge className={isUrgent ? 'bg-red-500' : 'bg-yellow-500/20 text-yellow-500'}>
                       {days} jour{days > 1 ? 's' : ''}
                     </Badge>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-400 mt-1">
                       {new Date(user.plan_expires_at).toLocaleDateString('fr-FR')}
                     </p>
                   </div>

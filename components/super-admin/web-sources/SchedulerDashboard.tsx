@@ -174,7 +174,7 @@ export function SchedulerDashboard() {
           <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
             <div>
               <Label className="text-slate-300 text-base">Scheduler actif</Label>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Active/désactive le crawl automatique global
               </p>
             </div>
@@ -324,7 +324,7 @@ function StatusCard({
         <span className="text-xs text-slate-300">{label}</span>
       </div>
       <div className="text-lg font-bold text-white">{value}</div>
-      {subValue && <div className="text-xs text-slate-500 mt-0.5">{subValue}</div>}
+      {subValue && <div className="text-xs text-slate-400 mt-0.5">{subValue}</div>}
     </div>
   )
 }

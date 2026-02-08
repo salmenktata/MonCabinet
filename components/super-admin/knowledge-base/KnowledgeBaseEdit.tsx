@@ -305,7 +305,7 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
                   className="mt-1 bg-slate-700 border-slate-600 text-white file:bg-slate-600 file:text-white file:border-0"
                 />
                 {file && (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-400 mt-1">
                     {file.name} ({(file.size / 1024).toFixed(1)} Ko)
                   </p>
                 )}
@@ -384,7 +384,7 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
                   : 'Aucun contenu'}
               </div>
               {document.fullText && (
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-slate-400 mt-2">
                   {document.fullText.length.toLocaleString()} caractères au total
                 </p>
               )}

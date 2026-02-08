@@ -27,11 +27,11 @@ async function UserStats() {
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-slate-300">Total Utilisateurs</CardTitle>
-          <Icons.users className="h-4 w-4 text-slate-500" />
+          <Icons.users className="h-4 w-4 text-slate-400" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-white">{stats.total}</div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             +{stats.new_this_month} ce mois
           </p>
         </CardContent>
@@ -44,7 +44,7 @@ async function UserStats() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-yellow-500">{stats.pending}</div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             Requièrent approbation
           </p>
         </CardContent>
@@ -57,7 +57,7 @@ async function UserStats() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-500">{stats.active_7d}</div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             {stats.active_30d} actifs ce mois
           </p>
         </CardContent>
@@ -70,7 +70,7 @@ async function UserStats() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-red-500">{stats.suspended}</div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             {stats.rejected} rejetés
           </p>
         </CardContent>
@@ -110,15 +110,15 @@ async function KnowledgeBaseStats() {
         <div className="grid gap-4 md:grid-cols-3">
           <div className="text-center">
             <div className="text-3xl font-bold text-white">{stats.total_docs}</div>
-            <p className="text-sm text-slate-500">Documents</p>
+            <p className="text-sm text-slate-400">Documents</p>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-green-500">{stats.indexed_docs}</div>
-            <p className="text-sm text-slate-500">Indexés</p>
+            <p className="text-sm text-slate-400">Indexés</p>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-blue-500">{stats.total_chunks}</div>
-            <p className="text-sm text-slate-500">Chunks</p>
+            <p className="text-sm text-slate-400">Chunks</p>
           </div>
         </div>
 
@@ -169,15 +169,15 @@ async function AICostsStats() {
             <div className="text-3xl font-bold text-white">
               {costTND} TND
             </div>
-            <p className="text-sm text-slate-500">Coût total</p>
+            <p className="text-sm text-slate-400">Coût total</p>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-blue-500">{stats.total_operations}</div>
-            <p className="text-sm text-slate-500">Opérations</p>
+            <p className="text-sm text-slate-400">Opérations</p>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-purple-500">{stats.unique_users}</div>
-            <p className="text-sm text-slate-500">Utilisateurs</p>
+            <p className="text-sm text-slate-400">Utilisateurs</p>
           </div>
         </div>
       </CardContent>
@@ -212,7 +212,7 @@ async function PendingRegistrations() {
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
-          <div className="text-center py-6 text-slate-500">
+          <div className="text-center py-6 text-slate-400">
             <Icons.checkCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
             <p>Aucune demande en attente</p>
           </div>
@@ -236,7 +236,7 @@ async function PendingRegistrations() {
                   <p className="text-sm text-slate-400">{user.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-slate-400">
                     {new Date(user.created_at).toLocaleDateString('fr-FR')}
                   </span>
                   <Link href={`/super-admin/users/${user.id}`}>
@@ -296,7 +296,7 @@ async function RecentActivity() {
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
-          <div className="text-center py-6 text-slate-500">
+          <div className="text-center py-6 text-slate-400">
             <Icons.activity className="h-12 w-12 mx-auto mb-2" />
             <p>Aucune activité récente</p>
           </div>
@@ -321,12 +321,12 @@ async function RecentActivity() {
                     <p className="text-sm font-medium text-white">
                       {getActionLabel(log.action_type)}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400">
                       {log.target_identifier} par {log.admin_email}
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-400">
                   {new Date(log.created_at).toLocaleString('fr-FR', {
                     day: '2-digit',
                     month: '2-digit',

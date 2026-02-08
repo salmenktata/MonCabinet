@@ -168,7 +168,7 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
                   <p className="text-2xl font-bold text-white">{total}</p>
                   <p className="text-sm text-slate-400">Total</p>
                 </div>
-                <Icons.bell className="h-8 w-8 text-slate-500/20" />
+                <Icons.bell className="h-8 w-8 text-slate-400/20" />
               </div>
             </CardContent>
           </Card>
@@ -185,7 +185,7 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
         </CardHeader>
         <CardContent>
           {notifsResult.rows.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-slate-400">
               <Icons.checkCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
               <p>Aucune notification</p>
             </div>
@@ -232,7 +232,7 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
                         </Badge>
                       )}
                     </div>
-                    <p className={`text-sm mt-1 ${notif.is_read ? 'text-slate-500' : 'text-slate-300'}`}>
+                    <p className={`text-sm mt-1 ${notif.is_read ? 'text-slate-400' : 'text-slate-300'}`}>
                       {notif.message}
                     </p>
                     {notif.target_type === 'user' && notif.target_email && (
@@ -249,7 +249,7 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
                     <p className="text-sm text-slate-400">
                       {new Date(notif.created_at).toLocaleDateString('fr-FR')}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400">
                       {new Date(notif.created_at).toLocaleTimeString('fr-FR', {
                         hour: '2-digit',
                         minute: '2-digit'

@@ -176,7 +176,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
               <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
                 <div>
                   <Label className="text-slate-300">Source active</Label>
-                  <p className="text-xs text-slate-500">Désactivez pour arrêter le crawl</p>
+                  <p className="text-xs text-slate-400">Désactivez pour arrêter le crawl</p>
                 </div>
                 <Switch
                   checked={formData.isActive}
@@ -293,7 +293,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                   step={1}
                   className="mt-2"
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Nombre de niveaux de liens à suivre depuis la page d'accueil
                 </p>
               </div>
@@ -326,7 +326,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-slate-300">Site dynamique (JavaScript)</Label>
-                    <p className="text-xs text-slate-500">Utilise Playwright pour les sites SPA</p>
+                    <p className="text-xs text-slate-400">Utilise Playwright pour les sites SPA</p>
                   </div>
                   <Switch
                     checked={formData.requiresJavascript}
@@ -337,7 +337,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-slate-300">Télécharger les fichiers (PDF, DOCX)</Label>
-                    <p className="text-xs text-slate-500">Indexe les documents liés</p>
+                    <p className="text-xs text-slate-400">Indexe les documents liés</p>
                   </div>
                   <Switch
                     checked={formData.downloadFiles}
@@ -348,7 +348,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-slate-300">Respecter robots.txt</Label>
-                    <p className="text-xs text-slate-500">Recommandé pour rester éthique</p>
+                    <p className="text-xs text-slate-400">Recommandé pour rester éthique</p>
                   </div>
                   <Switch
                     checked={formData.respectRobotsTxt}
@@ -359,7 +359,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-slate-300">Utiliser le sitemap</Label>
-                    <p className="text-xs text-slate-500">Découvre les URLs via sitemap.xml</p>
+                    <p className="text-xs text-slate-400">Découvre les URLs via sitemap.xml</p>
                   </div>
                   <Switch
                     checked={formData.useSitemap}
@@ -399,7 +399,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                   placeholder="article, .content, #main-content"
                   className="mt-1 bg-slate-900 border-slate-600 text-white"
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Séparez par des virgules. Laissez vide pour la détection auto.
                 </p>
               </div>
@@ -449,7 +449,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
               <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
                 <div>
                   <Label className="text-slate-300">Crawl automatique</Label>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-400">
                     Active le crawl automatique via le scheduler global
                   </p>
                 </div>
