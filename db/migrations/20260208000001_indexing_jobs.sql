@@ -183,6 +183,40 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+/**
+ * Récupère les jobs orphelins (bloqués en 'processing' depuis trop longtemps)
+ * TTL configurable via INDEXING_JOB_TTL_MINUTES (défaut: 15 minutes)
+ */
+CREATE OR REPLACE FUNCTION recover_orphaned_indexing_jobs()
+RETURNS INTEGER AS $$
+DECLARE
+  v_recovered INTEGER;
+  v_ttl_minutes INTEGER;
+BEGIN
+  -- Récupérer le TTL depuis les variables d'environnement (défaut: 15 minutes)
+  v_ttl_minutes := COALESCE(
+    (SELECT NULLIF(current_setting('app.indexing_job_ttl_minutes', true), '')::INTEGER),
+    15
+  );
+
+  -- Réinitialiser les jobs orphelins (plus de v_ttl_minutes en processing)
+  UPDATE indexing_jobs
+  SET status = 'pending',
+      started_at = NULL
+  WHERE status = 'processing'
+    AND started_at < NOW() - (v_ttl_minutes || ' minutes')::INTERVAL
+    AND attempts < max_attempts;
+
+  GET DIAGNOSTICS v_recovered = ROW_COUNT;
+
+  IF v_recovered > 0 THEN
+    RAISE NOTICE '[Recovery] % jobs orphelins récupérés (TTL: % minutes)', v_recovered, v_ttl_minutes;
+  END IF;
+
+  RETURN v_recovered;
+END;
+$$ LANGUAGE plpgsql;
+
 -- ============================================================================
 -- VÉRIFICATION
 -- ============================================================================
@@ -191,4 +225,5 @@ DO $$
 BEGIN
   RAISE NOTICE '✅ Table indexing_jobs créée avec succès!';
   RAISE NOTICE '📋 Fonctions: add_indexing_job, claim_next_indexing_job, complete_indexing_job';
+  RAISE NOTICE '📋 Fonctions: get_indexing_queue_stats, cleanup_old_indexing_jobs, recover_orphaned_indexing_jobs';
 END $$;

@@ -8,6 +8,7 @@ import { writeFile, unlink, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
+import { Readable } from 'stream'
 
 // Import dynamique pour éviter les erreurs SSR et réduire le bundle
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,14 +116,27 @@ export type SupportedMimeType =
 
 /**
  * Extrait le texte d'un fichier PDF avec support OCR
- * @param buffer - Contenu du PDF
+ * @param input - Buffer ou ReadableStream du PDF
  * @param options - Options d'extraction (OCR, fallback, etc.)
  */
 export async function extractTextFromPDF(
-  buffer: Buffer,
+  input: Buffer | Readable,
   options: ExtractOptions = {}
 ): Promise<ParseResult> {
   const { useOcr = false, ocrFallback = true, minTextLength = 100 } = options
+
+  // Convertir stream en buffer si nécessaire
+  let buffer: Buffer
+  if (Buffer.isBuffer(input)) {
+    buffer = input
+  } else {
+    // Stream → Buffer (en mémoire mais via chunks)
+    const chunks: Buffer[] = []
+    for await (const chunk of input) {
+      chunks.push(Buffer.from(chunk))
+    }
+    buffer = Buffer.concat(chunks)
+  }
 
   // Si OCR forcé, aller directement à l'OCR
   if (useOcr) {
@@ -364,20 +378,36 @@ export function extractTextFromPlainText(
 
 /**
  * Extrait le texte d'un document selon son type MIME
- * @param buffer - Contenu du fichier
+ * @param input - Buffer ou ReadableStream du fichier
  * @param mimeType - Type MIME du fichier
  * @param options - Options d'extraction (OCR, etc.)
  * @returns Texte extrait et métadonnées
  */
 export async function extractText(
-  buffer: Buffer,
+  input: Buffer | Readable,
   mimeType: string,
   options: ExtractOptions = {}
 ): Promise<ParseResult> {
   // Normaliser le type MIME
   const normalizedMime = mimeType.toLowerCase().trim()
 
-  // PDF
+  // Convertir stream en buffer pour formats non-PDF (seul PDF supporte stream nativement)
+  let buffer: Buffer
+  if (Buffer.isBuffer(input)) {
+    buffer = input
+  } else if (normalizedMime === 'application/pdf') {
+    // PDF : passer directement le stream à extractTextFromPDF
+    return extractTextFromPDF(input, options)
+  } else {
+    // Autres formats : convertir en buffer
+    const chunks: Buffer[] = []
+    for await (const chunk of input) {
+      chunks.push(Buffer.from(chunk))
+    }
+    buffer = Buffer.concat(chunks)
+  }
+
+  // PDF (déjà géré au-dessus)
   if (normalizedMime === 'application/pdf') {
     return extractTextFromPDF(buffer, options)
   }

@@ -48,6 +48,7 @@ export interface QueueStats {
 
 const INDEXING_BATCH_SIZE = parseInt(process.env.INDEXING_BATCH_SIZE || '5', 10)
 const INDEXING_MAX_ATTEMPTS = parseInt(process.env.INDEXING_MAX_ATTEMPTS || '3', 10)
+const INDEXING_MEMORY_THRESHOLD_PERCENT = parseInt(process.env.INDEXING_MEMORY_THRESHOLD_PERCENT || '80', 10)
 
 // =============================================================================
 // FONCTIONS DE QUEUE
@@ -129,6 +130,81 @@ export async function completeJob(
   )
 }
 
+// =============================================================================
+// MONITORING MÉMOIRE
+// =============================================================================
+
+/**
+ * Récupère l'usage mémoire actuel
+ */
+function getMemoryUsage(): { heapUsedMB: number; heapLimitMB: number; usagePercent: number } {
+  const usage = process.memoryUsage()
+  const v8 = require('v8')
+  const stats = v8.getHeapStatistics()
+
+  const heapUsedMB = usage.heapUsed / 1024 / 1024
+  const heapLimitMB = stats.heap_size_limit / 1024 / 1024
+
+  return {
+    heapUsedMB,
+    heapLimitMB,
+    usagePercent: (heapUsedMB / heapLimitMB) * 100,
+  }
+}
+
+/**
+ * Vérifie si on peut traiter un nouveau job sans risque OOM
+ * @returns true si mémoire OK, false si seuil dépassé
+ */
+function canProcessNextJob(): boolean {
+  const mem = getMemoryUsage()
+
+  if (mem.usagePercent > INDEXING_MEMORY_THRESHOLD_PERCENT) {
+    console.warn(
+      `[IndexingQueue] ⚠️  Mémoire haute (${mem.usagePercent.toFixed(1)}%), ` +
+      `pause indexation (${mem.heapUsedMB.toFixed(0)}/${mem.heapLimitMB.toFixed(0)} MB)`
+    )
+
+    // Force garbage collection si disponible (NODE_OPTIONS="--expose-gc")
+    if (global.gc) {
+      console.log('[IndexingQueue] 🧹 Forçage garbage collection')
+      global.gc()
+
+      // Re-vérifier après GC
+      const memAfterGC = getMemoryUsage()
+      console.log(
+        `[IndexingQueue] Mémoire après GC: ${memAfterGC.usagePercent.toFixed(1)}% ` +
+        `(${memAfterGC.heapUsedMB.toFixed(0)} MB)`
+      )
+
+      // Si toujours au-dessus du seuil, refuser le job
+      return memAfterGC.usagePercent <= INDEXING_MEMORY_THRESHOLD_PERCENT
+    }
+
+    return false
+  }
+
+  return true
+}
+
+/**
+ * Récupère les jobs orphelins (bloqués en 'processing')
+ * @returns Nombre de jobs récupérés
+ */
+export async function recoverOrphanedJobs(): Promise<number> {
+  try {
+    const result = await db.query(`SELECT recover_orphaned_indexing_jobs() as recovered`)
+    const recovered = parseInt(result.rows[0]?.recovered || '0', 10)
+    if (recovered > 0) {
+      console.log(`[IndexingQueue] ✅ ${recovered} jobs orphelins récupérés`)
+    }
+    return recovered
+  } catch (error) {
+    console.error('[IndexingQueue] ❌ Erreur récupération jobs orphelins:', error)
+    return 0
+  }
+}
+
 /**
  * Traite le prochain job de la queue
  * À appeler depuis le cron worker.
@@ -136,6 +212,15 @@ export async function completeJob(
  * @returns true si un job a été traité, false si queue vide
  */
 export async function processNextJob(): Promise<boolean> {
+  // Récupérer jobs orphelins au début de chaque batch
+  await recoverOrphanedJobs()
+
+  // Vérifier mémoire avant de claim un job
+  if (!canProcessNextJob()) {
+    console.warn('[IndexingQueue] Skip job - Mémoire insuffisante, retry au prochain cron')
+    return false
+  }
+
   const job = await claimNextJob()
 
   if (!job) {
@@ -258,9 +343,18 @@ export async function processBatch(maxJobs: number = INDEXING_BATCH_SIZE): Promi
   for (let i = 0; i < maxJobs; i++) {
     const didProcess = await processNextJob()
     if (!didProcess) {
-      break // Queue vide
+      break // Queue vide ou mémoire insuffisante
     }
     processed++
+
+    // Log stats mémoire tous les 10 jobs
+    if (processed > 0 && processed % 10 === 0) {
+      const mem = getMemoryUsage()
+      console.log(
+        `[IndexingQueue] 📊 ${processed} jobs traités, mémoire: ${mem.usagePercent.toFixed(1)}% ` +
+        `(${mem.heapUsedMB.toFixed(0)}/${mem.heapLimitMB.toFixed(0)} MB)`
+      )
+    }
   }
 
   return processed

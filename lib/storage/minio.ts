@@ -142,6 +142,26 @@ export async function uploadFile(
 }
 
 /**
+ * Télécharger un fichier depuis MinIO en stream (réduit empreinte mémoire)
+ *
+ * @param path - Chemin du fichier dans le bucket
+ * @returns ReadableStream du fichier
+ */
+export async function downloadFileStream(
+  path: string,
+  bucketName: string = defaultBucket
+): Promise<Readable> {
+  const client = getMinioClient()
+
+  try {
+    return await client.getObject(bucketName, path)
+  } catch (error) {
+    console.error('❌ Erreur download stream MinIO:', error)
+    throw new Error(`Échec téléchargement stream fichier: ${path}`)
+  }
+}
+
+/**
  * Télécharger un fichier depuis MinIO
  *
  * @param path - Chemin du fichier dans le bucket
@@ -371,6 +391,7 @@ export async function healthCheck(): Promise<boolean> {
 export const storage = {
   upload: uploadFile,
   download: downloadFile,
+  downloadStream: downloadFileStream,
   delete: deleteFile,
   deleteMany: deleteFiles,
   list: listFiles,
