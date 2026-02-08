@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { MarkdownMessage } from './MarkdownMessage'
+import { SourcesPanel } from './SourcesPanel'
 
 export interface ChatSource {
   documentId: string
@@ -132,26 +134,37 @@ function MessageBubble({ message }: { message: ChatMessage }) {
               : 'bg-muted rounded-tl-sm'
           )}
         >
-          <div className="whitespace-pre-wrap break-words">
-            {message.content}
-            {message.isStreaming && (
-              <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
-            )}
-          </div>
+          {isUser ? (
+            // Message utilisateur : simple texte
+            <div className="whitespace-pre-wrap break-words">
+              {message.content}
+            </div>
+          ) : (
+            // Message assistant : rendu Markdown avec citations
+            <>
+              <MarkdownMessage
+                content={message.content}
+                sources={message.sources}
+              />
+              {message.isStreaming && (
+                <span className="inline-block w-0.5 h-4 ml-1 bg-current animate-blink" />
+              )}
+            </>
+          )}
+
+          {/* Indicateur "typing..." pour le streaming */}
+          {message.isStreaming && !message.content && (
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          )}
         </div>
 
-        {/* Sources */}
-        {message.sources && message.sources.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {message.sources.slice(0, 3).map((source, idx) => (
-              <SourceBadge key={idx} source={source} />
-            ))}
-            {message.sources.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{message.sources.length - 3}
-              </Badge>
-            )}
-          </div>
+        {/* Panneau Sources enrichi */}
+        {!isUser && message.sources && message.sources.length > 0 && (
+          <SourcesPanel sources={message.sources} />
         )}
 
         {/* Timestamp */}
@@ -166,32 +179,3 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   )
 }
 
-function SourceBadge({ source }: { source: ChatSource }) {
-  const t = useTranslations('assistantIA')
-  const [showTooltip, setShowTooltip] = useState(false)
-
-  return (
-    <div className="relative">
-      <Badge
-        variant="secondary"
-        className="text-xs cursor-help max-w-[200px] truncate"
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-      >
-        <Icons.fileText className="h-3 w-3 mr-1" />
-        {source.documentName}
-      </Badge>
-      {showTooltip && (
-        <div className="absolute bottom-full left-0 mb-2 z-50 w-64 p-3 bg-popover border rounded-lg shadow-lg text-popover-foreground">
-          <p className="font-medium text-sm mb-1 truncate">{source.documentName}</p>
-          <p className="text-xs text-muted-foreground line-clamp-3">
-            {source.chunkContent}
-          </p>
-          <p className="text-xs mt-2 text-primary">
-            {t('similarity')}: {(source.similarity * 100).toFixed(0)}%
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}

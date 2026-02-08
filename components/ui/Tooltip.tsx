@@ -1,15 +1,53 @@
 'use client'
 
+import * as React from 'react'
 import { useState, useRef, useEffect, ReactNode } from 'react'
+import * as TooltipPrimitive from '@radix-ui/react-tooltip'
 
-interface TooltipProps {
+import { cn } from '@/lib/utils'
+
+// =============================================================================
+// RADIX UI TOOLTIP (for shadcn/ui compatibility)
+// =============================================================================
+
+const TooltipProvider = TooltipPrimitive.Provider
+
+const Tooltip = TooltipPrimitive.Root
+
+const TooltipTrigger = TooltipPrimitive.Trigger
+
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => (
+  <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn(
+        'z-50 overflow-hidden rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+        className
+      )}
+      {...props}
+    />
+  </TooltipPrimitive.Portal>
+))
+TooltipContent.displayName = TooltipPrimitive.Content.displayName
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+
+// =============================================================================
+// CUSTOM SIMPLE TOOLTIP (legacy)
+// =============================================================================
+
+interface SimpleTooltipProps {
   content: string
   children: ReactNode
   position?: 'top' | 'bottom' | 'left' | 'right'
   delay?: number
 }
 
-export default function Tooltip({ content, children, position = 'top', delay = 300 }: TooltipProps) {
+export default function SimpleTooltip({ content, children, position = 'top', delay = 300 }: SimpleTooltipProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [showTimeout, setShowTimeout] = useState<NodeJS.Timeout | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -75,7 +113,7 @@ export default function Tooltip({ content, children, position = 'top', delay = 3
 // Composant d'aide avec icône
 export function HelpTooltip({ content }: { content: string }) {
   return (
-    <Tooltip content={content}>
+    <SimpleTooltip content={content}>
       <button
         type="button"
         className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-muted-foreground transition-colors"
@@ -89,6 +127,6 @@ export function HelpTooltip({ content }: { content: string }) {
           />
         </svg>
       </button>
-    </Tooltip>
+    </SimpleTooltip>
   )
 }

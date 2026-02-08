@@ -11,6 +11,9 @@ import TimelineSection from './TimelineSection'
 import ActionsSection from './ActionsSection'
 import ReferencesSection from './ReferencesSection'
 import LegalAnalysisSection from './LegalAnalysisSection'
+import ConfidenceBreakdown from './ConfidenceBreakdown'
+import RAGInsights from './RAGInsights'
+import { AnalysisTableOfContents, useAnalysisSections } from './AnalysisTableOfContents'
 
 interface StructuredResultProps {
   result: StructuredDossier
@@ -118,14 +121,49 @@ export default function StructuredResult({
 
       {/* Contenu des onglets */}
       {activeTab === 'analysis' && (
-        <div className="space-y-6">
-          {/* Analyse juridique et stratégie */}
-          <LegalAnalysisSection result={result} />
+        <div className="flex gap-6">
+          {/* Table des matières sticky - Desktop uniquement */}
+          <AnalysisTableOfContents
+            sections={[
+              { id: 'confidence', title: t('sections.confidence') || 'Confiance', readingTime: 1 },
+              { id: 'rag-insights', title: t('sections.ragInsights') || 'Métriques RAG', readingTime: 1 },
+              { id: 'legal-analysis', title: t('sections.legalAnalysis') || 'Analyse Juridique', readingTime: 5 },
+              { id: 'references', title: t('sections.references') || 'Références', readingTime: 2 },
+            ].filter((s) => {
+              if (s.id === 'rag-insights' && !result.ragMetrics) return false
+              if (s.id === 'references' && result.references.length === 0) return false
+              return true
+            })}
+            locale="fr"
+            className="w-64 shrink-0"
+          />
 
-          {/* Références juridiques */}
-          {result.references.length > 0 && (
-            <ReferencesSection references={result.references} />
-          )}
+          {/* Contenu principal */}
+          <div className="flex-1 space-y-6 min-w-0">
+            {/* Confiance de l'analyse */}
+            <div id="confidence">
+              <ConfidenceBreakdown result={result} />
+            </div>
+
+            {/* Métriques RAG */}
+            {result.ragMetrics && (
+              <div id="rag-insights">
+                <RAGInsights ragMetrics={result.ragMetrics} />
+              </div>
+            )}
+
+            {/* Analyse juridique et stratégie */}
+            <div id="legal-analysis">
+              <LegalAnalysisSection result={result} />
+            </div>
+
+            {/* Références juridiques */}
+            {result.references.length > 0 && (
+              <div id="references">
+                <ReferencesSection references={result.references} />
+              </div>
+            )}
+          </div>
         </div>
       )}
 

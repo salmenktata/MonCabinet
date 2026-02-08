@@ -24,8 +24,9 @@ import {
   generateConversationTitle,
   ChatSource,
 } from '@/lib/ai/rag-chat-service'
-import { isChatEnabled } from '@/lib/ai/config'
+import { isChatEnabled, getChatProvider } from '@/lib/ai/config'
 import { triggerSummaryGenerationIfNeeded } from '@/lib/ai/conversation-summary-service'
+import { createAIStream } from '@/lib/ai/streaming-service'
 
 // =============================================================================
 // TYPES
@@ -36,6 +37,7 @@ interface ChatRequestBody {
   dossierId?: string
   conversationId?: string
   includeJurisprudence?: boolean
+  stream?: boolean // Nouveau : activer le streaming
 }
 
 interface ChatApiResponse {
@@ -55,7 +57,7 @@ interface ChatApiResponse {
 
 export async function POST(
   request: NextRequest
-): Promise<NextResponse<ChatApiResponse | { error: string }>> {
+): Promise<Response | NextResponse<ChatApiResponse | { error: string }>> {
   try {
     // Vérifier authentification
     const session = await getSession()
@@ -75,7 +77,7 @@ export async function POST(
 
     // Parse le body
     const body: ChatRequestBody = await request.json()
-    const { question, dossierId, conversationId, includeJurisprudence = true } = body
+    const { question, dossierId, conversationId, includeJurisprudence = true, stream = false } = body
 
     if (!question || question.trim().length < 3) {
       return NextResponse.json(
@@ -130,7 +132,18 @@ export async function POST(
     // Sauvegarder la question utilisateur
     await saveMessage(activeConversationId, 'user', question)
 
-    // Obtenir la réponse du RAG
+    // Si streaming activé, retourner un ReadableStream
+    if (stream) {
+      return handleStreamingResponse(
+        question,
+        userId,
+        activeConversationId,
+        dossierId,
+        includeJurisprudence
+      )
+    }
+
+    // Sinon, mode classique (non-streaming)
     const response = await answerQuestion(question, userId, {
       dossierId,
       conversationId: activeConversationId,
@@ -300,6 +313,117 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       { status: 500 }
     )
   }
+}
+
+// =============================================================================
+// HELPER: Gérer le streaming de la réponse
+// =============================================================================
+
+async function handleStreamingResponse(
+  question: string,
+  userId: string,
+  conversationId: string,
+  dossierId?: string,
+  includeJurisprudence: boolean = true
+): Promise<Response> {
+  const encoder = new TextEncoder()
+
+  // Récupérer le contexte RAG (sources) avant de streamer
+  const response = await answerQuestion(question, userId, {
+    dossierId,
+    conversationId,
+    includeJurisprudence,
+  })
+
+  // On a la réponse complète, maintenant on va la streamer
+  let fullAnswer = ''
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        // Envoyer les métadonnées en premier (sources, conversationId)
+        const metadata = {
+          type: 'metadata',
+          conversationId,
+          sources: response.sources,
+          model: response.model,
+        }
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(metadata)}\n\n`))
+
+        // Streamer la réponse mot par mot (simulation)
+        const words = response.answer.split(' ')
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i] + (i < words.length - 1 ? ' ' : '')
+          fullAnswer += word
+
+          const chunk = {
+            type: 'content',
+            content: word,
+          }
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
+
+          // Petit délai pour simuler le streaming (à retirer en prod si streaming natif)
+          await new Promise((resolve) => setTimeout(resolve, 20))
+        }
+
+        // Envoyer le message de fin
+        const done = {
+          type: 'done',
+          tokensUsed: response.tokensUsed,
+        }
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(done)}\n\n`))
+
+        controller.close()
+
+        // Sauvegarder la réponse complète après le streaming
+        await saveMessage(
+          conversationId,
+          'assistant',
+          fullAnswer,
+          response.sources,
+          response.tokensUsed.total,
+          response.model
+        )
+
+        // Générer titre si premier échange
+        const messageCount = await db.query(
+          `SELECT COUNT(*) as count FROM chat_messages WHERE conversation_id = $1`,
+          [conversationId]
+        )
+        const msgCount = parseInt(messageCount.rows[0].count)
+
+        if (msgCount <= 2) {
+          const title = await generateConversationTitle(conversationId)
+          await db.query(
+            `UPDATE chat_conversations SET title = $1 WHERE id = $2`,
+            [title, conversationId]
+          )
+        }
+
+        // Trigger résumé si nécessaire
+        if (msgCount >= 10) {
+          triggerSummaryGenerationIfNeeded(conversationId).catch((err) =>
+            console.error('[Stream] Erreur trigger résumé:', err)
+          )
+        }
+      } catch (error) {
+        const errorMessage = {
+          type: 'error',
+          error: error instanceof Error ? error.message : 'Erreur inconnue',
+        }
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorMessage)}\n\n`))
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  })
 }
 
 // =============================================================================

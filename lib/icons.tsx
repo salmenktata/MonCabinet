@@ -114,6 +114,9 @@ import {
   GitMerge,
   Target,
   Scale,
+  FileSearch,
+  ArrowUpDown,
+  ArrowDownNarrowWide,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -262,6 +265,9 @@ export const Icons = {
   merge: GitMerge,
   target: Target,
   scale: Scale,
+  fileSearch: FileSearch,
+  arrowUpDown: ArrowUpDown,
+  sortAsc: ArrowDownNarrowWide,
 } as const
 
 export type IconName = keyof typeof Icons

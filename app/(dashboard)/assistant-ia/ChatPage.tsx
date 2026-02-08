@@ -14,6 +14,7 @@ import {
   ChatMessages,
   ChatInput,
   ChatActions,
+  AdvancedSearch,
   type Conversation,
   type ChatMessage,
   type ChatSource,
@@ -265,15 +266,24 @@ export function ChatPage({ userId }: ChatPageProps) {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNewConversation}
-            className="hidden sm:flex"
-          >
-            <Icons.add className="h-4 w-4 mr-2" />
-            {t('newConversation')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <AdvancedSearch
+              onSelectConversation={(id) => {
+                setSelectedConversationId(id)
+                loadMessages(id)
+              }}
+            />
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNewConversation}
+              className="hidden sm:flex"
+            >
+              <Icons.add className="h-4 w-4 mr-2" />
+              {t('newConversation')}
+            </Button>
+          </div>
         </div>
 
         {/* Zone de chat */}
@@ -287,6 +297,10 @@ export function ChatPage({ userId }: ChatPageProps) {
         <ChatActions
           hasMessages={messages.length > 0}
           conversationId={selectedConversationId}
+          messages={messages}
+          conversationTitle={
+            conversations.find((c) => c.id === selectedConversationId)?.title || undefined
+          }
           onCreateDossier={handleCreateDossier}
         />
 

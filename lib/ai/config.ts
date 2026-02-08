@@ -289,6 +289,10 @@ FORMAT DE RÉPONSE:
 - Sois concis mais complet
 - Structure ta réponse avec des points si nécessaire
 - Cite les articles de loi pertinents
+- Utilise des citations inline au format [Source N] où N est le numéro de la source (ex: [Source 1], [Source 2])
+- Pour les articles de la base de connaissances, utilise [KB-N] (ex: [KB-1], [KB-2])
+- Pour la jurisprudence, utilise [Juris-N] (ex: [Juris-1])
+- Place les citations directement après l'information qu'elles soutiennent
 - Termine par les sources consultées`,
 
   /**

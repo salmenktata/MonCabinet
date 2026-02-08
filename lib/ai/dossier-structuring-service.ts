@@ -1369,7 +1369,7 @@ async function enrichirAvecKnowledgeBase(
         metadata: {
           chunkPosition: result.chunkIndex,
           source: 'KB',
-          documentId: result.documentId,
+          documentId: result.knowledgeBaseId,
         },
       }))
 

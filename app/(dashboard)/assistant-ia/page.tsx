@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth/session'
 import { ChatPage } from './ChatPage'
 
 export const metadata: Metadata = {
-  title: 'Assistant IA Juridique | Qadhya',
+  title: 'Qadhya Chat | Qadhya',
   description: 'Chat conversationnel avec l\'assistant IA juridique',
 }
 

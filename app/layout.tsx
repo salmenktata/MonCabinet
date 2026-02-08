@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, getLocale } from 'next-intl/server'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { SessionProvider } from '@/components/providers/SessionProvider'
+import { Toaster } from 'sonner'
 import './globals.css'
 
 // Optimisation font: preload, swap display, subset minimal
@@ -58,6 +59,7 @@ export default async function RootLayout({
             </NextIntlClientProvider>
           </ThemeProvider>
         </SessionProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   )

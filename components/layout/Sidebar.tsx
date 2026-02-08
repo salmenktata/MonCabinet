@@ -42,6 +42,7 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     items: [
       { href: '/assistant-ia', label: 'assistantIA', icon: 'zap' },
       { href: '/dossiers/assistant', label: 'modeRapide', icon: 'activity' },
+      { href: '/dossiers/consultation', label: 'consultation', icon: 'messageSquare' },
       // Base de connaissances visible pour les admins (super_admin ont leur propre page)
       ...(userRole === 'admin' ? [{ href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' as keyof typeof Icons }] : []),
     ],

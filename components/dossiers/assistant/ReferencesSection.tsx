@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import type { LegalReference } from '@/lib/ai/dossier-structuring-service'
+import SourceFeedback from './SourceFeedback'
 
 interface ReferencesSectionProps {
   references: LegalReference[]
@@ -73,29 +74,80 @@ export default function ReferencesSection({
                 {refs.map((ref, index) => (
                   <div
                     key={index}
-                    className={`rounded-lg border p-3 ${config.colorClass}`}
+                    className={`rounded-lg border p-3 ${config.colorClass} transition-all hover:shadow-md`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="font-medium text-foreground">
-                          {ref.titre}
-                        </span>
-                        {ref.article && (
-                          <span className="ml-2 text-sm text-muted-foreground">
-                            ({ref.article})
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-foreground">
+                            {ref.titre}
                           </span>
-                        )}
+                          {ref.article && (
+                            <span className="text-sm text-muted-foreground">
+                              ({ref.article})
+                            </span>
+                          )}
+                          {/* Badge de pertinence coloré */}
+                          {ref.pertinence > 0 && (
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                ref.pertinence >= 90
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                  : ref.pertinence >= 70
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              }`}
+                            >
+                              {ref.pertinence >= 90 ? '★' : ref.pertinence >= 70 ? '●' : '○'} {ref.pertinence}%
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {ref.pertinence > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          {ref.pertinence}% pertinent
-                        </span>
-                      )}
+                      {/* Actions rapides */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => navigator.clipboard.writeText(ref.extrait || ref.titre)}
+                          className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                          title="Copier"
+                        >
+                          <span className="text-sm">📋</span>
+                        </button>
+                        {/* Feedback */}
+                        <SourceFeedback
+                          sourceId={`${ref.type}-${ref.titre.replace(/\s+/g, '-').toLowerCase()}`}
+                          sourceTitre={ref.titre}
+                        />
+                      </div>
                     </div>
                     {ref.extrait && (
                       <p className="mt-2 text-sm text-muted-foreground italic border-l-2 border-current/20 pl-3">
                         "{ref.extrait}"
                       </p>
+                    )}
+                    {/* Métadonnées étendues */}
+                    {ref.metadata && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        {ref.metadata.source && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">
+                            📍 {ref.metadata.source}
+                          </span>
+                        )}
+                        {ref.metadata.date && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">
+                            📅 {ref.metadata.date}
+                          </span>
+                        )}
+                        {ref.metadata.juridiction && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">
+                            ⚖️ {ref.metadata.juridiction}
+                          </span>
+                        )}
+                        {ref.metadata.chunkPosition !== undefined && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">
+                            🔢 Chunk {ref.metadata.chunkPosition}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}
