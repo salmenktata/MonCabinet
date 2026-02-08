@@ -23,7 +23,7 @@ import { getRandomDelay, shouldAddLongPause, detectBan } from './anti-ban-utils'
 import { recordCrawlMetric, markSourceAsBanned, canSourceCrawl } from './monitoring-service'
 
 // Configuration du crawl
-const KNOWLEDGE_BASE_BUCKET = 'knowledge-base'
+const WEB_FILES_BUCKET = 'web-files'
 const MAX_ERRORS_KEPT = 200          // Limiter les erreurs en mémoire
 const PROGRESS_LOG_INTERVAL = 25     // Log progression toutes les N pages
 const MAX_CONSECUTIVE_FAILURES = 20  // Arrêter après N échecs consécutifs
@@ -412,7 +412,37 @@ async function processPage(
 
   // Vérifier si le contenu a vraiment changé
   if (existingPage && existingPage.contentHash === contentHash) {
-    console.log(`[Crawler] Contenu identique: ${url}`)
+    // Vérifier si des fichiers existants n'ont pas encore été téléchargés
+    const existingFiles = existingPage.linkedFiles || []
+    const hasUndownloadedFiles = options.downloadFiles
+      && existingFiles.length > 0
+      && existingFiles.some((f: LinkedFile) => !f.downloaded || !f.minioPath)
+    const sourceAutoIndex = s.autoIndexFiles ?? s.auto_index_files ?? false
+
+    if (hasUndownloadedFiles) {
+      const pendingFiles = existingFiles.filter((f: LinkedFile) => !f.downloaded || !f.minioPath)
+      console.log(`[Crawler] Contenu identique, ${pendingFiles.length} fichier(s) à télécharger: ${url}`)
+      const downloadedFiles = await downloadLinkedFiles(source, pendingFiles)
+      const newlyDownloaded = downloadedFiles.filter(f => f.downloaded)
+      state.filesDownloaded += newlyDownloaded.length
+
+      // Fusionner les fichiers téléchargés avec les existants
+      const mergedFiles = existingFiles.map((ef: LinkedFile) => {
+        const updated = downloadedFiles.find(df => df.url === ef.url)
+        return updated && updated.downloaded ? updated : ef
+      })
+      await updatePageFiles(existingPage.id, mergedFiles)
+
+      // Auto-indexation si activée
+      if (sourceAutoIndex && newlyDownloaded.length > 0) {
+        const sourceCategory = s.category || 'autre'
+        const sName = s.name || 'Unknown'
+        await autoIndexFilesForPage(existingPage.id, newlyDownloaded, sourceId, sName, sourceCategory)
+      }
+    } else {
+      console.log(`[Crawler] Contenu identique: ${url}`)
+    }
+
     await updatePageTimestamp(existingPage.id, scrapeResult.fetchResult)
     return { success: true, links: content.links }
   }
@@ -494,7 +524,7 @@ async function downloadLinkedFiles(
           downloadResult.buffer,
           minioPath,
           { sourceUrl: file.url, sourceId: sourceId },
-          KNOWLEDGE_BASE_BUCKET
+          WEB_FILES_BUCKET
         )
 
         result.push({
@@ -813,6 +843,16 @@ async function updatePageTimestamp(
       updated_at = NOW()
     WHERE id = $1`,
     [pageId, fetchResult?.etag, fetchResult?.lastModified]
+  )
+}
+
+/**
+ * Met à jour les fichiers liés d'une page existante
+ */
+async function updatePageFiles(pageId: string, files: LinkedFile[]): Promise<void> {
+  await db.query(
+    `UPDATE web_pages SET linked_files = $2, updated_at = NOW() WHERE id = $1`,
+    [pageId, JSON.stringify(files)]
   )
 }
 
