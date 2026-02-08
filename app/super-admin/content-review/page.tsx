@@ -5,19 +5,31 @@
 
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
+import nextDynamic from 'next/dynamic'
 import {
   getReviewQueue,
   getReviewQueueStats,
   getIntelligentPipelineStats,
   getContradictionsStats,
 } from '@/app/actions/super-admin/content-review'
-import {
-  ReviewStats,
-  ReviewFilters,
-  ReviewQueue,
-} from '@/components/super-admin/content-review'
 import { getSession } from '@/lib/auth/session'
 import type { ReviewStatus, ReviewType, ReviewPriority } from '@/lib/web-scraper/types'
+
+// Dynamic imports pour réduire le bundle initial
+const ReviewStats = nextDynamic(
+  () => import('@/components/super-admin/content-review').then(m => ({ default: m.ReviewStats })),
+  { loading: () => <div className="h-32 bg-slate-800 animate-pulse rounded-lg" /> }
+)
+
+const ReviewFilters = nextDynamic(
+  () => import('@/components/super-admin/content-review').then(m => ({ default: m.ReviewFilters })),
+  { loading: () => <div className="h-16 bg-slate-800 animate-pulse rounded-lg" /> }
+)
+
+const ReviewQueue = nextDynamic(
+  () => import('@/components/super-admin/content-review').then(m => ({ default: m.ReviewQueue })),
+  { loading: () => <div className="h-96 bg-slate-800 animate-pulse rounded-lg" /> }
+)
 
 export const dynamic = 'force-dynamic'
 

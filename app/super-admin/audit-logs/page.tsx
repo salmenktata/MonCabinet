@@ -1,10 +1,16 @@
+import dynamic from 'next/dynamic'
 import { query } from '@/lib/db/postgres'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import Link from 'next/link'
-import { AuditLogsFilters } from '@/components/super-admin/AuditLogsFilters'
+
+// Dynamic import pour réduire le bundle initial
+const AuditLogsFilters = dynamic(
+  () => import('@/components/super-admin/AuditLogsFilters').then(m => ({ default: m.AuditLogsFilters })),
+  { loading: () => <div className="h-16 bg-slate-800 animate-pulse rounded-lg" /> }
+)
 
 interface PageProps {
   searchParams: Promise<{

@@ -2,8 +2,14 @@
  * Page Super Admin - Vue globale des fichiers web
  */
 
+import nextDynamic from 'next/dynamic'
 import { db } from '@/lib/db/postgres'
-import { WebFilesList } from '@/components/super-admin/web-files/WebFilesList'
+
+// Dynamic import pour réduire le bundle initial
+const WebFilesList = nextDynamic(
+  () => import('@/components/super-admin/web-files/WebFilesList').then(m => ({ default: m.WebFilesList })),
+  { loading: () => <div className="h-96 bg-slate-800 animate-pulse rounded-lg" /> }
+)
 
 export const dynamic = 'force-dynamic'
 

@@ -4,13 +4,27 @@
  */
 
 import { Suspense } from 'react'
+import nextDynamic from 'next/dynamic'
 import { db } from '@/lib/db/postgres'
-import { TaxonomyManager } from '@/components/super-admin/taxonomy/TaxonomyManager'
-import { TaxonomySuggestions } from '@/components/super-admin/taxonomy/TaxonomySuggestions'
-import { TaxonomyStats } from '@/components/super-admin/taxonomy/TaxonomyStats'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Icons } from '@/lib/icons'
+
+// Dynamic imports pour réduire le bundle initial
+const TaxonomyManager = nextDynamic(
+  () => import('@/components/super-admin/taxonomy/TaxonomyManager').then(m => ({ default: m.TaxonomyManager })),
+  { loading: () => <div className="h-96 bg-slate-800 animate-pulse rounded-lg" /> }
+)
+
+const TaxonomySuggestions = nextDynamic(
+  () => import('@/components/super-admin/taxonomy/TaxonomySuggestions').then(m => ({ default: m.TaxonomySuggestions })),
+  { loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" /> }
+)
+
+const TaxonomyStats = nextDynamic(
+  () => import('@/components/super-admin/taxonomy/TaxonomyStats').then(m => ({ default: m.TaxonomyStats })),
+  { loading: () => <div className="h-32 bg-slate-800 animate-pulse rounded-lg" /> }
+)
 
 export const dynamic = 'force-dynamic'
 

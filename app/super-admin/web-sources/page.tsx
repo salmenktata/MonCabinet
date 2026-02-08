@@ -5,12 +5,26 @@
 
 import { Suspense } from 'react'
 import Link from 'next/link'
+import nextDynamic from 'next/dynamic'
 import { db } from '@/lib/db/postgres'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import { WebSourcesList } from '@/components/super-admin/web-sources/WebSourcesList'
-import { WebSourcesFilters } from '@/components/super-admin/web-sources/WebSourcesFilters'
-import { WebSourcesStats } from '@/components/super-admin/web-sources/WebSourcesStats'
+
+// Dynamic imports pour réduire le bundle initial
+const WebSourcesList = nextDynamic(
+  () => import('@/components/super-admin/web-sources/WebSourcesList').then(m => ({ default: m.WebSourcesList })),
+  { loading: () => <div className="h-96 bg-slate-800 animate-pulse rounded-lg" /> }
+)
+
+const WebSourcesFilters = nextDynamic(
+  () => import('@/components/super-admin/web-sources/WebSourcesFilters').then(m => ({ default: m.WebSourcesFilters })),
+  { loading: () => <div className="h-16 bg-slate-800 animate-pulse rounded-lg" /> }
+)
+
+const WebSourcesStats = nextDynamic(
+  () => import('@/components/super-admin/web-sources/WebSourcesStats').then(m => ({ default: m.WebSourcesStats })),
+  { loading: () => <div className="h-32 bg-slate-800 animate-pulse rounded-lg" /> }
+)
 
 export const dynamic = 'force-dynamic'
 
