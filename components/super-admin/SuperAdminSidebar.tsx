@@ -27,6 +27,7 @@ interface SuperAdminSidebarProps {
   unreadNotifications?: number
   pendingReviews?: number
   pendingContradictions?: number
+  pendingTaxonomySuggestions?: number
 }
 
 // Navigation Super Admin
@@ -34,7 +35,8 @@ const getNavGroups = (
   pendingCount: number,
   unreadNotifications: number,
   pendingReviews: number,
-  pendingContradictions: number
+  pendingContradictions: number,
+  pendingTaxonomySuggestions: number
 ): NavGroup[] => [
   {
     group: 'Vue d\'ensemble',
@@ -97,6 +99,13 @@ const getNavGroups = (
     items: [
       { href: '/super-admin/settings', label: 'Paramètres', icon: 'settings' },
       { href: '/super-admin/settings/providers', label: 'Providers', icon: 'zap' },
+      {
+        href: '/super-admin/taxonomy',
+        label: 'Taxonomie',
+        icon: 'folder',
+        badge: pendingTaxonomySuggestions || undefined,
+        badgeVariant: 'secondary' as const
+      },
     ],
   },
 ]
@@ -138,7 +147,8 @@ function SuperAdminSidebarComponent({
   pendingCount = 0,
   unreadNotifications = 0,
   pendingReviews = 0,
-  pendingContradictions = 0
+  pendingContradictions = 0,
+  pendingTaxonomySuggestions = 0
 }: SuperAdminSidebarProps) {
   const pathname = usePathname()
 
@@ -149,8 +159,8 @@ function SuperAdminSidebarComponent({
 
   // Mémorise les items avec leurs états
   const navGroups = useMemo(
-    () => getNavGroups(pendingCount, unreadNotifications, pendingReviews, pendingContradictions),
-    [pendingCount, unreadNotifications, pendingReviews, pendingContradictions]
+    () => getNavGroups(pendingCount, unreadNotifications, pendingReviews, pendingContradictions, pendingTaxonomySuggestions),
+    [pendingCount, unreadNotifications, pendingReviews, pendingContradictions, pendingTaxonomySuggestions]
   )
 
   const groupsWithState = useMemo(() => {

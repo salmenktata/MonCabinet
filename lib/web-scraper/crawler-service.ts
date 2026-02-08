@@ -381,14 +381,14 @@ async function insertPage(
       web_source_id, url, url_hash, canonical_url,
       title, content_hash, extracted_text, word_count, language_detected,
       meta_description, meta_author, meta_date, meta_keywords, structured_data,
-      linked_files, etag, last_modified,
+      linked_files, etag, last_modified, site_structure,
       status, crawl_depth, last_crawled_at, first_seen_at
     ) VALUES (
       $1, $2, $3, $4,
       $5, $6, $7, $8, $9,
       $10, $11, $12, $13, $14,
-      $15, $16, $17,
-      'crawled', $18, NOW(), NOW()
+      $15, $16, $17, $18,
+      'crawled', $19, NOW(), NOW()
     )`,
     [
       sourceId,
@@ -408,6 +408,7 @@ async function insertPage(
       JSON.stringify(files),
       fetchResult?.etag,
       fetchResult?.lastModified,
+      content.siteStructure ? JSON.stringify(content.siteStructure) : null,
       depth,
     ]
   )
@@ -442,6 +443,7 @@ async function updatePage(
       linked_files = $12,
       etag = $13,
       last_modified = $14,
+      site_structure = $15,
       status = 'crawled',
       last_crawled_at = NOW(),
       last_changed_at = NOW(),
@@ -463,6 +465,7 @@ async function updatePage(
       JSON.stringify(files),
       fetchResult?.etag,
       fetchResult?.lastModified,
+      content.siteStructure ? JSON.stringify(content.siteStructure) : null,
     ]
   )
 }
@@ -533,6 +536,7 @@ function mapRowToWebPage(row: Record<string, unknown>): WebPage {
     metaKeywords: (row.meta_keywords as string[]) || [],
     structuredData: row.structured_data as Record<string, unknown> | null,
     linkedFiles: (row.linked_files as LinkedFile[]) || [],
+    siteStructure: row.site_structure as Record<string, unknown> | null,
     etag: row.etag as string | null,
     lastModified: row.last_modified ? new Date(row.last_modified as string) : null,
     status: row.status as PageStatus,

@@ -67,6 +67,68 @@ export interface CssSelectors {
 }
 
 /**
+ * Configuration d'extraction personnalisée par source
+ * Permet de configurer le filtrage du bruit et l'extraction du contenu
+ */
+export interface ExtractionConfig {
+  /** Patterns de texte à supprimer (regex strings) */
+  noisePatterns?: string[]
+  /** Sélecteurs CSS des éléments à supprimer */
+  removeSelectors?: string[]
+  /** Sélecteur du contenu juridique principal */
+  legalContentSelector?: string
+  /** Sélecteur du numéro d'article/فصل */
+  articleNumberSelector?: string
+  /** Sélecteur du titre du code/مجلة */
+  codeNameSelector?: string
+  /** Sélecteur du texte de l'article */
+  articleTextSelector?: string
+  /** Préserver la structure hiérarchique (باب، قسم، فصل) */
+  preserveHierarchy?: boolean
+  /** Sélecteurs de la hiérarchie */
+  hierarchySelectors?: {
+    book?: string      // كتاب
+    part?: string      // باب
+    chapter?: string   // قسم
+    section?: string   // فرع
+    article?: string   // فصل
+  }
+  /** Extraire les notes et commentaires */
+  extractNotes?: boolean
+  /** Sélecteur des notes/تعليقات */
+  notesSelector?: string
+  /** Langue principale du contenu */
+  contentLanguage?: 'ar' | 'fr' | 'mixed'
+}
+
+/**
+ * Contenu juridique structuré extrait
+ */
+export interface StructuredLegalContent {
+  /** Numéro de l'article (ex: "1", "142 مكرر") */
+  articleNumber?: string
+  /** Texte principal de l'article */
+  articleText: string
+  /** Nom du code parent */
+  codeName?: string
+  /** Hiérarchie complète */
+  hierarchy?: {
+    book?: string      // الكتاب
+    part?: string      // الباب
+    chapter?: string   // القسم
+    section?: string   // الفرع
+  }
+  /** Notes et commentaires */
+  notes?: string[]
+  /** Références à d'autres articles */
+  references?: string[]
+  /** Date de dernière modification */
+  lastModified?: string
+  /** Version du texte */
+  version?: string
+}
+
+/**
  * Configuration avancée pour les sites dynamiques
  * (Livewire, React, Vue, Angular, etc.)
  */
@@ -126,6 +188,9 @@ export interface WebSource {
 
   // Configuration avancée pour sites dynamiques (Livewire, React, Vue, etc.)
   dynamicConfig: DynamicSiteConfig | null
+
+  // Configuration d'extraction personnalisée (patterns de bruit, sélecteurs)
+  extractionConfig: ExtractionConfig | null
 
   // Sitemap & RSS
   sitemapUrl: string | null
@@ -285,6 +350,38 @@ export interface ScrapedContent {
   legalContext?: LegalContext
   /** Structure du site extraite (breadcrumbs, URL, navigation) */
   siteStructure?: SiteStructure
+  /** Contenu juridique structuré (article, hiérarchie, références) */
+  structuredLegalContent?: StructuredLegalContent
+}
+
+/**
+ * Métriques de scraping pour monitoring
+ */
+export interface ScrapingMetrics {
+  /** Temps total de scraping (ms) */
+  totalTimeMs: number
+  /** Temps de fetch HTTP/Playwright (ms) */
+  fetchTimeMs: number
+  /** Temps d'extraction du contenu (ms) */
+  extractionTimeMs: number
+  /** Taille du HTML brut (bytes) */
+  htmlSizeBytes: number
+  /** Taille du contenu extrait (caractères) */
+  contentLength: number
+  /** Nombre de liens extraits */
+  linksCount: number
+  /** Nombre de fichiers détectés */
+  filesCount: number
+  /** Framework(s) détecté(s) */
+  detectedFrameworks: string[]
+  /** Mode de scraping utilisé */
+  scrapingMode: 'static' | 'dynamic'
+  /** Succès de l'extraction */
+  extractionSuccess: boolean
+  /** Erreur éventuelle */
+  error?: string
+  /** Qualité du contenu (0-100) */
+  contentQualityScore?: number
 }
 
 export interface CrawlResult {
@@ -338,6 +435,7 @@ export interface CreateWebSourceInput {
   rateLimitMs?: number
   customHeaders?: Record<string, string>
   dynamicConfig?: DynamicSiteConfig
+  extractionConfig?: ExtractionConfig
 }
 
 export interface UpdateWebSourceInput {
@@ -361,6 +459,7 @@ export interface UpdateWebSourceInput {
   rateLimitMs?: number
   customHeaders?: Record<string, string>
   dynamicConfig?: DynamicSiteConfig
+  extractionConfig?: ExtractionConfig
   isActive?: boolean
 }
 

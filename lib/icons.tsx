@@ -110,6 +110,10 @@ import {
   Tag,
   Sparkles,
   SkipForward,
+  Lightbulb,
+  GitMerge,
+  Target,
+  Scale,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -254,6 +258,10 @@ export const Icons = {
   sparkles: Sparkles,
   skip: SkipForward,
   chartBar: BarChart,
+  lightbulb: Lightbulb,
+  merge: GitMerge,
+  target: Target,
+  scale: Scale,
 } as const
 
 export type IconName = keyof typeof Icons

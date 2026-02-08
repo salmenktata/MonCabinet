@@ -13,13 +13,15 @@ interface SuperAdminLayoutProps {
   }
   pendingCount?: number
   unreadNotifications?: number
+  pendingTaxonomySuggestions?: number
 }
 
 export function SuperAdminLayout({
   children,
   user,
   pendingCount = 0,
-  unreadNotifications = 0
+  unreadNotifications = 0,
+  pendingTaxonomySuggestions = 0
 }: SuperAdminLayoutProps) {
   return (
     <div className="flex h-screen bg-slate-950">
@@ -27,6 +29,7 @@ export function SuperAdminLayout({
       <SuperAdminSidebar
         pendingCount={pendingCount}
         unreadNotifications={unreadNotifications}
+        pendingTaxonomySuggestions={pendingTaxonomySuggestions}
       />
 
       {/* Main content */}

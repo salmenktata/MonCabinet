@@ -39,6 +39,17 @@ export default async function SuperAdminRootLayout({
   )
   const unreadNotifications = parseInt(notifResult.rows[0]?.count || '0')
 
+  // Récupérer le nombre de suggestions de taxonomie en attente
+  let pendingTaxonomySuggestions = 0
+  try {
+    const taxonomyResult = await query(
+      "SELECT COUNT(*) as count FROM taxonomy_suggestions WHERE status = 'pending'"
+    )
+    pendingTaxonomySuggestions = parseInt(taxonomyResult.rows[0]?.count || '0')
+  } catch {
+    // Table n'existe pas encore, ignorer
+  }
+
   return (
     <>
       <SuperAdminLayout
@@ -49,6 +60,7 @@ export default async function SuperAdminRootLayout({
         }}
         pendingCount={pendingCount}
         unreadNotifications={unreadNotifications}
+        pendingTaxonomySuggestions={pendingTaxonomySuggestions}
       >
         {children}
       </SuperAdminLayout>

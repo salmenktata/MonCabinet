@@ -564,6 +564,7 @@ function mapRowToWebPage(row: Record<string, unknown>): WebPage {
     metaKeywords: (row.meta_keywords as string[]) || [],
     structuredData: row.structured_data as Record<string, unknown> | null,
     linkedFiles: (row.linked_files as WebPage['linkedFiles']) || [],
+    siteStructure: row.site_structure as Record<string, unknown> | null,
     etag: row.etag as string | null,
     lastModified: row.last_modified ? new Date(row.last_modified as string) : null,
     status: row.status as WebPage['status'],

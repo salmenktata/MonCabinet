@@ -180,6 +180,22 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
         <WebSourceActions source={source} />
       </div>
 
+      {/* Actions rapides */}
+      <div className="flex gap-3">
+        <Link href={`/super-admin/web-sources/${id}/rules`}>
+          <Button variant="outline" className="border-slate-600">
+            <Icons.filter className="h-4 w-4 mr-2" />
+            Règles de classification
+          </Button>
+        </Link>
+        <Link href={`/super-admin/web-sources/${id}/pages`}>
+          <Button variant="outline" className="border-slate-600">
+            <Icons.fileText className="h-4 w-4 mr-2" />
+            Toutes les pages
+          </Button>
+        </Link>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
