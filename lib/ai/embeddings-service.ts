@@ -30,10 +30,11 @@ interface CircuitBreakerState {
 }
 
 // Configuration du circuit breaker (configurable via env)
+// Seuils élevés pour tolérer la lenteur d'Ollama CPU-only
 const CIRCUIT_BREAKER_CONFIG = {
-  failureThreshold: parseInt(process.env.CB_FAILURE_THRESHOLD || '3', 10),
-  resetTimeout: parseInt(process.env.CB_RESET_TIMEOUT_MS || '30000', 10),
-  successThreshold: parseInt(process.env.CB_SUCCESS_THRESHOLD || '2', 10),
+  failureThreshold: parseInt(process.env.CB_FAILURE_THRESHOLD || '5', 10),
+  resetTimeout: parseInt(process.env.CB_RESET_TIMEOUT_MS || '60000', 10),
+  successThreshold: parseInt(process.env.CB_SUCCESS_THRESHOLD || '1', 10),
   halfOpenMaxConcurrent: parseInt(process.env.CB_HALF_OPEN_MAX || '1', 10),
 }
 
@@ -280,27 +281,15 @@ async function generateEmbeddingsBatchWithOllama(
     return { embeddings: [], totalTokens: 0, provider: 'ollama' }
   }
 
-  // Ollama traite sur CPU uniquement (pas de GPU)
-  // Parallélisme réduit à 2 pour éviter la saturation CPU (4 cores VPS)
-  const batchSize = 2
+  // Traitement séquentiel : un texte à la fois pour éviter la saturation CPU
+  // Ollama sur VPS 4 cores CPU-only prend ~20-45s par embedding
   const allEmbeddings: number[][] = []
   let totalTokens = 0
 
-  for (let i = 0; i < texts.length; i += batchSize) {
-    const batch = texts.slice(i, i + batchSize)
-
-    // Traiter le batch en parallèle
-    const results = await Promise.all(
-      batch.map(async (text) => {
-        const result = await generateEmbeddingWithOllama(text)
-        return result
-      })
-    )
-
-    for (const result of results) {
-      allEmbeddings.push(result.embedding)
-      totalTokens += result.tokenCount
-    }
+  for (const text of texts) {
+    const result = await generateEmbeddingWithOllama(text)
+    allEmbeddings.push(result.embedding)
+    totalTokens += result.tokenCount
   }
 
   return {
