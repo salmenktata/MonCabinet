@@ -105,6 +105,8 @@ services:
     # Image pré-buildée depuis GitHub Container Registry
     image: ghcr.io/salmenktata/qadhya:latest
     container_name: qadhya-nextjs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     depends_on:
       postgres:
