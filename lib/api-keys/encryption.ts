@@ -63,9 +63,9 @@ export function validateApiKeyFormat(provider: string, apiKey: string): boolean 
     deepseek: /^sk-[a-zA-Z0-9]{32,}$/,
     groq: /^gsk_[a-zA-Z0-9]{40,}$/,
     anthropic: /^sk-ant-api03-[a-zA-Z0-9_-]{90,}$/,
-    openai: /^sk-[a-zA-Z0-9]{20,}$/,
+    openai: /^sk-(proj-)?[a-zA-Z0-9_-]{20,}$/,  // Support ancien format (sk-...) et nouveau (sk-proj-...)
   }
-  
+
   const pattern = patterns[provider]
   return pattern ? pattern.test(apiKey) : apiKey.length > 0
 }

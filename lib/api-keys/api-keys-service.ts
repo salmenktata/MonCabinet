@@ -109,6 +109,47 @@ export async function getApiKey(provider: string): Promise<string | null> {
 }
 
 /**
+ * Récupérer les données complètes d'une clé API avec clé décryptée (usage interne)
+ */
+export async function getApiKeyData(provider: string): Promise<(ApiKeyRecord & { decryptedKey: string }) | null> {
+  const result = await db.query(
+    `SELECT id, provider, label, api_key_encrypted, project_id, base_url, model_default,
+      tier, monthly_quota, daily_quota, rpm_limit, is_active, is_primary,
+      last_used_at, last_error, error_count, created_at, updated_at
+     FROM api_keys
+     WHERE provider = $1`,
+    [provider]
+  )
+
+  if (result.rows.length === 0) return null
+
+  const row = result.rows[0]
+  const decryptedKey = decryptApiKey(row.api_key_encrypted)
+
+  return {
+    id: row.id,
+    provider: row.provider,
+    label: row.label,
+    apiKeyMasked: maskApiKey(decryptedKey),
+    decryptedKey,
+    projectId: row.project_id,
+    baseUrl: row.base_url,
+    modelDefault: row.model_default,
+    tier: row.tier,
+    monthlyQuota: row.monthly_quota,
+    dailyQuota: row.daily_quota,
+    rpmLimit: row.rpm_limit,
+    isActive: row.is_active,
+    isPrimary: row.is_primary,
+    lastUsedAt: row.last_used_at,
+    lastError: row.last_error,
+    errorCount: row.error_count,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+/**
  * Lister toutes les clés (masquées)
  */
 export async function listApiKeys(): Promise<ApiKeyRecord[]> {

@@ -21,6 +21,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "test:scalability": "NODE_OPTIONS='--expose-gc' npx tsx scripts/test-indexing-scalability.ts",
+    "migrate:api-keys": "npx tsx scripts/migrate-platform-configs-to-api-keys.ts",
     "check:translations": "node scripts/check-translations.js",
     "i18n:check": "npx tsx scripts/i18n-check.ts",
     "find:hardcoded-text": "node scripts/find-hardcoded-text.js",
