@@ -65,6 +65,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   console.log('[WebCrawler Cron] Démarrage...')
 
   try {
+    // 0. Récupérer les jobs orphelins (bloqués en "running")
+    const orphanedJobsResult = await recoverOrphanedJobs()
+
     // 1. Traiter les jobs en attente
     const pendingJobsResult = await processPendingJobs()
 
@@ -87,6 +90,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       success: true,
       duration,
+      orphanedJobs: orphanedJobsResult,
       pendingJobs: pendingJobsResult,
       scheduled: scheduledResult,
       pipeline: pipelineResult,
@@ -101,6 +105,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
       { status: 500 }
     )
+  }
+}
+
+// =============================================================================
+// RÉCUPÉRATION DES JOBS ORPHELINS
+// =============================================================================
+
+async function recoverOrphanedJobs(): Promise<{
+  recovered: number
+}> {
+  try {
+    // Appeler la fonction SQL pour récupérer les jobs orphelins
+    const result = await db.query('SELECT * FROM recover_orphaned_crawl_jobs()')
+
+    const recovered = result.rows.length
+
+    if (recovered > 0) {
+      console.log(`[WebCrawler Cron] ⚠️  ${recovered} job(s) orphelin(s) récupéré(s)`)
+      result.rows.forEach(row => {
+        console.log(`  - Job ${row.job_id} (${row.job_type}) bloqué depuis ${row.stuck_duration}`)
+      })
+    }
+
+    return { recovered }
+  } catch (error) {
+    console.error('[WebCrawler Cron] Erreur récupération jobs orphelins:', error)
+    // Ne pas bloquer le reste du traitement si la fonction échoue
+    return { recovered: 0 }
   }
 }
 

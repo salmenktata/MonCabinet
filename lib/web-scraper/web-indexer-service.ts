@@ -250,12 +250,16 @@ export async function indexSourcePages(
 
   // Récupérer les pages à indexer
   // FIX: Inclure aussi les pages 'unchanged' qui n'ont jamais été indexées
+  // FIX: Accepter aussi les pages avec fichiers liés (Google Drive) même si extracted_text est vide
   let sql = `
     SELECT id FROM web_pages
     WHERE web_source_id = $1
     AND status IN ('crawled', 'unchanged')
-    AND extracted_text IS NOT NULL
-    AND LENGTH(extracted_text) >= 100
+    AND (
+      (extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100)
+      OR
+      (linked_files IS NOT NULL AND jsonb_array_length(linked_files) > 0)
+    )
   `
 
   if (!reindex) {
@@ -295,13 +299,17 @@ export async function queueSourcePagesForIndexing(
 
   // Récupérer les pages à indexer
   // FIX: Inclure aussi les pages 'unchanged' qui n'ont jamais été indexées
+  // FIX: Accepter aussi les pages avec fichiers liés (Google Drive) même si extracted_text est vide
   const pagesResult = await db.query(
     `SELECT id FROM web_pages
      WHERE web_source_id = $1
      AND status IN ('crawled', 'unchanged')
      AND is_indexed = false
-     AND extracted_text IS NOT NULL
-     AND LENGTH(extracted_text) >= 100
+     AND (
+       (extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100)
+       OR
+       (linked_files IS NOT NULL AND jsonb_array_length(linked_files) > 0)
+     )
      ORDER BY last_crawled_at DESC
      LIMIT $2`,
     [sourceId, limit]

@@ -51,12 +51,30 @@ export const useAssistantStore = create<AssistantState>()(
       name: 'assistant-store',
       storage: createJSONStorage(() => sessionStorage),
       // Ne pas persister l'étape 'analyzing' - si on recharge pendant l'analyse, revenir à 'input'
-      partialize: (state) => ({
-        step: state.step === 'analyzing' ? 'input' : state.step,
-        narratif: state.narratif,
-        result: state.result,
-        error: state.error,
-      }),
+      partialize: (state) => {
+        // Optimisation mémoire : exclure les données volumineuses non essentielles
+        let lightResult = null
+        if (state.result) {
+          lightResult = {
+            ...state.result,
+            // Exclure le narratif original (déjà dans state.narratif)
+            narratifOriginal: undefined,
+            // Exclure les métriques RAG (debug uniquement)
+            ragMetrics: undefined,
+            // Garder uniquement les N premières actions/références
+            actionsSuggerees: state.result.actionsSuggerees?.slice(0, 10) || [],
+            references: state.result.references?.slice(0, 5) || [],
+          }
+        }
+
+        return {
+          step: state.step === 'analyzing' ? 'input' : state.step,
+          // Limiter la taille du narratif stocké (garder 2000 premiers caractères)
+          narratif: state.narratif.slice(0, 2000),
+          result: lightResult,
+          error: state.error,
+        }
+      },
     }
   )
 )
