@@ -75,34 +75,54 @@ const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'deepseek', 'groq', 'anthropic'
 /**
  * Stratégies de providers par contexte d'utilisation
  * Optimise coût vs performance vs qualité selon le cas d'usage
+ *
+ * IMPORTANT : En développement, toutes les stratégies utilisent Ollama uniquement
  */
-const PROVIDER_STRATEGY_BY_CONTEXT: Record<AIContext, LLMProvider[]> = {
-  // Chat/RAG - Volume élevé (2-3M tokens/jour), performance critique
-  // Priorité : Vitesse + Contexte 1M tokens + Coût
-  'rag-chat': ['gemini', 'gemini', 'deepseek', 'ollama'],
+function getProviderStrategyByContext(): Record<AIContext, LLMProvider[]> {
+  const isDevelopment = process.env.NODE_ENV === 'development'
 
-  // Embeddings - Volume très élevé (5-10M tokens/jour), coût critique
-  // Ollama exclusif pour économie maximale ($400-750/mois économisés)
-  'embeddings': ['ollama'],
+  // En dev : Ollama uniquement pour tous les contextes (0€)
+  if (isDevelopment) {
+    return {
+      'rag-chat': ['ollama'],
+      'embeddings': ['ollama'],
+      'quality-analysis': ['ollama'],
+      'structuring': ['ollama'],
+      'translation': ['ollama'],
+      'web-scraping': ['ollama'],
+      'default': ['ollama'],
+    }
+  }
 
-  // Analyse qualité KB - Précision critique (5-10K tokens/jour)
-  // Priorité : Qualité > Coût
-  'quality-analysis': ['deepseek', 'gemini', 'ollama'],
+  // En prod : Stratégies optimisées par contexte
+  return {
+    // Chat/RAG - Volume élevé (2-3M tokens/jour), performance critique
+    // Priorité : Vitesse + Contexte 1M tokens + Coût
+    'rag-chat': ['gemini', 'gemini', 'deepseek', 'ollama'],
 
-  // Structuration dossiers - Qualité JSON critique (10-50 ops/mois)
-  // Priorité : Extraction structurée + Raisonnement
-  'structuring': ['deepseek', 'gemini', 'ollama'],
+    // Embeddings - Volume très élevé (5-10M tokens/jour), coût critique
+    // Ollama exclusif pour économie maximale ($400-750/mois économisés)
+    'embeddings': ['ollama'],
 
-  // Traduction bilingue - Langues critiques (<5K tokens/jour)
-  // Priorité : Multilingue AR/FR + Coût
-  'translation': ['gemini', 'groq'],
+    // Analyse qualité KB - Précision critique (5-10K tokens/jour)
+    // Priorité : Qualité > Coût
+    'quality-analysis': ['deepseek', 'gemini', 'ollama'],
 
-  // Web scraping - Économie prioritaire (5-20K tokens/jour, rare)
-  // Priorité : Contexte 1M tokens + Gratuit
-  'web-scraping': ['gemini', 'ollama'],
+    // Structuration dossiers - Qualité JSON critique (10-50 ops/mois)
+    // Priorité : Extraction structurée + Raisonnement
+    'structuring': ['deepseek', 'gemini', 'ollama'],
 
-  // Fallback générique (ordre standard)
-  'default': FALLBACK_ORDER,
+    // Traduction bilingue - Langues critiques (<5K tokens/jour)
+    // Priorité : Multilingue AR/FR + Coût
+    'translation': ['gemini', 'groq'],
+
+    // Web scraping - Économie prioritaire (5-20K tokens/jour, rare)
+    // Priorité : Contexte 1M tokens + Gratuit
+    'web-scraping': ['gemini', 'ollama'],
+
+    // Fallback générique (ordre standard)
+    'default': FALLBACK_ORDER,
+  }
 }
 
 /** Nombre maximum de retries par provider avant de passer au suivant */
@@ -265,8 +285,20 @@ async function delay(ms: number): Promise<void> {
 /**
  * Retourne la liste des providers disponibles (avec clé API configurée)
  * Lit directement process.env pour éviter problème d'initialisation module
+ *
+ * En développement : Ollama uniquement (0€, pas de consommation cloud)
+ * En production : Tous les providers disponibles (Gemini, DeepSeek, etc.)
  */
 export function getAvailableProviders(): LLMProvider[] {
+  const isDevelopment = process.env.NODE_ENV === 'development'
+
+  // En dev : Ollama uniquement pour éviter consommation tokens payants
+  if (isDevelopment) {
+    console.log('[LLM-Fallback] 🏠 Mode développement → Ollama uniquement (0€)')
+    return ['ollama']
+  }
+
+  // En prod : Tous les providers disponibles
   return FALLBACK_ORDER.filter((provider) => {
     switch (provider) {
       case 'gemini':
@@ -524,17 +556,24 @@ export async function callLLMWithFallback(
 
   // Déterminer la stratégie selon le contexte
   const context = options.context || 'default'
-  const strategyProviders = PROVIDER_STRATEGY_BY_CONTEXT[context]
+  const strategyProviders = getProviderStrategyByContext()[context]
 
   // Filtrer par providers disponibles (clés API configurées)
   const availableProviders = getAvailableProviders()
+  const isDevelopment = process.env.NODE_ENV === 'development'
+
   const contextProviders = strategyProviders
     .filter(p => availableProviders.includes(p))
-    .filter(p => p !== 'ollama') // Ollama déjà tenté en mode rapide
+    // En prod : Exclure Ollama (déjà tenté en mode rapide)
+    // En dev : Garder Ollama (seul provider disponible)
+    .filter(p => isDevelopment || p !== 'ollama')
 
   if (contextProviders.length === 0) {
+    const hint = isDevelopment
+      ? 'Vérifiez que Ollama est démarré : ollama serve'
+      : 'Configurez au moins une clé API: GOOGLE_API_KEY, GROQ_API_KEY, DEEPSEEK_API_KEY ou ANTHROPIC_API_KEY'
     throw new Error(
-      `Aucun provider disponible pour contexte "${context}". Configurez au moins une clé API: GOOGLE_API_KEY, GROQ_API_KEY, DEEPSEEK_API_KEY ou ANTHROPIC_API_KEY`
+      `Aucun provider disponible pour contexte "${context}". ${hint}`
     )
   }
 
