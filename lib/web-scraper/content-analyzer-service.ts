@@ -16,7 +16,7 @@ import {
   formatPrompt,
   truncateContent,
 } from '@/lib/ai/prompts/legal-analysis'
-import { logUsage } from '@/lib/ai/usage-tracker'
+import { logUsage, type Provider } from '@/lib/ai/usage-tracker'
 import type {
   ContentQualityAssessment,
   LegalReference,
@@ -352,9 +352,13 @@ export async function getAssessmentsRequiringReview(options: {
 
 interface LLMResult {
   content: string
-  provider: string
+  provider: Provider
   model: string
   tokensUsed: number
+  usage?: {
+    promptTokens?: number
+    completionTokens?: number
+  }
 }
 
 /**

@@ -16,7 +16,7 @@ import {
   formatPrompt,
   truncateContent,
 } from '@/lib/ai/prompts/legal-analysis'
-import { logUsage } from '@/lib/ai/usage-tracker'
+import { logUsage, type Provider } from '@/lib/ai/usage-tracker'
 import type { WebPageStructuredMetadata } from './types'
 
 // =============================================================================
@@ -77,9 +77,13 @@ function getGroqClient(): OpenAI {
 
 interface LLMResult {
   content: string
-  provider: string
+  provider: Provider
   model: string
   tokensUsed: number
+  usage?: {
+    promptTokens?: number
+    completionTokens?: number
+  }
 }
 
 interface LLMMetadataResponse {
@@ -103,6 +107,7 @@ interface LLMMetadataResponse {
   keywords: string[] | null
   abstract: string | null
   extraction_confidence: number
+  extraction_method?: string
 }
 
 // =============================================================================
@@ -379,7 +384,7 @@ export async function extractStructuredMetadata(
   // Skip LLM si < 3 champs applicables pour la catégorie
   const useLLM = shouldExtractWithLLM(page.source_category)
 
-  let parsed: MetadataExtractionResponse
+  let parsed: LLMMetadataResponse
 
   if (!useLLM) {
     // Skip LLM - retourner métadonnées minimales (extraction regex basique si disponible)

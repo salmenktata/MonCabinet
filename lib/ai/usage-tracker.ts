@@ -21,7 +21,7 @@ export type OperationType =
   | 'classification'
   | 'extraction'
 
-export type Provider = 'openai' | 'anthropic'
+export type Provider = 'openai' | 'anthropic' | 'ollama' | 'groq' | 'deepseek' | 'gemini'
 
 export interface UsageLog {
   userId: string

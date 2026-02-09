@@ -21,7 +21,7 @@ import {
   formatPrompt,
   truncateContent,
 } from '@/lib/ai/prompts/legal-analysis'
-import { logUsage } from '@/lib/ai/usage-tracker'
+import { logUsage, type Provider } from '@/lib/ai/usage-tracker'
 import {
   generateCacheKey,
   getCachedClassification,
@@ -157,14 +157,14 @@ export interface ClassificationResult {
   llmModel: string
   tokensUsed: number
   // Nouveaux champs pour multi-signaux
-  classificationSource: 'llm' | 'rules' | 'structure' | 'hybrid'
+  classificationSource: 'llm' | 'rules' | 'structure' | 'hybrid' | 'cache'
   signalsUsed: ClassificationSignal[]
   rulesMatched: string[]
   structureHints: StructuralHint[] | null
 }
 
 export interface ClassificationSignal {
-  source: 'structure' | 'rules' | 'llm'
+  source: 'structure' | 'rules' | 'llm' | 'cache'
   category: string | null
   domain: string | null
   documentType: string | null
@@ -510,7 +510,7 @@ async function classifyWithMultiSignals(
         operationType: 'classification',
         provider: llmResult.provider,
         model: llmResult.model,
-        inputTokens: llmResult.usage?.promptTokens || Math.floor(truncatedContent.length / 4),
+        inputTokens: llmResult.usage?.promptTokens || Math.floor(context.content.length / 4),
         outputTokens: llmResult.usage?.completionTokens || Math.floor(llmResult.content.length / 4),
         context: {
           pageId: context.pageId,
@@ -567,7 +567,7 @@ async function classifyWithMultiSignals(
   const fused = fuseClassificationSignals(signals)
 
   // Déterminer la source principale
-  let classificationSource: 'llm' | 'rules' | 'structure' | 'hybrid' = 'hybrid'
+  let classificationSource: 'llm' | 'rules' | 'structure' | 'hybrid' | 'cache' = 'hybrid'
   if (signals.length === 1) {
     classificationSource = signals[0].source
   } else if (signals.length > 1) {
@@ -852,9 +852,13 @@ export async function getClassificationStats(): Promise<{
 
 interface LLMResult {
   content: string
-  provider: string
+  provider: Provider
   model: string
   tokensUsed: number
+  usage?: {
+    promptTokens?: number
+    completionTokens?: number
+  }
 }
 
 /**
