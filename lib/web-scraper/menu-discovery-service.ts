@@ -393,8 +393,20 @@ export async function discoverLinksViaInteraction(
           `[MenuDiscovery] Clic ${clicksPerformed + 1}/${config.maxClicks} sur "${element.text}" (score: ${element.score})`
         )
 
-        // Cliquer sur l'élément
-        await page.click(element.selector, { timeout: 3000 })
+        // Attendre que l'élément soit cliquable et cliquer
+        try {
+          await page.waitForSelector(element.selector, {
+            state: 'visible',
+            timeout: 5000,
+          })
+          await page.click(element.selector, { timeout: 15000 })
+        } catch (firstError) {
+          // Fallback: clic forcé sans attendre l'état
+          console.log(
+            `[MenuDiscovery] Tentative clic forcé sur "${element.text}"`
+          )
+          await page.click(element.selector, { force: true, timeout: 15000 })
+        }
         clicksPerformed++
 
         // Attendre stabilisation
