@@ -69,6 +69,11 @@ import {
   validateArticleCitations,
   formatValidationWarnings,
 } from './citation-validator-service'
+import {
+  detectAbrogatedReferences,
+  formatAbrogationWarnings,
+  type AbrogationWarning,
+} from './abrogation-detector-service'
 
 // Configuration Query Expansion
 const ENABLE_QUERY_EXPANSION = process.env.ENABLE_QUERY_EXPANSION !== 'false'
@@ -156,6 +161,7 @@ export interface ChatResponse {
   model: string
   conversationId?: string
   citationWarnings?: string[] // Phase 2.2 - Citations non vérifiées
+  abrogationWarnings?: import('./abrogation-detector-service').AbrogationWarning[] // Phase 2.3 - Lois abrogées
 }
 
 export interface ChatOptions {
@@ -1348,6 +1354,21 @@ export async function answerQuestion(
     }
   }
 
+  // Phase 2.3 : Détecter lois/articles abrogés
+  let abrogationWarnings: AbrogationWarning[] = []
+  if (process.env.ENABLE_ABROGATION_DETECTION !== 'false') {
+    try {
+      abrogationWarnings = await detectAbrogatedReferences(answer, sources)
+
+      if (abrogationWarnings.length > 0) {
+        console.warn('[RAG] Lois abrogées détectées:', formatAbrogationWarnings(abrogationWarnings))
+      }
+    } catch (error) {
+      console.error('[RAG] Erreur détection abrogations:', error)
+      // Ne pas bloquer la réponse
+    }
+  }
+
   return {
     answer,
     sources,
@@ -1355,6 +1376,7 @@ export async function answerQuestion(
     model: modelUsed,
     conversationId: options.conversationId,
     citationWarnings: citationWarnings.length > 0 ? citationWarnings : undefined,
+    abrogationWarnings: abrogationWarnings.length > 0 ? abrogationWarnings : undefined,
   }
 }
 
