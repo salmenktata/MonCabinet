@@ -2,11 +2,11 @@
  * Service de détection de doublons et contradictions pour la base de connaissances
  *
  * Détecte les documents similaires via embeddings et analyse LLM les contradictions.
+ * Optimisé avec seuils 0.75/5 docs max + fallback centralisé (Gemini prioritaire)
  */
 
-import OpenAI from 'openai'
 import { db } from '@/lib/db/postgres'
-import { aiConfig } from './config'
+import { callLLMWithFallback } from './llm-fallback-service'
 import {
   CONTRADICTION_DETECTION_SYSTEM_PROMPT,
   CONTRADICTION_DETECTION_USER_PROMPT,
@@ -52,42 +52,6 @@ interface SimilarDoc {
   similarity: number
 }
 
-interface LLMResult {
-  content: string
-  provider: string
-  model: string
-}
-
-// =============================================================================
-// CLIENTS LLM
-// =============================================================================
-
-let ollamaClient: OpenAI | null = null
-let deepseekClient: OpenAI | null = null
-let groqClient: OpenAI | null = null
-
-function getOllamaClient(): OpenAI {
-  if (!ollamaClient) {
-    ollamaClient = new OpenAI({ apiKey: 'ollama', baseURL: `${aiConfig.ollama.baseUrl}/v1`, timeout: 120000 })
-  }
-  return ollamaClient
-}
-
-function getDeepSeekClient(): OpenAI {
-  if (!deepseekClient) {
-    if (!aiConfig.deepseek.apiKey) throw new Error('DEEPSEEK_API_KEY non configuré')
-    deepseekClient = new OpenAI({ apiKey: aiConfig.deepseek.apiKey, baseURL: aiConfig.deepseek.baseUrl })
-  }
-  return deepseekClient
-}
-
-function getGroqClient(): OpenAI {
-  if (!groqClient) {
-    if (!aiConfig.groq.apiKey) throw new Error('GROQ_API_KEY non configuré')
-    groqClient = new OpenAI({ apiKey: aiConfig.groq.apiKey, baseURL: aiConfig.groq.baseUrl })
-  }
-  return groqClient
-}
 
 // =============================================================================
 // FONCTIONS PRINCIPALES
@@ -98,9 +62,10 @@ function getGroqClient(): OpenAI {
  */
 export async function detectDuplicatesAndContradictions(documentId: string): Promise<DuplicateCheckResult> {
   // Trouver les documents similaires via embeddings
+  // Optimisé : Seuil 0.75 (vs 0.7), limite 5 (vs 10) → -50% tokens
   const similarResult = await db.query(
     `SELECT * FROM find_similar_kb_documents($1, $2, $3)`,
-    [documentId, 0.7, 10]
+    [documentId, 0.75, 5]
   )
 
   const similarDocs: SimilarDoc[] = similarResult.rows.map(row => ({
@@ -113,7 +78,10 @@ export async function detectDuplicatesAndContradictions(documentId: string): Pro
   const duplicates: DuplicateCheckResult['duplicates'] = []
   const contradictions: KBRelation[] = []
 
-  for (const similar of similarDocs) {
+  // Limite stricte 5 comparaisons max (même si >5 candidats)
+  const docsToAnalyze = similarDocs.slice(0, 5)
+
+  for (const similar of docsToAnalyze) {
     let relationType: 'duplicate' | 'near_duplicate' | 'related'
 
     if (similar.similarity >= 0.95) {
@@ -143,8 +111,9 @@ export async function detectDuplicatesAndContradictions(documentId: string): Pro
       [documentId, similar.id, relationType, similar.similarity]
     )
 
-    // Pour les candidats entre 0.7 et 0.85, analyser les contradictions
-    if (similar.similarity >= 0.7 && similar.similarity < 0.85) {
+    // Pour les candidats entre 0.75 et 0.84, analyser les contradictions
+    // Optimisé : Range réduit [0.75, 0.84] (vs [0.7, 0.85]) → -20% analyses
+    if (similar.similarity >= 0.75 && similar.similarity < 0.84) {
       try {
         const contradictionResult = await analyzeContradiction(documentId, similar.id)
         if (contradictionResult) {
@@ -238,8 +207,19 @@ async function analyzeContradiction(sourceId: string, targetId: string): Promise
     target_content: truncateContent(targetDoc.full_text || '', 3000),
   })
 
-  const llmResult = await callLLMWithFallback(CONTRADICTION_DETECTION_SYSTEM_PROMPT, userPrompt)
-  const parsed = parseContradictionResponse(llmResult.content)
+  // Utilise service centralisé avec contexte 'quality-analysis' (Gemini → DeepSeek → Ollama)
+  const llmResult = await callLLMWithFallback(
+    [
+      { role: 'system', content: CONTRADICTION_DETECTION_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt }
+    ],
+    {
+      temperature: 0.3,
+      maxTokens: 2000,
+      context: 'quality-analysis'
+    }
+  )
+  const parsed = parseContradictionResponse(llmResult.answer)
 
   if (!parsed.has_contradiction || !parsed.contradictions?.length) return null
 
@@ -279,66 +259,6 @@ async function analyzeContradiction(sourceId: string, targetId: string): Promise
 // =============================================================================
 // HELPERS
 // =============================================================================
-
-async function callLLMWithFallback(systemPrompt: string, userPrompt: string): Promise<LLMResult> {
-  const errors: string[] = []
-
-  if (aiConfig.ollama.enabled) {
-    try {
-      const client = getOllamaClient()
-      const response = await client.chat.completions.create({
-        model: aiConfig.ollama.chatModelDefault,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-      })
-      return { content: response.choices[0]?.message?.content || '', provider: 'ollama', model: aiConfig.ollama.chatModelDefault }
-    } catch (error) {
-      errors.push(`Ollama: ${error instanceof Error ? error.message : 'Erreur'}`)
-    }
-  }
-
-  if (aiConfig.deepseek.apiKey) {
-    try {
-      const client = getDeepSeekClient()
-      const response = await client.chat.completions.create({
-        model: aiConfig.deepseek.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-      })
-      return { content: response.choices[0]?.message?.content || '', provider: 'deepseek', model: aiConfig.deepseek.model }
-    } catch (error) {
-      errors.push(`DeepSeek: ${error instanceof Error ? error.message : 'Erreur'}`)
-    }
-  }
-
-  if (aiConfig.groq.apiKey) {
-    try {
-      const client = getGroqClient()
-      const response = await client.chat.completions.create({
-        model: aiConfig.groq.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-      })
-      return { content: response.choices[0]?.message?.content || '', provider: 'groq', model: aiConfig.groq.model }
-    } catch (error) {
-      errors.push(`Groq: ${error instanceof Error ? error.message : 'Erreur'}`)
-    }
-  }
-
-  throw new Error(`Aucun LLM disponible. Erreurs: ${errors.join('; ')}`)
-}
 
 function parseContradictionResponse(content: string) {
   const jsonMatch = content.match(/\{[\s\S]*\}/)

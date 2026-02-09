@@ -48,6 +48,13 @@ export async function GET() {
       return NextResponse.json({ error: authError.error }, { status: authError.status })
     }
 
+    // ⚠️ LOGGING - Interface dépréciée (Sprint 2)
+    console.warn(
+      `[DEPRECATED] /api/super-admin/providers/ai utilisée par user ${session?.user?.id} - ` +
+      `Rediriger vers /super-admin/settings (Architecture IA) - ` +
+      `Cette API sera supprimée dans 2 semaines (Sprint 3)`
+    )
+
     const config = await getAIProviderConfig()
 
     return NextResponse.json({
@@ -74,6 +81,13 @@ export async function POST(request: NextRequest) {
     if (authError) {
       return NextResponse.json({ error: authError.error }, { status: authError.status })
     }
+
+    // ⚠️ LOGGING - Interface dépréciée (Sprint 2)
+    console.warn(
+      `[DEPRECATED] POST /api/super-admin/providers/ai utilisée par user ${session?.user?.id} - ` +
+      `Cette API est en lecture seule. Rediriger vers /super-admin/settings (Architecture IA) - ` +
+      `Suppression prévue dans 2 semaines (Sprint 3)`
+    )
 
     const body = await request.json()
     const {

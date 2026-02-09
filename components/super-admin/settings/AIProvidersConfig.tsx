@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,6 +37,7 @@ interface ProviderCardProps {
   setShowKey: (value: boolean) => void
   isActive: boolean
   priority: number
+  disabled?: boolean
 }
 
 function ProviderCard({
@@ -49,11 +52,13 @@ function ProviderCard({
   setShowKey,
   isActive,
   priority,
+  disabled = false,
 }: ProviderCardProps) {
   return (
     <div className={cn(
       'space-y-3 p-4 rounded-lg border transition-colors',
-      isActive ? 'bg-green-500/10 border-green-500' : 'bg-slate-700/50 border-slate-600'
+      isActive ? 'bg-green-500/10 border-green-500' : 'bg-slate-700/50 border-slate-600',
+      disabled && 'opacity-60'
     )}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -70,7 +75,7 @@ function ProviderCard({
         </div>
         <ProviderTestButton
           provider={provider}
-          disabled={!configured}
+          disabled={!configured || disabled}
         />
       </div>
 
@@ -90,6 +95,7 @@ function ProviderCard({
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             className="bg-slate-600 border-slate-500 text-white pr-10"
+            disabled={disabled}
           />
           <Button
             type="button"
@@ -97,6 +103,7 @@ function ProviderCard({
             size="icon"
             className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-slate-400 hover:text-white"
             onClick={() => setShowKey(!showKey)}
+            disabled={disabled}
           >
             {showKey ? (
               <Icons.eyeOff className="h-4 w-4" />
@@ -111,6 +118,7 @@ function ProviderCard({
 }
 
 export function AIProvidersConfig() {
+  const router = useRouter()
   const [config, setConfig] = useState<AIProviderConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -132,6 +140,9 @@ export function AIProvidersConfig() {
   const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434')
 
   const { toast } = useToast()
+
+  // Interface dépréciée - lecture seule
+  const DEPRECATED = true
 
   useEffect(() => {
     loadConfig()
@@ -283,6 +294,30 @@ export function AIProvidersConfig() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Bandeau de dépréciation */}
+        {DEPRECATED && (
+          <Alert className="bg-orange-500/10 border-orange-500/50">
+            <Icons.alertTriangle className="h-4 w-4 text-orange-500" />
+            <AlertTitle className="text-orange-300 font-semibold">
+              ⚠️ Interface Dépréciée
+            </AlertTitle>
+            <AlertDescription className="text-orange-200/80 space-y-2">
+              <p>
+                Cette interface est en lecture seule et sera supprimée prochainement.
+                Utilisez la nouvelle interface <strong>Architecture IA</strong> qui inclut tous les providers (y compris Gemini).
+              </p>
+              <Button
+                onClick={() => router.push('/super-admin/settings')}
+                className="bg-orange-600 hover:bg-orange-700 text-white mt-2"
+                size="sm"
+              >
+                <Icons.arrowRight className="h-4 w-4 mr-2" />
+                Accéder à la nouvelle interface
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Info priorité */}
         <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
           <div className="flex items-start gap-2 text-sm text-blue-300">
@@ -309,6 +344,7 @@ export function AIProvidersConfig() {
           setShowKey={setShowDeepseek}
           isActive={config?.activeProvider === 'deepseek'}
           priority={1}
+          disabled={DEPRECATED}
         />
 
         {/* Groq */}
@@ -324,12 +360,14 @@ export function AIProvidersConfig() {
           setShowKey={setShowGroq}
           isActive={config?.activeProvider === 'groq'}
           priority={2}
+          disabled={DEPRECATED}
         />
 
         {/* Ollama */}
         <div className={cn(
           'space-y-3 p-4 rounded-lg border transition-colors',
-          config?.activeProvider === 'ollama' ? 'bg-green-500/10 border-green-500' : 'bg-slate-700/50 border-slate-600'
+          config?.activeProvider === 'ollama' ? 'bg-green-500/10 border-green-500' : 'bg-slate-700/50 border-slate-600',
+          DEPRECATED && 'opacity-60'
         )}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -349,7 +387,7 @@ export function AIProvidersConfig() {
                 size="sm"
                 variant="outline"
                 onClick={() => testProvider('ollama')}
-                disabled={!ollamaEnabled}
+                disabled={!ollamaEnabled || DEPRECATED}
                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
                 <Icons.zap className="h-4 w-4 mr-1" />
@@ -358,6 +396,7 @@ export function AIProvidersConfig() {
               <Switch
                 checked={ollamaEnabled}
                 onCheckedChange={setOllamaEnabled}
+                disabled={DEPRECATED}
               />
             </div>
           </div>
@@ -375,6 +414,7 @@ export function AIProvidersConfig() {
                 value={ollamaUrl}
                 onChange={(e) => setOllamaUrl(e.target.value)}
                 className="bg-slate-600 border-slate-500 text-white"
+                disabled={DEPRECATED}
               />
             </div>
           )}
@@ -393,6 +433,7 @@ export function AIProvidersConfig() {
           setShowKey={setShowAnthropic}
           isActive={config?.activeProvider === 'anthropic'}
           priority={4}
+          disabled={DEPRECATED}
         />
 
         {/* OpenAI */}
@@ -408,27 +449,38 @@ export function AIProvidersConfig() {
           setShowKey={setShowOpenai}
           isActive={config?.activeProvider === 'openai'}
           priority={5}
+          disabled={DEPRECATED}
         />
 
-        {/* Bouton Enregistrer */}
+        {/* Bouton Action */}
         <div className="flex justify-end pt-2">
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
-            {saving ? (
-              <>
-                <Icons.spinner className="h-4 w-4 mr-2 animate-spin" />
-                Enregistrement...
-              </>
-            ) : (
-              <>
-                <Icons.save className="h-4 w-4 mr-2" />
-                Enregistrer
-              </>
-            )}
-          </Button>
+          {DEPRECATED ? (
+            <Button
+              onClick={() => router.push('/super-admin/settings')}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              <Icons.arrowRight className="h-4 w-4 mr-2" />
+              Modifier dans la nouvelle interface
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {saving ? (
+                <>
+                  <Icons.spinner className="h-4 w-4 mr-2 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  <Icons.save className="h-4 w-4 mr-2" />
+                  Enregistrer
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
