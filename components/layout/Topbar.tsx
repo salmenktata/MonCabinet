@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
@@ -15,7 +16,17 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThemeToggle } from './ThemeToggle'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
-import { GlobalSearch } from './GlobalSearch'
+
+// Lazy load GlobalSearch (522 lignes) après le premier render
+const GlobalSearch = dynamic(
+  () => import('./GlobalSearch').then(mod => ({ default: mod.GlobalSearch })),
+  {
+    loading: () => (
+      <div className="hidden md:flex md:w-64 h-9 bg-slate-800 animate-pulse rounded-md" />
+    ),
+    ssr: false
+  }
+)
 
 interface TopbarProps {
   user: {

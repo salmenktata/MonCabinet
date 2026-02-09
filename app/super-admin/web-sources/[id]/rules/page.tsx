@@ -4,13 +4,22 @@
  */
 
 import { Suspense } from 'react'
+import nextDynamic from 'next/dynamic'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { db } from '@/lib/db/postgres'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import { RulesManager } from '@/components/super-admin/web-sources/RulesManager'
 import { RulesStats } from '@/components/super-admin/web-sources/RulesStats'
+
+// Lazy load du gestionnaire de règles (833 lignes) pour alléger le bundle
+const RulesManager = nextDynamic(
+  () => import('@/components/super-admin/web-sources/RulesManager').then(mod => ({ default: mod.RulesManager })),
+  {
+    loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" />,
+    ssr: false
+  }
+)
 
 export const dynamic = 'force-dynamic'
 

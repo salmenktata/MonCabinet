@@ -3,10 +3,28 @@
  * Wizard en 3 étapes pour configurer une nouvelle source
  */
 
+import nextDynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import { AddWebSourceWizard } from '@/components/super-admin/web-sources/AddWebSourceWizard'
+import { Skeleton } from '@/components/ui/skeleton'
+
+// Lazy load du wizard (929 lignes) pour alléger le bundle initial
+const AddWebSourceWizard = nextDynamic(
+  () => import('@/components/super-admin/web-sources/AddWebSourceWizard').then(mod => ({ default: mod.AddWebSourceWizard })),
+  {
+    loading: () => (
+      <div className="space-y-6">
+        <Skeleton className="h-64 w-full" />
+        <div className="flex gap-4">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+      </div>
+    ),
+    ssr: false
+  }
+)
 
 export const dynamic = 'force-dynamic'
 

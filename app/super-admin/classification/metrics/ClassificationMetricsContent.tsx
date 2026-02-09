@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+// Lazy load Recharts (8 MB) pour éviter de l'inclure dans le bundle initial
 import {
   BarChart,
   Bar,
@@ -17,7 +18,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts'
+} from '@/components/charts/LazyCharts'
 import {
   Activity,
   CheckCircle2,
