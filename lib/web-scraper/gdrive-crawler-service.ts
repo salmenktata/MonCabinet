@@ -306,7 +306,7 @@ async function upsertWebPage(
         await db.query(
           `UPDATE web_pages
            SET extracted_text = $1,
-               status = 'changed',
+               status = 'crawled',
                last_changed_at = NOW()
            WHERE id = $2`,
           [extractedText, page.id]
@@ -326,7 +326,7 @@ async function upsertWebPage(
          content_hash = $2,
          linked_files = $3,
          extracted_text = $5,
-         status = 'changed',
+         status = 'crawled',
          last_crawled_at = NOW(),
          last_changed_at = NOW(),
          updated_at = NOW()
