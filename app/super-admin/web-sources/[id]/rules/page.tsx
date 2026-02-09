@@ -16,8 +16,7 @@ import { RulesStats } from '@/components/super-admin/web-sources/RulesStats'
 const RulesManager = nextDynamic(
   () => import('@/components/super-admin/web-sources/RulesManager').then(mod => ({ default: mod.RulesManager })),
   {
-    loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" />,
-    ssr: false
+    loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" />
   }
 )
 

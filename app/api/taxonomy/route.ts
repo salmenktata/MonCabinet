@@ -4,10 +4,12 @@
  * GET /api/taxonomy?type=tribunal|chambre|domain|document_type
  *
  * Retourne les options de taxonomie pour les filtres juridiques
+ * Cache: 1 heure (données statiques)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,6 +59,8 @@ export async function GET(request: NextRequest) {
       type,
       items,
       count: items.length,
+    }, {
+      headers: getCacheHeaders(CACHE_PRESETS.LONG) // Cache 1 heure
     })
   } catch (error) {
     console.error('[API Taxonomy] Erreur:', error)

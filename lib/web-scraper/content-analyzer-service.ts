@@ -353,7 +353,7 @@ async function callLLMWithFallback(
     try {
       const client = getOllamaClient()
       const response = await client.chat.completions.create({
-        model: aiConfig.ollama.chatModel,
+        model: aiConfig.ollama.chatModelDefault,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -365,7 +365,7 @@ async function callLLMWithFallback(
       return {
         content: response.choices[0]?.message?.content || '',
         provider: 'ollama',
-        model: aiConfig.ollama.chatModel,
+        model: aiConfig.ollama.chatModelDefault,
         tokensUsed: response.usage?.total_tokens || 0,
       }
     } catch (error) {

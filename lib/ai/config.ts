@@ -26,10 +26,11 @@ export interface AIConfig {
   // Ollama (LLM + Embeddings locaux gratuits)
   ollama: {
     baseUrl: string
-    chatModel: string
+    chatModelDefault: string
     embeddingModel: string
     embeddingDimensions: number
     enabled: boolean
+    chatTimeoutDefault: number
   }
 
   // Groq (LLM rapide et économique)
@@ -83,10 +84,11 @@ export const aiConfig: AIConfig = {
 
   ollama: {
     baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
-    chatModel: process.env.OLLAMA_CHAT_MODEL || 'qwen3:8b',
+    chatModelDefault: process.env.OLLAMA_CHAT_MODEL || 'qwen3:8b',
     embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL || 'qwen3-embedding:0.6b',
     embeddingDimensions: 1024, // Qwen3 embedding default dimension
     enabled: process.env.OLLAMA_ENABLED === 'true',
+    chatTimeoutDefault: parseInt(process.env.OLLAMA_CHAT_TIMEOUT_DEFAULT || '120000', 10),
   },
 
   groq: {
@@ -212,12 +214,11 @@ export function isSemanticSearchEnabled(): boolean {
 
 /**
  * Retourne le provider d'embeddings actif
- * Priorité: Ollama (gratuit local) > OpenAI (payant cloud)
+ * Priorité: Ollama (gratuit local) uniquement (pas de fallback OpenAI)
  */
-export function getEmbeddingProvider(): 'ollama' | 'openai' | null {
+export function getEmbeddingProvider(): 'ollama' | null {
   if (!aiConfig.rag.enabled) return null
   if (aiConfig.ollama.enabled) return 'ollama'
-  if (aiConfig.openai.apiKey) return 'openai'
   return null
 }
 
@@ -259,10 +260,10 @@ export function getChatProvider(): 'deepseek' | 'groq' | 'ollama' | 'anthropic' 
 }
 
 /** Type des providers LLM disponibles pour le fallback */
-export type LLMProviderType = 'groq' | 'deepseek' | 'anthropic' | 'openai'
+export type LLMProviderType = 'groq' | 'deepseek' | 'anthropic'
 
 /** Ordre de fallback des providers LLM (du plus économique au plus cher) */
-const LLM_FALLBACK_ORDER: LLMProviderType[] = ['groq', 'deepseek', 'anthropic', 'openai']
+const LLM_FALLBACK_ORDER: LLMProviderType[] = ['groq', 'deepseek', 'anthropic']
 
 /**
  * Retourne la liste ordonnée des providers LLM disponibles pour le fallback
@@ -279,8 +280,6 @@ export function getAvailableLLMProviders(): LLMProviderType[] {
         return !!aiConfig.deepseek.apiKey
       case 'anthropic':
         return !!aiConfig.anthropic.apiKey
-      case 'openai':
-        return !!aiConfig.openai.apiKey
       default:
         return false
     }

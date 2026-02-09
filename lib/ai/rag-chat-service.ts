@@ -1189,7 +1189,7 @@ export async function answerQuestion(
       const temperature = options.temperature ?? promptConfig.temperature
 
       const response = await client.chat.completions.create({
-        model: aiConfig.ollama.chatModel,
+        model: aiConfig.ollama.chatModelDefault,
         max_tokens: promptConfig.maxTokens,
         messages: [
           { role: 'system', content: baseSystemPrompt },
@@ -1204,7 +1204,7 @@ export async function answerQuestion(
         output: response.usage?.completion_tokens || 0,
         total: response.usage?.total_tokens || 0,
       }
-      modelUsed = `ollama/${aiConfig.ollama.chatModel}`
+      modelUsed = `ollama/${aiConfig.ollama.chatModelDefault}`
     } else {
       // Utiliser le service de fallback pour les providers cloud
       // Convertir les messages au format LLMMessage

@@ -130,7 +130,7 @@ async function generateSummaryWithProvider(
       break
     case 'ollama':
       client = getOllamaClient()
-      model = aiConfig.ollama.chatModel
+      model = aiConfig.ollama.chatModelDefault
       break
   }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -9,13 +10,18 @@ import NarrativeInput from '@/components/dossiers/assistant/NarrativeInput'
 import ExamplesCarousel from '@/components/dossiers/assistant/ExamplesCarousel'
 import AnalysisLoader from '@/components/dossiers/assistant/AnalysisLoader'
 import StructuredResult from '@/components/dossiers/assistant/StructuredResult'
-import CreateDossierModal from '@/components/dossiers/assistant/CreateDossierModal'
 import {
   structurerDossierAction,
   creerDossierDepuisStructureAction,
 } from '@/app/actions/dossiers'
 import { useAssistantStore } from '@/lib/stores/assistant-store'
 import type { StructuredDossier } from '@/lib/ai/dossier-structuring-service'
+
+// Lazy load du modal (234 lignes) car il n'est affiché que sur action utilisateur
+const CreateDossierModal = dynamic(
+  () => import('@/components/dossiers/assistant/CreateDossierModal'),
+  { ssr: false }
+)
 
 interface Client {
   id: string

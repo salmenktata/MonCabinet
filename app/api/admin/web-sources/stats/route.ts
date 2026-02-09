@@ -3,6 +3,7 @@
  *
  * GET /api/admin/web-sources/stats
  * - Retourne les statistiques globales du système de crawl
+ * Cache: 1 minute (données changeantes)
  *
  * Réservé aux administrateurs
  */
@@ -14,6 +15,7 @@ export const dynamic = 'force-dynamic'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { getWebSourcesStats } from '@/lib/web-scraper'
+import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
@@ -111,6 +113,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         nextCrawlAt: row.next_crawl_at,
         priority: row.priority,
       })),
+    }, {
+      headers: getCacheHeaders(CACHE_PRESETS.SHORT) // Cache 1 minute
     })
   } catch (error) {
     console.error('Erreur récupération stats web sources:', error)

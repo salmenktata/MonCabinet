@@ -21,8 +21,7 @@ const AddWebSourceWizard = nextDynamic(
           <Skeleton className="h-10 w-24" />
         </div>
       </div>
-    ),
-    ssr: false
+    )
   }
 )
 

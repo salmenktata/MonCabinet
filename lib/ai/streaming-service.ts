@@ -187,7 +187,7 @@ async function createOllamaStream(
     throw new Error('Ollama non configuré')
   }
 
-  const model = options.model || aiConfig.ollama.chatModel
+  const model = options.model || aiConfig.ollama.chatModelDefault
   const baseUrl = aiConfig.ollama.baseUrl
 
   return new ReadableStream({

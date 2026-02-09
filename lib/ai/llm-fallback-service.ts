@@ -21,7 +21,7 @@ import { aiConfig, SYSTEM_PROMPTS } from './config'
 // TYPES
 // =============================================================================
 
-export type LLMProvider = 'groq' | 'deepseek' | 'anthropic' | 'openai' | 'ollama'
+export type LLMProvider = 'groq' | 'deepseek' | 'anthropic' | 'ollama'
 
 export interface LLMMessage {
   role: 'user' | 'assistant' | 'system'
@@ -52,7 +52,7 @@ export interface LLMResponse {
 // =============================================================================
 
 /** Ordre de fallback des providers (Ollama en dernier car local mais plus lent) */
-const FALLBACK_ORDER: LLMProvider[] = ['groq', 'deepseek', 'anthropic', 'openai', 'ollama']
+const FALLBACK_ORDER: LLMProvider[] = ['groq', 'deepseek', 'anthropic', 'ollama']
 
 /** Nombre maximum de retries par provider avant de passer au suivant */
 const MAX_RETRIES_PER_PROVIDER = 2
@@ -70,7 +70,6 @@ const LLM_FALLBACK_ENABLED = process.env.LLM_FALLBACK_ENABLED !== 'false'
 let anthropicClient: Anthropic | null = null
 let groqClient: OpenAI | null = null
 let deepseekClient: OpenAI | null = null
-let openaiClient: OpenAI | null = null
 
 function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
@@ -99,36 +98,31 @@ function getDeepSeekClient(): OpenAI {
   return deepseekClient
 }
 
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: aiConfig.openai.apiKey,
-    })
-  }
-  return openaiClient
-}
-
 /**
  * Appelle Ollama directement via fetch (pas de SDK nécessaire)
+ * Note: avec Option C, usePremiumModel n'est plus utilisé (toujours false)
  */
 async function callOllamaAPI(
   messages: Array<{ role: string; content: string }>,
   temperature: number,
-  maxTokens: number
+  maxTokens: number,
+  usePremiumModel: boolean = false
 ): Promise<{ content: string; tokens?: number }> {
-  // Timeout de 120s pour Ollama (modèle local peut être lent au premier appel)
+  const model = aiConfig.ollama.chatModelDefault
+  const timeout = aiConfig.ollama.chatTimeoutDefault
+
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 120000)
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
 
   try {
     const response = await fetch(`${aiConfig.ollama.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: aiConfig.ollama.chatModel,
+        model,
         messages,
         stream: false,
-        think: false,
+        think: false, // Désactive mode thinking de qwen3
         options: {
           temperature,
           num_predict: maxTokens,
@@ -148,7 +142,7 @@ async function callOllamaAPI(
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Request timed out.')
+      throw new Error(`Timeout après ${timeout / 1000}s (modèle: ${model})`)
     }
     throw error
   } finally {
@@ -224,8 +218,6 @@ export function getAvailableProviders(): LLMProvider[] {
         return !!aiConfig.deepseek.apiKey
       case 'anthropic':
         return !!aiConfig.anthropic.apiKey
-      case 'openai':
-        return !!aiConfig.openai.apiKey
       case 'ollama':
         return aiConfig.ollama.enabled
       default:
@@ -244,7 +236,8 @@ export function getAvailableProviders(): LLMProvider[] {
 async function callProvider(
   provider: LLMProvider,
   messages: LLMMessage[],
-  options: LLMOptions
+  options: LLMOptions,
+  usePremiumModel: boolean = false
 ): Promise<LLMResponse> {
   const systemPrompt = options.systemPrompt || SYSTEM_PROMPTS.qadhya
   const temperature = options.temperature ?? 0.3
@@ -327,33 +320,12 @@ async function callProvider(
       }
     }
 
-    case 'openai': {
-      const client = getOpenAIClient()
-      const response = await client.chat.completions.create({
-        model: aiConfig.openai.chatModel,
-        max_tokens: maxTokens,
-        messages: [{ role: 'system', content: systemPrompt }, ...userMessages],
-        temperature,
-      })
-
-      return {
-        answer: response.choices[0]?.message?.content || '',
-        tokensUsed: {
-          input: response.usage?.prompt_tokens || 0,
-          output: response.usage?.completion_tokens || 0,
-          total: response.usage?.total_tokens || 0,
-        },
-        modelUsed: aiConfig.openai.chatModel,
-        provider: 'openai',
-        fallbackUsed: false,
-      }
-    }
-
     case 'ollama': {
       const ollamaResponse = await callOllamaAPI(
         [{ role: 'system', content: systemPrompt }, ...userMessages],
         temperature,
-        maxTokens
+        maxTokens,
+        false // toujours mode default avec Option C
       )
 
       return {
@@ -363,7 +335,7 @@ async function callProvider(
           output: ollamaResponse.tokens || 0,
           total: ollamaResponse.tokens || 0,
         },
-        modelUsed: `ollama/${aiConfig.ollama.chatModel}`,
+        modelUsed: `ollama/${aiConfig.ollama.chatModelDefault}`,
         provider: 'ollama',
         fallbackUsed: false,
       }
@@ -380,14 +352,15 @@ async function callProvider(
 async function callProviderWithRetry(
   provider: LLMProvider,
   messages: LLMMessage[],
-  options: LLMOptions
+  options: LLMOptions,
+  usePremiumModel: boolean = false
 ): Promise<LLMResponse> {
   let lastError: Error | null = null
   let delayMs = INITIAL_RETRY_DELAY_MS
 
   for (let attempt = 0; attempt < MAX_RETRIES_PER_PROVIDER; attempt++) {
     try {
-      return await callProvider(provider, messages, options)
+      return await callProvider(provider, messages, options, usePremiumModel)
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
 
@@ -425,29 +398,68 @@ async function callProviderWithRetry(
 /**
  * Appelle un LLM avec fallback automatique sur erreur 429
  *
- * Essaie les providers dans l'ordre: Groq → DeepSeek → Anthropic → OpenAI
- * Bascule automatiquement au provider suivant en cas d'erreur 429 ou indisponibilité
+ * Mode Hybride Intelligent :
+ * - Mode Rapide (usePremiumModel=false) : Ollama qwen3:8b local → fallback cloud
+ * - Mode Premium (usePremiumModel=true) : Cloud providers directement (meilleure qualité)
  *
  * @param messages - Messages de la conversation
  * @param options - Options LLM (temperature, maxTokens, systemPrompt)
+ * @param usePremiumModel - Si true, utilise directement les cloud providers (Groq/DeepSeek/Anthropic) pour qualité max
  * @returns Réponse LLM avec informations sur le provider utilisé
  */
 export async function callLLMWithFallback(
   messages: LLMMessage[],
-  options: LLMOptions = {}
+  options: LLMOptions = {},
+  usePremiumModel: boolean = false
 ): Promise<LLMResponse> {
-  const availableProviders = getAvailableProviders()
+  // Mode Premium : forcer cloud providers pour qualité maximale (skip Ollama)
+  if (usePremiumModel) {
+    console.log('[LLM-Fallback] Mode Premium activé → utilisation cloud providers')
+  }
+  // Mode Rapide : essayer Ollama local d'abord (gratuit, rapide)
+  else if (aiConfig.ollama.enabled) {
+    try {
+      console.log(`[LLM-Fallback] Mode Rapide → Ollama (${aiConfig.ollama.chatModelDefault})`)
+
+      const ollamaResult = await callOllamaAPI(
+        messages.map(m => ({ role: m.role, content: m.content })),
+        options.temperature ?? 0.3,
+        options.maxTokens || aiConfig.anthropic.maxTokens,
+        false // toujours mode default pour Ollama
+      )
+
+      return {
+        answer: ollamaResult.content,
+        tokensUsed: {
+          input: 0,
+          output: ollamaResult.tokens || 0,
+          total: ollamaResult.tokens || 0,
+        },
+        modelUsed: `ollama/${aiConfig.ollama.chatModelDefault}`,
+        provider: 'ollama',
+        fallbackUsed: false,
+      }
+    } catch (error) {
+      console.warn(
+        '[LLM-Fallback] ⚠ Ollama échoué, fallback vers cloud providers:',
+        error instanceof Error ? error.message : error
+      )
+    }
+  }
+
+  // Fallback vers cloud providers
+  const availableProviders = getAvailableProviders().filter(p => p !== 'ollama')
 
   if (availableProviders.length === 0) {
     throw new Error(
-      'Aucun provider LLM configuré. Configurez au moins une clé API: GROQ_API_KEY, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY ou OPENAI_API_KEY'
+      'Aucun provider LLM cloud configuré. Configurez au moins une clé API: GROQ_API_KEY, DEEPSEEK_API_KEY ou ANTHROPIC_API_KEY'
     )
   }
 
-  // Si fallback désactivé, utiliser uniquement le premier provider
+  // Si fallback désactivé, utiliser uniquement le premier provider cloud
   if (!LLM_FALLBACK_ENABLED) {
     console.log(`[LLM-Fallback] Fallback désactivé, utilisation de ${availableProviders[0]} uniquement`)
-    return callProviderWithRetry(availableProviders[0], messages, options)
+    return callProviderWithRetry(availableProviders[0], messages, options, usePremiumModel)
   }
 
   const originalProvider = availableProviders[0]
@@ -457,17 +469,17 @@ export async function callLLMWithFallback(
     const provider = availableProviders[i]
 
     try {
-      const response = await callProviderWithRetry(provider, messages, options)
+      const response = await callProviderWithRetry(provider, messages, options, usePremiumModel)
 
       // Marquer si on a utilisé un fallback
-      if (i > 0) {
+      if (i > 0 || aiConfig.ollama.enabled) {
         console.log(
-          `[LLM-Fallback] ✓ Fallback réussi: ${originalProvider} → ${provider}`
+          `[LLM-Fallback] ✓ Fallback réussi: ${aiConfig.ollama.enabled ? 'ollama' : originalProvider} → ${provider}`
         )
         return {
           ...response,
           fallbackUsed: true,
-          originalProvider,
+          originalProvider: aiConfig.ollama.enabled ? 'ollama' : originalProvider,
         }
       }
 
@@ -508,7 +520,8 @@ export async function callLLMWithFallback(
 export async function callSpecificProvider(
   provider: LLMProvider,
   messages: LLMMessage[],
-  options: LLMOptions = {}
+  options: LLMOptions = {},
+  usePremiumModel: boolean = false
 ): Promise<LLMResponse> {
   // Vérifier que le provider est disponible
   const available = getAvailableProviders()
@@ -518,5 +531,5 @@ export async function callSpecificProvider(
     )
   }
 
-  return callProviderWithRetry(provider, messages, options)
+  return callProviderWithRetry(provider, messages, options, usePremiumModel)
 }
