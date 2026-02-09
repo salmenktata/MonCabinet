@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { ModelSelector } from '@/components/chat/model-selector'
+import { LegalWarnings } from '@/components/chat/LegalWarnings'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
@@ -109,6 +110,13 @@ export default function ChatTestPage() {
             <div className="prose max-w-none">
               <p className="whitespace-pre-wrap">{response.answer}</p>
             </div>
+
+            {/* Legal Warnings (Phase 2.2 & 2.3) */}
+            <LegalWarnings
+              citationWarnings={response.citationWarnings}
+              abrogationWarnings={response.abrogationWarnings}
+              messageText={response.answer}
+            />
           </Card>
 
           <Card className="p-6">
