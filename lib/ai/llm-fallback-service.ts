@@ -141,8 +141,13 @@ function getGroqClient(): OpenAI {
 
 function getDeepSeekClient(): OpenAI {
   if (!deepseekClient) {
+    // Lire directement process.env pour éviter problème init module
+    const apiKey = process.env.DEEPSEEK_API_KEY || aiConfig.deepseek.apiKey
+    if (!apiKey) {
+      throw new Error('DEEPSEEK_API_KEY non configuré')
+    }
     deepseekClient = new OpenAI({
-      apiKey: aiConfig.deepseek.apiKey,
+      apiKey,
       baseURL: aiConfig.deepseek.baseUrl,
     })
   }
