@@ -23,7 +23,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
-import type { ReviewPriority, ReviewEffort } from '@/lib/web-scraper/types'
+import type { ReviewPriority, ReviewEffort } from '@/lib/web-scraper/legal-classifier-service'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'

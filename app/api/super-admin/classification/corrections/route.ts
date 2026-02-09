@@ -197,13 +197,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Enregistrer la correction via le service de learning
-    const correctionId = await recordClassificationCorrection({
-      webPageId: body.pageId,
-      correctedCategory: body.correctedCategory,
-      correctedDomain: body.correctedDomain || null,
-      correctedDocumentType: body.correctedDocumentType || null,
-      correctedBy: body.correctedBy,
-    })
+    const correctionId = await recordClassificationCorrection(
+      body.pageId,
+      body.correctedBy,
+      {
+        category: body.correctedCategory,
+        domain: body.correctedDomain || undefined,
+        documentType: body.correctedDocumentType || undefined,
+      }
+    )
 
     // Enregistrer feedback si fourni
     if (body.feedback) {
