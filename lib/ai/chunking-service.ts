@@ -112,16 +112,42 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
   }
 
   // Stratégie de chunking selon les options
+  let chunks: Chunk[]
+
   if (preserveParagraphs) {
-    return chunkByParagraphs(cleanedText, chunkSize, overlap, preserveSentences)
+    chunks = chunkByParagraphs(cleanedText, chunkSize, overlap, preserveSentences)
+  } else if (preserveSentences) {
+    chunks = chunkBySentences(cleanedText, chunkSize, overlap)
+  } else {
+    // Chunking simple par mots
+    chunks = chunkByWords(cleanedText, chunkSize, overlap)
   }
 
-  if (preserveSentences) {
-    return chunkBySentences(cleanedText, chunkSize, overlap)
-  }
+  // Filtrer les chunks trop petits (< 100 mots) SAUF le dernier chunk
+  // pour éviter la perte de contenu en fin de document
+  const MIN_CHUNK_WORDS = 100
+  const filteredChunks = chunks.filter((chunk, idx) => {
+    const wordCount = chunk.metadata.wordCount
 
-  // Chunking simple par mots
-  return chunkByWords(cleanedText, chunkSize, overlap)
+    // Garder le dernier chunk même s'il est petit (pour éviter perte de contenu)
+    if (idx === chunks.length - 1) {
+      return true
+    }
+
+    // Filtrer les chunks trop petits (< 100 mots)
+    if (wordCount < MIN_CHUNK_WORDS) {
+      console.log(`[Chunking] Chunk ${idx} trop petit (${wordCount} mots < ${MIN_CHUNK_WORDS}) - filtré`)
+      return false
+    }
+
+    return true
+  })
+
+  // Réindexer les chunks après filtrage
+  return filteredChunks.map((chunk, newIndex) => ({
+    ...chunk,
+    index: newIndex,
+  }))
 }
 
 // =============================================================================
