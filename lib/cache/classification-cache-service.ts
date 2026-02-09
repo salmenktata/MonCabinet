@@ -154,11 +154,12 @@ export async function invalidateCacheForSource(sourceName: string): Promise<numb
     // Utiliser scanIterator pour éviter de bloquer Redis
     for await (const key of redis.scanIterator({ MATCH: pattern, COUNT: 100 })) {
       try {
-        const cached = await redis.get(key)
+        const keyStr = typeof key === 'string' ? key : key.toString()
+        const cached = await redis.get(keyStr)
         if (cached) {
           const parsed = JSON.parse(cached) as CachedClassification
           if (parsed.sourceName === sourceName) {
-            keys.push(key)
+            keys.push(keyStr)
           }
         }
       } catch (e) {
@@ -197,7 +198,8 @@ export async function getCacheStats(): Promise<{ count: number; exampleKeys: str
 
     // Utiliser scanIterator au lieu de scan direct (plus simple avec redis v5)
     for await (const key of redis.scanIterator({ MATCH: pattern, COUNT: 100 })) {
-      keys.push(key)
+      const keyStr = typeof key === 'string' ? key : key.toString()
+      keys.push(keyStr)
     }
 
     return {
