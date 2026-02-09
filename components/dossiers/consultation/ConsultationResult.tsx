@@ -39,7 +39,18 @@ export function ConsultationResult({ result, onNewConsultation }: ConsultationRe
     // Rediriger vers la création de dossier avec les données pré-remplies
     const params = new URLSearchParams({
       from: 'consultation',
-      question: result.question,
+      seed: result.question, // Pré-remplir le narratif avec la question
+      context: result.conseil?.substring(0, 500) || '', // Ajouter le conseil comme contexte
+      sources: result.sources.map(s => s.id).join(','), // IDs sources pour référence
+    })
+    router.push(`/dossiers/assistant?${params.toString()}`)
+  }
+
+  const handleDeepAnalysis = () => {
+    // Basculer vers Structuration IA avec contexte complet
+    const params = new URLSearchParams({
+      from: 'consultation',
+      seed: `${result.question}\n\nRéponse préliminaire:\n${result.conseil.substring(0, 800)}`,
     })
     router.push(`/dossiers/assistant?${params.toString()}`)
   }
@@ -204,10 +215,15 @@ export function ConsultationResult({ result, onNewConsultation }: ConsultationRe
           {t('newConsultation')}
         </Button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" onClick={handleCreateDossier}>
             <Icons.add className="h-4 w-4 mr-2" />
             {t('createDossierFromThis')}
+          </Button>
+
+          <Button variant="outline" onClick={handleDeepAnalysis}>
+            <Icons.brain className="h-4 w-4 mr-2" />
+            {t('deepAnalysis')}
           </Button>
 
           <Button onClick={() => router.push('/assistant-ia')}>

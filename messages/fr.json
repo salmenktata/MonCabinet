@@ -953,6 +953,8 @@
       "description": "Sélectionnez les actions qui seront créées avec le dossier.",
       "deadline": "Délai: {days} jours",
       "reanalyze": "Réanalyser",
+      "quickAdvice": "Conseil juridique rapide",
+      "fromConsultation": "Continué depuis consultation",
       "createDossier": "Créer le Dossier",
       "priority": {
         "urgent": "Urgent",
@@ -1230,7 +1232,9 @@
     "recommendedActions": "Actions Recommandées",
     "newConsultation": "Nouvelle consultation",
     "createDossierFromThis": "Créer un dossier",
+    "deepAnalysis": "Analyse approfondie",
     "continueInChat": "Continuer dans le chat",
+    "fromAssistant": "Continué depuis la structuration IA",
     "tipTitle1": "Soyez précis",
     "tipDescription1": "Plus votre question est détaillée, plus le conseil sera pertinent et adapté à votre situation.",
     "tipTitle2": "Références juridiques",

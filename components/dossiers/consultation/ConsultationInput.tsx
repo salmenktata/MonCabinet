@@ -28,16 +28,20 @@ interface ConsultationInputProps {
   onComplete: (response: ConsultationResponse) => void
   isLoading: boolean
   setIsLoading: (loading: boolean) => void
+  initialQuestion?: string
+  initialContext?: string
 }
 
 export function ConsultationInput({
   onComplete,
   isLoading,
   setIsLoading,
+  initialQuestion = '',
+  initialContext = '',
 }: ConsultationInputProps) {
   const t = useTranslations('consultation')
-  const [question, setQuestion] = useState('')
-  const [context, setContext] = useState('')
+  const [question, setQuestion] = useState(initialQuestion)
+  const [context, setContext] = useState(initialContext)
   const [selectedDossierId, setSelectedDossierId] = useState<string>('none')
   const [dossiers, setDossiers] = useState<Dossier[]>([])
   const [loadingDossiers, setLoadingDossiers] = useState(true)

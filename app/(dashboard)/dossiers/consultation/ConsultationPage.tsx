@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import { Icons } from '@/lib/icons'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConsultationInput } from '@/components/dossiers/consultation/ConsultationInput'
@@ -10,8 +12,30 @@ import type { ConsultationResponse } from '@/app/actions/consultation'
 
 export function ConsultationPage() {
   const t = useTranslations('consultation')
+  const searchParams = useSearchParams()
   const [result, setResult] = useState<ConsultationResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [initialQuestion, setInitialQuestion] = useState('')
+  const [initialContext, setInitialContext] = useState('')
+
+  // Pré-remplir depuis query params
+  useEffect(() => {
+    const question = searchParams.get('question')
+    const context = searchParams.get('context')
+    const from = searchParams.get('from')
+
+    if (question) {
+      setInitialQuestion(question)
+    }
+    if (context) {
+      setInitialContext(context)
+    }
+
+    // Afficher un toast si venant de l'assistant
+    if (from === 'assistant' && question) {
+      toast.info(t('fromAssistant'))
+    }
+  }, [searchParams, t])
 
   const handleConsultationComplete = (response: ConsultationResponse) => {
     setResult(response)
@@ -52,6 +76,8 @@ export function ConsultationPage() {
               onComplete={handleConsultationComplete}
               isLoading={isLoading}
               setIsLoading={setIsLoading}
+              initialQuestion={initialQuestion}
+              initialContext={initialContext}
             />
           </CardContent>
         </Card>

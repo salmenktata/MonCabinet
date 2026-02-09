@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import type { StructuredDossier } from '@/lib/ai/dossier-structuring-service'
 import ProcedureTypeBadge from './ProcedureTypeBadge'
@@ -32,6 +33,7 @@ export default function StructuredResult({
   onUpdateResult,
 }: StructuredResultProps) {
   const t = useTranslations('assistant')
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'analysis' | 'structure' | 'documents'>('analysis')
 
   const confidenceColor =
@@ -45,6 +47,16 @@ export default function StructuredResult({
     newActions: StructuredDossier['actionsSuggerees']
   ) => {
     onUpdateResult({ ...result, actionsSuggerees: newActions })
+  }
+
+  const handleQuickAdvice = () => {
+    // Basculer vers Consultation avec contexte
+    const params = new URLSearchParams({
+      from: 'assistant',
+      question: result.resumeCourt || result.titrePropose || 'Conseil juridique sur ce dossier',
+      context: result.narratifOriginal?.substring(0, 500) || '',
+    })
+    router.push(`/dossiers/consultation?${params.toString()}`)
   }
 
   return (
@@ -250,6 +262,26 @@ export default function StructuredResult({
             />
           </svg>
           {t('actions.reanalyze')}
+        </button>
+
+        <button
+          onClick={handleQuickAdvice}
+          className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-foreground font-medium hover:bg-muted transition-colors"
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 10V3L4 14h7v7l9-11h-7z"
+            />
+          </svg>
+          {t('actions.quickAdvice')}
         </button>
 
         <button

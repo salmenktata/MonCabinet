@@ -953,6 +953,8 @@
       "description": "اختر الإجراءات التي ستُنشأ مع الملف.",
       "deadline": "المهلة: {days} يوم",
       "reanalyze": "إعادة التحليل",
+      "quickAdvice": "استشارة قانونية سريعة",
+      "fromConsultation": "متابعة من الاستشارة",
       "createDossier": "إنشاء الملف",
       "priority": {
         "urgent": "عاجل",
@@ -1230,7 +1232,9 @@
     "recommendedActions": "الإجراءات الموصى بها",
     "newConsultation": "استشارة جديدة",
     "createDossierFromThis": "إنشاء ملف",
+    "deepAnalysis": "تحليل معمق",
     "continueInChat": "متابعة في الدردشة",
+    "fromAssistant": "متابعة من هيكلة الذكاء الاصطناعي",
     "tipTitle1": "كن دقيقاً",
     "tipDescription1": "كلما كان سؤالك مفصلاً أكثر، كانت الاستشارة أكثر صلة ومناسبة لوضعيتك.",
     "tipTitle2": "المراجع القانونية",

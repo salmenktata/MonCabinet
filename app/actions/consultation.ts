@@ -4,8 +4,18 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { aiConfig, SYSTEM_PROMPTS } from '@/lib/ai/config'
 import { detectLanguage, type DetectedLanguage } from '@/lib/ai/language-utils'
-import { translateQuery, isTranslationAvailable } from '@/lib/ai/translation-service'
 import { callLLMWithFallback } from '@/lib/ai/llm-fallback-service'
+import {
+  searchKnowledgeBase,
+  formatRagContext,
+  type RagSearchResult as SharedRagSearchResult,
+} from '@/lib/ai/shared/rag-search'
+import {
+  DOSSIER_LABELS,
+  PROMPT_LABELS,
+  getLangKey,
+  formatDossierContext,
+} from '@/lib/ai/shared/bilingual-labels'
 
 // Types
 export interface ConsultationSource {
@@ -35,41 +45,8 @@ interface ActionResult {
   error?: string
 }
 
-// Labels bilingues pour le contexte dossier
-const DOSSIER_LABELS = {
-  fr: {
-    header: 'DOSSIER LIÉ:',
-    titre: 'Titre',
-    numero: 'Numéro',
-    typeAffaire: "Type d'affaire",
-    description: 'Description',
-    faits: 'Faits',
-  },
-  ar: {
-    header: 'الملف المرتبط:',
-    titre: 'العنوان',
-    numero: 'الرقم',
-    typeAffaire: 'نوع القضية',
-    description: 'الوصف',
-    faits: 'الوقائع',
-  },
-} as const
-
-// Labels bilingues pour le prompt
-const PROMPT_LABELS = {
-  fr: {
-    sourcesHeader: 'SOURCES DISPONIBLES:',
-    noSources: 'Aucune source trouvée dans la base de connaissances.',
-    questionHeader: "QUESTION DE L'UTILISATEUR:",
-    contextHeader: 'CONTEXTE ADDITIONNEL:',
-  },
-  ar: {
-    sourcesHeader: 'المصادر المتوفرة:',
-    noSources: 'لم يتم العثور على مصادر في قاعدة المعرفة.',
-    questionHeader: 'سؤال المستخدم:',
-    contextHeader: 'سياق إضافي:',
-  },
-} as const
+// SUPPRIMÉ : Labels déplacés vers lib/ai/shared/bilingual-labels.ts
+// Utiliser les imports DOSSIER_LABELS et PROMPT_LABELS ci-dessus
 
 // Prompt consultation bilingue
 const CONSULTATION_PROMPTS = {
@@ -108,12 +85,8 @@ Fournis ta réponse en Markdown avec:
 في النهاية، أضف قسم "## الإجراءات الموصى بها" مع قائمة مرقمة من 2-4 إجراءات ملموسة.`,
 } as const
 
-/**
- * Détermine la clé de langue pour les labels (ar ou fr)
- */
-function getLangKey(lang: DetectedLanguage): 'ar' | 'fr' {
-  return lang === 'ar' ? 'ar' : 'fr'
-}
+// SUPPRIMÉ : Fonction déplacée vers lib/ai/shared/bilingual-labels.ts
+// Utiliser l'import getLangKey ci-dessus
 
 /**
  * Server action pour soumettre une consultation juridique
@@ -142,28 +115,19 @@ export async function submitConsultation(input: ConsultationInput): Promise<Acti
 
       if (dossierResult.rows.length > 0) {
         const dossier = dossierResult.rows[0]
-        const labels = DOSSIER_LABELS[langKey]
-        dossierContext = `
-${labels.header}
-- ${labels.titre}: ${dossier.titre}
-- ${labels.numero}: ${dossier.numero}
-- ${labels.typeAffaire}: ${dossier.type_affaire}
-- ${labels.description}: ${dossier.description || 'N/A'}
-- ${labels.faits}: ${dossier.faits || 'N/A'}
-`
+        dossierContext = formatDossierContext(dossier, langKey)
       }
     }
 
     // Rechercher dans la base de connaissances (avec support traduction)
-    const sources = await searchKnowledgeBase(input.question, session.user.id, questionLang)
+    const sources = await searchKnowledgeBase(input.question, {
+      maxResults: 5,
+      includeTranslation: true,
+      userId: session.user.id,
+    })
 
     // Construire le contexte RAG
-    const ragContext = sources
-      .map(
-        (s, i) =>
-          `[Source ${i + 1}] ${s.titre} (${s.type}):\n${s.extrait}`
-      )
-      .join('\n\n')
+    const ragContext = formatRagContext(sources)
 
     // Prompt système bilingue
     const labels = PROMPT_LABELS[langKey]
@@ -228,116 +192,8 @@ ${RESPONSE_FORMAT[langKey]}`
   }
 }
 
-/**
- * Recherche simplifiée dans la base de connaissances
- * Avec support traduction pour les questions arabes
- */
-async function searchKnowledgeBase(
-  query: string,
-  userId: string,
-  questionLang: DetectedLanguage
-): Promise<ConsultationSource[]> {
-  try {
-    const sources: ConsultationSource[] = []
-    const searchTerms = query.split(' ').slice(0, 3).join('%')
-
-    // Recherche avec les termes originaux
-    const [docsResult, kbResult] = await Promise.all([
-      db.query(
-        `SELECT id, nom, type, contenu_extrait
-         FROM documents
-         WHERE nom ILIKE $1 OR contenu_extrait ILIKE $1
-         LIMIT 5`,
-        [`%${searchTerms}%`]
-      ),
-      db.query(
-        `SELECT id, titre, type, contenu
-         FROM knowledge_base
-         WHERE titre ILIKE $1 OR contenu ILIKE $1
-         LIMIT 5`,
-        [`%${searchTerms}%`]
-      ),
-    ])
-
-    for (const doc of docsResult.rows) {
-      sources.push({
-        id: doc.id,
-        titre: doc.nom,
-        type: doc.type || 'document',
-        extrait: doc.contenu_extrait?.substring(0, 500) || '',
-        pertinence: 0.75,
-      })
-    }
-
-    for (const article of kbResult.rows) {
-      sources.push({
-        id: article.id,
-        titre: article.titre,
-        type: article.type || 'knowledge_base',
-        extrait: article.contenu?.substring(0, 500) || '',
-        pertinence: 0.8,
-      })
-    }
-
-    // Si la question est en arabe, tenter une recherche traduite en FR
-    if ((questionLang === 'ar' || questionLang === 'mixed') && isTranslationAvailable()) {
-      const translation = await translateQuery(query, 'ar', 'fr')
-      if (translation.success && translation.translatedText !== query) {
-        const translatedTerms = translation.translatedText.split(' ').slice(0, 3).join('%')
-        const seenIds = new Set(sources.map((s) => s.id))
-
-        const [translatedDocsResult, translatedKbResult] = await Promise.all([
-          db.query(
-            `SELECT id, nom, type, contenu_extrait
-             FROM documents
-             WHERE nom ILIKE $1 OR contenu_extrait ILIKE $1
-             LIMIT 5`,
-            [`%${translatedTerms}%`]
-          ),
-          db.query(
-            `SELECT id, titre, type, contenu
-             FROM knowledge_base
-             WHERE titre ILIKE $1 OR contenu ILIKE $1
-             LIMIT 5`,
-            [`%${translatedTerms}%`]
-          ),
-        ])
-
-        for (const doc of translatedDocsResult.rows) {
-          if (!seenIds.has(doc.id)) {
-            sources.push({
-              id: doc.id,
-              titre: doc.nom,
-              type: doc.type || 'document',
-              extrait: doc.contenu_extrait?.substring(0, 500) || '',
-              pertinence: 0.7, // Légèrement inférieur car traduit
-            })
-            seenIds.add(doc.id)
-          }
-        }
-
-        for (const article of translatedKbResult.rows) {
-          if (!seenIds.has(article.id)) {
-            sources.push({
-              id: article.id,
-              titre: article.titre,
-              type: article.type || 'knowledge_base',
-              extrait: article.contenu?.substring(0, 500) || '',
-              pertinence: 0.75,
-            })
-            seenIds.add(article.id)
-          }
-        }
-      }
-    }
-
-    // Trier par pertinence et limiter
-    return sources.sort((a, b) => b.pertinence - a.pertinence).slice(0, 5)
-  } catch (error) {
-    console.error('Erreur recherche KB:', error)
-    return []
-  }
-}
+// SUPPRIMÉ : Fonction déplacée vers lib/ai/shared/rag-search.ts
+// Utiliser l'import searchKnowledgeBase ci-dessus
 
 /**
  * @deprecated Ces fonctions sont dépréciées et ne sont plus utilisées.

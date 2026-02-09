@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import NarrativeInput from '@/components/dossiers/assistant/NarrativeInput'
 import ExamplesCarousel from '@/components/dossiers/assistant/ExamplesCarousel'
 import AnalysisLoader from '@/components/dossiers/assistant/AnalysisLoader'
@@ -31,6 +32,7 @@ type Step = 'input' | 'analyzing' | 'result'
 
 export default function AssistantPage({ clients }: AssistantPageProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const t = useTranslations('assistant')
   const tCommon = useTranslations('common')
 
@@ -57,6 +59,28 @@ export default function AssistantPage({ clients }: AssistantPageProps) {
   useEffect(() => {
     setHydrated(true)
   }, [])
+
+  // Pré-remplir le narratif depuis query params (après hydratation)
+  useEffect(() => {
+    if (!hydrated) return
+
+    const seed = searchParams.get('seed')
+    const context = searchParams.get('context')
+    const from = searchParams.get('from')
+
+    if (seed) {
+      let fullNarrative = seed
+      if (context) {
+        fullNarrative += `\n\nContexte additionnel:\n${context}`
+      }
+      setNarratif(fullNarrative)
+
+      // Afficher un toast si venant d'une consultation
+      if (from === 'consultation') {
+        toast.info(t('fromConsultation'))
+      }
+    }
+  }, [hydrated, searchParams, setNarratif, t])
 
   const handleAnalyze = async () => {
     if (!narratif || narratif.length < 20) {
