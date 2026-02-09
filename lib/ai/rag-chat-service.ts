@@ -158,6 +158,8 @@ export interface ChatOptions {
   temperature?: number
   /** Type de contexte pour sélectionner le prompt approprié */
   contextType?: PromptContextType
+  /** Mode Premium: utiliser cloud providers (Groq/DeepSeek/Anthropic) au lieu d'Ollama */
+  usePremiumModel?: boolean
 }
 
 export interface ConversationMessage {
@@ -1217,11 +1219,15 @@ export async function answerQuestion(
       const promptConfig = PROMPT_CONFIG[contextType]
       const temperature = options.temperature ?? promptConfig.temperature
 
-      const llmResponse = await callLLMWithFallback(llmMessages, {
-        temperature,
-        maxTokens: promptConfig.maxTokens,
-        systemPrompt: systemPromptWithSummary,
-      })
+      const llmResponse = await callLLMWithFallback(
+        llmMessages,
+        {
+          temperature,
+          maxTokens: promptConfig.maxTokens,
+          systemPrompt: systemPromptWithSummary,
+        },
+        options.usePremiumModel ?? false // Mode premium si demandé
+      )
 
       answer = llmResponse.answer
       tokensUsed = llmResponse.tokensUsed

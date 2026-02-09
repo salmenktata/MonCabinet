@@ -37,7 +37,8 @@ interface ChatRequestBody {
   dossierId?: string
   conversationId?: string
   includeJurisprudence?: boolean
-  stream?: boolean // Nouveau : activer le streaming
+  stream?: boolean // Activer le streaming
+  usePremiumModel?: boolean // Mode Premium: cloud providers au lieu d'Ollama
 }
 
 interface ChatApiResponse {
@@ -77,7 +78,14 @@ export async function POST(
 
     // Parse le body
     const body: ChatRequestBody = await request.json()
-    const { question, dossierId, conversationId, includeJurisprudence = true, stream = false } = body
+    const {
+      question,
+      dossierId,
+      conversationId,
+      includeJurisprudence = true,
+      stream = false,
+      usePremiumModel = false
+    } = body
 
     if (!question || question.trim().length < 3) {
       return NextResponse.json(
@@ -139,7 +147,8 @@ export async function POST(
         userId,
         activeConversationId,
         dossierId,
-        includeJurisprudence
+        includeJurisprudence,
+        usePremiumModel
       )
     }
 
@@ -148,6 +157,7 @@ export async function POST(
       dossierId,
       conversationId: activeConversationId,
       includeJurisprudence,
+      usePremiumModel,
     })
 
     // Sauvegarder la réponse assistant
@@ -324,7 +334,8 @@ async function handleStreamingResponse(
   userId: string,
   conversationId: string,
   dossierId?: string,
-  includeJurisprudence: boolean = true
+  includeJurisprudence: boolean = true,
+  usePremiumModel: boolean = false
 ): Promise<Response> {
   const encoder = new TextEncoder()
 
@@ -333,6 +344,7 @@ async function handleStreamingResponse(
     dossierId,
     conversationId,
     includeJurisprudence,
+    usePremiumModel,
   })
 
   // On a la réponse complète, maintenant on va la streamer
