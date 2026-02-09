@@ -2,11 +2,13 @@
  * API Route pour la gestion des configurations plateforme
  * PUT /api/super-admin/config - Mettre à jour une configuration
  * GET /api/super-admin/config - Récupérer toutes les configurations
+ * Cache: 24 heures (config système rarement modifiée)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { setConfig, getAllConfigs, clearConfigCache } from '@/lib/config/platform-config'
+import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -34,7 +36,9 @@ export async function GET() {
       value: c.is_secret ? `${c.value.slice(0, 8)}...` : c.value,
     }))
 
-    return NextResponse.json({ success: true, data: safeConfigs })
+    return NextResponse.json({ success: true, data: safeConfigs }, {
+      headers: getCacheHeaders(CACHE_PRESETS.VERY_LONG) // Cache 24h
+    })
   } catch (error) {
     console.error('Erreur récupération configs:', error)
     return NextResponse.json(

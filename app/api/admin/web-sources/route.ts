@@ -4,6 +4,7 @@
  * GET /api/admin/web-sources
  * - Liste les sources web configurées
  * - Paramètres: category, isActive, healthStatus, search, limit, offset
+ * Cache: 5 minutes (données semi-statiques)
  *
  * POST /api/admin/web-sources
  * - Crée une nouvelle source web
@@ -23,6 +24,7 @@ import {
   getWebSourcesStats,
 } from '@/lib/web-scraper'
 import type { CreateWebSourceInput, WebSourceCategory } from '@/lib/web-scraper'
+import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
@@ -82,6 +84,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         hasMore: offset + sources.length < total,
       },
       ...(stats ? { stats } : {}),
+    }, {
+      headers: getCacheHeaders(CACHE_PRESETS.MEDIUM) // Cache 5 minutes
     })
   } catch (error) {
     console.error('Erreur liste web sources:', error)

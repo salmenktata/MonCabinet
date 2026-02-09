@@ -4,6 +4,7 @@
  * GET /api/admin/knowledge-base
  * - Liste les documents de la base de connaissances
  * - Paramètres: category, isIndexed, search, limit, offset
+ * Cache: 5 minutes (données semi-statiques)
  *
  * POST /api/admin/knowledge-base
  * - Ajoute un nouveau document à la base de connaissances
@@ -25,6 +26,7 @@ import {
   getKnowledgeBaseStats,
   type KnowledgeBaseCategory,
 } from '@/lib/ai/knowledge-base-service'
+import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
@@ -84,6 +86,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         hasMore: offset + documents.length < total,
       },
       ...(stats ? { stats } : {}),
+    }, {
+      headers: getCacheHeaders(CACHE_PRESETS.MEDIUM) // Cache 5 minutes
     })
   } catch (error) {
     console.error('Erreur liste knowledge base:', error)

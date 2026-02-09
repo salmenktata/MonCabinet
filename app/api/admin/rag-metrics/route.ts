@@ -5,6 +5,7 @@
  * - Retourne les métriques du système RAG (latence, tokens, erreurs, cache)
  * - Supporte le format JSON ou Prometheus
  * - Requiert le rôle SUPER_ADMIN
+ * Cache: 1 minute (métriques temps réel)
  *
  * POST /api/admin/rag-metrics
  * - Actions de maintenance (reset circuit breaker, reset compteurs erreurs)
@@ -36,6 +37,7 @@ import {
 } from '@/lib/ai/embeddings-service'
 import { getRerankerInfo } from '@/lib/ai/reranker-service'
 import { getRAGConfig } from '@/lib/ai/config'
+import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
 
 // =============================================================================
 // Helper: Vérification accès super-admin
@@ -161,7 +163,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       response.raw = getRawMetrics(rawLimit)
     }
 
-    return NextResponse.json(response)
+    return NextResponse.json(response, {
+      headers: getCacheHeaders(CACHE_PRESETS.SHORT) // Cache 1 minute
+    })
   } catch (error) {
     console.error('Erreur métriques RAG:', error)
     return NextResponse.json(
