@@ -121,6 +121,9 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
   // Dans ce cas, on force directement l'OCR
   let pdfParseSuccess = false
 
+  // Vérifier si l'OCR est activé (désactivable si dépendances manquantes)
+  const ocrEnabled = process.env.ENABLE_OCR !== 'false'
+
   try {
     // pdf-parse v2 utilise une classe PDFParse (import dynamique)
     const PDFParse = await getPDFParse()
@@ -139,9 +142,16 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
     pdfParseSuccess = true
   } catch (pdfParseError: any) {
     // Si pdf-parse échoue (ex: DOMMatrix not defined), on continue avec OCR
-    console.warn('[FileParser] pdf-parse échoué, fallback OCR:', pdfParseError.message)
-    // On essaie d'estimer le nombre de pages (ou on force OCR sans limite)
-    pageCount = OCR_CONFIG.MAX_OCR_PAGES
+    const errorMsg = pdfParseError?.message || 'Erreur inconnue'
+    if (ocrEnabled) {
+      console.warn('[FileParser] pdf-parse échoué, fallback OCR:', errorMsg)
+      // On essaie d'estimer le nombre de pages (ou on force OCR sans limite)
+      pageCount = OCR_CONFIG.MAX_OCR_PAGES
+    } else {
+      console.warn('[FileParser] pdf-parse échoué et OCR désactivé:', errorMsg)
+      // OCR désactivé, on ne peut pas traiter ce PDF
+      throw new Error(`PDF non-textuel et OCR désactivé (pdf-parse: ${errorMsg})`)
+    }
   }
 
   try {
@@ -165,7 +175,7 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
     let ocrPagesProcessed = 0
     let ocrConfidence: number | undefined
 
-    if (needsOcr) {
+    if (needsOcr && ocrEnabled) {
       const reason = forcedOcr
         ? `pdf-parse indisponible (fallback OCR)`
         : garbledText
