@@ -28,6 +28,8 @@
     "audit:rag": "npx tsx scripts/audit-rag-data-quality.ts",
     "audit:rag:json": "npx tsx scripts/audit-rag-data-quality.ts --export=json",
     "audit:rag:csv": "npx tsx scripts/audit-rag-data-quality.ts --export=csv",
+    "rechunk:large": "npx tsx scripts/rechunk-large-documents.ts",
+    "rechunk:large:dry-run": "npx tsx scripts/rechunk-large-documents.ts --dry-run",
     "migrate:api-keys": "npx tsx scripts/migrate-platform-configs-to-api-keys.ts",
     "check:translations": "node scripts/check-translations.js",
     "i18n:check": "npx tsx scripts/i18n-check.ts",
@@ -168,5 +170,8 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "overrides": {
+    "fast-xml-parser": "5.3.5"
   }
 }
