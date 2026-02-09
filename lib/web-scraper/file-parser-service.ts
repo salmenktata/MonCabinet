@@ -82,6 +82,66 @@ async function loadPdfToImg(): Promise<typeof import('pdf-to-img')> {
 }
 
 // =============================================================================
+// CONVERSION .DOC → .DOCX VIA LIBREOFFICE
+// =============================================================================
+
+/**
+ * Convertit un ancien .doc (OLE2) vers .docx (OOXML) via LibreOffice headless
+ * @param buffer Buffer du fichier .doc
+ * @returns Buffer du fichier .docx converti
+ */
+async function convertDocToDocx(buffer: Buffer): Promise<Buffer> {
+  const { promises: fs } = await import('fs')
+  const { tmpdir } = await import('os')
+  const { join } = await import('path')
+  const { exec } = await import('child_process')
+  const { promisify } = await import('util')
+  const execAsync = promisify(exec)
+
+  // Créer fichier temporaire .doc
+  const tempDir = tmpdir()
+  const inputPath = join(tempDir, `temp-${Date.now()}.doc`)
+  const outputDir = tempDir
+
+  try {
+    // Écrire le buffer dans un fichier temporaire
+    await fs.writeFile(inputPath, buffer)
+
+    // Convertir via LibreOffice headless
+    // --convert-to docx : format de sortie
+    // --outdir : dossier de sortie
+    // --headless : mode sans interface
+    const command = `libreoffice --headless --convert-to docx --outdir "${outputDir}" "${inputPath}"`
+
+    const { stdout, stderr } = await execAsync(command, {
+      timeout: 30000, // 30s timeout
+      maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+    })
+
+    if (stderr && !stderr.includes('convert')) {
+      console.warn('[LibreOffice] Warnings:', stderr)
+    }
+
+    // Lire le fichier .docx généré
+    const outputFilename = inputPath.replace('.doc', '.docx')
+    const docxBuffer = await fs.readFile(outputFilename)
+
+    // Nettoyer les fichiers temporaires
+    await fs.unlink(inputPath).catch(() => {})
+    await fs.unlink(outputFilename).catch(() => {})
+
+    console.log('[LibreOffice] Conversion .doc → .docx réussie')
+    return docxBuffer
+  } catch (error: any) {
+    // Nettoyer le fichier temporaire en cas d'erreur
+    await fs.unlink(inputPath).catch(() => {})
+
+    const errorMsg = error?.message || 'Erreur inconnue'
+    throw new Error(`Échec conversion LibreOffice: ${errorMsg}`)
+  }
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -413,19 +473,41 @@ export async function parseDocx(buffer: Buffer): Promise<ParsedFile> {
     const header = buffer.subarray(0, 2).toString('hex')
     const isZip = buffer[0] === 0x50 && buffer[1] === 0x4B  // PK (ZIP)
 
+    let docxBuffer = buffer
+
     if (!isZip) {
-      // Ancien format .doc (OLE2) non supporté par mammoth
-      console.warn('[FileParser] Ancien format .doc détecté (non-.docx), skip')
-      return {
-        success: false,
-        text: '',
-        metadata: { wordCount: 0 },
-        error: 'Ancien format .doc non supporté (nécessite .docx)',
+      // Ancien format .doc (OLE2) → conversion via LibreOffice
+      console.log('[FileParser] Ancien format .doc détecté, conversion via LibreOffice...')
+
+      // Vérifier si LibreOffice est disponible (peut être désactivé dans certains environnements)
+      const libreOfficeEnabled = process.env.ENABLE_LIBREOFFICE !== 'false'
+
+      if (!libreOfficeEnabled) {
+        console.warn('[FileParser] LibreOffice désactivé, skip .doc')
+        return {
+          success: false,
+          text: '',
+          metadata: { wordCount: 0 },
+          error: 'Ancien format .doc non supporté (LibreOffice désactivé)',
+        }
+      }
+
+      try {
+        // Convertir .doc → .docx via LibreOffice
+        docxBuffer = await convertDocToDocx(buffer)
+      } catch (conversionError: any) {
+        console.error('[FileParser] Échec conversion .doc:', conversionError.message)
+        return {
+          success: false,
+          text: '',
+          metadata: { wordCount: 0 },
+          error: `Échec conversion .doc: ${conversionError.message}`,
+        }
       }
     }
 
     const mammoth = await getMammoth()
-    const result = await mammoth.extractRawText({ buffer })
+    const result = await mammoth.extractRawText({ buffer: docxBuffer })
 
     const text = cleanText(result.value)
     const wordCount = countWords(text)

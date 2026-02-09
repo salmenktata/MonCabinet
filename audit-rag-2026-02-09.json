@@ -1,0 +1,319 @@
+{
+  "timestamp": "2026-02-09T22:06:52.307Z",
+  "summary": {
+    "totalIndexedPages": 0,
+    "totalIndexedDocs": 362,
+    "totalChunks": 533,
+    "overallHealthScore": 0,
+    "criticalIssuesCount": 1,
+    "warningsCount": 0
+  },
+  "sourceQuality": {
+    "lowQualityPages": [],
+    "qualityBySource": [],
+    "criticalIssues": [],
+    "recommendations": []
+  },
+  "chunkingAnalysis": {
+    "problemChunks": [
+      {
+        "issue_type": "too_large",
+        "chunk_count": "11",
+        "avg_chars": "2652",
+        "avg_words": "486",
+        "doc_id": "6ad7773c-75bc-48c9-b650-9dbb676129ee",
+        "title": "47234-18.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "10",
+        "avg_chars": "2751",
+        "avg_words": "467",
+        "doc_id": "80e0040c-8c37-4a62-9ad1-6ef5cbdfbc54",
+        "title": "Microsoft Word - A_7_aout_2007.docx",
+        "category": "legislation"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "10",
+        "avg_chars": "2480",
+        "avg_words": "473",
+        "doc_id": "c9acef42-5756-430b-ab97-8c6e995efdb0",
+        "title": "38085.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "9",
+        "avg_chars": "2741",
+        "avg_words": "469",
+        "doc_id": "9dd4afaa-1897-4cff-a154-05cdc88bce85",
+        "title": "Présentation PowerPoint",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "7",
+        "avg_chars": "2383",
+        "avg_words": "464",
+        "doc_id": "11e266f9-6b33-4c97-b254-94b832c1ffb1",
+        "title": "28474.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "6",
+        "avg_chars": "2487",
+        "avg_words": "476",
+        "doc_id": "978ea8a5-3382-4873-b7da-a1c75fda090b",
+        "title": "44803.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "6",
+        "avg_chars": "2614",
+        "avg_words": "490",
+        "doc_id": "5851a0f4-a979-4ab9-bc05-cd147b2394d6",
+        "title": "39843-17.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "6",
+        "avg_chars": "2543",
+        "avg_words": "485",
+        "doc_id": "dcacd259-02be-41ac-8ed8-31d37653f341",
+        "title": "42050.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "5",
+        "avg_chars": "2667",
+        "avg_words": "491",
+        "doc_id": "21c997a2-7be8-4e4b-b154-2924f2027a0e",
+        "title": "<4D6963726F736F667420576F7264202D20C3E3D120DACFCF203132393020E1D3E4C9203139393920EDCADAE1DE20C8CAE4D9EDE320C7E1E3DAE5CF20C7E1C3DAE1EC20E1E1DED6C7C12E646F63>",
+        "category": "legislation"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "5",
+        "avg_chars": "2785",
+        "avg_words": "500",
+        "doc_id": "dd1a676b-95b0-49a3-b8e1-8edfe9a8cdc5",
+        "title": "20918-18.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "5",
+        "avg_chars": "2850",
+        "avg_words": "501",
+        "doc_id": "5dd56b6b-103f-4a1e-ad91-f4abcc7562d1",
+        "title": "46252.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "4",
+        "avg_chars": "2349",
+        "avg_words": "449",
+        "doc_id": "6db10991-9c2f-4eba-98ed-04bfa62dd423",
+        "title": "28620-18.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "4",
+        "avg_chars": "2755",
+        "avg_words": "492",
+        "doc_id": "717f0896-8738-49e0-917b-3b3bf56ac14b",
+        "title": "محكمة التعقيب التونسيّة عبر التاريخ",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "4",
+        "avg_chars": "2631",
+        "avg_words": "502",
+        "doc_id": "5435e88a-f252-4b90-bce2-6b5bf433ca08",
+        "title": "<4D6963726F736F667420576F7264202D20DED1C7D12020E3C4D1CE20DDED203920E4E6DDE3C8D12032303037A120EDCADAE1DE20C8CAE4D9EDE320E3E4C7D9D1C920C7E1DEC8E6E120C8C7E1E3DAE5CF20C7E1C3DAE1EC20E1E1E3CDC7E3C7C92E646F63>",
+        "category": "legislation"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "4",
+        "avg_chars": "2352",
+        "avg_words": "444",
+        "doc_id": "d262e2af-9647-46a3-934c-4765f26c6659",
+        "title": "65708.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "4",
+        "avg_chars": "2755",
+        "avg_words": "492",
+        "doc_id": "fa44882c-e5dc-430a-b3ea-bd8675dfebc6",
+        "title": "محكمة التعقيب التونسيّة عبر التاريخ",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "4",
+        "avg_chars": "2317",
+        "avg_words": "464",
+        "doc_id": "e564fef6-0329-464b-ac62-67d08ed11dd1",
+        "title": "قرار تعقيبي  عدد 31596 بتاريخ 27/09/2016",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "3",
+        "avg_chars": "2598",
+        "avg_words": "507",
+        "doc_id": "c5109837-d653-4112-8728-7723c36f9f9a",
+        "title": "398-18.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "3",
+        "avg_chars": "2585",
+        "avg_words": "498",
+        "doc_id": "55932745-a26a-4a5f-b268-b096cc9d7e88",
+        "title": "فحص الطعون",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "3",
+        "avg_chars": "2509",
+        "avg_words": "464",
+        "doc_id": "3e2ddf03-1e84-4ef4-9781-b9c22b2e45aa",
+        "title": "قرار تعقيبي عدد...بتاريخ...",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "3",
+        "avg_chars": "2557",
+        "avg_words": "453",
+        "doc_id": "3af59129-3aad-4e0c-aba2-361bdb888e66",
+        "title": "<4D6963726F736F667420576F7264202D20C3E3D120DACFCF2034353420E1D3E4C9203139393420EDCADAE1DE20C8D6C8D820C7E1CAE4D9EDE320C7E1C5CFC7D1ED20E6C7E1E3C7E1ED20E1E1E3D1DFD22E646F63>",
+        "category": "legislation"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "3",
+        "avg_chars": "2666",
+        "avg_words": "502",
+        "doc_id": "056b9845-9f2e-461d-a8a0-9620bda2458e",
+        "title": "406.pdf",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "3",
+        "avg_chars": "2553",
+        "avg_words": "505",
+        "doc_id": "f65aa1a9-3329-4c3e-9058-5f1fbbd0f57b",
+        "title": "<4D6963726F736F667420576F7264202D20C3E3D1DACFCF203236393920E1D3E4C9203230303720C7E1CAE4D9EDE320C7E1C5CFC7D1ED20E6C7E1E3C7E1ED20E1E1E3DAE5CF20C7E1C5DAE1EC20E1E1E3CDC7E3C7C9202E646F63>",
+        "category": "legislation"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "3",
+        "avg_chars": "2330",
+        "avg_words": "476",
+        "doc_id": "40012eb0-bc8a-4f93-88ba-b5b837d2bb0e",
+        "title": "قرار تعقيبي  عدد 31596 بتاريخ 27/09/2016",
+        "category": "jurisprudence"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "3",
+        "avg_chars": "2601",
+        "avg_words": "471",
+        "doc_id": "7f089e29-2fe0-4f21-acc5-3049777f1790",
+        "title": "Microsoft Word - D_2256_2009.docx",
+        "category": "legislation"
+      },
+      {
+        "issue_type": "too_large",
+        "chunk_count": "3",
+        "avg_chars": "2403",
+        "avg_words": "486",
+        "doc_id": "8f4e01fe-e02c-4338-a5ed-17cc7f51058c",
+        "title": "ع/س",
+        "category": "jurisprudence"
+      }
+    ],
+    "sizeDistribution": [
+      {
+        "category": "jurisprudence",
+        "total_chunks": "292",
+        "avg_words": "286",
+        "min_words": 27,
+        "max_words": 512,
+        "stddev_words": "202",
+        "count_tiny": "100",
+        "count_normal": "192",
+        "count_huge": "0",
+        "pct_normal": "65.8"
+      },
+      {
+        "category": "legislation",
+        "total_chunks": "241",
+        "avg_words": "168",
+        "min_words": 16,
+        "max_words": 515,
+        "stddev_words": "150",
+        "count_tiny": "74",
+        "count_normal": "167",
+        "count_huge": "0",
+        "pct_normal": "69.3"
+      }
+    ],
+    "criticalIssues": [
+      "⚠️ Catégorie \"jurisprudence\" : 34% chunks hors plage normale (100-800 mots)",
+      "⚠️ Catégorie \"legislation\" : 31% chunks hors plage normale (100-800 mots)",
+      "🔴 26 documents avec chunks trop grands (> 2000 chars)"
+    ],
+    "recommendations": [
+      "Vérifier OVERLAP_BY_CATEGORY dans chunking-service.ts pour catégorie jurisprudence",
+      "Vérifier OVERLAP_BY_CATEGORY dans chunking-service.ts pour catégorie legislation",
+      "Re-chunker ces documents avec config corrigée (réduire maxTokens)"
+    ]
+  },
+  "metadataQuality": {
+    "lowConfidenceExtractions": [],
+    "coverageBySource": [],
+    "criticalIssues": [],
+    "recommendations": []
+  },
+  "embeddings": {
+    "validation": [
+      {
+        "table_name": "knowledge_base",
+        "total_docs": "362",
+        "has_embedding": "318",
+        "correct_dim": "318",
+        "wrong_dim": "0",
+        "status": "WARNING"
+      },
+      {
+        "table_name": "knowledge_base_chunks",
+        "total_docs": "533",
+        "has_embedding": "533",
+        "correct_dim": "533",
+        "wrong_dim": "0",
+        "status": "OK"
+      }
+    ],
+    "duplicates": [],
+    "criticalIssues": []
+  }
+}
