@@ -1,17 +1,28 @@
-# Stage 1: Dependencies
-FROM node:18-alpine AS deps
-RUN apk add --no-cache libc6-compat python3 make g++ pkgconf pixman-dev cairo-dev pango-dev jpeg-dev giflib-dev
+# Stage 1: Dependencies (Debian pour compatibilité canvas)
+FROM node:18-slim AS deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ pkg-config \
+    libpixman-1-dev libcairo2-dev libpango1.0-dev \
+    libjpeg-dev libgif-dev \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts && npm rebuild canvas
+RUN npm ci
 
-# Stage 2: Builder
-FROM node:18-alpine AS builder
+# Stage 2: Builder (Debian pour Playwright et canvas)
+FROM node:18-slim AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Installer dépendances Playwright
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+    libdrm2 libdbus-1-3 libxkbcommon0 libatspi2.0-0 libxcomposite1 \
+    libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Installer Playwright Chromium (utilisé pour les sources nécessitant JavaScript)
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
