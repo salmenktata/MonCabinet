@@ -59,15 +59,16 @@ async function main() {
     try {
       await upsertApiKey({
         provider: 'groq',
-        label: 'Groq API Key',
+        label: 'Groq API Key - Llama 3.3 70B',
         apiKey: process.env.GROQ_API_KEY,
         baseUrl: 'https://api.groq.com/openai/v1',
-        modelDefault: 'mixtral-8x7b-32768',
+        modelDefault: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
         tier: 'free',
+        rpmLimit: 14, // 14 requêtes par minute
         isActive: true,
         isPrimary: false,
       })
-      imports.push('✅ groq: Groq API Key')
+      imports.push('✅ groq: Groq API Key - Llama 3.3 70B')
     } catch (error: any) {
       imports.push(`❌ groq: ${error.message}`)
     }

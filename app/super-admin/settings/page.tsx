@@ -17,6 +17,10 @@ const ApiKeysCard = dynamic(
   () => import('@/components/super-admin/settings/ApiKeysCard').then(mod => mod.ApiKeysCard),
   { loading: () => <Skeleton className="h-48 w-full" /> }
 )
+const ApiKeysDBCard = dynamic(
+  () => import('@/components/super-admin/settings/ApiKeysDBCard').then(mod => mod.ApiKeysDBCard),
+  { loading: () => <Skeleton className="h-64 w-full" /> }
+)
 const LLMConfigEditor = dynamic(
   () => import('@/components/super-admin/settings/LLMConfigEditor').then(mod => mod.LLMConfigEditor),
   { loading: () => <Skeleton className="h-48 w-full" /> }
@@ -96,6 +100,9 @@ export default async function SettingsPage() {
 
       {/* Éditeur LLM */}
       <LLMConfigEditor configs={llmEditableConfigs} />
+
+      {/* Clés API depuis Base de Données */}
+      <ApiKeysDBCard />
 
       {/* Clés API (lecture seule) */}
       <ApiKeysCard apiKeys={apiKeys} />
