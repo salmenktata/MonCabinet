@@ -133,9 +133,9 @@ export async function crawlSource(
 
   console.log(`[Crawler] Démarrage crawl ${sourceName}`)
   console.log(`[Crawler] Rate limit: ${effectiveRateLimit}ms, Max pages: ${maxPages}, Max depth: ${maxDepth}`)
-  console.log(`[Crawler] Queue initiale: ${state.queue.length} URLs`, state.queue.map(q => q.url))
-  console.log(`[Crawler] Include patterns: ${includePatterns.length}`, includePatterns.map(p => p.source))
-  console.log(`[Crawler] Exclude patterns: ${excludePatterns.length}`, excludePatterns.map(p => p.source))
+  console.log(`[Crawler] Queue initiale: ${state.queue.length} URLs`, state.queue.map((q) => q.url))
+  console.log(`[Crawler] Include patterns: ${includePatterns.length}`, includePatterns.map((p: RegExp) => p.source))
+  console.log(`[Crawler] Exclude patterns: ${excludePatterns.length}`, excludePatterns.map((p: RegExp) => p.source))
 
   // Vérifier si la source peut crawler (bannissement, quotas)
   const crawlCheck = await canSourceCrawl(sourceId)
