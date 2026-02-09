@@ -8,7 +8,7 @@
  *   tsx scripts/add-iort-source.ts
  */
 
-import { db } from '@/lib/db/postgres'
+import { db, closePool } from '@/lib/db/postgres'
 import { createWebSource } from '@/lib/web-scraper'
 import type { CreateWebSourceInput } from '@/lib/web-scraper'
 
@@ -67,7 +67,7 @@ const IORT_SOURCE_CONFIG: CreateWebSourceInput = {
   // CSS Selectors pour extraction
   cssSelectors: {
     content: ['main', 'article', '.content', 'body'],
-    title: ['h1', 'h2', 'title'],
+    title: 'h1',
     exclude: [
       'script',
       'style',
@@ -153,7 +153,7 @@ async function main() {
     console.error(error instanceof Error ? error.message : error)
     process.exit(1)
   } finally {
-    await db.end()
+    await closePool()
   }
 }
 
