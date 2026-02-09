@@ -175,7 +175,7 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
 
       try {
         const ocrResult = await extractTextWithOcr(buffer, pageCount)
-        if (ocrResult.text.length > text.length) {
+        if (ocrResult && ocrResult.text && ocrResult.text.length > text.length) {
           text = ocrResult.text
           wordCount = countWords(text)
           ocrApplied = true
@@ -184,9 +184,12 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
           console.log(
             `[FileParser] OCR terminé: ${ocrPagesProcessed} pages, ${wordCount} mots, confiance: ${ocrConfidence?.toFixed(1)}%`
           )
+        } else if (!ocrResult || !ocrResult.text) {
+          console.warn('[FileParser] OCR retourné vide/undefined - dépendances OCR manquantes?')
         }
-      } catch (ocrError) {
-        console.error('[FileParser] Erreur OCR (fallback au texte original):', ocrError)
+      } catch (ocrError: any) {
+        const errorMsg = ocrError?.message || ocrError?.toString() || 'Erreur OCR inconnue'
+        console.error('[FileParser] Erreur OCR (fallback au texte original):', errorMsg)
       }
     }
 
@@ -206,13 +209,14 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
         ocrConfidence: ocrApplied ? ocrConfidence : undefined,
       },
     }
-  } catch (error) {
-    console.error('[FileParser] Erreur parsing PDF:', error)
+  } catch (error: any) {
+    const errorMsg = error?.message || error?.toString() || 'Erreur parsing PDF inconnue'
+    console.error('[FileParser] Erreur parsing PDF:', errorMsg, error)
     return {
       success: false,
       text: '',
       metadata: { wordCount: 0 },
-      error: error instanceof Error ? error.message : 'Erreur parsing PDF',
+      error: errorMsg,
     }
   }
 }
