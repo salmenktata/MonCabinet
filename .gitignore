@@ -79,3 +79,7 @@ lighthouse-analysis.json
 
 # Données Tesseract OCR
 *.traineddata
+# RAG Audit Reports
+tmp/rag-audits/*.json
+audit-rag-*.json
+audit-rag-*.csv
