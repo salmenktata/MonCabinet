@@ -112,17 +112,25 @@ npx tsx scripts/import-api-keys-to-db.ts
 
 ### Variables d'Environnement
 
-**`.env.local`** (après migration) :
+**Gestion Hybride** : Les clés sont définies dans `.env.local` ET sauvegardées en DB.
+
+**Pourquoi les deux ?**
+- **`.env.local`** : Source primaire (lecture synchrone par `getAvailableProviders()`)
+- **Base de données** : Backup sécurisé + audit + monitoring + rotation facile
+
+**`.env.local`** :
 \`\`\`bash
 # Clé de chiffrement (CONSERVER ABSOLUMENT)
 ENCRYPTION_KEY=your-64-char-hex-key-here
 
-# Clés API (peuvent être supprimées après import)
-# GOOGLE_API_KEY=...  # ← À supprimer
-# DEEPSEEK_API_KEY=... # ← À supprimer
+# Clés API (gardées ici ET en DB)
+GOOGLE_API_KEY=AIza...
+DEEPSEEK_API_KEY=sk-...
 \`\`\`
 
-⚠️ **IMPORTANT** : Ne JAMAIS supprimer \`ENCRYPTION_KEY\` sinon les clés deviennent inaccessibles !
+⚠️ **IMPORTANT** :
+- Ne JAMAIS supprimer \`ENCRYPTION_KEY\` sinon les clés DB deviennent inaccessibles !
+- Garder les clés API dans .env.local (source primaire) + DB (backup/audit)
 
 ## 🔄 Usage
 

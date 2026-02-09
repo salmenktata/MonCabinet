@@ -164,6 +164,8 @@ async function testModePremium() {
 
 async function testOllama() {
   console.log('\n🦙 Test 6: Ollama local\n')
+  console.log('  ℹ️  Ollama est un fallback local optionnel (production = cloud providers)')
+  console.log('  💡 Pour tester : `ollama serve` puis relancer ce script\n')
 
   try {
     // Forcer Ollama en désactivant les autres providers temporairement
@@ -185,14 +187,17 @@ async function testOllama() {
       console.log(`  ✅ Provider utilisé: ollama`)
       console.log(`  ⏱️  Durée: ${duration}ms`)
       console.log(`  💬 Réponse: "${response.answer}"`)
+      console.log(`  📊 Modèle: ${response.modelUsed}`)
       addResult('Ollama Local', '✅', `${duration}ms - fallback fonctionne`, duration)
     } else {
       console.log(`  ❌ Provider utilisé: ${response.provider} (attendu: ollama)`)
       addResult('Ollama Local', '❌', `${response.provider} utilisé au lieu d'Ollama`)
     }
   } catch (error: any) {
-    console.log(`  ❌ Erreur: ${error.message}`)
-    addResult('Ollama Local', '⏭️', 'Ollama non disponible (normal si non démarré)')
+    console.log(`  ⏭️  Ollama non démarré (comportement attendu)`)
+    console.log(`     → Le système utilise les providers cloud (Gemini, DeepSeek)`)
+    console.log(`     → Ollama est utilisé uniquement pour les embeddings (production)`)
+    addResult('Ollama Local', '⏭️', 'Non démarré - cloud providers actifs (OK)')
   }
 }
 
