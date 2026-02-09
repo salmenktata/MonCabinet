@@ -92,7 +92,7 @@ export function ProviderTrendsChart({ days }: { days: number }) {
             <YAxis />
             <Tooltip
               labelFormatter={(value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'medium' })}
-              formatter={(value: number) => [value.toLocaleString('fr-FR'), 'tokens']}
+              formatter={(value: number | undefined) => [value ? value.toLocaleString('fr-FR') : '0', 'tokens']}
             />
             <Legend />
             <Line

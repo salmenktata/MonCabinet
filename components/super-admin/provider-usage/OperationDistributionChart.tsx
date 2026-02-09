@@ -96,7 +96,7 @@ export function OperationDistributionChart({ days }: { days: number }) {
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, percentage }) => `${name}: ${percentage}%`}
+              label={({ name, percent }) => `${name}: ${percent ? (percent * 100).toFixed(0) : '0'}%`}
               outerRadius={80}
               fill="#8884d8"
               dataKey="value"
@@ -110,7 +110,7 @@ export function OperationDistributionChart({ days }: { days: number }) {
               })}
             </Pie>
             <Tooltip
-              formatter={(value: number) => formatCurrency(value, 'USD')}
+              formatter={(value: number | undefined) => value ? formatCurrency(value, 'USD') : '0 $'}
             />
             <Legend />
           </PieChart>

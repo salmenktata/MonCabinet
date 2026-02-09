@@ -104,7 +104,7 @@ export function CostBreakdownChart({ days }: { days: number }) {
             <XAxis dataKey="provider" />
             <YAxis />
             <Tooltip
-              formatter={(value: number) => formatCurrency(value, 'USD')}
+              formatter={(value: number | undefined) => value ? formatCurrency(value, 'USD') : '0 $'}
             />
             <Legend />
             {operations.map(operation => (
