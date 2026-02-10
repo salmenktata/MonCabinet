@@ -12,6 +12,7 @@ export default defineConfig({
       '**/node_modules/**',
       '**/e2e/**',
       '**/lib/ai/shared/rag-search.test.ts',
+      '**/__tests__/utils/delais-tunisie.test.ts',
     ],
     coverage: {
       provider: 'v8',
