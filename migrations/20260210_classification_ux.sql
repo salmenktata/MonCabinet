@@ -100,12 +100,12 @@ RETURNS TABLE (
   title TEXT,
   primary_category TEXT,
   domain TEXT,
-  confidence_score NUMERIC,
+  confidence_score DOUBLE PRECISION,
   review_priority TEXT,
   review_estimated_effort TEXT,
   validation_reason TEXT,
   source_name TEXT,
-  created_at TIMESTAMP
+  created_at TIMESTAMPTZ
 ) AS $$
 BEGIN
   RETURN QUERY
@@ -120,7 +120,7 @@ BEGIN
     lc.review_estimated_effort,
     lc.validation_reason,
     ws.name AS source_name,
-    lc.created_at
+    lc.classified_at AS created_at
   FROM web_pages wp
   JOIN legal_classifications lc ON lc.web_page_id = wp.id
   JOIN web_sources ws ON wp.web_source_id = ws.id
@@ -138,7 +138,7 @@ BEGIN
       ELSE 5
     END,
     -- Puis par date (plus ancien en premier = FIFO)
-    lc.created_at ASC
+    lc.classified_at ASC
   LIMIT p_limit
   OFFSET p_offset;
 END;
@@ -153,7 +153,7 @@ COMMENT ON FUNCTION get_classification_review_queue IS
 
 -- Index pour requêtes de queue (WHERE requires_validation + ORDER BY priority)
 CREATE INDEX IF NOT EXISTS idx_legal_classifications_review_queue
-  ON legal_classifications(requires_validation, review_priority, created_at)
+  ON legal_classifications(requires_validation, review_priority, classified_at)
   WHERE requires_validation = true;
 
 -- =============================================================================
