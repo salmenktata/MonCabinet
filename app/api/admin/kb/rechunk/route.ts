@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         max_chars: 0,
       }))
     } else {
-      // Identifier les documents avec chunks trop grands
+      // Identifier les documents avec chunks trop grands OU sans chunks (à re-chunker)
       const result = await db.query<{
         id: string
         title: string
@@ -81,12 +81,13 @@ export async function POST(request: NextRequest) {
           kb.full_text,
           COUNT(kbc.id) as total_chunks,
           COUNT(*) FILTER (WHERE LENGTH(kbc.content) > $1) as large_chunks,
-          MAX(LENGTH(kbc.content)) as max_chars
+          COALESCE(MAX(LENGTH(kbc.content)), 0) as max_chars
         FROM knowledge_base kb
-        JOIN knowledge_base_chunks kbc ON kb.id = kbc.knowledge_base_id
+        LEFT JOIN knowledge_base_chunks kbc ON kb.id = kbc.knowledge_base_id
         WHERE kb.is_active = true
         GROUP BY kb.id, kb.title, kb.category, kb.full_text
         HAVING COUNT(*) FILTER (WHERE LENGTH(kbc.content) > $1) > 0
+           OR COUNT(kbc.id) = 0  -- Inclure docs sans chunks (à re-créer)
         ORDER BY COUNT(*) FILTER (WHERE LENGTH(kbc.content) > $1) DESC,
                  MAX(LENGTH(kbc.content)) DESC
         LIMIT $2
@@ -158,6 +159,8 @@ export async function POST(request: NextRequest) {
         `, [doc.id])
 
         // 2. Re-chunker avec nouvelle config
+        console.log(`   📝 Full text: ${doc.full_text.length} chars, category: ${doc.category}`)
+
         const newChunks = chunkText(doc.full_text, {
           category: doc.category.toLowerCase(),
           preserveParagraphs: true,
@@ -165,6 +168,10 @@ export async function POST(request: NextRequest) {
         })
 
         console.log(`   ✂️  ${newChunks.length} nouveaux chunks créés`)
+
+        if (newChunks.length === 0) {
+          console.error(`   ⚠️  WARNING: 0 chunks générés pour ${doc.title}!`)
+        }
 
         // 3. Insérer nouveaux chunks avec embeddings
         let inserted = 0
@@ -177,17 +184,20 @@ export async function POST(request: NextRequest) {
                 knowledge_base_id,
                 chunk_index,
                 content,
-                word_count,
-                char_count,
-                embedding
-              ) VALUES ($1, $2, $3, $4, $5, $6)
+                embedding,
+                metadata
+              ) VALUES ($1, $2, $3, $4, $5)
             `, [
               doc.id,
               index,
               chunk.content,
-              chunk.metadata.wordCount,
-              chunk.metadata.charCount,
               formatEmbeddingForPostgres(embeddingResult.embedding),
+              JSON.stringify({
+                wordCount: chunk.metadata.wordCount,
+                charCount: chunk.metadata.charCount,
+                startPosition: chunk.metadata.startPosition,
+                endPosition: chunk.metadata.endPosition,
+              }),
             ])
 
             inserted++
