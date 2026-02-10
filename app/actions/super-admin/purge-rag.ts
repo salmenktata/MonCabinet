@@ -100,6 +100,7 @@ function errorResult(error: string): PurgeResult & { error: string } {
     stats: {
       knowledgeBase: { documents: 0, chunks: 0, versions: 0 },
       webSources: { sources: 0, pages: 0, files: 0, crawlJobs: 0, crawlLogs: 0 },
+      contentReview: { reviewQueue: 0, qualityAssessments: 0, classifications: 0, contradictions: 0 },
       storage: { knowledgeBaseFiles: 0, webFiles: 0 },
     },
     deletedAt: new Date(),
@@ -188,6 +189,7 @@ export async function purgeRAGAction(
     // 10. Revalider les chemins concernés
     revalidatePath('/super-admin/knowledge-base')
     revalidatePath('/super-admin/web-sources')
+    revalidatePath('/super-admin/content-review')
     revalidatePath('/super-admin/dashboard')
     revalidatePath('/super-admin/settings')
 

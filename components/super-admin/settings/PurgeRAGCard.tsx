@@ -38,6 +38,8 @@ interface PurgeSelection {
   purgeCrawlLogs: boolean
   purgeCrawlJobs: boolean
   purgeWebMinIO: boolean
+  // Content Review
+  purgeContentReview: boolean
 }
 
 const defaultSelection: PurgeSelection = {
@@ -52,6 +54,7 @@ const defaultSelection: PurgeSelection = {
   purgeCrawlLogs: true,
   purgeCrawlJobs: true,
   purgeWebMinIO: true,
+  purgeContentReview: true,
 }
 
 export function PurgeRAGCard() {
@@ -131,6 +134,7 @@ export function PurgeRAGCard() {
       }
       if (key === 'purgePages' && value) {
         updated.purgeWebFiles = true
+        updated.purgeContentReview = true
       }
 
       return updated
@@ -150,6 +154,7 @@ export function PurgeRAGCard() {
       purgeCrawlLogs: true,
       purgeCrawlJobs: true,
       purgeWebMinIO: true,
+      purgeContentReview: true,
     })
   }
 
@@ -166,6 +171,7 @@ export function PurgeRAGCard() {
       purgeCrawlLogs: false,
       purgeCrawlJobs: false,
       purgeWebMinIO: false,
+      purgeContentReview: false,
     })
   }
 
@@ -212,7 +218,10 @@ export function PurgeRAGCard() {
       stats.knowledgeBase.chunks +
       stats.webSources.sources +
       stats.webSources.pages +
-      stats.webSources.files
+      stats.webSources.files +
+      stats.contentReview.reviewQueue +
+      stats.contentReview.classifications +
+      stats.contentReview.contradictions
     : 0
 
   // Calculer le nombre d'éléments sélectionnés
@@ -225,6 +234,12 @@ export function PurgeRAGCard() {
     (selection.purgeWebFiles ? stats.webSources.files : 0) +
     (selection.purgeCrawlLogs ? stats.webSources.crawlLogs : 0) +
     (selection.purgeCrawlJobs ? stats.webSources.crawlJobs : 0) +
+    (selection.purgeContentReview ? (
+      stats.contentReview.reviewQueue +
+      stats.contentReview.qualityAssessments +
+      stats.contentReview.classifications +
+      stats.contentReview.contradictions
+    ) : 0) +
     (selection.purgeKBFiles ? stats.storage.knowledgeBaseFiles : 0) +
     (selection.purgeWebMinIO ? stats.storage.webFiles : 0)
   ) : 0
@@ -247,7 +262,7 @@ export function PurgeRAGCard() {
             <Icons.loader className="h-6 w-6 animate-spin text-slate-400" />
           </div>
         ) : stats ? (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Knowledge Base */}
             <div className="p-4 rounded-lg bg-slate-700/50 border border-slate-600">
               <div className="flex items-center gap-2 mb-3">
@@ -288,6 +303,28 @@ export function PurgeRAGCard() {
                 <div className="flex justify-between text-slate-300">
                   <span>Fichiers téléchargés</span>
                   <span className="font-mono">{stats.webSources.files}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Review */}
+            <div className="p-4 rounded-lg bg-slate-700/50 border border-slate-600">
+              <div className="flex items-center gap-2 mb-3">
+                <Icons.clipboardCheck className="h-4 w-4 text-orange-400" />
+                <span className="font-medium text-white">Revue de contenu</span>
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between text-slate-300">
+                  <span>File de revue</span>
+                  <span className="font-mono">{stats.contentReview.reviewQueue}</span>
+                </div>
+                <div className="flex justify-between text-slate-300">
+                  <span>Classifications</span>
+                  <span className="font-mono">{stats.contentReview.classifications}</span>
+                </div>
+                <div className="flex justify-between text-slate-300">
+                  <span>Contradictions</span>
+                  <span className="font-mono">{stats.contentReview.contradictions}</span>
                 </div>
               </div>
             </div>
@@ -397,6 +434,18 @@ export function PurgeRAGCard() {
                             )}
                             {result.deletedCounts.crawlJobs !== undefined && (
                               <li>{result.deletedCounts.crawlJobs} jobs de crawl</li>
+                            )}
+                            {result.deletedCounts.reviewQueue !== undefined && (
+                              <li>{result.deletedCounts.reviewQueue} items de revue</li>
+                            )}
+                            {result.deletedCounts.qualityAssessments !== undefined && (
+                              <li>{result.deletedCounts.qualityAssessments} évaluations qualité</li>
+                            )}
+                            {result.deletedCounts.classifications !== undefined && (
+                              <li>{result.deletedCounts.classifications} classifications</li>
+                            )}
+                            {result.deletedCounts.contradictions !== undefined && (
+                              <li>{result.deletedCounts.contradictions} contradictions</li>
                             )}
                             {result.deletedCounts.kbMinIOFiles !== undefined && (
                               <li>{result.deletedCounts.kbMinIOFiles} fichiers MinIO KB</li>
@@ -545,6 +594,25 @@ export function PurgeRAGCard() {
                           checked={selection.purgeWebMinIO}
                           onChange={(v) => updateSelection('purgeWebMinIO', v)}
                           disabled={purging}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Content Review */}
+                    <div className="p-4 rounded-lg bg-slate-800 border border-orange-900/50">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Icons.clipboardCheck className="h-4 w-4 text-orange-400" />
+                        <span className="font-medium text-orange-400">REVUE DE CONTENU</span>
+                      </div>
+                      <div className="space-y-3">
+                        <SelectionItem
+                          id="purgeContentReview"
+                          label={`Revue de contenu (${(stats?.contentReview.reviewQueue || 0) + (stats?.contentReview.qualityAssessments || 0) + (stats?.contentReview.classifications || 0) + (stats?.contentReview.contradictions || 0)})`}
+                          description="Supprime la file de revue, classifications, évaluations qualité et contradictions"
+                          checked={selection.purgeContentReview}
+                          onChange={(v) => updateSelection('purgeContentReview', v)}
+                          disabled={purging || selection.purgePages}
+                          forced={selection.purgePages}
                         />
                       </div>
                     </div>

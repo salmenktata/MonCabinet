@@ -21,6 +21,9 @@ export interface PurgeOptions {
   purgeCrawlJobs?: boolean      // web_crawl_jobs
   purgeWebMinIO?: boolean       // MinIO bucket web-files
 
+  // Content Review (pipeline intelligent)
+  purgeContentReview?: boolean  // human_review_queue, content_quality_assessments, legal_classifications, content_contradictions
+
   // Legacy option (backward compatibility)
   keepCategories?: boolean      // Inverse de purgeCategories
 }
@@ -45,9 +48,10 @@ export function normalizePurgeOptions(options: PurgeOptions): PurgeOptions {
     normalized.purgeCrawlJobs = true
   }
 
-  // Si on purge les pages, on doit purger les fichiers web (FK)
+  // Si on purge les pages, on doit purger les fichiers web et content review (FK)
   if (normalized.purgePages) {
     normalized.purgeWebFiles = true
+    normalized.purgeContentReview = true
   }
 
   return normalized
@@ -96,10 +100,14 @@ export function validatePurgeOptions(options: PurgeOptions): {
     }
   }
 
-  // Si on purge les pages, on doit purger les fichiers web
+  // Si on purge les pages, on doit purger les fichiers web et le content review
   if (options.purgePages && !options.purgeWebFiles) {
     warnings.push('Les fichiers web seront également supprimés (dépendance FK)')
     forcedOptions.purgeWebFiles = true
+  }
+  if (options.purgePages && !options.purgeContentReview) {
+    warnings.push('Les données de revue de contenu seront également supprimées (dépendance FK)')
+    forcedOptions.purgeContentReview = true
   }
 
   return {
@@ -125,5 +133,6 @@ export function getDefaultPurgeOptions(): PurgeOptions {
     purgeCrawlLogs: true,
     purgeCrawlJobs: true,
     purgeWebMinIO: true,
+    purgeContentReview: true,
   }
 }

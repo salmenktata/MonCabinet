@@ -97,7 +97,8 @@ export async function GET() {
  *     "purgeWebFiles": true,
  *     "purgeCrawlLogs": true,
  *     "purgeCrawlJobs": true,
- *     "purgeWebMinIO": true
+ *     "purgeWebMinIO": true,
+ *     "purgeContentReview": true
  *   }
  * }
  */
@@ -151,6 +152,7 @@ export async function POST(request: NextRequest) {
         {
           knowledgeBase: statsBefore.knowledgeBase,
           webSources: statsBefore.webSources,
+          contentReview: statsBefore.contentReview,
           storage: statsBefore.storage,
         },
         {

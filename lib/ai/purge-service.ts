@@ -30,6 +30,12 @@ export interface PurgeStats {
     crawlJobs: number
     crawlLogs: number
   }
+  contentReview: {
+    reviewQueue: number
+    qualityAssessments: number
+    classifications: number
+    contradictions: number
+  }
   storage: {
     knowledgeBaseFiles: number
     webFiles: number
@@ -51,6 +57,10 @@ export interface PurgeResult {
     webFiles?: number
     crawlLogs?: number
     crawlJobs?: number
+    reviewQueue?: number
+    qualityAssessments?: number
+    classifications?: number
+    contradictions?: number
     kbMinIOFiles?: number
     webMinIOFiles?: number
   }
@@ -74,6 +84,10 @@ export async function getRAGStats(): Promise<PurgeStats> {
     webFilesResult,
     crawlJobsResult,
     crawlLogsResult,
+    reviewQueueResult,
+    qualityAssessmentsResult,
+    classificationsResult,
+    contradictionsResult,
   ] = await Promise.all([
     query('SELECT COUNT(*) as count FROM knowledge_base'),
     query('SELECT COUNT(*) as count FROM knowledge_base_chunks'),
@@ -83,6 +97,10 @@ export async function getRAGStats(): Promise<PurgeStats> {
     query('SELECT COUNT(*) as count FROM web_files'),
     query('SELECT COUNT(*) as count FROM web_crawl_jobs'),
     query('SELECT COUNT(*) as count FROM web_crawl_logs'),
+    query('SELECT COUNT(*) as count FROM human_review_queue').catch(() => ({ rows: [{ count: '0' }] })),
+    query('SELECT COUNT(*) as count FROM content_quality_assessments').catch(() => ({ rows: [{ count: '0' }] })),
+    query('SELECT COUNT(*) as count FROM legal_classifications').catch(() => ({ rows: [{ count: '0' }] })),
+    query('SELECT COUNT(*) as count FROM content_contradictions').catch(() => ({ rows: [{ count: '0' }] })),
   ])
 
   // Compter les fichiers MinIO
@@ -115,6 +133,12 @@ export async function getRAGStats(): Promise<PurgeStats> {
       files: parseInt(webFilesResult.rows[0]?.count || '0'),
       crawlJobs: parseInt(crawlJobsResult.rows[0]?.count || '0'),
       crawlLogs: parseInt(crawlLogsResult.rows[0]?.count || '0'),
+    },
+    contentReview: {
+      reviewQueue: parseInt(reviewQueueResult.rows[0]?.count || '0'),
+      qualityAssessments: parseInt(qualityAssessmentsResult.rows[0]?.count || '0'),
+      classifications: parseInt(classificationsResult.rows[0]?.count || '0'),
+      contradictions: parseInt(contradictionsResult.rows[0]?.count || '0'),
     },
     storage: {
       knowledgeBaseFiles: knowledgeBaseFilesCount,
@@ -200,6 +224,42 @@ async function purgeCrawlJobs(client: PoolClient): Promise<number> {
  */
 async function purgeWebSources(client: PoolClient): Promise<number> {
   const result = await client.query('DELETE FROM web_sources RETURNING id')
+  return result.rowCount || 0
+}
+
+// =============================================================================
+// PURGE CONTENT REVIEW
+// =============================================================================
+
+/**
+ * Supprime toutes les entrées de la file de revue humaine
+ */
+async function purgeReviewQueue(client: PoolClient): Promise<number> {
+  const result = await client.query('DELETE FROM human_review_queue RETURNING id')
+  return result.rowCount || 0
+}
+
+/**
+ * Supprime toutes les évaluations de qualité du contenu
+ */
+async function purgeQualityAssessments(client: PoolClient): Promise<number> {
+  const result = await client.query('DELETE FROM content_quality_assessments RETURNING id')
+  return result.rowCount || 0
+}
+
+/**
+ * Supprime toutes les classifications juridiques
+ */
+async function purgeClassifications(client: PoolClient): Promise<number> {
+  const result = await client.query('DELETE FROM legal_classifications RETURNING id')
+  return result.rowCount || 0
+}
+
+/**
+ * Supprime toutes les contradictions de contenu
+ */
+async function purgeContradictions(client: PoolClient): Promise<number> {
+  const result = await client.query('DELETE FROM content_contradictions RETURNING id')
   return result.rowCount || 0
 }
 
@@ -326,37 +386,46 @@ export async function purgeAllRAGData(options: PurgeOptions = {}): Promise<Purge
         deletedCounts.webFiles = await purgeWebFiles(client)
       }
 
-      // 4. Purge logs crawl (dépend de web_crawl_jobs, web_sources)
+      // 4. Purge content review (dépend de web_pages)
+      if (normalizedOptions.purgeContentReview) {
+        console.log('  → Suppression des données de revue de contenu...')
+        deletedCounts.reviewQueue = await purgeReviewQueue(client)
+        deletedCounts.qualityAssessments = await purgeQualityAssessments(client)
+        deletedCounts.classifications = await purgeClassifications(client)
+        deletedCounts.contradictions = await purgeContradictions(client)
+      }
+
+      // 5. Purge logs crawl (dépend de web_crawl_jobs, web_sources)
       if (normalizedOptions.purgeCrawlLogs) {
         console.log('  → Suppression des logs de crawl...')
         deletedCounts.crawlLogs = await purgeCrawlLogs(client)
       }
 
-      // 5. Purge pages (dépend de web_sources, knowledge_base)
+      // 6. Purge pages (dépend de web_sources, knowledge_base)
       if (normalizedOptions.purgePages) {
         console.log('  → Suppression des pages...')
         deletedCounts.pages = await purgeWebPages(client)
       }
 
-      // 6. Purge jobs crawl (dépend de web_sources)
+      // 7. Purge jobs crawl (dépend de web_sources)
       if (normalizedOptions.purgeCrawlJobs) {
         console.log('  → Suppression des jobs de crawl...')
         deletedCounts.crawlJobs = await purgeCrawlJobs(client)
       }
 
-      // 7. Purge documents KB (parent - après web_files et web_pages)
+      // 8. Purge documents KB (parent - après web_files et web_pages)
       if (normalizedOptions.purgeDocuments) {
         console.log('  → Suppression des documents...')
         deletedCounts.documents = await purgeKnowledgeBaseDocuments(client)
       }
 
-      // 8. Purge sources web (parent)
+      // 9. Purge sources web (parent)
       if (normalizedOptions.purgeSources) {
         console.log('  → Suppression des sources web...')
         deletedCounts.sources = await purgeWebSources(client)
       }
 
-      // 9. Purge catégories (indépendant)
+      // 10. Purge catégories (indépendant)
       if (normalizedOptions.purgeCategories) {
         console.log('  → Suppression des catégories...')
         deletedCounts.categories = await purgeKnowledgeCategories(client)
