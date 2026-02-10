@@ -25,9 +25,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   let totalIndexed = 0
   let totalFailed = 0
   const batchSize = 2 // Réduit à 2 pour Ollama lent
-  const maxBatches = 50 // Max 100 pages par appel
+  const maxBatches = 10 // Max 20 pages par appel (éviter timeout 4min)
 
-  console.log('[IndexWebPages] Démarrage indexation web_pages (batch de 2)')
+  console.log('[IndexWebPages] Démarrage indexation web_pages (batch de 2, max 10 batches)')
 
   try {
     for (let i = 0; i < maxBatches; i++) {
