@@ -912,79 +912,17 @@ export interface LegalContext {
 
 /**
  * Mapping des codes tunisiens avec leurs noms AR/FR et slugs
+ * Re-export enrichi depuis 9anoun-code-domains.ts (50+ codes au lieu de 14)
  */
-export const TUNISIAN_CODES: Record<string, { ar: string; fr: string; domain: LegalDomain }> = {
-  'code-obligations-contrats': {
-    ar: 'مجلة الالتزامات والعقود',
-    fr: 'Code des Obligations et des Contrats',
-    domain: 'civil',
-  },
-  'code-commerce': {
-    ar: 'المجلة التجارية',
-    fr: 'Code de Commerce',
-    domain: 'commercial',
-  },
-  'code-travail': {
-    ar: 'مجلة الشغل',
-    fr: 'Code du Travail',
-    domain: 'social',
-  },
-  'code-penal': {
-    ar: 'المجلة الجزائية',
-    fr: 'Code Pénal',
-    domain: 'penal',
-  },
-  'code-procedure-penale': {
-    ar: 'مجلة الإجراءات الجزائية',
-    fr: 'Code de Procédure Pénale',
-    domain: 'procedure_penale',
-  },
-  'code-procedure-civile': {
-    ar: 'مجلة المرافعات المدنية والتجارية',
-    fr: 'Code de Procédure Civile et Commerciale',
-    domain: 'procedure_civile',
-  },
-  'code-statut-personnel': {
-    ar: 'مجلة الأحوال الشخصية',
-    fr: 'Code du Statut Personnel',
-    domain: 'famille',
-  },
-  'code-droits-reels': {
-    ar: 'مجلة الحقوق العينية',
-    fr: 'Code des Droits Réels',
-    domain: 'immobilier',
-  },
-  'code-douanes': {
-    ar: 'مجلة الديوانة',
-    fr: 'Code des Douanes',
-    domain: 'douanier',
-  },
-  'code-fiscal': {
-    ar: 'مجلة الضريبة على دخل الأشخاص الطبيعيين والضريبة على الشركات',
-    fr: 'Code de l\'Impôt sur le Revenu des Personnes Physiques et de l\'Impôt sur les Sociétés',
-    domain: 'fiscal',
-  },
-  'code-comptabilite-publique': {
-    ar: 'مجلة المحاسبة العمومية',
-    fr: 'Code de la Comptabilité Publique',
-    domain: 'administratif',
-  },
-  'code-collectivites-locales': {
-    ar: 'مجلة الجماعات المحلية',
-    fr: 'Code des Collectivités Locales',
-    domain: 'administratif',
-  },
-  'code-commerce-maritime': {
-    ar: 'مجلة التجارة البحرية',
-    fr: 'Code de Commerce Maritime',
-    domain: 'maritime',
-  },
-  'code-droit-international-prive': {
-    ar: 'مجلة القانون الدولي الخاص',
-    fr: 'Code de Droit International Privé',
-    domain: 'international_prive',
-  },
-}
+import { NINEANOUN_CODE_DOMAINS } from './9anoun-code-domains'
+
+export const TUNISIAN_CODES: Record<string, { ar: string; fr: string; domain: LegalDomain }> =
+  Object.fromEntries(
+    Object.entries(NINEANOUN_CODE_DOMAINS).map(([slug, def]) => [
+      slug,
+      { ar: def.nameAr, fr: def.nameFr, domain: def.domain },
+    ])
+  )
 
 /**
  * Classification juridique du contenu

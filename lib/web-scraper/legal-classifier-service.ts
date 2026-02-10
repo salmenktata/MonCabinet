@@ -65,6 +65,11 @@ import {
   requiresValidation as requiresValidationAdaptive,
   getClassificationThreshold,
 } from './adaptive-thresholds'
+import {
+  NINEANOUN_CODE_DOMAINS,
+  NINEANOUN_KB_SECTIONS,
+  NINEANOUN_OTHER_SECTIONS,
+} from './9anoun-code-domains'
 
 // =============================================================================
 // CONFIGURATION
@@ -256,6 +261,35 @@ export async function classifyLegalContent(
   }
 
   const page = pageResult.rows[0]
+
+  // ===== FAST-PATH DETERMINISTE (9anoun.tn) =====
+  const deterministicResult = tryDeterministicClassification(page.url)
+  if (deterministicResult) {
+    console.log(`[Classifier] Fast-path: ${page.url} -> ${deterministicResult.primaryCategory}/${deterministicResult.domain}`)
+    await saveClassification(pageId, deterministicResult)
+    await db.query(
+      `UPDATE web_pages
+       SET legal_domain = $1,
+           processing_status = 'classified',
+           updated_at = NOW()
+       WHERE id = $2`,
+      [deterministicResult.domain, pageId]
+    )
+    // Cache pour cohérence
+    if (ENABLE_CLASSIFICATION_CACHE) {
+      const cacheKey = generateCacheKey(page.url, page.source_name, page.source_category)
+      const cachedData: CachedClassification = {
+        primaryCategory: deterministicResult.primaryCategory,
+        domain: deterministicResult.domain!,
+        documentType: deterministicResult.documentNature!,
+        confidenceScore: deterministicResult.confidenceScore,
+        cachedAt: new Date().toISOString(),
+        sourceName: page.source_name,
+      }
+      await setCachedClassification(cacheKey, cachedData, CLASSIFICATION_CACHE_TTL).catch(() => {})
+    }
+    return deterministicResult
+  }
 
   // Vérifier le contenu minimum
   const content = page.extracted_text || ''
@@ -1220,6 +1254,120 @@ function calculateReviewPriority(
     priority: 'medium',
     effort: 'moderate',
     reason: 'Revue standard',
+  }
+}
+
+/**
+ * Fast-path déterministe pour les URLs 9anoun.tn
+ *
+ * Parse le pathname et retourne une classification complète en <1ms,
+ * sans appel LLM ni lookup Redis. Retourne null si l'URL n'est pas
+ * reconnue -> le pipeline normal prend le relais.
+ */
+export function tryDeterministicClassification(url: string): ClassificationResult | null {
+  if (!url.includes('9anoun.tn')) return null
+
+  let pathname: string
+  try {
+    pathname = new URL(url).pathname
+  } catch {
+    return null
+  }
+
+  // Normaliser : supprimer trailing slash
+  const normalizedPath = pathname.replace(/\/$/, '')
+  const segments = normalizedPath.split('/').filter(Boolean)
+
+  // Pattern 1 : /kb/codes/{slug} ou /kb/codes/{slug}/{slug}-article-{N}
+  if (segments[0] === 'kb' && segments[1] === 'codes' && segments[2]) {
+    const codeSlug = segments[2]
+    const codeDef = NINEANOUN_CODE_DOMAINS[codeSlug]
+
+    if (codeDef) {
+      return buildDeterministicResult(
+        'legislation',
+        codeDef.domain,
+        codeDef.documentType,
+        `URL match: /kb/codes/${codeSlug}`
+      )
+    }
+
+    // Slug inconnu mais dans /kb/codes/ -> legislation sans domaine spécifique
+    return buildDeterministicResult(
+      'legislation',
+      null,
+      'loi',
+      `URL match: /kb/codes/${codeSlug} (slug inconnu)`
+    )
+  }
+
+  // Pattern 2 : /kb/{section}/... (jurisprudence, doctrine, jorts, constitutions, conventions, lois)
+  if (segments[0] === 'kb' && segments[1]) {
+    const section = segments[1]
+    const sectionDef = NINEANOUN_KB_SECTIONS[section]
+
+    if (sectionDef) {
+      return buildDeterministicResult(
+        sectionDef.primaryCategory as LegalContentCategory,
+        sectionDef.domain,
+        sectionDef.documentNature,
+        `URL match: /kb/${section}/`
+      )
+    }
+  }
+
+  // Pattern 3 : /modeles/... et /formulaires/...
+  if (segments[0]) {
+    const topSection = segments[0]
+    const otherDef = NINEANOUN_OTHER_SECTIONS[topSection]
+
+    if (otherDef) {
+      return buildDeterministicResult(
+        otherDef.primaryCategory as LegalContentCategory,
+        otherDef.domain,
+        otherDef.documentNature,
+        `URL match: /${topSection}/`
+      )
+    }
+  }
+
+  return null
+}
+
+function buildDeterministicResult(
+  primaryCategory: LegalContentCategory,
+  domain: LegalDomain | null,
+  documentNature: DocumentNature,
+  evidence: string
+): ClassificationResult {
+  return {
+    primaryCategory,
+    subcategory: null,
+    domain,
+    subdomain: null,
+    documentNature,
+    confidenceScore: 0.98,
+    requiresValidation: false,
+    validationReason: null,
+    alternativeClassifications: [],
+    legalKeywords: [],
+    llmProvider: 'none',
+    llmModel: 'deterministic-url',
+    tokensUsed: 0,
+    classificationSource: 'rules',
+    signalsUsed: [{
+      source: 'rules',
+      category: primaryCategory,
+      domain,
+      documentType: documentNature,
+      confidence: 0.98,
+      weight: 1.0,
+      evidence,
+    }],
+    rulesMatched: ['deterministic-9anoun-url'],
+    structureHints: null,
+    reviewPriority: null,
+    reviewEstimatedEffort: null,
   }
 }
 
