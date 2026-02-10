@@ -144,11 +144,20 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          cat >> ~/.ssh/config << EOF
+          Host vps
+            HostName ${{ secrets.VPS_HOST }}
+            Port ${{ secrets.VPS_PORT }}
+            User ${{ secrets.VPS_USER }}
+            IdentityFile ~/.ssh/id_rsa
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          EOF
+          chmod 600 ~/.ssh/config
 
       - name: Backup current code on VPS
         run: |
-          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'BACKUP'
+          ssh vps << 'BACKUP'
             mkdir -p /opt/moncabinet/rollback
             docker cp qadhya-nextjs:/app/server.js /opt/moncabinet/rollback/server.js 2>/dev/null || true
             docker cp qadhya-nextjs:/app/.next /opt/moncabinet/rollback/.next 2>/dev/null || true
@@ -159,10 +168,10 @@ jobs:
       - name: Upload and deploy
         run: |
           # SCP deploy bundle to VPS
-          scp -P ${{ secrets.VPS_PORT }} deploy.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/deploy.tar.gz
+          scp deploy.tar.gz vps:/tmp/deploy.tar.gz
 
           # Extract and docker cp into container
-          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'DEPLOY'
+          ssh vps << 'DEPLOY'
             set -e
 
             # Extract bundle
@@ -191,8 +200,7 @@ jobs:
 
           for i in 1 2 3; do
             echo "Health check attempt $i/3..."
-            RESPONSE=$(ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-              'curl -sf http://localhost:3000/api/health' || echo "FAILED")
+            RESPONSE=$(ssh vps 'curl -sf http://localhost:3000/api/health' || echo "FAILED")
 
             if echo "$RESPONSE" | grep -q '"status"'; then
               echo "Health check passed!"
@@ -209,7 +217,7 @@ jobs:
       - name: Rollback on failure
         if: failure()
         run: |
-          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ROLLBACK'
+          ssh vps << 'ROLLBACK'
             echo "Rolling back to previous version..."
 
             if [ -f /opt/moncabinet/rollback/server.js ]; then
