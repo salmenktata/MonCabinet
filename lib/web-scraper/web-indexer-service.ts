@@ -289,6 +289,54 @@ export async function indexSourcePages(
 }
 
 /**
+ * Indexe les pages web en attente (toutes sources confondues)
+ * Utilisé par le cron d'indexation progressive
+ */
+export async function indexWebPages(
+  limit: number = 10
+): Promise<{
+  processed: number
+  succeeded: number
+  failed: number
+  results: Array<{ pageId: string; success: boolean; error?: string }>
+}> {
+  // Récupérer les pages à indexer (toutes sources)
+  // FIX: Inclure aussi les pages 'unchanged' qui n'ont jamais été indexées
+  // FIX: Accepter aussi les pages avec fichiers liés (Google Drive) même si extracted_text est vide
+  const sql = `
+    SELECT id FROM web_pages
+    WHERE status IN ('crawled', 'unchanged')
+    AND is_indexed = false
+    AND (
+      (extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100)
+      OR
+      (linked_files IS NOT NULL AND jsonb_array_length(linked_files) > 0)
+    )
+    ORDER BY last_crawled_at DESC
+    LIMIT $1
+  `
+
+  const pagesResult = await db.query(sql, [limit])
+  const results: Array<{ pageId: string; success: boolean; error?: string }> = []
+
+  for (const row of pagesResult.rows) {
+    const result = await indexWebPage(row.id)
+    results.push({
+      pageId: row.id,
+      success: result.success,
+      error: result.error,
+    })
+  }
+
+  return {
+    processed: results.length,
+    succeeded: results.filter((r) => r.success).length,
+    failed: results.filter((r) => !r.success).length,
+    results,
+  }
+}
+
+/**
  * Ajoute les pages d'une source à la queue d'indexation
  */
 export async function queueSourcePagesForIndexing(
