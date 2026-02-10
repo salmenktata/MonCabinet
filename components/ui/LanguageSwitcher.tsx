@@ -14,7 +14,8 @@ export default function LanguageSwitcher() {
   const handleChange = async (newLocale: Locale) => {
     startTransition(async () => {
       await setUserLocale(newLocale)
-      router.refresh()
+      // Forcer un rechargement complet pour mettre à jour tous les composants
+      window.location.reload()
     })
   }
 
