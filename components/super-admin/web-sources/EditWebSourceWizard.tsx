@@ -19,6 +19,7 @@ import { Icons } from '@/lib/icons'
 import { useToast } from '@/lib/hooks/use-toast'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 
 interface FormData {
   name: string
@@ -49,21 +50,7 @@ interface EditWebSourceWizardProps {
   sourceId: string
 }
 
-const CATEGORIES = [
-  { value: 'legislation', label: 'Législation' },
-  { value: 'jurisprudence', label: 'Jurisprudence' },
-  { value: 'doctrine', label: 'Doctrine' },
-  { value: 'jort', label: 'JORT' },
-  { value: 'codes', label: 'Codes juridiques' },
-  { value: 'constitution', label: 'Constitution' },
-  { value: 'conventions', label: 'Conventions internationales' },
-  { value: 'modeles', label: 'Modèles' },
-  { value: 'procedures', label: 'Procédures' },
-  { value: 'formulaires', label: 'Formulaires' },
-  { value: 'guides', label: 'Guides pratiques' },
-  { value: 'lexique', label: 'Lexique juridique' },
-  { value: 'autre', label: 'Autre' },
-]
+const CATEGORIES = getCategoriesForContext('web_sources', 'fr')
 
 const FREQUENCIES = [
   { value: '1 hour', label: 'Toutes les heures' },

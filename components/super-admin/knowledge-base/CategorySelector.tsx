@@ -5,18 +5,16 @@ import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
 import {
-  KNOWLEDGE_CATEGORIES,
   getCategoryLabel,
   getSubcategoryLabel,
   getSubcategories,
 } from '@/lib/knowledge-base/categories'
+import { getCategoriesForContext, LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
 import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
 
 interface CategorySelectorProps {
@@ -62,35 +60,15 @@ export function CategorySelector({
             <SelectValue placeholder="Sélectionner une catégorie" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-600 max-h-80">
-            {KNOWLEDGE_CATEGORIES.map((cat) => (
+            {getCategoriesForContext('knowledge_base', lang).map((cat) => (
               <SelectItem
-                key={cat.id}
-                value={cat.id}
+                key={cat.value}
+                value={cat.value}
                 className="text-white hover:bg-slate-700"
               >
-                <div className="flex items-center gap-2">
-                  <span>{lang === 'fr' ? cat.labelFr : cat.labelAr}</span>
-                  {cat.subcategories.length > 0 && (
-                    <span className="text-xs text-slate-400">
-                      ({cat.subcategories.length})
-                    </span>
-                  )}
-                </div>
+                {cat.label}
               </SelectItem>
             ))}
-            {/* Anciennes catégories pour rétrocompatibilité */}
-            <SelectGroup>
-              <SelectLabel className="text-slate-400">Anciennes catégories</SelectLabel>
-              <SelectItem value="code" className="text-slate-400 hover:bg-slate-700">
-                Code (ancien)
-              </SelectItem>
-              <SelectItem value="modele" className="text-slate-400 hover:bg-slate-700">
-                Modèle (ancien)
-              </SelectItem>
-              <SelectItem value="autre" className="text-slate-400 hover:bg-slate-700">
-                Autre
-              </SelectItem>
-            </SelectGroup>
           </SelectContent>
         </Select>
       </div>
@@ -155,13 +133,13 @@ export function SimpleCategorySelect({
             Toutes les catégories
           </SelectItem>
         )}
-        {KNOWLEDGE_CATEGORIES.map((cat) => (
+        {getCategoriesForContext('knowledge_base', lang).map((cat) => (
           <SelectItem
-            key={cat.id}
-            value={cat.id}
+            key={cat.value}
+            value={cat.value}
             className="text-white hover:bg-slate-700"
           >
-            {lang === 'fr' ? cat.labelFr : cat.labelAr}
+            {cat.label}
           </SelectItem>
         ))}
       </SelectContent>
@@ -183,26 +161,13 @@ export function CategoryBadge({
   lang?: 'fr' | 'ar'
   size?: 'xs' | 'sm' | 'md'
 }) {
-  const CATEGORY_COLORS: Record<string, string> = {
-    legislation: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    jurisprudence: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-    doctrine: 'bg-green-500/20 text-green-300 border-green-500/30',
-    modeles: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-    procedures: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-    jort: 'bg-red-500/20 text-red-300 border-red-500/30',
-    formulaires: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-    code: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    modele: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-    autre: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
-  }
-
   const sizeClasses = {
     xs: 'text-[10px] px-1.5 py-0.5',
     sm: 'text-xs px-2 py-0.5',
     md: 'text-sm px-2.5 py-1',
   }
 
-  const colorClass = CATEGORY_COLORS[category] || CATEGORY_COLORS.autre
+  const colorClass = LEGAL_CATEGORY_COLORS[category as keyof typeof LEGAL_CATEGORY_COLORS] || LEGAL_CATEGORY_COLORS.autre
 
   return (
     <div className="flex flex-wrap gap-1">

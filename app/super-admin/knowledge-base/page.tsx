@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import { getCategoryLabel } from '@/lib/knowledge-base/categories'
+import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 
 // Dynamic imports pour réduire le bundle initial
 const KnowledgeBaseUpload = dynamic(
@@ -179,17 +180,11 @@ function FiltersForm({
               defaultValue={category}
               className="w-full h-10 px-3 rounded-md bg-slate-700 border border-slate-600 text-white text-sm"
             >
-              <option value="all">Toutes</option>
-              <option value="legislation">Législation</option>
-              <option value="jurisprudence">Jurisprudence</option>
-              <option value="doctrine">Doctrine</option>
-              <option value="modeles">Modèles</option>
-              <option value="procedures">Procédures</option>
-              <option value="jort">JORT</option>
-              <option value="formulaires">Formulaires</option>
-              <option value="code">Code (ancien)</option>
-              <option value="modele">Modèle (ancien)</option>
-              <option value="autre">Autre</option>
+              {getCategoriesForContext('knowledge_base', 'fr', true).map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
             </select>
           </div>
 
