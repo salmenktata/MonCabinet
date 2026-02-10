@@ -134,6 +134,18 @@ if (typeof globalThis.DOMMatrix === 'undefined') {
     // Canvas not available, skip DOMMatrix polyfill
   }
 }
+
+// Polyfill process.getBuiltinModule pour Node.js 18 (requis par tesseract.js)
+// Cette API n'existe que dans Node.js 22+
+if (typeof process.getBuiltinModule === 'undefined') {
+  process.getBuiltinModule = function(moduleName) {
+    try {
+      return require(moduleName);
+    } catch (err) {
+      return null;
+    }
+  };
+}
 POLYFILL
 
 # Charger le polyfill au runtime pour éviter "File is not defined"
