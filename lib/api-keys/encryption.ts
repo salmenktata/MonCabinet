@@ -34,21 +34,26 @@ export function encryptApiKey(apiKey: string): string {
 }
 
 export function decryptApiKey(encryptedData: string): string {
-  const key = getEncryptionKey()
+  // Guard: non-encrypted values (e.g. "local://ollama", "REQUIRES_ENCRYPTION")
   const data = Buffer.from(encryptedData, 'base64')
-  
+  if (data.length < IV_LENGTH + TAG_LENGTH + 1) {
+    return encryptedData
+  }
+
+  const key = getEncryptionKey()
+
   const iv = data.subarray(0, IV_LENGTH)
   const tag = data.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH)
   const encrypted = data.subarray(IV_LENGTH + TAG_LENGTH)
-  
+
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
   decipher.setAuthTag(tag)
-  
+
   const decrypted = Buffer.concat([
     decipher.update(encrypted),
     decipher.final()
   ])
-  
+
   return decrypted.toString('utf8')
 }
 
