@@ -27,6 +27,7 @@ const WEB_FILES_BUCKET = 'web-files'
 const MAX_ERRORS_KEPT = 200          // Limiter les erreurs en mémoire
 const PROGRESS_LOG_INTERVAL = 25     // Log progression toutes les N pages
 const MAX_CONSECUTIVE_FAILURES = 20  // Arrêter après N échecs consécutifs
+const CRAWL_CONCURRENCY = parseInt(process.env.CRAWLER_CONCURRENCY || '3', 10)
 
 interface CrawlOptions {
   maxPages?: number
@@ -165,10 +166,12 @@ export async function crawlSource(
     status: 'running',
   }
 
-  // Charger les URLs déjà visitées si mode incrémental
-  if (incrementalMode) {
-    const existingPages = await getExistingPages(sourceId)
-    for (const page of existingPages) {
+  // Charger les URLs existantes (pour priorisation queue + mode incrémental)
+  const existingUrlHashes = new Set<string>()
+  const existingPages = await getExistingPages(sourceId)
+  for (const page of existingPages) {
+    existingUrlHashes.add(page.urlHash)
+    if (incrementalMode) {
       state.visited.add(page.urlHash)
     }
   }
@@ -181,7 +184,8 @@ export async function crawlSource(
   const effectiveRateLimit = Math.max(rateLimit, robotsRules.crawlDelay || 0)
 
   console.log(`[Crawler] Démarrage crawl ${sourceName}`)
-  console.log(`[Crawler] Rate limit: ${effectiveRateLimit}ms, Max pages: ${maxPages}, Max depth: ${maxDepth}`)
+  console.log(`[Crawler] Concurrency: ${CRAWL_CONCURRENCY}, Rate limit: ${effectiveRateLimit}ms, Max pages: ${maxPages}, Max depth: ${maxDepth}`)
+  console.log(`[Crawler] ${existingUrlHashes.size} pages existantes en DB, mode ${incrementalMode ? 'incrémental' : 'full_crawl'}`)
   console.log(`[Crawler] Queue initiale: ${state.queue.length} URLs`, state.queue.map((q) => q.url))
   console.log(`[Crawler] Include patterns: ${includePatterns.length}`, includePatterns.map((p: RegExp) => p.source))
   console.log(`[Crawler] Exclude patterns: ${excludePatterns.length}`, excludePatterns.map((p: RegExp) => p.source))
@@ -220,157 +224,159 @@ export async function crawlSource(
 
   let consecutiveFailures = 0
 
-  // Boucle principale de crawl
+  // Boucle principale de crawl (par batch concurrent)
   while (state.queue.length > 0 && state.pagesProcessed < maxPages && !shutdownRequested) {
-    const { url, depth } = state.queue.shift()!
-
-    // Vérifier la profondeur max
-    if (depth > maxDepth) continue
-
-    // Vérifier si déjà visité (par hash d'URL)
-    const urlHash = hashUrl(url)
-    if (state.visited.has(urlHash)) continue
-    state.visited.add(urlHash)
-
-    // Ignorer les URLs de fichiers (PDF, DOCX, etc.) — gérés par downloadLinkedFiles()
-    if (/\.(pdf|docx?|xlsx?|pptx?|zip|rar)$/i.test(url)) {
-      continue
+    // Collecter un batch de pages à traiter (jusqu'à CRAWL_CONCURRENCY)
+    const batch: Array<{ url: string; depth: number }> = []
+    while (batch.length < CRAWL_CONCURRENCY && state.queue.length > 0) {
+      const item = state.queue.shift()!
+      if (item.depth > maxDepth) continue
+      const urlHash = hashUrl(item.url)
+      if (state.visited.has(urlHash)) continue
+      if (/\.(pdf|docx?|xlsx?|pptx?|zip|rar)$/i.test(item.url)) continue
+      if (excludePatterns.some((p: RegExp) => p.test(item.url))) continue
+      if (includePatterns.length > 0 && !includePatterns.some((p: RegExp) => p.test(item.url))) continue
+      state.visited.add(urlHash)
+      batch.push(item)
     }
 
-    // Vérifier les patterns d'exclusion
-    if (excludePatterns.some((p: RegExp) => p.test(url))) {
-      console.log(`[Crawler] URL exclue: ${url}`)
-      continue
-    }
+    if (batch.length === 0) continue
 
-    // Vérifier les patterns d'inclusion (si définis)
-    if (includePatterns.length > 0 && !includePatterns.some((p: RegExp) => p.test(url))) {
-      continue
-    }
-
-    // Vérifier robots.txt (si activé)
+    // Vérifier robots.txt pour le batch (en parallèle)
+    let filteredBatch = batch
     if (sourceRespectRobots) {
-      const robotsCheck = await isUrlAllowed(url, sourceUserAgent)
-      if (!robotsCheck.allowed) {
-        console.log(`[Crawler] URL bloquée par robots.txt: ${url}`)
-        continue
-      }
+      const robotsChecks = await Promise.all(
+        batch.map(item => isUrlAllowed(item.url, sourceUserAgent))
+      )
+      filteredBatch = batch.filter((_, i) => robotsChecks[i].allowed)
+      const blocked = batch.length - filteredBatch.length
+      if (blocked > 0) console.log(`[Crawler] ${blocked} URL(s) bloquée(s) par robots.txt`)
     }
 
-    try {
-      // Scraper la page avec retry automatique
-      const result = await withRetry(
-        () => processPage(source, url, depth, state, { downloadFiles, incrementalMode }),
-        (error) => {
-          // Vérifier si l'erreur est retryable (429, 503, timeout, etc.)
-          const statusCode = error instanceof Error && 'statusCode' in error
-            ? (error as any).statusCode
-            : undefined
-          return isRetryableError(error, statusCode)
-        },
-        DEFAULT_RETRY_CONFIG,
-        (attempt, delay, error) => {
-          console.warn(
-            `[Crawler] Retry ${attempt + 1}/${DEFAULT_RETRY_CONFIG.maxRetries} ` +
-            `pour ${url} dans ${delay}ms (erreur: ${error instanceof Error ? error.message : 'inconnue'})`
-          )
-        }
-      )
+    if (filteredBatch.length === 0) continue
 
+    // Traiter le batch en parallèle (chaque worker gère ses propres erreurs)
+    const batchResults = await Promise.all(
+      filteredBatch.map(async ({ url, depth }) => {
+        const isSeedUrl = seedUrlSet.has(url)
+        try {
+          const result = await withRetry(
+            () => processPage(source, url, depth, state, { downloadFiles, incrementalMode, isSeedUrl }),
+            (error) => {
+              const statusCode = error instanceof Error && 'statusCode' in error
+                ? (error as any).statusCode
+                : undefined
+              return isRetryableError(error, statusCode)
+            },
+            DEFAULT_RETRY_CONFIG,
+            (attempt, delay, error) => {
+              console.warn(
+                `[Crawler] Retry ${attempt + 1}/${DEFAULT_RETRY_CONFIG.maxRetries} ` +
+                `pour ${url} dans ${delay}ms (erreur: ${error instanceof Error ? error.message : 'inconnue'})`
+              )
+            }
+          )
+          return { url, depth, isSeedUrl, ...result, error: undefined as Error | undefined }
+        } catch (error) {
+          return {
+            url, depth, isSeedUrl,
+            success: false, links: [] as string[],
+            fetchResult: undefined as import('./types').FetchResult | undefined,
+            error: error instanceof Error ? error : new Error(String(error)),
+          }
+        }
+      })
+    )
+
+    // Traiter les résultats du batch
+    for (const result of batchResults) {
       if (result.success) {
         consecutiveFailures = 0
+        state.pagesProcessed++
 
-        // Ajouter les liens découverts à la queue (liens statiques HTML)
-        if (sourceFollowLinks && result.links) {
-          for (const link of result.links) {
-            const linkHash = hashUrl(link)
-            // Vérifier que le lien est dans le scope de la baseUrl
-            if (!state.visited.has(linkHash) && isUrlInScope(link, sourceBaseUrl)) {
-              state.queue.push({ url: link, depth: depth + 1 })
-            } else if (!isUrlInScope(link, sourceBaseUrl)) {
-              console.log(`[Crawler] 🚫 Lien hors scope ignoré: ${link}`)
+        // Ajouter les liens découverts avec priorisation (nouvelles URLs en premier)
+        const addLinkToQueue = (link: string, parentDepth: number) => {
+          const linkHash = hashUrl(link)
+          if (!state.visited.has(linkHash) && isUrlInScope(link, sourceBaseUrl)) {
+            if (existingUrlHashes.has(linkHash)) {
+              state.queue.push({ url: link, depth: parentDepth + 1 })   // Existante → fin
+            } else {
+              state.queue.unshift({ url: link, depth: parentDepth + 1 }) // Nouvelle → début
             }
           }
         }
 
-        // 🆕 Ajouter les liens dynamiques découverts via interaction JavaScript
+        // Liens statiques HTML
+        if (sourceFollowLinks && result.links) {
+          for (const link of result.links) {
+            addLinkToQueue(link, result.depth)
+          }
+        }
+
+        // Liens dynamiques découverts via JavaScript
         if (sourceFollowLinks && result.fetchResult?.discoveredUrls) {
           for (const link of result.fetchResult.discoveredUrls) {
-            const linkHash = hashUrl(link)
-            // Vérifier que le lien est dans le scope de la baseUrl
-            if (!state.visited.has(linkHash) && isUrlInScope(link, sourceBaseUrl)) {
-              state.queue.push({ url: link, depth: depth + 1 })
-              console.log(`[Crawler] 🔗 Lien dynamique → ${link}`)
-            } else if (!isUrlInScope(link, sourceBaseUrl)) {
-              console.log(`[Crawler] 🚫 Lien dynamique hors scope ignoré: ${link}`)
-            }
+            addLinkToQueue(link, result.depth)
           }
         }
 
         // Crawl de formulaire si configuré et URL est une seed URL
-        if (sourceFormCrawlConfig && seedUrlSet.has(url)) {
+        if (sourceFormCrawlConfig && result.isSeedUrl) {
           try {
             const formLinks = await crawlFormResults(
               sourceFormCrawlConfig,
-              url,
+              result.url,
               sourceIgnoreSSLErrors,
               effectiveRateLimit,
             )
             for (const link of formLinks) {
-              const linkHash = hashUrl(link)
-              // Vérifier que le lien est dans le scope de la baseUrl
-              if (!state.visited.has(linkHash) && isUrlInScope(link, sourceBaseUrl)) {
-                state.queue.push({ url: link, depth: depth + 1 })
-              } else if (!isUrlInScope(link, sourceBaseUrl)) {
-                console.log(`[Crawler] 🚫 Lien formulaire hors scope ignoré: ${link}`)
-              }
+              addLinkToQueue(link, result.depth)
             }
-            console.log(`[Crawler] Formulaire: ${formLinks.length} liens découverts depuis ${url}`)
+            console.log(`[Crawler] Formulaire: ${formLinks.length} liens découverts depuis ${result.url}`)
           } catch (formError) {
-            console.error(`[Crawler] Erreur crawl formulaire pour ${url}:`, formError)
-            pushError(state, url, `Form crawl: ${formError instanceof Error ? formError.message : 'Erreur inconnue'}`)
+            console.error(`[Crawler] Erreur crawl formulaire pour ${result.url}:`, formError)
+            pushError(state, result.url, `Form crawl: ${formError instanceof Error ? formError.message : 'Erreur inconnue'}`)
           }
         }
-      }
+      } else {
+        // Échec — pagesFailed déjà incrémenté dans processPage, comptabiliser uniquement ici
+        consecutiveFailures++
 
-      state.pagesProcessed++
+        if (result.error?.message.includes('BAN_DETECTED')) {
+          console.error(`[Crawler] BANNISSEMENT DÉTECTÉ pour ${sourceName}: ${result.error.message}`)
+          pushError(state, result.url, `BANNISSEMENT: ${result.error.message}`)
+          state.status = 'banned'
+          break
+        }
 
-      // Log de progression périodique
-      if (state.pagesProcessed % PROGRESS_LOG_INTERVAL === 0) {
-        const elapsed = ((Date.now() - crawlStartTime) / 1000).toFixed(0)
-        const rate = (state.pagesProcessed / (Date.now() - crawlStartTime) * 60000).toFixed(1)
-        console.log(
-          `[Crawler] Progression: ${state.pagesProcessed} pages (${state.pagesNew} new, ${state.pagesFailed} err) | ` +
-          `Queue: ${state.queue.length} | Visité: ${state.visited.size} | ${elapsed}s | ${rate} pages/min`
-        )
-      }
+        pushError(state, result.url, result.error?.message || 'Erreur inconnue')
+        console.error(`[Crawler] Erreur page ${result.url}:`, result.error?.message || 'Erreur inconnue')
 
-    } catch (error) {
-      state.pagesFailed++
-      consecutiveFailures++
-
-      // Vérifier si c'est un bannissement
-      if (error instanceof Error && error.message.includes('BAN_DETECTED')) {
-        console.error(
-          `[Crawler] BANNISSEMENT DÉTECTÉ pour ${sourceName}: ${error.message}`
-        )
-        pushError(state, url, `BANNISSEMENT: ${error.message}`)
-        state.status = 'banned'
-        break
-      }
-
-      pushError(state, url, error instanceof Error ? error.message : 'Erreur inconnue')
-      console.error(`[Crawler] Erreur page ${url}:`, error instanceof Error ? error.message : error)
-
-      // Protection: arrêter si trop d'échecs consécutifs
-      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-        console.error(`[Crawler] ${MAX_CONSECUTIVE_FAILURES} échecs consécutifs, arrêt du crawl`)
-        state.status = 'failed'
-        break
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          console.error(`[Crawler] ${MAX_CONSECUTIVE_FAILURES} échecs consécutifs, arrêt du crawl`)
+          state.status = 'failed'
+          break
+        }
       }
     }
 
-    // Rate limiting avec randomisation
+    // Vérifier si le batch a causé un arrêt
+    if (state.status === 'banned' || state.status === 'failed') break
+
+    // Log de progression périodique
+    const shouldLog = state.pagesProcessed > 0 &&
+      (state.pagesProcessed % PROGRESS_LOG_INTERVAL < filteredBatch.length ||
+       state.pagesProcessed <= PROGRESS_LOG_INTERVAL)
+    if (shouldLog) {
+      const elapsed = ((Date.now() - crawlStartTime) / 1000).toFixed(0)
+      const rate = (state.pagesProcessed / (Date.now() - crawlStartTime) * 60000).toFixed(1)
+      console.log(
+        `[Crawler] Progression: ${state.pagesProcessed} pages (${state.pagesNew} new, ${state.pagesFailed} err) | ` +
+        `Queue: ${state.queue.length} | Visité: ${state.visited.size} | ${elapsed}s | ${rate} pages/min`
+      )
+    }
+
+    // Rate limiting par batch (pas par page individuelle)
     if (effectiveRateLimit > 0 && state.queue.length > 0) {
       const randomDelay = getRandomDelay(effectiveRateLimit, 0.2) // ±20%
 
@@ -432,7 +438,7 @@ async function processPage(
   url: string,
   depth: number,
   state: CrawlState,
-  options: { downloadFiles: boolean; incrementalMode: boolean }
+  options: { downloadFiles: boolean; incrementalMode: boolean; isSeedUrl?: boolean }
 ): Promise<{ success: boolean; links?: string[]; fetchResult?: import('./types').FetchResult }> {
   // Support snake_case (DB) et camelCase (types)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -445,8 +451,10 @@ async function processPage(
   // Vérifier si la page existe déjà
   const existingPage = await getPageByUrlHash(sourceId, urlHash)
 
-  // Mode incrémental: vérifier si changement
-  if (options.incrementalMode && existingPage) {
+  // Smart skip: pour les pages non-seed existantes, vérifier via HEAD si changement
+  // En full_crawl, les seed URLs sont toujours traitées (pour découvrir les liens)
+  // En mode incrémental, toutes les pages existantes non-seed sont vérifiées
+  if (existingPage && !options.isSeedUrl) {
     const changeCheck = await checkForChanges(url, {
       etag: existingPage.etag || undefined,
       lastModified: existingPage.lastModified || undefined,
@@ -454,7 +462,7 @@ async function processPage(
     })
 
     if (!changeCheck.changed) {
-      console.log(`[Crawler] Pas de changement: ${url}`)
+      console.log(`[Crawler] ⚡ Skip (inchangée): ${url}`)
       await updatePageStatus(existingPage.id, 'unchanged')
       return { success: true, links: [] }
     }
