@@ -395,23 +395,43 @@ CRITÈRES D'ÉVALUATION (Score 0-100):
 1. CLARTÉ (clarity_score)
    - Le texte est-il facilement compréhensible?
    - La terminologie juridique est-elle utilisée correctement?
+   - IMPORTANT: Pour les documents juridiques arabes bien structurés (arrêts, JORT), accorde un score de 70-85 si le texte est clair, même avec terminologie technique complexe.
 
 2. STRUCTURE (structure_score)
    - Le document a-t-il une organisation logique?
    - Les sections sont-elles bien délimitées?
+   - IMPORTANT: Un arrêt de cassation avec en-tête officiel + parties + procédure + analyse = EXCELLENT (80-95).
+   - Un document JORT avec numéro + date + contenu législatif = BON (75-90).
 
 3. COMPLÉTUDE (completeness_score)
    - Les références légales sont-elles complètes?
    - Les informations essentielles sont-elles présentes?
+   - IMPORTANT: Un arrêt avec faits + procédure + analyse juridique = COMPLET (80-95), même sans toutes les références d'articles.
 
-4. FIABILITÉ (reliability_score)
-   - Les informations semblent-elles exactes et à jour?
-   - Le contenu est-il cohérent avec le droit tunisien?
+4. FIABILITÉ (reliability_score) ⭐ CRITIQUE
+   - DOCUMENTS OFFICIELS (score minimum 85-95):
+     * Arrêts de la Cour de cassation tunisienne (محكمة التعقيب): 90-95
+     * Décisions de tribunaux tunisiens: 85-90
+     * Publications du JORT (الرائد الرسمي): 90-95
+     * Textes législatifs officiels: 85-90
+   - Pour tous les autres documents: évaluer normalement (60-85)
+   - INDICATEURS de documents officiels:
+     * Titre avec "قرار تعقيبي" ou "محكمة التعقيب" = Arrêt de cassation
+     * Titre avec "الرائد الرسمي" = JORT
+     * Structure formelle avec juridiction + numéro + date
+     * Catégorie = "jurisprudence" ou "legislation"
+
+BARÈME DE NOTATION:
+- 85-100: Excellent (document de haute qualité, prêt pour indexation)
+- 70-84: Bon (document de qualité acceptable, utilisable)
+- 60-69: Acceptable (document avec lacunes mineures)
+- 40-59: Faible (document avec problèmes significatifs)
+- 0-39: Très faible (document fragmentaire ou notice vide)
 
 CALCUL DU SCORE GLOBAL:
 overall_score = (clarity × 0.25) + (structure × 0.20) + (completeness × 0.30) + (reliability × 0.25)
 
-Si overall_score < 60, marquer requires_review = true.
+Si overall_score < 50, marquer requires_review = true.
 
 FORMAT DE RÉPONSE (JSON strict):
 {

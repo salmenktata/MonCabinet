@@ -418,7 +418,7 @@ const QUERIES = {
   healthScore: `
     WITH metrics AS (
       SELECT
-        COUNT(DISTINCT wp.id) FILTER (WHERE wp.quality_score >= $1) * 100.0 / NULLIF(COUNT(DISTINCT wp.id), 0) as pct_high_quality,
+        COUNT(DISTINCT kb.id) FILTER (WHERE kb.quality_score >= $1) * 100.0 / NULLIF(COUNT(DISTINCT kb.id), 0) as pct_high_quality,
         COUNT(kbc.id) FILTER (
           WHERE LENGTH(kbc.content) BETWEEN 200 AND $2
         ) * 100.0 / NULLIF(COUNT(kbc.id), 0) as pct_good_chunks,
@@ -429,11 +429,11 @@ const QUERIES = {
         COUNT(DISTINCT kb.id) as total_docs,
         COUNT(kbc.id) as total_chunks,
         COUNT(wpm.id) as total_metadata_extractions
-      FROM web_pages wp
-      LEFT JOIN knowledge_base_chunks kbc ON wp.knowledge_base_id = kbc.knowledge_base_id
+      FROM knowledge_base kb
+      LEFT JOIN knowledge_base_chunks kbc ON kb.id = kbc.knowledge_base_id
+      LEFT JOIN web_pages wp ON kb.id = wp.knowledge_base_id
       LEFT JOIN web_page_structured_metadata wpm ON wp.id = wpm.web_page_id
-      LEFT JOIN knowledge_base kb ON wp.knowledge_base_id = kb.id
-      WHERE wp.is_indexed = true OR kb.is_indexed = true
+      WHERE kb.is_indexed = true
     )
     SELECT
       ROUND(
