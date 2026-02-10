@@ -103,7 +103,7 @@ async function checkCOCPages() {
         return acc;
       }, {} as Record<string, any[]>);
 
-      for (const [status, pages] of Object.entries(byStatus)) {
+      for (const [status, pages] of Object.entries(byStatus) as [string, any[]][]) {
         const statusIcon = {
           'crawled': '✅',
           'unchanged': '🔄',

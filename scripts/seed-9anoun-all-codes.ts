@@ -396,7 +396,7 @@ async function seedCodes() {
           console.log(`   ✅ Nouveau: ${code.titleAr}`);
         } else {
           // Vérifier si on a mis à jour ou juste skipped
-          const wasUpdated = result.rowCount > 0;
+          const wasUpdated = (result.rowCount ?? 0) > 0;
           if (wasUpdated) {
             updated++;
             console.log(`   🔄 Mis à jour: ${code.titleAr}`);
