@@ -103,6 +103,7 @@ COPY --from=builder /app/node_modules/pdf-to-img ./node_modules/pdf-to-img
 # Copier dépendances parsing documents (mammoth pour DOCX, tesseract.js pour OCR, sharp pour images)
 COPY --from=builder /app/node_modules/mammoth ./node_modules/mammoth
 COPY --from=builder /app/node_modules/tesseract.js ./node_modules/tesseract.js
+COPY --from=builder /app/node_modules/tesseract.js-core ./node_modules/tesseract.js-core
 COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
 
 # Créer le polyfill File API + DOMMatrix inline pour le runtime
