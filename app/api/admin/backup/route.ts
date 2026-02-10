@@ -198,6 +198,134 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * PUT /api/admin/backup
+ * Restaurer la base de données depuis un backup
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    // Vérifier authentification super_admin UNIQUEMENT
+    const session = await getSession()
+    if (!session?.user || session.user.role !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'Réservé aux super administrateurs' },
+        { status: 403 }
+      )
+    }
+
+    const body = await request.json().catch(() => ({}))
+    const { filename } = body
+
+    if (!filename || typeof filename !== 'string') {
+      return NextResponse.json(
+        { error: 'Nom de fichier requis' },
+        { status: 400 }
+      )
+    }
+
+    // Valider le nom de fichier (sécurité)
+    if (filename.includes('..') || filename.includes('/')) {
+      return NextResponse.json(
+        { error: 'Nom de fichier invalide' },
+        { status: 400 }
+      )
+    }
+
+    // Doit être un dump PostgreSQL
+    if (!/^db_\d{8}_\d{6}\.sql\.gz$/.test(filename)) {
+      return NextResponse.json(
+        { error: 'Format de fichier invalide. Attendu: db_YYYYMMDD_HHMMSS.sql.gz' },
+        { status: 400 }
+      )
+    }
+
+    const backupFilePath = path.join(BACKUP_DIR, filename)
+
+    // Vérifier que le fichier existe
+    try {
+      await fs.access(backupFilePath)
+    } catch {
+      return NextResponse.json(
+        { error: 'Fichier backup non trouvé' },
+        { status: 404 }
+      )
+    }
+
+    // Détecter le container PostgreSQL
+    let containerName: string
+    try {
+      const { stdout } = await execAsync(
+        'docker ps --filter "name=postgres" --format "{{.Names}}"',
+        { timeout: 10000 }
+      )
+      const containers = stdout.trim().split('\n').filter(Boolean)
+      if (containers.length === 0) {
+        return NextResponse.json(
+          { error: 'Aucun container PostgreSQL en cours d\'exécution' },
+          { status: 500 }
+        )
+      }
+      containerName = containers[0]
+    } catch {
+      return NextResponse.json(
+        { error: 'Impossible de détecter le container PostgreSQL' },
+        { status: 500 }
+      )
+    }
+
+    // Parser DATABASE_URL pour user et dbname
+    const databaseUrl = process.env.DATABASE_URL || ''
+    const dbMatch = databaseUrl.match(/postgresql:\/\/([^:]+):([^@]+)@[^/]+\/(.+?)(\?.*)?$/)
+    if (!dbMatch) {
+      return NextResponse.json(
+        { error: 'DATABASE_URL non configurée ou invalide' },
+        { status: 500 }
+      )
+    }
+    const [, dbUser, , dbName] = dbMatch
+
+    // Exécuter la restauration
+    const startTime = Date.now()
+    try {
+      const cmd = `gunzip -c "${backupFilePath}" | docker exec -i ${containerName} psql -U ${dbUser} ${dbName}`
+      const { stdout, stderr } = await execAsync(cmd, {
+        timeout: 300000, // 5 minutes
+        maxBuffer: 50 * 1024 * 1024, // 50 MB output buffer
+      })
+
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+
+      return NextResponse.json({
+        success: true,
+        message: `Base de données restaurée depuis ${filename}`,
+        duration: `${duration}s`,
+        output: stdout?.slice(0, 2000) || null,
+        warnings: stderr?.slice(0, 2000) || null,
+      })
+    } catch (execError: unknown) {
+      const err = execError as { stdout?: string; stderr?: string; message?: string }
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Échec de la restauration',
+          duration: `${duration}s`,
+          output: err.stdout?.slice(0, 2000),
+          stderr: err.stderr?.slice(0, 2000),
+          message: err.message,
+        },
+        { status: 500 }
+      )
+    }
+  } catch (error) {
+    console.error('Erreur restauration backup:', error)
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * DELETE /api/admin/backup
  * Supprimer un backup spécifique
  */
