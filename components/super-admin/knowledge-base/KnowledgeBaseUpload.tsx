@@ -167,18 +167,14 @@ export function KnowledgeBaseUpload() {
                   />
                 </div>
 
-                {/* Langue */}
+                {/* Langue - Arabe uniquement (stratégie RAG) */}
                 <div>
-                  <Label className="text-slate-300">Langue *</Label>
-                  <Select name="language" required defaultValue="ar">
-                    <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="ar" className="text-white hover:bg-slate-700">العربية (Arabe)</SelectItem>
-                      <SelectItem value="fr" className="text-white hover:bg-slate-700">Français</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-slate-300">Langue</Label>
+                  <div className="mt-1 h-10 px-3 flex items-center rounded-md bg-slate-700/50 border border-slate-600 text-slate-300">
+                    العربية (Arabe)
+                  </div>
+                  <input type="hidden" name="language" value="ar" />
+                  <p className="text-xs text-slate-500 mt-1">La KB du RAG n'accepte que le contenu arabe</p>
                 </div>
               </div>
 

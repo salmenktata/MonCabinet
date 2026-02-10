@@ -20,6 +20,16 @@ const KnowledgeBaseList = dynamic(
   { loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" /> }
 )
 
+const KnowledgeBaseTreeView = dynamic(
+  () => import('@/components/super-admin/knowledge-base/KnowledgeBaseTreeView').then(m => ({ default: m.KnowledgeBaseTreeView })),
+  { loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" /> }
+)
+
+const KnowledgeBaseViewToggle = dynamic(
+  () => import('@/components/super-admin/knowledge-base/KnowledgeBaseViewToggle').then(m => ({ default: m.KnowledgeBaseViewToggle })),
+  { ssr: false }
+)
+
 interface PageProps {
   searchParams: Promise<{
     category?: string
@@ -27,6 +37,7 @@ interface PageProps {
     indexed?: string
     search?: string
     page?: string
+    view?: string
   }>
 }
 
@@ -51,8 +62,20 @@ async function KnowledgeBaseStats() {
     ORDER BY count DESC
   `)
 
+  // Mises à jour récentes (7 derniers jours)
+  let recentUpdates = '0'
+  try {
+    const updatesResult = await query(`
+      SELECT COUNT(*) as count FROM knowledge_base_versions
+      WHERE change_type = 'content_update' AND changed_at > NOW() - INTERVAL '7 days'
+    `)
+    recentUpdates = updatesResult.rows[0]?.count || '0'
+  } catch {
+    // Table knowledge_base_versions peut ne pas exister encore
+  }
+
   return (
-    <div className="grid gap-4 md:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-5">
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
@@ -85,6 +108,18 @@ async function KnowledgeBaseStats() {
               <p className="text-sm text-slate-400">Chunks vectoriels</p>
             </div>
             <Icons.layers className="h-8 w-8 text-purple-500/20" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-slate-800 border-slate-700">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-bold text-orange-500">{recentUpdates}</p>
+              <p className="text-sm text-slate-400">MAJ récentes (7j)</p>
+            </div>
+            <Icons.refresh className="h-8 w-8 text-orange-500/20" />
           </div>
         </CardContent>
       </Card>
@@ -197,64 +232,73 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
   const indexed = params.indexed || 'all'
   const search = params.search || ''
   const page = parseInt(params.page || '1')
+  const view = params.view || 'list'
   const limit = 20
   const offset = (page - 1) * limit
 
-  // Construire la requête avec filtres
-  let whereClause = 'WHERE kb.is_active = TRUE'
-  const queryParams: (string | number | boolean)[] = []
-  let paramIndex = 1
+  // En mode tree, pas besoin de charger les documents côté serveur
+  const isTreeView = view === 'tree'
 
-  if (category !== 'all') {
-    whereClause += ` AND kb.category = $${paramIndex}`
-    queryParams.push(category)
-    paramIndex++
+  // Construire la requête avec filtres (seulement en mode liste)
+  let total = 0
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let docsResult: { rows: any[] } = { rows: [] }
+  let totalPages = 0
+
+  if (!isTreeView) {
+    let whereClause = 'WHERE kb.is_active = TRUE'
+    const queryParams: (string | number | boolean)[] = []
+    let paramIndex = 1
+
+    if (category !== 'all') {
+      whereClause += ` AND kb.category = $${paramIndex}`
+      queryParams.push(category)
+      paramIndex++
+    }
+
+    if (subcategory) {
+      whereClause += ` AND kb.subcategory = $${paramIndex}`
+      queryParams.push(subcategory)
+      paramIndex++
+    }
+
+    if (indexed !== 'all') {
+      whereClause += ` AND kb.is_indexed = $${paramIndex}`
+      queryParams.push(indexed === 'true')
+      paramIndex++
+    }
+
+    if (search) {
+      whereClause += ` AND (kb.title ILIKE $${paramIndex} OR kb.description ILIKE $${paramIndex})`
+      queryParams.push(`%${search}%`)
+      paramIndex++
+    }
+
+    const countResult = await query(
+      `SELECT COUNT(*) as count FROM knowledge_base kb ${whereClause}`,
+      queryParams
+    )
+    total = parseInt(countResult.rows[0]?.count || '0')
+
+    docsResult = await query(
+      `SELECT
+        kb.id, kb.title, kb.description, kb.category, kb.subcategory,
+        kb.language, kb.tags, kb.version,
+        kb.is_indexed,
+        (SELECT COUNT(*) FROM knowledge_base_chunks WHERE knowledge_base_id = kb.id) as chunk_count,
+        kb.source_file as file_name, kb.source_file as file_type,
+        kb.created_at, kb.updated_at,
+        u.email as uploaded_by_email
+      FROM knowledge_base kb
+      LEFT JOIN users u ON kb.uploaded_by = u.id
+      ${whereClause}
+      ORDER BY kb.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...queryParams, limit, offset]
+    )
+
+    totalPages = Math.ceil(total / limit)
   }
-
-  if (subcategory) {
-    whereClause += ` AND kb.subcategory = $${paramIndex}`
-    queryParams.push(subcategory)
-    paramIndex++
-  }
-
-  if (indexed !== 'all') {
-    whereClause += ` AND kb.is_indexed = $${paramIndex}`
-    queryParams.push(indexed === 'true')
-    paramIndex++
-  }
-
-  if (search) {
-    whereClause += ` AND (kb.title ILIKE $${paramIndex} OR kb.description ILIKE $${paramIndex})`
-    queryParams.push(`%${search}%`)
-    paramIndex++
-  }
-
-  // Compter le total
-  const countResult = await query(
-    `SELECT COUNT(*) as count FROM knowledge_base kb ${whereClause}`,
-    queryParams
-  )
-  const total = parseInt(countResult.rows[0]?.count || '0')
-
-  // Récupérer les documents avec les nouveaux champs
-  const docsResult = await query(
-    `SELECT
-      kb.id, kb.title, kb.description, kb.category, kb.subcategory,
-      kb.language, kb.tags, kb.version,
-      kb.is_indexed,
-      (SELECT COUNT(*) FROM knowledge_base_chunks WHERE knowledge_base_id = kb.id) as chunk_count,
-      kb.source_file as file_name, kb.source_file as file_type,
-      kb.created_at, kb.updated_at,
-      u.email as uploaded_by_email
-    FROM knowledge_base kb
-    LEFT JOIN users u ON kb.uploaded_by = u.id
-    ${whereClause}
-    ORDER BY kb.created_at DESC
-    LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
-    [...queryParams, limit, offset]
-  )
-
-  const totalPages = Math.ceil(total / limit)
 
   return (
     <div className="space-y-6 p-6">
@@ -263,6 +307,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
           <h2 className="text-2xl font-bold text-white">Base de Connaissances</h2>
           <p className="text-slate-400">Gérer les documents juridiques pour l'IA</p>
         </div>
+        <KnowledgeBaseViewToggle />
       </div>
 
       {/* Stats */}
@@ -273,34 +318,41 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
       {/* Upload */}
       <KnowledgeBaseUpload />
 
-      {/* Filtres */}
-      <FiltersForm
-        category={category}
-        subcategory={subcategory}
-        indexed={indexed}
-        search={search}
-      />
-
-      {/* Liste des documents */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white">Documents ({total})</CardTitle>
-          <CardDescription className="text-slate-400">
-            Page {page} sur {totalPages || 1}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <KnowledgeBaseList
-            documents={docsResult.rows}
-            currentPage={page}
-            totalPages={totalPages}
+      {isTreeView ? (
+        /* Vue arborescente */
+        <KnowledgeBaseTreeView />
+      ) : (
+        <>
+          {/* Filtres */}
+          <FiltersForm
             category={category}
             subcategory={subcategory}
             indexed={indexed}
             search={search}
           />
-        </CardContent>
-      </Card>
+
+          {/* Liste des documents */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white">Documents ({total})</CardTitle>
+              <CardDescription className="text-slate-400">
+                Page {page} sur {totalPages || 1}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <KnowledgeBaseList
+                documents={docsResult.rows}
+                currentPage={page}
+                totalPages={totalPages}
+                category={category}
+                subcategory={subcategory}
+                indexed={indexed}
+                search={search}
+              />
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   )
 }

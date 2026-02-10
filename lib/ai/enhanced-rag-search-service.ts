@@ -12,6 +12,7 @@
 
 import { db } from '@/lib/db/postgres'
 import { generateEmbedding, formatEmbeddingForPostgres } from './embeddings-service'
+import { KB_ARABIC_ONLY } from './config'
 
 // =============================================================================
 // TYPES
@@ -388,6 +389,8 @@ export async function enhancedSemanticSearchWithChunks(
         LEFT JOIN legal_taxonomy chambre_tax ON meta.chambre_code = chambre_tax.code
         WHERE
           kb.is_indexed = true
+          AND kb.is_active = true
+          ${KB_ARABIC_ONLY ? `AND kb.language = 'ar'` : ''}
           AND (1 - (chunk.embedding <=> $1::vector)) >= $2
           -- Filtres juridiques
           AND ($3::TEXT IS NULL OR meta.tribunal_code = $3)

@@ -5,7 +5,7 @@
 
 import { db } from '@/lib/db/postgres'
 import type { WebPage, WebSource } from './types'
-import { isSemanticSearchEnabled, aiConfig } from '@/lib/ai/config'
+import { isSemanticSearchEnabled, aiConfig, KB_ARABIC_ONLY } from '@/lib/ai/config'
 import { normalizeText, detectTextLanguage } from './content-extractor'
 
 // Import dynamique pour éviter les dépendances circulaires
@@ -64,8 +64,15 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   // Normaliser le texte
   const normalizedText = normalizeText(row.extracted_text)
   const detectedLang = row.language_detected || detectTextLanguage(normalizedText) || 'fr'
+
+  // Stratégie arabe uniquement : ignorer le contenu non-arabe
+  if (KB_ARABIC_ONLY && detectedLang !== 'ar') {
+    console.log(`[WebIndexer] Contenu non-arabe ignoré: page ${pageId} (${detectedLang})`)
+    return { success: false, chunksCreated: 0, error: `Contenu non-arabe ignoré (${detectedLang})` }
+  }
+
   // Seules les langues 'ar' et 'fr' sont supportées dans knowledge_base
-  const language = (detectedLang === 'ar' || detectedLang === 'fr') ? detectedLang : 'fr'
+  const language: 'ar' | 'fr' = KB_ARABIC_ONLY ? 'ar' : ((detectedLang === 'ar' || detectedLang === 'fr') ? detectedLang : 'fr')
 
   // Import des services
   const { chunkText, getOverlapForCategory } = await getChunkingService()
@@ -89,6 +96,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
 
   // Vérifier si un document KB existe déjà pour cette page
   let knowledgeBaseId = row.knowledge_base_id
+  const wasUpdate = !!knowledgeBaseId
 
   const client = await db.getClient()
 
@@ -127,7 +135,24 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       )
       knowledgeBaseId = kbResult.rows[0].id
     } else {
-      // Mettre à jour le document existant
+      // Créer une version avant la mise à jour (historique)
+      try {
+        await client.query(
+          `INSERT INTO knowledge_base_versions
+           (knowledge_base_id, version, title, description, full_text, source_file,
+            metadata, category, subcategory, tags, language, changed_by, change_reason, change_type)
+           SELECT id, version, title, description, full_text, source_file,
+            metadata, category, subcategory, tags, language, NULL,
+            'Mise à jour automatique - contenu source modifié', 'content_update'
+           FROM knowledge_base WHERE id = $1`,
+          [knowledgeBaseId]
+        )
+      } catch (versionError) {
+        // Ne pas bloquer l'indexation si le versioning échoue
+        console.warn(`[WebIndexer] Erreur versioning KB ${knowledgeBaseId}:`, versionError)
+      }
+
+      // Mettre à jour le document existant + incrémenter version
       await client.query(
         `UPDATE knowledge_base SET
           title = $2,
@@ -136,6 +161,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
           full_text = $5,
           metadata = metadata || $6::jsonb,
           is_indexed = false,
+          version = version + 1,
           updated_at = NOW()
         WHERE id = $1`,
         [
@@ -212,7 +238,26 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
 
     await client.query('COMMIT')
 
-    console.log(`[WebIndexer] Page ${pageId} indexée: ${chunks.length} chunks`)
+    console.log(`[WebIndexer] Page ${pageId} indexée: ${chunks.length} chunks${wasUpdate ? ' (mise à jour)' : ''}`)
+
+    // Notification admin si c'était une mise à jour
+    if (wasUpdate) {
+      try {
+        await db.query(
+          `INSERT INTO admin_notifications
+           (notification_type, priority, title, message, target_type, target_id, metadata)
+           VALUES ('kb_update', 'normal', $1, $2, 'knowledge_base', $3, $4)`,
+          [
+            `Document KB mis à jour : ${row.title || row.url}`,
+            `Contenu modifié détecté sur ${row.url}. Re-indexation automatique (${chunks.length} chunks).`,
+            knowledgeBaseId,
+            JSON.stringify({ pageId, sourceUrl: row.url, chunksCreated: chunks.length }),
+          ]
+        )
+      } catch (notifError) {
+        console.warn(`[WebIndexer] Erreur notification:`, notifError)
+      }
+    }
 
     return {
       success: true,
@@ -261,6 +306,10 @@ export async function indexSourcePages(
       (linked_files IS NOT NULL AND jsonb_array_length(linked_files) > 0)
     )
   `
+
+  if (KB_ARABIC_ONLY) {
+    sql += ` AND (language_detected = 'ar' OR language_detected IS NULL)`
+  }
 
   if (!reindex) {
     sql += ' AND is_indexed = false'
@@ -312,6 +361,7 @@ export async function indexWebPages(
       OR
       (linked_files IS NOT NULL AND jsonb_array_length(linked_files) > 0)
     )
+    ${KB_ARABIC_ONLY ? `AND (language_detected = 'ar' OR language_detected IS NULL)` : ''}
     ORDER BY last_crawled_at DESC
     LIMIT $1
   `

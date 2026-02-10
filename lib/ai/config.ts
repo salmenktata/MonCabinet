@@ -427,6 +427,13 @@ FORMAT: Retourne un JSON structuré`,
 }
 
 // =============================================================================
+// KB LANGUAGE STRATEGY
+// =============================================================================
+
+/** Stratégie arabe uniquement pour la KB du RAG (défaut: true) */
+export const KB_ARABIC_ONLY = process.env.ARABIC_ONLY_KB !== 'false'
+
+// =============================================================================
 // RAG THRESHOLDS - Seuils de similarité par type de source
 // =============================================================================
 
