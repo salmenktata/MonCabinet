@@ -27,6 +27,7 @@ import {
   type KnowledgeBaseCategory,
 } from '@/lib/ai/knowledge-base-service'
 import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
+import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
@@ -176,13 +177,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    const validCategories: KnowledgeBaseCategory[] = [
-      'jurisprudence',
-      'code',
-      'doctrine',
-      'modele',
-      'autre',
-    ]
+    const validCategories = getCategoriesForContext('knowledge_base', 'fr')
+      .filter(c => c.value !== 'all')
+      .map(c => c.value as KnowledgeBaseCategory)
+
     if (!validCategories.includes(category)) {
       return NextResponse.json(
         { error: `Catégorie invalide. Valeurs acceptées: ${validCategories.join(', ')}` },

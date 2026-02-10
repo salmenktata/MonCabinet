@@ -3,29 +3,17 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
-import type { KnowledgeCategory, KnowledgeSubcategory } from '@/lib/knowledge-base/categories'
+import type { KnowledgeCategory, KnowledgeSubcategory } from '@/lib/categories/legal-categories'
+import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse
 async function getKnowledgeBaseService() {
   return await import('@/lib/ai/knowledge-base-service')
 }
 
-export type KnowledgeBaseCategory =
-  | 'jurisprudence'
-  | 'code'
-  | 'doctrine'
-  | 'modele'
-  | 'autre'
-  // Nouvelles catégories
-  | 'legislation'
-  | 'modeles'
-  | 'procedures'
-  | 'jort'
-  | 'formulaires'
-
-export type KnowledgeBaseLanguage = 'ar' | 'fr'
-
+// Utiliser le type du système centralisé
 export type { KnowledgeCategory, KnowledgeSubcategory }
+export type KnowledgeBaseLanguage = 'ar' | 'fr'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
@@ -62,7 +50,7 @@ export async function uploadKnowledgeDocumentAction(formData: FormData) {
       return { error: authCheck.error }
     }
 
-    const category = formData.get('category') as KnowledgeBaseCategory
+    const category = formData.get('category') as KnowledgeCategory
     const language = (formData.get('language') as KnowledgeBaseLanguage) || 'ar'
     const title = formData.get('title') as string
     const description = formData.get('description') as string | null
@@ -81,19 +69,9 @@ export async function uploadKnowledgeDocumentAction(formData: FormData) {
       return { error: 'Langue invalide' }
     }
 
-    const validCategories: KnowledgeBaseCategory[] = [
-      'jurisprudence',
-      'code',
-      'doctrine',
-      'modele',
-      'autre',
-      // Nouvelles catégories
-      'legislation',
-      'modeles',
-      'procedures',
-      'jort',
-      'formulaires',
-    ]
+    const validCategories = getCategoriesForContext('knowledge_base', 'fr')
+      .filter(c => c.value !== 'all')
+      .map(c => c.value as KnowledgeCategory)
     if (!validCategories.includes(category)) {
       return { error: `Catégorie invalide` }
     }
@@ -240,7 +218,7 @@ export async function updateKnowledgeDocumentAction(
   data: {
     title?: string
     description?: string
-    category?: KnowledgeBaseCategory
+    category?: KnowledgeCategory
     subcategory?: string
     metadata?: Record<string, unknown>
     tags?: string[]
@@ -297,7 +275,7 @@ export async function getKnowledgeBaseStatsAction() {
  * Lister les documents
  */
 export async function listKnowledgeDocumentsAction(options: {
-  category?: KnowledgeBaseCategory
+  category?: KnowledgeCategory
   subcategory?: string
   isIndexed?: boolean
   search?: string
@@ -579,7 +557,7 @@ export async function getKBDocumentsRequiringReviewAction(options?: {
 export async function bulkKnowledgeDocumentAction(
   action: 'delete' | 'index' | 'change_category',
   documentIds: string[],
-  options?: { category?: KnowledgeBaseCategory; subcategory?: string }
+  options?: { category?: KnowledgeCategory; subcategory?: string }
 ) {
   try {
     const authCheck = await checkAdminAccess()

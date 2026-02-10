@@ -12,6 +12,7 @@ import { db } from '@/lib/db/postgres'
 import { uploadFile, deleteFile } from '@/lib/storage/minio'
 import { aiConfig, isSemanticSearchEnabled } from './config'
 import { onKnowledgeDocumentChange } from './related-documents-service'
+import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse en RSC
 async function getDocumentParser() {
@@ -33,19 +34,8 @@ async function getEmbeddingsService() {
 // TYPES
 // =============================================================================
 
-export type KnowledgeBaseCategory =
-  | 'jurisprudence'
-  | 'code'
-  | 'doctrine'
-  | 'modele'
-  | 'autre'
-  // Nouvelles catégories
-  | 'legislation'
-  | 'modeles'
-  | 'procedures'
-  | 'jort'
-  | 'formulaires'
-
+// Utiliser le type du système centralisé
+export type KnowledgeBaseCategory = KnowledgeCategory
 export type KnowledgeBaseLanguage = 'ar' | 'fr'
 
 export interface KnowledgeBaseDocument {
@@ -122,16 +112,19 @@ export interface KnowledgeBaseStats {
 
 export const CATEGORY_LABELS: Record<KnowledgeBaseCategory, string> = {
   jurisprudence: 'Jurisprudence',
-  code: 'Code juridique',
+  codes: 'Codes juridiques',
   doctrine: 'Doctrine',
-  modele: 'Modèle de document',
+  modeles: 'Modèles de documents',
   autre: 'Autre',
   // Nouvelles catégories
   legislation: 'Législation',
-  modeles: 'Modèles',
   procedures: 'Procédures',
   jort: 'JORT',
   formulaires: 'Formulaires',
+  constitution: 'Constitution',
+  conventions: 'Conventions',
+  guides: 'Guides',
+  lexique: 'Lexique',
 }
 
 const KNOWLEDGE_BASE_BUCKET = 'knowledge-base'

@@ -4,14 +4,10 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Upload, FileText, X, Loader2 } from 'lucide-react'
 import { uploadKnowledgeDocumentAction } from '@/app/actions/knowledge-base'
+import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
 
-export type KnowledgeBaseCategory =
-  | 'jurisprudence'
-  | 'code'
-  | 'doctrine'
-  | 'modele'
-  | 'autre'
-
+// Utiliser le type du système centralisé
+export type KnowledgeBaseCategory = KnowledgeCategory
 export type KnowledgeBaseLanguage = 'ar' | 'fr'
 
 interface KnowledgeBaseUploadFormProps {
@@ -26,8 +22,8 @@ const CATEGORY_OPTIONS: { value: KnowledgeBaseCategory; label: string; descripti
     description: 'Décisions de justice, arrêts',
   },
   {
-    value: 'code',
-    label: 'Code juridique',
+    value: 'codes',
+    label: 'Codes juridiques',
     description: 'Codes, lois, textes réglementaires',
   },
   {
@@ -36,8 +32,8 @@ const CATEGORY_OPTIONS: { value: KnowledgeBaseCategory; label: string; descripti
     description: 'Articles, commentaires, études',
   },
   {
-    value: 'modele',
-    label: 'Modèle de document',
+    value: 'modeles',
+    label: 'Modèles de documents',
     description: 'Templates, modèles types',
   },
   {

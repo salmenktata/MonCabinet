@@ -35,6 +35,12 @@ export type KnowledgeCategory = Exclude<LegalCategory, 'google_drive' | 'actuali
 export type LegalContentCategory = Exclude<LegalCategory, 'codes' | 'constitution' | 'conventions' | 'guides' | 'lexique' | 'google_drive'>
 
 /**
+ * Sous-catégories spécifiques à la Knowledge Base
+ * Réexportées depuis le module knowledge-base pour éviter la duplication
+ */
+export type { KnowledgeSubcategory } from '@/lib/knowledge-base/categories'
+
+/**
  * Traductions unifiées pour toutes les catégories
  */
 export const LEGAL_CATEGORY_TRANSLATIONS: Record<LegalCategory, { ar: string; fr: string }> = {

@@ -26,6 +26,7 @@ import {
   deleteKnowledgeDocument,
   type KnowledgeBaseCategory,
 } from '@/lib/ai/knowledge-base-service'
+import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
@@ -115,13 +116,10 @@ export async function PATCH(
 
     // Validation catégorie si fournie
     if (category) {
-      const validCategories: KnowledgeBaseCategory[] = [
-        'jurisprudence',
-        'code',
-        'doctrine',
-        'modele',
-        'autre',
-      ]
+      const validCategories = getCategoriesForContext('knowledge_base', 'fr')
+        .filter(c => c.value !== 'all')
+        .map(c => c.value as KnowledgeBaseCategory)
+
       if (!validCategories.includes(category)) {
         return NextResponse.json(
           { error: `Catégorie invalide. Valeurs acceptées: ${validCategories.join(', ')}` },

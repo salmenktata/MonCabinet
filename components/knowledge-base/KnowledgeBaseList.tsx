@@ -20,20 +20,10 @@ import {
   deleteKnowledgeDocumentAction,
   indexKnowledgeDocumentAction,
 } from '@/app/actions/knowledge-base'
+import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
 
-export type KnowledgeBaseCategory =
-  | 'jurisprudence'
-  | 'code'
-  | 'doctrine'
-  | 'modele'
-  | 'autre'
-  // Nouvelles catégories
-  | 'legislation'
-  | 'modeles'
-  | 'procedures'
-  | 'jort'
-  | 'formulaires'
-
+// Utiliser le type du système centralisé
+export type KnowledgeBaseCategory = KnowledgeCategory
 export type KnowledgeBaseLanguage = 'ar' | 'fr'
 
 export interface KnowledgeBaseDocumentData {
@@ -63,27 +53,22 @@ const CATEGORY_CONFIG: Record<
     icon: Scale,
     color: 'text-blue-600 bg-blue-100',
   },
-  code: {
-    label: 'Code',
-    icon: BookOpen,
-    color: 'text-green-600 bg-green-100',
-  },
   doctrine: {
     label: 'Doctrine',
     icon: FileText,
     color: 'text-purple-600 bg-purple-100',
-  },
-  modele: {
-    label: 'Modèle',
-    icon: FileCode,
-    color: 'text-orange-600 bg-orange-100',
   },
   autre: {
     label: 'Autre',
     icon: FileQuestion,
     color: 'text-gray-600 bg-gray-100',
   },
-  // Nouvelles catégories
+  // Nouvelles catégories centralisées
+  codes: {
+    label: 'Codes',
+    icon: BookOpen,
+    color: 'text-green-600 bg-green-100',
+  },
   legislation: {
     label: 'Législation',
     icon: Scale,
@@ -108,6 +93,26 @@ const CATEGORY_CONFIG: Record<
     label: 'Formulaires',
     icon: FileCode,
     color: 'text-yellow-600 bg-yellow-100',
+  },
+  constitution: {
+    label: 'Constitution',
+    icon: Scale,
+    color: 'text-pink-600 bg-pink-100',
+  },
+  conventions: {
+    label: 'Conventions',
+    icon: FileText,
+    color: 'text-teal-600 bg-teal-100',
+  },
+  guides: {
+    label: 'Guides',
+    icon: BookOpen,
+    color: 'text-lime-600 bg-lime-100',
+  },
+  lexique: {
+    label: 'Lexique',
+    icon: FileText,
+    color: 'text-emerald-600 bg-emerald-100',
   },
 }
 

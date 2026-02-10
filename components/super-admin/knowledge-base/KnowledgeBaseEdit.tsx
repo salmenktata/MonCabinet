@@ -30,7 +30,7 @@ import {
 import { CategorySelector } from './CategorySelector'
 import { TagsInput, SUGGESTED_TAGS } from './TagsInput'
 import { MetadataForm } from './MetadataForm'
-import type { KnowledgeCategory } from '@/lib/knowledge-base/categories'
+import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
 
 interface KnowledgeDocument {
   id: string

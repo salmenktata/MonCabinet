@@ -13,6 +13,26 @@ import { WebSourceActions } from '@/components/super-admin/web-sources/WebSource
 import { WebSourcePages } from '@/components/super-admin/web-sources/WebSourcePages'
 import { WebSourceLogs } from '@/components/super-admin/web-sources/WebSourceLogs'
 import { CategoryBadge } from '@/components/super-admin/web-sources/CategoryBadge'
+import { WebSourceCategoryTabs } from '@/components/super-admin/web-sources/WebSourceCategoryTabs'
+import { WebSourceTreeView } from '@/components/super-admin/web-sources/WebSourceTreeView'
+
+interface CodeStats {
+  code_name: string
+  code_slug: string
+  total_pages: number
+  pending: number
+  crawled: number
+  unchanged: number
+  failed: number
+  indexed: number
+  last_crawl_at: string | null
+}
+
+interface CategoryGroup {
+  legal_domain: string | null
+  total_pages: number
+  codes: CodeStats[]
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -84,6 +104,49 @@ async function getWebSourceData(id: string) {
     [id]
   )
 
+  // Stats par catégorie juridique
+  const categoryStatsResult = await db.query(
+    `SELECT
+      legal_domain,
+      COUNT(*) as count,
+      COUNT(*) FILTER (WHERE is_indexed = true) as indexed_count
+     FROM web_pages
+     WHERE web_source_id = $1
+     GROUP BY legal_domain
+     ORDER BY count DESC`,
+    [id]
+  )
+
+  // Stats groupées par catégorie juridique et code
+  const treeStatsResult = await db.query(
+    `SELECT
+      legal_domain,
+      COALESCE(site_structure->>'code_slug',
+        CASE
+          -- Extraire le slug depuis l'URL pour les pages /kb/codes/XXX
+          WHEN url ~ '/kb/codes/([^/]+)' THEN
+            substring(url from '/kb/codes/([^/]+)')
+          ELSE 'autre'
+        END
+      ) as code_slug,
+      COALESCE(site_structure->>'code_name_ar',
+        site_structure->>'code_name_fr',
+        title
+      ) as code_name,
+      COUNT(*) as total_pages,
+      COUNT(*) FILTER (WHERE status = 'pending') as pending,
+      COUNT(*) FILTER (WHERE status = 'crawled') as crawled,
+      COUNT(*) FILTER (WHERE status = 'unchanged') as unchanged,
+      COUNT(*) FILTER (WHERE status = 'failed') as failed,
+      COUNT(*) FILTER (WHERE is_indexed = true) as indexed,
+      MAX(last_crawled_at) as last_crawl_at
+     FROM web_pages
+     WHERE web_source_id = $1
+     GROUP BY legal_domain, code_slug, code_name
+     ORDER BY legal_domain, total_pages DESC`,
+    [id]
+  )
+
   // Derniers logs
   const logsResult = await db.query(
     `SELECT *
@@ -107,9 +170,38 @@ async function getWebSourceData(id: string) {
     completed_at: l.completed_at?.toISOString() || null,
   }))
 
+  // Grouper les stats par catégorie juridique
+  const treeGroups = treeStatsResult.rows.reduce((acc, row) => {
+    const domain = row.legal_domain || 'null'
+    if (!acc[domain]) {
+      acc[domain] = {
+        legal_domain: row.legal_domain,
+        total_pages: 0,
+        codes: [],
+      }
+    }
+    acc[domain].total_pages += parseInt(row.total_pages)
+    acc[domain].codes.push({
+      code_name: row.code_name,
+      code_slug: row.code_slug,
+      total_pages: parseInt(row.total_pages),
+      pending: parseInt(row.pending),
+      crawled: parseInt(row.crawled),
+      unchanged: parseInt(row.unchanged),
+      failed: parseInt(row.failed),
+      indexed: parseInt(row.indexed),
+      last_crawl_at: row.last_crawl_at?.toISOString() || null,
+    })
+    return acc
+  }, {} as Record<string, CategoryGroup>)
+
+  const treeData = Object.values(treeGroups) as CategoryGroup[]
+
   return {
     source,
     stats: statsResult.rows[0],
+    categoryStats: categoryStatsResult.rows,
+    treeData,
     pages,
     logs,
   }
@@ -123,7 +215,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  const { source, stats, pages, logs } = data
+  const { source, stats, categoryStats, treeData, pages, logs } = data
 
   const healthColors: Record<string, string> = {
     healthy: 'bg-green-500',
@@ -184,6 +276,19 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
           </Button>
         </Link>
       </div>
+
+      {/* Arbre hiérarchique des pages par catégorie et code */}
+      {treeData && treeData.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-white">Pages par catégorie et code</h3>
+            <span className="text-sm text-slate-400">
+              {treeData.reduce((sum: number, g: any) => sum + g.total_pages, 0)} pages au total
+            </span>
+          </div>
+          <WebSourceTreeView groups={treeData} sourceId={id} />
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

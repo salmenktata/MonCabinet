@@ -16,8 +16,8 @@ import {
   getCategoryLabel,
   getSubcategoryLabel,
   getSubcategories,
-  type KnowledgeCategory,
 } from '@/lib/knowledge-base/categories'
+import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
 
 interface CategorySelectorProps {
   category: string

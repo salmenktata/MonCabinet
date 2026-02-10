@@ -5,7 +5,7 @@
  */
 
 import { db } from '@/lib/db/postgres'
-import { deleteFile, listFilesInDirectory } from '@/lib/storage/minio'
+import { deleteFile } from '@/lib/storage/minio'
 
 // =============================================================================
 // TYPES
