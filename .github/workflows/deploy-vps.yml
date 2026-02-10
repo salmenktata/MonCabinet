@@ -1,25 +1,243 @@
+# =============================================================================
+# Deploy to VPS - Intelligent 2-Tier Deployment
+# =============================================================================
+# Tier 1 "Lightning Deploy" (~2-3 min) : Code-only changes
+#   → Build Next.js in GHA, rsync to VPS, docker cp, restart
+# Tier 2 "Docker Deploy" (~5-8 min) : Dependencies/infra changes
+#   → Full Docker build with GHA cache
+#
+# Selection automatique basee sur les fichiers modifies
+# =============================================================================
+
 name: Deploy to VPS Contabo
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      force_docker:
+        description: 'Force Docker rebuild (Tier 2)'
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # Job 1: Build et Push Docker Image
-  build:
+  # ===========================================================================
+  # Job 1: Detect Changes - Choisir Tier 1 (fast) ou Tier 2 (docker)
+  # ===========================================================================
+  detect-changes:
     runs-on: ubuntu-latest
-    name: Build Docker Image
+    name: Detect Changes
+    outputs:
+      needs_docker: ${{ steps.check.outputs.needs_docker }}
+      deploy_tier: ${{ steps.check.outputs.deploy_tier }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changed files
+        id: check
+        run: |
+          # Force Docker if requested
+          if [ "${{ inputs.force_docker }}" == "true" ]; then
+            echo "needs_docker=true" >> $GITHUB_OUTPUT
+            echo "deploy_tier=2-docker-forced" >> $GITHUB_OUTPUT
+            echo "Force Docker rebuild requested"
+            exit 0
+          fi
+
+          # Get the diff range
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || [ "$BEFORE" == "0000000000000000000000000000000000000000" ]; then
+            BEFORE="HEAD~1"
+          fi
+
+          CHANGED=$(git diff --name-only "$BEFORE" HEAD 2>/dev/null || echo "FORCE_DOCKER")
+
+          echo "Changed files:"
+          echo "$CHANGED"
+          echo "---"
+
+          # Check if any infra/dependency files changed
+          DOCKER_TRIGGERS="Dockerfile|package\.json|package-lock\.json|docker-entrypoint\.sh|docker-compose\.prod\.yml"
+
+          if echo "$CHANGED" | grep -qE "^($DOCKER_TRIGGERS)$"; then
+            echo "needs_docker=true" >> $GITHUB_OUTPUT
+            echo "deploy_tier=2-docker-auto" >> $GITHUB_OUTPUT
+            echo "Infrastructure files changed -> Tier 2 (Docker)"
+          elif echo "$CHANGED" | grep -q "FORCE_DOCKER"; then
+            echo "needs_docker=true" >> $GITHUB_OUTPUT
+            echo "deploy_tier=2-docker-fallback" >> $GITHUB_OUTPUT
+            echo "Cannot determine changes -> Tier 2 (Docker) as fallback"
+          else
+            echo "needs_docker=false" >> $GITHUB_OUTPUT
+            echo "deploy_tier=1-lightning" >> $GITHUB_OUTPUT
+            echo "Code-only changes -> Tier 1 (Lightning)"
+          fi
+
+  # ===========================================================================
+  # Job 2a: Lightning Deploy (Tier 1) - Code only, ~2-3 min
+  # ===========================================================================
+  deploy-fast:
+    runs-on: ubuntu-latest
+    name: Lightning Deploy
+    needs: detect-changes
+    if: needs.detect-changes.outputs.needs_docker == 'false' && github.ref == 'refs/heads/main'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('app/**', 'lib/**', 'components/**') }}
+          restore-keys: |
+            nextjs-${{ hashFiles('package-lock.json') }}-
+
+      - name: Build Next.js
+        run: npx next build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096 --require ./scripts/polyfill-file.js"
+          DATABASE_URL: "postgresql://build:build@localhost:5432/build"
+          NEXTAUTH_SECRET: "build-secret-not-used-in-production"
+          NEXTAUTH_URL: "http://localhost:3000"
+          RESEND_API_KEY: "re_build_placeholder"
+          OPENAI_API_KEY: "sk-build-placeholder"
+          NEXT_TELEMETRY_DISABLED: "1"
+
+      - name: Prepare deploy bundle
+        run: |
+          # Copy static assets into standalone structure
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+
+          # Create tarball WITHOUT node_modules (container keeps its own native modules)
+          cd .next/standalone
+          tar czf ../../deploy.tar.gz --exclude='node_modules' .
+          cd ../..
+
+          SIZE=$(du -sh deploy.tar.gz | cut -f1)
+          echo "Deploy bundle: $SIZE"
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Backup current code on VPS
+        run: |
+          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'BACKUP'
+            mkdir -p /opt/moncabinet/rollback
+            docker cp qadhya-nextjs:/app/server.js /opt/moncabinet/rollback/server.js 2>/dev/null || true
+            docker cp qadhya-nextjs:/app/.next /opt/moncabinet/rollback/.next 2>/dev/null || true
+            docker cp qadhya-nextjs:/app/public /opt/moncabinet/rollback/public 2>/dev/null || true
+            echo "Backup completed at $(date)"
+          BACKUP
+
+      - name: Upload and deploy
+        run: |
+          # SCP deploy bundle to VPS
+          scp -P ${{ secrets.VPS_PORT }} deploy.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/deploy.tar.gz
+
+          # Extract and docker cp into container
+          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'DEPLOY'
+            set -e
+
+            # Extract bundle
+            rm -rf /tmp/deploy-bundle
+            mkdir -p /tmp/deploy-bundle
+            tar xzf /tmp/deploy.tar.gz -C /tmp/deploy-bundle
+
+            # Copy into running container (server.js, .next/, public/)
+            docker cp /tmp/deploy-bundle/server.js qadhya-nextjs:/app/server.js
+            docker cp /tmp/deploy-bundle/.next/. qadhya-nextjs:/app/.next/
+            docker cp /tmp/deploy-bundle/public/. qadhya-nextjs:/app/public/
+
+            # Restart container to pick up new code
+            docker restart qadhya-nextjs
+
+            # Cleanup
+            rm -rf /tmp/deploy-bundle /tmp/deploy.tar.gz
+
+            echo "Lightning deploy completed at $(date)"
+          DEPLOY
+
+      - name: Health check
+        run: |
+          echo "Waiting for container to start..."
+          sleep 15
+
+          for i in 1 2 3; do
+            echo "Health check attempt $i/3..."
+            RESPONSE=$(ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+              'curl -sf http://localhost:3000/api/health' || echo "FAILED")
+
+            if echo "$RESPONSE" | grep -q '"status"'; then
+              echo "Health check passed!"
+              exit 0
+            fi
+
+            echo "Health check failed, waiting 10s..."
+            sleep 10
+          done
+
+          echo "Health check failed after 3 attempts"
+          exit 1
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ROLLBACK'
+            echo "Rolling back to previous version..."
+
+            if [ -f /opt/moncabinet/rollback/server.js ]; then
+              docker cp /opt/moncabinet/rollback/server.js qadhya-nextjs:/app/server.js
+              docker cp /opt/moncabinet/rollback/.next/. qadhya-nextjs:/app/.next/
+              docker cp /opt/moncabinet/rollback/public/. qadhya-nextjs:/app/public/
+              docker restart qadhya-nextjs
+
+              echo "Rollback completed, waiting for health..."
+              sleep 15
+              curl -sf http://localhost:3000/api/health && echo "Rollback healthy!" || echo "WARNING: Rollback health check failed"
+            else
+              echo "No rollback backup available"
+            fi
+          ROLLBACK
+
+  # ===========================================================================
+  # Job 2b: Docker Deploy (Tier 2) - Full rebuild, ~5-8 min with cache
+  # ===========================================================================
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    name: Docker Deploy
+    needs: detect-changes
+    if: needs.detect-changes.outputs.needs_docker == 'true' && github.ref == 'refs/heads/main'
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
-
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout code
@@ -50,18 +268,9 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          no-cache: true
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  # Job 2: Déploiement rapide sur VPS
-  deploy:
-    runs-on: ubuntu-latest
-    name: Deploy to VPS
-    needs: build
-    if: github.ref == 'refs/heads/main'
-
-    steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -73,30 +282,23 @@ jobs:
           script: |
             cd /opt/moncabinet
 
-            # Mettre à jour les secrets (API Keys & Config)
-            # Email & Notifications
+            # Mettre a jour les secrets
             sed -i 's|RESEND_API_KEY=.*|RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}|' .env
             sed -i 's|BREVO_API_KEY=.*|BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}|' .env
-
-            # LLM Providers (Architecture Option C)
             sed -i 's|GOOGLE_API_KEY=.*|GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}|' .env
             sed -i 's|GROQ_API_KEY=.*|GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}|' .env
             sed -i 's|DEEPSEEK_API_KEY=.*|DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}|' .env
-
-            # Security & Encryption
             sed -i 's|ENCRYPTION_KEY=.*|ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}|' .env
             sed -i 's|CRON_SECRET=.*|CRON_SECRET=${{ secrets.CRON_SECRET }}|' .env
 
-            # Pull la nouvelle image (registry public)
+            # Pull et deployer
             docker pull ghcr.io/salmenktata/moncabinet:latest
-
-            # Utiliser docker-compose.prod.yml pour la production
             docker compose -f docker-compose.prod.yml up -d nextjs
 
             # Cleanup anciennes images
             docker image prune -f
 
-      - name: Verify deployment
+      - name: Health check
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -106,21 +308,33 @@ jobs:
           script: |
             sleep 15
             curl -f http://localhost:3000/api/health || exit 1
-            echo "✅ Deployment successful!"
+            echo "Deployment successful!"
 
+  # ===========================================================================
   # Job 3: Notification
+  # ===========================================================================
   notify:
     runs-on: ubuntu-latest
     name: Notify Status
-    needs: [build, deploy]
-    if: always()
+    needs: [detect-changes, deploy-fast, build-and-deploy]
+    if: always() && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Notify result
+      - name: Report result
         run: |
-          if [ "${{ needs.deploy.result }}" == "success" ]; then
-            echo "✅ Déploiement réussi sur VPS Contabo"
+          TIER="${{ needs.detect-changes.outputs.deploy_tier }}"
+          FAST="${{ needs.deploy-fast.result }}"
+          DOCKER="${{ needs.build-and-deploy.result }}"
+
+          echo "Tier: $TIER | Fast: $FAST | Docker: $DOCKER"
+
+          if [ "$FAST" == "success" ]; then
+            echo "Lightning Deploy (Tier 1) successful!"
+          elif [ "$DOCKER" == "success" ]; then
+            echo "Docker Deploy (Tier 2) successful!"
+          elif [ "$FAST" == "skipped" ] && [ "$DOCKER" == "skipped" ]; then
+            echo "No deployment triggered"
           else
-            echo "❌ Échec déploiement"
+            echo "Deployment FAILED (tier: $TIER)"
             exit 1
           fi

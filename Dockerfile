@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Stage 2: Builder (Debian pour Playwright et canvas)
 FROM node:18-slim AS builder
@@ -92,11 +92,6 @@ COPY --from=builder /app/.playwright ./.playwright
 COPY --from=builder /app/node_modules/canvas ./node_modules/canvas
 COPY --from=builder /app/node_modules/pg ./node_modules/pg
 COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
-
-# Copier dépendances PDF (pdf-parse + pdf-to-img + pdfjs-dist)
-COPY --from=builder /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist
-COPY --from=builder /app/node_modules/pdf-parse ./node_modules/pdf-parse
-COPY --from=builder /app/node_modules/pdf-to-img ./node_modules/pdf-to-img
 
 # Copier dépendances PDF (pdf-parse + pdf-to-img + pdfjs-dist)
 COPY --from=builder /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist

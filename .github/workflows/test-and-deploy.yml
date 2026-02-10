@@ -22,10 +22,6 @@
 name: 'CI/CD Pipeline with Quality Gates'
 
 on:
-  push:
-    branches:
-      - main
-      - develop
   pull_request:
     branches:
       - main
@@ -36,6 +32,8 @@ on:
         required: false
         type: boolean
         default: false
+  schedule:
+    - cron: '0 3 * * 0' # Dimanche 3h UTC - filet de securite hebdomadaire
 
 env:
   NODE_VERSION: '18'
