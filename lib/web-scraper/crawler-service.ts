@@ -27,7 +27,11 @@ const WEB_FILES_BUCKET = 'web-files'
 const MAX_ERRORS_KEPT = 200          // Limiter les erreurs en mémoire
 const PROGRESS_LOG_INTERVAL = 25     // Log progression toutes les N pages
 const MAX_CONSECUTIVE_FAILURES = 20  // Arrêter après N échecs consécutifs
-const CRAWL_CONCURRENCY = parseInt(process.env.CRAWLER_CONCURRENCY || '15', 10)
+
+// 🚀 CRAWL ULTRA-RAPIDE : Concurrency adaptée selon mode (static vs dynamic)
+const CRAWL_CONCURRENCY_STATIC = parseInt(process.env.CRAWLER_CONCURRENCY_STATIC || '40', 10)   // Fetch statique ultra-rapide
+const CRAWL_CONCURRENCY_DYNAMIC = parseInt(process.env.CRAWLER_CONCURRENCY_DYNAMIC || '4', 10)  // Playwright multi-browser
+const CRAWL_CONCURRENCY = parseInt(process.env.CRAWLER_CONCURRENCY || '15', 10)                 // Défaut (legacy)
 
 interface CrawlOptions {
   maxPages?: number
@@ -201,8 +205,14 @@ export async function crawlSource(
     : { allowed: true, crawlDelay: null, sitemaps: [], disallowedPaths: [] }
   const effectiveRateLimit = Math.max(rateLimit, robotsRules.crawlDelay || 0)
 
+  // 🚀 CRAWL ULTRA-RAPIDE : Choisir concurrency selon mode (static vs dynamic)
+  const isDynamicMode = s.requiresJavascript ?? s.requires_javascript ?? false
+  const effectiveConcurrency = isDynamicMode ? CRAWL_CONCURRENCY_DYNAMIC : CRAWL_CONCURRENCY_STATIC
+  const crawlMode = isDynamicMode ? 'dynamic (Playwright multi-browser)' : 'static (fetch ultra-rapide)'
+
   console.log(`[Crawler] Démarrage crawl ${sourceName}`)
-  console.log(`[Crawler] Concurrency: ${CRAWL_CONCURRENCY}, Rate limit: ${effectiveRateLimit}ms, Max pages: ${maxPages}, Max depth: ${maxDepth}`)
+  console.log(`[Crawler] Mode: ${crawlMode}, Concurrency: ${effectiveConcurrency}, Rate limit: ${effectiveRateLimit}ms`)
+  console.log(`[Crawler] Max pages: ${maxPages}, Max depth: ${maxDepth}`)
   console.log(`[Crawler] ${existingUrlHashes.size} pages existantes en DB, mode ${incrementalMode ? 'incrémental' : 'full_crawl'}`)
   console.log(`[Crawler] Queue initiale: ${state.queue.length} URLs`, state.queue.map((q) => q.url))
   console.log(`[Crawler] Include patterns: ${includePatterns.length}`, includePatterns.map((p: RegExp) => p.source))
@@ -244,9 +254,9 @@ export async function crawlSource(
 
   // Boucle principale de crawl (par batch concurrent)
   while (state.queue.length > 0 && state.pagesProcessed < maxPages && !shutdownRequested) {
-    // Collecter un batch de pages à traiter (jusqu'à CRAWL_CONCURRENCY)
+    // Collecter un batch de pages à traiter (jusqu'à effectiveConcurrency)
     const batch: Array<{ url: string; depth: number }> = []
-    while (batch.length < CRAWL_CONCURRENCY && state.queue.length > 0) {
+    while (batch.length < effectiveConcurrency && state.queue.length > 0) {
       const item = state.queue.shift()!
       if (item.depth > maxDepth) continue
       const urlHash = hashUrl(item.url)

@@ -20,50 +20,70 @@ const DEFAULT_USER_AGENT = 'QadhyaBot/1.0 (+https://qadhya.tn/bot)'
 // ==========================================
 
 /**
- * Pool de navigateurs Playwright pour réutilisation
+ * Pool multi-navigateurs Playwright pour scraping parallèle
  * Évite de relancer Chromium à chaque requête (~1-2s économisés)
+ * Supporte jusqu'à 4 browsers en parallèle pour exploiter les 4 CPUs du VPS
  */
-interface BrowserPool {
-  browser: Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>> | null
-  lastUsed: number
-  useCount: number
+interface MultiBrowserPool {
+  browsers: Array<{
+    instance: Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>> | null
+    lastUsed: number
+    useCount: number
+  }>
+  currentIndex: number
+  maxBrowsers: number
   maxAge: number        // Durée de vie max en ms
   maxUseCount: number   // Nombre max d'utilisations avant recycle
 }
 
-const browserPool: BrowserPool = {
-  browser: null,
-  lastUsed: 0,
-  useCount: 0,
-  maxAge: 5 * 60 * 1000,    // 5 minutes
-  maxUseCount: 50,          // Recyclage après 50 utilisations
+// Configuration via variables d'environnement
+const MAX_BROWSERS = parseInt(process.env.BROWSER_POOL_MAX_BROWSERS || '4', 10)
+const BROWSER_MAX_AGE = parseInt(process.env.BROWSER_POOL_MAX_AGE_MS || '180000', 10) // 3 min
+const BROWSER_MAX_USE = parseInt(process.env.BROWSER_POOL_MAX_USE || '100', 10)
+
+const multiBrowserPool: MultiBrowserPool = {
+  browsers: Array.from({ length: MAX_BROWSERS }, () => ({
+    instance: null,
+    lastUsed: 0,
+    useCount: 0,
+  })),
+  currentIndex: 0,
+  maxBrowsers: MAX_BROWSERS,
+  maxAge: BROWSER_MAX_AGE,
+  maxUseCount: BROWSER_MAX_USE,
 }
 
 /**
- * Obtient un navigateur du pool ou en crée un nouveau
+ * Obtient un navigateur du pool multi-browser avec rotation round-robin
+ * Crée de nouveaux browsers à la demande jusqu'à maxBrowsers
  */
 async function getBrowserFromPool(): Promise<Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>>> {
   const now = Date.now()
 
+  // Rotation round-robin pour répartir la charge
+  const slot = multiBrowserPool.browsers[multiBrowserPool.currentIndex]
+  multiBrowserPool.currentIndex = (multiBrowserPool.currentIndex + 1) % multiBrowserPool.maxBrowsers
+
   // Vérifier si le browser existant est encore valide
-  if (browserPool.browser) {
-    const age = now - browserPool.lastUsed
+  if (slot.instance) {
+    const age = now - slot.lastUsed
 
     // Recycler si trop vieux ou trop utilisé
-    if (age > browserPool.maxAge || browserPool.useCount >= browserPool.maxUseCount) {
+    if (age > multiBrowserPool.maxAge || slot.useCount >= multiBrowserPool.maxUseCount) {
       try {
-        await browserPool.browser.close()
+        await slot.instance.close()
       } catch {
         // Ignorer les erreurs de fermeture
       }
-      browserPool.browser = null
+      slot.instance = null
+      console.log(`[BrowserPool] Browser recyclé (age: ${(age / 1000).toFixed(1)}s, uses: ${slot.useCount})`)
     }
   }
 
   // Créer un nouveau browser si nécessaire
-  if (!browserPool.browser) {
+  if (!slot.instance) {
     const { chromium } = await import('playwright')
-    browserPool.browser = await chromium.launch({
+    slot.instance = await chromium.launch({
       headless: true,
       args: [
         '--disable-gpu',
@@ -81,42 +101,53 @@ async function getBrowserFromPool(): Promise<Awaited<ReturnType<typeof import('p
         '--safebrowsing-disable-auto-update',
       ],
     })
-    browserPool.useCount = 0
+    slot.useCount = 0
+    console.log(`[BrowserPool] Nouveau browser créé (slot ${multiBrowserPool.currentIndex})`)
   }
 
-  browserPool.lastUsed = now
-  browserPool.useCount++
+  slot.lastUsed = now
+  slot.useCount++
 
-  return browserPool.browser
+  return slot.instance
 }
 
 /**
- * Ferme le navigateur du pool (nettoyage)
+ * Ferme tous les navigateurs du pool multi-browser (nettoyage)
  */
 export async function closeBrowserPool(): Promise<void> {
-  if (browserPool.browser) {
-    try {
-      await browserPool.browser.close()
-    } catch {
-      // Ignorer les erreurs
+  console.log(`[BrowserPool] Fermeture de ${multiBrowserPool.maxBrowsers} browsers...`)
+
+  for (const slot of multiBrowserPool.browsers) {
+    if (slot.instance) {
+      try {
+        await slot.instance.close()
+      } catch {
+        // Ignorer les erreurs
+      }
+      slot.instance = null
+      slot.useCount = 0
     }
-    browserPool.browser = null
-    browserPool.useCount = 0
   }
+
+  console.log('[BrowserPool] ✅ Tous les browsers fermés')
 }
 
 /**
  * Types de ressources à bloquer pour accélérer le chargement
+ * Mode agressif pour crawl ultra-rapide
  */
 const BLOCKED_RESOURCE_TYPES = [
   'image',
   'media',
   'font',
   'stylesheet', // On bloque les CSS non essentiels
+  'websocket',  // 🆕 Bloquer WebSocket (Livewire, polling)
+  'other',      // 🆕 Bloquer ressources non-essentielles
 ] as const
 
 /**
- * Patterns d'URLs à bloquer (analytics, ads, etc.)
+ * Patterns d'URLs à bloquer (analytics, ads, CDN, etc.)
+ * Mode agressif pour crawl ultra-rapide
  */
 const BLOCKED_URL_PATTERNS = [
   /google-analytics\.com/,
@@ -127,6 +158,9 @@ const BLOCKED_URL_PATTERNS = [
   /intercom\.io/,
   /crisp\.chat/,
   /tawk\.to/,
+  /cdn\..*\.js$/,           // 🆕 CDN JavaScript non-essentiel
+  /gravatar\.com/,          // 🆕 Avatars Gravatar
+  /.+\.(woff2?|ttf|eot)$/,  // 🆕 Fonts (redondant avec type mais sécurité)
   /cdn\.segment/,
   /mixpanel\.com/,
   /amplitude\.com/,
@@ -252,6 +286,7 @@ interface FetchOptions {
   body?: string | URLSearchParams
   contentType?: string
   ignoreSSLErrors?: boolean
+  skipMenuDiscovery?: boolean  // 🆕 Skip menu discovery si sitemap existe ou followLinks=false
 }
 
 // FetchResult importé depuis types.ts
@@ -440,10 +475,10 @@ const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> 
       '.loading',
       '.skeleton',
     ],
-    postLoadDelayMs: 1500,
+    postLoadDelayMs: 500,   // 🚀 OPTIMISÉ : 1500 → 500ms (-67%)
     scrollToLoad: true,
-    scrollCount: 2,
-    waitUntil: 'load',  // 'networkidle' bloque sur sites Livewire (WebSocket/polling)
+    scrollCount: 1,         // 🚀 OPTIMISÉ : 2 → 1 scroll (-50%)
+    waitUntil: 'load',      // 'networkidle' bloque sur sites Livewire (WebSocket/polling)
     dynamicTimeoutMs: 10000,
   },
   alpine: {
@@ -837,8 +872,14 @@ export async function fetchHtmlDynamic(
       checkGlobalTimeout()
 
       // 🆕 DÉCOUVERTE AUTOMATIQUE DE LIENS DYNAMIQUES
+      // 🚀 OPTIMISATION : Skip si sitemap existe ou followLinks désactivé
       let discoveredUrls: string[] = []
-      if (detectedFrameworks.length > 0 && detectedFrameworks[0] !== 'static') {
+      const shouldDiscoverLinks =
+        detectedFrameworks.length > 0 &&
+        detectedFrameworks[0] !== 'static' &&
+        !options.skipMenuDiscovery  // 🆕 Skip si sitemap ou !followLinks
+
+      if (shouldDiscoverLinks) {
         try {
           const framework = detectedFrameworks[0]
           const result = await discoverLinksViaInteraction(page, framework, url)
@@ -855,6 +896,8 @@ export async function fetchHtmlDynamic(
           console.warn('[Scraper] Erreur découverte:', err)
           // Ne pas bloquer le scraping principal
         }
+      } else if (options.skipMenuDiscovery) {
+        console.log('[Scraper] ⚡ Menu discovery skipped (sitemap actif ou followLinks=false)')
       }
 
       checkGlobalTimeout()
@@ -1145,7 +1188,7 @@ async function scrollPageForLazyLoading(
     }, scrollTo)
 
     // Attente réduite entre les scrolls
-    await page.waitForTimeout(400)  // Réduit de 800 à 400
+    await page.waitForTimeout(200)  // 🚀 OPTIMISÉ : 400 → 200ms pour crawl ultra-rapide
 
     // Attendre la stabilisation du réseau avec timeout court
     try {
@@ -1186,6 +1229,8 @@ export async function scrapeUrl(
     respectRobotsTxt: source.respectRobotsTxt !== false,
     dynamicConfig: source.dynamicConfig || undefined,
     ignoreSSLErrors: source.ignoreSSLErrors || false,
+    // 🚀 OPTIMISATION : Skip menu discovery si sitemap existe ou followLinks désactivé
+    skipMenuDiscovery: source.useSitemap === true || source.followLinks === false,
   }
 
   let fetchResult: FetchResult
