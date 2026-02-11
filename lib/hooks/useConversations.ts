@@ -35,8 +35,10 @@ export interface Message {
 
 export interface Conversation {
   id: string
-  userId: string
+  userId?: string // Optionnel car pas toujours retourné par l'API
   title: string
+  dossierId?: string // ID du dossier lié (optionnel)
+  dossierNumero?: string // Numéro du dossier (optionnel)
   messages: Message[]
   createdAt: Date
   updatedAt: Date
@@ -91,7 +93,7 @@ export const conversationKeys = {
 // =============================================================================
 
 async function fetchConversation(id: string): Promise<Conversation> {
-  const response = await fetch(`/api/client/conversations/${id}`)
+  const response = await fetch(`/api/chat?conversationId=${id}`)
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Conversation non trouvée' }))
@@ -100,14 +102,22 @@ async function fetchConversation(id: string): Promise<Conversation> {
 
   const data = await response.json()
 
+  // L'API /api/chat retourne { conversation, messages }
   return {
-    ...data,
+    id: data.conversation.id,
+    title: data.conversation.title,
+    dossierId: data.conversation.dossier_id,
+    dossierNumero: data.conversation.dossier_numero,
     messages: data.messages.map((msg: any) => ({
-      ...msg,
-      timestamp: new Date(msg.timestamp),
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      sources: msg.sources,
+      tokensUsed: msg.tokensUsed,
+      timestamp: new Date(msg.createdAt),
     })),
-    createdAt: new Date(data.createdAt),
-    updatedAt: new Date(data.updatedAt),
+    createdAt: new Date(data.conversation.created_at),
+    updatedAt: new Date(data.conversation.created_at), // Pas de updated_at dans l'API
   }
 }
 
@@ -124,7 +134,7 @@ async function fetchConversationList(
     })
   }
 
-  const response = await fetch(`/api/client/conversations?${searchParams.toString()}`)
+  const response = await fetch(`/api/chat?${searchParams.toString()}`)
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Erreur de chargement' }))
@@ -133,18 +143,21 @@ async function fetchConversationList(
 
   const data = await response.json()
 
+  // L'API /api/chat retourne { conversations: [...] }
+  // Note: L'API actuelle ne supporte pas pagination (total, hasMore)
+  // Elle retourne toujours les 30 dernières conversations
   return {
-    conversations: data.conversations.map((conv: any) => ({
-      ...conv,
-      messages: conv.messages.map((msg: any) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp),
-      })),
-      createdAt: new Date(conv.createdAt),
-      updatedAt: new Date(conv.updatedAt),
+    conversations: (data.conversations || []).map((conv: any) => ({
+      id: conv.id,
+      title: conv.title,
+      dossierId: conv.dossier_id,
+      dossierNumero: conv.dossier_numero,
+      messages: [], // Pas de messages dans la liste
+      createdAt: new Date(conv.created_at),
+      updatedAt: new Date(conv.updated_at || conv.created_at),
     })),
-    total: data.total,
-    hasMore: data.hasMore,
+    total: data.conversations?.length || 0,
+    hasMore: false, // L'API actuelle ne supporte pas la pagination
   }
 }
 
@@ -152,12 +165,18 @@ async function sendMessage(params: SendMessageParams): Promise<{
   conversation: Conversation
   message: Message
 }> {
-  const response = await fetch('/api/client/conversations/message', {
+  const response = await fetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      question: params.message, // L'API attend 'question', pas 'message'
+      conversationId: params.conversationId,
+      usePremiumModel: params.usePremiumModel || false,
+      includeJurisprudence: true, // Toujours inclure les sources juridiques
+      stream: false, // Mode non-streaming (pour simplifier)
+    }),
   })
 
   if (!response.ok) {
@@ -167,25 +186,34 @@ async function sendMessage(params: SendMessageParams): Promise<{
 
   const data = await response.json()
 
+  // L'API /api/chat retourne { answer, sources, conversationId, tokensUsed }
+  // Construire un objet minimaliste pour le retour
+  // Le hook useSendMessage() va ensuite refetch la conversation complète
   return {
     conversation: {
-      ...data.conversation,
-      messages: data.conversation.messages.map((msg: any) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp),
-      })),
-      createdAt: new Date(data.conversation.createdAt),
-      updatedAt: new Date(data.conversation.updatedAt),
+      id: data.conversationId,
+      userId: '', // Non disponible dans la réponse
+      title: '', // Non disponible dans la réponse
+      messages: [], // Sera refetch automatiquement
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     message: {
-      ...data.message,
-      timestamp: new Date(data.message.timestamp),
+      id: `assistant-${Date.now()}`,
+      role: 'assistant',
+      content: data.answer,
+      timestamp: new Date(),
+      metadata: {
+        sources: data.sources,
+        processingTimeMs: data.tokensUsed?.total || 0,
+        usedPremiumModel: params.usePremiumModel,
+      },
     },
   }
 }
 
 async function deleteConversation(id: string): Promise<void> {
-  const response = await fetch(`/api/client/conversations/${id}`, {
+  const response = await fetch(`/api/chat?conversationId=${id}`, {
     method: 'DELETE',
   })
 
@@ -195,32 +223,42 @@ async function deleteConversation(id: string): Promise<void> {
   }
 }
 
-async function updateConversationTitle(id: string, title: string): Promise<Conversation> {
-  const response = await fetch(`/api/client/conversations/${id}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ title }),
-  })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Erreur de mise à jour' }))
-    throw new Error(error.error || `HTTP ${response.status}`)
-  }
-
-  const data = await response.json()
-
-  return {
-    ...data,
-    messages: data.messages.map((msg: any) => ({
-      ...msg,
-      timestamp: new Date(msg.timestamp),
-    })),
-    createdAt: new Date(data.createdAt),
-    updatedAt: new Date(data.updatedAt),
-  }
-}
+/**
+ * TODO: Créer endpoint PATCH /api/chat pour update titre conversation
+ *
+ * L'API /api/chat actuelle ne supporte pas PATCH.
+ * Pour l'instant, la fonction et le hook sont désactivés.
+ *
+ * Endpoint à créer:
+ * PATCH /api/chat?conversationId=xxx
+ * Body: { title: string }
+ * Response: { success: true }
+ */
+// async function updateConversationTitle(id: string, title: string): Promise<Conversation> {
+//   const response = await fetch(`/api/chat?conversationId=${id}`, {
+//     method: 'PATCH',
+//     headers: {
+//       'Content-Type': 'application/json',
+//     },
+//     body: JSON.stringify({ title }),
+//   })
+//
+//   if (!response.ok) {
+//     const error = await response.json().catch(() => ({ error: 'Erreur de mise à jour' }))
+//     throw new Error(error.error || `HTTP ${response.status}`)
+//   }
+//
+//   const data = await response.json()
+//
+//   return {
+//     id: data.id,
+//     userId: data.userId,
+//     title: data.title,
+//     messages: [],
+//     createdAt: new Date(data.createdAt),
+//     updatedAt: new Date(data.updatedAt),
+//   }
+// }
 
 // =============================================================================
 // HOOKS
@@ -428,26 +466,29 @@ export function useDeleteConversation(options?: {
 
 /**
  * Hook pour update titre conversation
+ *
+ * @deprecated Désactivé temporairement - endpoint PATCH manquant dans /api/chat
+ * TODO: Créer endpoint PATCH /api/chat?conversationId=xxx puis réactiver
  */
-export function useUpdateConversationTitle(options?: {
-  onSuccess?: (data: Conversation) => void
-  onError?: (error: Error) => void
-}) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ id, title }: { id: string; title: string }) =>
-      updateConversationTitle(id, title),
-    onSuccess: (data) => {
-      // Update cache
-      queryClient.setQueryData(conversationKeys.detail(data.id), data)
-      // Invalidate lists
-      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
-      options?.onSuccess?.(data)
-    },
-    onError: options?.onError,
-  })
-}
+// export function useUpdateConversationTitle(options?: {
+//   onSuccess?: (data: Conversation) => void
+//   onError?: (error: Error) => void
+// }) {
+//   const queryClient = useQueryClient()
+//
+//   return useMutation({
+//     mutationFn: ({ id, title }: { id: string; title: string }) =>
+//       updateConversationTitle(id, title),
+//     onSuccess: (data) => {
+//       // Update cache
+//       queryClient.setQueryData(conversationKeys.detail(data.id), data)
+//       // Invalidate lists
+//       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
+//       options?.onSuccess?.(data)
+//     },
+//     onError: options?.onError,
+//   })
+// }
 
 /**
  * Hook pour préchargement conversation (hover sidebar)

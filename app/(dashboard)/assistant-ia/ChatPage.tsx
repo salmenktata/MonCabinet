@@ -7,7 +7,7 @@
  * Utilise hooks personnalisés pour cache intelligent et optimistic updates
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Icons } from '@/lib/icons'
@@ -24,7 +24,6 @@ import {
   AdvancedSearch,
   type Conversation,
   type ChatMessage,
-  type ChatSource,
 } from '@/components/assistant-ia'
 import {
   useConversationList,
@@ -98,9 +97,32 @@ export function ChatPage({ userId }: ChatPageProps) {
     },
   })
 
-  // Données dérivées
-  const conversations = conversationsData?.conversations || []
-  const messages = selectedConversation?.messages || []
+  // Données dérivées — mapper les types hook → types composant
+  const conversations = useMemo(() =>
+    (conversationsData?.conversations || []).map((c) => ({
+      ...c,
+      title: c.title as string | null,
+    })) as Conversation[],
+    [conversationsData?.conversations]
+  )
+
+  const messages: ChatMessage[] = useMemo(() =>
+    (selectedConversation?.messages || [])
+      .filter((m) => m.role !== 'system')
+      .map((m) => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        createdAt: m.timestamp,
+        sources: m.metadata?.sources?.map((s) => ({
+          documentId: s.id,
+          documentName: s.title,
+          chunkContent: '',
+          similarity: s.similarity,
+        })),
+      })),
+    [selectedConversation?.messages]
+  )
 
   // Handlers simplifiés
   const handleSelectConversation = (id: string) => {

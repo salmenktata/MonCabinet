@@ -7,7 +7,7 @@
  * Utilise useSendMessage() pour optimistic updates automatiques
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -94,8 +94,24 @@ export default function ChatWidget({ dossierId, dossierNumero }: ChatWidgetProps
     },
   })
 
-  // Données dérivées
-  const messages = conversation?.messages || []
+  // Données dérivées — mapper Message → ChatMessage
+  const messages: ChatMessage[] = useMemo(() =>
+    (conversation?.messages || [])
+      .filter((m) => m.role !== 'system')
+      .map((m) => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        createdAt: m.timestamp,
+        sources: m.metadata?.sources?.map((s) => ({
+          documentId: s.id,
+          documentName: s.title,
+          chunkContent: '',
+          similarity: s.similarity,
+        })),
+      })),
+    [conversation?.messages]
+  )
 
   // Auto-scroll vers le bas quand nouveaux messages
   useEffect(() => {
@@ -134,7 +150,6 @@ export default function ChatWidget({ dossierId, dossierNumero }: ChatWidgetProps
 
   // Nouvelle conversation
   const startNewConversation = () => {
-    setMessages([])
     setConversationId(null)
     setError(null)
   }

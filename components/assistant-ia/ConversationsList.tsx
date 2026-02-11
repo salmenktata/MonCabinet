@@ -25,11 +25,12 @@ const ITEM_HEIGHT = 68 // hauteur approximative d'un item
 export interface Conversation {
   id: string
   title: string | null
-  dossierId: string | null
-  dossierNumero: string | null
-  messageCount: number
-  lastMessageAt: Date
-  createdAt: Date
+  dossierId?: string | null
+  dossierNumero?: string | null
+  messageCount?: number
+  lastMessageAt?: Date
+  updatedAt?: Date
+  createdAt?: Date
 }
 
 interface ConversationsListProps {
@@ -37,7 +38,7 @@ interface ConversationsListProps {
   selectedId: string | null
   onSelect: (id: string) => void
   onNewConversation: () => void
-  onDelete: (id: string) => Promise<void>
+  onDelete: (id: string) => void | Promise<void>
   isLoading?: boolean
 }
 
@@ -246,7 +247,7 @@ function ConversationItem({
           </span>
         </div>
         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-          <span>{formatDate(conv.lastMessageAt)}</span>
+          <span>{formatDate(conv.lastMessageAt || conv.updatedAt || conv.createdAt || new Date())}</span>
           {conv.dossierNumero && (
             <>
               <span>•</span>

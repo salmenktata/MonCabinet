@@ -3,9 +3,96 @@
 
 ---
 
+## ⚠️ CRITIQUE - Fix API Endpoints (11 Février 2026, 16h30)
+
+### Problème Identifié
+
+Les hooks `useConversations.ts` utilisaient des endpoints inexistants :
+- ❌ `/api/client/conversations` (n'existe pas)
+- ✅ `/api/chat` (endpoint réel de l'application)
+
+**Impact** : ChatPage.tsx et ChatWidget.tsx migrés hier ne fonctionnaient pas.
+
+### Solution Implémentée
+
+**Fichier modifié** : `lib/hooks/useConversations.ts`
+
+**5 fonctions API adaptées** :
+
+| Fonction | Avant | Après | Statut |
+|----------|-------|-------|--------|
+| `fetchConversation` | `/api/client/conversations/${id}` | `/api/chat?conversationId=${id}` | ✅ Fixed |
+| `fetchConversationList` | `/api/client/conversations?...` | `/api/chat?...` | ✅ Fixed |
+| `sendMessage` | POST `/api/client/conversations/message` | POST `/api/chat` | ✅ Fixed |
+| `deleteConversation` | DELETE `/api/client/conversations/${id}` | DELETE `/api/chat?conversationId=${id}` | ✅ Fixed |
+| `updateConversationTitle` | PATCH `/api/client/conversations/${id}` | ⚠️ Commenté (endpoint manquant) | ⏸️ Désactivé |
+
+**Adaptations response format** :
+
+```typescript
+// fetchConversation - Adapter { conversation, messages }
+return {
+  id: data.conversation.id,
+  title: data.conversation.title,
+  dossierId: data.conversation.dossier_id,
+  messages: data.messages.map(msg => ({
+    id: msg.id,
+    role: msg.role,
+    content: msg.content,
+    timestamp: new Date(msg.createdAt),
+  })),
+  // ...
+}
+
+// sendMessage - Adapter { answer, sources, conversationId, tokensUsed }
+return {
+  conversation: { id: data.conversationId, /* ... */ },
+  message: {
+    role: 'assistant',
+    content: data.answer,
+    metadata: { sources: data.sources },
+  },
+}
+```
+
+**Interface Conversation** mise à jour :
+```typescript
+export interface Conversation {
+  id: string
+  userId?: string // Optionnel
+  dossierId?: string // Nouveau
+  dossierNumero?: string // Nouveau
+  messages: Message[]
+  // ...
+}
+```
+
+### Résultat
+
+✅ **Hooks fonctionnels** : ChatPage et ChatWidget maintenant connectés à la vraie API
+✅ **Compatibilité** : Aucun composant n'utilise `useUpdateConversationTitle` désactivé
+⏸️ **TODO** : Créer endpoint `PATCH /api/chat?conversationId=xxx` pour update titre
+
+---
+
 ## Progrès
 
-### Migrations complétées : 4/85 (4.7%)
+### Migrations complétées : 5/85 (5.9%) - Incluant fix API
+
+| # | Fichier | Avant | Après | Réduction | Complexité | Statut |
+|---|---------|-------|-------|-----------|------------|--------|
+| 1 | jurisprudence-timeline/page.tsx | 93 | 32 | -61 (-65%) | Moyenne | ✅ Migrée |
+| 2 | knowledge-base/page.tsx | 82 | 12 | -70 (-85%) | Facile | ✅ Migrée |
+| 3 | DocumentExplorer.tsx | ~80 | ~50 | -30 (-37%) | Moyenne | ✅ Migrée |
+| 4 | **ChatPage.tsx** | 347 | 274 | **-73 (-21%)** | **Haute** | ✅ Migrée + ✅ API Fixed |
+| 5 | **useConversations.ts** | 520 | 550 | +30 (+6%) | **Haute** | ✅ **API Fixed** |
+| **TOTAL** | **5 fichiers** | **1122** | **918** | **-204 (-18%)** | - | - |
+
+**Note** : useConversations.ts a augmenté légèrement (+30 lignes) à cause des adaptations response format, mais gain net global reste important (-204 lignes).
+
+---
+
+## Migrations complétées précédemment : 4/85 (4.7%)
 
 | # | Fichier | Avant | Après | Réduction | Complexité |
 |---|---------|-------|-------|-----------|------------|
