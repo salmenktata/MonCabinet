@@ -10,7 +10,6 @@ import OpenAI from 'openai'
 import { aiConfig, getEmbeddingProvider, getEmbeddingFallbackProvider, EMBEDDING_TURBO_CONFIG } from './config'
 import { getCachedEmbedding, setCachedEmbedding } from '@/lib/cache/embedding-cache'
 import { countTokens } from './token-utils'
-import { getOperationConfig, type OperationName } from './operations-config'
 
 // =============================================================================
 // CIRCUIT BREAKER PATTERN
@@ -189,8 +188,6 @@ export interface BatchEmbeddingResult {
 
 export interface EmbeddingOptions {
   forceTurbo?: boolean
-  /** Type d'opération pour utiliser la configuration spécifique */
-  operationName?: OperationName
 }
 
 interface OllamaEmbeddingResponse {
@@ -222,7 +219,7 @@ async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResul
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: aiConfig.ollama.embeddingModel,
-        prompt: text.substring(0, 6500), // Tronquer pour contexte qwen3-embedding (~8192 tokens max, ratio 1.2)
+        prompt: text.substring(0, 8000), // Tronquer pour contexte qwen3-embedding (~8192 tokens)
         keep_alive: '10m', // Garder le modèle en mémoire 10min (évite le rechargement)
       }),
       signal: controller.signal,
@@ -335,7 +332,7 @@ async function generateEmbeddingWithOpenAI(text: string): Promise<EmbeddingResul
 
   const response = await client.embeddings.create({
     model: aiConfig.openai.embeddingModel,
-    input: text.substring(0, 6500), // Limite 8192 tokens max (ratio ~1.2 char/token)
+    input: text.substring(0, 8000),
     dimensions: aiConfig.openai.embeddingDimensions, // 1024 (compatible pgvector)
   })
 
@@ -429,17 +426,8 @@ export async function generateEmbedding(
     }
   }
 
-  // Si operationName fourni, utiliser sa config embeddings
-  let provider = getEmbeddingProvider()
-  let fallbackProvider = getEmbeddingFallbackProvider()
-
-  if (options?.operationName) {
-    const opConfig = getOperationConfig(options.operationName)
-    if (opConfig.embeddings) {
-      provider = opConfig.embeddings.provider
-      fallbackProvider = opConfig.embeddings.fallbackProvider || fallbackProvider
-    }
-  }
+  const provider = getEmbeddingProvider()
+  const fallbackProvider = getEmbeddingFallbackProvider()
 
   // Mode turbo : OpenAI direct (si disponible)
   if (turbo && aiConfig.openai.apiKey) {
@@ -563,18 +551,8 @@ export async function generateEmbeddingsBatch(
   }
 
   const turbo = options?.forceTurbo || EMBEDDING_TURBO_CONFIG.enabled
-
-  // Si operationName fourni, utiliser sa config embeddings
-  let provider = getEmbeddingProvider()
-  let fallbackProvider = getEmbeddingFallbackProvider()
-
-  if (options?.operationName) {
-    const opConfig = getOperationConfig(options.operationName)
-    if (opConfig.embeddings) {
-      provider = opConfig.embeddings.provider
-      fallbackProvider = opConfig.embeddings.fallbackProvider || fallbackProvider
-    }
-  }
+  const provider = getEmbeddingProvider()
+  const fallbackProvider = getEmbeddingFallbackProvider()
 
   // Mode turbo : OpenAI batch natif (très rapide)
   if (turbo && aiConfig.openai.apiKey) {
