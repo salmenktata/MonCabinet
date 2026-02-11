@@ -32,9 +32,9 @@ export interface CrawlerProfile {
   /** Sélecteurs CSS pour extraction de contenu */
   contentSelectors?: {
     main?: string[]
-    title?: string
-    date?: string
-    author?: string
+    title?: string[]
+    date?: string[]
+    author?: string[]
   }
 }
 
