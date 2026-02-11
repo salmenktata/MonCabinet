@@ -123,6 +123,22 @@ const nextConfig = {
     return config
   },
 
+  // Redirections pour simplification super admin (Feb 2026)
+  async redirects() {
+    return [
+      {
+        source: '/super-admin/classification',
+        destination: '/super-admin/review-queue?tab=classification',
+        permanent: true,
+      },
+      {
+        source: '/super-admin/content-review',
+        destination: '/super-admin/review-queue?tab=content',
+        permanent: true,
+      },
+    ]
+  },
+
   // Headers de sécurité et cache
   async headers() {
     return [

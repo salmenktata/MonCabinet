@@ -74,7 +74,7 @@ const getNavGroups = (
       },
     ],
   },
-  // Groupe 4: Qualité (6 outils de monitoring qualité)
+  // Groupe 4: Qualité (5 outils de monitoring qualité)
   {
     group: 'Qualité',
     items: [
@@ -82,8 +82,8 @@ const getNavGroups = (
       { href: '/super-admin/legal-quality', label: 'Legal Quality', icon: 'shield' },
       { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
       {
-        href: '/super-admin/content-review',
-        label: 'Revue de contenu',
+        href: '/super-admin/review-queue',
+        label: 'File de Revue',
         icon: 'fileText',
         badge: pendingReviews || undefined,
         badgeVariant: 'destructive' as const
@@ -95,7 +95,6 @@ const getNavGroups = (
         badge: pendingContradictions || undefined,
         badgeVariant: 'secondary' as const
       },
-      { href: '/super-admin/classification', label: 'Classification', icon: 'barChart' },
     ],
   },
   // Groupe 5: Monitoring (Dashboard unifié + Quotas)
