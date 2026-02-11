@@ -8,8 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { getSession } from '@/lib/auth/session'
 import { buildJurisprudenceTimeline } from '@/lib/ai/jurisprudence-timeline-service'
 import type {
   TimelineEvent,
@@ -58,7 +57,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TimelineRespo
 
   try {
     // 1. Authentification
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Non authentifié' },
@@ -140,7 +139,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<TimelineRespon
 
   try {
     // 1. Authentification
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Non authentifié' },

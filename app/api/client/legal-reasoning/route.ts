@@ -8,8 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { getSession } from '@/lib/auth/session'
 import { buildExplanationTree } from '@/lib/ai/explanation-tree-builder'
 import { search } from '@/lib/ai/unified-rag-service'
 import type { ExplanationTree } from '@/lib/ai/explanation-tree-builder'
@@ -52,7 +51,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<LegalReasonin
 
   try {
     // 1. Authentification
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Non authentifié' },

@@ -8,8 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { getSession } from '@/lib/auth/session'
 import { search } from '@/lib/ai/unified-rag-service'
 import type { RAGSearchFilters, RAGSearchResult } from '@/lib/ai/unified-rag-service'
 
@@ -57,7 +56,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<KBSearchRespo
 
   try {
     // 1. Authentification
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Non authentifié' },
@@ -183,7 +182,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<KBSearchRespon
 
   try {
     // 1. Authentification
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Non authentifié' },

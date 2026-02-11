@@ -1,5 +1,12 @@
 'use client'
 
+/**
+ * ChatWidget - Assistant IA Dossier
+ *
+ * Sprint 6 - Migration React Query
+ * Utilise useSendMessage() pour optimistic updates automatiques
+ */
+
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +37,7 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSendMessage, useConversation } from '@/lib/hooks/useConversations'
 
 // =============================================================================
 // TYPES
@@ -62,14 +70,32 @@ interface ChatWidgetProps {
 
 export default function ChatWidget({ dossierId, dossierNumero }: ChatWidgetProps) {
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // React Query hooks
+  const { data: conversation } = useConversation(conversationId || '', {
+    enabled: !!conversationId,
+  })
+
+  const { mutate: sendMessageMutation, isPending: loading } = useSendMessage({
+    onSuccess: (data) => {
+      if (!conversationId && data.conversation.id) {
+        setConversationId(data.conversation.id)
+      }
+      setError(null)
+    },
+    onError: (err) => {
+      setError(err.message || 'Erreur inconnue')
+    },
+  })
+
+  // Données dérivées
+  const messages = conversation?.messages || []
 
   // Auto-scroll vers le bas quand nouveaux messages
   useEffect(() => {
@@ -83,65 +109,20 @@ export default function ChatWidget({ dossierId, dossierNumero }: ChatWidgetProps
     }
   }, [open])
 
-  // Envoyer un message
-  const sendMessage = useCallback(async () => {
+  // Envoyer un message - Simplifié avec React Query
+  const sendMessage = useCallback(() => {
     if (!input.trim() || loading) return
 
     const question = input.trim()
     setInput('')
-    setError(null)
 
-    // Ajouter le message utilisateur immédiatement
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: question,
-      createdAt: new Date(),
-    }
-    setMessages((prev) => [...prev, userMessage])
-    setLoading(true)
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question,
-          dossierId,
-          conversationId,
-          includeJurisprudence: true,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'envoi du message')
-      }
-
-      // Sauvegarder le conversationId
-      if (data.conversationId) {
-        setConversationId(data.conversationId)
-      }
-
-      // Ajouter la réponse assistant
-      const assistantMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        content: data.answer,
-        sources: data.sources,
-        createdAt: new Date(),
-      }
-      setMessages((prev) => [...prev, assistantMessage])
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur inconnue'
-      setError(message)
-      // Retirer le message utilisateur en cas d'erreur
-      setMessages((prev) => prev.filter((m) => m.id !== userMessage.id))
-    } finally {
-      setLoading(false)
-    }
-  }, [input, loading, dossierId, conversationId])
+    sendMessageMutation({
+      conversationId: conversationId || undefined,
+      message: question,
+      usePremiumModel: false,
+      maxDepth: 2,
+    })
+  }, [input, loading, conversationId, sendMessageMutation])
 
   // Gestion du clavier
   const handleKeyDown = (e: React.KeyboardEvent) => {
