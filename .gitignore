@@ -89,3 +89,11 @@ scripts/test-db/snapshots/
 *.sql.gz
 prod_*.sql
 .secrets/
+
+# Scripts de test avec clés API (NE PAS COMMITER)
+scripts/test-new-keys.sh
+scripts/update-api-keys.ts
+scripts/update-groq-deepseek-keys.ts
+scripts/decrypt-and-export-keys.ts
+scripts/export-api-keys.sh
+scripts/test-decrypted-keys.sh
