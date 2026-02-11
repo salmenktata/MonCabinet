@@ -1,21 +1,30 @@
-import { query } from '@/lib/db/postgres'
-import { getSession } from '@/lib/auth/session'
+'use client'
+
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { useClientList } from '@/lib/hooks/useClients'
 import ClientCard from '@/components/clients/ClientCard'
-import { getTranslations } from 'next-intl/server'
 
-export default async function ClientsPage() {
-  const t = await getTranslations('clients')
-  const session = await getSession()
+export default function ClientsPage() {
+  const t = useTranslations('clients')
 
-  if (!session?.user?.id) return null
+  const { data, isLoading, error } = useClientList({
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  })
 
-  // Récupérer tous les clients
-  const result = await query(
-    'SELECT * FROM clients WHERE user_id = $1 ORDER BY created_at DESC',
-    [session.user.id]
-  )
-  const clients = result.rows
+  const clients = data?.clients || []
+
+  // Gestion erreur
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+        <p className="text-sm text-destructive">
+          Erreur lors du chargement des clients: {error.message}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -42,7 +51,7 @@ export default async function ClientsPage() {
             {t('totalClients')}
           </div>
           <div className="mt-2 text-3xl font-bold text-blue-600">
-            {clients?.length || 0}
+            {isLoading ? '...' : clients.length}
           </div>
         </div>
 
@@ -51,7 +60,13 @@ export default async function ClientsPage() {
             {t('naturalPersons')}
           </div>
           <div className="mt-2 text-3xl font-bold text-blue-600">
-            {clients?.filter((c) => c.type === 'PERSONNE_PHYSIQUE').length || 0}
+            {isLoading
+              ? '...'
+              : clients.filter((c) =>
+                  c.typeClient === 'particulier' ||
+                  c.typeClient === 'PERSONNE_PHYSIQUE'
+                ).length
+            }
           </div>
         </div>
 
@@ -60,13 +75,26 @@ export default async function ClientsPage() {
             {t('legalPersons')}
           </div>
           <div className="mt-2 text-3xl font-bold text-blue-600">
-            {clients?.filter((c) => c.type === 'PERSONNE_MORALE').length || 0}
+            {isLoading
+              ? '...'
+              : clients.filter((c) =>
+                  c.typeClient === 'entreprise' ||
+                  c.typeClient === 'PERSONNE_MORALE'
+                ).length
+            }
           </div>
         </div>
       </div>
 
       {/* Liste des clients */}
-      {clients && clients.length > 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <span>Chargement des clients...</span>
+          </div>
+        </div>
+      ) : clients && clients.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {clients.map((client) => (
             <ClientCard key={client.id} client={client} />

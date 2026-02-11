@@ -19,6 +19,7 @@ export interface Client {
   id: string
   userId: string
   type: 'particulier' | 'entreprise'
+  typeClient?: string // Alias pour compatibilité API snake_case
   nom: string
   prenom?: string
   raisonSociale?: string
@@ -33,6 +34,7 @@ export interface Client {
   metadata?: Record<string, unknown>
   createdAt: Date
   updatedAt: Date
+  dossiers?: any[] // Liste dossiers associés (GET /api/clients/[id])
 }
 
 export interface ClientListParams {
