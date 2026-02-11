@@ -12,6 +12,8 @@ import { getSession } from '@/lib/auth/session'
 import { buildJurisprudenceTimeline } from '@/lib/ai/jurisprudence-timeline-service'
 import type {
   TimelineOptions,
+  TimelineEvent,
+  TimelineStats,
 } from '@/lib/ai/jurisprudence-timeline-service'
 
 // =============================================================================

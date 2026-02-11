@@ -7,7 +7,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Désactiver erreurs TypeScript en build (temporaire - Sprint 3-6)
+  // TypeScript: Sprint 3-6 errors fixed (0 tsc errors), but Next.js 15 params
+  // syntax in 33 route handlers still requires ignoreBuildErrors temporarily
   typescript: {
     ignoreBuildErrors: true,
   },

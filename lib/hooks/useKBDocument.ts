@@ -275,7 +275,7 @@ export function useKBDocumentInfiniteList(
         offset: pageParam,
       }),
     initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
+    getNextPageParam: (lastPage: KBDocumentListResult, allPages: KBDocumentListResult[]) => {
       if (!lastPage.hasMore) return undefined
       return allPages.length * (params?.limit || 20)
     },

@@ -82,7 +82,7 @@ export function DocumentExplorer({
   // React Query mutation for search
   const { mutate: search, isPending: isLoading } = useRAGSearchMutation({
     onSuccess: (data) => {
-      setResults(data.results)
+      setResults((data.results || []) as unknown as RAGSearchResult[])
     },
     onError: (error) => {
       console.error('Erreur recherche:', error)

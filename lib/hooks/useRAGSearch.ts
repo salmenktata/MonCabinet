@@ -145,9 +145,10 @@ export function useRAGSearch(
     ...searchParams
   } = params || {}
 
+  const ragParams = searchParams as Partial<RAGSearchParams>
   const query = useQuery({
-    queryKey: ragSearchKeys.search(question, searchParams),
-    queryFn: () => searchRAG(question, searchParams),
+    queryKey: ragSearchKeys.search(question, ragParams),
+    queryFn: () => searchRAG(question, ragParams),
     enabled: enabled && question.length > 0,
     staleTime,
     gcTime: cacheTime,
