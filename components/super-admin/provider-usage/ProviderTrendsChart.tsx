@@ -29,6 +29,7 @@ const PROVIDER_COLORS = {
   deepseek: '#a855f7',
   groq: '#f97316',
   anthropic: '#ef4444',
+  openai: '#06b6d4',
   ollama: '#22c55e'
 }
 
@@ -138,6 +139,13 @@ export function ProviderTrendsChart({ days, userId }: TrendsChartProps) {
               dataKey="anthropic_tokens"
               name="Anthropic"
               stroke={PROVIDER_COLORS.anthropic}
+              strokeWidth={2}
+            />
+            <Line
+              type="monotone"
+              dataKey="openai_tokens"
+              name="OpenAI"
+              stroke={PROVIDER_COLORS.openai}
               strokeWidth={2}
             />
             <Line

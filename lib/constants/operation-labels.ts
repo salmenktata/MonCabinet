@@ -31,5 +31,6 @@ export const PROVIDER_LABELS: Record<string, { name: string; color: string }> = 
   deepseek: { name: 'DeepSeek', color: 'bg-purple-500' },
   groq: { name: 'Groq', color: 'bg-orange-500' },
   anthropic: { name: 'Anthropic', color: 'bg-red-500' },
+  openai: { name: 'OpenAI', color: 'bg-cyan-500' },
   ollama: { name: 'Ollama', color: 'bg-green-500' }
 }

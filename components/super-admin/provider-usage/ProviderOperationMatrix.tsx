@@ -74,7 +74,7 @@ export function ProviderOperationMatrix({ days, userId }: MatrixProps) {
 
   if (!data) return null
 
-  const providers = ['gemini', 'deepseek', 'groq', 'anthropic', 'ollama']
+  const providers = ['gemini', 'deepseek', 'groq', 'anthropic', 'openai', 'ollama']
   const operations = Object.keys(OPERATION_LABELS)
 
   // Fonction pour calculer intensité couleur (heatmap)

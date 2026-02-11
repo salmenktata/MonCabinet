@@ -62,7 +62,7 @@ export function CostBreakdownChart({ days, userId }: CostBreakdownProps) {
   if (!data) return null
 
   // Transformer les données pour le BarChart empilé
-  const providers = ['gemini', 'deepseek', 'groq', 'anthropic', 'ollama']
+  const providers = ['gemini', 'deepseek', 'groq', 'anthropic', 'openai', 'ollama']
   const operations = Object.keys(OPERATION_LABELS)
 
   const chartData = providers
