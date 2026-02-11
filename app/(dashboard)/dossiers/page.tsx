@@ -1,39 +1,30 @@
-import { query } from '@/lib/db/postgres'
-import { getSession } from '@/lib/auth/session'
+'use client'
+
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { useDossierList } from '@/lib/hooks/useDossiers'
 import DossierCard from '@/components/dossiers/DossierCard'
-import { getTranslations } from 'next-intl/server'
 
-export default async function DossiersPage() {
-  const t = await getTranslations('dossiers')
-  const session = await getSession()
+export default function DossiersPage() {
+  const t = useTranslations('dossiers')
 
-  if (!session?.user?.id) return null
+  const { data, isLoading, error } = useDossierList({
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  })
 
-  // Récupérer tous les dossiers avec les clients
-  const result = await query(
-    `SELECT d.*,
-      json_build_object(
-        'id', c.id,
-        'type_client', c.type_client,
-        'nom', c.nom,
-        'prenom', c.prenom,
-        'email', c.email,
-        'telephone', c.telephone,
-        'adresse', c.adresse,
-        'cin', c.cin,
-        'notes', c.notes,
-        'created_at', c.created_at,
-        'updated_at', c.updated_at,
-        'user_id', c.user_id
-      ) as clients
-    FROM dossiers d
-    LEFT JOIN clients c ON d.client_id = c.id
-    WHERE d.user_id = $1
-    ORDER BY d.created_at DESC`,
-    [session.user.id]
-  )
-  const dossiers = result.rows
+  const dossiers = data?.dossiers || []
+
+  // États de chargement et d'erreur
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+        <p className="text-sm text-destructive">
+          Erreur lors du chargement des dossiers: {error.message}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -69,7 +60,7 @@ export default async function DossiersPage() {
             {t('totalDossiers')}
           </div>
           <div className="mt-2 text-3xl font-bold text-blue-600">
-            {dossiers?.length || 0}
+            {isLoading ? '...' : dossiers.length}
           </div>
         </div>
 
@@ -78,7 +69,7 @@ export default async function DossiersPage() {
             {t('activeDossiers')}
           </div>
           <div className="mt-2 text-3xl font-bold text-green-600">
-            {dossiers?.filter((d) => d.statut === 'en_cours').length || 0}
+            {isLoading ? '...' : dossiers.filter((d) => d.status === 'in_progress').length}
           </div>
         </div>
 
@@ -87,7 +78,7 @@ export default async function DossiersPage() {
             {t('closedDossiers')}
           </div>
           <div className="mt-2 text-3xl font-bold text-muted-foreground">
-            {dossiers?.filter((d) => d.statut === 'clos').length || 0}
+            {isLoading ? '...' : dossiers.filter((d) => d.status === 'closed').length}
           </div>
         </div>
 
@@ -96,13 +87,20 @@ export default async function DossiersPage() {
             {t('civilProcedures')}
           </div>
           <div className="mt-2 text-3xl font-bold text-blue-600">
-            {dossiers?.filter((d) => d.type_procedure === 'civil').length || 0}
+            {isLoading ? '...' : dossiers.filter((d) => d.type === 'civil').length}
           </div>
         </div>
       </div>
 
       {/* Liste des dossiers */}
-      {dossiers && dossiers.length > 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <span>Chargement des dossiers...</span>
+          </div>
+        </div>
+      ) : dossiers && dossiers.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {dossiers.map((dossier) => (
             <DossierCard key={dossier.id} dossier={dossier} />
