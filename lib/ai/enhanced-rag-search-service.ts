@@ -127,7 +127,7 @@ export async function enhancedSemanticSearch(
   } = {}
 ): Promise<EnhancedSearchResult[]> {
   const limit = options.limit || 10
-  const threshold = options.threshold || 0.65
+  const threshold = options.threshold || 0.50  // Réduit de 0.65 à 0.50 pour Ollama CPU-only (embeddings moins précis)
 
   try {
     // 1. Générer embedding de la requête
@@ -354,7 +354,7 @@ export async function enhancedSemanticSearchWithChunks(
   } = {}
 ): Promise<EnhancedSearchResult[]> {
   const limit = options.limit || 10
-  const threshold = options.threshold || 0.65
+  const threshold = options.threshold || 0.50  // Réduit de 0.65 à 0.50 pour Ollama CPU-only (embeddings moins précis)
 
   try {
     // 1. Générer embedding de la requête
