@@ -1,36 +1,64 @@
-import { query } from '@/lib/db/postgres'
-import { getSession } from '@/lib/auth/session'
-import { notFound } from 'next/navigation'
+'use client'
+
+import { notFound, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { useClient } from '@/lib/hooks/useClients'
 import ClientForm from '@/components/clients/ClientForm'
-import { getTranslations } from 'next-intl/server'
 
-interface ClientDetailPageProps {
-  params: Promise<{ id: string }>
-}
+export default function ClientDetailPage() {
+  const params = useParams()
+  const id = params?.id as string
+  const t = useTranslations('clients')
 
-export default async function ClientDetailPage({ params }: ClientDetailPageProps) {
-  const { id } = await params
-  const session = await getSession()
-  const t = await getTranslations('clients')
+  const { data: client, isLoading, error } = useClient(id, {
+    enabled: !!id,
+  })
 
-  if (!session?.user?.id) return null
+  // Gestion erreur
+  if (error) {
+    if (error.message.includes('404') || error.message.includes('non trouvé')) {
+      notFound()
+    }
 
-  // Récupérer toutes les données EN PARALLÈLE (optimisation performance)
-  const [clientResult, dossiersResult] = await Promise.all([
-    query('SELECT * FROM clients WHERE id = $1 AND user_id = $2', [id, session.user.id]),
-    query('SELECT * FROM dossiers WHERE client_id = $1 AND user_id = $2 ORDER BY created_at DESC', [id, session.user.id]),
-  ])
+    return (
+      <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+        <p className="text-sm text-destructive">
+          Erreur lors du chargement du client: {error.message}
+        </p>
+      </div>
+    )
+  }
 
-  const client = clientResult.rows[0]
-  const dossiers = dossiersResult.rows
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-96 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <span>Chargement du client...</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
+  // Pas de client
   if (!client) {
     notFound()
   }
 
+  const dossiers = client.dossiers || []
+
   const displayName =
-    client.type_client === 'personne_physique'
+    client.typeClient === 'particulier' || client.typeClient === 'personne_physique'
       ? `${client.nom} ${client.prenom || ''}`.trim()
       : client.nom
 
@@ -87,19 +115,19 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{t('activeDossiersCount')}</span>
                 <span className="text-lg font-bold text-blue-600">
-                  {dossiers?.filter((d) => d.statut === 'en_cours').length || 0}
+                  {dossiers.filter((d: any) => d.statut === 'en_cours').length}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{t('closedDossiersCount')}</span>
                 <span className="text-lg font-bold text-muted-foreground">
-                  {dossiers?.filter((d) => d.statut === 'clos').length || 0}
+                  {dossiers.filter((d: any) => d.statut === 'clos').length}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{t('totalDossiersCount')}</span>
                 <span className="text-lg font-bold text-foreground">
-                  {dossiers?.length || 0}
+                  {dossiers.length}
                 </span>
               </div>
             </div>
@@ -110,9 +138,9 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             <h3 className="text-sm font-medium text-muted-foreground mb-4">
               {t('recentDossiers')}
             </h3>
-            {dossiers && dossiers.length > 0 ? (
+            {dossiers.length > 0 ? (
               <div className="space-y-3">
-                {dossiers.slice(0, 5).map((dossier) => (
+                {dossiers.slice(0, 5).map((dossier: any) => (
                   <Link
                     key={dossier.id}
                     href={`/dossiers/${dossier.id}`}
