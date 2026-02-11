@@ -219,7 +219,7 @@ async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResul
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: aiConfig.ollama.embeddingModel,
-        prompt: text.substring(0, 8000), // Tronquer pour contexte qwen3-embedding (~8192 tokens)
+        prompt: text.substring(0, 6500), // Limite ~7800 tokens (ratio 1.2 char/token)
         keep_alive: '10m', // Garder le modèle en mémoire 10min (évite le rechargement)
       }),
       signal: controller.signal,
@@ -332,7 +332,7 @@ async function generateEmbeddingWithOpenAI(text: string): Promise<EmbeddingResul
 
   const response = await client.embeddings.create({
     model: aiConfig.openai.embeddingModel,
-    input: text.substring(0, 8000),
+    input: text.substring(0, 6500), // Limite 8192 tokens (ratio ~1.2)
     dimensions: aiConfig.openai.embeddingDimensions, // 1024 (compatible pgvector)
   })
 
