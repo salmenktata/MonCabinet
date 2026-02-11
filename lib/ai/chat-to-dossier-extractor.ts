@@ -159,15 +159,12 @@ export async function extractDossierDataFromChat(
 
     // Appeler le LLM avec fallback
     const response = await callLLMWithFallback(
-      EXTRACTION_PROMPT + '\n\n' + conversationContext,
-      false, // Mode rapide par défaut (Ollama)
+      [{ role: 'user', content: EXTRACTION_PROMPT + '\n\n' + conversationContext }],
       {
-        operation: 'extraction',
-        metadata: {
-          conversationId,
-          messageCount: relevantMessages.length,
-        },
-      }
+        temperature: 0.1, // Précision maximale pour extraction
+        maxTokens: 2000,
+      },
+      false // Mode rapide par défaut (Ollama)
     )
 
     // Parser la réponse JSON

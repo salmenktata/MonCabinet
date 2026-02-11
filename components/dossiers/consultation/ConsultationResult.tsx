@@ -215,16 +215,12 @@ export function ConsultationResult({ result, onNewConsultation }: ConsultationRe
           sources: result.sources.map((s) => ({
             id: s.id,
             type: s.type || 'unknown',
-            title: s.title,
-            category: s.category,
+            title: s.titre,
           })),
           metadata: {
             hasJurisprudence: result.sources.some((s) => s.type === 'jurisprudence'),
             hasCode: result.sources.some((s) => s.type === 'code' || s.type === 'legislation'),
             hasDoctrine: result.sources.some((s) => s.type === 'doctrine'),
-            categories: result.sources
-              .map((s) => s.category)
-              .filter((c): c is string => c !== undefined && c !== null),
           },
         }}
         className="mb-6"

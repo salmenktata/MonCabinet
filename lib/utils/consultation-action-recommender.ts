@@ -133,7 +133,7 @@ export function recommendActionsFromConsultation(
       icon: 'Calendar',
       titre: 'Créer des échéances',
       description: 'Ajouter les délais mentionnés à votre calendrier',
-      priorite: 'urgente',
+      priorite: 'urgent',
       dureeEstimee: '2 min',
       action: {
         type: 'navigate',
