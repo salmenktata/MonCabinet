@@ -10,17 +10,53 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type {
-  RAGSearchParams,
-  RAGSearchResult,
-  RAGMetrics,
-} from '@/lib/ai/unified-rag-service'
-
 // =============================================================================
-// TYPES
+// TYPES (locaux — correspondent à la réponse API /api/client/kb/search)
 // =============================================================================
 
-export interface UseRAGSearchParams extends Omit<RAGSearchParams, 'question'> {
+export interface RAGSearchParams {
+  question: string
+  filters?: {
+    category?: string
+    domain?: string
+    tribunal?: string
+    chambre?: string
+    language?: 'fr' | 'ar' | 'bi'
+    dateFrom?: string
+    dateTo?: string
+  }
+  limit?: number
+  includeRelations?: boolean
+  sortBy?: 'relevance' | 'date' | 'citations'
+}
+
+export interface RAGSearchResult {
+  success: boolean
+  results?: Array<{
+    kbId: string
+    title: string
+    category: string
+    similarity: number
+    chunkContent?: string
+    metadata: Record<string, unknown>
+    relations?: Record<string, unknown>
+  }>
+  pagination?: {
+    total: number
+    limit: number
+    hasMore: boolean
+  }
+  metadata?: {
+    processingTimeMs: number
+    cacheHit: boolean
+  }
+}
+
+export interface UseRAGSearchParams {
+  filters?: RAGSearchParams['filters']
+  limit?: number
+  includeRelations?: boolean
+  sortBy?: string
   enabled?: boolean
   staleTime?: number
   cacheTime?: number
@@ -34,7 +70,6 @@ export interface UseRAGSearchResult {
   isError: boolean
   error: Error | null
   refetch: () => void
-  metrics: RAGMetrics | undefined
 }
 
 export interface UseRAGMutationParams {
@@ -126,7 +161,6 @@ export function useRAGSearch(
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,
-    metrics: query.data?.metrics,
   }
 }
 

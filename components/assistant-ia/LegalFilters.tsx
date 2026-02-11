@@ -13,22 +13,21 @@
  * - Confiance minimum
  *
  * @module components/assistant-ia/LegalFilters
+ *
+ * Sprint 6 - Phase 2 : Migration React Query
+ * - Remplacé fetch() manuel par useAllTaxonomies()
+ * - Cache 30min taxonomie (données stables)
  */
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Calendar, Filter, X, ChevronDown, ChevronUp } from 'lucide-react'
 import type { EnhancedSearchFilters } from '@/lib/ai/enhanced-rag-search-service'
+import { useAllTaxonomies } from '@/lib/hooks/useTaxonomy'
 
 // =============================================================================
 // TYPES
 // =============================================================================
-
-interface TaxonomyOption {
-  code: string
-  labelFr: string
-  labelAr: string
-}
 
 interface LegalFiltersProps {
   /** Filtres actuels */
@@ -56,17 +55,15 @@ export default function LegalFilters({
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
   const [localFilters, setLocalFilters] = useState<EnhancedSearchFilters>(filters)
 
-  // Options taxonomie (chargées depuis l'API)
-  const [tribunaux, setTribunaux] = useState<TaxonomyOption[]>([])
-  const [chambres, setChambres] = useState<TaxonomyOption[]>([])
-  const [domaines, setDomaines] = useState<TaxonomyOption[]>([])
-  const [typesDocument, setTypesDocument] = useState<TaxonomyOption[]>([])
-  const [loading, setLoading] = useState(true)
+  // Charger toutes les taxonomies avec React Query
+  const taxonomies = useAllTaxonomies()
 
-  // Charger les options depuis l'API
-  useEffect(() => {
-    loadTaxonomyOptions()
-  }, [])
+  // Données dérivées
+  const tribunaux = taxonomies.tribunaux?.items || []
+  const chambres = taxonomies.chambres?.items || []
+  const domaines = taxonomies.domaines?.items || []
+  const typesDocument = taxonomies.typesDocument?.items || []
+  const loading = taxonomies.isLoading
 
   // Synchroniser avec les query params de l'URL
   useEffect(() => {
@@ -109,43 +106,7 @@ export default function LegalFilters({
     }
   }, [searchParams])
 
-  const loadTaxonomyOptions = async () => {
-    try {
-      setLoading(true)
-
-      // Charger tribunaux
-      const tribunauxRes = await fetch('/api/taxonomy?type=tribunal')
-      if (tribunauxRes.ok) {
-        const data = await tribunauxRes.json()
-        setTribunaux(data.items || [])
-      }
-
-      // Charger chambres
-      const chambresRes = await fetch('/api/taxonomy?type=chambre')
-      if (chambresRes.ok) {
-        const data = await chambresRes.json()
-        setChambres(data.items || [])
-      }
-
-      // Charger domaines
-      const domainesRes = await fetch('/api/taxonomy?type=domain')
-      if (domainesRes.ok) {
-        const data = await domainesRes.json()
-        setDomaines(data.items || [])
-      }
-
-      // Charger types de document
-      const typesRes = await fetch('/api/taxonomy?type=document_type')
-      if (typesRes.ok) {
-        const data = await typesRes.json()
-        setTypesDocument(data.items || [])
-      }
-    } catch (error) {
-      console.error('Erreur chargement taxonomie:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Fonction loadTaxonomyOptions supprimée - remplacée par useAllTaxonomies()
 
   const handleFilterChange = (key: keyof EnhancedSearchFilters, value: any) => {
     const newFilters = { ...localFilters, [key]: value }

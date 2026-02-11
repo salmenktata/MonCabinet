@@ -74,7 +74,7 @@ export interface TimelineStats {
   }>
 }
 
-interface TimelineViewerProps {
+export interface TimelineViewerProps {
   events: TimelineEvent[]
   stats: TimelineStats
   onFilter?: (filters: TimelineFilters) => void

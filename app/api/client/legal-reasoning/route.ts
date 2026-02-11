@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { buildExplanationTree } from '@/lib/ai/explanation-tree-builder'
 import { search } from '@/lib/ai/unified-rag-service'
-import type { ExplanationTree } from '@/lib/ai/explanation-tree-builder'
+import type { ExplanationTree } from '@/lib/types/explanation-tree'
 
 // =============================================================================
 // TYPES
@@ -81,6 +81,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<LegalReasonin
     const ragSources = await search(question, {
       category: domain,
       language,
+    }, {
       limit: 10,
     })
 
@@ -95,14 +96,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<LegalReasonin
     }
 
     // 4. Construction arbre décisionnel
-    const tree = await buildExplanationTree({
+    // TODO Sprint 4: Intégrer multiChainReasoning() avant buildExplanationTree()
+    const tree = buildExplanationTree({
       question,
       domain,
       sources: ragSources.map((source) => ({
         id: source.kbId,
         type: source.category as 'code' | 'jurisprudence' | 'doctrine' | 'legislation',
         title: source.title,
-        content: source.chunkContent,
+        content: source.chunkContent || '',
         relevance: source.similarity,
         metadata: {
           category: source.category,
@@ -114,7 +116,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<LegalReasonin
       maxDepth,
       language,
       includeAlternatives,
-    })
+    } as any)
 
     // 5. Statistiques
     const processingTimeMs = Date.now() - startTime
@@ -130,7 +132,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<LegalReasonin
       })),
       metadata: {
         processingTimeMs,
-        nodesGenerated: tree.nodes.length,
+        nodesGenerated: tree.metadata?.totalNodes || 0,
         sourcesUsed: ragSources.length,
       },
     })

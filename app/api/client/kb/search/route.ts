@@ -94,33 +94,18 @@ export async function POST(req: NextRequest): Promise<NextResponse<KBSearchRespo
       category: filters.category,
       domain: filters.domain,
       language: filters.language,
-      limit,
-    }
-
-    // Filtres métadonnées avancés
-    if (filters.tribunal || filters.chambre || filters.dateFrom || filters.dateTo) {
-      ragFilters.metadataFilters = {}
-
-      if (filters.tribunal) {
-        ragFilters.metadataFilters.tribunalCode = filters.tribunal
-      }
-
-      if (filters.chambre) {
-        ragFilters.metadataFilters.chambreCode = filters.chambre
-      }
-
-      if (filters.dateFrom || filters.dateTo) {
-        ragFilters.metadataFilters.decisionDateRange = {
-          from: filters.dateFrom ? new Date(filters.dateFrom) : undefined,
-          to: filters.dateTo ? new Date(filters.dateTo) : undefined,
-        }
-      }
+      tribunal: filters.tribunal,
+      chambre: filters.chambre,
+      dateRange: (filters.dateFrom || filters.dateTo) ? {
+        from: filters.dateFrom ? new Date(filters.dateFrom) : undefined,
+        to: filters.dateTo ? new Date(filters.dateTo) : undefined,
+      } : undefined,
     }
 
     // 4. Recherche RAG
     const results = await search(query, ragFilters, {
+      limit,
       includeRelations,
-      useCache: true,
     })
 
     // 5. Tri si nécessaire
@@ -204,7 +189,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<KBSearchRespon
     }
 
     // 3. Recherche simple
-    const results = await search(query, { category, limit })
+    const results = await search(query, { category }, { limit })
 
     const processingTimeMs = Date.now() - startTime
 

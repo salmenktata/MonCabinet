@@ -40,7 +40,7 @@ import type { RAGSearchResult } from '@/lib/ai/unified-rag-service'
 // TYPES
 // =============================================================================
 
-interface DocumentExplorerProps {
+export interface DocumentExplorerProps {
   /** @deprecated onSearch prop is no longer used - component now uses React Query internally */
   onSearch?: (query: string, filters: DocumentFilters) => Promise<RAGSearchResult[]>
   initialResults?: RAGSearchResult[]

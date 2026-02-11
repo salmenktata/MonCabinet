@@ -11,9 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { buildJurisprudenceTimeline } from '@/lib/ai/jurisprudence-timeline-service'
 import type {
-  TimelineEvent,
-  TimelineStats,
-  TimelineFilters as ServiceFilters,
+  TimelineOptions,
 } from '@/lib/ai/jurisprudence-timeline-service'
 
 // =============================================================================
@@ -76,28 +74,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<TimelineRespo
       )
     }
 
-    // 3. Construction filtres service
-    const serviceFilters: ServiceFilters = {
+    // 3. Construction options timeline
+    const timelineOptions: TimelineOptions = {
       domain: filters.domain,
       tribunalCode: filters.tribunalCode,
-      chambreCode: filters.chambreCode,
-      eventType: filters.eventType,
-    }
-
-    // Date range
-    if (filters.dateFrom || filters.dateTo) {
-      serviceFilters.dateRange = {
-        from: filters.dateFrom ? new Date(filters.dateFrom) : undefined,
-        to: filters.dateTo ? new Date(filters.dateTo) : undefined,
-      }
+      dateFrom: filters.dateFrom ? new Date(filters.dateFrom) : undefined,
+      dateTo: filters.dateTo ? new Date(filters.dateTo) : undefined,
+      limit,
     }
 
     // 4. Construction timeline
-    const timeline = await buildJurisprudenceTimeline({
-      filters: serviceFilters,
-      limit,
-      includeStats,
-    })
+    const timeline = await buildJurisprudenceTimeline(timelineOptions)
 
     // 5. Statistiques et métadonnées
     const processingTimeMs = Date.now() - startTime
@@ -154,9 +141,8 @@ export async function GET(req: NextRequest): Promise<NextResponse<TimelineRespon
 
     // 3. Construction timeline simple
     const timeline = await buildJurisprudenceTimeline({
-      filters: { domain },
+      domain,
       limit,
-      includeStats: true,
     })
 
     const processingTimeMs = Date.now() - startTime

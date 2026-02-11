@@ -290,7 +290,7 @@ export function useTimelineInfiniteScroll(
         offset: pageParam,
       }),
     initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
+    getNextPageParam: (lastPage: TimelineQueryResult, allPages: TimelineQueryResult[]) => {
       if (!lastPage.hasMore) return undefined
       return allPages.length * (params?.limit || 50)
     },
@@ -379,29 +379,26 @@ export function useFilteredEvents(
 
   return events.filter((event) => {
     // Filter by domain
-    if (filters.domain && event.metadata.domain !== filters.domain) {
+    if (filters.domain && event.domain !== filters.domain) {
       return false
     }
 
     // Filter by tribunal
-    if (filters.tribunal && event.metadata.tribunal !== filters.tribunal) {
+    if (filters.tribunalCode && event.tribunalCode !== filters.tribunalCode) {
       return false
     }
 
     // Filter by eventType
-    if (
-      filters.eventType &&
-      filters.eventType.length > 0 &&
-      !filters.eventType.includes(event.eventType)
-    ) {
+    if (filters.eventType && event.eventType !== filters.eventType) {
       return false
     }
 
-    // Filter by year range
-    if (filters.yearRange) {
-      const year = event.date.getFullYear()
-      if (filters.yearRange.start && year < filters.yearRange.start) return false
-      if (filters.yearRange.end && year > filters.yearRange.end) return false
+    // Filter by date range
+    if (filters.dateFrom && event.decisionDate && event.decisionDate < filters.dateFrom) {
+      return false
+    }
+    if (filters.dateTo && event.decisionDate && event.decisionDate > filters.dateTo) {
+      return false
     }
 
     return true
@@ -441,7 +438,7 @@ export function groupEventsByYear(
 ): Record<number, TimelineEvent[]> {
   return events.reduce(
     (acc, event) => {
-      const year = event.date.getFullYear()
+      const year = event.decisionDate?.getFullYear() || 0
       if (!acc[year]) acc[year] = []
       acc[year].push(event)
       return acc
