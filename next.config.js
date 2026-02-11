@@ -126,6 +126,7 @@ const nextConfig = {
   // Redirections pour simplification super admin (Feb 2026)
   async redirects() {
     return [
+      // Review Queue (Tâche 1.1)
       {
         source: '/super-admin/classification',
         destination: '/super-admin/review-queue?tab=classification',
@@ -134,6 +135,17 @@ const nextConfig = {
       {
         source: '/super-admin/content-review',
         destination: '/super-admin/review-queue?tab=content',
+        permanent: true,
+      },
+      // KB Management (Tâche 1.2)
+      {
+        source: '/super-admin/kb-quality',
+        destination: '/super-admin/kb-management?tab=health',
+        permanent: true,
+      },
+      {
+        source: '/super-admin/kb-quality-review',
+        destination: '/super-admin/kb-management?tab=validation',
         permanent: true,
       },
     ]

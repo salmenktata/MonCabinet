@@ -78,7 +78,7 @@ const getNavGroups = (
   {
     group: 'Qualité',
     items: [
-      { href: '/super-admin/kb-quality-review', label: 'KB Quality Review', icon: 'clipboardCheck' },
+      { href: '/super-admin/kb-management', label: 'Gestion KB', icon: 'database' },
       { href: '/super-admin/legal-quality', label: 'Legal Quality', icon: 'shield' },
       { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
       {
