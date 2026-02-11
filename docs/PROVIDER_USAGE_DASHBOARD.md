@@ -6,8 +6,12 @@ Ce dashboard permet de suivre la consommation des tokens et les coûts des diff�
 
 ## Accès
 
-- **URL** : `/super-admin/provider-usage`
+Le dashboard Provider Usage est accessible via :
+- **Menu** : Super Admin → Monitoring → Onglet "Providers"
+- **URL directe** : `/super-admin/monitoring` (puis cliquer sur l'onglet "Providers")
 - **Rôle requis** : Super Admin uniquement
+
+> ℹ️ **Note** : Depuis février 2026, le dashboard Provider Usage est intégré dans le Dashboard Monitoring unifié (Option B du plan de consolidation). Il n'existe plus de page standalone `/super-admin/provider-usage`.
 
 ## Providers Trackés
 

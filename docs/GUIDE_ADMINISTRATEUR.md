@@ -409,23 +409,102 @@ export const ALERT_THRESHOLDS = {
 
 ### 4.3 Dashboard Provider Usage
 
-**URL** : `/super-admin/provider-usage`
+**Accès** : Menu → Super Admin → **Monitoring** → Onglet **"Providers"**
+**URL directe** : `/super-admin/monitoring` (puis cliquer sur onglet "Providers")
 
-#### Matrice Coûts
+> ℹ️ **Architecture** : Intégré dans le Dashboard Monitoring unifié depuis février 2026 (Option B - Consolidation)
 
-| Provider | Embedding | Chat | Classification | Total (7j) | Part |
-|----------|-----------|------|---------------|-----------|------|
-| Ollama (local) | 0.00 TND | 0.00 TND | 0.00 TND | **0.00 TND** | 60% |
-| Groq (cloud) | 0.50 TND | 2.30 TND | 0.20 TND | **3.00 TND** | 25% |
-| DeepSeek (cloud) | 0.30 TND | 1.50 TND | 0.10 TND | **1.90 TND** | 10% |
-| Anthropic (cloud) | 0.20 TND | 1.00 TND | 0.05 TND | **1.25 TND** | 5% |
+#### Métriques Affichées
 
-**Objectif** : Maintenir Ollama >50% (mode Rapide gratuit)
+##### 1. Matrice Provider × Opération (Heatmap)
 
-**Action si Ollama <30%** :
-1. Vérifier service Ollama : `systemctl status ollama`
+Tableau matriciel avec couleurs heatmap montrant la consommation par intersection (provider, opération).
+
+**Lecture** :
+- **Couleur** : Plus la cellule est rouge foncé, plus le coût est élevé
+- **3 métriques par cellule** :
+  - Ligne 1 : Coût en USD (converti en TND)
+  - Ligne 2 : Nombre total de tokens
+  - Ligne 3 : Nombre de requêtes
+- **Totaux** : Dernière colonne (par opération) et dernière ligne (par provider)
+
+**Providers trackés** :
+- **Gemini** (Google) - Bleu
+- **DeepSeek** - Violet
+- **Groq** - Orange
+- **Anthropic** (Claude) - Rouge
+- **Ollama** (local) - Vert
+
+**Opérations trackées** :
+- `embedding` : Indexation KB/web pages
+- `chat` : Réponses utilisateurs via RAG
+- `generation` : Génération documents juridiques
+- `classification` : Classification automatique
+- `extraction` : Extraction métadonnées
+
+##### 2. Tendances Temporelles (LineChart)
+
+Graphique en ligne montrant l'évolution quotidienne du nombre de tokens par provider.
+
+**Utilité** :
+- Identifier les pics d'utilisation
+- Détecter les anomalies (ex: boucle infinie)
+- Suivre les tendances d'adoption des providers
+
+##### 3. Distribution par Opération (PieChart)
+
+Graphique circulaire montrant la répartition des coûts par type d'opération.
+
+**Utilité** :
+- Identifier les opérations les plus coûteuses
+- Prioriser les optimisations
+
+##### 4. Coûts Détaillés par Provider (BarChart)
+
+Graphique à barres empilées montrant les coûts par provider, décomposés par opération.
+
+**Utilité** :
+- Comparer les providers entre eux
+- Voir quelle opération coûte le plus pour chaque provider
+
+#### Sélection de Période
+
+Deux boutons en haut à droite :
+- **7 jours** : Vue détaillée récente (défaut)
+- **30 jours** : Vue d'ensemble mensuelle
+
+#### Interprétation et Actions
+
+##### Si Gemini > 80% des coûts
+→ **Action** : Considérer basculer opérations lourdes vers DeepSeek (4x moins cher)
+
+##### Si Ollama a beaucoup d'erreurs
+→ **Action** : Vérifier le circuit breaker sur `/super-admin/ai-costs`
+
+##### Si coût total > budget mensuel
+→ **Action** : Activer quotas utilisateurs dans `feature_flags`
+
+##### Si un provider a un pic anormal
+→ **Action** :
+1. Vérifier les logs dans `/super-admin/audit-logs`
+2. Filtrer par date du pic
+3. Identifier l'opération responsable
+4. Analyser le code correspondant
+
+#### Objectifs de Performance
+
+| Métrique | Objectif | Alerte si |
+|----------|----------|-----------|
+| **Ollama (local)** | >50% des requêtes | <30% (service down?) |
+| **Coût total (7j)** | <5 TND | >15 TND |
+| **Latence API** | <500ms | >1s |
+| **Cache hit rate** | >60% | <40% |
+
+**Si Ollama <30%** :
+1. Vérifier service : `systemctl status ollama`
 2. Redémarrer si down : `systemctl restart ollama`
 3. Analyser logs : `journalctl -u ollama -f`
+4. Vérifier modèles chargés : `curl http://localhost:11434/api/tags`
 
 ---
 
