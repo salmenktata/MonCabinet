@@ -74,12 +74,15 @@ export default function LegalQualityPage() {
     setLoading(true)
     try {
       const response = await fetch('/api/admin/legal-quality/metrics')
-      if (!response.ok) throw new Error('Erreur chargement métriques')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(`Erreur ${response.status}: ${errorData.error || response.statusText}`)
+      }
       const data = await response.json()
       setComparison(data)
     } catch (error) {
       console.error('[Legal Quality] Erreur:', error)
-      alert('Erreur lors du chargement des métriques')
+      alert(`Erreur lors du chargement des métriques: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
     } finally {
       setLoading(false)
     }
