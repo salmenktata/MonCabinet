@@ -93,13 +93,13 @@ echo "Notify: $NOTIFY"
 echo -e "${YELLOW}💾 Backup PostgreSQL...${NC}"
 
 # Vérifier que container tourne
-if ! docker ps | grep -q moncabinet-postgres; then
+if ! docker ps | grep -q qadhya-postgres; then
   echo -e "${RED}❌ Container PostgreSQL non démarré!${NC}"
   exit 1
 fi
 
 # Dump SQL compressé
-docker exec moncabinet-postgres pg_dump -U moncabinet moncabinet | gzip > "$BACKUP_DIR/db_$DATE.sql.gz"
+docker exec qadhya-postgres pg_dump -U moncabinet qadhya | gzip > "$BACKUP_DIR/db_$DATE.sql.gz"
 
 if [ $? -eq 0 ]; then
   SIZE=$(du -h "$BACKUP_DIR/db_$DATE.sql.gz" | cut -f1)
@@ -121,14 +121,14 @@ MINIO_BACKUP_DIR="$BACKUP_DIR/minio_$DATE"
 mkdir -p "$MINIO_BACKUP_DIR"
 
 # Vérifier que container MinIO tourne
-if ! docker ps | grep -q moncabinet-minio; then
+if ! docker ps | grep -q qadhya-minio; then
   echo -e "${RED}❌ Container MinIO non démarré!${NC}"
   exit 1
 fi
 
 # Vérifier si le bucket documents existe
 BUCKET_EXISTS=$(docker run --rm \
-  --network moncabinet_moncabinet-network \
+  --network qadhya_default \
   -e MC_HOST_myminio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
   minio/mc:latest \
   ls myminio/documents 2>&1 || true)
@@ -139,7 +139,7 @@ if echo "$BUCKET_EXISTS" | grep -q "does not exist"; then
 else
   # Mirror bucket documents via MinIO client
   docker run --rm \
-    --network moncabinet_moncabinet-network \
+    --network qadhya_default \
     -v "$MINIO_BACKUP_DIR:/backup" \
     -e MC_HOST_myminio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
     minio/mc:latest \

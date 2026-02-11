@@ -250,7 +250,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Détecter le container PostgreSQL
+    // Détecter le container PostgreSQL (qadhya-postgres ou moncabinet-postgres)
     let containerName: string
     try {
       const { stdout } = await execAsync(
@@ -264,7 +264,8 @@ export async function PUT(request: NextRequest) {
           { status: 500 }
         )
       }
-      containerName = containers[0]
+      // Prioriser qadhya-postgres si disponible
+      containerName = containers.find(c => c.includes('qadhya')) || containers[0]
     } catch {
       return NextResponse.json(
         { error: 'Impossible de détecter le container PostgreSQL' },
