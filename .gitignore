@@ -88,3 +88,4 @@ audit-rag-*.csv
 scripts/test-db/snapshots/
 *.sql.gz
 prod_*.sql
+.secrets/
