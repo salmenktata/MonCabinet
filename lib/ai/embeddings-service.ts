@@ -7,7 +7,7 @@
  */
 
 import OpenAI from 'openai'
-import { aiConfig, getEmbeddingProvider } from './config'
+import { aiConfig, getEmbeddingProvider, getEmbeddingFallbackProvider, EMBEDDING_TURBO_CONFIG } from './config'
 import { getCachedEmbedding, setCachedEmbedding } from '@/lib/cache/embedding-cache'
 import { countTokens } from './token-utils'
 
@@ -177,13 +177,17 @@ export function resetCircuitBreaker(): void {
 export interface EmbeddingResult {
   embedding: number[]
   tokenCount: number
-  provider: 'ollama'
+  provider: 'ollama' | 'openai'
 }
 
 export interface BatchEmbeddingResult {
   embeddings: number[][]
   totalTokens: number
-  provider: 'ollama'
+  provider: 'ollama' | 'openai'
+}
+
+export interface EmbeddingOptions {
+  forceTurbo?: boolean
 }
 
 interface OllamaEmbeddingResponse {
@@ -304,9 +308,90 @@ async function generateEmbeddingsBatchWithOllama(
 }
 
 // =============================================================================
-// OPENAI EMBEDDINGS - SUPPRIMÉ
+// OPENAI EMBEDDINGS (Fallback + Mode Turbo)
 // =============================================================================
-// Migration vers Ollama uniquement - plus de fallback OpenAI
+
+let openaiClient: OpenAI | null = null
+
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    if (!aiConfig.openai.apiKey) {
+      throw new Error('OpenAI API key non configurée (OPENAI_API_KEY)')
+    }
+    openaiClient = new OpenAI({ apiKey: aiConfig.openai.apiKey })
+  }
+  return openaiClient
+}
+
+/**
+ * Génère un embedding via OpenAI (text-embedding-3-small, 1024 dimensions)
+ * Coût: ~$0.02 / 1M tokens (~0.00001$ par embedding)
+ */
+async function generateEmbeddingWithOpenAI(text: string): Promise<EmbeddingResult> {
+  const client = getOpenAIClient()
+
+  const response = await client.embeddings.create({
+    model: aiConfig.openai.embeddingModel,
+    input: text.substring(0, 8000),
+    dimensions: aiConfig.openai.embeddingDimensions, // 1024 (compatible pgvector)
+  })
+
+  const embedding = response.data[0].embedding
+
+  // Valider l'embedding
+  const validation = validateEmbedding(embedding, 'openai')
+  if (!validation.valid) {
+    throw new Error(`Embedding OpenAI invalide: ${validation.error}`)
+  }
+
+  return {
+    embedding,
+    tokenCount: response.usage.total_tokens,
+    provider: 'openai',
+  }
+}
+
+/**
+ * Génère des embeddings en batch via OpenAI (natif, jusqu'à 2048 textes/appel)
+ * Beaucoup plus rapide que Ollama : ~0.1s pour un batch vs ~19s/embedding
+ */
+async function generateEmbeddingsBatchWithOpenAI(
+  texts: string[]
+): Promise<BatchEmbeddingResult> {
+  if (texts.length === 0) {
+    return { embeddings: [], totalTokens: 0, provider: 'openai' }
+  }
+
+  const client = getOpenAIClient()
+
+  // OpenAI supporte jusqu'à 2048 inputs par appel
+  const MAX_BATCH = 2048
+  const allEmbeddings: number[][] = []
+  let totalTokens = 0
+
+  for (let i = 0; i < texts.length; i += MAX_BATCH) {
+    const batch = texts.slice(i, i + MAX_BATCH).map(t => t.substring(0, 8000))
+
+    const response = await client.embeddings.create({
+      model: aiConfig.openai.embeddingModel,
+      input: batch,
+      dimensions: aiConfig.openai.embeddingDimensions,
+    })
+
+    // Trier par index pour garantir l'ordre
+    const sorted = response.data.sort((a, b) => a.index - b.index)
+    for (const item of sorted) {
+      allEmbeddings.push(item.embedding)
+    }
+    totalTokens += response.usage.total_tokens
+  }
+
+  return {
+    embeddings: allEmbeddings,
+    totalTokens,
+    provider: 'openai',
+  }
+}
 
 // =============================================================================
 // FONCTIONS PRINCIPALES (avec fallback automatique)
@@ -314,34 +399,111 @@ async function generateEmbeddingsBatchWithOllama(
 
 /**
  * Génère un embedding pour un texte unique
- * Utilise Ollama uniquement (pas de fallback OpenAI)
- * Avec cache Redis pour éviter les régénérations.
- * Intègre le circuit breaker pour la résilience Ollama.
+ * Avec cache Redis, circuit breaker Ollama, et fallback OpenAI.
+ *
+ * Chaîne de résolution :
+ * - Mode turbo (forceTurbo=true ou EMBEDDING_TURBO_MODE=true) → OpenAI direct
+ * - Mode normal → Ollama, puis fallback OpenAI si circuit breaker OPEN
+ * - Pas d'OpenAI configuré → throw (comportement actuel)
+ *
  * @param text - Texte à encoder
+ * @param options - Options (forceTurbo pour utiliser OpenAI directement)
  * @returns Vecteur embedding
  */
-export async function generateEmbedding(text: string): Promise<EmbeddingResult> {
+export async function generateEmbedding(
+  text: string,
+  options?: EmbeddingOptions
+): Promise<EmbeddingResult> {
+  const turbo = options?.forceTurbo || EMBEDDING_TURBO_CONFIG.enabled
+
   // Vérifier le cache d'abord
   const cached = await getCachedEmbedding(text)
   if (cached) {
     return {
       embedding: cached.embedding,
       tokenCount: countTokens(text),
-      provider: cached.provider as 'ollama',
+      provider: cached.provider as 'ollama' | 'openai',
     }
   }
 
   const provider = getEmbeddingProvider()
+  const fallbackProvider = getEmbeddingFallbackProvider()
 
-  if (provider !== 'ollama') {
-    throw new Error(
-      'Service d\'embeddings non configuré. ' +
-      'Activez Ollama avec OLLAMA_ENABLED=true et démarrez "ollama serve".'
-    )
+  // Mode turbo : OpenAI direct (si disponible)
+  if (turbo && aiConfig.openai.apiKey) {
+    try {
+      const result = await generateEmbeddingWithOpenAI(text)
+      await setCachedEmbedding(text, result.embedding, result.provider)
+      return result
+    } catch (error) {
+      console.error('[Embeddings] Erreur OpenAI turbo:', error instanceof Error ? error.message : error)
+      // En turbo, si OpenAI échoue, tenter Ollama en fallback
+      if (provider === 'ollama' && canCallOllama()) {
+        try {
+          const result = await generateEmbeddingWithOllama(text)
+          recordOllamaSuccess()
+          await setCachedEmbedding(text, result.embedding, result.provider)
+          return result
+        } catch (ollamaError) {
+          recordOllamaFailure()
+          throw new Error(
+            `Embeddings indisponibles (OpenAI et Ollama en échec). ` +
+            `OpenAI: ${error instanceof Error ? error.message : error}. ` +
+            `Ollama: ${ollamaError instanceof Error ? ollamaError.message : ollamaError}`
+          )
+        }
+      }
+      throw error
+    }
   }
 
-  // Vérifier le circuit breaker avant d'appeler Ollama
-  if (!canCallOllama()) {
+  // Mode normal : Ollama prioritaire
+  if (provider === 'ollama') {
+    if (canCallOllama()) {
+      try {
+        const result = await generateEmbeddingWithOllama(text)
+        recordOllamaSuccess()
+        await setCachedEmbedding(text, result.embedding, result.provider)
+        return result
+      } catch (error) {
+        recordOllamaFailure()
+        // Tenter fallback OpenAI
+        if (fallbackProvider === 'openai') {
+          console.log('[Embeddings] Ollama en échec, fallback vers OpenAI')
+          try {
+            const result = await generateEmbeddingWithOpenAI(text)
+            await setCachedEmbedding(text, result.embedding, result.provider)
+            return result
+          } catch (openaiError) {
+            throw new Error(
+              `Embeddings indisponibles (Ollama et OpenAI en échec). ` +
+              `Ollama: ${error instanceof Error ? error.message : error}. ` +
+              `OpenAI: ${openaiError instanceof Error ? openaiError.message : openaiError}`
+            )
+          }
+        }
+        throw new Error(
+          `Impossible de générer l'embedding : ${error instanceof Error ? error.message : error}. ` +
+          `Vérifiez qu'Ollama est démarré ("ollama serve") et que le modèle "${aiConfig.ollama.embeddingModel}" est disponible.`
+        )
+      }
+    }
+
+    // Circuit breaker OPEN : fallback OpenAI si disponible
+    if (fallbackProvider === 'openai') {
+      console.log('[Embeddings] Circuit breaker OPEN, fallback vers OpenAI')
+      try {
+        const result = await generateEmbeddingWithOpenAI(text)
+        await setCachedEmbedding(text, result.embedding, result.provider)
+        return result
+      } catch (error) {
+        throw new Error(
+          `Service d'embeddings indisponible (Ollama circuit breaker OPEN, OpenAI en échec). ` +
+          `OpenAI: ${error instanceof Error ? error.message : error}`
+        )
+      }
+    }
+
     const cbState = getCircuitBreakerState()
     const resetIn = Math.ceil((CIRCUIT_BREAKER_CONFIG.resetTimeout - cbState.lastFailureAgo!) / 1000)
     throw new Error(
@@ -350,41 +512,110 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
     )
   }
 
-  try {
-    const result = await generateEmbeddingWithOllama(text)
-    recordOllamaSuccess()
-    await setCachedEmbedding(text, result.embedding, result.provider)
-    return result
-  } catch (error) {
-    recordOllamaFailure()
-    throw new Error(
-      `Impossible de générer l'embedding : ${error instanceof Error ? error.message : error}. ` +
-      `Vérifiez qu'Ollama est démarré ("ollama serve") et que le modèle "${aiConfig.ollama.embeddingModel}" est disponible.`
-    )
+  // Provider OpenAI seul (pas d'Ollama)
+  if (provider === 'openai') {
+    try {
+      const result = await generateEmbeddingWithOpenAI(text)
+      await setCachedEmbedding(text, result.embedding, result.provider)
+      return result
+    } catch (error) {
+      throw new Error(
+        `Impossible de générer l'embedding OpenAI : ${error instanceof Error ? error.message : error}`
+      )
+    }
   }
+
+  throw new Error(
+    'Service d\'embeddings non configuré. ' +
+    'Activez Ollama avec OLLAMA_ENABLED=true ou configurez OPENAI_API_KEY.'
+  )
 }
 
 /**
  * Génère des embeddings pour plusieurs textes en batch
- * Plus efficace que des appels individuels
- * Intègre le circuit breaker pour la résilience Ollama.
+ * Même logique fallback/turbo que generateEmbedding().
+ *
+ * En mode turbo, OpenAI traite le batch nativement (très rapide).
+ * En mode normal, Ollama puis fallback OpenAI si circuit breaker OPEN.
+ *
  * @param texts - Liste de textes à encoder
+ * @param options - Options (forceTurbo pour utiliser OpenAI directement)
  * @returns Liste de vecteurs embeddings
  */
 export async function generateEmbeddingsBatch(
-  texts: string[]
+  texts: string[],
+  options?: EmbeddingOptions
 ): Promise<BatchEmbeddingResult> {
-  const provider = getEmbeddingProvider()
-
-  if (provider !== 'ollama') {
-    throw new Error(
-      'Service d\'embeddings non configuré. ' +
-      'Activez Ollama avec OLLAMA_ENABLED=true et démarrez "ollama serve".'
-    )
+  if (texts.length === 0) {
+    return { embeddings: [], totalTokens: 0, provider: 'ollama' }
   }
 
-  // Vérifier le circuit breaker avant d'appeler Ollama
-  if (!canCallOllama()) {
+  const turbo = options?.forceTurbo || EMBEDDING_TURBO_CONFIG.enabled
+  const provider = getEmbeddingProvider()
+  const fallbackProvider = getEmbeddingFallbackProvider()
+
+  // Mode turbo : OpenAI batch natif (très rapide)
+  if (turbo && aiConfig.openai.apiKey) {
+    try {
+      const result = await generateEmbeddingsBatchWithOpenAI(texts)
+      console.log(`[Embeddings] Turbo batch: ${texts.length} textes en une requête OpenAI`)
+      return result
+    } catch (error) {
+      console.error('[Embeddings] Erreur OpenAI turbo batch:', error instanceof Error ? error.message : error)
+      // Fallback Ollama si turbo échoue
+      if (provider === 'ollama' && canCallOllama()) {
+        try {
+          const result = await generateEmbeddingsBatchWithOllama(texts)
+          recordOllamaSuccess()
+          return result
+        } catch (ollamaError) {
+          recordOllamaFailure()
+          throw new Error(
+            `Embeddings batch indisponibles (OpenAI et Ollama en échec). ` +
+            `OpenAI: ${error instanceof Error ? error.message : error}. ` +
+            `Ollama: ${ollamaError instanceof Error ? ollamaError.message : ollamaError}`
+          )
+        }
+      }
+      throw error
+    }
+  }
+
+  // Mode normal : Ollama prioritaire
+  if (provider === 'ollama') {
+    if (canCallOllama()) {
+      try {
+        const result = await generateEmbeddingsBatchWithOllama(texts)
+        recordOllamaSuccess()
+        return result
+      } catch (error) {
+        recordOllamaFailure()
+        // Fallback OpenAI
+        if (fallbackProvider === 'openai') {
+          console.log('[Embeddings] Ollama batch en échec, fallback vers OpenAI')
+          try {
+            return await generateEmbeddingsBatchWithOpenAI(texts)
+          } catch (openaiError) {
+            throw new Error(
+              `Embeddings batch indisponibles (Ollama et OpenAI en échec). ` +
+              `Ollama: ${error instanceof Error ? error.message : error}. ` +
+              `OpenAI: ${openaiError instanceof Error ? openaiError.message : openaiError}`
+            )
+          }
+        }
+        throw new Error(
+          `Impossible de générer les embeddings batch : ${error instanceof Error ? error.message : error}. ` +
+          `Vérifiez qu'Ollama est démarré ("ollama serve") et que le modèle "${aiConfig.ollama.embeddingModel}" est disponible.`
+        )
+      }
+    }
+
+    // Circuit breaker OPEN : fallback OpenAI
+    if (fallbackProvider === 'openai') {
+      console.log('[Embeddings] Circuit breaker OPEN, fallback batch vers OpenAI')
+      return await generateEmbeddingsBatchWithOpenAI(texts)
+    }
+
     const cbState = getCircuitBreakerState()
     const resetIn = Math.ceil((CIRCUIT_BREAKER_CONFIG.resetTimeout - cbState.lastFailureAgo!) / 1000)
     throw new Error(
@@ -393,17 +624,15 @@ export async function generateEmbeddingsBatch(
     )
   }
 
-  try {
-    const result = await generateEmbeddingsBatchWithOllama(texts)
-    recordOllamaSuccess()
-    return result
-  } catch (error) {
-    recordOllamaFailure()
-    throw new Error(
-      `Impossible de générer les embeddings batch : ${error instanceof Error ? error.message : error}. ` +
-      `Vérifiez qu'Ollama est démarré ("ollama serve") et que le modèle "${aiConfig.ollama.embeddingModel}" est disponible.`
-    )
+  // Provider OpenAI seul
+  if (provider === 'openai') {
+    return await generateEmbeddingsBatchWithOpenAI(texts)
   }
+
+  throw new Error(
+    'Service d\'embeddings non configuré. ' +
+    'Activez Ollama avec OLLAMA_ENABLED=true ou configurez OPENAI_API_KEY.'
+  )
 }
 
 /**
@@ -448,9 +677,10 @@ export function parseEmbeddingFromPostgres(pgVector: string): number[] {
 // VALIDATION DES EMBEDDINGS
 // =============================================================================
 
-// Dimensions attendues par provider
+// Dimensions attendues par provider (les deux produisent 1024-dim)
 const EXPECTED_DIMENSIONS: Record<string, number> = {
   ollama: aiConfig.ollama.embeddingDimensions,
+  openai: aiConfig.openai.embeddingDimensions,
 }
 
 /**
@@ -459,7 +689,7 @@ const EXPECTED_DIMENSIONS: Record<string, number> = {
  */
 export function validateEmbedding(
   embedding: number[],
-  provider: 'ollama'
+  provider: 'ollama' | 'openai'
 ): { valid: boolean; error?: string } {
   // Vérifier que l'embedding existe
   if (!embedding || !Array.isArray(embedding)) {
@@ -523,7 +753,7 @@ export { countTokens, estimateTokenCount } from './token-utils'
  * Vérifie si le service d'embeddings est disponible
  */
 export function isEmbeddingsServiceAvailable(): boolean {
-  return aiConfig.ollama.enabled
+  return aiConfig.ollama.enabled || !!aiConfig.openai.apiKey
 }
 
 /**
@@ -547,12 +777,15 @@ export async function checkOllamaHealth(): Promise<boolean> {
  * Retourne les informations sur le provider d'embeddings actif
  */
 export function getEmbeddingProviderInfo(): {
-  provider: 'ollama' | null
+  provider: 'ollama' | 'openai' | null
   model: string
   dimensions: number
-  cost: 'free'
+  cost: 'free' | 'paid'
+  turboMode: boolean
+  fallback: 'openai' | null
 } {
   const provider = getEmbeddingProvider()
+  const fallback = getEmbeddingFallbackProvider()
 
   if (provider === 'ollama') {
     return {
@@ -560,6 +793,19 @@ export function getEmbeddingProviderInfo(): {
       model: aiConfig.ollama.embeddingModel,
       dimensions: aiConfig.ollama.embeddingDimensions,
       cost: 'free',
+      turboMode: EMBEDDING_TURBO_CONFIG.enabled,
+      fallback,
+    }
+  }
+
+  if (provider === 'openai') {
+    return {
+      provider: 'openai',
+      model: aiConfig.openai.embeddingModel,
+      dimensions: aiConfig.openai.embeddingDimensions,
+      cost: 'paid',
+      turboMode: EMBEDDING_TURBO_CONFIG.enabled,
+      fallback: null,
     }
   }
 
@@ -568,5 +814,7 @@ export function getEmbeddingProviderInfo(): {
     model: 'none',
     dimensions: 0,
     cost: 'free',
+    turboMode: false,
+    fallback: null,
   }
 }

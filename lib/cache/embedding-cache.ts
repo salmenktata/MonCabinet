@@ -12,7 +12,7 @@ import {
   REDIS_KEYS,
   CACHE_TTL,
 } from './redis'
-import { getEmbeddingProvider, getEmbeddingDimensions } from '@/lib/ai/config'
+import { getEmbeddingDimensions } from '@/lib/ai/config'
 
 // =============================================================================
 // TYPES
@@ -29,13 +29,14 @@ interface CachedEmbedding {
 // =============================================================================
 
 /**
- * Génère une clé de cache versionnée par provider+dimensions
- * Évite de retourner un embedding Ollama (1024-dim) quand on utilise OpenAI (1536-dim)
+ * Génère une clé de cache versionnée par dimensions uniquement.
+ * Puisque Ollama ET OpenAI produisent tous deux des vecteurs 1024-dim,
+ * un texte embeddé par l'un est réutilisable par l'autre (même espace vectoriel).
+ * Le provider est stocké dans la valeur cached pour l'audit.
  */
 function getVersionedCacheKey(textHash: string): string {
-  const provider = getEmbeddingProvider() || 'unknown'
   const dimensions = getEmbeddingDimensions()
-  return REDIS_KEYS.embedding(`${provider}:${dimensions}:${textHash}`)
+  return REDIS_KEYS.embedding(`${dimensions}:${textHash}`)
 }
 
 /**

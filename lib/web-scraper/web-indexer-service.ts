@@ -5,8 +5,11 @@
 
 import { db } from '@/lib/db/postgres'
 import type { WebPage, WebSource } from './types'
-import { isSemanticSearchEnabled, aiConfig, KB_ARABIC_ONLY } from '@/lib/ai/config'
+import { isSemanticSearchEnabled, aiConfig, KB_ARABIC_ONLY, EMBEDDING_TURBO_CONFIG } from '@/lib/ai/config'
 import { normalizeText, detectTextLanguage } from './content-extractor'
+
+// Concurrence pour l'indexation de pages (1 = séquentiel, safe pour Ollama)
+const WEB_INDEXING_CONCURRENCY = parseInt(process.env.WEB_INDEXING_CONCURRENCY || '1', 10)
 
 // Import dynamique pour éviter les dépendances circulaires
 async function getChunkingService() {
@@ -320,13 +323,35 @@ export async function indexSourcePages(
   const pagesResult = await db.query(sql, [sourceId, limit])
   const results: Array<{ pageId: string; success: boolean; error?: string }> = []
 
-  for (const row of pagesResult.rows) {
-    const result = await indexWebPage(row.id)
-    results.push({
-      pageId: row.id,
-      success: result.success,
-      error: result.error,
-    })
+  const concurrency = EMBEDDING_TURBO_CONFIG.enabled
+    ? EMBEDDING_TURBO_CONFIG.concurrency
+    : WEB_INDEXING_CONCURRENCY
+
+  // Traitement par lots avec concurrence configurable
+  const pageIds = pagesResult.rows.map(r => r.id)
+  for (let i = 0; i < pageIds.length; i += concurrency) {
+    const batch = pageIds.slice(i, i + concurrency)
+
+    if (concurrency <= 1) {
+      // Mode séquentiel (safe pour Ollama)
+      for (const pageId of batch) {
+        const result = await indexWebPage(pageId)
+        results.push({ pageId, success: result.success, error: result.error })
+      }
+    } else {
+      // Mode parallèle (turbo / OpenAI)
+      const batchResults = await Promise.allSettled(
+        batch.map(pageId => indexWebPage(pageId))
+      )
+      for (let j = 0; j < batch.length; j++) {
+        const settled = batchResults[j]
+        if (settled.status === 'fulfilled') {
+          results.push({ pageId: batch[j], success: settled.value.success, error: settled.value.error })
+        } else {
+          results.push({ pageId: batch[j], success: false, error: settled.reason?.message || 'Erreur inconnue' })
+        }
+      }
+    }
   }
 
   return {
@@ -369,13 +394,35 @@ export async function indexWebPages(
   const pagesResult = await db.query(sql, [limit])
   const results: Array<{ pageId: string; success: boolean; error?: string }> = []
 
-  for (const row of pagesResult.rows) {
-    const result = await indexWebPage(row.id)
-    results.push({
-      pageId: row.id,
-      success: result.success,
-      error: result.error,
-    })
+  const concurrency = EMBEDDING_TURBO_CONFIG.enabled
+    ? EMBEDDING_TURBO_CONFIG.concurrency
+    : WEB_INDEXING_CONCURRENCY
+
+  // Traitement par lots avec concurrence configurable
+  const pageIds = pagesResult.rows.map(r => r.id)
+  for (let i = 0; i < pageIds.length; i += concurrency) {
+    const batch = pageIds.slice(i, i + concurrency)
+
+    if (concurrency <= 1) {
+      // Mode séquentiel (safe pour Ollama)
+      for (const pageId of batch) {
+        const result = await indexWebPage(pageId)
+        results.push({ pageId, success: result.success, error: result.error })
+      }
+    } else {
+      // Mode parallèle (turbo / OpenAI)
+      const batchResults = await Promise.allSettled(
+        batch.map(pageId => indexWebPage(pageId))
+      )
+      for (let j = 0; j < batch.length; j++) {
+        const settled = batchResults[j]
+        if (settled.status === 'fulfilled') {
+          results.push({ pageId: batch[j], success: settled.value.success, error: settled.value.error })
+        } else {
+          results.push({ pageId: batch[j], success: false, error: settled.reason?.message || 'Erreur inconnue' })
+        }
+      }
+    }
   }
 
   return {

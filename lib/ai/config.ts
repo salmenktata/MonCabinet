@@ -85,7 +85,7 @@ export const aiConfig: AIConfig = {
     apiKey: process.env.OPENAI_API_KEY || '',
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
-    embeddingDimensions: 1536, // Fixe pour text-embedding-3-small
+    embeddingDimensions: 1024, // text-embedding-3-small avec dimensions: 1024 (compatible pgvector)
     chatModel: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
   },
 
@@ -233,12 +233,33 @@ export function isSemanticSearchEnabled(): boolean {
 
 /**
  * Retourne le provider d'embeddings actif
- * Priorité: Ollama (gratuit local) uniquement (pas de fallback OpenAI)
+ * Priorité: Ollama (gratuit local) > OpenAI (payant, fallback/turbo)
  */
-export function getEmbeddingProvider(): 'ollama' | null {
+export function getEmbeddingProvider(): 'ollama' | 'openai' | null {
   if (!aiConfig.rag.enabled) return null
   if (aiConfig.ollama.enabled) return 'ollama'
+  if (aiConfig.openai.apiKey) return 'openai'
   return null
+}
+
+/**
+ * Retourne le provider d'embeddings de fallback (si différent du principal)
+ * Utilisé quand Ollama est le provider principal et OpenAI est disponible en backup
+ */
+export function getEmbeddingFallbackProvider(): 'openai' | null {
+  if (!aiConfig.rag.enabled) return null
+  if (aiConfig.ollama.enabled && aiConfig.openai.apiKey) return 'openai'
+  return null
+}
+
+/**
+ * Configuration du mode turbo embeddings
+ * Activé temporairement pour accélérer l'indexation bulk (OpenAI)
+ */
+export const EMBEDDING_TURBO_CONFIG = {
+  enabled: process.env.EMBEDDING_TURBO_MODE === 'true',
+  batchSize: parseInt(process.env.KB_BATCH_SIZE_TURBO || '10', 10),
+  concurrency: parseInt(process.env.WEB_INDEXING_CONCURRENCY || '1', 10),
 }
 
 /**

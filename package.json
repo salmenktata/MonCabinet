@@ -25,6 +25,7 @@
     "test:coverage:rag": "vitest --coverage __tests__/lib/ai/rag-chat-service.test.ts __tests__/lib/ai/kb-quality-analyzer-service.test.ts lib/ai/__tests__/kb-duplicate-detector.test.ts",
     "test:citations": "vitest run __tests__/lib/ai/citation-validator-service.test.ts",
     "test:scalability": "NODE_OPTIONS='--expose-gc' npx tsx scripts/test-indexing-scalability.ts",
+    "test:embedding-fallback": "npx tsx scripts/test-embedding-fallback.ts",
     "test:classification-apis": "npx tsx scripts/test-classification-apis.ts",
     "test:categories": "npx tsx scripts/test-category-translations.ts",
     "test:category-alignment": "npx tsx scripts/test-category-alignment.ts",
