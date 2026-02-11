@@ -3,14 +3,9 @@ import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import TemplateCard from '@/components/templates/TemplateCard'
-import TemplateLanguageFilter from '@/components/templates/TemplateLanguageFilter'
 import { getTranslations } from 'next-intl/server'
 
-interface TemplatesPageProps {
-  searchParams: Promise<{ langue?: string }>
-}
-
-export default async function TemplatesPage({ searchParams }: TemplatesPageProps) {
+export default async function TemplatesPage() {
   const t = await getTranslations('templates')
   const session = await getSession()
 
@@ -18,43 +13,23 @@ export default async function TemplatesPage({ searchParams }: TemplatesPageProps
     redirect('/login')
   }
 
-  // Awaiter searchParams (Next.js 15)
-  const params = await searchParams
-
-  // Filtre de langue
-  const langueFilter = params.langue || 'all'
-
-  // Récupérer tous les templates (propres + publics)
+  // Récupérer uniquement les templates en arabe
   const result = await query(
-    'SELECT * FROM templates ORDER BY created_at DESC'
+    "SELECT * FROM templates WHERE langue = 'ar' ORDER BY created_at DESC"
   )
   let templates = result.rows
-
-  // Appliquer le filtre de langue si spécifié
-  if (langueFilter !== 'all') {
-    templates = templates.filter((t: any) => {
-      // Pour le français, inclure aussi les templates sans langue définie
-      if (langueFilter === 'fr') {
-        return t.langue === 'fr' || !t.langue
-      }
-      return t.langue === langueFilter
-    })
-  }
 
   // Séparer mes templates des templates publics
   const mesTemplates = templates?.filter((t: any) => t.user_id === session.user.id) || []
   const templatesPublics = templates?.filter((t: any) => t.user_id !== session.user.id && t.est_public) || []
 
-  // Statistiques (sur tous les templates, pas filtrés)
-  const allTemplates = result.rows
+  // Statistiques (uniquement templates arabes)
   const stats = {
-    total: allTemplates.filter((t: any) => t.user_id === session.user.id).length,
-    publics: allTemplates.filter((t: any) => t.user_id === session.user.id && t.est_public).length,
-    utilisationsTotal: allTemplates
+    total: templates.filter((t: any) => t.user_id === session.user.id).length,
+    publics: templates.filter((t: any) => t.user_id === session.user.id && t.est_public).length,
+    utilisationsTotal: templates
       .filter((t: any) => t.user_id === session.user.id)
       .reduce((acc: number, t: any) => acc + (t.nombre_utilisations || 0), 0),
-    fr: allTemplates.filter((t: any) => t.langue === 'fr' || !t.langue).length,
-    ar: allTemplates.filter((t: any) => t.langue === 'ar').length,
   }
 
   return (
@@ -76,15 +51,11 @@ export default async function TemplatesPage({ searchParams }: TemplatesPageProps
         </Link>
       </div>
 
-      {/* Filtre par langue */}
-      <div className="flex items-center justify-between">
-        <TemplateLanguageFilter currentFilter={langueFilter} />
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+      {/* Info: Templates uniquement en arabe */}
+      <div className="flex items-center justify-end">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
-            🇫🇷 <strong>{stats.fr}</strong> FR
-          </span>
-          <span className="flex items-center gap-1">
-            🇹🇳 <strong>{stats.ar}</strong> عربي
+            🇹🇳 <strong>{stats.total}</strong> نماذج باللغة العربية
           </span>
         </div>
       </div>
