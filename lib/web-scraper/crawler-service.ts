@@ -146,12 +146,30 @@ export async function crawlSource(
     incrementalMode = true,
   } = options
 
-  // Construire la queue initiale avec seed URLs
+  // 🤖 DÉTECTION AUTOMATIQUE DU SITEMAP
+  console.log(`[Crawler] 🔍 Détection automatique du sitemap pour ${sourceName}...`)
+  const { detectAndParseSitemap } = await import('./sitemap-auto-detector')
+  const sitemapResult = await detectAndParseSitemap(sourceBaseUrl)
+
+  // Construire la queue initiale
   const seedUrlSet = new Set<string>(sourceSeedUrls)
-  const initialQueue: Array<{ url: string; depth: number }> = [
-    { url: sourceBaseUrl, depth: 0 },
-    ...sourceSeedUrls.map(u => ({ url: u, depth: 1 })),
-  ]
+  const initialQueue: Array<{ url: string; depth: number }> = []
+
+  // Si sitemap trouvé, utiliser toutes ses URLs (priorité absolue)
+  if (sitemapResult.hasSitemap && sitemapResult.pageUrls.length > 0) {
+    console.log(`[Crawler] ✓ Sitemap détecté: ${sitemapResult.totalPages} URLs ajoutées à la queue`)
+    // Ajouter toutes les URLs du sitemap avec depth=1
+    sitemapResult.pageUrls.forEach(url => {
+      initialQueue.push({ url, depth: 1 })
+    })
+  } else {
+    // Pas de sitemap: mode classique avec base URL + seed URLs
+    console.log(`[Crawler] ⚠️ Aucun sitemap trouvé, mode crawl classique`)
+    initialQueue.push({ url: sourceBaseUrl, depth: 0 })
+    sourceSeedUrls.forEach(u => {
+      initialQueue.push({ url: u, depth: 1 })
+    })
+  }
 
   // État du crawl
   const state: CrawlState = {
