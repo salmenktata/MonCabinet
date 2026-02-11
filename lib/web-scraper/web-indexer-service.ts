@@ -69,7 +69,9 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   const detectedLang = row.language_detected || detectTextLanguage(normalizedText) || 'fr'
 
   // Stratégie arabe uniquement : ignorer le contenu non-arabe
-  if (KB_ARABIC_ONLY && detectedLang !== 'ar') {
+  // Exception: Google Drive accepte français et mixte
+  const isGoogleDrive = row.category === 'google_drive'
+  if (KB_ARABIC_ONLY && !isGoogleDrive && detectedLang !== 'ar') {
     console.log(`[WebIndexer] Contenu non-arabe ignoré: page ${pageId} (${detectedLang})`)
     return { success: false, chunksCreated: 0, error: `Contenu non-arabe ignoré (${detectedLang})` }
   }
