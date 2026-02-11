@@ -177,7 +177,7 @@ export default function KBQualityReviewPage() {
                     <SelectValue placeholder="Toutes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Toutes</SelectItem>
+                    <SelectItem value="all">Toutes</SelectItem>
                     <SelectItem value="jurisprudence">Jurisprudence</SelectItem>
                     <SelectItem value="code">Code</SelectItem>
                     <SelectItem value="législation">Législation</SelectItem>
