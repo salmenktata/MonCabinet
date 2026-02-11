@@ -8,12 +8,12 @@ import { db } from '@/lib/db/postgres'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { WebSourceActions } from '@/components/super-admin/web-sources/WebSourceActions'
-import { WebSourcePages } from '@/components/super-admin/web-sources/WebSourcePages'
-import { WebSourceLogs } from '@/components/super-admin/web-sources/WebSourceLogs'
+import { WebSourceHealthSummary } from '@/components/super-admin/web-sources/WebSourceHealthSummary'
+import { WebSourceActivityTabs } from '@/components/super-admin/web-sources/WebSourceActivityTabs'
+import { CollapsibleSection } from '@/components/super-admin/web-sources/CollapsibleSection'
 import { CategoryBadge } from '@/components/super-admin/web-sources/CategoryBadge'
-import { WebSourceCategoryTabs } from '@/components/super-admin/web-sources/WebSourceCategoryTabs'
 import { WebSourceTreeView } from '@/components/super-admin/web-sources/WebSourceTreeView'
 
 interface CodeStats {
@@ -264,36 +264,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
         <WebSourceActions source={source} />
       </div>
 
-      {/* Actions rapides */}
-      <div className="flex gap-3">
-        <Link href={`/super-admin/web-sources/${id}/rules`}>
-          <Button variant="outline" className="border-slate-600">
-            <Icons.filter className="h-4 w-4 mr-2" />
-            Règles de classification
-          </Button>
-        </Link>
-        <Link href={`/super-admin/web-sources/${id}/pages`}>
-          <Button variant="outline" className="border-slate-600">
-            <Icons.fileText className="h-4 w-4 mr-2" />
-            Toutes les pages
-          </Button>
-        </Link>
-      </div>
-
-      {/* Arbre hiérarchique des pages par catégorie et code */}
-      {treeData && treeData.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-white">Pages par catégorie et code</h3>
-            <span className="text-sm text-slate-400">
-              {treeData.reduce((sum: number, g: any) => sum + g.total_pages, 0)} pages au total
-            </span>
-          </div>
-          <WebSourceTreeView groups={treeData} sourceId={id} />
-        </div>
-      )}
-
-      {/* Stats */}
+      {/* Stats KPI - Position #2 (priorité) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           label="Pages crawlées"
@@ -320,91 +291,82 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
         />
       </div>
 
-      {/* Configuration */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white text-lg">Configuration</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="text-slate-400">Fréquence</span>
-              <p className="text-white">{source.crawl_frequency}</p>
-            </div>
-            <div>
-              <span className="text-slate-400">Profondeur max</span>
-              <p className="text-white">{source.max_depth} niveaux</p>
-            </div>
-            <div>
-              <span className="text-slate-400">Limite pages</span>
-              <p className="text-white">{source.max_pages}</p>
-            </div>
-            <div>
-              <span className="text-slate-400">Rate limit</span>
-              <p className="text-white">{source.rate_limit_ms}ms</p>
-            </div>
-            <div>
-              <span className="text-slate-400">JavaScript</span>
-              <p className="text-white">{source.requires_javascript ? 'Oui' : 'Non'}</p>
-            </div>
-            <div>
-              <span className="text-slate-400">Téléchargement fichiers</span>
-              <p className="text-white">{source.download_files ? 'Oui' : 'Non'}</p>
-            </div>
-            <div>
-              <span className="text-slate-400">SSL strict</span>
-              <p className="text-white">{source.ignore_ssl_errors ? 'Désactivé' : 'Oui'}</p>
-            </div>
-            <div>
-              <span className="text-slate-400">Auto-indexation PDF</span>
-              <p className="text-white">{source.auto_index_files ? 'Oui' : 'Non'}</p>
-            </div>
-            <div>
-              <span className="text-slate-400">Dernier crawl</span>
-              <p className="text-white">
-                {source.last_crawl_at
-                  ? new Date(source.last_crawl_at).toLocaleString('fr-FR')
-                  : 'Jamais'}
-              </p>
-            </div>
-            <div>
-              <span className="text-slate-400">Prochain crawl</span>
-              <p className="text-white">
-                {source.next_crawl_at
-                  ? new Date(source.next_crawl_at).toLocaleString('fr-FR')
-                  : '-'}
-              </p>
-            </div>
+      {/* Résumé Santé */}
+      <WebSourceHealthSummary
+        lastCrawlAt={source.last_crawl_at}
+        nextCrawlAt={source.next_crawl_at}
+        totalPages={parseInt(stats.total)}
+        failedPages={parseInt(stats.failed)}
+        healthStatus={source.health_status}
+      />
+
+      {/* Arbre hiérarchique - Collapsible */}
+      {treeData && treeData.length > 0 && (
+        <CollapsibleSection
+          title="Pages par catégorie et code"
+          subtitle={`${treeData.reduce((sum: number, g: any) => sum + g.total_pages, 0)} pages`}
+          defaultOpen={true}
+        >
+          <WebSourceTreeView groups={treeData} sourceId={id} />
+        </CollapsibleSection>
+      )}
+
+      {/* Activité récente - Tabs unifié */}
+      <WebSourceActivityTabs pages={pages} logs={logs} sourceId={id} />
+
+      {/* Configuration technique - Collapsible (caché par défaut) */}
+      <CollapsibleSection title="Configuration technique" subtitle="10 paramètres" defaultOpen={false}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <span className="text-slate-400">Fréquence</span>
+            <p className="text-white">{source.crawl_frequency}</p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Pages et Logs en grille */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-white text-lg">Dernières pages</CardTitle>
-            <Link href={`/super-admin/web-sources/${id}/pages`}>
-              <Button variant="ghost" size="sm" className="text-slate-400">
-                Voir tout
-                <Icons.chevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <WebSourcePages pages={pages} sourceId={id} />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white text-lg">Historique des crawls</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <WebSourceLogs logs={logs} />
-          </CardContent>
-        </Card>
-      </div>
+          <div>
+            <span className="text-slate-400">Profondeur max</span>
+            <p className="text-white">{source.max_depth} niveaux</p>
+          </div>
+          <div>
+            <span className="text-slate-400">Limite pages</span>
+            <p className="text-white">{source.max_pages}</p>
+          </div>
+          <div>
+            <span className="text-slate-400">Rate limit</span>
+            <p className="text-white">{source.rate_limit_ms}ms</p>
+          </div>
+          <div>
+            <span className="text-slate-400">JavaScript</span>
+            <p className="text-white">{source.requires_javascript ? 'Oui' : 'Non'}</p>
+          </div>
+          <div>
+            <span className="text-slate-400">Téléchargement fichiers</span>
+            <p className="text-white">{source.download_files ? 'Oui' : 'Non'}</p>
+          </div>
+          <div>
+            <span className="text-slate-400">SSL strict</span>
+            <p className="text-white">{source.ignore_ssl_errors ? 'Désactivé' : 'Oui'}</p>
+          </div>
+          <div>
+            <span className="text-slate-400">Auto-indexation PDF</span>
+            <p className="text-white">{source.auto_index_files ? 'Oui' : 'Non'}</p>
+          </div>
+          <div>
+            <span className="text-slate-400">Dernier crawl</span>
+            <p className="text-white">
+              {source.last_crawl_at
+                ? new Date(source.last_crawl_at).toLocaleString('fr-FR')
+                : 'Jamais'}
+            </p>
+          </div>
+          <div>
+            <span className="text-slate-400">Prochain crawl</span>
+            <p className="text-white">
+              {source.next_crawl_at
+                ? new Date(source.next_crawl_at).toLocaleString('fr-FR')
+                : '-'}
+            </p>
+          </div>
+        </div>
+      </CollapsibleSection>
     </div>
   )
 }
