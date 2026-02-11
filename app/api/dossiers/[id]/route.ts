@@ -20,6 +20,61 @@ import { dossierSchema } from '@/lib/validations/dossier'
 export const dynamic = 'force-dynamic'
 
 // =============================================================================
+// HELPERS: Mapping snake_case → camelCase
+// =============================================================================
+
+function mapDossierFromDB(row: any): any {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    clientId: row.client_id,
+    titre: row.titre,
+    numero: row.numero,
+    description: row.description,
+    type: row.type_procedure,
+    status: mapStatus(row.statut),
+    priority: row.priorite,
+    category: row.categorie,
+    numeroAffaire: row.numero_affaire,
+    juridiction: row.juridiction,
+    dateOuverture: row.date_ouverture,
+    dateCloture: row.date_cloture,
+    montant: row.montant,
+    devise: row.devise,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    client: row.clients ? mapClientFromDB(row.clients) : undefined,
+    documents: row.documents || [],
+    events: row.evenements || [],
+  }
+}
+
+function mapClientFromDB(client: any): any {
+  return {
+    id: client.id,
+    nom: client.nom,
+    prenom: client.prenom,
+    email: client.email,
+    telephone: client.telephone,
+    type: client.type_client,
+    adresse: client.adresse,
+    cin: client.cin,
+  }
+}
+
+function mapStatus(statut: string): string {
+  const statusMap: Record<string, string> = {
+    'ouvert': 'open',
+    'en_cours': 'in_progress',
+    'en_attente': 'pending',
+    'clos': 'closed',
+    'archive': 'archived',
+  }
+  return statusMap[statut] || statut
+}
+
+// =============================================================================
 // GET: Récupérer dossier par ID
 // =============================================================================
 
@@ -88,7 +143,7 @@ export async function GET(
       return NextResponse.json({ error: 'Dossier non trouvé' }, { status: 404 })
     }
 
-    return NextResponse.json(result.rows[0])
+    return NextResponse.json(mapDossierFromDB(result.rows[0]))
   } catch (error) {
     console.error('Erreur GET /api/dossiers/[id]:', error)
     return NextResponse.json(
@@ -170,7 +225,7 @@ export async function PATCH(
       [dossierId]
     )
 
-    return NextResponse.json(dossier.rows[0])
+    return NextResponse.json(mapDossierFromDB(dossier.rows[0]))
   } catch (error) {
     console.error('Erreur PATCH /api/dossiers/[id]:', error)
 

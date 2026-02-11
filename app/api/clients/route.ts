@@ -16,6 +16,32 @@ import { query } from '@/lib/db/postgres'
 export const dynamic = 'force-dynamic'
 
 // =============================================================================
+// HELPERS: Mapping snake_case → camelCase
+// =============================================================================
+
+function mapClientFromDB(row: any): any {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    typeClient: row.type_client,
+    nom: row.nom,
+    prenom: row.prenom,
+    cin: row.cin,
+    email: row.email,
+    telephone: row.telephone,
+    telephoneSecondaire: row.telephone_secondaire,
+    adresse: row.adresse,
+    codePostal: row.code_postal,
+    ville: row.ville,
+    pays: row.pays,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    dossiers: row.dossiers || [],
+  }
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -114,7 +140,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const total = parseInt(countResult.rows[0]?.total || '0', 10)
 
     return NextResponse.json({
-      clients: result.rows,
+      clients: result.rows.map(mapClientFromDB),
       total,
       hasMore: (params.offset || 0) + result.rows.length < total,
       limit: params.limit || 50,
@@ -184,7 +210,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       values
     )
 
-    return NextResponse.json(result.rows[0], { status: 201 })
+    return NextResponse.json(mapClientFromDB(result.rows[0]), { status: 201 })
   } catch (error) {
     console.error('Erreur POST /api/clients:', error)
 

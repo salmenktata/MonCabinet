@@ -19,6 +19,32 @@ import { query } from '@/lib/db/postgres'
 export const dynamic = 'force-dynamic'
 
 // =============================================================================
+// HELPERS: Mapping snake_case → camelCase
+// =============================================================================
+
+function mapClientFromDB(row: any): any {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    typeClient: row.type_client,
+    nom: row.nom,
+    prenom: row.prenom,
+    cin: row.cin,
+    email: row.email,
+    telephone: row.telephone,
+    telephoneSecondaire: row.telephone_secondaire,
+    adresse: row.adresse,
+    codePostal: row.code_postal,
+    ville: row.ville,
+    pays: row.pays,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    dossiers: row.dossiers || [],
+  }
+}
+
+// =============================================================================
 // GET: Récupérer client par ID
 // =============================================================================
 
@@ -62,7 +88,7 @@ export async function GET(
       return NextResponse.json({ error: 'Client non trouvé' }, { status: 404 })
     }
 
-    return NextResponse.json(result.rows[0])
+    return NextResponse.json(mapClientFromDB(result.rows[0]))
   } catch (error) {
     console.error('Erreur GET /api/clients/[id]:', error)
     return NextResponse.json(
@@ -139,7 +165,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Client non trouvé' }, { status: 404 })
     }
 
-    return NextResponse.json(result.rows[0])
+    return NextResponse.json(mapClientFromDB(result.rows[0]))
   } catch (error) {
     console.error('Erreur PATCH /api/clients/[id]:', error)
 
