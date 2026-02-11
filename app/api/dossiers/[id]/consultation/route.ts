@@ -62,7 +62,7 @@ interface ConsultationApiResponse {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<ConsultationApiResponse | { error: string }>> {
   try {
     // Vérifier authentification
@@ -72,6 +72,7 @@ export async function POST(
     }
 
     const userId = session.user.id
+    const params = await props.params
     const dossierId = params.id
 
     // Parse le body

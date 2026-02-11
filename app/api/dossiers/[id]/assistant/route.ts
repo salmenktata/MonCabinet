@@ -54,7 +54,7 @@ interface AssistantApiResponse {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<AssistantApiResponse | { error: string }>> {
   try {
     // Vérifier authentification
@@ -64,6 +64,7 @@ export async function POST(
     }
 
     const userId = session.user.id
+    const params = await props.params
     const dossierId = params.id
 
     // Parse le body
@@ -132,7 +133,7 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const session = await getSession()
@@ -141,6 +142,7 @@ export async function GET(
     }
 
     const userId = session.user.id
+    const params = await props.params
     const dossierId = params.id
 
     // Vérifier accès dossier
