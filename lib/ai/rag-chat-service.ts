@@ -78,9 +78,9 @@ import {
 // Configuration Query Expansion
 const ENABLE_QUERY_EXPANSION = process.env.ENABLE_QUERY_EXPANSION !== 'false'
 
-// Timeout global pour la recherche bilingue (15 secondes par défaut)
-// Augmenté de 10s à 15s pour laisser plus de temps à la recherche secondaire
-const BILINGUAL_SEARCH_TIMEOUT_MS = parseInt(process.env.BILINGUAL_SEARCH_TIMEOUT_MS || '15000', 10)
+// Timeout global pour la recherche bilingue (40 secondes par défaut)
+// Augmenté de 15s à 40s pour supporter Ollama CPU-only lent (embeddings ~20-30s)
+const BILINGUAL_SEARCH_TIMEOUT_MS = parseInt(process.env.BILINGUAL_SEARCH_TIMEOUT_MS || '40000', 10)
 
 // =============================================================================
 // CLIENTS LLM (Ollama prioritaire, puis Groq, puis Anthropic)
