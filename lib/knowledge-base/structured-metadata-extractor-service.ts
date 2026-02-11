@@ -18,6 +18,12 @@ import type {
   LegislationMetadata,
   DoctrineMetadata,
 } from './metadata-schemas'
+import {
+  shouldExtractWithLLM,
+  getApplicableFields,
+  extractEnrichedFields,
+  type LLMDecision,
+} from './metadata-extraction-intelligent-mode'
 
 // =============================================================================
 // TYPES
@@ -39,6 +45,7 @@ export interface StructuredMetadata {
   solution: 'cassation' | 'rejet' | 'renvoi' | 'confirmation' | 'infirmation' | 'autre' | null
   legalBasis: string[] | null
   rapporteur: string | null
+  parties_detailed?: Record<string, string> | null
 
   // Législation
   loiNumber: string | null
@@ -57,6 +64,8 @@ export interface StructuredMetadata {
   university: string | null
   keywords: string[] | null
   abstract: string | null
+  keywords_extracted?: string[] | null
+  summary_ai?: string | null
 
   // Extraction metadata
   fieldConfidence: Record<string, number>
@@ -64,6 +73,10 @@ export interface StructuredMetadata {
   extractionConfidence: number
   llmProvider: string | null
   llmModel: string | null
+  llmSkipped?: boolean
+  llmSkipReason?: string
+  precedent_value?: number | null
+  domain_specific?: Record<string, unknown> | null
 }
 
 export interface ExtractionResult {
@@ -659,12 +672,14 @@ async function upsertStructuredMetadata(
       author, co_authors, publication_name, publication_date,
       university, keywords, abstract,
       field_confidence, extraction_method, extraction_confidence,
-      llm_provider, llm_model
+      llm_provider, llm_model,
+      parties_detailed, summary_ai, keywords_extracted, precedent_value, domain_specific
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
       $14, $15, $16, $17, $18, $19, $20,
       $21, $22, $23, $24, $25, $26, $27,
-      $28, $29, $30, $31, $32
+      $28, $29, $30, $31, $32,
+      $33, $34, $35, $36, $37
     )
     ON CONFLICT (knowledge_base_id) DO UPDATE SET
       document_date = EXCLUDED.document_date,
@@ -698,6 +713,11 @@ async function upsertStructuredMetadata(
       extraction_confidence = EXCLUDED.extraction_confidence,
       llm_provider = EXCLUDED.llm_provider,
       llm_model = EXCLUDED.llm_model,
+      parties_detailed = EXCLUDED.parties_detailed,
+      summary_ai = EXCLUDED.summary_ai,
+      keywords_extracted = EXCLUDED.keywords_extracted,
+      precedent_value = EXCLUDED.precedent_value,
+      domain_specific = EXCLUDED.domain_specific,
       updated_at = NOW(),
       version = kb_structured_metadata.version + 1
   `
@@ -735,6 +755,12 @@ async function upsertStructuredMetadata(
     metadata.extractionConfidence,
     metadata.llmProvider,
     metadata.llmModel,
+    // Nouveaux champs Phase 1.2
+    metadata.parties_detailed ? JSON.stringify(metadata.parties_detailed) : null,
+    metadata.summary_ai,
+    metadata.keywords_extracted,
+    metadata.precedent_value,
+    metadata.domain_specific ? JSON.stringify(metadata.domain_specific) : null,
   ]
 
   await db.query(query, values)
@@ -808,19 +834,35 @@ export async function extractStructuredMetadataV2(
       console.log(`[Metadata Extractor] Regex extraction: ${Object.keys(regexMetadata.fieldConfidence || {}).length} champs extraits`)
     }
 
-    // 4. Extraction LLM (contextuel, intelligent)
+    // 3.5. Décision intelligente : utiliser LLM ou non ? (MODE INTELLIGENT - Phase 1.2)
+    const llmDecision: LLMDecision = shouldExtractWithLLM(category, regexMetadata, options)
+    console.log(`[Metadata Extractor] Décision LLM: ${llmDecision.shouldUseLLM ? 'OUI' : 'NON'} - ${llmDecision.reason}`)
+
+    // 4. Extraction LLM (contextuel, intelligent) - CONDITIONNEL selon décision
     let llmMetadata: Partial<StructuredMetadata> = {}
-    if (!options.useRegexOnly) {
+    if (!options.useRegexOnly && llmDecision.shouldUseLLM) {
       llmMetadata = await extractWithLLM(full_text, category, regexMetadata)
       console.log(`[Metadata Extractor] LLM extraction: ${Object.keys(llmMetadata.fieldConfidence || {}).length} champs extraits`)
+    } else if (!llmDecision.shouldUseLLM) {
+      // LLM skipped - enregistrer la raison
+      llmMetadata.llmSkipped = true
+      llmMetadata.llmSkipReason = llmDecision.reason
+      console.log(`[Metadata Extractor] LLM skipped - Économie: $${llmDecision.estimatedCost.toFixed(3)}`)
     }
 
-    // 5. Fusionner résultats (LLM prioritaire si confiance > regex)
+    // 4.5. Extraction champs enrichis (keywords_extracted, parties_detailed) - Phase 1.2
+    const enrichedMetadata = extractEnrichedFields(full_text, category, regexMetadata)
+    console.log(`[Metadata Extractor] Champs enrichis: ${Object.keys(enrichedMetadata).length} champs`)
+
+
+    // 5. Fusionner résultats (LLM prioritaire si confiance > regex, puis champs enrichis)
     const merged: Partial<StructuredMetadata> = {
       ...regexMetadata,
+      ...enrichedMetadata,
       ...llmMetadata,
       fieldConfidence: {
         ...regexMetadata.fieldConfidence,
+        ...enrichedMetadata.fieldConfidence,
         ...llmMetadata.fieldConfidence,
       },
     }

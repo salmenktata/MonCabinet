@@ -28,6 +28,12 @@ export type RelationType =
   | 'related_case'
   | 'same_topic'
   | 'contradicts'
+  // Nouveaux types Phase 4.2 (Tunisie)
+  | 'confirms' // Confirmation jurisprudence (يؤكد)
+  | 'overrules' // Revirement jurisprudentiel (نقض)
+  | 'distinguishes' // Distinction sans renverser (تمييز)
+  | 'applies' // Application règle de droit (يطبق القاعدة)
+  | 'interprets' // Interprétation texte juridique (يفسر)
 
 export interface LegalRelation {
   sourceKbId: string
@@ -85,6 +91,36 @@ const CITATION_PATTERNS = {
   application: [
     /(?:en application|sur le fondement|au titre)\s+(?:de l'|du)\s*(?:article|art\.?)\s+(\d+)/gi,
     /(?:استنادا إلى|بناء على|تطبيقا لـ)\s+(?:الفصل|فصل)\s*(\d+)/gi,
+  ],
+
+  // Phase 4.2 - Nouveaux patterns tunisiens
+
+  // Confirmation de jurisprudence (يؤكد)
+  confirmation: [
+    /(?:confirme|réaffirme|maintient)\s+(?:la?\s+)?(?:jurisprudence|position|solution)\s+(?:de l'arrêt|du jugement)/gi,
+    /(?:يؤكد|يثبت|يعيد التأكيد على)\s+(?:الاجتهاد|الموقف|القرار)/gi,
+    /(?:en ce sens|dans le même sens|conformément)\s+(?:arrêt|cour de cassation)/gi,
+  ],
+
+  // Revirement jurisprudentiel (نقض)
+  revirement: [
+    /(?:renverse|écarte|abandonne|revient sur)\s+(?:la?\s+)?(?:jurisprudence|position|solution)\s+(?:de l'arrêt|du jugement)/gi,
+    /(?:نقض|ألغى|عدل عن|رجع عن)\s+(?:الاجتهاد|الموقف|القرار)/gi,
+    /(?:revirement|changement de jurisprudence|nouvelle position)/gi,
+  ],
+
+  // Distinction/précision (تمييز)
+  distinction: [
+    /(?:distingue|se distingue|diffère|précise)\s+(?:l'arrêt|la décision|le cas)\s+(?:de l'affaire)/gi,
+    /(?:يميز|يفرق|يختلف عن|يدقق)\s+(?:القرار|الحكم|القضية)/gi,
+    /(?:toutefois|cependant|néanmoins),?\s+(?:le présent cas|la présente espèce)\s+(?:se distingue)/gi,
+  ],
+
+  // Interprétation texte juridique (يفسر)
+  interpretation: [
+    /(?:interprète|explicite|précise le sens)\s+(?:de l'|du)\s*(?:article|texte|disposition)/gi,
+    /(?:يفسر|يوضح|يشرح|يبين مفهوم)\s+(?:الفصل|النص|الأحكام)/gi,
+    /(?:au sens|interprétation)\s+(?:de l'article|du texte)/gi,
   ],
 }
 
@@ -239,6 +275,312 @@ async function detectSupersessionWithRegex(
 }
 
 // =============================================================================
+// PHASE 4.2 - NOUVEAUX TYPES RELATIONS TUNISIENNES
+// =============================================================================
+
+/**
+ * Détecte confirmations de jurisprudence (يؤكد)
+ */
+async function detectConfirmationsWithRegex(
+  kbId: string,
+  content: string
+): Promise<LegalRelation[]> {
+  const relations: LegalRelation[] = []
+
+  // Récupérer jurisprudence existante
+  const decisionsResult = await db.query(
+    `SELECT kb.id, meta.decision_number, meta.decision_date, kb.title
+    FROM knowledge_base kb
+    INNER JOIN kb_structured_metadata meta ON kb.id = meta.knowledge_base_id
+    WHERE meta.decision_number IS NOT NULL
+      AND kb.id != $1
+      AND kb.category = 'jurisprudence'`,
+    [kbId]
+  )
+
+  const decisions = decisionsResult.rows
+
+  for (const pattern of CITATION_PATTERNS.confirmation) {
+    const matches = content.matchAll(pattern)
+    for (const match of matches) {
+      const context = match[0]
+
+      // Chercher numéros de décision dans le contexte étendu (±200 chars)
+      const matchIndex = match.index || 0
+      const extendedContext = content.substring(
+        Math.max(0, matchIndex - 200),
+        Math.min(content.length, matchIndex + 300)
+      )
+
+      // Chercher si une décision est citée dans le contexte
+      for (const decision of decisions) {
+        if (extendedContext.includes(decision.decision_number || '')) {
+          relations.push({
+            sourceKbId: kbId,
+            targetKbId: decision.id,
+            relationType: 'confirms',
+            context: context.substring(0, 200),
+            confidence: 0.82,
+            extractedMethod: 'regex',
+          })
+          break
+        }
+      }
+    }
+  }
+
+  return relations
+}
+
+/**
+ * Détecte revirements jurisprudentiels (نقض)
+ */
+async function detectRevirementsWithRegex(
+  kbId: string,
+  content: string
+): Promise<LegalRelation[]> {
+  const relations: LegalRelation[] = []
+
+  const decisionsResult = await db.query(
+    `SELECT kb.id, meta.decision_number, meta.decision_date, kb.title, meta.tribunal_code
+    FROM knowledge_base kb
+    INNER JOIN kb_structured_metadata meta ON kb.id = meta.knowledge_base_id
+    WHERE meta.decision_number IS NOT NULL
+      AND kb.id != $1
+      AND kb.category = 'jurisprudence'`,
+    [kbId]
+  )
+
+  const decisions = decisionsResult.rows
+
+  for (const pattern of CITATION_PATTERNS.revirement) {
+    const matches = content.matchAll(pattern)
+    for (const match of matches) {
+      const context = match[0]
+      const matchIndex = match.index || 0
+      const extendedContext = content.substring(
+        Math.max(0, matchIndex - 200),
+        Math.min(content.length, matchIndex + 300)
+      )
+
+      // Chercher décision renversée dans contexte
+      for (const decision of decisions) {
+        if (extendedContext.includes(decision.decision_number || '')) {
+          relations.push({
+            sourceKbId: kbId,
+            targetKbId: decision.id,
+            relationType: 'overrules',
+            context: context.substring(0, 200),
+            confidence: 0.88, // Haute confiance car revirement est explicite
+            extractedMethod: 'regex',
+          })
+          break
+        }
+      }
+    }
+  }
+
+  return relations
+}
+
+/**
+ * Détecte distinctions (تمييز)
+ */
+async function detectDistinctionsWithRegex(
+  kbId: string,
+  content: string
+): Promise<LegalRelation[]> {
+  const relations: LegalRelation[] = []
+
+  const decisionsResult = await db.query(
+    `SELECT kb.id, meta.decision_number, meta.decision_date, kb.title
+    FROM knowledge_base kb
+    INNER JOIN kb_structured_metadata meta ON kb.id = meta.knowledge_base_id
+    WHERE meta.decision_number IS NOT NULL
+      AND kb.id != $1
+      AND kb.category = 'jurisprudence'`,
+    [kbId]
+  )
+
+  const decisions = decisionsResult.rows
+
+  for (const pattern of CITATION_PATTERNS.distinction) {
+    const matches = content.matchAll(pattern)
+    for (const match of matches) {
+      const context = match[0]
+      const matchIndex = match.index || 0
+      const extendedContext = content.substring(
+        Math.max(0, matchIndex - 200),
+        Math.min(content.length, matchIndex + 300)
+      )
+
+      for (const decision of decisions) {
+        if (extendedContext.includes(decision.decision_number || '')) {
+          relations.push({
+            sourceKbId: kbId,
+            targetKbId: decision.id,
+            relationType: 'distinguishes',
+            context: context.substring(0, 200),
+            confidence: 0.78,
+            extractedMethod: 'regex',
+          })
+          break
+        }
+      }
+    }
+  }
+
+  return relations
+}
+
+/**
+ * Détecte interprétations de textes juridiques (يفسر)
+ */
+async function detectInterpretationsWithRegex(
+  kbId: string,
+  content: string
+): Promise<LegalRelation[]> {
+  const relations: LegalRelation[] = []
+
+  // Récupérer codes et lois
+  const codesResult = await db.query(
+    `SELECT kb.id, meta.code_name, meta.loi_number, kb.title
+    FROM knowledge_base kb
+    INNER JOIN kb_structured_metadata meta ON kb.id = meta.knowledge_base_id
+    WHERE (meta.code_name IS NOT NULL OR meta.loi_number IS NOT NULL)
+      AND kb.id != $1
+      AND kb.category IN ('code', 'législation')`,
+    [kbId]
+  )
+
+  const codes = codesResult.rows
+
+  for (const pattern of CITATION_PATTERNS.interpretation) {
+    const matches = content.matchAll(pattern)
+    for (const match of matches) {
+      const context = match[0]
+      const matchIndex = match.index || 0
+      const extendedContext = content.substring(
+        Math.max(0, matchIndex - 200),
+        Math.min(content.length, matchIndex + 300)
+      )
+
+      for (const code of codes) {
+        if (
+          (code.code_name && extendedContext.includes(code.code_name)) ||
+          (code.loi_number && extendedContext.includes(code.loi_number))
+        ) {
+          relations.push({
+            sourceKbId: kbId,
+            targetKbId: code.id,
+            relationType: 'interprets',
+            context: context.substring(0, 200),
+            confidence: 0.80,
+            extractedMethod: 'regex',
+          })
+          break
+        }
+      }
+    }
+  }
+
+  return relations
+}
+
+/**
+ * Validation croisée : vérifie que les relations sont cohérentes
+ * - Target existe en DB
+ * - Cohérence temporelle (décision source > décision target pour overrules)
+ * - Cohérence hiérarchique (Cassation ne peut pas confirmer Appel d'une date ultérieure)
+ */
+async function validateRelations(
+  relations: LegalRelation[]
+): Promise<LegalRelation[]> {
+  const validated: LegalRelation[] = []
+
+  for (const relation of relations) {
+    // 1. Vérifier que target existe
+    const targetResult = await db.query(
+      `SELECT kb.id, kb.category, meta.decision_date, meta.tribunal_code
+      FROM knowledge_base kb
+      LEFT JOIN kb_structured_metadata meta ON kb.id = meta.knowledge_base_id
+      WHERE kb.id = $1`,
+      [relation.targetKbId]
+    )
+
+    if (targetResult.rows.length === 0) {
+      console.warn(`[Legal Relations] Target ${relation.targetKbId} n'existe pas - skip`)
+      continue
+    }
+
+    const target = targetResult.rows[0]
+
+    // 2. Récupérer métadonnées source
+    const sourceResult = await db.query(
+      `SELECT meta.decision_date, meta.tribunal_code
+      FROM kb_structured_metadata meta
+      WHERE meta.knowledge_base_id = $1`,
+      [relation.sourceKbId]
+    )
+
+    if (sourceResult.rows.length > 0) {
+      const source = sourceResult.rows[0]
+
+      // 3. Validation cohérence temporelle pour 'overrules'
+      if (relation.relationType === 'overrules') {
+        if (source.decision_date && target.decision_date) {
+          if (new Date(source.decision_date) <= new Date(target.decision_date)) {
+            console.warn(
+              `[Legal Relations] Incohérence temporelle pour overrules : source ${source.decision_date} <= target ${target.decision_date} - confiance réduite`
+            )
+            relation.confidence *= 0.5 // Réduire confiance
+          }
+        }
+      }
+
+      // 4. Validation cohérence hiérarchique pour 'confirms'
+      if (relation.relationType === 'confirms') {
+        // Cassation (niveau 1) ne peut pas confirmer Appel (niveau 2) d'une date ULTÉRIEURE
+        const sourceLevel = getHierarchyLevel(source.tribunal_code)
+        const targetLevel = getHierarchyLevel(target.tribunal_code)
+
+        if (
+          sourceLevel === 1 &&
+          targetLevel === 2 &&
+          source.decision_date &&
+          target.decision_date &&
+          new Date(source.decision_date) < new Date(target.decision_date)
+        ) {
+          console.warn(
+            `[Legal Relations] Incohérence hiérarchique pour confirms : Cassation avant Appel - skip`
+          )
+          continue
+        }
+      }
+    }
+
+    validated.push(relation)
+  }
+
+  console.log(
+    `[Legal Relations] Validation : ${validated.length}/${relations.length} relations validées`
+  )
+  return validated
+}
+
+/**
+ * Hiérarchie juridictionnelle tunisienne (1 = le plus haut)
+ */
+function getHierarchyLevel(tribunalCode: string | null): number {
+  if (!tribunalCode) return 5
+  if (tribunalCode.includes('cassation') || tribunalCode.includes('تعقيب')) return 1
+  if (tribunalCode.includes('appel') || tribunalCode.includes('استئناف')) return 2
+  if (tribunalCode.includes('instance') || tribunalCode.includes('ابتدائية')) return 3
+  if (tribunalCode.includes('doctrine') || tribunalCode.includes('فقه')) return 4
+  return 5
+}
+
+// =============================================================================
 // EXTRACTION LLM
 // =============================================================================
 
@@ -369,18 +711,48 @@ export async function extractLegalRelations(
       }
     }
 
-    // 2. Extraction regex (rapide)
+    // 2. Extraction regex (rapide) - TOUS les types
     if (!options.useLLMOnly) {
       const citationsRegex = await detectCitationsWithRegex(kbId, content)
       const legalBasisRegex = await detectLegalBasisWithRegex(kbId, content)
       const supersessionRegex = await detectSupersessionWithRegex(kbId, content)
 
-      allRelations.push(...citationsRegex, ...legalBasisRegex, ...supersessionRegex)
+      // Phase 4.2 - Nouveaux types tunisiens
+      const confirmationsRegex = await detectConfirmationsWithRegex(kbId, content)
+      const revirementsRegex = await detectRevirementsWithRegex(kbId, content)
+      const distinctionsRegex = await detectDistinctionsWithRegex(kbId, content)
+      const interpretationsRegex = await detectInterpretationsWithRegex(kbId, content)
+
+      allRelations.push(
+        ...citationsRegex,
+        ...legalBasisRegex,
+        ...supersessionRegex,
+        ...confirmationsRegex,
+        ...revirementsRegex,
+        ...distinctionsRegex,
+        ...interpretationsRegex
+      )
+
       console.log(`[Legal Relations] Regex extraction: ${allRelations.length} relations détectées`)
     }
 
-    // 3. Extraction LLM (précise mais lente) - optionnel
-    if (options.useLLMOnly || (!options.useRegexOnly && allRelations.length < 3)) {
+    // 3. Pipeline intelligent : skip LLM si regex confiant >0.8 ET >=3 relations
+    const avgConfidence =
+      allRelations.length > 0
+        ? allRelations.reduce((sum, r) => sum + r.confidence, 0) / allRelations.length
+        : 0
+
+    const shouldActivateLLM =
+      options.useLLMOnly ||
+      (!options.useRegexOnly &&
+        (allRelations.length < 3 || avgConfidence < 0.8))
+
+    console.log(
+      `[Legal Relations] Pipeline intelligent : ${allRelations.length} relations regex, confiance moyenne ${avgConfidence.toFixed(2)} → ${shouldActivateLLM ? 'ACTIVER' : 'SKIP'} LLM`
+    )
+
+    // 4. Extraction LLM (précise mais lente) - optionnel
+    if (shouldActivateLLM) {
       // Récupérer documents similaires comme candidats
       const candidatesResult = await db.query(
         `SELECT kb.id, kb.title, kb.category, kb.full_text AS content
@@ -403,8 +775,11 @@ export async function extractLegalRelations(
       }
     }
 
-    // 4. Dédupliquer et stocker
-    const uniqueRelations = deduplicateRelations(allRelations)
+    // 5. Validation croisée (Phase 4.2)
+    const validatedRelations = await validateRelations(allRelations)
+
+    // 6. Dédupliquer et stocker
+    const uniqueRelations = deduplicateRelations(validatedRelations)
 
     for (const relation of uniqueRelations) {
       await upsertLegalRelation(relation)
@@ -477,4 +852,15 @@ async function upsertLegalRelation(relation: LegalRelation): Promise<void> {
 // EXPORTS
 // =============================================================================
 
-export { detectCitationsWithRegex, detectLegalBasisWithRegex, detectSupersessionWithRegex }
+export {
+  detectCitationsWithRegex,
+  detectLegalBasisWithRegex,
+  detectSupersessionWithRegex,
+  // Phase 4.2 - Nouveaux types tunisiens
+  detectConfirmationsWithRegex,
+  detectRevirementsWithRegex,
+  detectDistinctionsWithRegex,
+  detectInterpretationsWithRegex,
+  validateRelations,
+  getHierarchyLevel,
+}
