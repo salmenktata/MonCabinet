@@ -7,6 +7,12 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { Pencil, TestTube, Trash2, Plus, Loader2, CheckCircle, XCircle } from 'lucide-react'
 import ProviderEditModal from './ProviderEditModal'
+import {
+  PROVIDER_PRIORITY,
+  PROVIDER_ICONS,
+  PROVIDER_NAMES,
+  PROVIDER_COLORS,
+} from '@/lib/constants/providers'
 
 interface ApiKeyData {
   provider: string
@@ -22,43 +28,6 @@ interface ApiKeyData {
   lastError?: string
   createdAt: string
   updatedAt: string
-}
-
-// Ordre de priorité des providers (basé sur fallback chain)
-const PROVIDER_PRIORITY: Record<string, number> = {
-  deepseek: 1,
-  groq: 2,
-  ollama: 3,
-  anthropic: 4,
-  openai: 5,
-  gemini: 6,
-}
-
-const PROVIDER_ICONS: Record<string, string> = {
-  gemini: '🧠',
-  deepseek: '💜',
-  groq: '⚡',
-  anthropic: '🧡',
-  ollama: '🤖',
-  openai: '🤖',
-}
-
-const PROVIDER_NAMES: Record<string, string> = {
-  gemini: 'Gemini',
-  deepseek: 'DeepSeek',
-  groq: 'Groq',
-  anthropic: 'Anthropic',
-  ollama: 'Ollama',
-  openai: 'OpenAI',
-}
-
-const PROVIDER_COLORS: Record<string, string> = {
-  gemini: 'text-blue-600',
-  deepseek: 'text-purple-600',
-  groq: 'text-orange-600',
-  anthropic: 'text-red-600',
-  ollama: 'text-green-600',
-  openai: 'text-cyan-600',
 }
 
 const ProviderConfigTable: React.FC = () => {

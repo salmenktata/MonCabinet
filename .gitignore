@@ -83,3 +83,8 @@ lighthouse-analysis.json
 tmp/rag-audits/*.json
 audit-rag-*.json
 audit-rag-*.csv
+
+# Test Database Snapshots
+scripts/test-db/snapshots/
+*.sql.gz
+prod_*.sql

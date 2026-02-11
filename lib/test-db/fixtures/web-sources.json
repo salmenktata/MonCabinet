@@ -1,0 +1,31 @@
+[
+  {
+    "id": 1,
+    "name": "Test Cassation (Échantillon)",
+    "base_url": "https://cassation.tn",
+    "category": "jurisprudence",
+    "status": "active",
+    "requires_javascript": false,
+    "ignore_ssl_errors": true,
+    "created_at": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "name": "Test 9anoun (Échantillon)",
+    "base_url": "https://9anoun.tn",
+    "category": "legislation",
+    "status": "active",
+    "requires_javascript": true,
+    "created_at": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": 3,
+    "name": "Test Da5ira (Échantillon)",
+    "base_url": "https://da5ira.com",
+    "category": "doctrine",
+    "status": "active",
+    "requires_javascript": false,
+    "use_sitemap": true,
+    "created_at": "2024-01-01T00:00:00Z"
+  }
+]

@@ -8,6 +8,7 @@ import { Icons } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { PROVIDER_ICONS, PROVIDER_COLORS } from '@/lib/constants/providers'
 
 interface ApiKeyDB {
   id: string
@@ -55,37 +56,11 @@ export function ApiKeysDBCard() {
   }
 
   function getProviderIcon(provider: string) {
-    switch (provider) {
-      case 'gemini':
-        return '🤖'
-      case 'deepseek':
-        return '🧠'
-      case 'groq':
-        return '⚡'
-      case 'anthropic':
-        return '🎭'
-      case 'ollama':
-        return '🦙'
-      default:
-        return '🔑'
-    }
+    return PROVIDER_ICONS[provider] || '🔑'
   }
 
   function getProviderColor(provider: string) {
-    switch (provider) {
-      case 'gemini':
-        return 'text-blue-400 border-blue-500'
-      case 'deepseek':
-        return 'text-purple-400 border-purple-500'
-      case 'groq':
-        return 'text-yellow-400 border-yellow-500'
-      case 'anthropic':
-        return 'text-orange-400 border-orange-500'
-      case 'ollama':
-        return 'text-green-400 border-green-500'
-      default:
-        return 'text-slate-400 border-slate-500'
-    }
+    return PROVIDER_COLORS[provider] || 'text-slate-400 border-slate-500'
   }
 
   if (loading) {

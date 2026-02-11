@@ -1,0 +1,168 @@
+[
+  {
+    "id": 1,
+    "title": "Code Civil Tunisien - Extrait Propriété",
+    "category": "legislation",
+    "language": "fr",
+    "file_url": "test/code-civil-propriete.pdf",
+    "file_type": "application/pdf",
+    "file_size": 51200,
+    "metadata": {
+      "source": "test_fixture",
+      "tribunal": null,
+      "chambre": null,
+      "numero_decision": null
+    },
+    "is_indexed": false,
+    "created_at": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "title": "Arrêt Cassation Civile - Test 001",
+    "category": "jurisprudence",
+    "language": "fr",
+    "file_url": "test/arret-cassation-001.pdf",
+    "file_type": "application/pdf",
+    "file_size": 25600,
+    "metadata": {
+      "source": "test_fixture",
+      "tribunal": "Cour de Cassation",
+      "chambre": "Civile",
+      "numero_decision": "TEST-001/2024"
+    },
+    "is_indexed": false,
+    "created_at": "2024-01-02T00:00:00Z"
+  },
+  {
+    "id": 3,
+    "title": "Arrêt Cassation Commerciale - Test 002",
+    "category": "jurisprudence",
+    "language": "fr",
+    "file_url": "test/arret-cassation-002.pdf",
+    "file_type": "application/pdf",
+    "file_size": 30720,
+    "metadata": {
+      "source": "test_fixture",
+      "tribunal": "Cour de Cassation",
+      "chambre": "Commerciale",
+      "numero_decision": "TEST-002/2024"
+    },
+    "is_indexed": false,
+    "created_at": "2024-01-03T00:00:00Z"
+  },
+  {
+    "id": 4,
+    "title": "Arrêt Cassation Pénale - Test 003",
+    "category": "jurisprudence",
+    "language": "fr",
+    "file_url": "test/arret-cassation-003.pdf",
+    "file_type": "application/pdf",
+    "file_size": 28672,
+    "metadata": {
+      "source": "test_fixture",
+      "tribunal": "Cour de Cassation",
+      "chambre": "Pénale",
+      "numero_decision": "TEST-003/2024"
+    },
+    "is_indexed": false,
+    "created_at": "2024-01-04T00:00:00Z"
+  },
+  {
+    "id": 5,
+    "title": "Arrêt Cassation Administrative - Test 004",
+    "category": "jurisprudence",
+    "language": "ar",
+    "file_url": "test/arret-cassation-004.pdf",
+    "file_type": "application/pdf",
+    "file_size": 32768,
+    "metadata": {
+      "source": "test_fixture",
+      "tribunal": "Cour de Cassation",
+      "chambre": "Administrative",
+      "numero_decision": "TEST-004/2024"
+    },
+    "is_indexed": false,
+    "created_at": "2024-01-05T00:00:00Z"
+  },
+  {
+    "id": 6,
+    "title": "Code de Commerce - Extrait Sociétés",
+    "category": "legislation",
+    "language": "fr",
+    "file_url": "test/code-commerce-societes.pdf",
+    "file_type": "application/pdf",
+    "file_size": 61440,
+    "metadata": {
+      "source": "test_fixture",
+      "tribunal": null,
+      "chambre": null,
+      "numero_decision": null
+    },
+    "is_indexed": false,
+    "created_at": "2024-01-06T00:00:00Z"
+  },
+  {
+    "id": 7,
+    "title": "Code Pénal - Extrait Crimes",
+    "category": "legislation",
+    "language": "fr",
+    "file_url": "test/code-penal-crimes.pdf",
+    "file_type": "application/pdf",
+    "file_size": 40960,
+    "metadata": {
+      "source": "test_fixture",
+      "tribunal": null,
+      "chambre": null,
+      "numero_decision": null
+    },
+    "is_indexed": false,
+    "created_at": "2024-01-07T00:00:00Z"
+  },
+  {
+    "id": 8,
+    "title": "Article Doctrine - Droit Administratif",
+    "category": "doctrine",
+    "language": "fr",
+    "file_url": "test/doctrine-admin.pdf",
+    "file_type": "application/pdf",
+    "file_size": 20480,
+    "metadata": {
+      "source": "test_fixture",
+      "auteur": "Professeur Test",
+      "revue": "Revue Test de Droit"
+    },
+    "is_indexed": false,
+    "created_at": "2024-01-08T00:00:00Z"
+  },
+  {
+    "id": 9,
+    "title": "Article Doctrine - Droit Civil",
+    "category": "doctrine",
+    "language": "fr",
+    "file_url": "test/doctrine-civil.pdf",
+    "file_type": "application/pdf",
+    "file_size": 22528,
+    "metadata": {
+      "source": "test_fixture",
+      "auteur": "Professeur Test 2",
+      "revue": "Revue Test de Droit"
+    },
+    "is_indexed": false,
+    "created_at": "2024-01-09T00:00:00Z"
+  },
+  {
+    "id": 10,
+    "title": "Modèle - Contrat de Vente",
+    "category": "modeles",
+    "language": "fr",
+    "file_url": "test/modele-contrat-vente.pdf",
+    "file_type": "application/pdf",
+    "file_size": 15360,
+    "metadata": {
+      "source": "test_fixture",
+      "type_document": "modèle"
+    },
+    "is_indexed": false,
+    "created_at": "2024-01-10T00:00:00Z"
+  }
+]

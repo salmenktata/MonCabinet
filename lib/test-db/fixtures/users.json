@@ -1,0 +1,16 @@
+[
+  {
+    "id": "test_user_1",
+    "email": "test.user@qadhya.test",
+    "name": "Utilisateur Test",
+    "role": "user",
+    "created_at": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "test_admin",
+    "email": "admin@qadhya.test",
+    "name": "Administrateur Test",
+    "role": "super_admin",
+    "created_at": "2024-01-01T00:00:00Z"
+  }
+]

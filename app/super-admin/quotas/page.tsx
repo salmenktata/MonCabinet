@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { QuotaCard } from '@/components/super-admin/quotas/QuotaCard'
 import { Icons } from '@/lib/icons'
+import { PROVIDERS_WITH_QUOTAS } from '@/lib/constants/providers'
 import {
   LineChart,
   Line,
@@ -48,10 +49,7 @@ interface QuotaData {
 }
 
 export default function QuotasPage() {
-  const [geminiData, setGeminiData] = useState<QuotaData | null>(null)
-  const [deepseekData, setDeepseekData] = useState<QuotaData | null>(null)
-  const [groqData, setGroqData] = useState<QuotaData | null>(null)
-  const [ollamaData, setOllamaData] = useState<QuotaData | null>(null)
+  const [quotasData, setQuotasData] = useState<Record<string, QuotaData | null>>({})
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('gemini')
 
@@ -62,16 +60,19 @@ export default function QuotasPage() {
   const fetchQuotas = async () => {
     setLoading(true)
     try {
-      const [gemini, deepseek, groq, ollama] = await Promise.all([
-        fetch('/api/admin/quotas?provider=gemini').then(r => r.json()),
-        fetch('/api/admin/quotas?provider=deepseek').then(r => r.json()),
-        fetch('/api/admin/quotas?provider=groq').then(r => r.json()),
-        fetch('/api/admin/quotas?provider=ollama').then(r => r.json()),
-      ])
-      setGeminiData(gemini)
-      setDeepseekData(deepseek)
-      setGroqData(groq)
-      setOllamaData(ollama)
+      // Fetch quotas pour tous les providers avec quotas
+      const promises = PROVIDERS_WITH_QUOTAS.map(provider =>
+        fetch(`/api/admin/quotas?provider=${provider.id}`).then(r => r.json())
+      )
+
+      const results = await Promise.all(promises)
+
+      const data: Record<string, QuotaData | null> = {}
+      PROVIDERS_WITH_QUOTAS.forEach((provider, index) => {
+        data[provider.id] = results[index]
+      })
+
+      setQuotasData(data)
     } catch (error) {
       console.error('Erreur récupération quotas:', error)
     } finally {
@@ -92,6 +93,8 @@ export default function QuotasPage() {
     return data.today.usage_percent >= 80 || data.month.usage_percent >= 80
   }
 
+  const getProviderData = (providerId: string) => quotasData[providerId]
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -111,7 +114,7 @@ export default function QuotasPage() {
       </div>
 
       {/* Alertes globales */}
-      {(hasAlert(geminiData) || hasAlert(deepseekData) || hasAlert(groqData)) && (
+      {Object.values(quotasData).some(data => hasAlert(data)) && (
         <Alert className="border-orange-500 bg-orange-500/10">
           <Icons.alertTriangle className="h-4 w-4 text-orange-500" />
           <AlertTitle>⚠️ Quotas élevés détectés</AlertTitle>
@@ -123,134 +126,90 @@ export default function QuotasPage() {
 
       {/* Onglets providers */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="gemini" className="flex items-center gap-2">
-            <Icons.sparkles className="h-4 w-4" />
-            Gemini
-            {hasAlert(geminiData) && (
-              <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="deepseek" className="flex items-center gap-2">
-            <Icons.brain className="h-4 w-4" />
-            DeepSeek
-          </TabsTrigger>
-          <TabsTrigger value="groq" className="flex items-center gap-2">
-            <Icons.zap className="h-4 w-4" />
-            Groq
-          </TabsTrigger>
-          <TabsTrigger value="ollama" className="flex items-center gap-2">
-            <Icons.database className="h-4 w-4" />
-            Ollama
-          </TabsTrigger>
+        <TabsList className={`grid w-full grid-cols-${PROVIDERS_WITH_QUOTAS.length}`}>
+          {PROVIDERS_WITH_QUOTAS.map(provider => (
+            <TabsTrigger key={provider.id} value={provider.id} className="flex items-center gap-2">
+              <span>{provider.icon}</span>
+              <span className="hidden sm:inline">{provider.name}</span>
+              {hasAlert(getProviderData(provider.id)) && (
+                <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+              )}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        {/* Gemini */}
-        <TabsContent value="gemini" className="space-y-6">
-          {geminiData && (
-            <>
-              <QuotaCard
-                provider="gemini"
-                todayUsage={geminiData.today}
-                monthUsage={geminiData.month}
-                currentRPM={geminiData.current_rpm}
-                rpmLimit={geminiData.rpm_limit}
-                tier={geminiData.quotas.tokensPerDay ? 'free' : 'paid'}
-              />
+        {/* Onglets dynamiques pour chaque provider */}
+        {PROVIDERS_WITH_QUOTAS.map(provider => {
+          const data = getProviderData(provider.id)
+          return (
+            <TabsContent key={provider.id} value={provider.id} className="space-y-6">
+              {data && (
+                <>
+                  <QuotaCard
+                    provider={provider.id}
+                    todayUsage={data.today}
+                    monthUsage={data.month}
+                    currentRPM={data.current_rpm}
+                    rpmLimit={data.rpm_limit}
+                    tier={provider.tier}
+                  />
 
-              {/* Tendance */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Tendance 7 derniers jours</CardTitle>
-                  <CardDescription>Consommation quotidienne tokens</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={geminiData.trend.reverse()}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={(date) => new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                      />
-                      <YAxis
-                        tickFormatter={(value) => `${(value / 1_000_000).toFixed(1)}M`}
-                      />
-                      <Tooltip
-                        formatter={(value, name) => {
-                          if (typeof value !== 'number' || !name) return ['', '']
-                          if (name === 'total_tokens') {
-                            return [`${(value / 1_000_000).toFixed(2)}M tokens`, 'Tokens']
-                          }
-                          return [`$${value.toFixed(2)}`, 'Coût']
-                        }}
-                        labelFormatter={(date) => new Date(date).toLocaleDateString('fr-FR')}
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="total_tokens"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        name="Tokens"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {/* Tendance (seulement pour Gemini) */}
+                  {provider.id === 'gemini' && data.trend && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Tendance 7 derniers jours</CardTitle>
+                        <CardDescription>Consommation quotidienne tokens</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={data.trend.reverse()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis
+                              dataKey="date"
+                              tickFormatter={(date) => new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                            />
+                            <YAxis
+                              tickFormatter={(value) => `${(value / 1_000_000).toFixed(1)}M`}
+                            />
+                            <Tooltip
+                              formatter={(value, name) => {
+                                if (typeof value !== 'number' || !name) return ['', '']
+                                if (name === 'total_tokens') {
+                                  return [`${(value / 1_000_000).toFixed(2)}M tokens`, 'Tokens']
+                                }
+                                return [`$${value.toFixed(2)}`, 'Coût']
+                              }}
+                              labelFormatter={(date) => new Date(date).toLocaleDateString('fr-FR')}
+                            />
+                            <Legend />
+                            <Line
+                              type="monotone"
+                              dataKey="total_tokens"
+                              stroke="#3b82f6"
+                              strokeWidth={2}
+                              name="Tokens"
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
 
-                  {/* Limite gratuite (ligne rouge) */}
-                  {geminiData.quotas.tokensPerDay && (
-                    <div className="mt-4 p-3 border border-red-500/30 rounded-lg bg-red-500/5">
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-semibold text-red-500">Limite tier gratuit</span> :
-                        {' '}{(geminiData.quotas.tokensPerDay / 1_000_000).toFixed(1)}M tokens/jour
-                      </p>
-                    </div>
+                        {/* Limite gratuite */}
+                        {data.quotas?.tokensPerDay && (
+                          <div className="mt-4 p-3 border border-red-500/30 rounded-lg bg-red-500/5">
+                            <p className="text-sm text-muted-foreground">
+                              <span className="font-semibold text-red-500">Limite tier gratuit</span> :
+                              {' '}{(data.quotas.tokensPerDay / 1_000_000).toFixed(1)}M tokens/jour
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   )}
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </TabsContent>
-
-        {/* DeepSeek */}
-        <TabsContent value="deepseek" className="space-y-6">
-          {deepseekData && (
-            <QuotaCard
-              provider="deepseek"
-              todayUsage={deepseekData.today}
-              monthUsage={deepseekData.month}
-              currentRPM={deepseekData.current_rpm}
-              rpmLimit={deepseekData.rpm_limit}
-              tier="paid"
-            />
-          )}
-        </TabsContent>
-
-        {/* Groq */}
-        <TabsContent value="groq" className="space-y-6">
-          {groqData && (
-            <QuotaCard
-              provider="groq"
-              todayUsage={groqData.today}
-              monthUsage={groqData.month}
-              currentRPM={groqData.current_rpm}
-              rpmLimit={groqData.rpm_limit}
-              tier={groqData.quotas.tokensPerDay ? 'free' : 'paid'}
-            />
-          )}
-        </TabsContent>
-
-        {/* Ollama */}
-        <TabsContent value="ollama" className="space-y-6">
-          {ollamaData && (
-            <QuotaCard
-              provider="ollama"
-              todayUsage={ollamaData.today}
-              monthUsage={ollamaData.month}
-              currentRPM={ollamaData.current_rpm}
-              tier="local"
-            />
-          )}
-        </TabsContent>
+                </>
+              )}
+            </TabsContent>
+          )
+        })}
       </Tabs>
 
       {/* Recommandations */}
