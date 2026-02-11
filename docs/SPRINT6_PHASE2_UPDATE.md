@@ -77,7 +77,7 @@ export interface Conversation {
 
 ## Progrès
 
-### Migrations complétées : 5/85 (5.9%) - Incluant fix API
+### Migrations complétées : 6/85 (7.1%) - Incluant fix API
 
 | # | Fichier | Avant | Après | Réduction | Complexité | Statut |
 |---|---------|-------|-------|-----------|------------|--------|
@@ -86,9 +86,92 @@ export interface Conversation {
 | 3 | DocumentExplorer.tsx | ~80 | ~50 | -30 (-37%) | Moyenne | ✅ Migrée |
 | 4 | **ChatPage.tsx** | 347 | 274 | **-73 (-21%)** | **Haute** | ✅ Migrée + ✅ API Fixed |
 | 5 | **useConversations.ts** | 520 | 550 | +30 (+6%) | **Haute** | ✅ **API Fixed** |
-| **TOTAL** | **5 fichiers** | **1122** | **918** | **-204 (-18%)** | - | - |
+| 6 | **ConsultationInput.tsx** | 230 | 214 | **-16 (-7%)** | Moyenne | ✅ Migrée |
+| **TOTAL** | **6 fichiers** | **1352** | **1132** | **-220 (-16%)** | - | - |
 
-**Note** : useConversations.ts a augmenté légèrement (+30 lignes) à cause des adaptations response format, mais gain net global reste important (-204 lignes).
+**Note** : useConversations.ts a augmenté légèrement (+30 lignes) à cause des adaptations response format, mais gain net global reste important (-220 lignes).
+
+---
+
+## ConsultationInput.tsx - Migration (11 Février 2026, 17h00)
+
+### Avant migration (230 lignes)
+
+**State (5 variables)** :
+```typescript
+const [question, setQuestion] = useState(initialQuestion)
+const [context, setContext] = useState(initialContext)
+const [selectedDossierId, setSelectedDossierId] = useState<string>('none')
+const [dossiers, setDossiers] = useState<Dossier[]>([])
+const [loadingDossiers, setLoadingDossiers] = useState(true)
+```
+
+**useEffect + fetch() (17 lignes)** :
+```typescript
+useEffect(() => {
+  async function fetchDossiers() {
+    try {
+      const response = await fetch('/api/dossiers?limit=50&status=actif')
+      if (response.ok) {
+        const data = await response.json()
+        setDossiers(data.dossiers || [])
+      }
+    } catch (error) {
+      console.error('Erreur chargement dossiers:', error)
+    } finally {
+      setLoadingDossiers(false)
+    }
+  }
+  fetchDossiers()
+}, [])
+```
+
+### Après migration (214 lignes)
+
+**State réduit (3 variables, -2)** :
+```typescript
+const [question, setQuestion] = useState(initialQuestion)
+const [context, setContext] = useState(initialContext)
+const [selectedDossierId, setSelectedDossierId] = useState<string>('none')
+// dossiers et loadingDossiers supprimés
+```
+
+**Hook React Query (4 lignes)** :
+```typescript
+const { data: dossiersData, isLoading: loadingDossiers } = useDossierList({
+  limit: 50,
+  status: 'open', // Dossiers actifs
+  sortBy: 'updatedAt',
+  sortOrder: 'desc',
+})
+
+const dossiers = dossiersData?.dossiers || []
+```
+
+**Fixes TypeScript** :
+- `filters: { status: 'actif' }` → `status: 'open'` (DossierListParams direct)
+- `dossier.numero` → `dossier.numeroAffaire` (interface Dossier correcte)
+
+### Gains
+
+| Métrique | Avant | Après | Delta |
+|----------|-------|-------|-------|
+| Lignes totales | 230 | 214 | -16 (-7%) |
+| useState variables | 5 | 3 | -2 (-40%) |
+| useEffect hooks | 1 | 0 | -1 (-100%) |
+| Fonctions fetch() | 1 (~17 lignes) | 0 | -17 (-100%) |
+
+**UX améliorée** :
+- ✅ **Cache intelligent** : Dossiers cachés 5 minutes (staleTime)
+- ✅ **Refetch automatique** : Après création/update dossier (invalidation cache)
+- ✅ **Navigation instantanée** : Retour sur page consultation = 0ms (cache)
+- ✅ **Retry automatique** : 2 tentatives avec backoff exponentiel
+
+**DX simplifiée** :
+- ✅ Pas de gestion manuelle setState
+- ✅ Pas de try/catch verbose
+- ✅ Pas de cleanup useEffect
+- ✅ Types automatiques depuis hook
 
 ---
 

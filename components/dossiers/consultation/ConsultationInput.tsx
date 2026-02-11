@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Icons } from '@/lib/icons'
@@ -16,13 +16,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { submitConsultation, type ConsultationResponse } from '@/app/actions/consultation'
-
-interface Dossier {
-  id: string
-  titre: string
-  numero: string
-  type_affaire: string
-}
+import { useDossierList } from '@/lib/hooks/useDossiers'
 
 interface ConsultationInputProps {
   onComplete: (response: ConsultationResponse) => void
@@ -43,27 +37,16 @@ export function ConsultationInput({
   const [question, setQuestion] = useState(initialQuestion)
   const [context, setContext] = useState(initialContext)
   const [selectedDossierId, setSelectedDossierId] = useState<string>('none')
-  const [dossiers, setDossiers] = useState<Dossier[]>([])
-  const [loadingDossiers, setLoadingDossiers] = useState(true)
 
-  // Charger les dossiers de l'utilisateur
-  useEffect(() => {
-    async function fetchDossiers() {
-      try {
-        const response = await fetch('/api/dossiers?limit=50&status=actif')
-        if (response.ok) {
-          const data = await response.json()
-          setDossiers(data.dossiers || [])
-        }
-      } catch (error) {
-        console.error('Erreur chargement dossiers:', error)
-      } finally {
-        setLoadingDossiers(false)
-      }
-    }
+  // Charger les dossiers de l'utilisateur avec React Query
+  const { data: dossiersData, isLoading: loadingDossiers } = useDossierList({
+    limit: 50,
+    status: 'open', // Dossiers actifs
+    sortBy: 'updatedAt',
+    sortOrder: 'desc',
+  })
 
-    fetchDossiers()
-  }, [])
+  const dossiers = dossiersData?.dossiers || []
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -183,9 +166,11 @@ export function ConsultationInput({
                 <div className="flex items-center gap-2">
                   <Icons.folder className="h-4 w-4 text-muted-foreground" />
                   <span>{dossier.titre}</span>
-                  <span className="text-xs text-muted-foreground">
-                    ({dossier.numero})
-                  </span>
+                  {dossier.numeroAffaire && (
+                    <span className="text-xs text-muted-foreground">
+                      ({dossier.numeroAffaire})
+                    </span>
+                  )}
                 </div>
               </SelectItem>
             ))}
