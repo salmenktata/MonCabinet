@@ -122,11 +122,12 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
   const parsed = parseKBQualityResponse(llmResult.answer)
 
   const result: KBQualityResult = {
-    qualityScore: parsed.overall_score,
-    clarity: parsed.clarity_score,
-    structure: parsed.structure_score,
-    completeness: parsed.completeness_score,
-    reliability: parsed.reliability_score,
+    // Arrondir tous les scores car PostgreSQL attend des integers
+    qualityScore: Math.round(parsed.overall_score),
+    clarity: Math.round(parsed.clarity_score),
+    structure: Math.round(parsed.structure_score),
+    completeness: Math.round(parsed.completeness_score),
+    reliability: Math.round(parsed.reliability_score),
     analysisSummary: parsed.analysis_summary,
     detectedIssues: parsed.detected_issues || [],
     recommendations: parsed.recommendations || [],
