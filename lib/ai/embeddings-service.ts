@@ -373,7 +373,7 @@ async function generateEmbeddingsBatchWithOpenAI(
   let totalTokens = 0
 
   for (let i = 0; i < texts.length; i += MAX_BATCH) {
-    const batch = texts.slice(i, i + MAX_BATCH).map(t => t.substring(0, 8000))
+    const batch = texts.slice(i, i + MAX_BATCH).map(t => t.substring(0, 6500)) // Limite 8192 tokens
 
     const response = await client.embeddings.create({
       model: aiConfig.openai.embeddingModel,
