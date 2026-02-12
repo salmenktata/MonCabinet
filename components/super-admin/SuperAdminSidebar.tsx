@@ -30,7 +30,8 @@ interface SuperAdminSidebarProps {
   pendingTaxonomySuggestions?: number
 }
 
-// Navigation Super Admin - Refonte Consolidation (Feb 2026)
+// Navigation Super Admin - Réorganisation Variante 2 (Feb 2026)
+// Structure optimisée: 5 groupes, 23 items, workflow logique
 const getNavGroups = (
   pendingCount: number,
   unreadNotifications: number,
@@ -38,16 +39,20 @@ const getNavGroups = (
   pendingContradictions: number,
   pendingTaxonomySuggestions: number
 ): NavGroup[] => [
-  // Groupe 1: Vue d'ensemble
+  // Groupe 1: Pilotage & Monitoring (4 items)
   {
-    group: 'Vue d\'ensemble',
+    group: 'Pilotage & Monitoring',
     items: [
       { href: '/super-admin/dashboard', label: 'Tableau de bord', icon: 'dashboard' },
+      { href: '/super-admin/monitoring', label: 'Monitoring', icon: 'activity' },
+      { href: '/super-admin/legal-quality', label: 'Qualité Juridique', icon: 'shield' },
+      { href: '/super-admin/quotas', label: 'Quotas & Limites', icon: 'chartBar' },
     ],
   },
-  // Groupe 2: Gestion
+
+  // Groupe 2: Gestion Métier (4 items)
   {
-    group: 'Gestion',
+    group: 'Gestion Métier',
     items: [
       {
         href: '/super-admin/users',
@@ -56,16 +61,7 @@ const getNavGroups = (
         badge: pendingCount || undefined,
         badgeVariant: 'destructive' as const
       },
-    ],
-  },
-  // Groupe 3: Contenu (⚠️ NE PAS MODIFIER - Travail crawling/indexation prod)
-  {
-    group: 'Contenu',
-    items: [
-      { href: '/super-admin/knowledge-base', label: 'Base de connaissances', icon: 'bookOpen' },
-      { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
-      { href: '/super-admin/web-sources/maintenance', label: 'Maintenance', icon: 'wrench' },
-      { href: '/super-admin/web-files', label: 'Fichiers Web', icon: 'file' },
+      { href: '/super-admin/plans', label: 'Plans & Abonnements', icon: 'creditCard' },
       {
         href: '/super-admin/taxonomy',
         label: 'Taxonomie',
@@ -73,23 +69,20 @@ const getNavGroups = (
         badge: pendingTaxonomySuggestions || undefined,
         badgeVariant: 'secondary' as const
       },
+      { href: '/super-admin/settings', label: 'Configuration', icon: 'settings' },
     ],
   },
-  // Groupe 4: Qualité (6 outils de monitoring qualité)
+
+  // Groupe 3: Contenu & Qualité (7 items)
   {
-    group: 'Qualité',
+    group: 'Contenu & Qualité',
     items: [
+      { href: '/super-admin/knowledge-base', label: 'Base de connaissances', icon: 'bookOpen' },
+      { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
+      { href: '/super-admin/web-files', label: 'Fichiers Web', icon: 'file' },
       { href: '/super-admin/kb-management', label: 'Gestion KB', icon: 'database' },
-      { href: '/super-admin/legal-quality', label: 'Legal Quality', icon: 'shield' },
       { href: '/super-admin/classification', label: 'Classification', icon: 'sparkles' },
       { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
-      {
-        href: '/super-admin/review-queue',
-        label: 'File de Revue',
-        icon: 'fileText',
-        badge: pendingReviews || undefined,
-        badgeVariant: 'destructive' as const
-      },
       {
         href: '/super-admin/contradictions',
         label: 'Contradictions',
@@ -99,21 +92,38 @@ const getNavGroups = (
       },
     ],
   },
-  // Groupe 5: Monitoring (Dashboard unifié + Quotas)
+
+  // Groupe 4: Validation & Optimisation (4 items)
   {
-    group: 'Monitoring',
+    group: 'Validation & Optimisation',
     items: [
-      { href: '/super-admin/monitoring', label: 'Dashboard Monitoring', icon: 'activity' },
-      { href: '/super-admin/quotas', label: 'Quotas & Alertes', icon: 'chartBar' },
+      {
+        href: '/super-admin/review-queue',
+        label: 'File de Revue',
+        icon: 'fileText',
+        badge: pendingReviews || undefined,
+        badgeVariant: 'destructive' as const
+      },
+      { href: '/super-admin/content-review', label: 'Révision Contenu', icon: 'fileText' },
+      { href: '/super-admin/active-learning', label: 'Active Learning', icon: 'target' },
+      { href: '/super-admin/ab-testing', label: 'A/B Testing', icon: 'brain' },
     ],
   },
-  // Groupe 6: Système
+
+  // Groupe 5: Système (4 items)
   {
     group: 'Système',
     items: [
-      { href: '/super-admin/settings', label: 'Configuration', icon: 'settings' },
+      { href: '/super-admin/web-sources/maintenance', label: 'Maintenance', icon: 'wrench' },
       { href: '/super-admin/audit-logs', label: 'Journal d\'audit', icon: 'shield' },
       { href: '/super-admin/backups', label: 'Sauvegardes', icon: 'database' },
+      {
+        href: '/super-admin/notifications',
+        label: 'Notifications',
+        icon: 'bell',
+        badge: unreadNotifications || undefined,
+        badgeVariant: 'secondary' as const
+      },
     ],
   },
 ]

@@ -422,6 +422,9 @@ export async function indexPendingDocuments(limit: number = 10): Promise<{
 
 /**
  * Recherche sémantique dans la base de connaissances
+ *
+ * ✨ OPTIMISATION RAG - Sprint 1 (Feb 2026)
+ * Support embeddings OpenAI (1536-dim) pour meilleure qualité
  */
 export async function searchKnowledgeBase(
   query: string,
@@ -430,6 +433,7 @@ export async function searchKnowledgeBase(
     subcategory?: string
     limit?: number
     threshold?: number
+    operationName?: string  // Pour déterminer le provider d'embeddings
   } = {}
 ): Promise<KnowledgeBaseSearchResult[]> {
   if (!isSemanticSearchEnabled()) {
@@ -447,19 +451,29 @@ export async function searchKnowledgeBase(
     subcategory,
     limit = aiConfig.rag.maxResults,
     threshold = aiConfig.rag.similarityThreshold - 0.05, // Seuil légèrement plus bas
+    operationName,
   } = options
 
   // Import dynamique des services
   const { generateEmbedding, formatEmbeddingForPostgres } = await getEmbeddingsService()
 
-  // Générer l'embedding de la requête
-  const queryEmbedding = await generateEmbedding(query)
+  // Générer l'embedding de la requête avec opération spécifique
+  // Si operationName fourni, utilisera la config embeddings de l'opération
+  const queryEmbedding = await generateEmbedding(query, {
+    operationName: operationName as any
+  })
   const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
 
-  // Recherche via la fonction SQL
+  // Déterminer si on utilise OpenAI (basé sur le provider utilisé)
+  const useOpenAI = queryEmbedding.provider === 'openai'
+
+  // Log pour debug
+  console.log(`[KB Search] Provider: ${queryEmbedding.provider}, dimensions: ${queryEmbedding.embedding.length}`)
+
+  // Recherche via la fonction SQL flexible
   const result = await db.query(
-    `SELECT * FROM search_knowledge_base($1::vector, $2, $3, $4, $5)`,
-    [embeddingStr, category || null, subcategory || null, limit, threshold]
+    `SELECT * FROM search_knowledge_base_flexible($1::vector, $2, $3, $4, $5, $6)`,
+    [embeddingStr, category || null, subcategory || null, limit, threshold, useOpenAI]
   )
 
   return result.rows.map((row) => ({
@@ -471,6 +485,80 @@ export async function searchKnowledgeBase(
     chunkIndex: row.chunk_index,
     similarity: parseFloat(row.similarity),
     metadata: row.metadata || {},
+  }))
+}
+
+/**
+ * Recherche HYBRIDE dans la base de connaissances
+ *
+ * ✨ OPTIMISATION RAG - Sprint 3 (Feb 2026)
+ * Combine recherche vectorielle (sémantique) + BM25 (keywords) avec RRF
+ *
+ * Impact: +25-30% couverture (capture keywords exacts manqués par vectoriel)
+ * Pondération: 70% vectoriel, 30% BM25
+ */
+export async function searchKnowledgeBaseHybrid(
+  query: string,
+  options: {
+    category?: KnowledgeBaseCategory
+    subcategory?: string
+    limit?: number
+    threshold?: number
+    operationName?: string
+  } = {}
+): Promise<KnowledgeBaseSearchResult[]> {
+  if (!isSemanticSearchEnabled()) {
+    console.log('[KB Hybrid Search] ❌ Recherche sémantique DÉSACTIVÉE')
+    return []
+  }
+
+  const {
+    category,
+    subcategory,
+    limit = aiConfig.rag.maxResults,
+    threshold = aiConfig.rag.similarityThreshold - 0.05,
+    operationName,
+  } = options
+
+  // Import dynamique des services
+  const { generateEmbedding, formatEmbeddingForPostgres } =
+    await getEmbeddingsService()
+
+  // Générer embedding avec opération spécifique
+  const queryEmbedding = await generateEmbedding(query, {
+    operationName: operationName as any,
+  })
+  const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
+
+  // Déterminer provider (OpenAI ou Ollama)
+  const useOpenAI = queryEmbedding.provider === 'openai'
+
+  // Préparer query texte pour BM25 (supprimer ponctuation)
+  const queryText = query.replace(/[^\w\s\u0600-\u06FF]/g, ' ').trim()
+
+  console.log(
+    `[KB Hybrid Search] Provider: ${queryEmbedding.provider}, Query: "${queryText.substring(0, 50)}..."`
+  )
+
+  // Appel fonction SQL hybrid
+  const result = await db.query(
+    `SELECT * FROM search_knowledge_base_hybrid($1, $2::vector, $3, $4, $5, $6)`,
+    [queryText, embeddingStr, category || null, limit, threshold, useOpenAI]
+  )
+
+  return result.rows.map((row) => ({
+    knowledgeBaseId: row.knowledge_base_id,
+    chunkId: row.chunk_id,
+    title: row.title,
+    category: row.category as KnowledgeBaseCategory,
+    chunkContent: row.chunk_content,
+    chunkIndex: row.chunk_index,
+    similarity: parseFloat(row.hybrid_score), // Score hybride (combiné)
+    metadata: {
+      ...row.metadata,
+      vectorSimilarity: parseFloat(row.similarity), // Score vectoriel seul
+      bm25Rank: parseFloat(row.bm25_rank), // Score BM25 seul
+    },
   }))
 }
 

@@ -126,7 +126,10 @@ function tfidfScore(
 export async function rerankDocuments(
   query: string,
   documents: DocumentToRerank[],
-  topK?: number
+  topK?: number,
+  options: {
+    useCrossEncoder?: boolean  // ✨ NOUVEAU Sprint 3
+  } = {}
 ): Promise<RerankerResult[]> {
   if (!RERANKER_ENABLED || documents.length <= 1) {
     // Fallback: retourner triés par score original
@@ -138,6 +141,54 @@ export async function rerankDocuments(
     results.sort((a, b) => b.score - a.score)
     return topK ? results.slice(0, topK) : results
   }
+
+  // ✨ OPTIMISATION RAG - Sprint 3 (Feb 2026)
+  // Utiliser Cross-Encoder Neural si activé (meilleure précision)
+  const useCrossEncoder = options.useCrossEncoder !== false // Activé par défaut
+
+  if (useCrossEncoder) {
+    try {
+      console.log('[Reranker] Utilisation cross-encoder neural...')
+
+      // Import dynamique du service cross-encoder
+      const { rerankWithCrossEncoder } = await import('./cross-encoder-service')
+
+      // Extraire contenus
+      const contents = documents.map((doc) => doc.content)
+
+      // Re-ranking neural
+      const crossEncoderResults = await rerankWithCrossEncoder(
+        query,
+        contents,
+        topK
+      )
+
+      // Combiner scores cross-encoder (70%) + scores originaux (30%)
+      const results: RerankerResult[] = crossEncoderResults.map((ce) => {
+        const originalDoc = documents[ce.index]
+        return {
+          index: ce.index,
+          score: ce.score * 0.7 + originalDoc.originalScore * 0.3,
+          originalScore: originalDoc.originalScore,
+        }
+      })
+
+      console.log(
+        `[Reranker] ✓ Cross-encoder: ${results.length} résultats (top score: ${(results[0]?.score * 100).toFixed(1)}%)`
+      )
+
+      return results
+    } catch (error) {
+      console.error(
+        '[Reranker] Cross-encoder échoué, fallback TF-IDF:',
+        error instanceof Error ? error.message : error
+      )
+      // Continuer avec TF-IDF fallback
+    }
+  }
+
+  // ===== FALLBACK TF-IDF (classique) =====
+  console.log('[Reranker] Utilisation TF-IDF (fallback)...')
 
   // Tokenizer la query et les documents
   const queryTokens = tokenize(query)

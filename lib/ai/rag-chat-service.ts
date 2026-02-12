@@ -381,8 +381,24 @@ export async function searchRelevantContext(
     includeKnowledgeBase = true, // Activé par défaut
   } = options
 
-  // Générer l'embedding de la question avec config opération
-  const queryEmbedding = await generateEmbedding(question, {
+  // ✨ OPTIMISATION RAG - Sprint 2 (Feb 2026)
+  // 1. Query Expansion pour requêtes courtes
+  let expandedQuestion = question
+  if (ENABLE_QUERY_EXPANSION && question.length < 50) {
+    const { expandQuery } = await import('./query-expansion-service')
+    try {
+      expandedQuestion = await expandQuery(question)
+      if (expandedQuestion !== question) {
+        console.log(`[RAG Search] Query expandée: ${question} → ${expandedQuestion.substring(0, 80)}...`)
+      }
+    } catch (error) {
+      console.error('[RAG Search] Erreur expansion query:', error)
+      expandedQuestion = question // Fallback
+    }
+  }
+
+  // Générer l'embedding de la question EXPANDÉE avec config opération
+  const queryEmbedding = await generateEmbedding(expandedQuestion, {
     operationName: options.operationName,
   })
   const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
@@ -502,11 +518,55 @@ export async function searchRelevantContext(
   // Recherche dans la base de connaissances partagée
   if (includeKnowledgeBase) {
     try {
-      const kbResults = await searchKnowledgeBase(question, {
-        limit: maxContextChunks, // Plus de KB pour le re-ranking
-        threshold: RAG_THRESHOLDS.knowledgeBase,
-      })
+      // ✨ OPTIMISATION RAG - Sprint 2 (Feb 2026)
+      // 2. Metadata Filtering Intelligent via classification query
+      const { classifyQuery, isClassificationConfident } = await import('./query-classifier-service')
 
+      // Classifier la query pour déterminer catégories pertinentes
+      const classification = await classifyQuery(question)
+
+      let kbResults: Array<{
+        knowledgeBaseId: string
+        title: string
+        chunkContent: string
+        similarity: number
+        category: string
+        metadata: Record<string, unknown>
+      }> = []
+
+      // Recherche filtrée par catégorie si classification confiante
+      if (isClassificationConfident(classification) && classification.categories.length > 0) {
+        console.log(
+          `[RAG Search] Filtrage KB par catégories: ${classification.categories.join(', ')} (confiance: ${(classification.confidence * 100).toFixed(1)}%)`
+        )
+
+        // Recherche dans chaque catégorie pertinente
+        for (const category of classification.categories) {
+          const categoryResults = await searchKnowledgeBase(question, {
+            category: category as any,
+            limit: Math.ceil(maxContextChunks / classification.categories.length),
+            threshold: RAG_THRESHOLDS.knowledgeBase,
+            operationName: options.operationName,
+          })
+          kbResults.push(...categoryResults)
+        }
+
+        // Re-trier par similarité globale et limiter
+        kbResults.sort((a, b) => b.similarity - a.similarity)
+        kbResults = kbResults.slice(0, maxContextChunks)
+      } else {
+        // Recherche globale (fallback si classification non confiante)
+        console.log(
+          `[RAG Search] Recherche KB globale (classification confiance: ${(classification.confidence * 100).toFixed(1)}%)`
+        )
+        kbResults = await searchKnowledgeBase(question, {
+          limit: maxContextChunks,
+          threshold: RAG_THRESHOLDS.knowledgeBase,
+          operationName: options.operationName,
+        })
+      }
+
+      // Ajouter résultats KB aux sources
       for (const result of kbResults) {
         allSources.push({
           documentId: result.knowledgeBaseId,

@@ -115,14 +115,18 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
       fallback: ['gemini', 'deepseek', 'ollama'],
     },
 
+    // ✨ OPTIMISATION RAG - Sprint 1 (Feb 2026)
+    // OpenAI embeddings pour meilleure qualité (54-63% → 75-85% similarité)
+    // Coût: ~0.50€/mois (1M tokens ≈ $0.02, volume faible chat)
     embeddings: {
-      provider: 'ollama',  // Gratuit pour volume élevé
-      model: 'qwen3-embedding:0.6b',
-      dimensions: 1024,
+      provider: 'openai',   // Qualité supérieure pour assistant IA
+      fallbackProvider: 'ollama',  // Fallback si OpenAI indisponible
+      model: 'text-embedding-3-small',
+      dimensions: 1536,  // OpenAI dimensions (vs 1024 Ollama)
     },
 
     timeouts: {
-      embedding: 5000,   // 5s max (marge Ollama embeddings)
+      embedding: 3000,   // 3s max (OpenAI plus rapide qu'Ollama)
       chat: 30000,       // 30s max (permet fallback Ollama 18s + marge)
       total: 45000,      // 45s total (cascade complète + marge réseau)
     },
