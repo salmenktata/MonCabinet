@@ -38,6 +38,7 @@
     "test:cache-multi-niveaux": "npx tsx scripts/test-cache-multi-niveaux.ts",
     "test:multi-chain-reasoning": "npx tsx scripts/test-multi-chain-reasoning.ts",
     "test:semantic-contradiction": "npx tsx scripts/test-semantic-contradiction.ts",
+    "optimize:memory": "bash scripts/optimize-memory.sh",
     "test:explanation-tree": "npx tsx scripts/test-explanation-tree.ts",
     "test:legal-relations-extraction": "npx tsx scripts/test-legal-relations-extraction.ts",
     "test:jurisprudence-timeline": "npx tsx scripts/test-jurisprudence-timeline.ts",
