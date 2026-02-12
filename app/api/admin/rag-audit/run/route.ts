@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runAudit, type AuditReport } from '@/scripts/audit-rag-data-quality'
-import { writeFile } from 'fs/promises'
+import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
 /**
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     const filePath = path.join(auditDir, filename)
 
     // Créer le dossier si nécessaire
+    await mkdir(auditDir, { recursive: true })
     await writeFile(filePath, JSON.stringify(report, null, 2))
 
     console.log(`[RAG Audit API] Audit terminé, rapport sauvegardé : ${filePath}`)

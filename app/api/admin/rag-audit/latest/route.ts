@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readdir, readFile } from 'fs/promises'
+import { readdir, readFile, mkdir } from 'fs/promises'
 import path from 'path'
 
 /**
@@ -12,6 +12,9 @@ import path from 'path'
 export async function GET(request: NextRequest) {
   try {
     const auditDir = path.join(process.cwd(), 'tmp', 'rag-audits')
+
+    // Créer le dossier s'il n'existe pas
+    await mkdir(auditDir, { recursive: true })
 
     // Lister les fichiers
     const files = await readdir(auditDir)
