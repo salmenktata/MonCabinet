@@ -34,9 +34,9 @@ interface AuditSummary {
 interface CategoryStats {
   category: string
   total_chunks: number
-  avg_words: number
-  pct_normal: number
-  stddev_words: number
+  avg_words: number | null
+  pct_normal: number | null
+  stddev_words: number | null
 }
 
 interface EmbeddingValidation {
@@ -338,7 +338,8 @@ export default function RAGAuditPage() {
             <CardContent>
               <div className="space-y-4">
                 {report.chunkingAnalysis.sizeDistribution.map((cat) => {
-                  const isGood = cat.pct_normal >= 90
+                  const pctNormal = cat.pct_normal ?? 0
+                  const isGood = pctNormal >= 90
                   return (
                     <div key={cat.category} className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -352,9 +353,9 @@ export default function RAGAuditPage() {
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>{cat.total_chunks} chunks</span>
-                          <span>{Math.round(cat.avg_words)} mots moy.</span>
+                          <span>{Math.round(cat.avg_words ?? 0)} mots moy.</span>
                           <Badge variant={isGood ? 'default' : 'secondary'}>
-                            {cat.pct_normal.toFixed(1)}% normal
+                            {pctNormal.toFixed(1)}% normal
                           </Badge>
                         </div>
                       </div>
@@ -363,7 +364,7 @@ export default function RAGAuditPage() {
                           className={`h-full transition-all ${
                             isGood ? 'bg-green-500' : 'bg-yellow-500'
                           }`}
-                          style={{ width: `${cat.pct_normal}%` }}
+                          style={{ width: `${pctNormal}%` }}
                         />
                       </div>
                     </div>

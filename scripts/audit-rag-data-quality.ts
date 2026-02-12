@@ -63,14 +63,14 @@ interface ChunkIssue {
 interface CategoryStats {
   category: string
   total_chunks: number
-  avg_words: number
-  min_words: number
-  max_words: number
-  stddev_words: number
+  avg_words: number | null
+  min_words: number | null
+  max_words: number | null
+  stddev_words: number | null
   count_tiny: number
   count_normal: number
   count_huge: number
-  pct_normal: number
+  pct_normal: number | null
 }
 
 interface MetadataAudit {
@@ -544,21 +544,25 @@ async function auditChunking(): Promise<{
 
   // Analyser la distribution
   for (const category of sizeDistribution.rows) {
-    if (category.pct_normal < 95 - THRESHOLDS.CHUNK_PROBLEMATIC_PCT) {
+    const pctNormal = category.pct_normal ?? 0
+    const stddevWords = category.stddev_words ?? 0
+    const avgWords = category.avg_words ?? 0
+
+    if (pctNormal < 95 - THRESHOLDS.CHUNK_PROBLEMATIC_PCT) {
       criticalIssues.push(
-        `⚠️ Catégorie "${category.category}" : ${Math.round(100 - category.pct_normal)}% chunks hors plage normale (100-800 mots)`
+        `⚠️ Catégorie "${category.category}" : ${Math.round(100 - pctNormal)}% chunks hors plage normale (100-800 mots)`
       )
       recommendations.push(
         `Vérifier OVERLAP_BY_CATEGORY dans chunking-service.ts pour catégorie ${category.category}`
       )
     }
 
-    if (category.stddev_words > 300) {
+    if (stddevWords > 300) {
       criticalIssues.push(
-        `⚠️ Catégorie "${category.category}" : variance élevée (stddev=${Math.round(category.stddev_words)} mots)`
+        `⚠️ Catégorie "${category.category}" : variance élevée (stddev=${Math.round(stddevWords)} mots)`
       )
       recommendations.push(
-        `Ajuster maxTokens dans chunking-service.ts pour ${category.category} (actuel: ${category.avg_words} mots)`
+        `Ajuster maxTokens dans chunking-service.ts pour ${category.category} (actuel: ${Math.round(avgWords)} mots)`
       )
     }
   }
@@ -822,10 +826,12 @@ function displayReport(report: AuditReport) {
   console.log()
 
   report.chunkingAnalysis.sizeDistribution.forEach((cat) => {
-    const status = cat.pct_normal >= 95 - THRESHOLDS.CHUNK_PROBLEMATIC_PCT ? '✅' : '⚠️'
+    const pctNormal = cat.pct_normal ?? 0
+    const avgWords = Math.round(cat.avg_words ?? 0)
+    const status = pctNormal >= 95 - THRESHOLDS.CHUNK_PROBLEMATIC_PCT ? '✅' : '⚠️'
     console.log(
       `   ${status} ${cat.category.padEnd(20)} : ${cat.total_chunks} chunks, ` +
-        `${cat.avg_words} mots moy. (${cat.pct_normal}% normal)`
+        `${avgWords} mots moy. (${pctNormal.toFixed(1)}% normal)`
     )
   })
   console.log()
@@ -886,7 +892,7 @@ function exportCSV(report: AuditReport, outputPath?: string) {
     'category,total_chunks,avg_words,min_words,max_words,stddev_words,count_tiny,count_normal,count_huge,pct_normal',
     ...report.chunkingAnalysis.sizeDistribution.map(
       (c) =>
-        `${c.category},${c.total_chunks},${c.avg_words},${c.min_words},${c.max_words},${c.stddev_words},${c.count_tiny},${c.count_normal},${c.count_huge},${c.pct_normal}`
+        `${c.category},${c.total_chunks},${c.avg_words ?? ''},${c.min_words ?? ''},${c.max_words ?? ''},${c.stddev_words ?? ''},${c.count_tiny},${c.count_normal},${c.count_huge},${c.pct_normal ?? ''}`
     ),
   ].join('\n')
 
