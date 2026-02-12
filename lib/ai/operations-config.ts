@@ -22,6 +22,7 @@ export type OperationName =
   | 'dossiers-assistant'
   | 'dossiers-consultation'
   | 'kb-quality-analysis'
+  | 'kb-quality-analysis-short'
 
 /**
  * Configuration IA pour une opération spécifique
@@ -189,6 +190,29 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     llmConfig: {
       temperature: 0.1,  // Précision maximale pour évaluation
       maxTokens: 4000,   // 4000 tokens pour JSON complet (était 2000, trop court)
+    },
+  },
+
+  // Analyse qualité documents courts (< 500 chars) - OpenAI plus strict sur JSON
+  'kb-quality-analysis-short': {
+    context: 'quality-analysis',
+
+    description: 'Analyse qualité documents courts (< 500 chars) - OpenAI strict sur JSON',
+
+    // Providers: OpenAI prioritaire (plus strict sur format JSON pour textes courts)
+    providers: {
+      primary: 'openai',
+      fallback: ['gemini', 'ollama'],
+    },
+
+    timeouts: {
+      chat: 20000,       // 20s (textes courts, analyse rapide)
+      total: 40000,      // 40s total
+    },
+
+    llmConfig: {
+      temperature: 0.1,  // Précision maximale
+      maxTokens: 2000,   // 2000 tokens suffisent pour textes courts
     },
   },
 

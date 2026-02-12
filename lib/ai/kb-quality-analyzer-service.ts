@@ -105,7 +105,15 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
     content: truncateContent(content, 6000),
   })
 
-  // Appeler le LLM avec configuration opération kb-quality-analysis (Gemini prioritaire)
+  // Détecter textes courts (< 500 chars) pour utiliser OpenAI (plus strict sur JSON)
+  const isShortDocument = content.length < 500
+  const operationName = isShortDocument ? 'kb-quality-analysis-short' : 'kb-quality-analysis'
+
+  console.log(
+    `[KB Quality] Doc ${documentId} - Longueur: ${content.length} chars - Opération: ${operationName}`
+  )
+
+  // Appeler le LLM avec configuration opération appropriée
   const messages: LLMMessage[] = [
     { role: 'system', content: KB_QUALITY_ANALYSIS_SYSTEM_PROMPT },
     { role: 'user', content: userPrompt },
@@ -113,8 +121,8 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
 
   const llmResult: LLMResponse = await callLLMWithFallback(messages, {
     temperature: 0.1, // Précision maximale pour analyse
-    maxTokens: 4000, // 4000 tokens pour JSON complet (docs longs nécessitent plus d'espace)
-    operationName: 'kb-quality-analysis', // Utilise OpenAI en priorité
+    maxTokens: isShortDocument ? 2000 : 4000, // Moins de tokens pour textes courts
+    operationName, // 'kb-quality-analysis-short' (OpenAI) ou 'kb-quality-analysis' (Gemini)
   })
 
   console.log('[KB Quality] Réponse LLM provider:', llmResult.provider, 'model:', llmResult.modelUsed)
