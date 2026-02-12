@@ -28,7 +28,7 @@ export async function GET() {
     let kbResults_0_65 = null
     let kbError = null
 
-    const testPrompt = 'قع شجار ليلي أمام نادٍ، انتهى بإصابة خطيرة ثم وفاة لاحقًا، والمتهم يؤكد أنه كان يدافع عن نفسه'
+    const testPrompt = 'شروط الدفاع الشرعي' // "Conditions de légitime défense"
 
     if (semanticSearchEnabled) {
       try {
