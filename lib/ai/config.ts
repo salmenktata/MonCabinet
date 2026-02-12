@@ -118,8 +118,8 @@ export const aiConfig: AIConfig = {
 
   rag: {
     enabled: process.env.RAG_ENABLED === 'true',
-    chunkSize: parseInt(process.env.RAG_CHUNK_SIZE || '512', 10),
-    chunkOverlap: parseInt(process.env.RAG_CHUNK_OVERLAP || '50', 10),
+    chunkSize: parseInt(process.env.RAG_CHUNK_SIZE || '1200', 10), // Augmenté de 512 → 1200 pour meilleur contexte
+    chunkOverlap: parseInt(process.env.RAG_CHUNK_OVERLAP || '200', 10), // Augmenté de 50 → 200 pour moins de perte
     maxResults: parseInt(process.env.RAG_MAX_RESULTS || '5', 10),
     similarityThreshold: parseFloat(
       process.env.RAG_SIMILARITY_THRESHOLD || '0.55'  // Réduit de 0.7 à 0.55 pour Ollama CPU-only
@@ -195,7 +195,7 @@ export function validateAIConfig(): {
   // Vérifier les paramètres RAG
   if (aiConfig.rag.chunkSize < 100 || aiConfig.rag.chunkSize > 2000) {
     warnings.push(
-      `RAG_CHUNK_SIZE=${aiConfig.rag.chunkSize} - Valeur recommandée: 256-1024`
+      `RAG_CHUNK_SIZE=${aiConfig.rag.chunkSize} - Valeur recommandée: 800-1400 (optimisé pour qualité juridique)`
     )
   }
 

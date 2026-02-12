@@ -127,7 +127,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     llmConfig: {
-      temperature: 0.3,  // Conversationnel naturel
+      temperature: 0.1,  // Très factuel pour conseil juridique (anti-hallucination)
       maxTokens: 500,    // Réponses concises
       systemPromptType: 'chat',
     },
