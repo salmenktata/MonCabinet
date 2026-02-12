@@ -175,10 +175,10 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     description: 'Analyse qualité documents KB en batch (volume élevé, vitesse critique)',
 
-    // Providers: Gemini prioritaire (rapide + gratuit)
+    // Providers: OpenAI prioritaire (stable, pas de rate limit)
     providers: {
-      primary: 'gemini',
-      fallback: ['ollama'],
+      primary: 'openai',
+      fallback: ['gemini', 'ollama'],
     },
 
     timeouts: {

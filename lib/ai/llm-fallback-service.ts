@@ -23,7 +23,7 @@ import { getOperationConfig, type OperationName } from './operations-config'
 // TYPES
 // =============================================================================
 
-export type LLMProvider = 'gemini' | 'groq' | 'deepseek' | 'anthropic' | 'ollama'
+export type LLMProvider = 'gemini' | 'groq' | 'deepseek' | 'anthropic' | 'ollama' | 'openai'
 
 /**
  * Contextes d'utilisation IA pour stratégies optimisées
@@ -144,6 +144,7 @@ const LLM_FALLBACK_ENABLED = process.env.LLM_FALLBACK_ENABLED !== 'false'
 let anthropicClient: Anthropic | null = null
 let groqClient: OpenAI | null = null
 let deepseekClient: OpenAI | null = null
+let openaiClient: OpenAI | null = null
 
 function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
@@ -175,6 +176,19 @@ function getDeepSeekClient(): OpenAI {
     })
   }
   return deepseekClient
+}
+
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    const apiKey = process.env.OPENAI_API_KEY || aiConfig.openai?.apiKey
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY non configuré')
+    }
+    openaiClient = new OpenAI({
+      apiKey,
+    })
+  }
+  return openaiClient
 }
 
 /**
@@ -312,6 +326,8 @@ export function getAvailableProviders(): LLMProvider[] {
         return !!(process.env.DEEPSEEK_API_KEY || aiConfig.deepseek.apiKey)
       case 'anthropic':
         return !!(process.env.ANTHROPIC_API_KEY || aiConfig.anthropic.apiKey)
+      case 'openai':
+        return !!(process.env.OPENAI_API_KEY || aiConfig.openai?.apiKey)
       case 'ollama':
         return process.env.OLLAMA_ENABLED === 'true' || aiConfig.ollama.enabled
       default:
@@ -397,6 +413,29 @@ async function callProvider(
         },
         modelUsed: `deepseek/${aiConfig.deepseek.model}`,
         provider: 'deepseek',
+        fallbackUsed: false,
+      }
+    }
+
+    case 'openai': {
+      const client = getOpenAIClient()
+      const model = aiConfig.openai?.model || 'gpt-4o-mini'
+      const response = await client.chat.completions.create({
+        model,
+        max_tokens: maxTokens,
+        messages: [{ role: 'system', content: systemPrompt }, ...userMessages],
+        temperature,
+      })
+
+      return {
+        answer: response.choices[0]?.message?.content || '',
+        tokensUsed: {
+          input: response.usage?.prompt_tokens || 0,
+          output: response.usage?.completion_tokens || 0,
+          total: response.usage?.total_tokens || 0,
+        },
+        modelUsed: `openai/${model}`,
+        provider: 'openai',
         fallbackUsed: false,
       }
     }
