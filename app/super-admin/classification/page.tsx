@@ -5,7 +5,8 @@ import { ReviewQueue } from '@/components/super-admin/classification/ReviewQueue
 import { CorrectionsHistory } from '@/components/super-admin/classification/CorrectionsHistory'
 import { GeneratedRules } from '@/components/super-admin/classification/GeneratedRules'
 import { ClassificationAnalytics } from '@/components/super-admin/classification/ClassificationAnalytics'
-import { FileCheck, History, Sparkles, BarChart3 } from 'lucide-react'
+import { ClassifyBatchButton } from '@/components/super-admin/classification/ClassifyBatchButton'
+import { FileCheck, History, Sparkles, BarChart3, Zap } from 'lucide-react'
 
 export default function ClassificationPage() {
   return (
@@ -17,8 +18,12 @@ export default function ClassificationPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="queue" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="batch" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="batch" className="gap-2">
+            <Zap className="w-4 h-4" />
+            Batch
+          </TabsTrigger>
           <TabsTrigger value="queue" className="gap-2">
             <FileCheck className="w-4 h-4" />
             À Revoir
@@ -36,6 +41,10 @@ export default function ClassificationPage() {
             Analytics
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="batch" className="mt-6">
+          <ClassifyBatchButton />
+        </TabsContent>
 
         <TabsContent value="queue" className="mt-6">
           <ReviewQueue />
