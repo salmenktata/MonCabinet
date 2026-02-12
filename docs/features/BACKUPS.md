@@ -108,13 +108,43 @@ BACKUP_DIR=/opt/backups/moncabinet
 # Script de backup
 BACKUP_SCRIPT=/opt/moncabinet/backup.sh
 
+# Serveur HTTP backup (optionnel, auto-détecté)
+BACKUP_SERVER_URL=http://host.docker.internal:9999/backup
+
 # Email admin pour alertes
-ADMIN_EMAIL=admin@moncabinet.tn
+ADMIN_EMAIL=admin@qadhya.tn
 
 # Brevo (pour notifications échec)
 BREVO_API_KEY=xkeysib-...
-BREVO_SENDER_EMAIL=notifications@moncabinet.tn
+BREVO_SENDER_EMAIL=notifications@qadhya.tn
 ```
+
+## Serveur Backup HTTP
+
+Un serveur HTTP minimal (`backup-server.py`) écoute sur `localhost:9999` pour permettre de déclencher des backups depuis l'interface admin.
+
+**Service systemd :** `backup-server.service`
+
+```bash
+# Vérifier statut
+systemctl status backup-server
+
+# Redémarrer
+systemctl restart backup-server
+
+# Logs
+journalctl -u backup-server -f
+
+# Test manuel
+curl http://localhost:9999/health
+curl -X POST http://localhost:9999/backup
+```
+
+**Architecture :**
+- Interface Admin → API Next.js (`/api/admin/backup`)
+- API Next.js → HTTP POST `http://host.docker.internal:9999/backup`
+- Serveur backup → Exécute `backup.sh` sur l'hôte
+- Résultat JSON retourné à l'interface
 
 ## Structure des backups
 
