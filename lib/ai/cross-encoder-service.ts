@@ -27,7 +27,7 @@
  * Février 2026 - Sprint 3 Optimisation RAG
  */
 
-import { pipeline, Pipeline } from '@xenova/transformers'
+import { pipeline, type TextClassificationPipeline } from '@xenova/transformers'
 
 // =============================================================================
 // CONFIGURATION
@@ -41,7 +41,7 @@ const CROSS_ENCODER_MODEL = 'Xenova/ms-marco-MiniLM-L-6-v2'
 const BATCH_SIZE = 32
 
 // Cache du modèle (lazy loading, warmup au premier appel)
-let crossEncoderPipeline: Pipeline | null = null
+let crossEncoderPipeline: TextClassificationPipeline | null = null
 let isModelLoading = false
 
 // =============================================================================
@@ -69,7 +69,7 @@ export interface CrossEncoderResult {
  * Premier appel: ~3-5s (téléchargement modèle)
  * Appels suivants: instantané (cache)
  */
-async function loadCrossEncoderModel(): Promise<Pipeline> {
+async function loadCrossEncoderModel(): Promise<TextClassificationPipeline> {
   // Si déjà chargé, retourner immédiatement
   if (crossEncoderPipeline) {
     return crossEncoderPipeline
@@ -97,12 +97,10 @@ async function loadCrossEncoderModel(): Promise<Pipeline> {
       'text-classification',
       CROSS_ENCODER_MODEL,
       {
-        // Utiliser CPU (VPS sans GPU)
-        device: 'cpu',
         // Cache modèle localement
         cache_dir: process.env.TRANSFORMERS_CACHE || './.cache/transformers',
       }
-    )
+    ) as TextClassificationPipeline
 
     const loadTime = ((Date.now() - startTime) / 1000).toFixed(2)
     console.log(`[CrossEncoder] ✓ Modèle chargé en ${loadTime}s`)
