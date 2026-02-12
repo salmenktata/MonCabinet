@@ -75,12 +75,13 @@ const getNavGroups = (
       },
     ],
   },
-  // Groupe 4: Qualité (5 outils de monitoring qualité)
+  // Groupe 4: Qualité (6 outils de monitoring qualité)
   {
     group: 'Qualité',
     items: [
       { href: '/super-admin/kb-management', label: 'Gestion KB', icon: 'database' },
       { href: '/super-admin/legal-quality', label: 'Legal Quality', icon: 'shield' },
+      { href: '/super-admin/classification', label: 'Classification', icon: 'sparkles' },
       { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
       {
         href: '/super-admin/review-queue',
