@@ -620,9 +620,9 @@ async function auditMetadata(): Promise<{
       )
     }
 
-    if (source.avg_confidence !== null && source.avg_confidence < 0.7) {
+    if (source.avg_confidence !== null && Number(source.avg_confidence) < 0.7) {
       criticalIssues.push(
-        `🟡 Source "${source.name}" : confiance moyenne ${source.avg_confidence.toFixed(2)} (< 0.70)`
+        `🟡 Source "${source.name}" : confiance moyenne ${Number(source.avg_confidence).toFixed(2)} (< 0.70)`
       )
       recommendations.push(
         `Re-extraire métadonnées avec prompts améliorés pour ${source.name}`

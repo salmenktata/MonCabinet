@@ -108,8 +108,8 @@ function getProviderStrategyByContext(): Record<AIContext, LLMProvider[]> {
     'embeddings': ['ollama'],
 
     // Analyse qualité KB - Précision critique (5-10K tokens/jour)
-    // Priorité : Qualité > Coût
-    'quality-analysis': ['deepseek', 'gemini', 'ollama'],
+    // Priorité : Qualité > Coût (OpenAI pour stabilité)
+    'quality-analysis': ['openai', 'deepseek', 'gemini'],
 
     // Structuration dossiers - Qualité JSON critique (10-50 ops/mois)
     // Priorité : Extraction structurée + Raisonnement

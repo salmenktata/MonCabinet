@@ -114,8 +114,10 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
   const llmResult: LLMResponse = await callLLMWithFallback(messages, {
     temperature: 0.1, // Précision maximale pour analyse
     maxTokens: 2000,
-    operationName: 'kb-quality-analysis', // Utilise Gemini (rapide) en priorité
+    operationName: 'kb-quality-analysis', // Utilise OpenAI en priorité
   })
+
+  console.log('[KB Quality] Réponse LLM provider:', llmResult.provider, 'model:', llmResult.modelUsed)
 
   const parsed = parseKBQualityResponse(llmResult.answer)
 
@@ -132,6 +134,14 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
     llmProvider: llmResult.provider,
     llmModel: llmResult.modelUsed,
   }
+
+  console.log('[KB Quality] Scores finaux pour doc', documentId, ':', {
+    qualityScore: result.qualityScore,
+    clarity: result.clarity,
+    structure: result.structure,
+    completeness: result.completeness,
+    reliability: result.reliability,
+  })
 
   await saveKBQualityScores(documentId, result)
   return result
@@ -217,8 +227,36 @@ async function saveKBQualityScores(documentId: string, result: KBQualityResult):
  * @exported Pour tests unitaires
  */
 export function parseKBQualityResponse(content: string): LLMKBQualityResponse {
-  const jsonMatch = content.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
+  // Log la réponse brute pour debug (premiers 500 chars)
+  console.log('[KB Quality] Réponse LLM brute (500 chars):', content.substring(0, 500))
+
+  // Essayer d'extraire le JSON de plusieurs façons
+  let jsonText: string | null = null
+
+  // 1. Chercher un bloc JSON avec accolades (non-gourmand)
+  const jsonMatch = content.match(/\{[\s\S]*?\}(?=\s*$|\s*```)/m)
+  if (jsonMatch) {
+    jsonText = jsonMatch[0]
+  }
+
+  // 2. Si pas trouvé, chercher entre des blocs de code markdown
+  if (!jsonText) {
+    const codeBlockMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)
+    if (codeBlockMatch) {
+      jsonText = codeBlockMatch[1]
+    }
+  }
+
+  // 3. Si toujours pas trouvé, prendre tout ce qui ressemble à du JSON
+  if (!jsonText) {
+    const anyJsonMatch = content.match(/\{[\s\S]*\}/)
+    if (anyJsonMatch) {
+      jsonText = anyJsonMatch[0]
+    }
+  }
+
+  if (!jsonText) {
+    console.error('[KB Quality] Aucun JSON trouvé dans la réponse LLM')
     return {
       overall_score: 50,
       clarity_score: 50,
@@ -233,8 +271,18 @@ export function parseKBQualityResponse(content: string): LLMKBQualityResponse {
   }
 
   try {
-    return JSON.parse(jsonMatch[0])
-  } catch {
+    const parsed = JSON.parse(jsonText)
+    console.log('[KB Quality] JSON parsé avec succès:', {
+      overall_score: parsed.overall_score,
+      clarity_score: parsed.clarity_score,
+      structure_score: parsed.structure_score,
+      completeness_score: parsed.completeness_score,
+      reliability_score: parsed.reliability_score,
+    })
+    return parsed
+  } catch (error) {
+    console.error('[KB Quality] Erreur parsing JSON:', error)
+    console.error('[KB Quality] JSON extrait qui a échoué:', jsonText.substring(0, 200))
     return {
       overall_score: 50,
       clarity_score: 50,

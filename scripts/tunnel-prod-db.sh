@@ -6,7 +6,7 @@
 
 REMOTE_HOST="root@84.247.165.187"
 LOCAL_PORT=5434
-REMOTE_PORT=5432
+REMOTE_PORT=5433
 TUNNEL_NAME="postgres-prod-tunnel"
 
 case "$1" in
