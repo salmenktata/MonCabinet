@@ -9,7 +9,7 @@
  */
 
 import type { WebSource, CrawlResult, CrawlError, GoogleDriveFile, LinkedFile } from './types'
-import { getGoogleDriveClient, downloadFromGoogleDrive } from './storage-adapter'
+import { getGoogleDriveClient, downloadGoogleDriveFileForIndexing } from './storage-adapter'
 import {
   extractFolderIdFromBaseUrl,
   isAllowedFileType,
@@ -215,27 +215,35 @@ async function processGDriveFile(
   let extractedText: string | null = null
   if (source.downloadFiles) {
     try {
-      console.log(`[GDriveCrawler] Downloading and parsing: ${file.name}`)
+      console.log(`[GDriveCrawler] Downloading and parsing: ${file.name} (${file.mimeType})`)
 
-      const downloadResult = await downloadFromGoogleDrive(file.id)
+      // Utiliser downloadGoogleDriveFileForIndexing qui gère l'export des Google Docs natifs
+      const downloadResult = await downloadGoogleDriveFileForIndexing(file.id, file.mimeType)
       if (downloadResult.success && downloadResult.buffer) {
         linkedFile.downloaded = true
 
-        const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'pdf'
+        // Utiliser le mimeType exporté si disponible (ex: Google Doc → DOCX)
+        const finalMimeType = downloadResult.mimeType || file.mimeType
+        const fileExtension = finalMimeType.includes('wordprocessingml') ? 'docx'
+          : finalMimeType.includes('spreadsheetml') ? 'xlsx'
+          : finalMimeType.includes('presentationml') ? 'pptx'
+          : file.name.split('.').pop()?.toLowerCase() || 'pdf'
+
+        console.log(`[GDriveCrawler] Parsing as ${fileExtension} (from ${finalMimeType})`)
         const parseResult = await parseFile(downloadResult.buffer, fileExtension)
 
         if (parseResult.success && parseResult.text) {
           extractedText = parseResult.text.trim()
           const wordCount = extractedText.split(/\s+/).length
-          console.log(`[GDriveCrawler] Extracted ${wordCount} words from ${file.name}`)
+          console.log(`[GDriveCrawler] ✅ Extracted ${wordCount} words from ${file.name}`)
         } else {
-          console.warn(`[GDriveCrawler] Failed to parse ${file.name}: ${parseResult.error}`)
+          console.warn(`[GDriveCrawler] ❌ Failed to parse ${file.name}: ${parseResult.error}`)
         }
       } else {
-        console.warn(`[GDriveCrawler] Failed to download ${file.name}: ${downloadResult.error}`)
+        console.warn(`[GDriveCrawler] ❌ Failed to download ${file.name}: ${downloadResult.error}`)
       }
     } catch (downloadError: any) {
-      console.error(`[GDriveCrawler] Error downloading/parsing ${file.name}:`, downloadError.message)
+      console.error(`[GDriveCrawler] ❌ Error downloading/parsing ${file.name}:`, downloadError.message)
     }
   }
 
