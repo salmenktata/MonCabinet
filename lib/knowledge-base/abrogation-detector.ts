@@ -433,7 +433,7 @@ export async function batchDetectAbrogations(
 
   // Récupérer documents à traiter
   const result = await query(
-    `SELECT id, title, content
+    `SELECT id, title, full_text
      FROM knowledge_base
      WHERE is_indexed = true
        ${category ? 'AND category = $3' : ''}
@@ -446,7 +446,7 @@ export async function batchDetectAbrogations(
     try {
       const detection = await enrichDocumentWithAbrogation(
         doc.id,
-        doc.content,
+        doc.full_text || '',
         doc.title
       )
 
