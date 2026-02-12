@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = session.user.role
-    if (userRole !== 'admin' && userRole !== 'super-admin') {
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
