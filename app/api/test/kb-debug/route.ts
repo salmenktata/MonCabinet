@@ -22,15 +22,32 @@ export async function GET() {
     // 2. Vérifier isSemanticSearchEnabled()
     const semanticSearchEnabled = isSemanticSearchEnabled()
 
-    // 3. Tester searchKnowledgeBase() si activé
-    let kbResults = null
+    // 3. Tester searchKnowledgeBase() avec PLUSIEURS thresholds
+    let kbResults_0_5 = null
+    let kbResults_0_55 = null
+    let kbResults_0_65 = null
     let kbError = null
+
+    const testPrompt = 'قع شجار ليلي أمام نادٍ، انتهى بإصابة خطيرة ثم وفاة لاحقًا، والمتهم يؤكد أنه كان يدافع عن نفسه'
 
     if (semanticSearchEnabled) {
       try {
-        kbResults = await searchKnowledgeBase('شروط الدفاع الشرعي', {
-          limit: 3,
+        // Test 1: Threshold 0.5 (endpoint debug)
+        kbResults_0_5 = await searchKnowledgeBase(testPrompt, {
+          limit: 5,
           threshold: 0.5,
+        })
+
+        // Test 2: Threshold 0.55 (proposition)
+        kbResults_0_55 = await searchKnowledgeBase(testPrompt, {
+          limit: 5,
+          threshold: 0.55,
+        })
+
+        // Test 3: Threshold 0.65 (PRODUCTION)
+        kbResults_0_65 = await searchKnowledgeBase(testPrompt, {
+          limit: 5,
+          threshold: 0.65,
         })
       } catch (error) {
         kbError = error instanceof Error ? error.message : String(error)
@@ -42,15 +59,33 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       env: envVars,
       isSemanticSearchEnabled: semanticSearchEnabled,
-      kbSearch: {
+      kbSearchThresholdTests: {
         executed: semanticSearchEnabled,
-        resultsCount: kbResults?.length || 0,
         error: kbError,
-        sample: kbResults?.slice(0, 2).map(r => ({
-          title: r.title,
-          category: r.category,
-          similarity: r.similarity,
-        })),
+        threshold_0_5: {
+          count: kbResults_0_5?.length || 0,
+          sample: kbResults_0_5?.slice(0, 3).map(r => ({
+            title: r.title.substring(0, 50),
+            category: r.category,
+            similarity: r.similarity,
+          })),
+        },
+        threshold_0_55: {
+          count: kbResults_0_55?.length || 0,
+          sample: kbResults_0_55?.slice(0, 3).map(r => ({
+            title: r.title.substring(0, 50),
+            category: r.category,
+            similarity: r.similarity,
+          })),
+        },
+        threshold_0_65_PRODUCTION: {
+          count: kbResults_0_65?.length || 0,
+          sample: kbResults_0_65?.slice(0, 3).map(r => ({
+            title: r.title.substring(0, 50),
+            category: r.category,
+            similarity: r.similarity,
+          })),
+        },
       },
     })
   } catch (error) {
