@@ -83,19 +83,13 @@ export async function reindexLongDocuments(
         }
 
         // Créer un document KB pour chaque section
-        const client = await db.connect()
+        const client = await db.getClient()
         try {
           await client.query('BEGIN')
 
           for (const section of splitResult.sections) {
             // Générer embedding pour la section
             const embeddingResult = await generateEmbedding(section.content)
-
-            if (!embeddingResult.success || !embeddingResult.embedding) {
-              throw new Error(
-                `Échec génération embedding section ${section.index}: ${embeddingResult.error}`
-              )
-            }
 
             // Métadonnées de section
             const sectionMetadata = generateSectionMetadata(
