@@ -630,7 +630,9 @@ export async function extractStructuredMetadata(
 
   // Décider si extraction LLM est nécessaire (économie tokens)
   // Skip LLM si < 3 champs applicables pour la catégorie
-  const useLLM = shouldExtractWithLLM(page.source_category)
+  // TEMPORAIRE: Force regex-only pour débloquer extraction (clés API invalides)
+  const FORCE_REGEX_ONLY = process.env.FORCE_REGEX_ONLY === 'true'
+  const useLLM = !FORCE_REGEX_ONLY && shouldExtractWithLLM(page.source_category)
 
   let parsed: LLMMetadataResponse
 
