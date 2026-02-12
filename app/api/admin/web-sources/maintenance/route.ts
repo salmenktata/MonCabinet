@@ -77,7 +77,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const result = await reindexLongDocuments(sourceId, { limit, dryRun })
 
         return NextResponse.json({
-          success: result.success,
           action: 'reindex_long_documents',
           ...result,
         })

@@ -113,7 +113,7 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
 
   const llmResult: LLMResponse = await callLLMWithFallback(messages, {
     temperature: 0.1, // Précision maximale pour analyse
-    maxTokens: 2000,
+    maxTokens: 4000, // 4000 tokens pour JSON complet (docs longs nécessitent plus d'espace)
     operationName: 'kb-quality-analysis', // Utilise OpenAI en priorité
   })
 
