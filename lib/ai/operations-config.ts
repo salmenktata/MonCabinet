@@ -175,10 +175,10 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     description: 'Analyse qualité documents KB en batch (volume élevé, vitesse critique)',
 
-    // Providers: OpenAI prioritaire (stable, pas de rate limit)
+    // Providers: Gemini prioritaire (stable, gratuit pour volume)
     providers: {
-      primary: 'openai',
-      fallback: ['gemini', 'ollama'],
+      primary: 'gemini',
+      fallback: ['openai', 'ollama'],
     },
 
     timeouts: {
@@ -188,7 +188,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     llmConfig: {
       temperature: 0.1,  // Précision maximale pour évaluation
-      maxTokens: 2000,
+      maxTokens: 4000,   // 4000 tokens pour JSON complet (était 2000, trop court)
     },
   },
 
