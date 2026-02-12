@@ -44,11 +44,13 @@ export async function POST(
     const authHeader = request.headers.get('authorization')
     const cronSecret = authHeader?.replace('Bearer ', '')
 
+    // Variable pour tracker l'utilisateur qui déclenche le crawl
+    let triggeredByUserId: string | undefined
+
     // Vérifier CRON_SECRET d'abord (pour cron jobs / scripts)
-    let isAuthenticated = false
     if (cronSecret && cronSecret === process.env.CRON_SECRET) {
       console.log('[Crawl API] Authentification via CRON_SECRET')
-      isAuthenticated = true
+      triggeredByUserId = undefined // Système
     } else {
       // Sinon vérifier session utilisateur
       const session = await getSession()
@@ -60,11 +62,8 @@ export async function POST(
       if (!isAdmin) {
         return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
       }
-      isAuthenticated = true
-    }
 
-    if (!isAuthenticated) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      triggeredByUserId = session.user.id
     }
 
     const { id } = await params
@@ -91,7 +90,7 @@ export async function POST(
     if (async) {
       try {
         const jobId = await createCrawlJob(id, jobType, 5, {
-          triggeredBy: session.user.id,
+          triggeredBy: triggeredByUserId,
           indexAfterCrawl,
         })
 
