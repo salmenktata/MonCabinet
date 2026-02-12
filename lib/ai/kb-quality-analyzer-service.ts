@@ -123,11 +123,12 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
 
   const result: KBQualityResult = {
     // Arrondir tous les scores car PostgreSQL attend des integers
-    qualityScore: Math.round(parsed.overall_score),
-    clarity: Math.round(parsed.clarity_score),
-    structure: Math.round(parsed.structure_score),
-    completeness: Math.round(parsed.completeness_score),
-    reliability: Math.round(parsed.reliability_score),
+    // Forcer conversion Number() au cas où OpenAI retourne des strings
+    qualityScore: Math.round(Number(parsed.overall_score) || 0),
+    clarity: Math.round(Number(parsed.clarity_score) || 0),
+    structure: Math.round(Number(parsed.structure_score) || 0),
+    completeness: Math.round(Number(parsed.completeness_score) || 0),
+    reliability: Math.round(Number(parsed.reliability_score) || 0),
     analysisSummary: parsed.analysis_summary,
     detectedIssues: parsed.detected_issues || [],
     recommendations: parsed.recommendations || [],
