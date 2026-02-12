@@ -419,7 +419,7 @@ async function callProvider(
 
     case 'openai': {
       const client = getOpenAIClient()
-      const model = aiConfig.openai?.model || 'gpt-4o-mini'
+      const model = aiConfig.openai?.chatModel || 'gpt-4o-mini'
       const response = await client.chat.completions.create({
         model,
         max_tokens: maxTokens,
