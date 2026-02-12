@@ -25,15 +25,24 @@ import { batchDetectAbrogations } from '@/lib/knowledge-base/abrogation-detector
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authentification admin
-    const session = await getSession()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-    }
+    // 1. Authentification : Session admin OU CRON_SECRET
+    const authHeader = request.headers.get('authorization')
+    const cronSecret = authHeader?.replace('Bearer ', '')
 
-    const userRole = session.user.role
-    if (userRole !== 'admin' && userRole !== 'super_admin') {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    // Vérifier CRON_SECRET d'abord (pour cron jobs)
+    if (cronSecret && cronSecret === process.env.CRON_SECRET) {
+      console.log('[Enrich Abrogations] Authentification via CRON_SECRET')
+    } else {
+      // Sinon vérifier session utilisateur
+      const session = await getSession()
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      }
+
+      const userRole = session.user.role
+      if (userRole !== 'admin' && userRole !== 'super_admin') {
+        return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+      }
     }
 
     // 2. Paramètres
