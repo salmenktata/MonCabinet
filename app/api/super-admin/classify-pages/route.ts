@@ -196,10 +196,10 @@ async function classifyPagesBackground(
       try {
         const classification = await classifyLegalContent(page.id)
 
-        if (classification && classification.classification) {
+        if (classification && classification.primaryCategory) {
           stats.succeeded++
           console.log(
-            `[ClassifyAPI] ✅ ${page.url.substring(0, 60)}... → ${classification.classification.primary_category}`
+            `[ClassifyAPI] ✅ ${page.url.substring(0, 60)}... → ${classification.primaryCategory}`
           )
         } else {
           stats.skipped++
