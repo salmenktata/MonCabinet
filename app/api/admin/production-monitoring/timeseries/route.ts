@@ -1,112 +1,85 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 
 /**
- * API Route - Production Monitoring Time Series
+ * GET /api/admin/production-monitoring/timeseries
  *
- * Retourne données historiques pour graphiques :
- * - Queries par heure
- * - Latence moyenne par heure
- * - Erreurs par heure
- * - Coût par heure
- *
- * Paramètres query :
- * - range : '1h' | '24h' | '7d' (défaut '24h')
+ * Données temporelles pour graphiques (queries, latence, erreurs, coût)
  */
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    // 1. Authentification admin
-    const session = await getSession()
-    if (!session?.user || (session.user.role !== 'admin' && session.user.role !== 'super_admin')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 2. Parse query params
-    const searchParams = req.nextUrl.searchParams
+    const { searchParams } = new URL(request.url)
     const range = searchParams.get('range') || '24h'
 
+    // Déterminer l'intervalle et le format de groupement
     let interval: string
-    let truncate: string
-    let limit: number
+    let groupBy: string
+    let dateFormat: string
 
     switch (range) {
       case '1h':
         interval = '1 hour'
-        truncate = 'minute' // Granularité 1 minute
-        limit = 60
+        groupBy = "date_trunc('minute', created_at)"
+        dateFormat = 'YYYY-MM-DD HH24:MI'
         break
       case '7d':
         interval = '7 days'
-        truncate = 'hour' // Granularité 1 heure
-        limit = 168 // 7 jours × 24h
+        groupBy = "date_trunc('hour', created_at)"
+        dateFormat = 'YYYY-MM-DD HH24:00'
         break
       case '24h':
       default:
         interval = '24 hours'
-        truncate = 'hour' // Granularité 1 heure
-        limit = 24
+        groupBy = "date_trunc('hour', created_at)"
+        dateFormat = 'YYYY-MM-DD HH24:00'
         break
     }
 
-    // 3. Récupération données time series
-    const timeSeriesData = await getTimeSeriesData(interval, truncate, limit)
+    // =========================================================================
+    // Agrégation temporelle
+    // =========================================================================
+    const timeSeriesResult = await db.query(`
+      SELECT
+        TO_CHAR(${groupBy}, '${dateFormat}') as timestamp,
+        COUNT(*) FILTER (WHERE role = 'user')::int as queries,
+        ROUND(AVG(
+          CASE
+            WHEN role = 'assistant' AND tokens_used IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (updated_at - created_at)) * 1000
+            ELSE NULL
+          END
+        ))::int as latency,
+        COUNT(*) FILTER (
+          WHERE role = 'assistant' AND (content ILIKE '%erreur%' OR content ILIKE '%error%')
+        )::int as errors,
+        0 as cost
+      FROM chat_messages
+      WHERE created_at >= NOW() - INTERVAL '${interval}'
+      GROUP BY ${groupBy}
+      ORDER BY ${groupBy} ASC
+    `)
+
+    const data = timeSeriesResult.rows.map(row => ({
+      timestamp: row.timestamp,
+      queries: row.queries || 0,
+      latency: row.latency || 0,
+      errors: row.errors || 0,
+      cost: row.cost || 0, // Coût = 0 (Groq/Gemini gratuit)
+    }))
 
     return NextResponse.json({
-      success: true,
-      data: timeSeriesData,
+      data: data,
+      range: range,
       timestamp: new Date().toISOString(),
-      range,
     })
-  } catch (error) {
-    console.error('Error in /api/admin/production-monitoring/timeseries:', error)
+
+  } catch (error: any) {
+    console.error('[Production Monitoring TimeSeries] Erreur:', error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: error.message || 'Erreur lors de la récupération des données temporelles',
       },
       { status: 500 }
     )
   }
-}
-
-async function getTimeSeriesData(interval: string, truncate: string, limit: number) {
-  // Query combinée pour obtenir toutes les métriques par bucket temporel
-  const result = await db.query(
-    `
-    WITH time_buckets AS (
-      SELECT
-        DATE_TRUNC($2, created_at) AS bucket,
-        COUNT(*)::INTEGER AS queries,
-        AVG(latency_ms)::INTEGER AS latency,
-        COUNT(*) FILTER (WHERE success = false)::INTEGER AS errors,
-        SUM(cost)::FLOAT AS cost
-      FROM ai_usage_logs
-      WHERE
-        operation = 'chat'
-        AND created_at >= NOW() - $1::INTERVAL
-      GROUP BY bucket
-      ORDER BY bucket DESC
-      LIMIT $3
-    )
-    SELECT
-      bucket,
-      queries,
-      COALESCE(latency, 0) AS latency,
-      errors,
-      COALESCE(cost, 0) AS cost
-    FROM time_buckets
-    ORDER BY bucket ASC
-  `,
-    [interval, truncate, limit]
-  )
-
-  // Format pour Recharts
-  return result.rows.map((row) => ({
-    timestamp: row.bucket.toISOString(),
-    queries: row.queries || 0,
-    latency: row.latency || 0,
-    errors: row.errors || 0,
-    cost: parseFloat((row.cost || 0).toFixed(4)),
-  }))
 }
