@@ -12,6 +12,7 @@ COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Stage 2: Builder (Debian pour Playwright et canvas)
+# Force rebuild 2026-02-13T17:16 - Phase 3.4 Abrogations
 FROM node:20-slim AS builder
 WORKDIR /app
 
