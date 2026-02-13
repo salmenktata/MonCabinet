@@ -31,7 +31,7 @@ interface SuperAdminSidebarProps {
 }
 
 // Navigation Super Admin - Réorganisation Variante 2 (Feb 2026)
-// Structure optimisée: 5 groupes, 23 items, workflow logique
+// Structure optimisée: 5 groupes, 24 items, workflow logique
 const getNavGroups = (
   pendingCount: number,
   unreadNotifications: number,
@@ -73,7 +73,7 @@ const getNavGroups = (
     ],
   },
 
-  // Groupe 3: Contenu & Qualité (7 items)
+  // Groupe 3: Contenu & Qualité (8 items)
   {
     group: 'Contenu & Qualité',
     items: [
@@ -81,6 +81,7 @@ const getNavGroups = (
       { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
       { href: '/super-admin/web-files', label: 'Fichiers Web', icon: 'file' },
       { href: '/super-admin/kb-management', label: 'Gestion KB', icon: 'database' },
+      { href: '/super-admin/reindex-openai', label: 'Réindexation OpenAI', icon: 'zap' },
       { href: '/super-admin/classification', label: 'Classification', icon: 'sparkles' },
       { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
       {
