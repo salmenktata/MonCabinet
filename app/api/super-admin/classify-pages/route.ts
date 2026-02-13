@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    if (session.user.role !== 'SUPER_ADMIN') {
+    if (session.user.role?.toUpperCase() !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Accès refusé - Super Admin uniquement' },
         { status: 403 }
@@ -286,7 +286,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getSession()
 
-    if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
+    if (!session?.user || session.user.role?.toUpperCase() !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
