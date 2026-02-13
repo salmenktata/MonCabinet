@@ -88,7 +88,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
        lc.signals_used
      FROM web_pages wp
      JOIN web_sources ws ON wp.web_source_id = ws.id
-     LEFT JOIN legal_classifications lc ON wp.id = lc.page_id
+     LEFT JOIN legal_classifications lc ON wp.id = lc.web_page_id
      WHERE wp.id = $1`,
     [pageId]
   )
