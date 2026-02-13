@@ -87,17 +87,10 @@ cron_complete() {
   fi
 
   # Construire payload JSON
+  # Pour l'instant, on envoie un output simple pour éviter les problèmes de JSON imbriqué
+  # TODO: Améliorer pour inclure les métriques détaillées
   local payload
-  payload=$(cat <<EOF
-{
-  "executionId": "$CRON_EXECUTION_ID",
-  "status": "completed",
-  "durationMs": $duration_ms,
-  "output": $output_json,
-  "exitCode": 0
-}
-EOF
-)
+  payload='{"executionId":"'$CRON_EXECUTION_ID'","status":"completed","durationMs":'$duration_ms',"output":{},"exitCode":0}'
 
   # Appel API complete
   local response

@@ -52,9 +52,10 @@ ALERT_LEVEL=$(echo "$BODY" | jq -r '.alert.level' 2>/dev/null || echo "unknown")
 ALERT_MESSAGE=$(echo "$BODY" | jq -r '.alert.message' 2>/dev/null || echo "")
 
 # Extraire métriques pour output JSON
-USAGE=$(echo "$BODY" | jq -r '.usage // 0' 2>/dev/null || echo "0")
-BUDGET=$(echo "$BODY" | jq -r '.budget // 0' 2>/dev/null || echo "0")
-PERCENTAGE=$(echo "$BODY" | jq -r '.percentage // 0' 2>/dev/null || echo "0")
+CONSUMED=$(echo "$BODY" | jq -r '.budget.consumedUsd // 0' 2>/dev/null || echo "0")
+REMAINING=$(echo "$BODY" | jq -r '.budget.remainingUsd // 0' 2>/dev/null || echo "0")
+PERCENT_USED=$(echo "$BODY" | jq -r '.budget.percentUsed // 0' 2>/dev/null || echo "0")
+OPENAI_COUNT=$(echo "$BODY" | jq -r '.usage.openaiCount // 0' 2>/dev/null || echo "0")
 
 if [ "$ALERT_LEVEL" = "critical" ]; then
   echo "⚠️  ALERTE CRITIQUE: $ALERT_MESSAGE"
@@ -64,16 +65,20 @@ if [ "$ALERT_LEVEL" = "critical" ]; then
   trap - EXIT
 
   # Enregistrer échec avec métriques
-  OUTPUT_JSON=$(cat <<EOF
-{
-  "alertLevel": "critical",
-  "alertMessage": "$ALERT_MESSAGE",
-  "usage": $USAGE,
-  "budget": $BUDGET,
-  "percentage": $PERCENTAGE
-}
-EOF
-)
+  OUTPUT_JSON=$(jq -n \
+    --arg message "$ALERT_MESSAGE" \
+    --arg consumed "$CONSUMED" \
+    --arg remaining "$REMAINING" \
+    --arg percent "$PERCENT_USED" \
+    --arg count "$OPENAI_COUNT" \
+    '{
+      alertLevel: "critical",
+      alertMessage: $message,
+      consumedUsd: ($consumed | tonumber),
+      remainingUsd: ($remaining | tonumber),
+      percentUsed: ($percent | tonumber),
+      openaiCount: ($count | tonumber)
+    }')
   cron_fail "Budget OpenAI critique: $ALERT_MESSAGE" 1
 
   exit 1
@@ -89,16 +94,21 @@ echo ""
 trap - EXIT
 
 # Enregistrer succès avec métriques
-OUTPUT_JSON=$(cat <<EOF
-{
-  "alertLevel": "$ALERT_LEVEL",
-  "alertMessage": "$ALERT_MESSAGE",
-  "usage": $USAGE,
-  "budget": $BUDGET,
-  "percentage": $PERCENTAGE
-}
-EOF
-)
+OUTPUT_JSON=$(jq -n \
+  --arg level "$ALERT_LEVEL" \
+  --arg message "$ALERT_MESSAGE" \
+  --arg consumed "$CONSUMED" \
+  --arg remaining "$REMAINING" \
+  --arg percent "$PERCENT_USED" \
+  --arg count "$OPENAI_COUNT" \
+  '{
+    alertLevel: $level,
+    alertMessage: $message,
+    consumedUsd: ($consumed | tonumber),
+    remainingUsd: ($remaining | tonumber),
+    percentUsed: ($percent | tonumber),
+    openaiCount: ($count | tonumber)
+  }')
 
 cron_complete "$OUTPUT_JSON"
 

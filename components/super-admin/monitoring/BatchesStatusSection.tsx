@@ -12,24 +12,28 @@ import { Progress } from '@/components/ui/progress'
 import { Database, Globe, Target, RefreshCw } from 'lucide-react'
 
 interface BatchStats {
-  indexing: {
+  kbIndexation: {
     pending: number
-    running: number
-    completed_today: number
-    failed_today: number
-    success_rate: number
-  }
-  crawls: {
-    active_jobs: number
-    pages_crawled_today: number
-    total_pages_today: number
-    avg_duration_s: number
-  }
-  quality: {
-    queue: number
     processing: number
-    success_rate: number
-    avg_score: number
+    completedToday: number
+    failedToday: number
+    avgDurationSec: number
+    successRate: number
+  }
+  webCrawls: {
+    activeJobs: number
+    pagesCrawledToday: number
+    pagesFailedToday: number
+    avgFetchMs: number
+    successRate: number
+  }
+  qualityAnalysis: {
+    pendingAnalysis: number
+    analyzedToday: number
+    highQualityToday: number
+    lowQualityToday: number
+    avgScoreToday: number
+    successRate: number
   }
 }
 
@@ -39,34 +43,17 @@ export function BatchesStatusSection() {
 
   const fetchBatchStats = async () => {
     try {
-      // TODO: Créer API endpoint dédié pour stats batches
-      // Pour l'instant, simulation avec données mockées
-      const mockStats: BatchStats = {
-        indexing: {
-          pending: 245,
-          running: 2,
-          completed_today: 128,
-          failed_today: 3,
-          success_rate: 97.7,
-        },
-        crawls: {
-          active_jobs: 1,
-          pages_crawled_today: 42,
-          total_pages_today: 150,
-          avg_duration_s: 45,
-        },
-        quality: {
-          queue: 186,
-          processing: 4,
-          success_rate: 94.2,
-          avg_score: 82,
-        },
+      const response = await fetch('/api/admin/cron-executions/batches')
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
       }
 
-      // Simuler délai réseau
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      const data = await response.json()
 
-      setStats(mockStats)
+      if (data.success && data.batches) {
+        setStats(data.batches)
+      }
     } catch (error) {
       console.error('[Batches Stats] Error:', error)
     } finally {
@@ -111,14 +98,15 @@ export function BatchesStatusSection() {
               {/* Pending */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">En attente</span>
-                <Badge variant="outline">{stats.indexing.pending}</Badge>
+                <Badge variant="outline">{stats.kbIndexation.pending}</Badge>
               </div>
 
               {/* Running */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">En cours</span>
                 <Badge className="bg-blue-500">
-                  {stats.indexing.running} actif{stats.indexing.running > 1 ? 's' : ''}
+                  {stats.kbIndexation.processing} actif
+                  {stats.kbIndexation.processing > 1 ? 's' : ''}
                 </Badge>
               </div>
 
@@ -127,14 +115,16 @@ export function BatchesStatusSection() {
                 <span className="text-sm text-muted-foreground">
                   Complétés aujourd'hui
                 </span>
-                <Badge className="bg-green-500">{stats.indexing.completed_today}</Badge>
+                <Badge className="bg-green-500">
+                  {stats.kbIndexation.completedToday}
+                </Badge>
               </div>
 
               {/* Failed Today */}
-              {stats.indexing.failed_today > 0 && (
+              {stats.kbIndexation.failedToday > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Échecs</span>
-                  <Badge variant="destructive">{stats.indexing.failed_today}</Badge>
+                  <Badge variant="destructive">{stats.kbIndexation.failedToday}</Badge>
                 </div>
               )}
 
@@ -143,10 +133,10 @@ export function BatchesStatusSection() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-muted-foreground">Taux succès</span>
                   <span className="text-xs font-semibold">
-                    {stats.indexing.success_rate}%
+                    {stats.kbIndexation.successRate}%
                   </span>
                 </div>
-                <Progress value={stats.indexing.success_rate} className="h-2" />
+                <Progress value={stats.kbIndexation.successRate} className="h-2" />
               </div>
             </div>
           </CardContent>
@@ -164,50 +154,41 @@ export function BatchesStatusSection() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Jobs actifs</span>
                 <Badge className="bg-blue-500">
-                  {stats.crawls.active_jobs} job{stats.crawls.active_jobs > 1 ? 's' : ''}
+                  {stats.webCrawls.activeJobs} job{stats.webCrawls.activeJobs > 1 ? 's' : ''}
                 </Badge>
               </div>
 
               {/* Pages Crawled Today */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Pages crawlées</span>
-                <Badge className="bg-green-500">{stats.crawls.pages_crawled_today}</Badge>
+                <Badge className="bg-green-500">{stats.webCrawls.pagesCrawledToday}</Badge>
               </div>
 
-              {/* Total Pages */}
+              {/* Pages Failed Today */}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total pages</span>
-                <Badge variant="outline">{stats.crawls.total_pages_today}</Badge>
+                <span className="text-sm text-muted-foreground">Échecs</span>
+                <Badge variant={stats.webCrawls.pagesFailedToday > 0 ? 'destructive' : 'outline'}>
+                  {stats.webCrawls.pagesFailedToday}
+                </Badge>
               </div>
 
-              {/* Avg Duration */}
+              {/* Avg Fetch Time */}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Durée moy.</span>
+                <span className="text-sm text-muted-foreground">Temps moy.</span>
                 <span className="text-sm font-mono">
-                  {stats.crawls.avg_duration_s}s
+                  {Math.round(stats.webCrawls.avgFetchMs)}ms
                 </span>
               </div>
 
-              {/* Progress */}
+              {/* Success Rate */}
               <div className="pt-2 border-t">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">Progression</span>
+                  <span className="text-xs text-muted-foreground">Taux succès</span>
                   <span className="text-xs font-semibold">
-                    {Math.round(
-                      (stats.crawls.pages_crawled_today /
-                        stats.crawls.total_pages_today) *
-                        100
-                    )}
-                    %
+                    {stats.webCrawls.successRate}%
                   </span>
                 </div>
-                <Progress
-                  value={
-                    (stats.crawls.pages_crawled_today / stats.crawls.total_pages_today) *
-                    100
-                  }
-                  className="h-2"
-                />
+                <Progress value={stats.webCrawls.successRate} className="h-2" />
               </div>
             </div>
           </CardContent>
@@ -221,47 +202,43 @@ export function BatchesStatusSection() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {/* Queue */}
+              {/* Pending Analysis */}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">En file d'attente</span>
-                <Badge variant="outline">{stats.quality.queue}</Badge>
+                <span className="text-sm text-muted-foreground">En attente</span>
+                <Badge variant="outline">{stats.qualityAnalysis.pendingAnalysis}</Badge>
               </div>
 
-              {/* Processing */}
+              {/* Analyzed Today */}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">En traitement</span>
-                <Badge className="bg-blue-500">
-                  {stats.quality.processing} doc{stats.quality.processing > 1 ? 's' : ''}
+                <span className="text-sm text-muted-foreground">Analysés aujourd'hui</span>
+                <Badge className="bg-blue-500">{stats.qualityAnalysis.analyzedToday}</Badge>
+              </div>
+
+              {/* High Quality Today */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Haute qualité</span>
+                <Badge className="bg-green-500">
+                  {stats.qualityAnalysis.highQualityToday}
                 </Badge>
+              </div>
+
+              {/* Avg Score Today */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Score moyen</span>
+                <span className="text-lg font-bold">
+                  {stats.qualityAnalysis.avgScoreToday}
+                </span>
               </div>
 
               {/* Success Rate */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Taux succès</span>
-                <Badge
-                  className={
-                    stats.quality.success_rate >= 90 ? 'bg-green-500' : 'bg-yellow-500'
-                  }
-                >
-                  {stats.quality.success_rate}%
-                </Badge>
-              </div>
-
-              {/* Avg Score */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Score moyen</span>
-                <span className="text-lg font-bold">{stats.quality.avg_score}</span>
-              </div>
-
-              {/* Quality Progress */}
               <div className="pt-2 border-t">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">Qualité</span>
+                  <span className="text-xs text-muted-foreground">Taux succès</span>
                   <span className="text-xs font-semibold">
-                    {stats.quality.avg_score >= 80 ? 'Excellent' : 'Bon'}
+                    {stats.qualityAnalysis.successRate}%
                   </span>
                 </div>
-                <Progress value={stats.quality.avg_score} className="h-2" />
+                <Progress value={stats.qualityAnalysis.successRate} className="h-2" />
               </div>
             </div>
           </CardContent>

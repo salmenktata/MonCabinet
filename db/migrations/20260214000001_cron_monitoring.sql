@@ -20,10 +20,11 @@ CREATE TABLE IF NOT EXISTS cron_executions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Index pour requêtes fréquentes (7 derniers jours)
+-- Index pour requêtes fréquentes (ordre chronologique inverse)
+-- Note: Pas de prédicat WHERE avec NOW() car NOW() n'est pas IMMUTABLE
+-- Le cleanup automatique limite la table à 7 jours de données
 CREATE INDEX IF NOT EXISTS idx_cron_executions_recent
-  ON cron_executions(started_at DESC)
-  WHERE started_at >= NOW() - INTERVAL '7 days';
+  ON cron_executions(started_at DESC);
 
 -- Index pour crons en cours
 CREATE INDEX IF NOT EXISTS idx_cron_executions_running
