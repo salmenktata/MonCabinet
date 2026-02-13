@@ -24,7 +24,7 @@ on:
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: true
+  cancel-in-progress: false  # Laisser déploiement se terminer
 
 env:
   REGISTRY: ghcr.io
@@ -202,20 +202,21 @@ jobs:
 
       - name: Health check
         run: |
-          echo "Waiting for container to start..."
-          sleep 15
+          echo "Waiting 30s for container to start (Docker healthcheck: 40s start_period)..."
+          sleep 30
 
           for i in 1 2 3; do
             echo "Health check attempt $i/3..."
             RESPONSE=$(ssh vps 'curl -sf http://localhost:3000/api/health' || echo "FAILED")
+            echo "Response: $RESPONSE"
 
-            if echo "$RESPONSE" | grep -q '"status"'; then
+            if echo "$RESPONSE" | grep -q '"status":"healthy"'; then
               echo "Health check passed!"
               exit 0
             fi
 
-            echo "Health check failed, waiting 10s..."
-            sleep 10
+            echo "Health check failed, waiting 15s..."
+            sleep 15
           done
 
           echo "Health check failed after 3 attempts"
@@ -321,9 +322,21 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            sleep 15
-            curl -f http://localhost:3000/api/health || exit 1
-            echo "Deployment successful!"
+            echo "Waiting 30s for container (Docker healthcheck: 40s start_period)..."
+            sleep 30
+
+            for i in 1 2 3; do
+              echo "Health check attempt $i/3..."
+              if curl -sf http://localhost:3000/api/health | grep -q '"status":"healthy"'; then
+                echo "Health check passed! Deployment successful!"
+                exit 0
+              fi
+              echo "Health check failed, waiting 15s..."
+              sleep 15
+            done
+
+            echo "Health check failed after 3 attempts"
+            exit 1
 
   # ===========================================================================
   # Job 3: Notification
