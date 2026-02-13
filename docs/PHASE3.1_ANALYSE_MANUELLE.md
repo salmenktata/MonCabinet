@@ -304,7 +304,39 @@
 
 ---
 
+## 🌐 Vérification Web Complétée (Feb 13, 2026 - Après-midi)
+
+### Résultats Vérification JORT
+
+**Méthode** : Recherches web ciblées sur portails juridiques tunisiens + JORT
+
+| Abrogation | Statut | Référence Vérifiée |
+|------------|--------|-------------------|
+| **Loi n°76-18** (Code Changes 2024) | ❌ NON PROMULGUÉ | Projet validé mars 2024, pas de JORT |
+| **Décret n°77-608** (Code Changes 2024) | ❌ NON PROMULGUÉ | Projet validé mars 2024, pas de JORT |
+| **Loi n°1975-32** (Code Presse) | ✅ PROMULGUÉ | Décret-loi n°2011-115 (2 nov 2011) |
+| **Articles 28-29 Code travail** | ✅ PROMULGUÉ | **Loi n°9/2025** (21 mai 2025, JORT n°61) |
+| **Article 30 Code travail** | ✅ PROMULGUÉ | **Loi n°9/2025** (21 mai 2025, JORT n°61) |
+
+### Bilan Final
+
+**3 abrogations validées pour import production** ✅ :
+1. Loi n°1975-32 → Décret-loi n°2011-115 (Presse)
+2. Articles 28-29 Fصل 234 → Loi n°9/2025 (Travail)
+3. Article 30 Fصل 234 مكرر → Loi n°9/2025 (Travail)
+
+**2 abrogations exclues** ❌ :
+- Code Changes 2024 : Projet non promulgué (validé mars 2024 mais pas voté)
+
+**Taux validation final** : 60% (3/5)
+
+**Source complémentaire identifiée** :
+- **Loi de Finances 2025** (JORT n°149, 10 déc 2024) : 15-25 abrogations fiscales estimées
+
+---
+
 **Créé par** : Claude Sonnet 4.5
 **Date** : 13 février 2026
 **Durée analyse** : ~30 minutes
-**Statut** : ✅ Analyse complète, prêt pour validation JORT
+**Durée vérification web** : ~45 minutes
+**Statut** : ✅ Analyse + Vérification complètes, 3 abrogations validées JORT
