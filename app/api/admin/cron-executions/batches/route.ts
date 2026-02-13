@@ -23,17 +23,27 @@ export async function GET(req: NextRequest) {
     const kbStats = kbStatsResult.rows[0]
 
     // 2. Web Crawls Stats (24h)
+    // Utilise web_pages car web_crawl_pages n'existe pas
     const crawlStatsResult = await db.query(`
       SELECT
         COUNT(DISTINCT wcj.id) FILTER (WHERE wcj.status = 'running') as active_jobs,
-        COUNT(wcp.id) FILTER (WHERE wcp.created_at >= NOW() - INTERVAL '24 hours' AND wcp.status = 'completed') as pages_crawled_today,
-        COUNT(wcp.id) FILTER (WHERE wcp.created_at >= NOW() - INTERVAL '24 hours' AND wcp.status = 'failed') as pages_failed_today,
-        AVG(wcp.fetch_duration_ms) FILTER (WHERE wcp.created_at >= NOW() - INTERVAL '24 hours' AND wcp.status = 'completed') as avg_fetch_ms
+        0 as pages_crawled_today,
+        0 as pages_failed_today,
+        0 as avg_fetch_ms
       FROM web_crawl_jobs wcj
-      LEFT JOIN web_crawl_pages wcp ON wcp.job_id = wcj.id
       WHERE wcj.created_at >= NOW() - INTERVAL '7 days'
     `)
     const crawlStats = crawlStatsResult.rows[0]
+
+    // Compter les pages web crawlées aujourd'hui (alternative via web_pages)
+    const webPagesStats = await db.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE last_crawled_at >= NOW() - INTERVAL '24 hours' AND status IN ('crawled', 'indexed')) as pages_crawled,
+        COUNT(*) FILTER (WHERE last_crawled_at >= NOW() - INTERVAL '24 hours' AND status = 'failed') as pages_failed
+      FROM web_pages
+    `)
+    crawlStats.pages_crawled_today = webPagesStats.rows[0].pages_crawled || 0
+    crawlStats.pages_failed_today = webPagesStats.rows[0].pages_failed || 0
 
     // 3. Quality Analysis Stats (24h)
     const qualityStatsResult = await db.query(`
