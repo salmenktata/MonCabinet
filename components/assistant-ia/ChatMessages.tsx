@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SourcesPanel } from './SourcesPanel'
 import { useVirtualizedMessages } from '@/lib/hooks/useVirtualizedMessages'
+import { AbrogationAlerts } from '@/components/chat/abrogation-alert' // Phase 3.4
+import type { AbrogationAlert } from '@/types/abrogation-alerts' // Phase 3.4
 
 const MarkdownMessage = dynamic(
   () => import('./MarkdownMessage').then(mod => mod.MarkdownMessage),
@@ -37,6 +39,7 @@ export interface ChatMessage {
   sources?: ChatSource[]
   createdAt: Date
   isStreaming?: boolean
+  abrogationAlerts?: AbrogationAlert[] // Phase 3.4
 }
 
 interface ChatMessagesProps {
@@ -224,6 +227,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
       {/* Contenu */}
       <div className={cn('flex-1 max-w-[85%]', isUser && 'flex flex-col items-end')}>
+        {/* Phase 3.4 : Alertes abrogations (affichées AVANT la réponse assistant) */}
+        {!isUser && message.abrogationAlerts && message.abrogationAlerts.length > 0 && (
+          <div className="mb-3">
+            <AbrogationAlerts alerts={message.abrogationAlerts} />
+          </div>
+        )}
+
         <div
           className={cn(
             'rounded-2xl px-4 py-3 text-sm',

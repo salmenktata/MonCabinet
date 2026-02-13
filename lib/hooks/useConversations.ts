@@ -10,6 +10,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
+import type { AbrogationAlert } from '@/types/abrogation-alerts' // Phase 3.4
 
 // =============================================================================
 // TYPES
@@ -30,6 +31,7 @@ export interface Message {
     processingTimeMs?: number
     confiance?: number
     usedPremiumModel?: boolean
+    abrogationAlerts?: AbrogationAlert[] // Phase 3.4
   }
 }
 
@@ -207,6 +209,7 @@ async function sendMessage(params: SendMessageParams): Promise<{
         sources: data.sources,
         processingTimeMs: data.tokensUsed?.total || 0,
         usedPremiumModel: params.usePremiumModel,
+        abrogationAlerts: data.abrogationAlerts, // Phase 3.4
       },
     },
   }

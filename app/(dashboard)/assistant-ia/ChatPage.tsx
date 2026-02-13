@@ -120,6 +120,7 @@ export function ChatPage({ userId }: ChatPageProps) {
           chunkContent: '',
           similarity: s.similarity,
         })),
+        abrogationAlerts: m.metadata?.abrogationAlerts, // Phase 3.4
       })),
     [selectedConversation?.messages]
   )

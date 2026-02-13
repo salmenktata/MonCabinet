@@ -6,20 +6,10 @@
  */
 
 import type { LegalAbrogation, AbrogationSearchResult } from '@/types/legal-abrogations'
+import type { LegalReference, AbrogationAlert } from '@/types/abrogation-alerts'
 
-export interface LegalReference {
-  text: string // Texte original détecté
-  type: 'law' | 'code' | 'article' | 'decree' // Type de référence
-  confidence: number // 0-1
-}
-
-export interface AbrogationAlert {
-  reference: LegalReference // Référence détectée
-  abrogation: AbrogationSearchResult // Abrogation trouvée
-  severity: 'critical' | 'warning' | 'info' // Niveau d'alerte
-  message: string // Message d'alerte formaté
-  replacementSuggestion?: string // Suggestion de remplacement
-}
+// Re-export pour compatibilité
+export type { LegalReference, AbrogationAlert }
 
 /**
  * Patterns de détection de références juridiques tunisiennes

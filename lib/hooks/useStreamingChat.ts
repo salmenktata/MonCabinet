@@ -1,28 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-
-export interface AbrogationAlert {
-  reference: { text: string; type: string; confidence: number }
-  abrogation: {
-    id: string
-    abrogatedReference: string
-    abrogatedReferenceAr?: string
-    abrogatingReference?: string
-    abrogatingReferenceAr?: string
-    abrogationDate: string
-    scope: 'total' | 'partial' | 'implicit'
-    affectedArticles?: string[]
-    jortUrl?: string
-    sourceUrl?: string
-    similarityScore: number
-    verified: boolean
-    confidence: 'high' | 'medium' | 'low'
-  }
-  severity: 'critical' | 'warning' | 'info'
-  message: string
-  replacementSuggestion?: string
-}
+import type { AbrogationAlert } from '@/types/abrogation-alerts' // Phase 3.4
 
 export interface StreamingMessage {
   role: 'user' | 'assistant'
