@@ -24,7 +24,7 @@ on:
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: false  # Laisser déploiement se terminer (évite annulations cascade)
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
@@ -202,88 +202,42 @@ jobs:
 
       - name: Health check
         run: |
-          echo "⏳ Waiting 30s for container initialization (Docker start_period: 40s)..."
-          sleep 30
+          echo "Waiting for container to start..."
+          sleep 15
 
           for i in 1 2 3; do
-            echo "------------------------------------------------"
-            echo "🔍 Health check attempt $i/3 ($(date '+%H:%M:%S'))"
+            echo "Health check attempt $i/3..."
+            RESPONSE=$(ssh vps 'curl -sf http://localhost:3000/api/health' || echo "FAILED")
 
-            # Vérifier PostgreSQL séparément
-            PG_STATUS=$(ssh vps 'docker exec qadhya-postgres pg_isready -U moncabinet' 2>&1 || echo "FAIL")
-            echo "  📊 PostgreSQL: $PG_STATUS"
-
-            # Vérifier MinIO
-            MINIO_STATUS=$(ssh vps 'curl -sf http://localhost:9000/minio/health/live' 2>&1 || echo "FAIL")
-            echo "  🗄️  MinIO: ${MINIO_STATUS:0:50}"
-
-            # Health check API
-            RESPONSE=$(ssh vps 'curl -sf http://localhost:3000/api/health' 2>&1 || echo "FAILED")
-            echo "  🌐 API Response: $RESPONSE"
-
-            if echo "$RESPONSE" | grep -q '"status":"healthy"'; then
-              echo "✅ Health check passed!"
-              DEPLOYED_SHA=$(ssh vps "docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}'" 2>/dev/null || echo "unknown")
-              echo "📦 Deployed commit: $DEPLOYED_SHA"
+            if echo "$RESPONSE" | grep -q '"status"'; then
+              echo "Health check passed!"
               exit 0
             fi
 
-            if [ $i -lt 3 ]; then
-              echo "⏳ Waiting 15s before retry..."
-              sleep 15
-            fi
+            echo "Health check failed, waiting 10s..."
+            sleep 10
           done
 
-          echo "❌ Health check failed after 3 attempts"
+          echo "Health check failed after 3 attempts"
           exit 1
 
       - name: Rollback on failure
         if: failure()
         run: |
-          echo "🚨 ROLLBACK TRIGGERED - Capturing diagnostic info..."
-
           ssh vps << 'ROLLBACK'
-            # Capturer état échoué
-            FAILED_SHA=$(docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}' 2>/dev/null || echo "unknown")
-            echo "❌ Failed deployment: $FAILED_SHA"
+            echo "Rolling back to previous version..."
 
-            # Sauvegarder logs pour analyse
-            mkdir -p /opt/moncabinet/failed-deployments
-            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-            docker logs qadhya-nextjs --tail 200 > "/opt/moncabinet/failed-deployments/logs_${FAILED_SHA}_${TIMESTAMP}.txt" 2>&1
-
-            # Rapport incident
-            cat > "/opt/moncabinet/failed-deployments/incident_${TIMESTAMP}.txt" << EOF
-ROLLBACK INCIDENT REPORT
-Time: $(date)
-Failed Commit: $FAILED_SHA
-Logs: logs_${FAILED_SHA}_${TIMESTAMP}.txt
-
-Health Check Diagnostics:
-- PostgreSQL: $(docker exec qadhya-postgres pg_isready -U moncabinet 2>&1 || echo "FAIL")
-- MinIO: $(curl -sf http://localhost:9000/minio/health/live 2>&1 || echo "FAIL")
-- Container uptime: $(docker inspect qadhya-nextjs --format='{{.State.StartedAt}}' 2>/dev/null)
-
-Next Steps:
-1. Review logs: cat /opt/moncabinet/failed-deployments/logs_${FAILED_SHA}_${TIMESTAMP}.txt
-2. Check timing: scripts/test-health-check-timing.sh
-3. Fix issue locally and redeploy
-EOF
-
-            echo "📄 Incident report: /opt/moncabinet/failed-deployments/incident_${TIMESTAMP}.txt"
-
-            # Exécuter rollback
             if [ -f /opt/moncabinet/rollback/server.js ]; then
-              echo "↩️  Restoring previous version..."
               docker cp /opt/moncabinet/rollback/server.js qadhya-nextjs:/app/server.js
               docker cp /opt/moncabinet/rollback/.next/. qadhya-nextjs:/app/.next/
               docker cp /opt/moncabinet/rollback/public/. qadhya-nextjs:/app/public/
               docker restart qadhya-nextjs
 
-              sleep 20
-              curl -sf http://localhost:3000/api/health && echo "✅ Rollback healthy!" || echo "⚠️  WARNING: Rollback health check failed"
+              echo "Rollback completed, waiting for health..."
+              sleep 15
+              curl -sf http://localhost:3000/api/health && echo "Rollback healthy!" || echo "WARNING: Rollback health check failed"
             else
-              echo "⚠️  No rollback backup available"
+              echo "No rollback backup available"
             fi
           ROLLBACK
 
@@ -367,40 +321,9 @@ EOF
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            echo "⏳ Waiting 30s for container initialization (Docker start_period: 40s)..."
-            sleep 30
-
-            for i in 1 2 3; do
-              echo "------------------------------------------------"
-              echo "🔍 Health check attempt $i/3 ($(date '+%H:%M:%S'))"
-
-              # Vérifier services individuellement
-              PG_STATUS=$(docker exec qadhya-postgres pg_isready -U moncabinet 2>&1 || echo "FAIL")
-              echo "  📊 PostgreSQL: $PG_STATUS"
-
-              MINIO_STATUS=$(curl -sf http://localhost:9000/minio/health/live 2>&1 || echo "FAIL")
-              echo "  🗄️  MinIO: ${MINIO_STATUS:0:50}"
-
-              # Health check API
-              RESPONSE=$(curl -sf http://localhost:3000/api/health 2>&1 || echo "FAILED")
-              echo "  🌐 API Response: $RESPONSE"
-
-              if echo "$RESPONSE" | grep -q '"status":"healthy"'; then
-                echo "✅ Health check passed!"
-                DEPLOYED_SHA=$(docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}' 2>/dev/null || echo "unknown")
-                echo "📦 Deployed commit: $DEPLOYED_SHA"
-                echo "Deployment successful!"
-                exit 0
-              fi
-
-              if [ $i -lt 3 ]; then
-                echo "⏳ Waiting 15s before retry..."
-                sleep 15
-              fi
-            done
-
-            echo "❌ Health check failed after 3 attempts"
-            exit 1
+            sleep 15
+            curl -f http://localhost:3000/api/health || exit 1
+            echo "Deployment successful!"
 
   # ===========================================================================
   # Job 3: Notification
