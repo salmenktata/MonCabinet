@@ -150,6 +150,56 @@ sudo crontab -e
 
 ---
 
+### 🚨 CRITICAL - Batch Overnight ARRÊTÉ
+
+**Déclenchement :**
+- 0 documents analysés en 24h
+
+**Contenu email :**
+- Nombre de documents analysés 24h/7j
+- Moyenne journalière
+
+**Actions recommandées :**
+- Vérifier si batch tourne : `ps aux | grep batch`
+- Consulter logs : `tail -f /tmp/batch-overnight-live.log`
+- Redémarrer batch si nécessaire
+- Vérifier quotas providers
+
+---
+
+### 🚨 CRITICAL - Batch Overnight Quasi-Stagnant
+
+**Déclenchement :**
+- < 50 documents analysés en 24h (objectif: >100/jour)
+
+**Contenu email :**
+- Documents analysés 24h
+- Documents analysés 7j + moyenne journalière
+
+**Actions recommandées :**
+- Vérifier erreurs batch dans logs
+- Consulter dashboard KB
+- Vérifier disponibilité providers (Gemini timeout? Ollama down?)
+- Augmenter batch size si performance OK
+
+---
+
+### ⚠️ WARNING - Batch Overnight Ralenti
+
+**Déclenchement :**
+- 50-100 documents analysés en 24h (objectif: >100/jour)
+
+**Contenu email :**
+- Documents analysés 24h
+- Moyenne 7 jours
+
+**Actions recommandées :**
+- Surveiller progression sur 48h
+- Vérifier logs batch pour ralentissements
+- Envisager optimisation si tendance persiste
+
+---
+
 ## Anti-Spam
 
 **Problème :** Éviter 24 emails identiques par jour si une alerte persiste.

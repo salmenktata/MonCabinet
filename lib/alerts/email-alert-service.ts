@@ -25,6 +25,8 @@ interface AlertLevel {
     budgetRemaining?: number
     failures?: number
     errorRate?: number
+    analyzed24h?: number
+    analyzed7d?: number
   }
   recommendations: string[]
 }
@@ -45,6 +47,10 @@ interface MonitoringMetrics {
     totalActive: number
     totalAnalyzed: number
     coverage: number
+  }
+  progress: {
+    analyzed24h: number
+    analyzed7d: number
   }
 }
 
@@ -104,6 +110,21 @@ async function getMetrics(): Promise<MonitoringMetrics> {
 
   const failures = failuresResult.rows[0]
 
+  // Progression batch (24h et 7j)
+  const progressResult = await db.query<{
+    analyzed_24h: number
+    analyzed_7d: number
+  }>(`
+    SELECT
+      COUNT(*) FILTER (WHERE quality_analyzed_at >= NOW() - INTERVAL '24 hours') as analyzed_24h,
+      COUNT(*) FILTER (WHERE quality_analyzed_at >= NOW() - INTERVAL '7 days') as analyzed_7d
+    FROM knowledge_base
+    WHERE is_active = true
+      AND quality_score IS NOT NULL
+  `)
+
+  const progress = progressResult.rows[0]
+
   return {
     budget: {
       estimatedCostUsd,
@@ -122,6 +143,10 @@ async function getMetrics(): Promise<MonitoringMetrics> {
       coverage: globalStats.total_active > 0
         ? (globalStats.total_analyzed / globalStats.total_active) * 100
         : 0,
+    },
+    progress: {
+      analyzed24h: progress.analyzed_24h || 0,
+      analyzed7d: progress.analyzed_7d || 0,
     },
   }
 }
@@ -195,8 +220,62 @@ function detectAlerts(metrics: MonitoringMetrics): AlertLevel[] {
     })
   }
 
-  // Alerte 3 : Batch stagnant (coverage < 40% après 24h)
-  // Note: Nécessiterait un tracking temporel, skip pour l'instant
+  // Alerte 3 : Batch stagnant (<100 docs analysés en 24h)
+  const BATCH_MIN_DAILY = 100 // Objectif minimum : 100 docs/jour
+  const BATCH_WARNING_DAILY = 50 // Warning si < 50 docs/jour
+
+  if (metrics.progress.analyzed24h === 0) {
+    // Critical : Aucun document analysé en 24h = batch probablement arrêté
+    alerts.push({
+      level: 'critical',
+      title: 'Batch Overnight ARRÊTÉ',
+      message: `Aucun document analysé depuis 24h - Batch probablement arrêté`,
+      metrics: {
+        analyzed24h: metrics.progress.analyzed24h,
+        analyzed7d: metrics.progress.analyzed7d,
+      },
+      recommendations: [
+        'Vérifier si le batch overnight tourne : ssh root@qadhya.tn "ps aux | grep batch"',
+        'Consulter les logs batch : tail -f /tmp/batch-overnight-live.log',
+        'Redémarrer le batch si nécessaire',
+        'Vérifier quotas providers (Ollama, Gemini, OpenAI)',
+      ],
+    })
+  } else if (metrics.progress.analyzed24h < BATCH_WARNING_DAILY) {
+    // Critical : Très faible activité (<50 docs/jour)
+    alerts.push({
+      level: 'critical',
+      title: 'Batch Overnight Quasi-Stagnant',
+      message: `Seulement ${metrics.progress.analyzed24h} docs analysés en 24h (objectif: >${BATCH_MIN_DAILY}/jour)`,
+      metrics: {
+        analyzed24h: metrics.progress.analyzed24h,
+        analyzed7d: metrics.progress.analyzed7d,
+      },
+      recommendations: [
+        'Vérifier erreurs batch : tail -f /tmp/batch-overnight-live.log',
+        'Consulter dashboard KB : /super-admin/monitoring?tab=kb-quality',
+        'Vérifier si providers disponibles (Gemini timeout? Ollama down?)',
+        `Augmenter batch size si performance OK`,
+      ],
+    })
+  } else if (metrics.progress.analyzed24h < BATCH_MIN_DAILY) {
+    // Warning : Activité faible mais acceptable (50-100 docs/jour)
+    alerts.push({
+      level: 'warning',
+      title: 'Batch Overnight Ralenti',
+      message: `${metrics.progress.analyzed24h} docs analysés en 24h (objectif: >${BATCH_MIN_DAILY}/jour)`,
+      metrics: {
+        analyzed24h: metrics.progress.analyzed24h,
+        analyzed7d: metrics.progress.analyzed7d,
+      },
+      recommendations: [
+        'Surveiller progression sur 48h',
+        'Vérifier logs batch pour détecter ralentissements',
+        `Moyenne 7j : ${(metrics.progress.analyzed7d / 7).toFixed(0)} docs/jour`,
+        'Envisager optimisation si tendance persiste',
+      ],
+    })
+  }
 
   return alerts
 }
@@ -297,6 +376,8 @@ async function sendAlertEmail(alert: AlertLevel): Promise<boolean> {
                       ${alert.metrics.budgetRemaining !== undefined ? `<li><strong>Budget restant :</strong> $${alert.metrics.budgetRemaining.toFixed(2)}</li>` : ''}
                       ${alert.metrics.failures ? `<li><strong>Échecs :</strong> ${alert.metrics.failures} documents</li>` : ''}
                       ${alert.metrics.errorRate ? `<li><strong>Taux d'erreur :</strong> ${alert.metrics.errorRate.toFixed(1)}%</li>` : ''}
+                      ${alert.metrics.analyzed24h !== undefined ? `<li><strong>Analysés 24h :</strong> ${alert.metrics.analyzed24h} documents</li>` : ''}
+                      ${alert.metrics.analyzed7d !== undefined ? `<li><strong>Analysés 7j :</strong> ${alert.metrics.analyzed7d} documents (${(alert.metrics.analyzed7d / 7).toFixed(0)}/jour)</li>` : ''}
                     </ul>
                   </div>
                 ` : ''}
