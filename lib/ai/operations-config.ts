@@ -204,9 +204,10 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     description: 'Analyse qualité documents courts (< 500 chars) - OpenAI strict sur JSON',
 
     // Providers: OpenAI prioritaire (plus strict sur format JSON pour textes courts)
+    // Fallback: Ollama avant Gemini (Gemini échoue souvent sur textes courts AR)
     providers: {
       primary: 'openai',
-      fallback: ['gemini', 'ollama'],
+      fallback: ['ollama', 'gemini'],
     },
 
     timeouts: {

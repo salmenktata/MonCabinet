@@ -62,6 +62,54 @@ export function maskApiKey(apiKey: string): string {
   return apiKey.substring(0, 6) + '...' + apiKey.substring(apiKey.length - 5)
 }
 
+/**
+ * Chiffrer une clé API avec une clé de chiffrement custom
+ * Utilisé pour la synchronisation prod → local (clés d'environnements différentes)
+ */
+export function encryptApiKeyWithKey(apiKey: string, encryptionKey: string): string {
+  const key = Buffer.from(encryptionKey, 'hex')
+  const iv = crypto.randomBytes(IV_LENGTH)
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
+
+  const encrypted = Buffer.concat([
+    cipher.update(apiKey, 'utf8'),
+    cipher.final()
+  ])
+
+  const tag = cipher.getAuthTag()
+  const result = Buffer.concat([iv, tag, encrypted])
+
+  return result.toString('base64')
+}
+
+/**
+ * Déchiffrer une clé API avec une clé de chiffrement custom
+ * Utilisé pour la synchronisation prod → local (clés d'environnements différentes)
+ */
+export function decryptApiKeyWithKey(encryptedData: string, encryptionKey: string): string {
+  // Guard: valeurs non cryptées (e.g. "local://ollama", "REQUIRES_ENCRYPTION")
+  const data = Buffer.from(encryptedData, 'base64')
+  if (data.length < IV_LENGTH + TAG_LENGTH + 1) {
+    return encryptedData
+  }
+
+  const key = Buffer.from(encryptionKey, 'hex')
+
+  const iv = data.subarray(0, IV_LENGTH)
+  const tag = data.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH)
+  const encrypted = data.subarray(IV_LENGTH + TAG_LENGTH)
+
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
+  decipher.setAuthTag(tag)
+
+  const decrypted = Buffer.concat([
+    decipher.update(encrypted),
+    decipher.final()
+  ])
+
+  return decrypted.toString('utf8')
+}
+
 export function validateApiKeyFormat(provider: string, apiKey: string): boolean {
   const patterns: Record<string, RegExp> = {
     gemini: /^AIza[a-zA-Z0-9_-]{35}$/,
