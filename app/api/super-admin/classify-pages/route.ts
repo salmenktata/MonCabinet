@@ -88,12 +88,14 @@ export async function POST(req: NextRequest) {
     const jobResult = await db.query(
       `INSERT INTO indexing_jobs (
         job_type,
+        target_id,
         status,
         started_at,
         metadata
-      ) VALUES ('classify_pages', 'running', NOW(), $1)
+      ) VALUES ('classify_pages', $1, 'running', NOW(), $2)
       RETURNING id`,
       [
+        session.user.id, // target_id = user qui lance le job
         JSON.stringify({
           limit,
           skipCache,
