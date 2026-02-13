@@ -10,7 +10,7 @@
  */
 
 import { db } from '@/lib/db/postgres'
-import { redis } from '@/lib/db/redis'
+import { getRedisClient } from '@/lib/cache/redis'
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY
 const ALERT_EMAIL = process.env.ALERT_EMAIL || 'admin@qadhya.tn'
@@ -287,22 +287,45 @@ function detectAlerts(metrics: MonitoringMetrics): AlertLevel[] {
  */
 async function canSendAlert(alertKey: string): Promise<boolean> {
   const cacheKey = `alert:sent:${alertKey}`
-  const lastSent = await redis.get(cacheKey)
 
-  if (lastSent) {
-    // Alerte déjà envoyée dans les 6 dernières heures
-    return false
+  try {
+    const redis = await getRedisClient()
+    if (!redis) {
+      console.warn('[Alert] Redis non disponible, skip cache anti-spam')
+      return true
+    }
+
+    const lastSent = await redis.get(cacheKey)
+
+    if (lastSent) {
+      // Alerte déjà envoyée dans les 6 dernières heures
+      return false
+    }
+
+    return true
+  } catch (error) {
+    // Si Redis indisponible, permettre l'envoi d'alerte
+    console.warn('[Alert] Redis indisponible, skip cache anti-spam')
+    return true
   }
-
-  return true
 }
 
 /**
  * Marquer une alerte comme envoyée (cache 6h)
  */
 async function markAlertSent(alertKey: string): Promise<void> {
-  const cacheKey = `alert:sent:${alertKey}`
-  await redis.set(cacheKey, new Date().toISOString(), { EX: 6 * 60 * 60 }) // 6h
+  try {
+    const redis = await getRedisClient()
+    if (!redis) {
+      console.warn('[Alert] Redis non disponible, impossible de marquer alerte comme envoyée')
+      return
+    }
+
+    const cacheKey = `alert:sent:${alertKey}`
+    await redis.set(cacheKey, new Date().toISOString(), { EX: 6 * 60 * 60 }) // 6h
+  } catch (error) {
+    console.warn('[Alert] Redis indisponible, impossible de marquer alerte comme envoyée')
+  }
 }
 
 /**
