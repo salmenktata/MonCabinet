@@ -1,2 +1,0 @@
-kb_id,kb_title,kb_category,abrogated_reference,abrogating_reference,abrogation_date,scope,affected_articles,confidence,language,chunk_excerpt,notes
-1e44c82c-fd77-454c-9877-fd7c3659e268,"مجلة الصحافة - قانون 🇹🇳",legislation,Loi n°2011-115,Loi n°1975-32,2011-11-01,total,,high,mixed,"ABROGE PAR LE DECRET-LOI N°2011-115...","Détecté automatiquement - Pattern FR: abrog[ée]*s?\s*[^\n]{0,50}?\b(?:loi|décret)\s+n°?\..."
