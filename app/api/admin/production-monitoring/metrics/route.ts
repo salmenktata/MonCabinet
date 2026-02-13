@@ -35,10 +35,10 @@ export async function GET(request: NextRequest) {
     const queriesData = queriesResult.rows[0]
 
     // =========================================================================
-    // 2. Utilisateurs actifs (sessions uniques)
+    // 2. Utilisateurs actifs (conversations uniques)
     // =========================================================================
     const usersResult = await db.query(`
-      SELECT COUNT(DISTINCT session_id)::int as active_users
+      SELECT COUNT(DISTINCT conversation_id)::int as active_users
       FROM chat_messages
       WHERE created_at >= NOW() - INTERVAL '${interval}'
     `)
