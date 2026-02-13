@@ -6,24 +6,24 @@ import { z } from 'zod'
  */
 
 const extractedFactSchema = z.object({
-  fait: z.string().min(1, 'Le fait ne peut pas être vide'),
+  fait: z.string().min(1).default('Fait non spécifié'),
   label: z.string().optional(),
-  categorie: z.enum(['fait_juridique', 'interpretation', 'ressenti']),
+  categorie: z.enum(['fait_juridique', 'interpretation', 'ressenti']).optional().default('fait_juridique'),
   dateApproximative: z.string().nullable().optional(),
-  confidence: z.number().min(0).max(100),
+  confidence: z.number().min(0).max(100).optional().default(50),
   source: z.string().nullable().optional(),
   preuve: z.string().nullable().optional(),
-  importance: z.enum(['decisif', 'important', 'contexte']),
-})
+  importance: z.enum(['decisif', 'important', 'contexte']).optional().default('contexte'),
+}).passthrough()
 
 const legalAnalysisSchema = z.object({
-  diagnostic: z.string(),
-  qualification: z.string(),
-  risques: z.array(z.string()),
-  opportunites: z.array(z.string()),
-  fondement: z.string(),
-  recommandation: z.string(),
-})
+  diagnostic: z.union([z.string(), z.record(z.unknown())]).optional(),
+  qualification: z.string().optional(),
+  risques: z.array(z.string()).optional(),
+  opportunites: z.array(z.string()).optional(),
+  fondement: z.string().optional(),
+  recommandation: z.string().optional(),
+}).passthrough() // Accepte les champs supplémentaires
 
 const extractedChildSchema = z.object({
   prenom: z.string(),
@@ -72,13 +72,13 @@ const legalReferenceSchema = z.object({
 })
 
 const partySchema = z.object({
-  nom: z.string().min(1, 'Le nom ne peut pas être vide'),
+  nom: z.string().min(1).default('Non spécifié'),
   prenom: z.string().nullable().optional(),
-  role: z.enum(['demandeur', 'defendeur']),
+  role: z.enum(['demandeur', 'defendeur']).default('demandeur'),
   profession: z.string().nullable().optional(),
   revenus: z.number().nullable().optional(),
   adresse: z.string().nullable().optional(),
-})
+}).passthrough()
 
 /**
  * Schéma principal pour un dossier structuré
@@ -96,18 +96,32 @@ export const structuredDossierSchema = z.object({
   ]),
   sousType: z.string().nullable().optional(),
   analyseJuridique: legalAnalysisSchema.nullable().optional(),
-  client: partySchema,
-  partieAdverse: partySchema,
+  client: partySchema.optional().default({
+    nom: 'Client',
+    prenom: null,
+    role: 'demandeur',
+    profession: null,
+    revenus: null,
+    adresse: null,
+  }),
+  partieAdverse: partySchema.optional().default({
+    nom: 'Partie adverse',
+    prenom: null,
+    role: 'defendeur',
+    profession: null,
+    revenus: null,
+    adresse: null,
+  }),
   faitsExtraits: z.array(extractedFactSchema).default([]),
   enfants: z.array(extractedChildSchema).nullable().optional(),
   calculs: z.array(legalCalculationSchema).default([]),
   timeline: z.array(timelineStepSchema).default([]),
   actionsSuggerees: z.array(suggestedActionSchema).default([]),
   references: z.array(legalReferenceSchema).default([]),
-  titrePropose: z.string().min(1, 'Le titre ne peut pas être vide'),
+  titrePropose: z.string().min(1).optional().default('Nouveau dossier'),
   resumeCourt: z.string().default(''),
   donneesSpecifiques: z.record(z.unknown()).optional().default({}),
-})
+}).passthrough() // Accepte les champs supplémentaires non définis
 
 /**
  * Type TypeScript inféré du schéma Zod
