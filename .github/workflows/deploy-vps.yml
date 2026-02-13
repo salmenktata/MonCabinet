@@ -11,6 +11,9 @@
 
 name: Deploy to VPS Contabo
 
+# Timeout global pour éviter queues infinies
+run-name: "Deploy #${{ github.run_number }} (${{ github.event.head_commit.message || 'manual trigger' }})"
+
 on:
   push:
     branches: [main]
@@ -32,14 +35,56 @@ env:
 
 jobs:
   # ===========================================================================
+  # Job 0: Check Queue - Éviter queues infinies
+  # ===========================================================================
+  check-queue:
+    runs-on: ubuntu-latest
+    name: Check Queue
+    outputs:
+      should_skip: ${{ steps.check.outputs.should_skip }}
+      queue_length: ${{ steps.check.outputs.queue_length }}
+    timeout-minutes: 2
+
+    steps:
+      - name: Check pending deployments
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Compter les runs en queue/in_progress pour ce workflow
+          PENDING=$(gh run list \
+            --repo ${{ github.repository }} \
+            --workflow="Deploy to VPS Contabo" \
+            --status=queued,in_progress \
+            --json databaseId,status \
+            --jq 'length' || echo "0")
+
+          echo "queue_length=$PENDING" >> $GITHUB_OUTPUT
+          echo "📊 Déploiements en queue/en cours: $PENDING"
+
+          # Skip si 3+ déploiements déjà en attente (auto-batch)
+          # Logic: Si 3+ runs en queue, seul le dernier est pertinent
+          if [ "$PENDING" -ge 3 ]; then
+            echo "should_skip=true" >> $GITHUB_OUTPUT
+            echo "⏭️  SKIP: $PENDING déploiements en queue (auto-batch)"
+            echo "Le dernier déploiement inclura ces changements"
+          else
+            echo "should_skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Proceeding with deployment"
+          fi
+
+  # ===========================================================================
   # Job 1: Detect Changes - Choisir Tier 1 (fast) ou Tier 2 (docker)
   # ===========================================================================
   detect-changes:
     runs-on: ubuntu-latest
     name: Detect Changes
+    needs: check-queue
+    if: needs.check-queue.outputs.should_skip != 'true'
     outputs:
       needs_docker: ${{ steps.check.outputs.needs_docker }}
       deploy_tier: ${{ steps.check.outputs.deploy_tier }}
+    timeout-minutes: 3
 
     steps:
       - name: Checkout code
@@ -169,35 +214,47 @@ jobs:
             echo "Backup completed at $(date)"
           BACKUP
 
+      - name: Upload deploy scripts
+        run: |
+          # Upload deploy-with-lock.sh to VPS if not exists
+          scp scripts/deploy-with-lock.sh vps:/opt/moncabinet/scripts/deploy-with-lock.sh || true
+          scp scripts/check-deploy-lock.sh vps:/opt/moncabinet/scripts/check-deploy-lock.sh || true
+          ssh vps 'chmod +x /opt/moncabinet/scripts/deploy-with-lock.sh /opt/moncabinet/scripts/check-deploy-lock.sh'
+
       - name: Upload and deploy
         run: |
           # SCP deploy bundle to VPS
           scp deploy.tar.gz vps:/tmp/deploy.tar.gz
 
-          # Extract and docker cp into container
+          # Extract and docker cp into container (PROTECTED BY LOCK)
           ssh vps << 'DEPLOY'
             set -e
 
-            # Extract bundle
-            rm -rf /tmp/deploy-bundle
-            mkdir -p /tmp/deploy-bundle
-            tar xzf /tmp/deploy.tar.gz -C /tmp/deploy-bundle
+            # Wrapper pour protection concurrence
+            bash /opt/moncabinet/scripts/deploy-with-lock.sh bash -c '
+              set -e
 
-            # Clean old build artifacts to avoid stale chunks (docker cp merges, not replaces)
-            docker exec qadhya-nextjs rm -rf /app/.next/server/chunks /app/.next/server/app /app/.next/static || true
+              # Extract bundle
+              rm -rf /tmp/deploy-bundle
+              mkdir -p /tmp/deploy-bundle
+              tar xzf /tmp/deploy.tar.gz -C /tmp/deploy-bundle
 
-            # Copy into running container (server.js, .next/, public/)
-            docker cp /tmp/deploy-bundle/server.js qadhya-nextjs:/app/server.js
-            docker cp /tmp/deploy-bundle/.next/. qadhya-nextjs:/app/.next/
-            docker cp /tmp/deploy-bundle/public/. qadhya-nextjs:/app/public/
+              # Clean old build artifacts to avoid stale chunks (docker cp merges, not replaces)
+              docker exec qadhya-nextjs rm -rf /app/.next/server/chunks /app/.next/server/app /app/.next/static || true
 
-            # Restart container to pick up new code
-            docker restart qadhya-nextjs
+              # Copy into running container (server.js, .next/, public/)
+              docker cp /tmp/deploy-bundle/server.js qadhya-nextjs:/app/server.js
+              docker cp /tmp/deploy-bundle/.next/. qadhya-nextjs:/app/.next/
+              docker cp /tmp/deploy-bundle/public/. qadhya-nextjs:/app/public/
 
-            # Cleanup
-            rm -rf /tmp/deploy-bundle /tmp/deploy.tar.gz
+              # Restart container to pick up new code
+              docker restart qadhya-nextjs
 
-            echo "Lightning deploy completed at $(date)"
+              # Cleanup
+              rm -rf /tmp/deploy-bundle /tmp/deploy.tar.gz
+
+              echo "Lightning deploy completed at $(date)"
+            '
           DEPLOY
 
       - name: Health check
@@ -352,6 +409,28 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Upload deploy scripts
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            mkdir -p /opt/moncabinet/scripts
+
+      - name: Copy scripts to VPS
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          scp -i ~/.ssh/id_rsa -P ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=no \
+            scripts/deploy-with-lock.sh scripts/check-deploy-lock.sh \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/moncabinet/scripts/
+          ssh -i ~/.ssh/id_rsa -P ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            'chmod +x /opt/moncabinet/scripts/deploy-with-lock.sh /opt/moncabinet/scripts/check-deploy-lock.sh'
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -363,21 +442,26 @@ jobs:
           script: |
             cd /opt/moncabinet
 
-            # Mettre a jour les secrets
-            sed -i 's|RESEND_API_KEY=.*|RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}|' .env
-            sed -i 's|BREVO_API_KEY=.*|BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}|' .env
-            sed -i 's|GOOGLE_API_KEY=.*|GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}|' .env
-            sed -i 's|GROQ_API_KEY=.*|GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}|' .env
-            sed -i 's|DEEPSEEK_API_KEY=.*|DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}|' .env
-            sed -i 's|ENCRYPTION_KEY=.*|ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}|' .env
-            sed -i 's|CRON_SECRET=.*|CRON_SECRET=${{ secrets.CRON_SECRET }}|' .env
+            # Wrapper pour protection concurrence
+            bash scripts/deploy-with-lock.sh bash -c '
+              set -e
 
-            # Pull et deployer
-            docker pull ghcr.io/salmenktata/moncabinet:latest
-            docker compose -f docker-compose.prod.yml up -d nextjs
+              # Mettre a jour les secrets
+              sed -i "s|RESEND_API_KEY=.*|RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}|" .env
+              sed -i "s|BREVO_API_KEY=.*|BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}|" .env
+              sed -i "s|GOOGLE_API_KEY=.*|GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}|" .env
+              sed -i "s|GROQ_API_KEY=.*|GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}|" .env
+              sed -i "s|DEEPSEEK_API_KEY=.*|DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}|" .env
+              sed -i "s|ENCRYPTION_KEY=.*|ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}|" .env
+              sed -i "s|CRON_SECRET=.*|CRON_SECRET=${{ secrets.CRON_SECRET }}|" .env
 
-            # Cleanup anciennes images
-            docker image prune -f
+              # Pull et deployer
+              docker pull ghcr.io/salmenktata/moncabinet:latest
+              docker compose -f docker-compose.prod.yml up -d nextjs
+
+              # Cleanup anciennes images
+              docker image prune -f
+            '
 
       - name: Health check
         uses: appleboy/ssh-action@v1.0.3
@@ -428,30 +512,59 @@ jobs:
             exit 1
 
   # ===========================================================================
-  # Job 3: Notification
+  # Job 3: Skip Notification (si auto-batch)
+  # ===========================================================================
+  notify-skip:
+    runs-on: ubuntu-latest
+    name: Auto-Batch Skip
+    needs: check-queue
+    if: needs.check-queue.outputs.should_skip == 'true'
+    timeout-minutes: 1
+
+    steps:
+      - name: Report skip reason
+        run: |
+          QUEUE_LENGTH="${{ needs.check-queue.outputs.queue_length }}"
+          echo "================================================"
+          echo "⏭️  DEPLOYMENT SKIPPED (Auto-Batch)"
+          echo "================================================"
+          echo "Raison: $QUEUE_LENGTH déploiements déjà en queue/en cours"
+          echo "Le dernier déploiement en queue inclura ces changements"
+          echo ""
+          echo "Pour forcer le déploiement malgré la queue:"
+          echo "  gh workflow run 'Deploy to VPS Contabo'"
+          echo "================================================"
+
+  # ===========================================================================
+  # Job 4: Notification
   # ===========================================================================
   notify:
     runs-on: ubuntu-latest
     name: Notify Status
-    needs: [detect-changes, deploy-fast, build-and-deploy]
+    needs: [check-queue, detect-changes, deploy-fast, build-and-deploy]
     if: always() && github.ref == 'refs/heads/main'
+    timeout-minutes: 2
 
     steps:
       - name: Report result
         run: |
+          SKIPPED="${{ needs.check-queue.outputs.should_skip }}"
           TIER="${{ needs.detect-changes.outputs.deploy_tier }}"
           FAST="${{ needs.deploy-fast.result }}"
           DOCKER="${{ needs.build-and-deploy.result }}"
 
-          echo "Tier: $TIER | Fast: $FAST | Docker: $DOCKER"
+          echo "Queue Skip: $SKIPPED | Tier: $TIER | Fast: $FAST | Docker: $DOCKER"
 
-          if [ "$FAST" == "success" ]; then
-            echo "Lightning Deploy (Tier 1) successful!"
+          if [ "$SKIPPED" == "true" ]; then
+            echo "✅ Deployment skipped (auto-batch) - OK"
+            exit 0
+          elif [ "$FAST" == "success" ]; then
+            echo "✅ Lightning Deploy (Tier 1) successful!"
           elif [ "$DOCKER" == "success" ]; then
-            echo "Docker Deploy (Tier 2) successful!"
+            echo "✅ Docker Deploy (Tier 2) successful!"
           elif [ "$FAST" == "skipped" ] && [ "$DOCKER" == "skipped" ]; then
             echo "No deployment triggered"
           else
-            echo "Deployment FAILED (tier: $TIER)"
+            echo "❌ Deployment FAILED (tier: $TIER)"
             exit 1
           fi
