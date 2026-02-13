@@ -1,23 +1,25 @@
 'use client'
 
 /**
- * Dashboard Monitoring Unifié - Consolidation 4 pages
+ * Dashboard Monitoring Unifié - Consolidation 5 pages
  *
- * 4 onglets :
+ * 5 onglets :
  * 1. Overview : Métriques production temps réel
- * 2. Providers : Matrice provider × opération
- * 3. Costs : Analyse coûts IA
- * 4. API Health : Health check clés API (ancien /api-keys-health)
+ * 2. KB Quality : Analyse qualité base de connaissances + budget OpenAI
+ * 3. Providers : Matrice provider × opération
+ * 4. Costs : Analyse coûts IA
+ * 5. API Health : Health check clés API (ancien /api-keys-health)
  */
 
 import { useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Activity, PieChart, DollarSign, Gauge, Heart } from 'lucide-react'
+import { Activity, PieChart, DollarSign, Gauge, Heart, Database } from 'lucide-react'
 import { ProductionMonitoringTab } from '@/components/super-admin/monitoring/ProductionMonitoringTab'
 import { ProviderUsageTab } from '@/components/super-admin/monitoring/ProviderUsageTab'
 import { AICostsTab } from '@/components/super-admin/monitoring/AICostsTab'
 import { APIHealthTab } from '@/components/super-admin/monitoring/APIHealthTab'
+import { KBQualityTab } from '@/components/super-admin/monitoring/KBQualityTab'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -55,10 +57,14 @@ export default function MonitoringPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[800px]">
+        <TabsList className="grid w-full grid-cols-5 lg:w-[1000px]">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="kb-quality" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            <span className="hidden sm:inline">KB Quality</span>
           </TabsTrigger>
           <TabsTrigger value="providers" className="flex items-center gap-2">
             <PieChart className="h-4 w-4" />
@@ -79,17 +85,22 @@ export default function MonitoringPage() {
           <ProductionMonitoringTab />
         </TabsContent>
 
-        {/* Tab 2: Provider Usage */}
+        {/* Tab 2: KB Quality - Analyse Base de Connaissances */}
+        <TabsContent value="kb-quality" className="space-y-6">
+          <KBQualityTab />
+        </TabsContent>
+
+        {/* Tab 3: Provider Usage */}
         <TabsContent value="providers" className="space-y-6">
           <ProviderUsageTab />
         </TabsContent>
 
-        {/* Tab 3: AI Costs */}
+        {/* Tab 4: AI Costs */}
         <TabsContent value="costs" className="space-y-6">
           <AICostsTab />
         </TabsContent>
 
-        {/* Tab 4: API Health */}
+        {/* Tab 5: API Health */}
         <TabsContent value="api-health" className="space-y-6">
           <APIHealthTab />
         </TabsContent>

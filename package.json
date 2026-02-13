@@ -57,6 +57,7 @@
     "audit:rag:json": "npx tsx scripts/audit-rag-data-quality.ts --export=json",
     "audit:rag:csv": "npx tsx scripts/audit-rag-data-quality.ts --export=csv",
     "monitor:openai": "npx tsx scripts/monitor-openai-usage.ts",
+    "test:alerts": "npx tsx scripts/test-alerts-system.ts",
     "extract:metadata": "npx tsx scripts/extract-metadata-bulk.ts",
     "rechunk:large": "npx tsx scripts/rechunk-large-documents.ts",
     "rechunk:large:dry-run": "npx tsx scripts/rechunk-large-documents.ts --dry-run",
