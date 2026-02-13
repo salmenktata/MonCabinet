@@ -8,7 +8,7 @@
  */
 
 import { db } from '@/lib/db/postgres'
-import { analyzeDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
+import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
 
 interface FailedDoc {
   id: string
@@ -95,7 +95,7 @@ async function main() {
       console.log(`   Avant: ${doc.quality_llm_provider} → score ${doc.quality_score}`)
 
       try {
-        const result = await analyzeDocumentQuality(doc.id)
+        const result = await analyzeKBDocumentQuality(doc.id)
 
         if (result.success) {
           succeeded++

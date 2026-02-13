@@ -52,6 +52,7 @@ import {
   triggerSummaryGenerationIfNeeded,
   SUMMARY_CONFIG,
 } from './conversation-summary-service'
+import { RAGLogger } from '@/lib/logging/rag-logger'
 import { countTokens } from './token-utils'
 import { getDynamicBoostFactors } from './feedback-service'
 import {

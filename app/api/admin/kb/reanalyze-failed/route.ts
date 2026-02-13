@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
-import { analyzeDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
+import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
 import { getSession } from '@/lib/auth/session'
 
 /**
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`[Reanalyze Failed] Analyse ${doc.id} (${doc.title.substring(0, 30)}...)`)
 
-        const analysisResult = await analyzeDocumentQuality(doc.id)
+        const analysisResult = await analyzeKBDocumentQuality(doc.id)
 
         if (analysisResult.success) {
           succeeded++
