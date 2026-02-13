@@ -1,0 +1,102 @@
+[
+  {
+    "name": "Legislation.tn - JORT et Lois",
+    "url": "https://www.legislation.tn",
+    "category": "legislation",
+    "description": "Journal Officiel de la République Tunisienne - Lois de finances, décrets, JORT historiques",
+    "priority": "high",
+    "crawl_frequency": "weekly",
+    "requires_javascript": false,
+    "notes": "Source officielle gouvernementale - Lois de finances 2020-2025, textes JORT"
+  },
+  {
+    "name": "9anoun.tn - Codes Consolidés",
+    "url": "https://9anoun.tn",
+    "category": "codes",
+    "description": "Plateforme codes juridiques tunisiens consolidés - CGI, Code Changes, Code Presse, etc.",
+    "priority": "high",
+    "crawl_frequency": "weekly",
+    "requires_javascript": true,
+    "notes": "Déjà partiellement crawlé - Source principale codes consolidés"
+  },
+  {
+    "name": "JIBAYA - Codes Fiscaux",
+    "url": "https://jibaya.tn",
+    "category": "codes",
+    "description": "Codes fiscaux tunisiens - CGI, Code Procédures Fiscales, lois finances",
+    "priority": "high",
+    "crawl_frequency": "monthly",
+    "requires_javascript": false,
+    "notes": "PDFs codes fiscaux officiels, notes communes, circulaires"
+  },
+  {
+    "name": "ChaExpert - Analyses Fiscales",
+    "url": "https://chaexpert.com",
+    "category": "doctrine",
+    "description": "Cabinet expert comptable - Commentaires lois finances, analyses fiscales",
+    "priority": "medium",
+    "crawl_frequency": "monthly",
+    "requires_javascript": false,
+    "notes": "Analyses détaillées lois finances, mesures fiscales"
+  },
+  {
+    "name": "Proservy - Analyses Juridiques",
+    "url": "https://www.proservy.com/blog",
+    "category": "doctrine",
+    "description": "Cabinet conseil - Analyses lois finances, droit des sociétés",
+    "priority": "medium",
+    "crawl_frequency": "monthly",
+    "requires_javascript": false,
+    "notes": "Articles détaillés sur changements législatifs"
+  },
+  {
+    "name": "Paie Tunisie - Résumés Lois Finances",
+    "url": "https://paie-tunisie.com",
+    "category": "doctrine",
+    "description": "Portail paie et fiscalité - Résumés lois finances annuelles",
+    "priority": "medium",
+    "crawl_frequency": "quarterly",
+    "requires_javascript": false,
+    "notes": "Résumés structurés lois finances par année"
+  },
+  {
+    "name": "JurisiteTunisie - Codes HTML",
+    "url": "https://www.jurisitetunisie.com",
+    "category": "codes",
+    "description": "Codes tunisiens version HTML navigable - IRPP, IS, travail, etc.",
+    "priority": "medium",
+    "crawl_frequency": "quarterly",
+    "requires_javascript": false,
+    "notes": "Codes en HTML avec historique modifications"
+  },
+  {
+    "name": "Alliance Tunisie - Documentation",
+    "url": "https://alliance-tunisie.com",
+    "category": "guides",
+    "description": "Association investisseurs - Guides fiscaux, codes PDF",
+    "priority": "low",
+    "crawl_frequency": "quarterly",
+    "requires_javascript": false,
+    "notes": "PDFs codes fiscaux consolidés"
+  },
+  {
+    "name": "Ministère Finances - Officiel",
+    "url": "https://www.finances.gov.tn",
+    "category": "legislation",
+    "description": "Site officiel Ministère des Finances - Lois, codes, circulaires",
+    "priority": "high",
+    "crawl_frequency": "weekly",
+    "requires_javascript": false,
+    "notes": "Source gouvernementale officielle - Accès parfois instable"
+  },
+  {
+    "name": "Droit Afrique - Codes Consolidés",
+    "url": "https://www.droit-afrique.com",
+    "category": "codes",
+    "description": "Portail droit africain - Codes tunisiens consolidés PDF",
+    "priority": "low",
+    "crawl_frequency": "quarterly",
+    "requires_javascript": false,
+    "notes": "Codes consolidés en PDF, parfois bloqué (403)"
+  }
+]
