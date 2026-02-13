@@ -379,10 +379,24 @@ export async function indexPendingDocuments(limit: number = 10): Promise<{
   failed: number
   results: Array<{ id: string; title: string; success: boolean; error?: string }>
 }> {
+  // ✨ OPTIMISATION Phase 2.2 : Priorisation documents critiques
+  // Priorité 1: Catégories critiques (jurisprudence, codes, legislation)
+  // Priorité 2: Documents jamais analysés (quality_score IS NULL)
+  // Priorité 3: Anciens d'abord (FIFO)
   const pendingResult = await db.query(
-    `SELECT id, title FROM knowledge_base
+    `SELECT id, title, category, quality_score
+     FROM knowledge_base
      WHERE is_indexed = false AND full_text IS NOT NULL
-     ORDER BY created_at ASC
+     ORDER BY
+       -- Priorité 1: Catégories critiques
+       CASE
+         WHEN category IN ('jurisprudence', 'codes', 'legislation') THEN 1
+         ELSE 2
+       END,
+       -- Priorité 2: Jamais analysés
+       CASE WHEN quality_score IS NULL THEN 1 ELSE 2 END,
+       -- Priorité 3: Anciens d'abord
+       COALESCE(quality_assessed_at, created_at) ASC
      LIMIT $1`,
     [limit]
   )
