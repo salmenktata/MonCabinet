@@ -154,7 +154,7 @@ function parseRediSearchResults(
       contentChunk: doc.content,
       chunkIndex: 0, // Non disponible dans Redis
       similarity,
-      category: doc.category,
+      category: doc.category as any,
       language: doc.language as 'ar' | 'fr' | 'bi',
       metadata: doc.metadata ? JSON.parse(doc.metadata) : null,
     })
