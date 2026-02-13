@@ -3,3 +3,4 @@ Objectif : Vérifier auto-skip si 3+ déploiements en attente
 Test queue 1 - 1770994430
 Test queue 2 - 1770994432
 Test queue 3 - 1770994434
+Test queue 4 - 1770994436
