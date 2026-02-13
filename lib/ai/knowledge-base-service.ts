@@ -440,6 +440,77 @@ export async function indexPendingDocuments(limit: number = 10): Promise<{
 }
 
 // =============================================================================
+// UTILITAIRES RECHERCHE
+// =============================================================================
+
+/**
+ * Type de query détecté (Phase 2.4)
+ */
+export type QueryType = 'keyword' | 'semantic'
+
+/**
+ * Configuration poids hybrid search
+ */
+export interface HybridWeights {
+  vector: number
+  bm25: number
+}
+
+/**
+ * Détecte le type de query (keyword vs semantic) - Phase 2.4
+ *
+ * Queries KEYWORD = précises, références légales, articles, numéros
+ * Queries SEMANTIC = descriptives, questions ouvertes, concepts
+ *
+ * @param query - Texte de la query
+ * @returns Type détecté + poids optimaux
+ */
+export function detectQueryType(query: string): {
+  type: QueryType
+  weights: HybridWeights
+  rationale: string
+} {
+  const normalized = query.toLowerCase().trim()
+
+  // Patterns keywords : articles, codes, références légales, numéros
+  const keywordPatterns = [
+    /\b(article|art\.?)\s+\d{1,4}/i, // "article 123", "art. 45"
+    /\b(فصل|الفصل)\s+\d{1,4}/, // "فصل 123" (article en arabe)
+    /\b(code|قانون|مجلة)\s+(civil|pénal|commerce|travail)/i, // "code civil", "قانون الشغل"
+    /\b(loi|قانون)\s+(n°|رقم|عدد)\s*\d{4}/i, // "loi n° 2023", "قانون عدد 2023"
+    /\b(décret|قرار|أمر)\s+(n°|رقم|عدد)\s*\d{4}/i, // "décret n° 123", "قرار عدد 123"
+    /^\d{1,4}$/, // "123" (juste un numéro)
+    /\b(tribunal|محكمة)\s+(civil|pénal|commercial|commercial)/i, // "tribunal civil"
+    /\b(arrêt|قرار|حكم)\s+(n°|رقم|عدد)?\s*\d{1,6}/i, // "arrêt n° 12345", "قرار عدد 12345"
+  ]
+
+  // Vérifier si la query matche un pattern keyword
+  for (const pattern of keywordPatterns) {
+    if (pattern.test(normalized)) {
+      // KEYWORD : Privilégier BM25 (60%) pour précision terminologique
+      return {
+        type: 'keyword',
+        weights: {
+          vector: parseFloat(process.env.HYBRID_WEIGHT_VECTOR_KEYWORD || '0.4'),
+          bm25: parseFloat(process.env.HYBRID_WEIGHT_BM25_KEYWORD || '0.6'),
+        },
+        rationale: `Keyword query detected (pattern matched), favoring BM25 for exact term matching`,
+      }
+    }
+  }
+
+  // SEMANTIC : Query descriptive, privilégier vectoriel (70%)
+  return {
+    type: 'semantic',
+    weights: {
+      vector: parseFloat(process.env.HYBRID_WEIGHT_VECTOR || '0.7'),
+      bm25: parseFloat(process.env.HYBRID_WEIGHT_BM25 || '0.3'),
+    },
+    rationale: `Semantic query detected (descriptive), favoring vector search for conceptual matching`,
+  }
+}
+
+// =============================================================================
 // RECHERCHE
 // =============================================================================
 
@@ -559,9 +630,13 @@ export async function searchKnowledgeBaseHybrid(
   // Préparer query texte pour BM25 (supprimer ponctuation)
   const queryText = query.replace(/[^\w\s\u0600-\u06FF]/g, ' ').trim()
 
+  // ✨ OPTIMISATION Phase 2.4 : Détection auto type de query + poids adaptatifs
+  const queryAnalysis = detectQueryType(query)
+
   console.log(
-    `[KB Hybrid Search] Provider: ${queryEmbedding.provider}, Query: "${queryText.substring(0, 50)}..."`
+    `[KB Hybrid Search] Provider: ${queryEmbedding.provider}, Type: ${queryAnalysis.type}, Weights: vector=${queryAnalysis.weights.vector} / bm25=${queryAnalysis.weights.bm25}, Query: "${queryText.substring(0, 50)}..."`
   )
+  console.log(`[KB Hybrid Search] Rationale: ${queryAnalysis.rationale}`)
 
   // Appel fonction SQL hybrid
   const result = await db.query(
