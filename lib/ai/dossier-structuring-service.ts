@@ -19,6 +19,12 @@ import { searchKnowledgeBase } from './knowledge-base-service'
 import { STRUCTURATION_SYSTEM_PROMPT } from './prompts/structuration-prompt'
 import { createLogger } from '@/lib/logger'
 import { callLLMWithFallback } from './llm-fallback-service'
+import {
+  structuredDossierSchema,
+  type StructuredDossierValidated,
+  validateStructuredDossier,
+} from '@/lib/validations/structured-dossier'
+import { z } from 'zod'
 
 const log = createLogger('AI:Structuration')
 
@@ -1060,6 +1066,173 @@ export function genererTimeline(type: ProcedureType): TimelineStep[] {
 }
 
 // =============================================================================
+// PARSING ET VALIDATION JSON
+// =============================================================================
+
+// Constantes de configuration
+const MAX_JSON_RETRIES = 3
+const JSON_REPAIR_ENABLED = process.env.JSON_REPAIR_ENABLED !== 'false'
+
+/**
+ * Nettoie et répare une réponse JSON LLM
+ * Gère les cas courants d'erreurs de formatage
+ */
+function cleanAndRepairJSON(rawResponse: string): string {
+  let cleaned = rawResponse.trim()
+
+  // 1. Supprimer markdown code blocks
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.slice(7)
+  }
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.slice(3)
+  }
+  if (cleaned.endsWith('```')) {
+    cleaned = cleaned.slice(0, -3)
+  }
+
+  cleaned = cleaned.trim()
+
+  // 2. Supprimer texte avant premier '{'
+  const firstBrace = cleaned.indexOf('{')
+  if (firstBrace > 0) {
+    console.warn(`[Cleaning JSON] Suppression de ${firstBrace} caractères avant '{'`)
+    cleaned = cleaned.substring(firstBrace)
+  }
+
+  // 3. Supprimer texte après dernier '}'
+  const lastBrace = cleaned.lastIndexOf('}')
+  if (lastBrace !== -1 && lastBrace < cleaned.length - 1) {
+    const removed = cleaned.length - lastBrace - 1
+    console.warn(`[Cleaning JSON] Suppression de ${removed} caractères après '}'`)
+    cleaned = cleaned.substring(0, lastBrace + 1)
+  }
+
+  // 4. Remplacer `undefined` par `null` (JS → JSON)
+  cleaned = cleaned.replace(/:\s*undefined/g, ': null')
+
+  // 5. Échapper les apostrophes dans les strings mal formées
+  // (Arabe peut contenir ' qui casse le JSON)
+  cleaned = cleaned.replace(/([{,]\s*"[^"]+"\s*:\s*)"([^"]*)'([^"]*)"/g, '$1"$2\'$3"')
+
+  return cleaned.trim()
+}
+
+/**
+ * Réparations avancées JSON basées sur erreurs Zod
+ */
+function attemptZodBasedRepair(
+  jsonStr: string,
+  zodError: z.ZodError
+): string {
+  let repaired = jsonStr
+  const errors = zodError.flatten()
+
+  console.log('[Réparation Zod] Tentative de correction basée sur:', errors.fieldErrors)
+
+  // Si champs manquants critiques, ajouter valeurs par défaut
+  const fieldErrors = errors.fieldErrors as Record<string, string[]>
+
+  if (fieldErrors.confidence) {
+    console.log('[Réparation Zod] Ajout confidence par défaut')
+    repaired = repaired.replace(/"confidence"\s*:\s*null/, '"confidence": 50')
+  }
+
+  if (fieldErrors.langue) {
+    console.log('[Réparation Zod] Ajout langue par défaut')
+    // Détecter langue du narratif (arabe par défaut pour Tunisie)
+    repaired = repaired.replace(/"langue"\s*:\s*null/, '"langue": "ar"')
+  }
+
+  if (fieldErrors.typeProcedure) {
+    console.log('[Réparation Zod] Ajout typeProcedure par défaut')
+    repaired = repaired.replace(/"typeProcedure"\s*:\s*null/, '"typeProcedure": "autre"')
+  }
+
+  // Réparer arrays vides au lieu de null
+  if (fieldErrors.faitsExtraits) {
+    repaired = repaired.replace(/"faitsExtraits"\s*:\s*null/, '"faitsExtraits": []')
+  }
+  if (fieldErrors.calculs) {
+    repaired = repaired.replace(/"calculs"\s*:\s*null/, '"calculs": []')
+  }
+  if (fieldErrors.timeline) {
+    repaired = repaired.replace(/"timeline"\s*:\s*null/, '"timeline": []')
+  }
+  if (fieldErrors.actionsSuggerees) {
+    repaired = repaired.replace(/"actionsSuggerees"\s*:\s*null/, '"actionsSuggerees": []')
+  }
+  if (fieldErrors.references) {
+    repaired = repaired.replace(/"references"\s*:\s*null/, '"references": []')
+  }
+
+  return repaired
+}
+
+/**
+ * Cleaning avancé si parsing échoue
+ */
+function attemptAdvancedCleaning(jsonStr: string): string {
+  let cleaned = jsonStr
+
+  console.log('[Cleaning Avancé] Tentative de réparation structurelle')
+
+  // 1. Remplacer virgules trailing (,})
+  cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1')
+
+  // 2. Corriger guillemets échappés incorrects
+  cleaned = cleaned.replace(/\\"/g, '"')
+
+  // 3. Supprimer commentaires JSON (non-standard mais LLM les génère)
+  cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '')
+  cleaned = cleaned.replace(/\/\/.*/g, '')
+
+  // 4. Réparer arrays incomplets [...]
+  const openBrackets = (cleaned.match(/\[/g) || []).length
+  const closeBrackets = (cleaned.match(/\]/g) || []).length
+  if (openBrackets > closeBrackets) {
+    const missing = openBrackets - closeBrackets
+    console.warn(`[Cleaning Avancé] Ajout de ${missing} ']' manquants`)
+    cleaned += ']'.repeat(missing)
+  }
+
+  // 5. Réparer objets incomplets {...}
+  const openBraces = (cleaned.match(/\{/g) || []).length
+  const closeBraces = (cleaned.match(/\}/g) || []).length
+  if (openBraces > closeBraces) {
+    const missing = openBraces - closeBraces
+    console.warn(`[Cleaning Avancé] Ajout de ${missing} '}' manquants`)
+    cleaned += '}'.repeat(missing)
+  }
+
+  return cleaned
+}
+
+/**
+ * Tracker échecs parsing pour monitoring
+ */
+async function trackParsingFailure(
+  operationName: string,
+  provider: string
+): Promise<void> {
+  try {
+    // Incrémenter compteur Redis pour monitoring
+    // TODO: Implémenter avec Redis quand disponible
+    const key = `parsing_failures:${operationName}:${provider}`
+    console.error(`[ALERT] Parsing failure tracked: ${key}`)
+
+    // Log pour monitoring externe
+    log.error('Parsing failure detected', {
+      operation: operationName,
+      provider,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (error) {
+    console.error('[trackParsingFailure] Error:', error)
+  }
+}
+
+// =============================================================================
 // FONCTION PRINCIPALE: STRUCTURER UN DOSSIER
 // =============================================================================
 
@@ -1123,27 +1296,94 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, sans texte avant ou après.`
     )
   }
 
-  let jsonStr = llmResponse.answer.trim()
   const tokensUsed = llmResponse.tokensUsed
 
-  // Nettoyer la réponse si elle contient des marqueurs de code
-  if (jsonStr.startsWith('```json')) {
-    jsonStr = jsonStr.slice(7)
-  }
-  if (jsonStr.startsWith('```')) {
-    jsonStr = jsonStr.slice(3)
-  }
-  if (jsonStr.endsWith('```')) {
-    jsonStr = jsonStr.slice(0, -3)
-  }
-  jsonStr = jsonStr.trim()
+  // =============================================================================
+  // PARSING JSON AVEC RETRY LOGIC + VALIDATION ZOD
+  // =============================================================================
 
-  let parsed: Record<string, unknown>
-  try {
-    parsed = JSON.parse(jsonStr)
-  } catch {
-    console.error('Erreur parsing JSON IA:', jsonStr.substring(0, 500))
-    throw new Error('Erreur de parsing de la réponse IA')
+  // Nettoyer la réponse JSON
+  let jsonStr = cleanAndRepairJSON(llmResponse.answer)
+  log.info('[Structuration] JSON nettoyé, longueur:', jsonStr.length)
+
+  // Tentatives de parsing avec retry
+  let parsed: Record<string, unknown> | undefined
+  let validationResult: z.SafeParseReturnType<unknown, StructuredDossierValidated> | undefined
+
+  for (let attempt = 0; attempt < MAX_JSON_RETRIES; attempt++) {
+    try {
+      // Étape 1: Parsing JSON brut
+      const rawParsed = JSON.parse(jsonStr)
+      log.info(`[Structuration] JSON parsé avec succès (tentative ${attempt + 1}/${MAX_JSON_RETRIES})`)
+
+      // Étape 2: Validation Zod
+      validationResult = structuredDossierSchema.safeParse(rawParsed)
+
+      if (validationResult.success) {
+        parsed = validationResult.data as unknown as Record<string, unknown>
+        log.info(`[Structuration] ✅ Validation Zod réussie (tentative ${attempt + 1})`)
+        break
+      } else {
+        // Validation Zod échouée
+        const errorSummary = Object.keys(validationResult.error.flatten().fieldErrors)
+        log.warn(
+          `[Structuration] ⚠️ Validation Zod échouée (tentative ${attempt + 1}): champs ${errorSummary.join(', ')}`
+        )
+
+        if (attempt < MAX_JSON_RETRIES - 1 && JSON_REPAIR_ENABLED) {
+          // Tentative de réparation basée sur les erreurs Zod
+          const beforeRepair = jsonStr.length
+          jsonStr = attemptZodBasedRepair(jsonStr, validationResult.error)
+          log.info(
+            `[Structuration] Réparation Zod effectuée (${beforeRepair} → ${jsonStr.length} chars)`
+          )
+        } else {
+          // Dernière tentative échouée
+          const fieldErrors = validationResult.error.flatten().fieldErrors
+          log.error('[Structuration] Échec validation Zod définitif:', fieldErrors)
+          throw new Error(
+            `Validation échouée après ${MAX_JSON_RETRIES} tentatives. ` +
+              `Champs invalides: ${Object.keys(fieldErrors).join(', ')}`
+          )
+        }
+      }
+    } catch (parseError) {
+      log.warn(
+        `[Structuration] ❌ JSON parsing échec (tentative ${attempt + 1}/${MAX_JSON_RETRIES})`
+      )
+
+      if (attempt < MAX_JSON_RETRIES - 1 && JSON_REPAIR_ENABLED) {
+        // Réessayer avec cleaning additionnel
+        const beforeCleaning = jsonStr.length
+        jsonStr = attemptAdvancedCleaning(jsonStr)
+        log.info(
+          `[Structuration] Cleaning avancé effectué (${beforeCleaning} → ${jsonStr.length} chars)`
+        )
+      } else {
+        // Dernière tentative échouée
+        log.error('[Structuration] Erreur parsing JSON finale:', {
+          provider: llmResponse.provider,
+          responsePreview: jsonStr.substring(0, 500),
+          error: parseError instanceof Error ? parseError.message : String(parseError),
+        })
+
+        // Alerter monitoring
+        await trackParsingFailure('dossiers-assistant', llmResponse.provider)
+
+        throw new Error(
+          'Le modèle IA n\'a pas retourné un JSON valide après ' +
+            MAX_JSON_RETRIES +
+            ' tentatives. Veuillez simplifier le récit ou réessayer.'
+        )
+      }
+    }
+  }
+
+  // Sécurité: vérifier que parsed est défini
+  if (!parsed) {
+    log.error('[Structuration] parsed est undefined après toutes les tentatives')
+    await trackParsingFailure('dossiers-assistant', llmResponse.provider)
+    throw new Error('Échec parsing JSON après toutes les tentatives de réparation')
   }
 
   // Convertir la timeline avec les dates calculées

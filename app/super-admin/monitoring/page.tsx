@@ -1,25 +1,27 @@
 'use client'
 
 /**
- * Dashboard Monitoring Unifié - Consolidation 5 pages
+ * Dashboard Monitoring Unifié - Consolidation 6 pages
  *
- * 5 onglets :
+ * 6 onglets :
  * 1. Overview : Métriques production temps réel
  * 2. KB Quality : Analyse qualité base de connaissances + budget OpenAI
  * 3. Providers : Matrice provider × opération
  * 4. Costs : Analyse coûts IA
  * 5. API Health : Health check clés API (ancien /api-keys-health)
+ * 6. Crons & Batches : Monitoring exécution crons et batches
  */
 
 import { useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Activity, PieChart, DollarSign, Gauge, Heart, Database } from 'lucide-react'
+import { Activity, PieChart, DollarSign, Gauge, Heart, Database, Clock } from 'lucide-react'
 import { ProductionMonitoringTab } from '@/components/super-admin/monitoring/ProductionMonitoringTab'
 import { ProviderUsageTab } from '@/components/super-admin/monitoring/ProviderUsageTab'
 import { AICostsTab } from '@/components/super-admin/monitoring/AICostsTab'
 import { APIHealthTab } from '@/components/super-admin/monitoring/APIHealthTab'
 import { KBQualityTab } from '@/components/super-admin/monitoring/KBQualityTab'
+import { CronsAndBatchesTab } from '@/components/super-admin/monitoring/CronsAndBatchesTab'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -57,7 +59,7 @@ export default function MonitoringPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-[1000px]">
+        <TabsList className="grid w-full grid-cols-6 lg:w-[1200px]">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -77,6 +79,10 @@ export default function MonitoringPage() {
           <TabsTrigger value="api-health" className="flex items-center gap-2">
             <Heart className="h-4 w-4" />
             <span className="hidden sm:inline">API Health</span>
+          </TabsTrigger>
+          <TabsTrigger value="crons" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            <span className="hidden sm:inline">Crons & Batches</span>
           </TabsTrigger>
         </TabsList>
 
@@ -103,6 +109,11 @@ export default function MonitoringPage() {
         {/* Tab 5: API Health */}
         <TabsContent value="api-health" className="space-y-6">
           <APIHealthTab />
+        </TabsContent>
+
+        {/* Tab 6: Crons & Batches */}
+        <TabsContent value="crons" className="space-y-6">
+          <CronsAndBatchesTab />
         </TabsContent>
       </Tabs>
     </div>

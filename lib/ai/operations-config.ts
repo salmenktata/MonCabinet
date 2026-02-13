@@ -161,13 +161,13 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     timeouts: {
       embedding: 5000,   // 5s max
-      chat: 15000,       // 15s (analyse approfondie OK)
-      total: 30000,      // 30s total
+      chat: 25000,       // 25s (+10s pour analyses complexes arabes IRAC 7 phases)
+      total: 45000,      // 45s total (permet cascade complète Gemini→Groq→DeepSeek)
     },
 
     llmConfig: {
       temperature: 0.2,  // Précis et factuel
-      maxTokens: 2000,   // Réponses détaillées
+      maxTokens: 3000,   // 3000 tokens (analyses juridiques complexes arabes)
       systemPromptType: 'chat',
     },
   },
