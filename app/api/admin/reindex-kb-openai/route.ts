@@ -89,14 +89,16 @@ export async function POST(req: NextRequest) {
     for (const chunk of chunks) {
       try {
         // Générer l'embedding OpenAI
-        const embedding = await generateEmbedding(chunk.content_chunk, {
+        const embeddingResult = await generateEmbedding(chunk.content_chunk, {
           operationName: 'dossiers-assistant', // Utilise OpenAI embeddings
         })
 
         // Vérifier que c'est bien un embedding OpenAI (1536 dimensions)
-        if (!embedding || embedding.length !== 1536) {
-          throw new Error(`Embedding invalide: ${embedding?.length || 0} dimensions (attendu: 1536)`)
+        if (!embeddingResult || embeddingResult.embedding.length !== 1536) {
+          throw new Error(`Embedding invalide: ${embeddingResult?.embedding.length || 0} dimensions (attendu: 1536)`)
         }
+
+        const embedding = embeddingResult.embedding
 
         // Mettre à jour le chunk avec l'embedding OpenAI
         await db.query(
