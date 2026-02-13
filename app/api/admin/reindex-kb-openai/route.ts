@@ -94,11 +94,10 @@ export async function POST(req: NextRequest) {
         })
 
         // Vérifier que c'est bien un embedding OpenAI (1536 dimensions)
-        if (!embeddingResult || embeddingResult.embedding.length !== 1536) {
-          throw new Error(`Embedding invalide: ${embeddingResult?.embedding.length || 0} dimensions (attendu: 1536)`)
+        const embedding = embeddingResult?.embedding
+        if (!embedding || !Array.isArray(embedding) || embedding.length !== 1536) {
+          throw new Error(`Embedding invalide: ${embedding?.length || 0} dimensions (attendu: 1536)`)
         }
-
-        const embedding = embeddingResult.embedding
 
         // Mettre à jour le chunk avec l'embedding OpenAI
         await db.query(
