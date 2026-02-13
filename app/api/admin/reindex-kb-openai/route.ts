@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
         })
 
         // Vérifier que c'est bien un embedding OpenAI (1536 dimensions)
-        const embedding = embeddingResult?.embedding
+        const embedding = embeddingResult?.embedding as number[]
         if (!embedding || !Array.isArray(embedding) || embedding.length !== 1536) {
           throw new Error(`Embedding invalide: ${embedding?.length || 0} dimensions (attendu: 1536)`)
         }
