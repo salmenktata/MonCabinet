@@ -281,7 +281,7 @@ npm run docs:env
 
 ---
 
-**Documentation générée le**: 14/02/2026 21:46:07
+**Documentation générée le**: 14/02/2026 23:01:04
 
 **Schéma source**: `docs/env-schema.json` (version 2.0.0)
 
