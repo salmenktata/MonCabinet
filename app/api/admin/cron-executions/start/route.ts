@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { redis } from '@/lib/db/redis'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -50,6 +51,21 @@ export async function POST(req: NextRequest) {
     const execution = result.rows[0]
 
     console.log(`[Cron Start] ${cronName} - execution ${execution.id}`)
+
+    // 4. Publier événement Redis pour SSE
+    try {
+      const event = {
+        type: 'started',
+        executionId: execution.id,
+        cronName: execution.cron_name,
+        status: 'running',
+        timestamp: new Date().toISOString(),
+      }
+      await redis.publish('cron:events', JSON.stringify(event))
+    } catch (redisError) {
+      console.error('[Cron Start] Redis publish error:', redisError)
+      // Non-blocking: continue même si Redis échoue
+    }
 
     return NextResponse.json({
       success: true,

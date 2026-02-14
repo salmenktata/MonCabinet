@@ -14,6 +14,8 @@ import { CronQuickTrigger } from './CronQuickTrigger'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useCronExecutionStream } from '@/hooks/useCronExecutionStream'
+import { toast } from 'sonner'
 
 interface CronStats {
   stats: any[]
@@ -56,6 +58,47 @@ export function CronsAndBatchesTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+
+  // Hook SSE pour notifications temps réel
+  const { isConnected } = useCronExecutionStream({
+    onEvent: (event) => {
+      if (event.type === 'started') {
+        toast.info(`▶️ ${event.cronName}`, {
+          description: 'Démarrage de l\'exécution...',
+          duration: 3000,
+        })
+      } else if (event.type === 'completed') {
+        const duration = event.durationMs
+          ? event.durationMs < 1000
+            ? `${event.durationMs}ms`
+            : `${(event.durationMs / 1000).toFixed(1)}s`
+          : 'N/A'
+
+        toast.success(`✅ ${event.cronName}`, {
+          description: `Terminé en ${duration}`,
+          duration: 5000,
+        })
+
+        // Rafraîchir les données après un court délai
+        setTimeout(() => {
+          fetchData()
+        }, 1000)
+      } else if (event.type === 'failed') {
+        toast.error(`❌ ${event.cronName}`, {
+          description: event.errorMessage || 'Échec de l\'exécution',
+          duration: 7000,
+        })
+
+        // Rafraîchir les données après un court délai
+        setTimeout(() => {
+          fetchData()
+        }, 1000)
+      }
+    },
+    onError: (error) => {
+      console.error('[SSE] Error:', error)
+    },
+  })
 
   const fetchData = async () => {
     try {
@@ -153,9 +196,14 @@ export function CronsAndBatchesTab() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Crons & Batches</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
             Dernière mise à jour : {lastUpdate.toLocaleTimeString('fr-FR')}
             {' • '}Auto-refresh 30s
+            {' • '}
+            <span className={`flex items-center gap-1 ${isConnected ? 'text-green-600' : 'text-orange-500'}`}>
+              <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-600 animate-pulse' : 'bg-orange-500'}`} />
+              {isConnected ? 'Notifications temps réel actives' : 'Connexion notifications...'}
+            </span>
           </p>
         </div>
         <Button
