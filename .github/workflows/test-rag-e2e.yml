@@ -1,0 +1,80 @@
+name: RAG Configuration E2E Tests
+
+on:
+  # Exécuter après chaque déploiement réussi
+  workflow_run:
+    workflows: ["Deploy to VPS Contabo"]
+    types:
+      - completed
+    branches: [main]
+
+  # Permettre exécution manuelle
+  workflow_dispatch:
+
+  # Exécution quotidienne (vérification proactive)
+  schedule:
+    - cron: '0 9 * * *'  # Tous les jours à 9h UTC
+
+jobs:
+  test-production-config:
+    name: Test RAG Configuration (Production)
+    runs-on: ubuntu-latest
+
+    # Exécuter seulement si déploiement a réussi (ou si manuel/schedule)
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for deployment to stabilize
+        if: github.event_name == 'workflow_run'
+        run: sleep 60  # Attendre 60s après déploiement
+
+      - name: Run E2E Tests - RAG Configuration
+        env:
+          TEST_PROD_URL: https://qadhya.tn
+        run: npm run test:e2e:rag
+
+      - name: Report test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: RAG E2E Tests
+          path: 'test-results/*.xml'
+          reporter: jest-junit
+          fail-on-error: true
+
+  alert-on-failure:
+    name: Alert if Tests Fail
+    runs-on: ubuntu-latest
+    needs: test-production-config
+    if: failure()
+
+    steps:
+      - name: Send alert notification
+        run: |
+          echo "❌ RAG Configuration E2E Tests FAILED"
+          echo "Action requise : Vérifier configuration production"
+          echo "Dashboard : https://qadhya.tn/super-admin/monitoring?tab=system-config"
+
+      # Optionnel : Envoyer notification Slack/Email
+      # - name: Notify Slack
+      #   uses: slackapi/slack-github-action@v1.24.0
+      #   with:
+      #     payload: |
+      #       {
+      #         "text": "🚨 RAG E2E Tests Failed - Production may have misconfiguration"
+      #       }

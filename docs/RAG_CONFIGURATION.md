@@ -1,311 +1,266 @@
-# Configuration RAG - Qadhya
+# Configuration RAG - Guide Complet
 
-Guide complet pour configurer et activer le système RAG (Retrieval-Augmented Generation) de l'assistant juridique Qadhya.
+> **Auteur** : Équipe Développement Qadhya  
+> **Date** : 14 février 2026  
+> **Version** : 2.0 (avec protection multicouche)
 
----
+## 📋 Table des Matières
 
-## ⚙️ Variables d'Environnement Principales
-
-### RAG_ENABLED vs OLLAMA_ENABLED
-
-**Distinction critique** :
-
-| Variable | Rôle | Impact |
-|----------|------|--------|
-| `RAG_ENABLED` | **Feature flag RAG** | Active/désactive les features RAG avancées (chunking, metadata, classification) |
-| `OLLAMA_ENABLED` | **Moteur de recherche** | Active/désactive la recherche sémantique (embeddings + vectoriel) |
-
-### Configuration Recommandée
-
-#### Production (Qualité Maximale)
-```bash
-RAG_ENABLED=true          # ✅ Toutes les features RAG activées
-OLLAMA_ENABLED=true       # ✅ Recherche sémantique activée
-OPENAI_API_KEY=sk-...     # ✅ Embeddings OpenAI (1536-dim, qualité optimale)
-```
-
-**Résultat** : RAG complet avec embeddings OpenAI (scores 75-85%).
+1. [Vue d'ensemble](#vue-densemble)
+2. [Variables Critiques](#variables-critiques)
+3. [Validation Configuration](#validation-configuration)
+4. [Monitoring & Alertes](#monitoring--alertes)
+5. [Dépannage](#dépannage)
+6. [FAQ](#faq)
 
 ---
 
-#### Développement Local (Économique)
-```bash
-RAG_ENABLED=true          # ✅ Features RAG activées
-OLLAMA_ENABLED=true       # ✅ Ollama local (0€)
-# OPENAI_API_KEY non défini → fallback Ollama embeddings (1024-dim)
+## Vue d'ensemble
+
+Le système RAG (Retrieval-Augmented Generation) permet à l'assistant IA de répondre aux questions en s'appuyant sur la base de connaissances juridique.
+
+### Architecture Simplifiée
+
+```
+Assistant IA → RAG System → Knowledge Base (8787 docs)
+                  ↓
+          Provider Embeddings
+          (Ollama OU OpenAI)
 ```
 
-**Résultat** : RAG complet avec Ollama (scores 65-70%, 0€).
+### Composants Requis
+
+1. **RAG_ENABLED=true** : Active le système
+2. **Provider Embeddings** : AU MOINS UN requis
+   - Ollama (gratuit, local) OU
+   - OpenAI (payant, cloud)
 
 ---
 
-#### Mode Dégradé (Sans Recherche Sémantique)
-```bash
-RAG_ENABLED=false         # ❌ Features RAG désactivées
-OLLAMA_ENABLED=false      # ❌ Recherche sémantique désactivée
-```
+## Variables Critiques
 
-**Résultat** : Pas de RAG, assistant IA sans contexte documentaire (hallucinations possibles).
+### Configuration Minimale Requise
 
----
-
-## 📊 Matrice de Comportement
-
-| `RAG_ENABLED` | `OLLAMA_ENABLED` | `OPENAI_API_KEY` | Comportement |
-|---------------|------------------|------------------|--------------|
-| ✅ `true` | ✅ `true` | ✅ Défini | **OPTIMAL** : RAG complet + OpenAI embeddings (75-85% scores) |
-| ✅ `true` | ✅ `true` | ❌ Non défini | **BON** : RAG complet + Ollama embeddings (65-70% scores, 0€) |
-| ❌ `false` | ✅ `true` | ✅ Défini | **SIMPLE** : Recherche sémantique basique sans features avancées |
-| ❌ `false` | ❌ `false` | N/A | **DÉSACTIVÉ** : Pas de RAG, assistant sans contexte |
-
----
-
-## 🔧 Variables de Configuration RAG
-
-### Chunking (Découpage Documents)
+Fichier : `/opt/moncabinet/.env`
 
 ```bash
-RAG_CHUNK_SIZE=1024       # Taille chunks (caractères)
-RAG_CHUNK_OVERLAP=100     # Chevauchement entre chunks
-```
-
-**Recommendations** :
-- **Jurisprudence** : 1800 chars (décisions longues)
-- **Codes** : 600 chars (articles courts)
-- **Doctrine** : 1500 chars (analyses moyennes)
-
-### Recherche Sémantique
-
-```bash
-RAG_MAX_RESULTS=15                # Nombre max résultats retournés (5 → 15 Sprint 1)
-RAG_SIMILARITY_THRESHOLD=0.7      # Seuil similarité global
-RAG_THRESHOLD_KB=0.50             # Seuil KB spécifique (0.65 → 0.50 Sprint 1)
-RAG_MAX_CONTEXT_TOKENS=6000       # Tokens max contexte (2000 → 6000 Sprint 1)
-```
-
-**Seuils adaptatifs par type** :
-- `RAG_THRESHOLD_DOCUMENTS=0.7`
-- `RAG_THRESHOLD_JURISPRUDENCE=0.6`
-- `RAG_THRESHOLD_KB=0.50`
-
-### Diversité Sources
-
-```bash
-RAG_MAX_CHUNKS_PER_SOURCE=2  # Max chunks par document source
-RAG_MIN_SOURCES=2            # Minimum sources différentes requises
-```
-
-Évite concentration sur un seul document.
-
----
-
-## 🚀 Activation Étape par Étape
-
-### 1. Activer Features RAG
-
-```bash
-# .env.local ou .env.production.local
+# CONFIGURATION RAG - NON-NÉGOCIABLE
 RAG_ENABLED=true
+OLLAMA_ENABLED=true  # OU avoir OPENAI_API_KEY configuré
+
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_EMBEDDING_MODEL=qwen3-embedding:0.6b
 ```
 
-**Active** :
-- Chunking documents intelligent
-- Classification juridique automatique
-- Extraction métadonnées enrichies
-- Analyse qualité documents
-
-### 2. Activer Recherche Sémantique
-
-#### Option A : Ollama (Local, Gratuit)
+### ⚠️ Configuration INVALIDE (bloque déploiement)
 
 ```bash
+RAG_ENABLED=true
+OLLAMA_ENABLED=false
+# ET pas d'OPENAI_API_KEY
+# → Assistant IA NON-FONCTIONNEL ❌
+```
+
+### ✅ Configurations VALIDES
+
+**Option 1 : Ollama seul (recommandé)**
+```bash
+RAG_ENABLED=true
 OLLAMA_ENABLED=true
-OLLAMA_BASE_URL=http://localhost:11434
-
-# Modèles requis (à télécharger) :
-# ollama pull qwen3-embedding:0.6b  # Embeddings (1024-dim)
-# ollama pull qwen2.5:3b            # Chat (optionnel)
 ```
 
-**Commandes Docker** :
+**Option 2 : OpenAI seul**
 ```bash
-docker-compose up -d ollama
-docker exec qadhya-ollama ollama pull qwen3-embedding:0.6b
+RAG_ENABLED=true
+OPENAI_API_KEY=sk-proj-...
 ```
 
-#### Option B : OpenAI (Cloud, ~$2-5/mois)
-
+**Option 3 : Les deux (optimal)**
 ```bash
-OLLAMA_ENABLED=true  # ⚠️ Requis même avec OpenAI
-OPENAI_API_KEY=sk-...
-
-# Embeddings automatiques : text-embedding-3-small (1536-dim)
+RAG_ENABLED=true
+OLLAMA_ENABLED=true
+OPENAI_API_KEY=sk-proj-...  # Fallback
 ```
 
-**Avantages OpenAI** :
-- Scores +10-15% (65-70% → 75-85%)
-- Embeddings 1536-dim (vs 1024-dim Ollama)
-- Pas de dépendance infrastructure locale
+---
 
-### 3. Vérifier Activation
+## Validation Configuration
+
+### 1. Pre-Deploy (Automatique)
 
 ```bash
-# Vérifier variables
-env | grep -E "(RAG|OLLAMA|OPENAI)"
-
-# Tester recherche sémantique
-curl http://localhost:7002/api/test/kb-debug
+bash scripts/validate-rag-config.sh .env.production
 ```
 
-**Réponse attendue** :
+**Résultat attendu :**
+```
+✅ Configuration RAG valide
+```
+
+### 2. Production Runtime
+
+```bash
+curl -s https://qadhya.tn/api/health | jq '.rag'
+```
+
+**Réponse attendue :**
 ```json
 {
-  "RAG_ENABLED": "true",
-  "OLLAMA_ENABLED": "true",
-  "semanticSearchActive": true,
-  "embeddingProvider": "openai" | "ollama"
+  "enabled": true,
+  "semanticSearchEnabled": true,
+  "status": "ok",
+  "kbDocsIndexed": 8787
 }
 ```
 
----
-
-## 🔍 Debugging Configuration
-
-### Symptôme : "Recherche sémantique désactivée"
-
-**Causes possibles** :
-
-1. `OLLAMA_ENABLED=false` ou non défini
-   ```bash
-   # Fix :
-   OLLAMA_ENABLED=true
-   ```
-
-2. Ollama non démarré (si mode local)
-   ```bash
-   # Vérifier :
-   curl http://localhost:11434/api/tags
-
-   # Fix :
-   docker-compose up -d ollama
-   ```
-
-3. Modèle embeddings manquant
-   ```bash
-   # Vérifier :
-   ollama list | grep embedding
-
-   # Fix :
-   ollama pull qwen3-embedding:0.6b
-   ```
-
-### Symptôme : "Pas de résultats KB trouvés"
-
-**Causes possibles** :
-
-1. KB non indexée
-   ```bash
-   # Vérifier :
-   curl http://localhost:7002/api/admin/monitoring/metrics | jq '.kbStats'
-
-   # Fix : Déclencher indexation
-   curl -X POST http://localhost:7002/api/admin/index-kb
-   ```
-
-2. Seuil trop élevé
-   ```bash
-   # Temporairement baisser :
-   RAG_THRESHOLD_KB=0.40  # 0.50 → 0.40
-   ```
-
-3. Embeddings incompatibles (mixing Ollama + OpenAI)
-   ```bash
-   # Réindexer avec provider uniforme :
-   npx tsx scripts/reindex-all-kb-openai.ts
-   ```
-
----
-
-## 📈 Optimisation Performance
-
-### Latence
+### 3. Test Recherche KB
 
 ```bash
-# Timeout recherche bilingue
-BILINGUAL_SEARCH_TIMEOUT_MS=60000  # 90s → 60s (parallélisation Sprint 2)
-
-# Cache Redis
-SEARCH_CACHE_THRESHOLD=0.75        # Hit si similarité ≥ 75%
-```
-
-### Qualité
-
-```bash
-# Sprint 1 : OpenAI embeddings
-OPENAI_API_KEY=sk-...
-
-# Sprint 2 : Query expansion
-ENABLE_QUERY_EXPANSION=true
-
-# Sprint 3 : Hybrid search
-# (Auto-activé si PostgreSQL 12+ avec pg_trgm)
+bash scripts/test-kb-search-prod.sh
 ```
 
 ---
 
-## 🎯 Cas d'Usage
+## Monitoring & Alertes
 
-### Assistant IA Conversationnel
+### Dashboard Temps Réel
+
+**URL** : https://qadhya.tn/super-admin/monitoring?tab=system-config
+
+- 🟢 Badge vert : Configuration OK
+- 🔴 Badge rouge : Problème détecté
+
+**Auto-refresh** : 30 secondes
+
+### Alertes Email
+
+- **Déclencheur** : Cron quotidien 8h + monitoring continu
+- **Condition** : Configuration RAG invalide détectée
+- **Anti-spam** : Max 1 email/6h
+
+### Logs Cron
 
 ```bash
+tail -f /var/log/qadhya/rag-config-check.log
+```
+
+---
+
+## Dépannage
+
+### Problème : Assistant IA répond "لم أجد وثائق ذات صلة"
+
+#### Diagnostic
+
+```bash
+# 1. Vérifier health check
+curl -s https://qadhya.tn/api/health | jq '.rag.status'
+# Si "misconfigured" → Problème confirmé
+
+# 2. Vérifier variables container
+ssh root@84.247.165.187 "docker exec qadhya-nextjs env | grep OLLAMA_ENABLED"
+```
+
+#### Solution A : Activer Ollama (gratuit)
+
+```bash
+ssh root@84.247.165.187
+
+# 1. Modifier .env
+nano /opt/moncabinet/.env
+# Changer : OLLAMA_ENABLED=false → true
+
+# 2. Redémarrer
+cd /opt/moncabinet
+docker-compose up -d --no-deps nextjs
+
+# 3. Attendre 45s
+sleep 45
+
+# 4. Vérifier
+curl -s https://qadhya.tn/api/health | jq '.rag.status'
+# Attendu: "ok"
+```
+
+#### Solution B : Configurer OpenAI
+
+```bash
+# 1. Ajouter clé
+nano /opt/moncabinet/.env.production.local
+# Ajouter : OPENAI_API_KEY=sk-proj-...
+
+# 2. Redémarrer container
+docker-compose up -d --no-deps nextjs
+```
+
+#### Validation
+
+```bash
+# Test recherche
+bash scripts/test-kb-search-prod.sh
+
+# Test manuel
+# → https://qadhya.tn/assistant-ia
+# → Poser question en arabe
+# → Vérifier sources [KB-1], [KB-2]...
+```
+
+---
+
+## FAQ
+
+### Q : Ollama vs OpenAI ?
+
+| Critère | Ollama | OpenAI |
+|---------|--------|--------|
+| Coût | 0€/mois | ~2-5€/mois |
+| Vitesse | 500-1000ms | 200-400ms |
+| Qualité | Très bon | Excellent |
+| **Recommandation** | ✅ Défaut | Fallback |
+
+### Q : Comment tester en local ?
+
+```bash
+# 1. Configurer .env.local
 RAG_ENABLED=true
 OLLAMA_ENABLED=true
-RAG_MAX_RESULTS=10
-RAG_THRESHOLD_KB=0.50
+OLLAMA_BASE_URL=http://localhost:11434
+
+# 2. Démarrer Ollama
+ollama pull qwen3-embedding:0.6b
+
+# 3. Lancer app
+npm run dev
+
+# 4. Tester
+curl http://localhost:7002/api/health | jq '.rag'
 ```
 
-### Consultation Juridique Formelle
+### Q : Budget OpenAI épuisé ?
+
+**Solution** : Basculer sur Ollama (gratuit)
 
 ```bash
-RAG_ENABLED=true
 OLLAMA_ENABLED=true
-OPENAI_API_KEY=sk-...       # Précision maximale
-RAG_MAX_RESULTS=15
-RAG_THRESHOLD_KB=0.60       # Seuil plus strict
-RAG_MAX_CONTEXT_TOKENS=8000  # Contexte enrichi
-```
-
-### Indexation Batch (Économique)
-
-```bash
-RAG_ENABLED=true
-OLLAMA_ENABLED=true
-# OPENAI_API_KEY non défini → Ollama 0€
-
-# Batch progressif
-KB_BATCH_SIZE=5
+# Ollama prendra automatiquement le relais
 ```
 
 ---
 
-## 📚 Ressources
+## Protection Multicouche
 
-- **Audit RAG** : `docs/RAG_DEPLOYMENT_FINAL_REPORT.md`
-- **Optimisations** : `docs/RAG_QUALITY_IMPROVEMENTS.md`
-- **Monitoring** : Dashboard `/super-admin/monitoring?tab=kb-quality`
-- **Tests** : `npx tsx scripts/test-rag-complete-e2e.ts`
-
----
-
-## ⚠️ Points de Vigilance
-
-1. **JAMAIS** sync KB locale → prod (KB prod = crawl uniquement)
-2. **TOUJOURS** vérifier `OLLAMA_ENABLED=true` après déploiement
-3. **Préférer** OpenAI embeddings en production (qualité +10-15%)
-4. **Surveiller** budget OpenAI (seuil alerte $5 restant)
-5. **Réindexer** avec même provider (pas de mixing Ollama/OpenAI)
+✅ **Layer 1** : Validation pre-deploy (bloque si invalide)  
+✅ **Layer 2** : Health check runtime (détection)  
+✅ **Layer 3** : Alertes email automatiques  
+✅ **Layer 4** : Dashboard monitoring temps réel
 
 ---
 
-**Dernière mise à jour** : 13 février 2026
-**Version** : Phase 1 Plan Optimisation RAG
+**Ressources** :
+- Dashboard : https://qadhya.tn/super-admin/monitoring?tab=system-config
+- Code : `lib/ai/config.ts`, `scripts/validate-rag-config.sh`
+- Logs : `/var/log/qadhya/rag-config-check.log`
+
+---
+
+*Dernière mise à jour : 14 février 2026 - v2.0*
