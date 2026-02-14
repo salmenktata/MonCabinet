@@ -28,6 +28,7 @@ import { isChatEnabled, getChatProvider } from '@/lib/ai/config'
 import { triggerSummaryGenerationIfNeeded } from '@/lib/ai/conversation-summary-service'
 import { createAIStream } from '@/lib/ai/streaming-service'
 import { detectAbrogations, type AbrogationAlert } from '@/lib/legal/abrogation-detector-service'
+import { structurerDossier } from '@/lib/ai/dossier-structuring-service'
 
 // =============================================================================
 // TYPES
@@ -53,6 +54,86 @@ interface ChatApiResponse {
     total: number
   }
   abrogationAlerts?: AbrogationAlert[] // Phase 3.4 - Alertes abrogations détectées dans la question
+}
+
+// =============================================================================
+// HANDLERS PAR ACTION TYPE
+// =============================================================================
+
+/**
+ * Handler pour action 'structure' - Structuration de dossier
+ */
+async function handleStructureAction(
+  narratif: string,
+  userId: string,
+  conversationId: string
+) {
+  // Appeler le service de structuration
+  const structured = await structurerDossier(narratif, userId)
+
+  // Retourner au format JSON pour sauvegarder dans le message
+  return {
+    answer: JSON.stringify(structured, null, 2),
+    sources: [],
+    tokensUsed: { input: 0, output: 0, total: 0 },
+    model: 'structuration',
+    metadata: { actionType: 'structure' },
+  }
+}
+
+/**
+ * Handler pour action 'consult' - Consultation juridique
+ */
+async function handleConsultAction(
+  question: string,
+  userId: string,
+  conversationId: string,
+  dossierId?: string
+) {
+  // Utiliser answerQuestion avec configuration optimisée pour consultation
+  const response = await answerQuestion(question, userId, {
+    dossierId,
+    conversationId,
+    includeJurisprudence: true,
+    usePremiumModel: false,
+    operationName: 'dossiers-consultation', // Configuration IRAC formelle
+  })
+
+  return {
+    answer: response.answer,
+    sources: response.sources,
+    tokensUsed: response.tokensUsed,
+    model: response.model,
+    metadata: { actionType: 'consult' },
+  }
+}
+
+/**
+ * Handler pour action 'chat' - Conversation normale
+ */
+async function handleChatAction(
+  question: string,
+  userId: string,
+  conversationId: string,
+  dossierId?: string,
+  includeJurisprudence = true,
+  usePremiumModel = false
+) {
+  const response = await answerQuestion(question, userId, {
+    dossierId,
+    conversationId,
+    includeJurisprudence,
+    usePremiumModel,
+    operationName: 'assistant-ia',
+  })
+
+  return {
+    answer: response.answer,
+    sources: response.sources,
+    tokensUsed: response.tokensUsed,
+    model: response.model,
+    metadata: { actionType: 'chat' },
+  }
 }
 
 // =============================================================================
@@ -163,7 +244,8 @@ export async function POST(
     }
 
     // Si streaming activé, retourner un ReadableStream
-    if (stream) {
+    // Note: streaming temporairement désactivé pour structure/consult
+    if (stream && actionType === 'chat') {
       return handleStreamingResponse(
         question,
         userId,
@@ -174,23 +256,43 @@ export async function POST(
       )
     }
 
-    // Sinon, mode classique (non-streaming)
-    const response = await answerQuestion(question, userId, {
-      dossierId,
-      conversationId: activeConversationId,
-      includeJurisprudence,
-      usePremiumModel,
-      operationName: 'assistant-ia', // Configuration optimisée pour chat temps réel
-    })
+    // Router selon le type d'action
+    let response: {
+      answer: string
+      sources: ChatSource[]
+      tokensUsed: { input: number; output: number; total: number }
+      model: string
+      metadata?: Record<string, any>
+    }
 
-    // Sauvegarder la réponse assistant
+    switch (actionType) {
+      case 'structure':
+        response = await handleStructureAction(question, userId, activeConversationId)
+        break
+      case 'consult':
+        response = await handleConsultAction(question, userId, activeConversationId, dossierId)
+        break
+      default:
+        response = await handleChatAction(
+          question,
+          userId,
+          activeConversationId,
+          dossierId,
+          includeJurisprudence,
+          usePremiumModel
+        )
+        break
+    }
+
+    // Sauvegarder la réponse assistant avec metadata
     await saveMessage(
       activeConversationId,
       'assistant',
       response.answer,
       response.sources,
       response.tokensUsed.total,
-      response.model
+      response.model,
+      response.metadata // Phase 8: Sauvegarder actionType dans metadata
     )
 
     // Générer un titre si c'est le premier échange

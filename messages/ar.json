@@ -889,9 +889,13 @@
         "procedure": "الإجراءات",
         "pretentions": "المطالب",
         "createDossier": "إنشاء الملف",
+        "creating": "جاري الإنشاء...",
         "edit": "تعديل",
         "parseError": "خطأ في تحليل الملف",
-        "createDossierPlaceholder": "إنشاء ملف من الهيكلة - ميزة قيد التطوير"
+        "success": "نجح",
+        "error": "خطأ",
+        "dossierCreated": "تم إنشاء الملف بنجاح",
+        "createError": "تعذر إنشاء الملف"
       },
       "consult": {
         "title": "استشارة قانونية",

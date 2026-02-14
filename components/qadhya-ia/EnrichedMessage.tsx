@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Card } from '@/components/ui/card'
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 import { SourcesPanel } from '@/components/assistant-ia/SourcesPanel'
+import { useToast } from '@/lib/hooks/use-toast'
+import { createDossierFromStructure } from '@/app/actions/create-dossier-from-structure'
 import type { ChatMessage, ChatSource } from '@/components/assistant-ia/ChatMessages'
 
 interface EnrichedMessageProps {
@@ -49,7 +51,9 @@ function ChatMessage({ message }: { message: ChatMessage }) {
 // Message dossier structuré
 function StructuredDossierMessage({ message }: { message: ChatMessage }) {
   const router = useRouter()
+  const { toast } = useToast()
   const t = useTranslations('qadhyaIA.enriched.structure')
+  const [isCreating, setIsCreating] = useState(false)
 
   // Parser le contenu JSON
   const structured = useMemo(() => {
@@ -69,9 +73,32 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
   }
 
   const handleCreateDossier = async () => {
-    // Pour l'instant, on affiche juste une notification
-    // La création complète du dossier sera implémentée dans une phase ultérieure
-    alert(t('createDossierPlaceholder'))
+    setIsCreating(true)
+    try {
+      const result = await createDossierFromStructure(structured)
+
+      if (result.success && result.dossierId) {
+        toast({
+          title: t('success'),
+          description: t('dossierCreated'),
+        })
+        router.push(`/dossiers/${result.dossierId}`)
+      } else {
+        toast({
+          title: t('error'),
+          description: result.error || t('createError'),
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      toast({
+        title: t('error'),
+        description: t('createError'),
+        variant: 'destructive',
+      })
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   return (
@@ -146,11 +173,20 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
 
       {/* Actions */}
       <div className="flex gap-2 mt-6 pt-4 border-t">
-        <Button onClick={handleCreateDossier} className="flex-1">
-          <Icons.check className="mr-2 h-4 w-4" />
-          {t('createDossier')}
+        <Button onClick={handleCreateDossier} className="flex-1" disabled={isCreating}>
+          {isCreating ? (
+            <>
+              <Icons.loader className="mr-2 h-4 w-4 animate-spin" />
+              {t('creating')}
+            </>
+          ) : (
+            <>
+              <Icons.check className="mr-2 h-4 w-4" />
+              {t('createDossier')}
+            </>
+          )}
         </Button>
-        <Button variant="outline">
+        <Button variant="outline" disabled={isCreating}>
           <Icons.edit className="mr-2 h-4 w-4" />
           {t('edit')}
         </Button>

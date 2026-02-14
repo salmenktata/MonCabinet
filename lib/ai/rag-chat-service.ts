@@ -1546,11 +1546,12 @@ export async function saveMessage(
   content: string,
   sources?: ChatSource[],
   tokensUsed?: number,
-  model?: string
+  model?: string,
+  metadata?: Record<string, any>
 ): Promise<string> {
   const result = await db.query(
-    `INSERT INTO chat_messages (conversation_id, role, content, sources, tokens_used, model)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO chat_messages (conversation_id, role, content, sources, tokens_used, model, metadata)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING id`,
     [
       conversationId,
@@ -1559,6 +1560,7 @@ export async function saveMessage(
       sources ? JSON.stringify(sources) : null,
       tokensUsed || null,
       model || null,
+      metadata ? JSON.stringify(metadata) : null,
     ]
   )
 

@@ -889,9 +889,13 @@
         "procedure": "Procédure",
         "pretentions": "Prétentions",
         "createDossier": "Créer le dossier",
+        "creating": "Création en cours...",
         "edit": "Modifier",
         "parseError": "Erreur lors de l'analyse du dossier",
-        "createDossierPlaceholder": "Création de dossier depuis la structuration - Fonctionnalité en cours d'implémentation"
+        "success": "Succès",
+        "error": "Erreur",
+        "dossierCreated": "Dossier créé avec succès",
+        "createError": "Impossible de créer le dossier"
       },
       "consult": {
         "title": "Conseil Juridique",
