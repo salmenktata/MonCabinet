@@ -32,7 +32,7 @@ import { operationNameSchema } from '@/lib/validations/operations-config-schemas
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { operationName: string } }
+  { params }: { params: Promise<{ operationName: string }> }
 ) {
   try {
     // 1. Auth check
@@ -41,8 +41,11 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
     }
 
-    // 2. Validate operation name
-    const validationResult = operationNameSchema.safeParse(params.operationName)
+    // 2. Await params (Next.js 15)
+    const { operationName: operationNameParam } = await params
+
+    // 3. Validate operation name
+    const validationResult = operationNameSchema.safeParse(operationNameParam)
     if (!validationResult.success) {
       return NextResponse.json(
         { success: false, error: 'Nom opération invalide' },
@@ -50,9 +53,9 @@ export async function GET(
       )
     }
 
-    const operationName = validationResult.data
+    const operationName = validationResult.data as OperationName
 
-    // 3. Fetch config
+    // 4. Fetch config
     const config = await getOperationConfig(operationName)
 
     // 4. Check provider availability
@@ -96,7 +99,7 @@ export async function GET(
 
     return NextResponse.json(response, { status: 200 })
   } catch (error) {
-    console.error(`[API /operations-config/${params.operationName}] Error:`, error)
+    console.error(`[API /operations-config/GET] Error:`, error)
     return NextResponse.json(
       {
         success: false,
@@ -113,7 +116,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { operationName: string } }
+  { params }: { params: Promise<{ operationName: string }> }
 ) {
   try {
     // 1. Auth check
@@ -122,8 +125,11 @@ export async function PUT(
       return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
     }
 
-    // 2. Validate operation name
-    const validationResult = operationNameSchema.safeParse(params.operationName)
+    // 2. Await params (Next.js 15)
+    const { operationName: operationNameParam } = await params
+
+    // 3. Validate operation name
+    const validationResult = operationNameSchema.safeParse(operationNameParam)
     if (!validationResult.success) {
       return NextResponse.json(
         { success: false, error: 'Nom opération invalide' },
@@ -131,9 +137,9 @@ export async function PUT(
       )
     }
 
-    const operationName = validationResult.data
+    const operationName = validationResult.data as OperationName
 
-    // 3. Parse body
+    // 4. Parse body
     const body = await request.json()
 
     // 4. Update config
@@ -164,7 +170,7 @@ export async function PUT(
 
     return NextResponse.json(response, { status: 200 })
   } catch (error) {
-    console.error(`[API /operations-config/${params.operationName}] PUT Error:`, error)
+    console.error(`[API /operations-config/PUT] Error:`, error)
     return NextResponse.json(
       {
         success: false,
@@ -181,7 +187,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { operationName: string } }
+  { params }: { params: Promise<{ operationName: string }> }
 ) {
   try {
     // 1. Auth check
@@ -190,8 +196,11 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
     }
 
-    // 2. Validate operation name
-    const validationResult = operationNameSchema.safeParse(params.operationName)
+    // 2. Await params (Next.js 15)
+    const { operationName: operationNameParam } = await params
+
+    // 3. Validate operation name
+    const validationResult = operationNameSchema.safeParse(operationNameParam)
     if (!validationResult.success) {
       return NextResponse.json(
         { success: false, error: 'Nom opération invalide' },
@@ -199,9 +208,9 @@ export async function DELETE(
       )
     }
 
-    const operationName = validationResult.data
+    const operationName = validationResult.data as OperationName
 
-    // 3. Reset config
+    // 4. Reset config
     const result = await resetOperationConfig(operationName, session.user.id)
 
     if (!result.success) {
@@ -224,7 +233,7 @@ export async function DELETE(
       { status: 200 }
     )
   } catch (error) {
-    console.error(`[API /operations-config/${params.operationName}] DELETE Error:`, error)
+    console.error(`[API /operations-config/DELETE] Error:`, error)
     return NextResponse.json(
       {
         success: false,
