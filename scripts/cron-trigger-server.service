@@ -1,0 +1,20 @@
+[Unit]
+Description=Qadhya Cron Trigger Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/qadhya
+ExecStart=/usr/bin/python3 /opt/qadhya/scripts/cron-trigger-server.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/qadhya/cron-trigger-server.log
+StandardError=append:/var/log/qadhya/cron-trigger-server.log
+
+# Security
+PrivateTmp=true
+NoNewPrivileges=false
+
+[Install]
+WantedBy=multi-user.target

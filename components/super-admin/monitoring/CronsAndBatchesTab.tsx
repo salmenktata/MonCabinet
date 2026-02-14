@@ -10,6 +10,7 @@ import { CronsKPICards } from './CronsKPICards'
 import { CronsTimelineChart } from './CronsTimelineChart'
 import { CronsExecutionsTable } from './CronsExecutionsTable'
 import { BatchesStatusSection } from './BatchesStatusSection'
+import { CronQuickTrigger } from './CronQuickTrigger'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -196,6 +197,9 @@ export function CronsAndBatchesTab() {
           ))}
         </div>
       )}
+
+      {/* Section 0: Quick Trigger (Déclenchement Manuel) */}
+      <CronQuickTrigger />
 
       {/* Section 1: KPIs */}
       <CronsKPICards stats={stats} schedules={schedules} />
