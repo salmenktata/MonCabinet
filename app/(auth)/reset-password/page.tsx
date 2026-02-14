@@ -101,8 +101,8 @@ export default function ResetPasswordPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Lien invalide</h3>
-          <p className="mt-2 text-sm text-gray-500">
+          <h3 className="mt-4 text-lg font-medium text-foreground">Lien invalide</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
             Ce lien de réinitialisation est invalide ou a expiré.
           </p>
           <div className="mt-6">

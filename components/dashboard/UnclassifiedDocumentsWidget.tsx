@@ -202,7 +202,7 @@ export default function UnclassifiedDocumentsWidget({
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-start gap-4 rounded-lg border bg-white p-4"
+                  className="flex items-start gap-4 rounded-lg border bg-card p-4"
                 >
                   {/* Icône fichier */}
                   <div className="flex-shrink-0 rounded-lg bg-muted p-2">

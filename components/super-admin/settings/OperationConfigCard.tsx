@@ -270,7 +270,7 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
 
                   {/* Provider Badge */}
                   <div className="flex-1 flex items-center gap-2">
-                    <Badge className={PROVIDER_COLORS[provider] || 'bg-gray-500'}>
+                    <Badge className={PROVIDER_COLORS[provider] || 'bg-muted0'}>
                       {PROVIDER_NAMES[provider]}
                     </Badge>
 

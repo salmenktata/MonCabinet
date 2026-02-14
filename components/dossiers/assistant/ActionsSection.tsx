@@ -12,15 +12,15 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
   haute: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300',
   moyenne: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
-  basse: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
+  basse: 'bg-muted dark:bg-gray-800 text-foreground dark:text-gray-300',
   // Arabic mappings
   عاجل: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
   عالي: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300',
   عالية: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300',
   متوسط: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
   متوسطة: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
-  منخفض: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
-  منخفضة: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
+  منخفض: 'bg-muted dark:bg-gray-800 text-foreground dark:text-gray-300',
+  منخفضة: 'bg-muted dark:bg-gray-800 text-foreground dark:text-gray-300',
 }
 
 // Normaliser la priorité vers la clé de traduction
@@ -100,7 +100,7 @@ export default function ActionsSection({
       <div className="space-y-2">
         {actions.map((action, index) => {
           const normalizedPriority = normalizePriority(action.priorite)
-          const priorityColor = PRIORITY_COLORS[action.priorite] || PRIORITY_COLORS[normalizedPriority] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'
+          const priorityColor = PRIORITY_COLORS[action.priorite] || PRIORITY_COLORS[normalizedPriority] || 'bg-muted dark:bg-gray-800 text-foreground dark:text-gray-300'
           const priorityLabel = t(`actions.priority.${normalizedPriority}`)
 
           return (
@@ -116,7 +116,7 @@ export default function ActionsSection({
                 type="checkbox"
                 checked={action.checked}
                 onChange={() => handleToggle(index)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="mt-1 h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500"
               />
 
               <div className="flex-1">

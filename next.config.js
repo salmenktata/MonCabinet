@@ -1,6 +1,11 @@
 const createNextIntlPlugin = require('next-intl/plugin')
 const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts')
 
+// Bundle Analyzer - Usage: ANALYZE=true npm run build
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Ignorer ESLint pendant le build (les warnings sont vérifiés en CI séparément)
@@ -200,4 +205,4 @@ const nextConfig = {
   compiler: {},
 }
 
-module.exports = withNextIntl(nextConfig)
+module.exports = withBundleAnalyzer(withNextIntl(nextConfig))

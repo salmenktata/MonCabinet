@@ -97,11 +97,11 @@ export default function SystemConfigTab() {
   return (
     <div className="space-y-6">
       {/* Header avec statut global */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-card rounded-lg border border-border p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Configuration Système</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="text-2xl font-bold text-foreground">Configuration Système</h2>
+            <p className="text-sm text-muted-foreground mt-1">
               Dernière mise à jour : {lastUpdate.toLocaleTimeString('fr-FR')}
             </p>
           </div>
@@ -133,7 +133,7 @@ export default function SystemConfigTab() {
               <p className="text-red-800 mb-4">
                 RAG activé mais aucun provider embeddings disponible. L&apos;assistant IA ne fonctionne pas.
               </p>
-              <div className="bg-white border border-red-200 rounded-lg p-4 mb-4">
+              <div className="bg-card border border-red-200 rounded-lg p-4 mb-4">
                 <p className="font-semibold text-red-900 mb-2">Solutions :</p>
                 <ol className="list-decimal list-inside space-y-2 text-sm text-red-800">
                   <li>
@@ -196,10 +196,10 @@ export default function SystemConfigTab() {
 
       {/* Configuration RAG détaillée */}
       {ragConfig && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <div className="flex items-center gap-3 mb-6">
             <Cpu className="w-6 h-6 text-blue-600" />
-            <h3 className="text-lg font-bold text-gray-900">Configuration RAG</h3>
+            <h3 className="text-lg font-bold text-foreground">Configuration RAG</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -237,8 +237,8 @@ export default function SystemConfigTab() {
           </div>
 
           {/* Statistiques KB */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <h4 className="text-sm font-semibold text-gray-700 mb-4">Statistiques Knowledge Base</h4>
+          <div className="mt-6 pt-6 border-t border-border">
+            <h4 className="text-sm font-semibold text-foreground mb-4">Statistiques Knowledge Base</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-blue-50 rounded-lg p-4">
                 <div className="text-3xl font-bold text-blue-900">
@@ -258,22 +258,22 @@ export default function SystemConfigTab() {
       )}
 
       {/* Informations système */}
-      <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">Informations Système</h3>
+      <div className="bg-muted rounded-lg border border-border p-6">
+        <h3 className="text-sm font-semibold text-foreground mb-4">Informations Système</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
-            <span className="text-gray-500">Uptime :</span>
-            <span className="ml-2 font-medium text-gray-900">
+            <span className="text-muted-foreground">Uptime :</span>
+            <span className="ml-2 font-medium text-foreground">
               {Math.floor(healthData.uptime / 3600)}h {Math.floor((healthData.uptime % 3600) / 60)}m
             </span>
           </div>
           <div>
-            <span className="text-gray-500">Temps de réponse :</span>
-            <span className="ml-2 font-medium text-gray-900">{healthData.responseTime}</span>
+            <span className="text-muted-foreground">Temps de réponse :</span>
+            <span className="ml-2 font-medium text-foreground">{healthData.responseTime}</span>
           </div>
           <div>
-            <span className="text-gray-500">Version :</span>
-            <span className="ml-2 font-medium text-gray-900">{healthData.version}</span>
+            <span className="text-muted-foreground">Version :</span>
+            <span className="ml-2 font-medium text-foreground">{healthData.version}</span>
           </div>
         </div>
       </div>
@@ -303,7 +303,7 @@ function ServiceCard({
         <div className={isHealthy ? 'text-green-600' : 'text-red-600'}>
           {icon}
         </div>
-        <h3 className="font-semibold text-gray-900">{title}</h3>
+        <h3 className="font-semibold text-foreground">{title}</h3>
       </div>
       <div className="flex items-center gap-2 mb-3">
         {isHealthy ? (
@@ -319,7 +319,7 @@ function ServiceCard({
       </div>
       <div className="space-y-1">
         {details.map((detail, idx) => (
-          <div key={idx} className="text-xs text-gray-600">
+          <div key={idx} className="text-xs text-muted-foreground">
             <span className="font-medium">{detail.label}:</span> {detail.value}
           </div>
         ))}
@@ -344,14 +344,14 @@ function ConfigItem({
     ok: 'bg-green-50 border-green-200 text-green-800',
     warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
     error: 'bg-red-50 border-red-200 text-red-800',
-    neutral: 'bg-gray-50 border-gray-200 text-gray-800',
+    neutral: 'bg-muted border-border text-foreground',
   }
 
   const iconColors = {
     ok: 'text-green-600',
     warning: 'text-yellow-600',
     error: 'text-red-600',
-    neutral: 'text-gray-600',
+    neutral: 'text-muted-foreground',
   }
 
   return (

@@ -23,7 +23,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts'
+} from '@/components/charts/LazyCharts'
 import {
   Activity,
   Users,

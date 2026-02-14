@@ -95,7 +95,7 @@ export default function JurisprudenceGraph({
       <div className="flex h-96 items-center justify-center rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="text-center">
           <div className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground dark:text-muted-foreground/80">
             Chargement timeline jurisprudence...
           </p>
         </div>
@@ -106,8 +106,8 @@ export default function JurisprudenceGraph({
   if (!timelineData || filteredEvents.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
-        <Info className="mx-auto mb-2 h-12 w-12 text-gray-400" />
-        <p className="text-gray-600 dark:text-gray-400">
+        <Info className="mx-auto mb-2 h-12 w-12 text-muted-foreground/80" />
+        <p className="text-muted-foreground dark:text-muted-foreground/80">
           Aucun événement jurisprudentiel trouvé pour les filtres sélectionnés
         </p>
       </div>
@@ -162,13 +162,13 @@ export default function JurisprudenceGraph({
             icon={<Filter className="h-4 w-4" />}
             label="Standard"
             value={timelineData.stats.standardEvents}
-            color="text-gray-600"
+            color="text-muted-foreground"
           />
         </div>
 
         {/* Période */}
         {timelineData.stats.dateRange.earliest && (
-          <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-xs text-muted-foreground dark:text-muted-foreground/80">
             Période :{' '}
             {new Date(timelineData.stats.dateRange.earliest).toLocaleDateString('fr-FR')} →{' '}
             {timelineData.stats.dateRange.latest
@@ -229,7 +229,7 @@ export default function JurisprudenceGraph({
                 </span>
                 <span className="text-sm">{precedent.title.substring(0, 80)}...</span>
               </div>
-              <div className="flex gap-3 text-xs text-gray-600 dark:text-gray-400">
+              <div className="flex gap-3 text-xs text-muted-foreground dark:text-muted-foreground/80">
                 <span>Score: {precedent.precedentValue.toFixed(3)}</span>
                 <span>{precedent.citedByCount} citations</span>
               </div>
@@ -263,7 +263,7 @@ function StatCard({
     <div className="rounded-lg bg-white p-3 dark:bg-gray-800">
       <div className="mb-1 flex items-center gap-1">
         <span className={color}>{icon}</span>
-        <span className="text-xs text-gray-600 dark:text-gray-400">{label}</span>
+        <span className="text-xs text-muted-foreground dark:text-muted-foreground/80">{label}</span>
       </div>
       <div className={`text-2xl font-bold ${color}`}>{value}</div>
     </div>
@@ -285,13 +285,13 @@ function TimelineFilters({
   return (
     <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
       <div className="mb-2 flex items-center gap-2">
-        <Filter className="h-4 w-4 text-gray-600" />
+        <Filter className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-semibold">Filtres</span>
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         <div>
-          <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+          <label className="mb-1 block text-xs text-muted-foreground dark:text-muted-foreground/80">
             Domaine
           </label>
           <select
@@ -308,7 +308,7 @@ function TimelineFilters({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+          <label className="mb-1 block text-xs text-muted-foreground dark:text-muted-foreground/80">
             Date début
           </label>
           <input
@@ -320,7 +320,7 @@ function TimelineFilters({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+          <label className="mb-1 block text-xs text-muted-foreground dark:text-muted-foreground/80">
             Date fin
           </label>
           <input
@@ -332,7 +332,7 @@ function TimelineFilters({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+          <label className="mb-1 block text-xs text-muted-foreground dark:text-muted-foreground/80">
             Min citations
           </label>
           <input
@@ -362,7 +362,7 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   return (
     <div className="flex items-center gap-2">
       <div className={`h-3 w-3 rounded-full ${color}`}></div>
-      <span className="text-xs text-gray-600 dark:text-gray-400">{label}</span>
+      <span className="text-xs text-muted-foreground dark:text-muted-foreground/80">{label}</span>
     </div>
   )
 }
@@ -428,21 +428,21 @@ function TimelineSVG({
         y2={height - marginBottom}
         stroke="currentColor"
         strokeWidth="2"
-        className="text-gray-300 dark:text-gray-600"
+        className="text-gray-300 dark:text-muted-foreground"
       />
 
       {/* Labels dates */}
       <text
         x={marginLeft}
         y={height - marginBottom + 20}
-        className="fill-current text-xs text-gray-600 dark:text-gray-400"
+        className="fill-current text-xs text-muted-foreground dark:text-muted-foreground/80"
       >
         {new Date(minDate).getFullYear()}
       </text>
       <text
         x={width - marginRight - 30}
         y={height - marginBottom + 20}
-        className="fill-current text-xs text-gray-600 dark:text-gray-400"
+        className="fill-current text-xs text-muted-foreground dark:text-muted-foreground/80"
       >
         {new Date(maxDate).getFullYear()}
       </text>
@@ -503,7 +503,7 @@ function TimelineSVG({
       <text x={10} y={yLevels.nuance} className="fill-current text-xs font-semibold text-blue-600">
         Distinctions
       </text>
-      <text x={10} y={yLevels.standard} className="fill-current text-xs font-semibold text-gray-600">
+      <text x={10} y={yLevels.standard} className="fill-current text-xs font-semibold text-muted-foreground">
         Standard
       </text>
     </svg>
@@ -542,14 +542,14 @@ function EventPopup({ event, position }: { event: TimelineEvent; position: { x: 
       }}
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase text-gray-500">
+        <span className="text-xs font-semibold uppercase text-muted-foreground">
           {event.eventType === 'major_shift' && '🔴 Revirement'}
           {event.eventType === 'confirmation' && '🟢 Confirmation'}
           {event.eventType === 'nuance' && '🔵 Distinction'}
           {event.eventType === 'standard' && '⚪ Standard'}
         </span>
         {event.decisionDate && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted-foreground">
             {new Date(event.decisionDate).toLocaleDateString('fr-FR')}
           </span>
         )}
@@ -557,7 +557,7 @@ function EventPopup({ event, position }: { event: TimelineEvent; position: { x: 
 
       <h4 className="mb-2 text-sm font-semibold">{event.title}</h4>
 
-      <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+      <div className="space-y-1 text-xs text-muted-foreground dark:text-muted-foreground/80">
         {event.decisionNumber && <p>📋 {event.decisionNumber}</p>}
         {event.tribunalLabel && <p>⚖️ {event.tribunalLabel}</p>}
         {event.chambreLabel && <p>🏛️ {event.chambreLabel}</p>}
@@ -569,7 +569,7 @@ function EventPopup({ event, position }: { event: TimelineEvent; position: { x: 
       </div>
 
       {event.eventDescription && (
-        <p className="mt-2 text-xs italic text-gray-500">{event.eventDescription}</p>
+        <p className="mt-2 text-xs italic text-muted-foreground">{event.eventDescription}</p>
       )}
     </div>
   )

@@ -25,9 +25,11 @@
  * ```
  *
  * Février 2026 - Sprint 3 Optimisation RAG
+ * **Performance Optimization**: Import dynamique pour éviter 23 MB dans bundle initial
  */
 
-import { pipeline, type TextClassificationPipeline } from '@xenova/transformers'
+// Import dynamique de @xenova/transformers pour réduire bundle (-23 MB)
+type TextClassificationPipeline = any
 
 // =============================================================================
 // CONFIGURATION
@@ -66,7 +68,7 @@ export interface CrossEncoderResult {
 /**
  * Charge le modèle cross-encoder (lazy loading)
  *
- * Premier appel: ~3-5s (téléchargement modèle)
+ * Premier appel: ~3-5s (téléchargement modèle + import @xenova/transformers)
  * Appels suivants: instantané (cache)
  */
 async function loadCrossEncoderModel(): Promise<TextClassificationPipeline> {
@@ -91,6 +93,9 @@ async function loadCrossEncoderModel(): Promise<TextClassificationPipeline> {
   try {
     console.log(`[CrossEncoder] Chargement modèle ${CROSS_ENCODER_MODEL}...`)
     const startTime = Date.now()
+
+    // ✨ Import dynamique de @xenova/transformers (-23 MB bundle initial)
+    const { pipeline } = await import('@xenova/transformers')
 
     // Charger pipeline text-classification (cross-encoder type)
     crossEncoderPipeline = await pipeline(

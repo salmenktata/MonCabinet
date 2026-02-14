@@ -25,7 +25,7 @@ const CATEGORY_CONFIG = {
   code: { label: 'Codes', color: 'bg-green-100 text-green-700' },
   doctrine: { label: 'Doctrine', color: 'bg-purple-100 text-purple-700' },
   modele: { label: 'Modèles', color: 'bg-orange-100 text-orange-700' },
-  autre: { label: 'Autres', color: 'bg-gray-100 text-gray-700' },
+  autre: { label: 'Autres', color: 'bg-muted text-foreground' },
 }
 
 export default function KnowledgeBaseStats({ stats }: KnowledgeBaseStatsProps) {
@@ -93,7 +93,7 @@ export default function KnowledgeBaseStats({ stats }: KnowledgeBaseStatsProps) {
                   className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${config.color}`}
                 >
                   {config.label}
-                  <span className="bg-white/50 px-1.5 py-0.5 rounded text-xs">
+                  <span className="bg-card/50 px-1.5 py-0.5 rounded text-xs">
                     {count}
                   </span>
                 </span>

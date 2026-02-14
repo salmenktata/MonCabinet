@@ -202,7 +202,7 @@ export default function CloudStorageConfig({
               Connecté
             </Badge>
           ) : (
-            <Badge variant="outline" className="flex items-center gap-1 bg-gray-50 text-gray-700">
+            <Badge variant="outline" className="flex items-center gap-1 bg-muted text-foreground">
               <X className="h-3 w-3" />
               Non connecté
             </Badge>

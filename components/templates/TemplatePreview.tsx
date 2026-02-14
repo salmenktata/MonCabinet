@@ -210,7 +210,7 @@ export default function TemplatePreview({
     if (line.type === 'separator') {
       return (
         <div key={index} className="my-4">
-          <hr className="border-gray-300 dark:border-gray-600" />
+          <hr className="border-border dark:border-gray-600" />
         </div>
       )
     }
@@ -247,7 +247,7 @@ export default function TemplatePreview({
         return (
           <h2
             key={index}
-            className={cn(baseClasses, 'text-lg font-bold text-gray-900 dark:text-gray-100 my-3')}
+            className={cn(baseClasses, 'text-lg font-bold text-foreground dark:text-gray-100 my-3')}
           >
             {textWithHighlight}
           </h2>
@@ -257,7 +257,7 @@ export default function TemplatePreview({
         return (
           <h3
             key={index}
-            className={cn(baseClasses, 'text-base font-semibold text-gray-800 dark:text-gray-200 mt-4 mb-2')}
+            className={cn(baseClasses, 'text-base font-semibold text-foreground dark:text-gray-200 mt-4 mb-2')}
           >
             {textWithHighlight}
           </h3>
@@ -267,7 +267,7 @@ export default function TemplatePreview({
         return (
           <p
             key={index}
-            className={cn(baseClasses, 'text-sm font-medium text-gray-700 dark:text-gray-300 my-1')}
+            className={cn(baseClasses, 'text-sm font-medium text-foreground dark:text-gray-300 my-1')}
           >
             {textWithHighlight}
           </p>
@@ -277,7 +277,7 @@ export default function TemplatePreview({
         return (
           <p
             key={index}
-            className={cn(baseClasses, 'text-sm text-gray-700 dark:text-gray-300 mt-6 italic')}
+            className={cn(baseClasses, 'text-sm text-foreground dark:text-gray-300 mt-6 italic')}
           >
             {textWithHighlight}
           </p>
@@ -288,7 +288,7 @@ export default function TemplatePreview({
         return (
           <p
             key={index}
-            className={cn(baseClasses, 'text-sm text-gray-700 dark:text-gray-300 my-1.5')}
+            className={cn(baseClasses, 'text-sm text-foreground dark:text-gray-300 my-1.5')}
           >
             {textWithHighlight}
           </p>
@@ -299,10 +299,10 @@ export default function TemplatePreview({
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* En-tête */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50 dark:bg-gray-800/50 rounded-t-lg">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-muted dark:bg-gray-800/50 rounded-t-lg">
         <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground dark:text-gray-300">
             {title || 'Aperçu du document'}
           </span>
         </div>
@@ -327,7 +327,7 @@ export default function TemplatePreview({
       {/* Contenu du document */}
       <div
         className={cn(
-          'flex-1 overflow-y-auto p-6 bg-white dark:bg-gray-900 rounded-b-lg',
+          'flex-1 overflow-y-auto p-6 bg-card dark:bg-gray-900 rounded-b-lg',
           'shadow-inner',
           isArabic && 'direction-rtl'
         )}
@@ -340,11 +340,11 @@ export default function TemplatePreview({
       >
         {/* Titre du document */}
         {title && (
-          <div className="text-center mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          <div className="text-center mb-6 pb-4 border-b border-border dark:border-gray-700">
+            <h1 className="text-xl font-bold text-foreground dark:text-gray-100">
               {title}
             </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-muted-foreground dark:text-muted-foreground/80 mt-1">
               {new Date().toLocaleDateString(isArabic ? 'ar-TN' : 'fr-TN', {
                 year: 'numeric',
                 month: 'long',

@@ -46,7 +46,7 @@ export default function FactualAnalysisSection({ analyseFaits, readingTime }: Fa
                       ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
                       : node.importance === 'important'
                       ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20'
-                      : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20'
+                      : 'border-border dark:border-gray-700 bg-muted dark:bg-gray-900/20'
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -57,7 +57,7 @@ export default function FactualAnalysisSection({ analyseFaits, readingTime }: Fa
                             ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'
                             : node.importance === 'important'
                             ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'
-                            : 'bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
+                            : 'bg-gray-200 dark:bg-gray-800 text-foreground dark:text-gray-200'
                         }`}>
                           {node.importance === 'critique' ? t('legalAnalysis.analyseFaits.critical') : node.importance === 'important' ? t('legalAnalysis.analyseFaits.important') : t('legalAnalysis.analyseFaits.secondary')}
                         </span>
@@ -97,14 +97,14 @@ export default function FactualAnalysisSection({ analyseFaits, readingTime }: Fa
                       ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20'
                       : actor.interet === 'defavorable'
                       ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
-                      : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20'
+                      : 'border-border dark:border-gray-700 bg-muted dark:bg-gray-900/20'
                   }`}
                 >
                   <div className="font-medium text-sm">{actor.nom}</div>
                   <div className="text-xs text-muted-foreground">{actor.role}</div>
                   <div className="mt-1 flex items-center gap-1">
                     <span className={`text-xs ${
-                      actor.interet === 'favorable' ? 'text-green-600' : actor.interet === 'defavorable' ? 'text-red-600' : 'text-gray-600'
+                      actor.interet === 'favorable' ? 'text-green-600' : actor.interet === 'defavorable' ? 'text-red-600' : 'text-muted-foreground'
                     }`}>
                       {actor.interet === 'favorable' ? '&#128994;' : actor.interet === 'defavorable' ? '&#128308;' : '&#128993;'}
                     </span>

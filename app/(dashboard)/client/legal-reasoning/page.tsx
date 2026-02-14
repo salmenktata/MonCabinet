@@ -242,7 +242,7 @@ export default function LegalReasoningPage() {
                     type="checkbox"
                     checked={includeAlternatives}
                     onChange={(e) => setIncludeAlternatives(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
+                    className="h-4 w-4 rounded border-border"
                   />
                   <span className="text-sm">Inclure alternatives</span>
                 </label>

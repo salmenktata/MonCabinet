@@ -165,7 +165,7 @@ export default function CreateDossierModal({
                 type="checkbox"
                 checked={creerActions}
                 onChange={(e) => setCreerActions(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm text-foreground">
                 {t('createModal.createActions', { count: checkedActions.length })}
@@ -177,7 +177,7 @@ export default function CreateDossierModal({
                 type="checkbox"
                 checked={creerEcheances}
                 onChange={(e) => setCreerEcheances(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm text-foreground">
                 {t('createModal.createDeadlines', {

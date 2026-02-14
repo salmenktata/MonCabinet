@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from '@/components/charts/LazyCharts'
 import { Badge } from '@/components/ui/badge'
 import useSWR from 'swr'
 import { OPERATION_LABELS, PROVIDER_LABELS } from '@/lib/constants/operation-labels'

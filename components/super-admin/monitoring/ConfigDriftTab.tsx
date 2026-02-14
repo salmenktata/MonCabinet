@@ -88,8 +88,8 @@ export function ConfigDriftTab() {
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Chargement...</span>
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground/80" />
+        <span className="ml-2 text-muted-foreground">Chargement...</span>
       </div>
     )
   }
@@ -124,7 +124,7 @@ export function ConfigDriftTab() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Configuration Drift Detection</h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Dernière mise à jour: {lastRefresh.toLocaleTimeString('fr-FR')}
           </p>
         </div>
@@ -164,15 +164,15 @@ export function ConfigDriftTab() {
           {/* Hashes */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm font-medium text-gray-500">Hash Actuel</p>
-              <code className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+              <p className="text-sm font-medium text-muted-foreground">Hash Actuel</p>
+              <code className="text-xs font-mono bg-muted px-2 py-1 rounded">
                 {data.configHash}
               </code>
             </div>
 
             <div>
-              <p className="text-sm font-medium text-gray-500">Hash Attendu</p>
-              <code className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+              <p className="text-sm font-medium text-muted-foreground">Hash Attendu</p>
+              <code className="text-xs font-mono bg-muted px-2 py-1 rounded">
                 {data.expectedHash}
               </code>
             </div>
@@ -189,7 +189,7 @@ export function ConfigDriftTab() {
                 {data.driftedVars.map((variable) => (
                   <div
                     key={variable.name}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                    className="flex items-center justify-between p-2 bg-muted rounded"
                   >
                     <span className="font-mono text-sm">{variable.name}</span>
                     <Badge
@@ -239,10 +239,10 @@ export function ConfigDriftTab() {
         <CardContent>
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(data.criticalVars).map(([name, hash]) => (
-              <div key={name} className="text-sm font-mono bg-gray-50 p-2 rounded">
-                <span className="text-gray-700">{name}</span>
+              <div key={name} className="text-sm font-mono bg-muted p-2 rounded">
+                <span className="text-foreground">{name}</span>
                 <br />
-                <span className="text-xs text-gray-400">{hash}</span>
+                <span className="text-xs text-muted-foreground/80">{hash}</span>
               </div>
             ))}
           </div>
@@ -252,13 +252,13 @@ export function ConfigDriftTab() {
       {/* Info */}
       <Card>
         <CardContent className="pt-6">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             💡 <strong>Comment ça marche ?</strong> Le système compare le hash SHA256 des variables
             CRITICAL avec une référence stockée. En cas de divergence, une alerte est levée
             automatiquement.
           </p>
 
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             🔄 <strong>Rafraîchissement :</strong> Automatique toutes les 30s. Détection drift via
             cron toutes les 5 minutes.
           </p>

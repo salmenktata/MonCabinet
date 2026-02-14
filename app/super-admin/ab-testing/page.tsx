@@ -141,7 +141,7 @@ export default function ABTestingPage() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <RefreshCw className="mx-auto mb-4 h-12 w-12 animate-spin text-blue-600" />
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted-foreground dark:text-gray-400">
             Chargement comparaison A/B...
           </p>
         </div>
@@ -154,7 +154,7 @@ export default function ABTestingPage() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-red-600" />
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted-foreground dark:text-gray-400">
             Erreur chargement comparaison
           </p>
         </div>
@@ -172,7 +172,7 @@ export default function ABTestingPage() {
               A/B Testing Prompts
               <BarChart3 className="ml-2 inline-block h-8 w-8 text-blue-600" />
             </h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
+            <p className="mt-2 text-muted-foreground dark:text-gray-400">
               Optimisation prompts juridiques via tests A/B scientifiques
             </p>
           </div>
@@ -341,7 +341,7 @@ function VariantCard({
     >
       <div className="mb-4">
         <h3 className="text-lg font-semibold">{title}</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>
+        <p className="text-sm text-muted-foreground dark:text-gray-400">{subtitle}</p>
       </div>
 
       {/* Métriques */}
@@ -367,7 +367,7 @@ function VariantCard({
           value={`${metrics.hallucinationRate.toFixed(1)}%`}
         />
         <MetricRow
-          icon={<Clock className="h-4 w-4 text-gray-600" />}
+          icon={<Clock className="h-4 w-4 text-muted-foreground" />}
           label="Latence"
           value={`${metrics.avgResponseTime.toFixed(0)}ms`}
         />
@@ -376,14 +376,14 @@ function VariantCard({
       {/* Significativité */}
       {!isControl && significance && (
         <div className="mb-4 rounded border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900">
-          <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+          <p className="mb-1 text-xs font-medium text-muted-foreground dark:text-gray-400">
             Test Statistique
           </p>
           <p className="text-sm">
             {significance.improvement >= 0 ? '+' : ''}
             {significance.improvement.toFixed(1)}% satisfaction
           </p>
-          <p className="text-xs text-gray-600 dark:text-gray-400">
+          <p className="text-xs text-muted-foreground dark:text-gray-400">
             p-value: {significance.pValue.toFixed(4)}
             {significance.significant ? ' ✅ Significatif' : ' ⚠️ Non significatif'}
           </p>
@@ -492,7 +492,7 @@ function ComparisonChart({
             <span className="font-semibold">
               {variantA.toFixed(1)}
               {suffix}
-              <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
+              <span className="ml-2 text-xs text-muted-foreground dark:text-gray-400">
                 ({variantA >= control ? '+' : ''}
                 {((variantA - control) / control * 100).toFixed(1)}%)
               </span>
@@ -513,7 +513,7 @@ function ComparisonChart({
             <span className="font-semibold">
               {variantB.toFixed(1)}
               {suffix}
-              <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
+              <span className="ml-2 text-xs text-muted-foreground dark:text-gray-400">
                 ({variantB >= control ? '+' : ''}
                 {((variantB - control) / control * 100).toFixed(1)}%)
               </span>

@@ -347,7 +347,7 @@ const ProviderConfigTable: React.FC = () => {
                     })
                     .map((apiKey) => {
                       const priority = PROVIDER_PRIORITY[apiKey.provider] || '?'
-                      const colorClass = PROVIDER_COLORS[apiKey.provider] || 'text-gray-600'
+                      const colorClass = PROVIDER_COLORS[apiKey.provider] || 'text-muted-foreground'
                       return (
                         <tr key={apiKey.provider} className="border-b hover:bg-muted/50">
                           <td className="p-3 text-center">

@@ -148,7 +148,7 @@ export default async function HomePage() {
             </Link>
             <Link
               href="/login"
-              className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white hover:bg-white/10 transition-all"
+              className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white hover:bg-white/10 dark:hover:bg-white/5 transition-all"
             >
               {t('loginButton')}
             </Link>
@@ -284,7 +284,7 @@ export default async function HomePage() {
             </Link>
             <Link
               href="/login"
-              className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white border border-white/30 hover:bg-white/10 transition-all"
+              className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white border border-white/30 hover:bg-white/10 dark:hover:bg-white/5 transition-all"
             >
               Se connecter
             </Link>

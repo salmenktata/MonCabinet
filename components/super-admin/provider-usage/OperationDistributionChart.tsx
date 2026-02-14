@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from '@/components/charts/LazyCharts'
 import { Badge } from '@/components/ui/badge'
 import useSWR from 'swr'
 import { OPERATION_LABELS } from '@/lib/constants/operation-labels'

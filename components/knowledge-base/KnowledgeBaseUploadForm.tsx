@@ -292,7 +292,7 @@ export default function KnowledgeBaseUploadForm({
             className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               dragActive
                 ? 'border-primary bg-primary/5'
-                : 'border-gray-300 hover:border-gray-400'
+                : 'border-border hover:border-gray-400'
             }`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -306,21 +306,21 @@ export default function KnowledgeBaseUploadForm({
               onChange={handleFileChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            <Upload className="mx-auto h-12 w-12 text-gray-400" />
-            <p className="mt-2 text-sm text-gray-600">
+            <Upload className="mx-auto h-12 w-12 text-muted-foreground/80" />
+            <p className="mt-2 text-sm text-muted-foreground">
               Glissez un fichier ici ou{' '}
               <span className="text-primary font-medium">cliquez pour parcourir</span>
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               PDF, DOCX, DOC, TXT (max 50MB)
             </p>
           </div>
         ) : (
-          <div className="flex items-center gap-3 p-4 rounded-lg border bg-gray-50">
+          <div className="flex items-center gap-3 p-4 rounded-lg border bg-muted">
             <FileText className="h-10 w-10 text-blue-500 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{file.name}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 {(file.size / 1024 / 1024).toFixed(2)} MB
               </p>
             </div>
@@ -329,7 +329,7 @@ export default function KnowledgeBaseUploadForm({
               onClick={removeFile}
               className="p-1 rounded hover:bg-gray-200 transition-colors"
             >
-              <X className="h-5 w-5 text-gray-500" />
+              <X className="h-5 w-5 text-muted-foreground" />
             </button>
           </div>
         )}
@@ -342,7 +342,7 @@ export default function KnowledgeBaseUploadForm({
           id="autoIndex"
           checked={autoIndex}
           onChange={(e) => setAutoIndex(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
         />
         <label htmlFor="autoIndex" className="text-sm">
           Indexer automatiquement pour la recherche sémantique
@@ -356,7 +356,7 @@ export default function KnowledgeBaseUploadForm({
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors disabled:opacity-50"
           >
             Annuler
           </button>

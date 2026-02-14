@@ -80,7 +80,7 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
           {/* Preview */}
           <div className="flex-shrink-0">
             {logoPreview ? (
-              <div className="relative w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden bg-gray-50">
+              <div className="relative w-32 h-32 rounded-lg border-2 border-dashed border-border overflow-hidden bg-muted">
                 <Image
                   src={logoPreview}
                   alt="Logo cabinet"
@@ -89,9 +89,9 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
                 />
               </div>
             ) : (
-              <div className="w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+              <div className="w-32 h-32 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted">
                 <svg
-                  className="h-12 w-12 text-gray-400"
+                  className="h-12 w-12 text-muted-foreground/80"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -113,9 +113,9 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
               type="file"
               accept="image/png,image/jpeg,image/jpg,image/svg+xml"
               onChange={handleLogoChange}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-muted-foreground">
               PNG, JPG ou SVG. Maximum 2MB. Dimensions recommandées : 400x200px
             </p>
           </div>
@@ -133,9 +133,9 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
           name="cabinet_nom"
           defaultValue={profile?.cabinet_nom || ''}
           placeholder="Cabinet Maître Dupont"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Nom officiel qui apparaîtra sur les factures (optionnel)
         </p>
       </div>
@@ -151,7 +151,7 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
           name="cabinet_adresse"
           defaultValue={profile?.cabinet_adresse || ''}
           placeholder="123 Avenue Habib Bourguiba"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
@@ -167,7 +167,7 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
             name="cabinet_code_postal"
             defaultValue={profile?.cabinet_code_postal || ''}
             placeholder="1000"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -181,7 +181,7 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
             name="cabinet_ville"
             defaultValue={profile?.cabinet_ville || ''}
             placeholder="Tunis"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -197,9 +197,9 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
           name="rne"
           defaultValue={profile?.rne || ''}
           placeholder="Ex: B123456789"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Optionnel - Requis pour certains clients professionnels
         </p>
       </div>
@@ -215,7 +215,7 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
               type="text"
               defaultValue={profile?.matricule_avocat || ''}
               disabled
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+              className="w-full px-3 py-2 border border-border rounded-md bg-muted cursor-not-allowed"
             />
           </div>
 
@@ -225,12 +225,12 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
               type="text"
               defaultValue={profile?.barreau || ''}
               disabled
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+              className="w-full px-3 py-2 border border-border rounded-md bg-muted cursor-not-allowed"
             />
           </div>
         </div>
 
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-muted-foreground">
           Pour modifier ces informations, contactez le support ou mettez à jour votre profil
         </p>
       </div>
@@ -258,7 +258,7 @@ export default function CabinetForm({ profile }: CabinetFormProps) {
           type="button"
           onClick={() => router.back()}
           disabled={loading}
-          className="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          className="px-6 py-2 border border-border rounded-md hover:bg-muted disabled:opacity-50"
         >
           Annuler
         </button>

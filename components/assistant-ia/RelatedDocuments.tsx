@@ -69,9 +69,9 @@ export default function RelatedDocuments({
           </span>
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-gray-500" />
+          <ChevronUp className="w-5 h-5 text-muted-foreground" />
         ) : (
-          <ChevronDown className="w-5 h-5 text-gray-500" />
+          <ChevronDown className="w-5 h-5 text-muted-foreground" />
         )}
       </button>
 
@@ -97,16 +97,16 @@ export default function RelatedDocuments({
                           <p className="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400">
                             {relation.relatedTitle}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/80 mt-1">
                             {relation.relatedCategory}
                           </p>
                           {relation.context && (
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                            <p className="text-xs text-gray-600 dark:text-muted-foreground/80 mt-1 line-clamp-2">
                               "{relation.context}"
                             </p>
                           )}
                         </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-primary-600 flex-shrink-0 ml-2" />
+                        <ExternalLink className="w-4 h-4 text-muted-foreground/80 group-hover:text-primary-600 flex-shrink-0 ml-2" />
                       </div>
                       {relation.confidence && (
                         <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
@@ -139,11 +139,11 @@ export default function RelatedDocuments({
                           <p className="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400">
                             {relation.relatedTitle}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/80 mt-1">
                             {relation.relatedCategory}
                           </p>
                         </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-primary-600 flex-shrink-0 ml-2" />
+                        <ExternalLink className="w-4 h-4 text-muted-foreground/80 group-hover:text-primary-600 flex-shrink-0 ml-2" />
                       </div>
                     </button>
                   </li>
@@ -175,7 +175,7 @@ export default function RelatedDocuments({
                             Abrogé/Remplacé
                           </p>
                         </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
+                        <ExternalLink className="w-4 h-4 text-muted-foreground/80 flex-shrink-0 ml-2" />
                       </div>
                     </button>
                   </li>
@@ -203,11 +203,11 @@ export default function RelatedDocuments({
                           <p className="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400">
                             {relation.relatedTitle}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/80 mt-1">
                             Problématique similaire
                           </p>
                         </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-primary-600 flex-shrink-0 ml-2" />
+                        <ExternalLink className="w-4 h-4 text-muted-foreground/80 group-hover:text-primary-600 flex-shrink-0 ml-2" />
                       </div>
                     </button>
                   </li>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo, memo } from 'react'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -243,7 +243,7 @@ interface MessageBubbleProps {
   renderEnriched?: (message: ChatMessage) => React.ReactNode
 }
 
-function MessageBubble({ message, renderEnriched }: MessageBubbleProps) {
+const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: MessageBubbleProps) {
   const t = useTranslations('assistantIA')
   const isUser = message.role === 'user'
 
@@ -355,5 +355,14 @@ function MessageBubble({ message, renderEnriched }: MessageBubbleProps) {
       </div>
     </div>
   )
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison: ne re-render que si le message change vraiment
+  return (
+    prevProps.message.id === nextProps.message.id &&
+    prevProps.message.content === nextProps.message.content &&
+    prevProps.message.isStreaming === nextProps.message.isStreaming &&
+    prevProps.message.sources?.length === nextProps.message.sources?.length &&
+    prevProps.renderEnriched === nextProps.renderEnriched
+  )
+})
 

@@ -48,7 +48,7 @@ const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
   rules: { label: 'Règles', color: 'bg-blue-600' },
   structure: { label: 'Structure', color: 'bg-green-600' },
   hybrid: { label: 'Hybride', color: 'bg-orange-600' },
-  cache: { label: 'Cache', color: 'bg-gray-500' },
+  cache: { label: 'Cache', color: 'bg-muted0' },
   unknown: { label: 'Inconnu', color: 'bg-gray-400' },
 }
 

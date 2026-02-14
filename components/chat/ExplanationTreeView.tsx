@@ -132,7 +132,7 @@ export default function ExplanationTreeView({
         </div>
 
         {/* Métadonnées */}
-        <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-400 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 dark:text-muted-foreground/80 md:grid-cols-4">
           <div>
             <span className="font-medium">Nœuds :</span> {tree.metadata.totalNodes}
           </div>
@@ -323,7 +323,7 @@ function TreeNode({
 
             {/* Métadonnées */}
             {(node.metadata.tribunal || node.metadata.legalBasis) && (
-              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <div className="mt-2 text-xs text-gray-500 dark:text-muted-foreground/80">
                 {node.metadata.tribunal && <span>{node.metadata.tribunal}</span>}
                 {node.metadata.tribunal && node.metadata.legalBasis && <span> • </span>}
                 {node.metadata.legalBasis && (
@@ -339,7 +339,7 @@ function TreeNode({
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
           >
-            <Info className="h-4 w-4 text-gray-400" />
+            <Info className="h-4 w-4 text-muted-foreground/80" />
 
             {/* Tooltip */}
             {showTooltip && (

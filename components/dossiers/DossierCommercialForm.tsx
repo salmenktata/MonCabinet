@@ -109,7 +109,7 @@ export default function DossierCommercialForm({
               {...register('date_mise_en_demeure')}
               className="mt-1 block w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             />
-            <p className="mt-1 text-xs text-gray-500">Point départ intérêts</p>
+            <p className="mt-1 text-xs text-muted-foreground">Point départ intérêts</p>
             {errors.date_mise_en_demeure && (
               <p className="mt-1 text-sm text-red-600">
                 {errors.date_mise_en_demeure.message}
@@ -130,7 +130,7 @@ export default function DossierCommercialForm({
               className="mt-1 block w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               placeholder="14.5"
             />
-            <p className="mt-1 text-xs text-gray-500">Défaut: TMM + 7 points = 14.5%</p>
+            <p className="mt-1 text-xs text-muted-foreground">Défaut: TMM + 7 points = 14.5%</p>
           </div>
 
           <div>
@@ -144,7 +144,7 @@ export default function DossierCommercialForm({
               className="mt-1 block w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               placeholder="40"
             />
-            <p className="mt-1 text-xs text-gray-500">Loi 2017: 40 TND fixe</p>
+            <p className="mt-1 text-xs text-muted-foreground">Loi 2017: 40 TND fixe</p>
           </div>
         </div>
 
@@ -208,7 +208,7 @@ export default function DossierCommercialForm({
         <input
           type="checkbox"
           {...register('est_refere')}
-          className="h-4 w-4 rounded border-gray-300 text-blue-600"
+          className="h-4 w-4 rounded border-border text-blue-600"
         />
         <label className="text-sm font-medium">
           Procédure en référé commercial (mesures urgentes)

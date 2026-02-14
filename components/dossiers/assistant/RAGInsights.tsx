@@ -18,7 +18,7 @@ export default function RAGInsights({ ragMetrics }: RAGInsightsProps) {
   const { totalFound, aboveThreshold, scoreRange, sourceDistribution, searchTimeMs, provider, cacheHit } = ragMetrics
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20">
+    <div className="rounded-lg border border-border dark:border-gray-800 bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20">
       {/* Header collapsible */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -26,7 +26,7 @@ export default function RAGInsights({ ragMetrics }: RAGInsightsProps) {
       >
         <div className="flex items-center gap-2">
           <span className="text-xl">📊</span>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-200">
+          <h3 className="text-lg font-semibold text-foreground dark:text-gray-200">
             Métriques de Recherche RAG
           </h3>
           <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full">
@@ -34,9 +34,9 @@ export default function RAGInsights({ ragMetrics }: RAGInsightsProps) {
           </span>
         </div>
         {isOpen ? (
-          <ChevronUp className="w-5 h-5 text-gray-500" />
+          <ChevronUp className="w-5 h-5 text-muted-foreground" />
         ) : (
-          <ChevronDown className="w-5 h-5 text-gray-500" />
+          <ChevronDown className="w-5 h-5 text-muted-foreground" />
         )}
       </button>
 
@@ -46,63 +46,63 @@ export default function RAGInsights({ ragMetrics }: RAGInsightsProps) {
           {/* Ligne 1 : Stats principales */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* Sources trouvées */}
-            <div className="rounded-lg bg-white dark:bg-gray-800/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Sources trouvées</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalFound}</div>
+            <div className="rounded-lg bg-card dark:bg-gray-800/50 p-4 border border-border dark:border-gray-700">
+              <div className="text-xs text-muted-foreground dark:text-muted-foreground/80 mb-1">Sources trouvées</div>
+              <div className="text-2xl font-bold text-foreground dark:text-gray-100">{totalFound}</div>
             </div>
 
             {/* Au-dessus du seuil */}
-            <div className="rounded-lg bg-white dark:bg-gray-800/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Pertinentes (≥60%)</div>
+            <div className="rounded-lg bg-card dark:bg-gray-800/50 p-4 border border-border dark:border-gray-700">
+              <div className="text-xs text-muted-foreground dark:text-muted-foreground/80 mb-1">Pertinentes (≥60%)</div>
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">{aboveThreshold}</div>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 {totalFound > 0 ? Math.round((aboveThreshold / totalFound) * 100) : 0}% du total
               </div>
             </div>
 
             {/* Temps de recherche */}
-            <div className="rounded-lg bg-white dark:bg-gray-800/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Temps de recherche</div>
+            <div className="rounded-lg bg-card dark:bg-gray-800/50 p-4 border border-border dark:border-gray-700">
+              <div className="text-xs text-muted-foreground dark:text-muted-foreground/80 mb-1">Temps de recherche</div>
               <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {searchTimeMs}ms
               </div>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 {searchTimeMs < 100 ? '⚡ Très rapide' : searchTimeMs < 500 ? '✓ Rapide' : '⏱ Normal'}
               </div>
             </div>
 
             {/* Provider */}
-            <div className="rounded-lg bg-white dark:bg-gray-800/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Provider</div>
-              <div className="text-lg font-semibold text-gray-900 dark:text-gray-100 capitalize">
+            <div className="rounded-lg bg-card dark:bg-gray-800/50 p-4 border border-border dark:border-gray-700">
+              <div className="text-xs text-muted-foreground dark:text-muted-foreground/80 mb-1">Provider</div>
+              <div className="text-lg font-semibold text-foreground dark:text-gray-100 capitalize">
                 {provider || 'N/A'}
               </div>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 {cacheHit ? '✓ Cache hit' : '○ Cache miss'}
               </div>
             </div>
           </div>
 
           {/* Ligne 2 : Scores */}
-          <div className="rounded-lg bg-white dark:bg-gray-800/50 p-4 border border-gray-200 dark:border-gray-700">
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+          <div className="rounded-lg bg-card dark:bg-gray-800/50 p-4 border border-border dark:border-gray-700">
+            <h4 className="text-sm font-semibold text-foreground dark:text-gray-300 mb-3">
               Distribution des scores de pertinence
             </h4>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">Minimum</div>
+                <div className="text-xs text-muted-foreground dark:text-muted-foreground/80">Minimum</div>
                 <div className="text-xl font-bold text-red-600 dark:text-red-400">
                   {(scoreRange.min * 100).toFixed(1)}%
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">Moyenne</div>
+                <div className="text-xs text-muted-foreground dark:text-muted-foreground/80">Moyenne</div>
                 <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
                   {(scoreRange.avg * 100).toFixed(1)}%
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">Maximum</div>
+                <div className="text-xs text-muted-foreground dark:text-muted-foreground/80">Maximum</div>
                 <div className="text-xl font-bold text-green-600 dark:text-green-400">
                   {(scoreRange.max * 100).toFixed(1)}%
                 </div>
@@ -123,8 +123,8 @@ export default function RAGInsights({ ragMetrics }: RAGInsightsProps) {
 
           {/* Ligne 3 : Distribution par type de source */}
           {Object.keys(sourceDistribution).length > 0 && (
-            <div className="rounded-lg bg-white dark:bg-gray-800/50 p-4 border border-gray-200 dark:border-gray-700">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            <div className="rounded-lg bg-card dark:bg-gray-800/50 p-4 border border-border dark:border-gray-700">
+              <h4 className="text-sm font-semibold text-foreground dark:text-gray-300 mb-3">
                 Distribution par type de source
               </h4>
               <div className="space-y-2">
@@ -134,17 +134,17 @@ export default function RAGInsights({ ragMetrics }: RAGInsightsProps) {
                     code: { label: 'Codes et Lois', color: 'bg-blue-500', icon: '📖' },
                     jurisprudence: { label: 'Jurisprudence', color: 'bg-amber-500', icon: '⚖️' },
                     doctrine: { label: 'Doctrine', color: 'bg-purple-500', icon: '📚' },
-                  }[type] || { label: type, color: 'bg-gray-500', icon: '📄' }
+                  }[type] || { label: type, color: 'bg-muted', icon: '📄' }
 
                   return (
                     <div key={type} className="flex items-center gap-3">
                       <span className="text-lg">{typeConfig.icon}</span>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                          <span className="text-sm text-foreground dark:text-gray-300">
                             {typeConfig.label}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-muted-foreground">
                             {count} ({percentage.toFixed(0)}%)
                           </span>
                         </div>
@@ -163,7 +163,7 @@ export default function RAGInsights({ ragMetrics }: RAGInsightsProps) {
           )}
 
           {/* Note explicative */}
-          <div className="text-xs text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+          <div className="text-xs text-muted-foreground dark:text-muted-foreground/80 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
             <span className="font-medium">💡 Info :</span> Ces métriques montrent comment les sources juridiques ont été trouvées et évaluées pour enrichir cette analyse. Un score de pertinence élevé (≥ 80%) indique une correspondance forte avec votre dossier.
           </div>
         </div>

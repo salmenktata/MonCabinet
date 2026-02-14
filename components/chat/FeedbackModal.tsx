@@ -290,7 +290,7 @@ export default function FeedbackModal({
                     value={missingInfo}
                     onChange={e => setMissingInfo(e.target.value)}
                     rows={2}
-                    className="w-full rounded-lg border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-700"
+                    className="w-full rounded-lg border border-border p-2 text-sm dark:border-gray-600 dark:bg-gray-700"
                     placeholder="Ex: Jurisprudence récente, articles COC, etc."
                   />
                 </div>
@@ -305,7 +305,7 @@ export default function FeedbackModal({
                     value={incorrectCitation}
                     onChange={e => setIncorrectCitation(e.target.value)}
                     rows={2}
-                    className="w-full rounded-lg border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-700"
+                    className="w-full rounded-lg border border-border p-2 text-sm dark:border-gray-600 dark:bg-gray-700"
                     placeholder="Ex: Arrêt n° 12345/2020 - Cour de Cassation"
                   />
                 </div>
@@ -335,7 +335,7 @@ export default function FeedbackModal({
                   value={suggestedSources}
                   onChange={e => setSuggestedSources(e.target.value)}
                   rows={3}
-                  className="w-full rounded-lg border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-700"
+                  className="w-full rounded-lg border border-border p-2 text-sm dark:border-gray-600 dark:bg-gray-700"
                   placeholder="Une source par ligne :&#10;Arrêt Cassation n° 12345/2020&#10;Article 242 COC&#10;https://cassation.tn/arret/..."
                 />
               </div>
@@ -349,7 +349,7 @@ export default function FeedbackModal({
                   value={comment}
                   onChange={e => setComment(e.target.value)}
                   rows={3}
-                  className="w-full rounded-lg border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-700"
+                  className="w-full rounded-lg border border-border p-2 text-sm dark:border-gray-600 dark:bg-gray-700"
                   placeholder="Tout autre commentaire pour améliorer la réponse..."
                 />
               </div>
@@ -358,7 +358,7 @@ export default function FeedbackModal({
               <div className="flex justify-end gap-3">
                 <button
                   onClick={onClose}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
                 >
                   Annuler
                 </button>
@@ -423,7 +423,7 @@ function FeedbackTypeCheckbox({
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+        className="h-4 w-4 rounded border-border text-blue-600 focus:ring-2 focus:ring-blue-500"
       />
       <span className={variant === 'danger' ? 'text-red-600 dark:text-red-400' : ''}>
         {icon}

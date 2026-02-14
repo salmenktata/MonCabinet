@@ -73,6 +73,32 @@ const RechartsResponsiveContainer = dynamic(
   { ssr: false }
 )
 
+const RechartsLineChart = dynamic(
+  () => import('recharts').then((mod) => mod.LineChart),
+  {
+    loading: () => <Skeleton className="h-64 w-full" />,
+    ssr: false,
+  }
+)
+
+const RechartsLine = dynamic(
+  () => import('recharts').then((mod) => mod.Line),
+  { ssr: false }
+)
+
+const RechartsAreaChart = dynamic(
+  () => import('recharts').then((mod) => mod.AreaChart),
+  {
+    loading: () => <Skeleton className="h-64 w-full" />,
+    ssr: false,
+  }
+)
+
+const RechartsArea = dynamic(
+  () => import('recharts').then((mod) => mod.Area),
+  { ssr: false }
+)
+
 // Export avec les bons types
 export const BarChart = RechartsBarChart as typeof import('recharts').BarChart
 export const Bar = RechartsBar as typeof import('recharts').Bar
@@ -85,3 +111,7 @@ export const CartesianGrid = RechartsCartesianGrid as typeof import('recharts').
 export const Tooltip = RechartsTooltip as typeof import('recharts').Tooltip
 export const Legend = RechartsLegend as typeof import('recharts').Legend
 export const ResponsiveContainer = RechartsResponsiveContainer as typeof import('recharts').ResponsiveContainer
+export const LineChart = RechartsLineChart as typeof import('recharts').LineChart
+export const Line = RechartsLine as typeof import('recharts').Line
+export const AreaChart = RechartsAreaChart as typeof import('recharts').AreaChart
+export const Area = RechartsArea as typeof import('recharts').Area

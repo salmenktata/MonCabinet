@@ -453,7 +453,7 @@ export function DossierFormAdvanced({
                     </SelectItem>
                     <SelectItem value="archive">
                       <div className="flex items-center gap-2">
-                        <Icons.archive className="h-4 w-4 text-gray-500" />
+                        <Icons.archive className="h-4 w-4 text-muted-foreground" />
                         <span>Archivé</span>
                       </div>
                     </SelectItem>

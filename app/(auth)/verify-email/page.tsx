@@ -56,8 +56,8 @@ export default function VerifyEmailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Email vérifié !</h3>
-          <p className="mt-2 text-sm text-gray-500">
+          <h3 className="mt-4 text-lg font-medium text-foreground">Email vérifié !</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
             Votre adresse email a été vérifiée avec succès. Vous pouvez maintenant vous connecter.
           </p>
           <div className="mt-6">
@@ -83,8 +83,8 @@ export default function VerifyEmailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Email déjà vérifié</h3>
-          <p className="mt-2 text-sm text-gray-500">
+          <h3 className="mt-4 text-lg font-medium text-foreground">Email déjà vérifié</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
             Votre adresse email est déjà vérifiée. Vous pouvez vous connecter.
           </p>
           <div className="mt-6">
@@ -127,8 +127,8 @@ export default function VerifyEmailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Erreur de vérification</h3>
-          <p className="mt-2 text-sm text-gray-500">{errorMessage}</p>
+          <h3 className="mt-4 text-lg font-medium text-foreground">Erreur de vérification</h3>
+          <p className="mt-2 text-sm text-muted-foreground">{errorMessage}</p>
 
           {resendSuccess && (
             <div className="mt-4 rounded-md bg-green-50 p-3 text-sm text-green-800">
@@ -170,8 +170,8 @@ export default function VerifyEmailPage() {
   return (
     <div className="rounded-lg border bg-card p-8 shadow-lg max-w-md mx-auto">
       <div className="text-center">
-        <h3 className="text-lg font-medium text-gray-900">Vérification email</h3>
-        <p className="mt-2 text-sm text-gray-500">
+        <h3 className="text-lg font-medium text-foreground">Vérification email</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
           Veuillez cliquer sur le lien envoyé à votre adresse email pour vérifier votre compte.
         </p>
         <div className="mt-6">

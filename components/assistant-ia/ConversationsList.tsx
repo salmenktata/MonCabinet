@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, memo } from 'react'
 import { useTranslations } from 'next-intl'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { cn } from '@/lib/utils'
@@ -228,7 +228,7 @@ interface ConversationItemProps {
   onPrefetch?: (id: string) => void
 }
 
-function ConversationItem({
+const ConversationItem = memo(function ConversationItem({
   conv,
   isSelected,
   onSelect,
@@ -277,4 +277,14 @@ function ConversationItem({
       </Button>
     </div>
   )
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison: ne re-render que si la conversation ou son état change
+  return (
+    prevProps.conv.id === nextProps.conv.id &&
+    prevProps.conv.title === nextProps.conv.title &&
+    prevProps.conv.dossierNumero === nextProps.conv.dossierNumero &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.conv.lastMessageAt === nextProps.conv.lastMessageAt &&
+    prevProps.conv.updatedAt === nextProps.conv.updatedAt
+  )
+})

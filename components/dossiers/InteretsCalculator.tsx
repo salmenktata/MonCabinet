@@ -62,17 +62,17 @@ export default function InteretsCalculator({
 
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
-          <span className="text-gray-600">Jours de retard:</span>
+          <span className="text-muted-foreground">Jours de retard:</span>
           <span className="font-semibold">{resultat.joursRetard} jours</span>
         </div>
 
         <div className="flex justify-between">
-          <span className="text-gray-600">Taux appliqué:</span>
+          <span className="text-muted-foreground">Taux appliqué:</span>
           <span className="font-semibold">{resultat.tauxInteret}% (TMM+7)</span>
         </div>
 
         <div className="flex justify-between border-t border-blue-200 pt-2">
-          <span className="text-gray-600">Intérêts calculés:</span>
+          <span className="text-muted-foreground">Intérêts calculés:</span>
           <span className="font-bold text-blue-600">
             {formaterMontantTND(resultat.interetsCalcules)}
           </span>
@@ -80,7 +80,7 @@ export default function InteretsCalculator({
 
         {resultat.indemniteForfaitaire > 0 && (
           <div className="flex justify-between">
-            <span className="text-gray-600">Indemnité forfaitaire (loi 2017):</span>
+            <span className="text-muted-foreground">Indemnité forfaitaire (loi 2017):</span>
             <span className="font-semibold">
               {formaterMontantTND(resultat.indemniteForfaitaire)}
             </span>
@@ -95,7 +95,7 @@ export default function InteretsCalculator({
         </div>
       </div>
 
-      <div className="mt-3 rounded-md bg-blue-50 p-2 text-xs text-gray-600">
+      <div className="mt-3 rounded-md bg-blue-50 p-2 text-xs text-muted-foreground">
         <strong>Formule:</strong> {montantPrincipal.toFixed(3)} × ({tauxInteret}% / 100) ×
         ({resultat.joursRetard} / 365) = {formaterMontantTND(resultat.interetsCalcules)}
       </div>

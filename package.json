@@ -11,6 +11,7 @@
     "dev": "next dev -p 7002",
     "prebuild": "npm run seed",
     "build": "next build",
+    "analyze": "ANALYZE=true npm run build",
     "prestart": "npm run seed",
     "start": "next start",
     "lint": "next lint",
@@ -212,6 +213,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.1.6",
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",

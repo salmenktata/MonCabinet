@@ -16,7 +16,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts'
+} from '@/components/charts/LazyCharts'
 
 interface QuotaData {
   provider: string

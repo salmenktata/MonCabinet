@@ -191,9 +191,9 @@ export default function LegalFilters({
           )}
         </div>
         {isCollapsed ? (
-          <ChevronDown className="w-5 h-5 text-gray-500" />
+          <ChevronDown className="w-5 h-5 text-muted-foreground" />
         ) : (
-          <ChevronUp className="w-5 h-5 text-gray-500" />
+          <ChevronUp className="w-5 h-5 text-muted-foreground" />
         )}
       </button>
 
@@ -201,7 +201,7 @@ export default function LegalFilters({
       {!isCollapsed && (
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
           {loading ? (
-            <div className="text-center py-4 text-gray-500">
+            <div className="text-center py-4 text-muted-foreground">
               Chargement des filtres...
             </div>
           ) : (
@@ -290,7 +290,7 @@ export default function LegalFilters({
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    <label className="block text-xs text-muted-foreground dark:text-gray-400 mb-1">
                       Du
                     </label>
                     <input
@@ -301,7 +301,7 @@ export default function LegalFilters({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    <label className="block text-xs text-muted-foreground dark:text-gray-400 mb-1">
                       Au
                     </label>
                     <input
@@ -348,7 +348,7 @@ export default function LegalFilters({
                   }}
                   className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
                 />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
                   <span>0%</span>
                   <span>50%</span>
                   <span>100%</span>
