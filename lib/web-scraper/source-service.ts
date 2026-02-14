@@ -693,6 +693,7 @@ function mapRowToWebSource(row: Record<string, unknown>): WebSource {
     avgCrawlDurationMs: row.avg_crawl_duration_ms as number,
     ignoreSSLErrors: (row.ignore_ssl_errors as boolean) || false,
     autoIndexFiles: (row.auto_index_files as boolean) || false,
+    driveConfig: (row.drive_config as any) || null, // ✅ Fix: Google Drive config mapping
     createdBy: row.created_by as string | null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),

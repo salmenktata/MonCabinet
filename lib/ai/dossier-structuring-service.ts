@@ -1285,6 +1285,7 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, sans texte avant ou après.`
       { role: 'user', content: userPrompt },
     ],
     {
+      operationName: 'dossiers-assistant', // ✅ Utilise config Gemini primaire (skip Ollama)
       temperature: 0.3,
       maxTokens: 4000,
     }

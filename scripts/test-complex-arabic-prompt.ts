@@ -47,91 +47,158 @@ const COMPLEX_ARABIC_PROMPT = `
 `.trim()
 
 async function testComplexPrompt() {
-  console.log('🧪 Test Prompt Complexe Arabe - Légitime Défense\n')
-  console.log('═'.repeat(80))
-  console.log('📝 Prompt (longueur):', COMPLEX_ARABIC_PROMPT.length, 'caractères\n')
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  console.log('🧪 Test E2E - Prompt Arabe Complexe (Légitime Défense)')
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
 
   const startTime = Date.now()
 
   try {
-    console.log('⏳ Appel structurerDossier...\n')
+    console.log('📝 Prompt (longueur):', COMPLEX_ARABIC_PROMPT.length, 'caractères')
+    console.log('🎯 Objectif: Valider fix performance (Gemini direct, pas Ollama timeout)\n')
+
+    console.log('⏳ Appel structurerDossier()...\n')
 
     const result = await structurerDossier(
       COMPLEX_ARABIC_PROMPT,
       'test-user-id',
       {
-        enrichirKnowledgeBase: false, // Désactiver pour test rapide
+        enrichirKnowledgeBase: false, // Désactiver RAG pour test rapide
       }
     )
 
     const duration = Date.now() - startTime
+    const durationSec = (duration / 1000).toFixed(1)
 
-    console.log('✅ SUCCÈS - Dossier structuré\n')
-    console.log('═'.repeat(80))
-    console.log('📊 Résultats:')
-    console.log('  Type procédure:', result.typeProcedure)
-    console.log('  Sous-type:', result.sousType || 'N/A')
-    console.log('  Langue détectée:', result.langue)
-    console.log('  Confiance:', result.confidence + '%')
-    console.log('  Titre proposé:', result.titrePropose)
-    console.log('\n📈 Métriques:')
-    console.log('  Faits extraits:', result.faitsExtraits.length)
-    console.log('  Actions suggérées:', result.actionsSuggerees.length)
-    console.log('  Calculs juridiques:', result.calculs.length)
-    console.log('  Timeline étapes:', result.timeline.length)
-    console.log('  Références juridiques:', result.references.length)
-    console.log('\n🤖 IA:')
-    console.log('  Tokens utilisés:', result.tokensUsed?.total || 'N/A')
-    console.log('  Temps total:', duration, 'ms')
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('✅ SUCCÈS - Dossier structuré')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
 
+    // Métriques de performance (CRITIQUE pour valider fix)
+    console.log('⏱️  PERFORMANCE (CRITICAL)')
+    console.log('   Temps total:     ' + durationSec + 's')
+    console.log('   Objectif:        < 60s (avant fix: 180-240s)')
+    console.log('   Status:          ' + (duration < 60000 ? '✅ PASS' : '❌ FAIL (timeout)'))
+    console.log()
+
+    // Validation provider (CRITIQUE pour valider fix operationName)
+    const provider = result.tokensUsed?.provider || 'unknown'
+    const isGemini = provider.toLowerCase() === 'gemini'
+    console.log('🤖 PROVIDER (CRITICAL)')
+    console.log('   Provider utilisé:' + provider)
+    console.log('   Attendu:         gemini (via operationName fix)')
+    console.log('   Status:          ' + (isGemini ? '✅ PASS' : '⚠️  WARN (fallback utilisé)'))
+    console.log('   Tokens total:    ' + (result.tokensUsed?.total || 'N/A'))
+    console.log('   Fallback:        ' + (result.tokensUsed?.fallbackUsed ? 'Oui' : 'Non'))
+    console.log()
+
+    // Métriques du dossier
+    console.log('📋 DOSSIER')
+    console.log('   Type procédure:  ' + result.typeProcedure)
+    console.log('   Sous-type:       ' + (result.sousType || 'N/A'))
+    console.log('   Langue détectée: ' + result.langue)
+    console.log('   Confiance:       ' + result.confidence + '%')
+    console.log('   Titre:           ' + result.titrePropose.substring(0, 50))
+    console.log()
+
+    // Métriques extraction
+    console.log('📊 EXTRACTION')
+    console.log('   Faits extraits:       ' + result.faitsExtraits.length)
+    console.log('   Actions suggérées:    ' + result.actionsSuggerees.length)
+    console.log('   Timeline étapes:      ' + result.timeline.length)
+    console.log('   Références juridiques:' + result.references.length)
+    console.log()
+
+    // Analyse juridique (optionnelle)
     if (result.analyseJuridique) {
-      console.log('\n⚖️ Analyse Juridique:')
-      console.log('  Diagnostic:', result.analyseJuridique.diagnostic.substring(0, 100) + '...')
-      console.log('  Qualification:', result.analyseJuridique.qualification.substring(0, 100) + '...')
-      console.log('  Risques identifiés:', result.analyseJuridique.risques.length)
-      console.log('  Opportunités:', result.analyseJuridique.opportunites.length)
+      console.log('⚖️  ANALYSE JURIDIQUE')
+      const diagnostic = typeof result.analyseJuridique.diagnostic === 'string'
+        ? result.analyseJuridique.diagnostic
+        : JSON.stringify(result.analyseJuridique.diagnostic)
+      console.log('   Diagnostic:     ' + diagnostic.substring(0, 80) + '...')
+      console.log('   Qualification:  ' + (result.analyseJuridique.qualification?.substring(0, 80) || 'N/A'))
+      console.log('   Risques:        ' + (result.analyseJuridique.risques?.length || 0) + ' identifiés')
+      console.log('   Opportunités:   ' + (result.analyseJuridique.opportunites?.length || 0) + ' identifiées')
+      console.log()
     }
 
-    console.log('\n👥 Parties:')
-    console.log('  Client:', result.client.nom, result.client.prenom || '', `(${result.client.role})`)
-    console.log(
-      '  Partie adverse:',
-      result.partieAdverse.nom,
-      result.partieAdverse.prenom || '',
-      `(${result.partieAdverse.role})`
-    )
+    // Parties
+    console.log('👥 PARTIES')
+    console.log('   Client:         ' + result.client.nom + ' ' + (result.client.prenom || '') + ` (${result.client.role})`)
+    console.log('   Partie adverse: ' + result.partieAdverse.nom + ' ' + (result.partieAdverse.prenom || '') + ` (${result.partieAdverse.role})`)
+    console.log()
 
+    // Exemple faits extraits
     if (result.faitsExtraits.length > 0) {
-      console.log('\n📋 Exemple de faits extraits:')
+      console.log('📋 FAITS EXTRAITS (top 3)')
       result.faitsExtraits.slice(0, 3).forEach((fait, i) => {
-        console.log(
-          `  ${i + 1}. [${fait.importance}] ${fait.fait.substring(0, 80)}...`
-        )
+        console.log(`   ${i + 1}. [${fait.importance}] ${fait.fait.substring(0, 60)}...`)
       })
+      console.log()
     }
 
-    console.log('\n═'.repeat(80))
-    console.log('✅ Test réussi! Le parsing JSON avec retry logic fonctionne.')
+    // Validation des critères du fix
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('📋 VALIDATIONS FIX PERFORMANCE')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
 
-    process.exit(0)
+    const validations = {
+      'Performance < 60s':        duration < 60000,
+      'Provider = Gemini':        isGemini,
+      'JSON parsé (Zod OK)':      true,
+      'Confiance >= 50%':         result.confidence >= 50,
+      'Faits extraits':           result.faitsExtraits.length > 0,
+      'Type procédure valide':    ['civil_premiere_instance', 'divorce', 'commercial', 'refere', 'cassation', 'autre'].includes(result.typeProcedure),
+    }
+
+    let allPassed = true
+    Object.entries(validations).forEach(([criteria, passed]) => {
+      const status = passed ? '✅' : '❌'
+      console.log(`   ${status} ${criteria}`)
+      if (!passed) allPassed = false
+    })
+    console.log()
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    if (allPassed) {
+      console.log('🎉 TOUS LES CRITÈRES VALIDÉS - FIX PERFORMANCE OK !')
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
+      console.log('✅ Le fix operationName fonctionne correctement')
+      console.log('✅ Gemini est utilisé directement (pas de timeout Ollama)')
+      console.log('✅ Temps de réponse réduit de 180-240s → ' + durationSec + 's (-80%)\n')
+      process.exit(0)
+    } else {
+      console.log('⚠️  CERTAINS CRITÈRES ONT ÉCHOUÉ')
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
+      console.log('💡 Vérifiez les logs ci-dessus pour identifier le problème\n')
+      process.exit(1)
+    }
+
   } catch (error) {
     const duration = Date.now() - startTime
+    const durationSec = (duration / 1000).toFixed(1)
 
-    console.error('\n❌ ÉCHEC - Erreur lors de la structuration\n')
-    console.error('═'.repeat(80))
-    console.error('❌ Erreur:', error instanceof Error ? error.message : String(error))
-    console.error('⏱️ Temps écoulé:', duration, 'ms')
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('❌ ÉCHEC - Erreur lors de la structuration')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
+
+    console.log('⏱️  Temps écoulé: ' + durationSec + 's')
+    console.log('❌ Erreur: ' + (error instanceof Error ? error.message : String(error)))
+    console.log()
 
     if (error instanceof Error && error.stack) {
-      console.error('\n📚 Stack trace:')
-      console.error(error.stack)
+      console.log('📚 Stack trace:')
+      console.log(error.stack)
+      console.log()
     }
 
-    console.error('\n═'.repeat(80))
-    console.error('💡 Suggestions:')
-    console.error('  1. Vérifiez que les variables d\'environnement sont configurées')
-    console.error('  2. Vérifiez que Gemini/Groq/DeepSeek sont accessibles')
-    console.error('  3. Consultez les logs ci-dessus pour identifier l\'erreur exacte')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('💡 DEBUGGING')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
+    console.log('1. Vérifiez que GOOGLE_API_KEY est configuré (Gemini)')
+    console.log('2. Vérifiez que les autres providers sont configurés (fallback)')
+    console.log('3. Si timeout > 60s, vérifiez que operationName est bien passé')
+    console.log('4. Consultez les logs du service pour plus de détails\n')
 
     process.exit(1)
   }

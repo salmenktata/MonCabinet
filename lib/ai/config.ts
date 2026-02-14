@@ -95,7 +95,7 @@ export const aiConfig: AIConfig = {
     embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL || 'qwen3-embedding:0.6b',
     embeddingDimensions: 1024, // Qwen3 embedding default dimension
     enabled: process.env.OLLAMA_ENABLED === 'true',
-    chatTimeoutDefault: parseInt(process.env.OLLAMA_CHAT_TIMEOUT_DEFAULT || '120000', 10),
+    chatTimeoutDefault: parseInt(process.env.OLLAMA_CHAT_TIMEOUT_DEFAULT || '15000', 10), // 15s (fail rapide si container absent)
   },
 
   groq: {
