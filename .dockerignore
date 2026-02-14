@@ -45,6 +45,7 @@ README.md
 docs/
 *.md
 !docs/DEPLOYMENT_VPS.md
+!docs/env-schema.json
 
 # CI/CD
 .github
