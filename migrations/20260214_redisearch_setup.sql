@@ -121,16 +121,17 @@ CREATE OR REPLACE VIEW vw_redisearch_pending_sync AS
 SELECT
   kbc.id as chunk_id,
   kbc.knowledge_base_id,
-  kbc.title,
-  kbc.content_chunk,
-  kbc.category,
-  kbc.language,
+  kb.title,
+  kbc.content AS content_chunk,
+  kb.category,
+  kb.language,
   kbc.embedding,
   kbc.embedding_openai,
   rs.sync_status,
   rs.last_synced_at,
   EXTRACT(EPOCH FROM (NOW() - rs.last_synced_at)) / 3600 as staleness_hours
 FROM knowledge_base_chunks kbc
+JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
 LEFT JOIN redisearch_sync_status rs ON kbc.id = rs.chunk_id
 WHERE rs.sync_status IN ('pending', 'error', 'stale')
    OR rs.chunk_id IS NULL -- Nouveaux chunks jamais indexés

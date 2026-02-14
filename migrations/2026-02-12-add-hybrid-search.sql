@@ -25,7 +25,7 @@ COMMENT ON COLUMN knowledge_base_chunks.content_tsvector IS
 -- Générer ts_vector pour arabe + français
 -- Utilise simple (pas de stemming) car arabe complexe + legal tech terms
 UPDATE knowledge_base_chunks
-SET content_tsvector = to_tsvector('simple', content_chunk)
+SET content_tsvector = to_tsvector('simple', content)
 WHERE content_tsvector IS NULL;
 
 -- =============================================================================
@@ -44,7 +44,7 @@ USING gin(content_tsvector);
 -- Fonction trigger pour auto-update ts_vector lors INSERT/UPDATE
 CREATE OR REPLACE FUNCTION kb_chunks_tsvector_trigger() RETURNS trigger AS $$
 BEGIN
-  NEW.content_tsvector = to_tsvector('simple', NEW.content_chunk);
+  NEW.content_tsvector = to_tsvector('simple', NEW.content);
   RETURN NEW;
 END
 $$ LANGUAGE plpgsql;
@@ -104,7 +104,7 @@ BEGIN
       kbc.knowledge_base_id,
       kbc.id AS chunk_id,
       kb.title,
-      kbc.content_chunk AS chunk_content,
+      kbc.content AS chunk_content,
       kbc.chunk_index,
       (1 - (CASE WHEN use_openai THEN kbc.embedding_openai ELSE kbc.embedding END <=> query_embedding)) AS vec_sim,
       kb.category::text,
@@ -164,7 +164,7 @@ BEGIN
       kbc.knowledge_base_id,
       br.chunk_id,
       kb.title,
-      kbc.content_chunk,
+      kbc.content AS chunk_content,
       kbc.chunk_index,
       0.0 AS vec_sim,  -- Pas de score vectoriel
       br.rank AS bm25_rank,
