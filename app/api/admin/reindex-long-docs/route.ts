@@ -47,10 +47,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const duration = Date.now() - startTime
 
     return NextResponse.json({
-      success: true,
       duration,
       dryRun,
-      ...result,
+      ...result, // result already contains success boolean
     })
   } catch (error) {
     console.error('[ReindexLongDocs] Erreur:', error)
