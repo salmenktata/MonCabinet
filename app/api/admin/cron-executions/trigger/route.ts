@@ -2,10 +2,15 @@
  * API: Trigger Manual Cron Execution
  * POST /api/admin/cron-executions/trigger
  * Auth: Session admin (Next-Auth)
+ * Phase 6.2: Support paramètres configurables
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import {
+  validateCronParameters,
+  parametersToEnvVars,
+} from '@/lib/cron/cron-parameters'
 
 // Map cron names to script paths
 const CRON_SCRIPTS: Record<string, { script: string; description: string; estimatedDuration: number }> = {
@@ -50,7 +55,7 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Parse body
     const body = await req.json()
-    const { cronName } = body
+    const { cronName, parameters = {} } = body
 
     if (!cronName || typeof cronName !== 'string') {
       return NextResponse.json(
@@ -67,6 +72,25 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Phase 6.2: Valider les paramètres
+    const validation = validateCronParameters(cronName, parameters)
+    if (!validation.valid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid parameters',
+          validationErrors: validation.errors,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Phase 6.2: Convertir paramètres en variables d'environnement
+    const envVars = parametersToEnvVars(cronName, parameters)
+
+    console.log(`[Manual Trigger] Parameters for ${cronName}:`, parameters)
+    console.log(`[Manual Trigger] Env vars:`, envVars)
 
     // 3. Check if cron is not already running
     const runningCheck = await db.query(
@@ -90,11 +114,14 @@ export async function POST(req: NextRequest) {
     // 4. Execute cron via trigger server (HTTP call to host service)
     const triggerServerUrl = process.env.CRON_TRIGGER_SERVER_URL || 'http://host.docker.internal:9998/trigger'
 
-    // Call trigger server asynchronously
+    // Phase 6.2: Passer les paramètres au serveur Python
     fetch(triggerServerUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cronName }),
+      body: JSON.stringify({
+        cronName,
+        envVars, // Phase 6.2: Variables d'environnement
+      }),
     })
       .then((response) => {
         if (!response.ok) {
