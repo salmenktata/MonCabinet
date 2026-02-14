@@ -247,6 +247,9 @@ jobs:
               docker cp /tmp/deploy-bundle/.next/. qadhya-nextjs:/app/.next/
               docker cp /tmp/deploy-bundle/public/. qadhya-nextjs:/app/public/
 
+              # Fix permissions (docker cp copie avec root, pas nextjs)
+              docker exec -u root qadhya-nextjs chown -R nextjs:nodejs /app/.next /app/public /app/server.js
+
               # Restart container to pick up new code
               docker restart qadhya-nextjs
 
