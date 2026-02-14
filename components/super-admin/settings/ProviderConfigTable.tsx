@@ -13,6 +13,9 @@ import {
   PROVIDER_NAMES,
   PROVIDER_COLORS,
 } from '@/lib/constants/providers'
+import { OPERATION_LABELS } from '@/lib/types/ai-config.types'
+import type { OperationName } from '@/lib/ai/operations-config'
+import type { LLMProvider } from '@/lib/ai/llm-fallback-service'
 
 interface ApiKeyData {
   provider: string
@@ -30,6 +33,14 @@ interface ApiKeyData {
   updatedAt: string
 }
 
+interface ProviderOperationsMap {
+  [provider: string]: {
+    operations: OperationName[]
+    primaryFor: OperationName[]
+    fallbackFor: OperationName[]
+  }
+}
+
 const ProviderConfigTable: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<ApiKeyData[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,6 +48,7 @@ const ProviderConfigTable: React.FC = () => {
   const [deletingProvider, setDeletingProvider] = useState<string | null>(null)
   const [editingProvider, setEditingProvider] = useState<ApiKeyData | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [providerOperations, setProviderOperations] = useState<ProviderOperationsMap>({})
 
   // Charger les clés API
   const loadApiKeys = async () => {
@@ -58,8 +70,51 @@ const ProviderConfigTable: React.FC = () => {
     }
   }
 
+  // Charger mapping providers → operations
+  const loadProviderOperations = async () => {
+    try {
+      const response = await fetch('/api/admin/operations-config')
+      const data = await response.json()
+
+      if (data.success && data.operations) {
+        const mapping: ProviderOperationsMap = {}
+
+        data.operations.forEach((op: any) => {
+          const primaryProvider = op.primaryProvider as LLMProvider
+          const fallbackProviders = (op.fallbackProviders || []) as LLMProvider[]
+          const allProviders = [primaryProvider, ...fallbackProviders]
+
+          allProviders.forEach((provider) => {
+            if (!mapping[provider]) {
+              mapping[provider] = {
+                operations: [],
+                primaryFor: [],
+                fallbackFor: [],
+              }
+            }
+
+            if (!mapping[provider].operations.includes(op.operationName)) {
+              mapping[provider].operations.push(op.operationName)
+            }
+
+            if (provider === primaryProvider) {
+              mapping[provider].primaryFor.push(op.operationName)
+            } else {
+              mapping[provider].fallbackFor.push(op.operationName)
+            }
+          })
+        })
+
+        setProviderOperations(mapping)
+      }
+    } catch (error) {
+      console.error('Error loading provider operations:', error)
+    }
+  }
+
   useEffect(() => {
     loadApiKeys()
+    loadProviderOperations()
   }, [])
 
   // Tester la connexion à un provider
@@ -190,6 +245,44 @@ const ProviderConfigTable: React.FC = () => {
     return <Badge className="bg-green-500">✅ Standby</Badge>
   }
 
+  // Render operations actives badges
+  const renderOperationsBadges = (provider: string) => {
+    const providerOps = providerOperations[provider]
+    if (!providerOps || providerOps.operations.length === 0) {
+      return <span className="text-xs text-muted-foreground">Aucune</span>
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {providerOps.operations.slice(0, 3).map((op) => {
+          const isPrimary = providerOps.primaryFor.includes(op)
+          const label = OPERATION_LABELS[op]
+
+          return (
+            <Badge
+              key={op}
+              variant="outline"
+              className={`text-xs ${
+                isPrimary
+                  ? 'bg-green-500/20 border-green-500/50'
+                  : 'bg-blue-500/20 border-blue-500/50'
+              }`}
+              title={`${label.fr} - ${isPrimary ? 'Primary' : 'Fallback'}`}
+            >
+              {label.fr.length > 15 ? label.fr.substring(0, 12) + '...' : label.fr}
+              {isPrimary && ' 🏆'}
+            </Badge>
+          )
+        })}
+        {providerOps.operations.length > 3 && (
+          <Badge variant="outline" className="text-xs">
+            +{providerOps.operations.length - 3}
+          </Badge>
+        )}
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <Card>
@@ -232,6 +325,7 @@ const ProviderConfigTable: React.FC = () => {
                   <th className="text-left p-3 font-semibold">Clé API</th>
                   <th className="text-left p-3 font-semibold">Modèle Défaut</th>
                   <th className="text-left p-3 font-semibold">Tier</th>
+                  <th className="text-left p-3 font-semibold">Operations Actives</th>
                   <th className="text-center p-3 font-semibold">Status</th>
                   <th className="text-center p-3 font-semibold">Actions</th>
                 </tr>
@@ -239,7 +333,7 @@ const ProviderConfigTable: React.FC = () => {
               <tbody>
                 {apiKeys.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center p-8 text-muted-foreground">
+                    <td colSpan={9} className="text-center p-8 text-muted-foreground">
                       Aucune clé API configurée. Cliquez sur "Ajouter" pour en créer une.
                     </td>
                   </tr>
@@ -280,6 +374,9 @@ const ProviderConfigTable: React.FC = () => {
                             ) : (
                               '-'
                             )}
+                          </td>
+                          <td className="p-3">
+                            {renderOperationsBadges(apiKey.provider)}
                           </td>
                           <td className="p-3 text-center">{renderStatusBadge(apiKey)}</td>
                       <td className="p-3">

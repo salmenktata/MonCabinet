@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getConfigsByCategory } from '@/lib/config/platform-config'
 import AIFlowDiagram from '@/components/super-admin/settings/AIFlowDiagram'
 import ProviderConfigTable from '@/components/super-admin/settings/ProviderConfigTable'
+import OperationsConfigPanel from '@/components/super-admin/settings/OperationsConfigPanel'
 
 const BrevoTestButton = dynamic(
   () => import('@/components/super-admin/settings/BrevoTestButton').then(mod => mod.BrevoTestButton),
@@ -71,6 +72,9 @@ export default async function SettingsPage() {
 
           {/* Configuration des providers */}
           <ProviderConfigTable />
+
+          {/* Configuration par opération (NOUVEAU) */}
+          <OperationsConfigPanel />
         </TabsContent>
 
         {/* Tab 2 : Email */}
