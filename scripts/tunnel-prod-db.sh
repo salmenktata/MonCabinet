@@ -28,7 +28,7 @@ case "$1" in
       echo "✅ Tunnel SSH créé avec succès"
       echo ""
       echo "📝 Connection string pour prod:"
-      echo "   DATABASE_URL=postgresql://moncabinet:password@localhost:$LOCAL_PORT/moncabinet"
+      echo "   DATABASE_URL=postgresql://moncabinet:password@localhost:$LOCAL_PORT/qadhya"
     else
       echo "❌ Erreur lors de la création du tunnel"
       exit 1
