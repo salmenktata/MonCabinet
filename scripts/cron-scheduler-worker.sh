@@ -8,6 +8,15 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Charger variables d'environnement
+if [ -f "$PROJECT_ROOT/.env.production.local" ]; then
+  set -a
+  source "$PROJECT_ROOT/.env.production.local"
+  set +a
+fi
+
 source "$SCRIPT_DIR/lib/cron-logger.sh"
 
 # Config
