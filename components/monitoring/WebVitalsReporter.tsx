@@ -138,14 +138,13 @@ function reportMetric(metric: Metric) {
 export function WebVitalsReporter() {
   useEffect(() => {
     // Enregistrer les callbacks pour chaque métrique
-    const cleanup: Array<() => void> = []
-
+    // Note: web-vitals v4+ ne retourne plus de cleanup functions
     try {
-      cleanup.push(onLCP(reportMetric))
-      cleanup.push(onCLS(reportMetric))
-      cleanup.push(onTTFB(reportMetric))
-      cleanup.push(onINP(reportMetric))
-      cleanup.push(onFCP(reportMetric))
+      onLCP(reportMetric)
+      onCLS(reportMetric)
+      onTTFB(reportMetric)
+      onINP(reportMetric)
+      onFCP(reportMetric)
 
       // Log initial en dev
       if (process.env.NODE_ENV === 'development') {
@@ -157,11 +156,6 @@ export function WebVitalsReporter() {
       }
     } catch (error) {
       console.error('[Web Vitals] Erreur initialisation:', error)
-    }
-
-    // Cleanup on unmount
-    return () => {
-      cleanup.forEach((fn) => fn?.())
     }
   }, [])
 
