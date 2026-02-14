@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
-import { redis } from '@/lib/db/redis'
+import { redis } from '@/lib/cache/redis'
 
 const CRON_SECRET = process.env.CRON_SECRET
 

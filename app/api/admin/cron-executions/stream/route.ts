@@ -6,7 +6,7 @@
 
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db/postgres'
-import { redis } from '@/lib/db/redis'
+import { redis } from '@/lib/cache/redis'
 
 // Type pour les événements SSE
 interface CronExecutionEvent {
