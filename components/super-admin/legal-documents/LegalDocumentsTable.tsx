@@ -198,7 +198,7 @@ export function LegalDocumentsTable({
                       onCheckedChange={() => toggleSelect(doc.id)}
                     />
                   </TableCell>
-                  <TableCell className="font-mono text-sm text-white">
+                  <TableCell className="font-mono text-sm text-white" dir={/[\u0600-\u06FF]/.test(doc.citation_key) ? 'rtl' : 'ltr'}>
                     {doc.citation_key}
                   </TableCell>
                   <TableCell>
@@ -212,9 +212,17 @@ export function LegalDocumentsTable({
                     )}
                   </TableCell>
                   <TableCell className="max-w-xs">
-                    <span className="text-sm text-slate-300 truncate block" dir="rtl">
-                      {doc.official_title_ar || '-'}
-                    </span>
+                    {doc.official_title_ar ? (
+                      <span className="text-sm text-slate-300 truncate block" dir="rtl">
+                        {doc.official_title_ar}
+                      </span>
+                    ) : doc.official_title_fr ? (
+                      <span className="text-sm text-slate-400 truncate block italic">
+                        {doc.official_title_fr}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-slate-500">-</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={consolidationColors[doc.consolidation_status] || consolidationColors.pending}>
