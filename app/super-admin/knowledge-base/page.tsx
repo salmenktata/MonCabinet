@@ -36,6 +36,7 @@ interface PageProps {
     category?: string
     subcategory?: string
     indexed?: string
+    approved?: string
     search?: string
     page?: string
     view?: string
@@ -47,6 +48,7 @@ async function KnowledgeBaseStats() {
     SELECT
       COUNT(*) FILTER (WHERE is_active = TRUE) as total_docs,
       COUNT(*) FILTER (WHERE is_indexed = TRUE AND is_active = TRUE) as indexed_docs,
+      COUNT(*) FILTER (WHERE is_approved = TRUE AND is_active = TRUE) as approved_docs,
       (SELECT COUNT(*) FROM knowledge_base_chunks kbc
        JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
        WHERE kb.is_active = TRUE) as total_chunks
@@ -79,8 +81,12 @@ async function KnowledgeBaseStats() {
     ? ((parseInt(stats.indexed_docs) / parseInt(stats.total_docs)) * 100).toFixed(1)
     : '0'
 
+  const approvedPercentage = stats.total_docs > 0
+    ? ((parseInt(stats.approved_docs) / parseInt(stats.total_docs)) * 100).toFixed(1)
+    : '0'
+
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-4">
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
@@ -89,6 +95,18 @@ async function KnowledgeBaseStats() {
               <p className="text-sm text-slate-400">Total documents</p>
             </div>
             <Icons.bookOpen className="h-8 w-8 text-blue-500/20" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-slate-800 border-slate-700">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-bold text-emerald-500">{stats.approved_docs}</p>
+              <p className="text-sm text-slate-400">Approuvés ({approvedPercentage}%)</p>
+            </div>
+            <Icons.shield className="h-8 w-8 text-emerald-500/20" />
           </div>
         </CardContent>
       </Card>
@@ -125,6 +143,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
   const category = params.category || 'all'
   const subcategory = params.subcategory || ''
   const indexed = params.indexed || 'all'
+  const approved = params.approved || 'all'
   const search = params.search || ''
   const page = parseInt(params.page || '1')
   const view = params.view || 'list'
@@ -163,6 +182,12 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
       paramIndex++
     }
 
+    if (approved !== 'all') {
+      whereClause += ` AND kb.is_approved = $${paramIndex}`
+      queryParams.push(approved === 'true')
+      paramIndex++
+    }
+
     if (search) {
       whereClause += ` AND (kb.title ILIKE $${paramIndex} OR kb.description ILIKE $${paramIndex})`
       queryParams.push(`%${search}%`)
@@ -179,7 +204,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
       `SELECT
         kb.id, kb.title, kb.description, kb.category, kb.subcategory,
         kb.language, kb.tags, kb.version,
-        kb.is_indexed,
+        kb.is_indexed, kb.is_approved,
         (SELECT COUNT(*) FROM knowledge_base_chunks WHERE knowledge_base_id = kb.id) as chunk_count,
         kb.source_file as file_name, kb.source_file as file_type,
         kb.created_at, kb.updated_at,
@@ -264,6 +289,17 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
                   <option value="false">Non indexés</option>
                 </select>
 
+                {/* Statut approbation */}
+                <select
+                  name="approved"
+                  defaultValue={approved}
+                  className="h-9 px-3 rounded-md bg-slate-700 border border-slate-600 text-white text-sm min-w-[130px]"
+                >
+                  <option value="all">Approbation</option>
+                  <option value="true">Approuvés</option>
+                  <option value="false">En attente</option>
+                </select>
+
                 {/* Boutons */}
                 <Button type="submit" size="sm" className="bg-blue-600 hover:bg-blue-700 h-9">
                   <Icons.search className="h-4 w-4 mr-2" />
@@ -295,6 +331,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
                 category={category}
                 subcategory={subcategory}
                 indexed={indexed}
+                approved={approved}
                 search={search}
               />
             </CardContent>

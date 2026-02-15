@@ -36,6 +36,7 @@ interface Document {
   language: string
   tags?: string[]
   is_indexed: boolean
+  is_approved: boolean
   chunk_count: number
   version?: number
   file_name: string
@@ -53,6 +54,7 @@ interface KnowledgeBaseListProps {
   category: string
   subcategory?: string
   indexed: string
+  approved: string
   search: string
 }
 
@@ -63,6 +65,7 @@ export function KnowledgeBaseList({
   category,
   subcategory = '',
   indexed,
+  approved,
   search
 }: KnowledgeBaseListProps) {
   const router = useRouter()
@@ -132,7 +135,7 @@ export function KnowledgeBaseList({
   }
 
   // Actions groupées
-  const handleBulkAction = async (action: 'delete' | 'index') => {
+  const handleBulkAction = async (action: 'delete' | 'index' | 'approve' | 'revoke_approval') => {
     if (selectedIds.size === 0) return
 
     setBulkLoading(true)
@@ -196,6 +199,7 @@ export function KnowledgeBaseList({
     if (category) searchParams.set('category', category)
     if (subcategory) searchParams.set('subcategory', subcategory)
     if (indexed) searchParams.set('indexed', indexed)
+    if (approved) searchParams.set('approved', approved)
     if (search) searchParams.set('search', search)
     Object.entries(params).forEach(([key, val]) => {
       if (val) searchParams.set(key, String(val))
@@ -215,18 +219,38 @@ export function KnowledgeBaseList({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => handleBulkAction('index')}
+              onClick={() => handleBulkAction('approve')}
               disabled={bulkLoading}
-              className="border-blue-500/30 text-blue-400"
+              className="border-green-500/30 text-green-400"
             >
               {bulkLoading ? (
                 <Icons.loader className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Icons.zap className="h-4 w-4 mr-1" />
-                  Indexer
+                  <Icons.checkCircle className="h-4 w-4 mr-1" />
+                  Approuver
                 </>
               )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkAction('revoke_approval')}
+              disabled={bulkLoading}
+              className="border-orange-500/30 text-orange-400"
+            >
+              <Icons.shield className="h-4 w-4 mr-1" />
+              Révoquer
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkAction('index')}
+              disabled={bulkLoading}
+              className="border-blue-500/30 text-blue-400"
+            >
+              <Icons.zap className="h-4 w-4 mr-1" />
+              Indexer
             </Button>
             <Button
               size="sm"
@@ -317,6 +341,16 @@ export function KnowledgeBaseList({
                 ) : (
                   <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
                     Non indexé
+                  </Badge>
+                )}
+                {doc.is_approved ? (
+                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">
+                    <Icons.shield className="h-3 w-3 mr-1" />
+                    Approuvé
+                  </Badge>
+                ) : (
+                  <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">
+                    En attente
                   </Badge>
                 )}
                 <QualityIndicator

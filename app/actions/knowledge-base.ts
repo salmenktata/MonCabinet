@@ -555,7 +555,7 @@ export async function getKBDocumentsRequiringReviewAction(options?: {
  * Actions groupées sur plusieurs documents
  */
 export async function bulkKnowledgeDocumentAction(
-  action: 'delete' | 'index' | 'change_category',
+  action: 'delete' | 'index' | 'change_category' | 'approve' | 'revoke_approval',
   documentIds: string[],
   options?: { category?: KnowledgeCategory; subcategory?: string }
 ) {
@@ -572,38 +572,66 @@ export async function bulkKnowledgeDocumentAction(
     const service = await getKnowledgeBaseService()
     const results: { id: string; success: boolean; error?: string }[] = []
 
-    for (const id of documentIds) {
+    // Actions bulk SQL directes (approve/revoke)
+    if (action === 'approve' || action === 'revoke_approval') {
       try {
-        switch (action) {
-          case 'delete': {
-            const deleted = await service.deleteKnowledgeDocument(id)
-            results.push({ id, success: deleted, error: deleted ? undefined : 'Non trouvé' })
-            break
-          }
-          case 'index': {
-            const result = await service.indexKnowledgeDocument(id)
-            results.push({ id, success: result.success, error: result.error })
-            break
-          }
-          case 'change_category': {
-            if (!options?.category) {
-              results.push({ id, success: false, error: 'Catégorie requise' })
-            } else {
-              const doc = await service.updateKnowledgeDocument(id, {
-                category: options.category,
-                subcategory: options.subcategory,
-              })
-              results.push({ id, success: !!doc, error: doc ? undefined : 'Non trouvé' })
-            }
-            break
-          }
+        if (action === 'approve') {
+          await query(
+            `UPDATE knowledge_base
+             SET is_approved = true, approved_at = NOW(), approved_by = $1
+             WHERE id = ANY($2::uuid[])`,
+            [authCheck.userId, documentIds]
+          )
+        } else {
+          await query(
+            `UPDATE knowledge_base
+             SET is_approved = false, approved_at = NULL, approved_by = NULL
+             WHERE id = ANY($1::uuid[])`,
+            [documentIds]
+          )
         }
+        documentIds.forEach(id => results.push({ id, success: true }))
       } catch (err) {
-        results.push({
+        documentIds.forEach(id => results.push({
           id,
           success: false,
           error: err instanceof Error ? err.message : 'Erreur',
-        })
+        }))
+      }
+    } else {
+      for (const id of documentIds) {
+        try {
+          switch (action) {
+            case 'delete': {
+              const deleted = await service.deleteKnowledgeDocument(id)
+              results.push({ id, success: deleted, error: deleted ? undefined : 'Non trouvé' })
+              break
+            }
+            case 'index': {
+              const result = await service.indexKnowledgeDocument(id)
+              results.push({ id, success: result.success, error: result.error })
+              break
+            }
+            case 'change_category': {
+              if (!options?.category) {
+                results.push({ id, success: false, error: 'Catégorie requise' })
+              } else {
+                const doc = await service.updateKnowledgeDocument(id, {
+                  category: options.category,
+                  subcategory: options.subcategory,
+                })
+                results.push({ id, success: !!doc, error: doc ? undefined : 'Non trouvé' })
+              }
+              break
+            }
+          }
+        } catch (err) {
+          results.push({
+            id,
+            success: false,
+            error: err instanceof Error ? err.message : 'Erreur',
+          })
+        }
       }
     }
 
