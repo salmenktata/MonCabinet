@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
@@ -58,18 +58,6 @@ export function LegalDocumentsTable({
   const { toast } = useToast()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
-  const headerCheckboxRef = useRef<HTMLButtonElement>(null)
-
-  // Manage indeterminate state
-  useEffect(() => {
-    if (headerCheckboxRef.current) {
-      const el = headerCheckboxRef.current
-      if (selectedIds.size > 0 && selectedIds.size < docs.length) {
-        el.dataset.state = 'indeterminate'
-        el.setAttribute('aria-checked', 'mixed')
-      }
-    }
-  }, [selectedIds.size, docs.length])
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds)
@@ -172,7 +160,6 @@ export function LegalDocumentsTable({
             <TableRow className="border-slate-700 hover:bg-transparent">
               <TableHead className="w-10">
                 <Checkbox
-                  ref={headerCheckboxRef}
                   checked={docs.length > 0 && selectedIds.size === docs.length}
                   onCheckedChange={toggleSelectAll}
                 />
