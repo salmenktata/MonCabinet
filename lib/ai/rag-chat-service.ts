@@ -1167,6 +1167,30 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
       }
 
       part = enrichedHeader + '\n' + source.chunkContent
+    } else if (meta?.sourceType === 'legal_document' || meta?.citationKey) {
+      // Format enrichi pour documents juridiques consolidés
+      let enrichedHeader = `[KB-${i + 1}] ${source.documentName} (${relevanceLabel} - ${relevancePct})\n`
+      enrichedHeader += `📌 ${lang === 'ar' ? 'المصدر' : 'Source'}: ${meta.codeName || meta.citationKey || source.documentName}\n`
+
+      if (meta.articleNumber) {
+        enrichedHeader += `⚖️ ${lang === 'ar' ? 'الفصل' : 'Article'} ${meta.articleNumber}\n`
+      }
+
+      if (meta.lastVerifiedAt) {
+        enrichedHeader += `📅 ${lang === 'ar' ? 'آخر تحقق' : 'Dernière vérification'}: ${new Date(meta.lastVerifiedAt).toLocaleDateString(lang === 'ar' ? 'ar-TN' : 'fr-TN')}\n`
+      }
+
+      if (meta.isAbrogated) {
+        enrichedHeader += `⚠️ ${lang === 'ar' ? 'ملغى' : 'Abrogé'}\n`
+      }
+
+      if (meta.amendments && Array.isArray(meta.amendments)) {
+        for (const amendment of meta.amendments.slice(0, 3)) {
+          enrichedHeader += `🔄 ${lang === 'ar' ? 'تنقيح' : 'Modifié par'}: ${amendment}\n`
+        }
+      }
+
+      part = enrichedHeader + '\n' + source.chunkContent
     } else if (sourceType === 'knowledge_base') {
       let enrichedHeader = `[KB-${i + 1}] ${source.documentName} (${relevanceLabel} - ${relevancePct})\n`
 

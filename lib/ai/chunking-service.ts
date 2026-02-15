@@ -445,6 +445,119 @@ export function chunkWithStructure(
   return allChunks
 }
 
+// =============================================================================
+// CHUNKING PAR ARTICLE (DOCUMENTS JURIDIQUES CONSOLIDÉS)
+// =============================================================================
+
+/**
+ * Options pour le chunking par article
+ */
+export interface ArticleChunkingOptions {
+  /** Taille max d'un chunk en mots (articles longs seront splittés) */
+  maxChunkWords?: number
+  /** Nom du code pour le contexte */
+  codeName?: string
+}
+
+/**
+ * Chunk un document juridique consolidé par article.
+ * Chaque article = 1 chunk (sauf s'il dépasse maxChunkWords).
+ * Metadata enrichie : article_number, chapter, book, code_name.
+ */
+export function chunkByArticle(
+  structure: {
+    books: Array<{
+      number: number
+      titleAr?: string | null
+      titleFr?: string | null
+      chapters: Array<{
+        number?: number | null
+        titleAr?: string | null
+        articles: Array<{
+          number: string
+          text: string
+          wordCount?: number
+        }>
+      }>
+    }>
+  },
+  options: ArticleChunkingOptions = {}
+): Chunk[] {
+  const { maxChunkWords = 2000, codeName } = options
+  const chunks: Chunk[] = []
+  let position = 0
+
+  for (const book of structure.books) {
+    for (const chapter of book.chapters) {
+      for (const article of chapter.articles) {
+        const articleWords = countWords(article.text)
+
+        // Construire le contexte de l'article
+        const contextHeader = [
+          codeName ? `📖 ${codeName}` : null,
+          book.titleAr ? `📕 ${book.titleAr}` : null,
+          chapter.titleAr ? `📑 ${chapter.titleAr}` : null,
+          `⚖️ الفصل ${article.number}`,
+        ].filter(Boolean).join(' | ')
+
+        if (articleWords <= maxChunkWords) {
+          // Article tient dans 1 chunk
+          const content = `${contextHeader}\n\n${article.text}`
+          chunks.push({
+            content,
+            index: chunks.length,
+            metadata: {
+              wordCount: countWords(content),
+              charCount: content.length,
+              startPosition: position,
+              endPosition: position + content.length,
+              overlapWithPrevious: false,
+              overlapWithNext: false,
+              articleNumber: article.number,
+              bookNumber: book.number,
+              chapterNumber: chapter.number ?? undefined,
+              codeName,
+            } as ChunkMetadata & { articleNumber: string; bookNumber: number; chapterNumber?: number; codeName?: string },
+          })
+          position += content.length
+        } else {
+          // Article trop long : splitter en gardant le contexte
+          const subChunks = chunkText(article.text, {
+            chunkSize: maxChunkWords,
+            overlap: 100,
+            preserveSentences: true,
+            category: 'code',
+          })
+
+          for (let i = 0; i < subChunks.length; i++) {
+            const partLabel = `(${i + 1}/${subChunks.length})`
+            const content = `${contextHeader} ${partLabel}\n\n${subChunks[i].content}`
+            chunks.push({
+              content,
+              index: chunks.length,
+              metadata: {
+                wordCount: countWords(content),
+                charCount: content.length,
+                startPosition: position,
+                endPosition: position + content.length,
+                overlapWithPrevious: i > 0,
+                overlapWithNext: i < subChunks.length - 1,
+                articleNumber: article.number,
+                bookNumber: book.number,
+                chapterNumber: chapter.number ?? undefined,
+                codeName,
+              } as ChunkMetadata & { articleNumber: string; bookNumber: number; chapterNumber?: number; codeName?: string },
+            })
+            position += content.length
+          }
+        }
+      }
+    }
+  }
+
+  return chunks
+}
+
 /**
  * Estime le nombre de tokens pour un chunk
  * Approximation: ~4 caractères = 1 token (français)

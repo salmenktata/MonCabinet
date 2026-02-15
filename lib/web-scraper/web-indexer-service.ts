@@ -71,10 +71,33 @@ export interface IndexingResult {
 
 /**
  * Indexe une page web dans la base de connaissances
+ *
+ * Si la page appartient à un legal_document consolidé,
+ * on délègue à l'indexation document-aware.
  */
 export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   if (!isSemanticSearchEnabled()) {
     return { success: false, chunksCreated: 0, error: 'Service RAG désactivé' }
+  }
+
+  // Vérifier si la page appartient à un document juridique consolidé
+  const docLink = await db.query(
+    `SELECT wpd.legal_document_id, ld.consolidation_status, ld.citation_key
+     FROM web_pages_documents wpd
+     JOIN legal_documents ld ON wpd.legal_document_id = ld.id
+     WHERE wpd.web_page_id = $1
+     AND ld.consolidation_status = 'complete'`,
+    [pageId]
+  )
+
+  if (docLink.rows.length > 0) {
+    const doc = docLink.rows[0]
+    console.log(`[WebIndexer] Page ${pageId} appartient au document consolidé ${doc.citation_key} - skip indexation individuelle`)
+    return {
+      success: true,
+      chunksCreated: 0,
+      error: `Page partie du document consolidé ${doc.citation_key} - indexation document-level`,
+    }
   }
 
   // Récupérer la page + classification IA
@@ -577,6 +600,175 @@ export async function getSourceIndexingStats(sourceId: string): Promise<{
     pendingPages: parseInt(row.pending_pages) || 0,
     failedPages: parseInt(row.failed_pages) || 0,
     totalChunks: parseInt(row.total_chunks) || 0,
+  }
+}
+
+/**
+ * Indexe un document juridique consolidé (legal_document) dans la KB.
+ * Utilise le chunking par article au lieu du chunking classique.
+ */
+export async function indexLegalDocument(documentId: string): Promise<IndexingResult> {
+  if (!isSemanticSearchEnabled()) {
+    return { success: false, chunksCreated: 0, error: 'Service RAG désactivé' }
+  }
+
+  // Charger le document consolidé
+  const docResult = await db.query(
+    `SELECT * FROM legal_documents WHERE id = $1 AND consolidation_status = 'complete'`,
+    [documentId]
+  )
+
+  if (docResult.rows.length === 0) {
+    return { success: false, chunksCreated: 0, error: 'Document non trouvé ou pas encore consolidé' }
+  }
+
+  const doc = docResult.rows[0]
+
+  if (!doc.consolidated_text || doc.consolidated_text.length < 100) {
+    return { success: false, chunksCreated: 0, error: 'Texte consolidé insuffisant' }
+  }
+
+  const { chunkByArticle } = await import('@/lib/ai/chunking-service')
+  const { generateEmbedding, generateEmbeddingsBatch, formatEmbeddingForPostgres } = await getEmbeddingsService()
+
+  // Chunking par article si structure disponible
+  let chunks
+  if (doc.structure && doc.structure.books) {
+    chunks = chunkByArticle(doc.structure, {
+      maxChunkWords: 2000,
+      codeName: doc.official_title_ar || doc.citation_key,
+    })
+  } else {
+    // Fallback: chunking classique
+    const { chunkText } = await getChunkingService()
+    chunks = chunkText(doc.consolidated_text, {
+      chunkSize: aiConfig.rag.chunkSize,
+      overlap: 100,
+      preserveParagraphs: true,
+      category: 'code',
+    })
+  }
+
+  if (chunks.length === 0) {
+    return { success: false, chunksCreated: 0, error: 'Aucun chunk généré' }
+  }
+
+  const client = await db.getClient()
+
+  try {
+    await client.query('BEGIN')
+
+    let knowledgeBaseId = doc.knowledge_base_id
+
+    if (!knowledgeBaseId) {
+      // Créer l'entrée KB consolidée
+      const kbResult = await client.query(
+        `INSERT INTO knowledge_base (
+          category, language, title, description, metadata, tags, full_text, source_file, is_indexed
+        ) VALUES ($1, 'ar', $2, $3, $4, $5, $6, $7, false)
+        RETURNING id`,
+        [
+          doc.primary_category,
+          doc.official_title_ar || doc.citation_key,
+          doc.official_title_fr,
+          JSON.stringify({
+            source: 'legal_document',
+            legalDocumentId: doc.id,
+            citationKey: doc.citation_key,
+            documentType: doc.document_type,
+            isCanonical: true,
+            consolidatedAt: doc.structure?.consolidatedAt,
+            pageCount: doc.page_count,
+          }),
+          doc.tags || [],
+          doc.consolidated_text,
+          `legal-doc://${doc.citation_key}`,
+        ]
+      )
+      knowledgeBaseId = kbResult.rows[0].id
+    } else {
+      // Mettre à jour
+      await client.query(
+        `UPDATE knowledge_base SET
+          title = $2, full_text = $3, is_indexed = false,
+          version = version + 1, updated_at = NOW()
+        WHERE id = $1`,
+        [knowledgeBaseId, doc.official_title_ar || doc.citation_key, doc.consolidated_text]
+      )
+      await client.query(
+        'DELETE FROM knowledge_base_chunks WHERE knowledge_base_id = $1',
+        [knowledgeBaseId]
+      )
+    }
+
+    // Générer embeddings en batch
+    const embeddingsResult = await generateEmbeddingsBatch(
+      chunks.map(c => c.content)
+    )
+
+    // Embedding document-level
+    const docSummary = `${doc.official_title_ar || ''} ${doc.official_title_fr || ''} ${doc.citation_key}`.trim()
+    const docEmbedding = await generateEmbedding(docSummary)
+
+    // Insérer les chunks
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkMeta = chunks[i].metadata as any
+      await client.query(
+        `INSERT INTO knowledge_base_chunks
+         (knowledge_base_id, chunk_index, content, embedding, metadata)
+         VALUES ($1, $2, $3, $4::vector, $5)`,
+        [
+          knowledgeBaseId,
+          i,
+          chunks[i].content,
+          formatEmbeddingForPostgres(embeddingsResult.embeddings[i]),
+          JSON.stringify({
+            wordCount: chunks[i].metadata.wordCount,
+            articleNumber: chunkMeta.articleNumber || null,
+            bookNumber: chunkMeta.bookNumber || null,
+            chapterNumber: chunkMeta.chapterNumber || null,
+            codeName: chunkMeta.codeName || null,
+            citationKey: doc.citation_key,
+            sourceType: 'legal_document',
+          }),
+        ]
+      )
+    }
+
+    // Marquer comme indexé
+    await client.query(
+      `UPDATE knowledge_base SET embedding = $2::vector, is_indexed = true, updated_at = NOW()
+       WHERE id = $1`,
+      [knowledgeBaseId, formatEmbeddingForPostgres(docEmbedding.embedding)]
+    )
+
+    // Lier le document juridique à la KB
+    await client.query(
+      `UPDATE legal_documents SET
+        knowledge_base_id = $2, is_canonical = true, updated_at = NOW()
+      WHERE id = $1`,
+      [documentId, knowledgeBaseId]
+    )
+
+    await client.query('COMMIT')
+
+    console.log(`[WebIndexer] Document juridique ${doc.citation_key} indexé: ${chunks.length} chunks`)
+
+    return {
+      success: true,
+      knowledgeBaseId,
+      chunksCreated: chunks.length,
+    }
+  } catch (error) {
+    await client.query('ROLLBACK')
+    console.error(`[WebIndexer] Erreur indexation document ${doc.citation_key}:`, error)
+    return {
+      success: false,
+      chunksCreated: 0,
+      error: error instanceof Error ? error.message : 'Erreur indexation document',
+    }
+  } finally {
+    client.release()
   }
 }
 

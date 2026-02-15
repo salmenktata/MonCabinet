@@ -203,6 +203,7 @@ function estimateCost(tokens: number, operationName: OperationName): number {
     'kb-quality-analysis': 0, // Gemini gratuit
     'query-classification': 0, // Groq gratuit
     'query-expansion': 0, // Groq gratuit
+    'document-consolidation': 0, // Gemini gratuit
   }
 
   return tokens * pricePerToken[operationName]

@@ -24,6 +24,7 @@ export type OperationName =
   | 'kb-quality-analysis'
   | 'query-classification'
   | 'query-expansion'
+  | 'document-consolidation'
 
 /**
  * Sévérité d'alerte en cas d'échec
@@ -268,6 +269,28 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     alerts: { onFailure: 'log', severity: 'info' },
     description: 'Expansion queries courtes <50 chars - Groq',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 8. CONSOLIDATION DOCUMENTS (multi-pages → 1 document)
+  // ---------------------------------------------------------------------------
+  'document-consolidation': {
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'gemini', name: 'gemini-2.5-flash' },
+
+    timeouts: {
+      chat: 60000,
+      total: 120000,
+    },
+
+    llmConfig: {
+      temperature: 0.1,
+      maxTokens: 16000,
+    },
+
+    alerts: { onFailure: 'log', severity: 'warning' },
+    description: 'Consolidation documents multi-pages - Gemini contexte 1M tokens',
   },
 }
 

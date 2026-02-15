@@ -117,6 +117,10 @@ export const OPERATION_LABELS: Record<OperationName, { fr: string; ar: string }>
     fr: 'Expansion de requête',
     ar: 'توسيع الاستعلام',
   },
+  'document-consolidation': {
+    fr: 'Consolidation documents',
+    ar: 'توحيد الوثائق',
+  },
 }
 
 /**
@@ -130,6 +134,7 @@ export const OPERATION_DESCRIPTIONS: Record<OperationName, string> = {
   'kb-quality-analysis': 'Analyse qualité documents KB (OpenAI gpt-4o-mini)',
   'query-classification': 'Classification automatique de la requête utilisateur',
   'query-expansion': 'Reformulation et expansion de requêtes courtes',
+  'document-consolidation': 'Consolidation documents multi-pages en documents juridiques unifiés',
 }
 
 /**
