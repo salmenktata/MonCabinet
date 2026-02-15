@@ -36,17 +36,18 @@ export async function POST(request: NextRequest) {
     const dryRun = request.nextUrl.searchParams.get('dry-run') === 'true'
     const startTime = Date.now()
 
-    // 1. Récupérer les documents éligibles (consolidés mais pas approuvés)
+    // 1. Récupérer les documents éligibles (consolidés, non indexés dans KB)
     const docsResult = await db.query<{
       id: string
       citation_key: string
       official_title_fr: string
       page_count: number
+      is_approved: boolean
     }>(
-      `SELECT id, citation_key, official_title_fr, page_count
+      `SELECT id, citation_key, official_title_fr, page_count, is_approved
        FROM legal_documents
        WHERE consolidation_status = 'complete'
-         AND is_approved = false
+         AND knowledge_base_id IS NULL
        ORDER BY citation_key`
     )
 
@@ -114,15 +115,17 @@ export async function POST(request: NextRequest) {
       const docStart = Date.now()
 
       try {
-        // Approuver (null = system auto-approve)
-        await db.query(
-          `UPDATE legal_documents SET
-            is_approved = true,
-            approved_at = NOW(),
-            updated_at = NOW()
-          WHERE id = $1`,
-          [doc.id]
-        )
+        // Approuver si pas déjà fait
+        if (!doc.is_approved) {
+          await db.query(
+            `UPDATE legal_documents SET
+              is_approved = true,
+              approved_at = NOW(),
+              updated_at = NOW()
+            WHERE id = $1`,
+            [doc.id]
+          )
+        }
 
         // Indexer (crée KB entry + chunks + embeddings)
         const indexResult = await indexLegalDocument(doc.id)
