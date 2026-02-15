@@ -9,6 +9,7 @@ import { isSemanticSearchEnabled, aiConfig, KB_ARABIC_ONLY, EMBEDDING_TURBO_CONF
 import { normalizeText, detectTextLanguage } from './content-extractor'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
 import { getDocumentAbsoluteUrl } from '@/lib/legal-documents/document-service'
+import { NINEANOUN_KB_SECTIONS, NINEANOUN_CODE_DOMAINS, NINEANOUN_OTHER_SECTIONS } from './9anoun-code-domains'
 
 // Concurrence pour l'indexation de pages (1 = séquentiel, safe pour Ollama)
 const WEB_INDEXING_CONCURRENCY = parseInt(process.env.WEB_INDEXING_CONCURRENCY || '1', 10)
@@ -27,21 +28,70 @@ interface PageClassification {
 }
 
 /**
- * Détermine la catégorie KB basée UNIQUEMENT sur le contenu (classification IA)
- * ❌ PAS de fallback vers web_source.category
- * ✅ Classification pure par contenu
+ * Détecte la catégorie KB à partir du pattern URL (9anoun.tn)
+ * Utilise NINEANOUN_KB_SECTIONS, NINEANOUN_CODE_DOMAINS et NINEANOUN_OTHER_SECTIONS
  */
-function determineCategoryForKB(
-  classification: PageClassification | null
-): LegalCategory {
-  // Cas 1 : Classification IA disponible → utiliser primary_category
-  if (classification?.primary_category) {
-    return classification.primary_category
+function detectCategoryFromUrl(url: string): LegalCategory | null {
+  if (!url) return null
+
+  try {
+    const parsed = new URL(url)
+    const pathParts = parsed.pathname.split('/').filter(Boolean)
+
+    // Pattern /kb/{section}/... → NINEANOUN_KB_SECTIONS
+    if (pathParts[0] === 'kb' && pathParts.length >= 2) {
+      const section = pathParts[1]
+
+      // Check KB sections (jurisprudence, doctrine, jorts, constitutions, conventions, lois)
+      if (NINEANOUN_KB_SECTIONS[section]) {
+        return NINEANOUN_KB_SECTIONS[section].primaryCategory as LegalCategory
+      }
+
+      // Check codes (/kb/codes/{slug})
+      if (section === 'codes' && pathParts.length >= 3) {
+        const slug = pathParts[2]
+        if (NINEANOUN_CODE_DOMAINS[slug]) {
+          return 'codes' as LegalCategory
+        }
+      }
+    }
+
+    // Pattern /{section}/... → NINEANOUN_OTHER_SECTIONS (modeles, formulaires)
+    if (pathParts.length >= 1 && NINEANOUN_OTHER_SECTIONS[pathParts[0]]) {
+      return NINEANOUN_OTHER_SECTIONS[pathParts[0]].primaryCategory as LegalCategory
+    }
+  } catch {
+    // URL invalide → pas de détection
   }
 
-  // Cas 2 : Pas de classification → "autre" + flag review
-  // (Sera détecté via metadata.needs_review dans le dashboard)
-  return 'autre'
+  return null
+}
+
+/**
+ * Détermine la catégorie KB basée sur la classification IA, puis fallback URL pattern
+ * 1. Classification IA (si disponible)
+ * 2. Pattern URL (9anoun.tn sections)
+ * 3. "autre" + flag review
+ */
+function determineCategoryForKB(
+  classification: PageClassification | null,
+  pageUrl?: string
+): { category: LegalCategory; source: string } {
+  // Cas 1 : Classification IA disponible → utiliser primary_category
+  if (classification?.primary_category) {
+    return { category: classification.primary_category, source: 'ai' }
+  }
+
+  // Cas 2 : Détection par pattern URL
+  if (pageUrl) {
+    const urlCategory = detectCategoryFromUrl(pageUrl)
+    if (urlCategory) {
+      return { category: urlCategory, source: 'url_pattern' }
+    }
+  }
+
+  // Cas 3 : Pas de classification → "autre" + flag review
+  return { category: 'autre', source: 'default' }
 }
 
 // Import dynamique pour éviter les dépendances circulaires
@@ -81,56 +131,66 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     return { success: false, chunksCreated: 0, error: 'Service RAG désactivé' }
   }
 
-  // Vérifier si la page appartient à un document juridique consolidé
+  // Vérifier si la page appartient à un document juridique (consolidé ou non)
   const docLink = await db.query(
     `SELECT wpd.legal_document_id, ld.consolidation_status, ld.citation_key
      FROM web_pages_documents wpd
      JOIN legal_documents ld ON wpd.legal_document_id = ld.id
-     WHERE wpd.web_page_id = $1
-     AND ld.consolidation_status = 'complete'`,
+     WHERE wpd.web_page_id = $1`,
     [pageId]
   )
 
   if (docLink.rows.length > 0) {
     const doc = docLink.rows[0]
 
-    // Vérifier si le contenu de la page a changé (re-consolidation nécessaire)
-    const pageCheck = await db.query(
-      `SELECT wp.content_hash, wp.extracted_text IS NOT NULL as has_text
-       FROM web_pages wp WHERE wp.id = $1`,
-      [pageId]
-    )
-    const currentPage = pageCheck.rows[0]
+    if (doc.consolidation_status === 'complete') {
+      // CAS 1: Document consolidé → re-consolider si contenu modifié
+      const pageCheck = await db.query(
+        `SELECT wp.content_hash, wp.extracted_text IS NOT NULL as has_text
+         FROM web_pages wp WHERE wp.id = $1`,
+        [pageId]
+      )
+      const currentPage = pageCheck.rows[0]
 
-    if (currentPage?.has_text) {
-      // Marquer le document comme nécessitant re-consolidation
-      // La re-consolidation sera déclenchée de manière asynchrone
-      try {
-        await db.query(
-          `UPDATE legal_documents
-           SET consolidation_status = 'partial', updated_at = NOW()
-           WHERE id = $1 AND consolidation_status = 'complete'`,
-          [doc.legal_document_id]
-        )
+      if (currentPage?.has_text) {
+        try {
+          await db.query(
+            `UPDATE legal_documents
+             SET consolidation_status = 'partial', updated_at = NOW()
+             WHERE id = $1 AND consolidation_status = 'complete'`,
+            [doc.legal_document_id]
+          )
 
-        // Re-consolider et ré-indexer de manière asynchrone
-        const { consolidateDocument } = await import('@/lib/legal-documents/content-consolidation-service')
-        console.log(`[WebIndexer] Page ${pageId} modifiée → re-consolidation ${doc.citation_key}`)
+          const { consolidateDocument } = await import('@/lib/legal-documents/content-consolidation-service')
+          console.log(`[WebIndexer] Page ${pageId} modifiée → re-consolidation ${doc.citation_key}`)
 
-        const consolidationResult = await consolidateDocument(doc.legal_document_id)
-        if (consolidationResult.success) {
-          await indexLegalDocument(doc.legal_document_id)
-          console.log(`[WebIndexer] Re-consolidation ${doc.citation_key} terminée: ${consolidationResult.totalArticles} articles`)
+          const consolidationResult = await consolidateDocument(doc.legal_document_id)
+          if (consolidationResult.success) {
+            await indexLegalDocument(doc.legal_document_id)
+            console.log(`[WebIndexer] Re-consolidation ${doc.citation_key} terminée: ${consolidationResult.totalArticles} articles`)
+          }
+        } catch (reconsolidateError) {
+          console.error(`[WebIndexer] Erreur re-consolidation ${doc.citation_key}:`, reconsolidateError)
         }
-      } catch (reconsolidateError) {
-        console.error(`[WebIndexer] Erreur re-consolidation ${doc.citation_key}:`, reconsolidateError)
       }
-    }
 
-    return {
-      success: true,
-      chunksCreated: 0,
-      error: `Page partie du document consolidé ${doc.citation_key} - indexation document-level`,
+      return {
+        success: true,
+        chunksCreated: 0,
+        error: `Page partie du document consolidé ${doc.citation_key} - indexation document-level`,
+      }
+    } else {
+      // CAS 2: Document pas encore consolidé → SKIP indexation individuelle
+      console.log(
+        `[WebIndexer] SKIP page ${pageId} → liée au document ${doc.citation_key} ` +
+        `(status: ${doc.consolidation_status}). Sera indexée via consolidation.`
+      )
+
+      return {
+        success: true,
+        chunksCreated: 0,
+        error: `Page liée au document ${doc.citation_key} (${doc.consolidation_status}) - indexation bloquée`,
+      }
     }
   }
 
@@ -169,8 +229,8 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       }
     : null
 
-  // Déterminer la catégorie KB basée UNIQUEMENT sur le contenu
-  const kbCategory = determineCategoryForKB(classification)
+  // Déterminer la catégorie KB (IA → URL pattern → "autre")
+  const { category: kbCategory, source: classificationSource } = determineCategoryForKB(classification, row.url)
 
   // Normaliser le texte
   const normalizedText = normalizeText(row.extracted_text)
@@ -242,10 +302,10 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
             publishedAt: row.meta_date,
             crawledAt: row.last_crawled_at,
             // Tracking classification pour audit
-            classification_source: classification ? 'ai' : 'default',
+            classification_source: classificationSource,
             classification_confidence: classification?.confidence_score || null,
             classification_signals: classification?.signals_used || null,
-            needs_review: !classification, // Flag si pas de classification IA
+            needs_review: classificationSource === 'default', // Flag si ni IA ni URL pattern
           }),
           row.meta_keywords || [],
           normalizedText,
@@ -293,10 +353,10 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
             lastCrawledAt: row.last_crawled_at,
             updatedAt: new Date().toISOString(),
             // Tracking classification (mise à jour si classification changée)
-            classification_source: classification ? 'ai' : 'default',
+            classification_source: classificationSource,
             classification_confidence: classification?.confidence_score || null,
             classification_signals: classification?.signals_used || null,
-            needs_review: !classification,
+            needs_review: classificationSource === 'default',
           }),
         ]
       )
