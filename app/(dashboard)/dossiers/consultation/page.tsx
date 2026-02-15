@@ -1,11 +1,14 @@
-import { Metadata } from 'next'
-import { ConsultationPage } from './ConsultationPage'
+import { redirect } from 'next/navigation'
 
-export const metadata: Metadata = {
-  title: 'Consultation Juridique | Qadhya',
-  description: 'Obtenez un conseil juridique rapide basé sur vos documents et la jurisprudence tunisienne',
-}
-
-export default function Page() {
-  return <ConsultationPage />
+export default function DossierConsultationPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>
+}) {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (typeof value === 'string') params.set(key, value)
+  }
+  const qs = params.toString()
+  redirect(`/qadhya-ia/consult${qs ? `?${qs}` : ''}`)
 }

@@ -27,10 +27,13 @@ export interface ConsultationSource {
 }
 
 export interface ConsultationResponse {
+  id?: string
   question: string
   conseil: string
   sources: ConsultationSource[]
   actions: string[]
+  domain?: string
+  createdAt?: string
 }
 
 interface ConsultationInput {
@@ -43,6 +46,13 @@ interface ActionResult {
   success: boolean
   data?: ConsultationResponse
   error?: string
+}
+
+export interface ConsultationHistoryItem {
+  id: string
+  question: string
+  domain: string | null
+  created_at: string
 }
 
 // SUPPRIMÉ : Labels déplacés vers lib/ai/shared/bilingual-labels.ts
@@ -174,9 +184,21 @@ ${RESPONSE_FORMAT[langKey]}`
       .replace(/## الإجراءات الموصى بها[\s\S]*$/, '')
       .trim()
 
+    // Sauvegarder la consultation en DB
+    const consultationId = await saveConsultation({
+      userId: session.user.id,
+      dossierId: input.dossierId,
+      question: input.question,
+      context: input.context,
+      conseil: cleanedConseil,
+      sources,
+      actions,
+    })
+
     return {
       success: true,
       data: {
+        id: consultationId,
         question: input.question,
         conseil: cleanedConseil,
         sources,
@@ -192,8 +214,109 @@ ${RESPONSE_FORMAT[langKey]}`
   }
 }
 
-// SUPPRIMÉ : Fonction déplacée vers lib/ai/shared/rag-search.ts
-// Utiliser l'import searchKnowledgeBase ci-dessus
+/**
+ * Sauvegarde une consultation en base de données
+ */
+async function saveConsultation(params: {
+  userId: string
+  dossierId?: string
+  question: string
+  context?: string
+  conseil: string
+  sources: ConsultationSource[]
+  actions: string[]
+}): Promise<string | undefined> {
+  try {
+    const result = await db.query(
+      `INSERT INTO consultations (user_id, dossier_id, question, context, conseil, sources, actions)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id`,
+      [
+        params.userId,
+        params.dossierId || null,
+        params.question,
+        params.context || null,
+        params.conseil,
+        JSON.stringify(params.sources),
+        JSON.stringify(params.actions),
+      ]
+    )
+    return result.rows[0]?.id
+  } catch (error) {
+    console.error('[Consultation] Erreur sauvegarde:', error)
+    return undefined
+  }
+}
+
+/**
+ * Récupère l'historique des consultations d'un utilisateur
+ */
+export async function getConsultationHistory(
+  limit: number = 50
+): Promise<{ success: boolean; data?: ConsultationHistoryItem[]; error?: string }> {
+  try {
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return { success: false, error: 'Non autorisé' }
+    }
+
+    const result = await db.query(
+      `SELECT id, question, domain, created_at
+       FROM consultations
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [session.user.id, limit]
+    )
+
+    return { success: true, data: result.rows }
+  } catch (error) {
+    console.error('[Consultation] Erreur historique:', error)
+    return { success: false, error: 'Erreur interne' }
+  }
+}
+
+/**
+ * Récupère une consultation complète par ID
+ */
+export async function getConsultationById(
+  id: string
+): Promise<{ success: boolean; data?: ConsultationResponse; error?: string }> {
+  try {
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return { success: false, error: 'Non autorisé' }
+    }
+
+    const result = await db.query(
+      `SELECT id, question, context, conseil, sources, actions, domain, created_at
+       FROM consultations
+       WHERE id = $1 AND user_id = $2`,
+      [id, session.user.id]
+    )
+
+    if (result.rows.length === 0) {
+      return { success: false, error: 'Consultation non trouvée' }
+    }
+
+    const row = result.rows[0]
+    return {
+      success: true,
+      data: {
+        id: row.id,
+        question: row.question,
+        conseil: row.conseil,
+        sources: row.sources || [],
+        actions: row.actions || [],
+        domain: row.domain,
+        createdAt: row.created_at,
+      },
+    }
+  } catch (error) {
+    console.error('[Consultation] Erreur get by id:', error)
+    return { success: false, error: 'Erreur interne' }
+  }
+}
 
 /**
  * @deprecated Ces fonctions sont dépréciées et ne sont plus utilisées.

@@ -1218,6 +1218,24 @@
       "creating": "Création en cours...",
       "confirm": "Confirmer et créer"
     },
+    "steps": {
+      "input": "Récit",
+      "clarifying": "Clarification",
+      "analyzing": "Analyse",
+      "result": "Résultat"
+    },
+    "clarifying": {
+      "title": "Questions clarificatrices",
+      "subtitle": "L'IA a identifié des informations manquantes pour une meilleure analyse. Répondez aux questions ci-dessous.",
+      "answerPlaceholder": "Votre réponse...",
+      "required": "Requis",
+      "optional": "Optionnel",
+      "skip": "Passer",
+      "submit": "Valider et analyser",
+      "submitting": "Enrichissement...",
+      "backToInput": "Modifier le récit",
+      "generating": "Génération des questions..."
+    },
     "errors": {
       "narratifTooShort": "Le récit doit contenir au moins 20 caractères.",
       "analysisError": "Erreur lors de l'analyse. Veuillez réessayer.",
@@ -1333,6 +1351,14 @@
     "tipTitle3": "Dossiers liés",
     "tipDescription3": "Liez votre question à un dossier existant pour un conseil personnalisé.",
     "errorTitle": "Erreur de consultation",
-    "errorGeneric": "Une erreur est survenue lors de la consultation. Veuillez réessayer."
+    "errorGeneric": "Une erreur est survenue lors de la consultation. Veuillez réessayer.",
+    "history": {
+      "title": "Historique",
+      "empty": "Aucune consultation précédente",
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "thisWeek": "Cette semaine",
+      "earlier": "Plus ancien"
+    }
   }
 }

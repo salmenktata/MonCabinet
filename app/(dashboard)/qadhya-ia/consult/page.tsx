@@ -12,5 +12,5 @@ export default async function Page() {
   const session = await getSession()
   if (!session?.user?.id) redirect('/login')
 
-  return <ConsultPage userId={session.user.id} />
+  return <ConsultPage />
 }

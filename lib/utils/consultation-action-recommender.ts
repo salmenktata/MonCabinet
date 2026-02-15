@@ -72,7 +72,7 @@ export function recommendActionsFromConsultation(
     action: {
       type: 'navigate',
       payload: {
-        path: '/dossiers/assistant',
+        path: '/qadhya-ia/structure',
         params: {
           from: 'consultation',
           seed: context.question,
@@ -95,7 +95,7 @@ export function recommendActionsFromConsultation(
       action: {
         type: 'navigate',
         payload: {
-          path: '/dossiers/assistant',
+          path: '/qadhya-ia/structure',
           params: {
             from: 'consultation',
             mode: 'calcul',

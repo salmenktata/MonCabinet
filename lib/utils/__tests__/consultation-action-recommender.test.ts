@@ -201,7 +201,7 @@ describe('consultation-action-recommender', () => {
 
       const createDossierAction = actions.find((a) => a.id === 'create-dossier')
       expect(createDossierAction?.action.type).toBe('navigate')
-      expect(createDossierAction?.action.payload.path).toBe('/dossiers/assistant')
+      expect(createDossierAction?.action.payload.path).toBe('/qadhya-ia/structure')
       expect(createDossierAction?.action.payload.params.from).toBe('consultation')
       expect(createDossierAction?.action.payload.params.seed).toBe('Ma question')
     })

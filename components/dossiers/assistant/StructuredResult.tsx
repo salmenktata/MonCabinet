@@ -56,7 +56,7 @@ export default function StructuredResult({
       question: result.resumeCourt || result.titrePropose || 'Conseil juridique sur ce dossier',
       context: result.narratifOriginal?.substring(0, 500) || '',
     })
-    router.push(`/dossiers/consultation?${params.toString()}`)
+    router.push(`/qadhya-ia/consult?${params.toString()}`)
   }
 
   return (

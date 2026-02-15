@@ -44,7 +44,7 @@ export function ConsultationResult({ result, onNewConsultation }: ConsultationRe
       context: result.conseil?.substring(0, 500) || '', // Ajouter le conseil comme contexte
       sources: result.sources.map(s => s.id).join(','), // IDs sources pour référence
     })
-    router.push(`/dossiers/assistant?${params.toString()}`)
+    router.push(`/qadhya-ia/structure?${params.toString()}`)
   }
 
   const handleDeepAnalysis = () => {
@@ -53,7 +53,7 @@ export function ConsultationResult({ result, onNewConsultation }: ConsultationRe
       from: 'consultation',
       seed: `${result.question}\n\nRéponse préliminaire:\n${result.conseil.substring(0, 800)}`,
     })
-    router.push(`/dossiers/assistant?${params.toString()}`)
+    router.push(`/qadhya-ia/structure?${params.toString()}`)
   }
 
   const handleCopyAnswer = async () => {

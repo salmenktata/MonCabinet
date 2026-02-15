@@ -146,7 +146,7 @@ export function ChatActions({
           {t('createDossier')}
         </Button>
 
-        <Link href="/dossiers/assistant">
+        <Link href="/qadhya-ia/structure">
           <Button variant="outline" size="sm">
             <Icons.zap className="h-4 w-4 mr-2" />
             {t('quickMode')}

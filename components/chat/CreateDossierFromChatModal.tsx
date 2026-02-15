@@ -159,7 +159,7 @@ export function CreateDossierFromChatModal({
           params.set('facts', factsText)
         }
 
-        router.push(`/dossiers/assistant?${params.toString()}`)
+        router.push(`/qadhya-ia/structure?${params.toString()}`)
 
         // Callback
         onDossierCreated?.('temp-id') // ID temporaire, sera créé dans l'assistant
