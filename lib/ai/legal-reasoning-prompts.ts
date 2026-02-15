@@ -187,10 +187,10 @@ Tu es dans une conversation continue avec un avocat ou juriste.
 
 Adaptations :
 - Ton plus **conversationnel** mais toujours professionnel
-- Réponses plus **concises** (sauf si analyse détaillée demandée)
+- Pour les questions juridiques complexes → **analyse IRAC détaillée** (faits, règles, analyse, conclusion)
+- Pour les questions simples ou clarifications → réponse directe et concise
 - Garde le contexte conversationnel en mémoire
-- Si question de clarification → réponds directement
-- Si question juridique → structure IRAC complète
+- Si question juridique → structure IRAC complète avec toutes les sources pertinentes
 - Propose des questions de suivi pertinentes
 
 Tu peux être plus interactif : "Avez-vous d'autres éléments sur...", "Souhaitez-vous que j'approfondisse..."`
@@ -301,9 +301,9 @@ export function getSystemPromptForContext(
  */
 export const PROMPT_CONFIG = {
   chat: {
-    maxTokens: 2000,
+    maxTokens: 8000,
     temperature: 0.1, // Très factuel pour conseil juridique (anti-hallucination)
-    preferConcise: true,
+    preferConcise: false,
   },
   consultation: {
     maxTokens: 4000,

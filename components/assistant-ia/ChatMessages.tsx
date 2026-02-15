@@ -275,12 +275,23 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
     return (
       <div className="flex items-start gap-3">
         {/* Avatar */}
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
           <Icons.zap className="h-4 w-4 text-primary" />
         </div>
 
         {/* Contenu enrichi */}
-        <div className="flex-1 max-w-[85%]">
+        <div className="flex-1 max-w-[95%]">
+          {/* Label assistant */}
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-primary">Qadhya IA</span>
+            <span className="text-xs text-muted-foreground">
+              {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          </div>
+
           {/* Phase 3.4 : Alertes abrogations */}
           {message.abrogationAlerts && message.abrogationAlerts.length > 0 && (
             <div className="mb-3">
@@ -289,14 +300,6 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
           )}
 
           {renderEnriched(message)}
-
-          {/* Timestamp */}
-          <div className="mt-1 text-xs text-muted-foreground">
-            {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </div>
         </div>
       </div>
     )
@@ -307,7 +310,7 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
       {/* Avatar */}
       <div
         className={cn(
-          'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+          'w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1',
           isUser ? 'bg-primary' : 'bg-primary/10'
         )}
       >
@@ -319,7 +322,7 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
       </div>
 
       {/* Contenu */}
-      <div className={cn('flex-1 max-w-[85%]', isUser && 'flex flex-col items-end')}>
+      <div className={cn('flex-1', isUser ? 'max-w-[85%] flex flex-col items-end' : 'max-w-[95%]')}>
         {/* Phase 3.4 : Alertes abrogations (affichées AVANT la réponse assistant) */}
         {!isUser && message.abrogationAlerts && message.abrogationAlerts.length > 0 && (
           <div className="mb-3">
@@ -327,65 +330,82 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
           </div>
         )}
 
-        <div
-          className={cn(
-            'rounded-2xl px-4 py-3 text-sm',
-            isUser
-              ? 'bg-primary text-primary-foreground rounded-tr-sm'
-              : 'bg-muted rounded-tl-sm group relative'
-          )}
-        >
-          {isUser ? (
-            // Message utilisateur : simple texte
+        {isUser ? (
+          // Message utilisateur : bubble compact
+          <div className="rounded-2xl px-4 py-3 text-sm bg-primary text-primary-foreground rounded-tr-sm">
             <div className="whitespace-pre-wrap break-words">
               {message.content}
             </div>
-          ) : (
-            // Message assistant : rendu Markdown avec citations
-            <>
+          </div>
+        ) : (
+          // Message assistant : design aéré type document
+          <div className="group relative">
+            {/* Label assistant */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-semibold text-primary">Qadhya IA</span>
+              <span className="text-xs text-muted-foreground">
+                {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+
+            {/* Contenu markdown */}
+            <div className="rounded-xl border border-border/60 bg-card px-5 py-4 shadow-sm">
               <MarkdownMessage
                 content={message.content}
                 sources={message.sources}
               />
               {message.isStreaming && (
-                <span className="inline-block w-0.5 h-4 ml-1 bg-current animate-blink" />
+                <span className="inline-block w-0.5 h-5 ml-1 bg-primary animate-blink" />
               )}
-            </>
-          )}
 
-          {/* Indicateur "typing..." pour le streaming */}
-          {message.isStreaming && !message.content && (
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '300ms' }} />
+              {/* Indicateur "typing..." pour le streaming */}
+              {message.isStreaming && !message.content && (
+                <div className="flex items-center gap-1.5 py-2">
+                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Bouton copier la réponse (assistant uniquement, pas en streaming) */}
-          {!isUser && !message.isStreaming && (
-            <button
-              onClick={handleCopyResponse}
-              className="absolute bottom-2 right-2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/80 text-muted-foreground hover:text-foreground"
-              title="Copier la réponse"
-            >
-              {copied ? <Icons.check className="h-3.5 w-3.5 text-green-500" /> : <Icons.copy className="h-3.5 w-3.5" />}
-            </button>
-          )}
-        </div>
+            {/* Barre d'actions sous le message */}
+            {!message.isStreaming && (
+              <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={handleCopyResponse}
+                  className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="Copier la réponse"
+                >
+                  {copied ? (
+                    <><Icons.check className="h-3 w-3 text-green-500" /> <span className="text-green-500">Copié</span></>
+                  ) : (
+                    <><Icons.copy className="h-3 w-3" /> <span>Copier</span></>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Panneau Sources enrichi */}
         {!isUser && message.sources && message.sources.length > 0 && (
-          <SourcesPanel sources={message.sources} qualityIndicator={message.qualityIndicator} />
+          <div className="mt-3">
+            <SourcesPanel sources={message.sources} qualityIndicator={message.qualityIndicator} />
+          </div>
         )}
 
-        {/* Timestamp */}
-        <div className="mt-1 text-xs text-muted-foreground">
-          {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </div>
+        {/* Timestamp (utilisateur uniquement, assistant a le sien dans le label) */}
+        {isUser && (
+          <div className="mt-1 text-xs text-muted-foreground">
+            {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

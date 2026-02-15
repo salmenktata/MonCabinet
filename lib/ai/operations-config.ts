@@ -134,7 +134,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     llmConfig: {
       temperature: 0.1,  // Très factuel pour conseil juridique (anti-hallucination)
-      maxTokens: 2000,   // Analyses juridiques détaillées (~1500 mots)
+      maxTokens: 8000,   // Analyses juridiques complètes en arabe (~4000 mots, IRAC détaillé)
       systemPromptType: 'chat',
     },
   },

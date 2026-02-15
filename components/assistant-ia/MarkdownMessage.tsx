@@ -66,7 +66,7 @@ function parseTextWithCitations(text: string, sources: ChatSource[]): React.Reac
 
 export function MarkdownMessage({ content, sources = [], className }: MarkdownMessageProps) {
   return (
-    <div dir="auto" className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
+    <div dir="auto" className={cn('prose dark:prose-invert max-w-none', className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -74,7 +74,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
           a: ({ node, ...props }) => (
             <a
               {...props}
-              className="text-primary hover:underline"
+              className="text-primary hover:underline font-medium"
               target="_blank"
               rel="noopener noreferrer"
             />
@@ -108,9 +108,9 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
 
           // Tables améliorées
           table: ({ node, ...props }) => (
-            <div className="overflow-x-auto my-4">
+            <div className="overflow-x-auto my-5 rounded-lg border border-border">
               <table
-                className="min-w-full border-collapse border border-border"
+                className="min-w-full border-collapse"
                 {...props}
               />
             </div>
@@ -118,14 +118,14 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
 
           th: ({ node, ...props }) => (
             <th
-              className="border border-border bg-muted px-4 py-2 text-left font-semibold"
+              className="border-b border-border bg-muted/70 px-4 py-2.5 text-start font-semibold text-sm"
               {...props}
             />
           ),
 
           td: ({ node, ...props }) => (
             <td
-              className="border border-border px-4 py-2"
+              className="border-b border-border/50 px-4 py-2.5 text-sm"
               {...props}
             />
           ),
@@ -140,14 +140,19 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             />
           ),
 
-          // Blockquotes avec parsing des citations
+          // Séparateurs horizontaux - sections IRAC
+          hr: ({ node, ...props }) => (
+            <hr className="my-6 border-t-2 border-primary/15" {...props} />
+          ),
+
+          // Blockquotes - notes juridiques importantes
           blockquote: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             return (
               <blockquote
-                className="border-l-4 border-primary/50 pl-4 italic my-4 text-muted-foreground"
+                className="border-s-4 border-primary/40 bg-primary/5 ps-4 pe-3 py-3 my-5 rounded-e-lg not-italic text-foreground/90"
                 {...props}
               >
                 {parsedChildren}
@@ -155,13 +160,13 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             )
           },
 
-          // Headings avec ancres et parsing des citations
+          // Headings - sections principales IRAC
           h1: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             return (
-              <h1 className="text-2xl font-bold mt-6 mb-4 border-b pb-2" {...props}>
+              <h1 className="text-xl font-bold mt-8 mb-4 pb-2 border-b-2 border-primary/20 text-foreground" {...props}>
                 {parsedChildren}
               </h1>
             )
@@ -172,30 +177,34 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             return (
-              <h2 className="text-xl font-bold mt-5 mb-3" {...props}>
+              <h2 className="text-lg font-bold mt-7 mb-3 text-foreground" {...props}>
                 {parsedChildren}
               </h2>
             )
           },
 
+          // H3 = sections IRAC (أولاً, ثانياً, ثالثاً, رابعاً)
           h3: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             return (
-              <h3 className="text-lg font-semibold mt-4 mb-2" {...props}>
+              <h3
+                className="text-base font-bold mt-6 mb-3 ps-3 py-1.5 border-s-[3px] border-primary bg-primary/5 rounded-e-md text-foreground"
+                {...props}
+              >
                 {parsedChildren}
               </h3>
             )
           },
 
-          // Listes
+          // Listes avec meilleur espacement
           ul: ({ node, ...props }) => (
-            <ul className="list-disc list-outside ml-6 my-3 space-y-1" {...props} />
+            <ul className="list-disc list-outside ms-6 my-4 space-y-2" {...props} />
           ),
 
           ol: ({ node, ...props }) => (
-            <ol className="list-decimal list-outside ml-6 my-3 space-y-1" {...props} />
+            <ol className="list-decimal list-outside ms-6 my-4 space-y-2" {...props} />
           ),
 
           // List items avec parsing des citations
@@ -203,8 +212,15 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
-            return <li {...props}>{parsedChildren}</li>
+            return (
+              <li className="leading-7" {...props}>{parsedChildren}</li>
+            )
           },
+
+          // Texte fort - références juridiques
+          strong: ({ node, children, ...props }) => (
+            <strong className="font-bold text-foreground" {...props}>{children}</strong>
+          ),
 
           // Paragraphes avec parsing des citations
           p: ({ node, children, ...props }) => {
@@ -218,7 +234,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             })
 
             return (
-              <p className="my-3 leading-relaxed" {...props}>
+              <p className="my-3.5 leading-7 text-foreground/90" {...props}>
                 {parsedChildren}
               </p>
             )
