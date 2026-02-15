@@ -741,21 +741,28 @@ export async function indexLegalDocument(documentId: string): Promise<IndexingRe
       )
     }
 
-    // Générer embeddings en batch
+    // Générer embeddings en batch (respecte operations-config: Ollama en dev, OpenAI en prod)
     const embeddingsResult = await generateEmbeddingsBatch(
-      chunks.map(c => c.content)
+      chunks.map(c => c.content),
+      { operationName: 'indexation' }
     )
 
     // Embedding document-level
     const docSummary = `${doc.official_title_ar || ''} ${doc.official_title_fr || ''} ${doc.citation_key}`.trim()
-    const docEmbedding = await generateEmbedding(docSummary)
+    const docEmbedding = await generateEmbedding(docSummary, { operationName: 'indexation' })
+
+    // Déterminer la colonne d'embedding selon le provider utilisé
+    const isOpenAI = embeddingsResult.provider === 'openai'
+    const embeddingColumn = isOpenAI ? 'embedding_openai' : 'embedding'
+
+    console.log(`[WebIndexer] Provider embeddings: ${embeddingsResult.provider} → colonne ${embeddingColumn}`)
 
     // Insérer les chunks
     for (let i = 0; i < chunks.length; i++) {
       const chunkMeta = chunks[i].metadata as any
       await client.query(
         `INSERT INTO knowledge_base_chunks
-         (knowledge_base_id, chunk_index, content, embedding, metadata)
+         (knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata)
          VALUES ($1, $2, $3, $4::vector, $5)`,
         [
           knowledgeBaseId,
@@ -776,12 +783,21 @@ export async function indexLegalDocument(documentId: string): Promise<IndexingRe
       )
     }
 
-    // Marquer comme indexé
-    await client.query(
-      `UPDATE knowledge_base SET embedding = $2::vector, is_indexed = true, updated_at = NOW()
-       WHERE id = $1`,
-      [knowledgeBaseId, formatEmbeddingForPostgres(docEmbedding.embedding)]
-    )
+    // Marquer comme indexé + embedding document-level
+    // Note: knowledge_base n'a que la colonne `embedding` (1024-dim, Ollama)
+    // Avec OpenAI (1536-dim), on ne stocke pas l'embedding doc-level (les recherches utilisent les chunks)
+    if (isOpenAI) {
+      await client.query(
+        `UPDATE knowledge_base SET is_indexed = true, updated_at = NOW() WHERE id = $1`,
+        [knowledgeBaseId]
+      )
+    } else {
+      await client.query(
+        `UPDATE knowledge_base SET embedding = $2::vector, is_indexed = true, updated_at = NOW()
+         WHERE id = $1`,
+        [knowledgeBaseId, formatEmbeddingForPostgres(docEmbedding.embedding)]
+      )
+    }
 
     // Lier le document juridique à la KB
     await client.query(
