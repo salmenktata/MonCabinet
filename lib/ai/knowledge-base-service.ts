@@ -583,10 +583,59 @@ export async function searchKnowledgeBase(
 }
 
 /**
+ * Helper : exécute une recherche hybride SQL single-provider
+ * Factorise la logique SQL commune pour éviter la duplication.
+ */
+async function searchHybridSingle(
+  queryText: string,
+  embeddingStr: string,
+  category: string | null,
+  limit: number,
+  threshold: number,
+  useOpenAI: boolean,
+): Promise<KnowledgeBaseSearchResult[]> {
+  const result = await db.query(
+    `SELECT * FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::integer, $5::double precision, $6::boolean)`,
+    [queryText, embeddingStr, category, limit, threshold, useOpenAI]
+  )
+
+  return result.rows.map((row) => {
+    const vecSim = parseFloat(row.similarity) || 0
+    const bm25Rank = parseFloat(row.bm25_rank) || 0
+    const hybridScore = parseFloat(row.hybrid_score) || 0
+
+    const effectiveSimilarity = vecSim > 0
+      ? vecSim
+      : Math.max(0.35, Math.min(0.50, bm25Rank * 10))
+
+    return {
+      knowledgeBaseId: row.knowledge_base_id,
+      chunkId: row.chunk_id,
+      title: row.title,
+      category: row.category as KnowledgeBaseCategory,
+      chunkContent: row.chunk_content,
+      chunkIndex: row.chunk_index,
+      similarity: effectiveSimilarity,
+      metadata: {
+        ...row.metadata,
+        vectorSimilarity: vecSim,
+        bm25Rank,
+        hybridScore,
+        searchType: vecSim > 0 ? (bm25Rank > 0 ? 'hybrid' : 'vector') : 'bm25',
+      },
+    }
+  })
+}
+
+/**
  * Recherche HYBRIDE dans la base de connaissances
  *
  * ✨ OPTIMISATION RAG - Sprint 3 (Feb 2026)
  * Combine recherche vectorielle (sémantique) + BM25 (keywords) avec RRF
+ *
+ * ✨ AMÉLIORATION (Feb 15, 2026) - Dual-provider search
+ * Quand OpenAI retourne < 3 résultats (couverture partielle ~5% des chunks),
+ * génère aussi un embedding Ollama pour chercher les 95% de chunks legacy.
  *
  * Impact: +25-30% couverture (capture keywords exacts manqués par vectoriel)
  * Pondération: 70% vectoriel, 30% BM25
@@ -638,26 +687,51 @@ export async function searchKnowledgeBaseHybrid(
   )
   console.log(`[KB Hybrid Search] Rationale: ${queryAnalysis.rationale}`)
 
-  // Appel fonction SQL hybrid
-  const result = await db.query(
-    `SELECT * FROM search_knowledge_base_hybrid($1, $2::vector, $3, $4, $5, $6)`,
-    [queryText, embeddingStr, category || null, limit, threshold, useOpenAI]
-  )
+  // ✨ DUAL-PROVIDER SEARCH: Si OpenAI utilisé, chercher aussi avec Ollama pour couvrir les chunks legacy
+  let results: KnowledgeBaseSearchResult[]
 
-  return result.rows.map((row) => ({
-    knowledgeBaseId: row.knowledge_base_id,
-    chunkId: row.chunk_id,
-    title: row.title,
-    category: row.category as KnowledgeBaseCategory,
-    chunkContent: row.chunk_content,
-    chunkIndex: row.chunk_index,
-    similarity: parseFloat(row.hybrid_score), // Score hybride (combiné)
-    metadata: {
-      ...row.metadata,
-      vectorSimilarity: parseFloat(row.similarity), // Score vectoriel seul
-      bm25Rank: parseFloat(row.bm25_rank), // Score BM25 seul
-    },
-  }))
+  if (useOpenAI) {
+    // Recherche primaire avec OpenAI (haute qualité, couverture partielle ~5% chunks)
+    const openaiResults = await searchHybridSingle(
+      queryText, embeddingStr, category || null, limit, threshold, true
+    )
+
+    // Si couverture insuffisante, chercher aussi avec Ollama (couvre 95% chunks legacy)
+    if (openaiResults.length < 3) {
+      console.log(`[KB Hybrid Search] Couverture OpenAI insuffisante (${openaiResults.length} résultats), fallback dual-provider...`)
+
+      // Générer embedding Ollama pour couvrir les chunks legacy (1024-dim)
+      const ollamaEmbedding = await generateEmbedding(query, {
+        operationName: undefined, // Force Ollama (défaut sans opération)
+      })
+      const ollamaEmbStr = formatEmbeddingForPostgres(ollamaEmbedding.embedding)
+
+      const ollamaResults = await searchHybridSingle(
+        queryText, ollamaEmbStr, category || null, limit, threshold, false
+      )
+
+      // Fusionner : dédupliquer par chunk_id, prioriser OpenAI
+      const seenChunks = new Set(openaiResults.map(r => r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50)))
+      const mergedOllama = ollamaResults.filter(r =>
+        !seenChunks.has(r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
+      )
+
+      results = [...openaiResults, ...mergedOllama]
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, limit)
+
+      console.log(`[KB Hybrid Search] Dual-provider: ${openaiResults.length} OpenAI + ${mergedOllama.length} Ollama → ${results.length} total`)
+    } else {
+      results = openaiResults
+    }
+  } else {
+    // Recherche Ollama uniquement (couverture 100% chunks legacy)
+    results = await searchHybridSingle(
+      queryText, embeddingStr, category || null, limit, threshold, false
+    )
+  }
+
+  return results
 }
 
 /**

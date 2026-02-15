@@ -542,11 +542,43 @@ export async function searchRelevantContext(
       // Le classifieur peut retourner 'codes' mais la DB utilise 'legislation'
       const CATEGORY_DB_MAPPING: Record<string, string[]> = {
         codes: ['legislation', 'codes'],
-        legislation: ['legislation'],
+        legislation: ['legislation', 'codes'],
         jurisprudence: ['jurisprudence'],
         doctrine: ['doctrine'],
         modeles: ['modeles'],
+        procedures: ['procedures'],
+        jort: ['jort'],
+        formulaires: ['formulaires'],
+        constitution: ['constitution', 'legislation'],
+        conventions: ['conventions'],
+        guides: ['guides'],
+        lexique: ['lexique'],
+        actualites: ['actualites'],
         autre: ['autre'],
+      }
+
+      // DOMAIN-TO-CATEGORY BOOST: domaines → catégories pertinentes
+      const DOMAIN_CATEGORY_BOOST: Record<string, string[]> = {
+        penal: ['codes', 'legislation', 'jurisprudence', 'procedures'],
+        civil: ['codes', 'legislation', 'jurisprudence'],
+        commercial: ['codes', 'legislation', 'jurisprudence'],
+        administratif: ['legislation', 'jurisprudence', 'jort'],
+        travail: ['codes', 'legislation', 'jurisprudence'],
+        famille: ['codes', 'legislation', 'jurisprudence'],
+        immobilier: ['codes', 'legislation', 'jurisprudence'],
+        fiscal: ['codes', 'legislation', 'jort'],
+      }
+
+      if (classification.domains.length > 0 && classification.categories.length < 3) {
+        const domainCategories = new Set<string>(classification.categories)
+        for (const domain of classification.domains) {
+          const boosted = DOMAIN_CATEGORY_BOOST[domain]
+          if (boosted) boosted.forEach(c => domainCategories.add(c))
+        }
+        if (domainCategories.size > classification.categories.length) {
+          classification.categories = [...domainCategories].slice(0, 4) as any
+          console.log(`[RAG Search] Domain boost: ${classification.domains.join(',')} → ${classification.categories.join(',')}`)
+        }
       }
 
       // Recherche filtrée par catégorie si classification confiante
@@ -559,7 +591,7 @@ export async function searchRelevantContext(
         }
 
         console.log(
-          `[RAG Search] Filtrage KB par catégories: ${[...expandedCategories].join(', ')} (classifieur: ${classification.categories.join(', ')}, confiance: ${(classification.confidence * 100).toFixed(1)}%)`
+          `[RAG Search] Filtrage KB par catégories: ${[...expandedCategories].join(', ')} (classifieur: ${classification.categories.join(', ')}, domaines: ${classification.domains.join(',') || 'aucun'}, confiance: ${(classification.confidence * 100).toFixed(1)}%)`
         )
 
         // Recherche HYBRIDE (vectoriel + BM25) dans chaque catégorie
@@ -629,8 +661,8 @@ export async function searchRelevantContext(
   let rerankedSources = await rerankSources(aboveThreshold, question)
 
   // Seuils adaptatifs: si moins de 3 résultats, baisser le seuil de 20% (une seule fois)
-  // Plancher absolu à 0.35 pour éviter d'inclure du bruit
-  const ADAPTIVE_FLOOR = 0.35
+  // Plancher absolu à 0.45 pour éviter d'inclure du bruit (relevé de 0.35 → 0.45)
+  const ADAPTIVE_FLOOR = 0.45
   if (rerankedSources.length < 3 && allSources.length > rerankedSources.length) {
     const adaptiveThreshold = Math.max(RAG_THRESHOLDS.minimum * 0.8, ADAPTIVE_FLOOR)
     if (adaptiveThreshold < RAG_THRESHOLDS.minimum) {
@@ -657,7 +689,15 @@ export async function searchRelevantContext(
   }
 
   // Limiter au nombre demandé (sur sources valides filtrées)
-  const finalSources = filteredResult.validSources.slice(0, maxContextChunks)
+  let finalSources = filteredResult.validSources.slice(0, maxContextChunks)
+
+  // Hard quality gate: si TOUTES les sources sont < 0.50, ne pas les envoyer au LLM
+  // Évite les hallucinations quand aucune source n'est réellement pertinente
+  const HARD_QUALITY_GATE = 0.50
+  if (finalSources.length > 0 && finalSources.every(s => s.similarity < HARD_QUALITY_GATE)) {
+    console.log(`[RAG Search] ⚠️ Hard quality gate: toutes ${finalSources.length} sources < ${HARD_QUALITY_GATE}, retour 0 sources`)
+    return { sources: [], cacheHit: false }
+  }
 
   // Calculer et logger les métriques
   const scores = allSources.map((s) => s.similarity)
@@ -862,8 +902,8 @@ async function searchRelevantContextBilingual(
 // CONSTRUCTION DU PROMPT
 // =============================================================================
 
-// Limite de tokens pour le contexte RAG (4000 par défaut pour les LLM modernes 8k+)
-const RAG_MAX_CONTEXT_TOKENS = parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '4000', 10)
+// Limite de tokens pour le contexte RAG (6000 par défaut pour les LLM modernes 8k+)
+const RAG_MAX_CONTEXT_TOKENS = parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '6000', 10)
 
 // Templates bilingues pour le message utilisateur
 const USER_MESSAGE_TEMPLATES = {
@@ -897,7 +937,15 @@ function computeSourceQualityMetrics(sources: ChatSource[]): {
   return {
     averageSimilarity: avg,
     qualityLevel: 'low',
-    warningMessage: `🚨 ATTENTION: Les documents ci-dessous ont une FAIBLE pertinence (similarité ~${Math.round(avg * 100)}%). Ils proviennent probablement d'un domaine juridique DIFFÉRENT. NE LES CITE PAS comme s'ils répondaient à la question. Indique clairement que la base de connaissances ne contient pas de documents directement pertinents sur ce sujet, puis fournis des orientations générales.`,
+    warningMessage: `🚨 ATTENTION: Les documents ci-dessous ont une FAIBLE pertinence (similarité ~${Math.round(avg * 100)}%).
+Ils proviennent probablement d'un domaine juridique DIFFÉRENT de la question posée.
+
+INSTRUCTIONS STRICTES:
+1. NE CITE PAS ces sources comme si elles répondaient à la question
+2. NE CONSTRUIS PAS de raisonnement juridique basé sur ces sources
+3. Indique clairement que la base de connaissances ne contient pas de documents pertinents
+4. Fournis des orientations GÉNÉRALES basées sur tes connaissances du droit tunisien
+5. Recommande de consulter les textes officiels pour une réponse précise`,
   }
 }
 
@@ -1046,11 +1094,17 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
     const sourceType = meta?.type
     const structuredMeta = meta?.structuredMetadata
 
+    // Indicateur de pertinence visible par le LLM
+    const relevanceLabel = source.similarity >= 0.75 ? '✅ Très pertinent'
+      : source.similarity >= 0.60 ? '⚠️ Pertinence moyenne'
+      : '❌ Pertinence faible'
+    const relevancePct = `${Math.round(source.similarity * 100)}%`
+
     // Labels fixes [Source-N], [Juris-N], [KB-N] — compatibles avec le regex frontend
     let part: string
     if (sourceType === 'jurisprudence') {
       // Format enrichi pour jurisprudence
-      let enrichedHeader = `[Juris-${i + 1}] ${source.documentName}\n`
+      let enrichedHeader = `[Juris-${i + 1}] ${source.documentName} (${relevanceLabel} - ${relevancePct})\n`
 
       // Ajouter métadonnées structurées si disponibles
       if (structuredMeta) {
@@ -1106,7 +1160,7 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
 
       part = enrichedHeader + '\n' + source.chunkContent
     } else if (sourceType === 'knowledge_base') {
-      let enrichedHeader = `[KB-${i + 1}] ${source.documentName}\n`
+      let enrichedHeader = `[KB-${i + 1}] ${source.documentName} (${relevanceLabel} - ${relevancePct})\n`
 
       // Ajouter métadonnées structurées KB si disponibles
       if (structuredMeta) {
@@ -1128,7 +1182,7 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
 
       part = enrichedHeader + '\n' + source.chunkContent
     } else {
-      part = `[Source-${i + 1}] ${source.documentName}\n\n` + source.chunkContent
+      part = `[Source-${i + 1}] ${source.documentName} (${relevanceLabel} - ${relevancePct})\n\n` + source.chunkContent
     }
 
     const partTokens = countTokens(part)
