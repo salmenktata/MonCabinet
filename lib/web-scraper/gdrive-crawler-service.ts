@@ -351,6 +351,10 @@ async function listDriveFiles(
     } while (pageToken)
   }
 
+  if (files.length >= totalFilesLimit) {
+    console.warn(`[GDriveCrawler] ⚠️ Limite atteinte: ${files.length}/${totalFilesLimit} fichiers. Des fichiers peuvent manquer. Augmentez max_pages sur la source.`)
+  }
+
   return files
 }
 

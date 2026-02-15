@@ -86,6 +86,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       averageCrawlTimeMs: row.average_crawl_time_ms,
       successRate: row.success_rate,
       tags: row.tags,
+      maxPages: row.max_pages,        // CRITIQUE: sans ça, limite par défaut à 1000 fichiers
+      lastCrawlAt: row.last_crawl_at, // Fix mode incrémental (lastCrawledAt ≠ lastCrawlAt)
     } as any // Cast pour éviter les problèmes de types snake_case vs camelCase
 
     // Lancer le crawl
