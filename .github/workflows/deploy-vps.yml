@@ -683,6 +683,37 @@ jobs:
           echo "✅ Health check passed (RAG: $RAG_STATUS)"
           echo "health_check_passed=true" >> $GITHUB_OUTPUT
 
+      - name: E2E Deployment Tests
+        id: e2e
+        run: |
+          echo "🧪 Tests E2E post-déploiement..."
+
+          E2E_RESULT=$(curl -sf https://qadhya.tn/api/test-deploy || echo '{"status":"error"}')
+          echo "$E2E_RESULT" | jq '.' || echo "Invalid JSON"
+
+          ALL_PASSED=$(echo "$E2E_RESULT" | jq -r '.allTestsPassed' 2>/dev/null || echo "false")
+          STATUS=$(echo "$E2E_RESULT" | jq -r '.status' 2>/dev/null || echo "error")
+          DB_STATUS=$(echo "$E2E_RESULT" | jq -r '.tests.database.status' 2>/dev/null || echo "unknown")
+          RAG_STATUS=$(echo "$E2E_RESULT" | jq -r '.tests.rag.status' 2>/dev/null || echo "unknown")
+          KB_STATUS=$(echo "$E2E_RESULT" | jq -r '.tests.knowledgeBase.status' 2>/dev/null || echo "unknown")
+          EMB_STATUS=$(echo "$E2E_RESULT" | jq -r '.tests.embeddings.status' 2>/dev/null || echo "unknown")
+
+          echo "📊 Résultats E2E:"
+          echo "  Database:       $DB_STATUS"
+          echo "  RAG Config:     $RAG_STATUS"
+          echo "  Knowledge Base: $KB_STATUS"
+          echo "  Embeddings:     $EMB_STATUS"
+          echo "  Global:         $STATUS"
+
+          echo "e2e_passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+
+          if [ "$STATUS" = "error" ]; then
+            echo "❌ Tests E2E échoués - vérifier la configuration"
+            echo "::warning::E2E tests failed: DB=$DB_STATUS RAG=$RAG_STATUS KB=$KB_STATUS EMB=$EMB_STATUS"
+          else
+            echo "✅ Tests E2E passés ($STATUS)"
+          fi
+
       - name: Config Hash Validation
         id: config
         run: |
@@ -743,6 +774,7 @@ jobs:
             --arg commitMessage "${{ github.event.head_commit.message }}" \
             --arg preDeploySchema "${{ needs.validate-schema.result }}" \
             --arg postDeployHealth "${{ steps.health.outputs.health_check_passed || 'unknown' }}" \
+            --arg e2eTests "${{ steps.e2e.outputs.e2e_passed || 'unknown' }}" \
             --arg configHash "${{ steps.config.outputs.config_valid || 'unknown' }}" \
             --arg outcome "${{ job.status }}" \
             '{
@@ -754,6 +786,7 @@ jobs:
               validations: {
                 preDeploySchema: $preDeploySchema,
                 postDeployHealth: $postDeployHealth,
+                e2eTests: $e2eTests,
                 configHash: $configHash
               },
               outcome: $outcome

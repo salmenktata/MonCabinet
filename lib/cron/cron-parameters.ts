@@ -202,6 +202,82 @@ export const CRON_PARAMETERS: Record<string, CronParametersConfig> = {
     ],
   },
 
+  'analyze-kb-weekend': {
+    cronName: 'analyze-kb-weekend',
+    parameters: [
+      {
+        name: 'batchSize',
+        label: 'Taille du batch',
+        description: 'Nombre de documents à analyser par batch (recommandé: 10-30)',
+        type: 'number',
+        required: false,
+        defaultValue: 20,
+        min: 5,
+        max: 50,
+        step: 5,
+        envVar: 'BATCH_SIZE',
+      },
+      {
+        name: 'maxBatches',
+        label: 'Batches maximum',
+        description: 'Nombre maximum de batches par exécution',
+        type: 'number',
+        required: false,
+        defaultValue: 10,
+        min: 1,
+        max: 50,
+        step: 1,
+        envVar: 'MAX_BATCHES',
+      },
+      {
+        name: 'category',
+        label: 'Catégorie à analyser',
+        description: 'Restreindre l\'analyse à une catégorie spécifique',
+        type: 'select',
+        required: false,
+        defaultValue: '',
+        options: [
+          { value: '', label: 'Toutes les catégories' },
+          { value: 'jurisprudence', label: 'Jurisprudence' },
+          { value: 'codes', label: 'Codes' },
+          { value: 'legislation', label: 'Législation' },
+          { value: 'doctrine', label: 'Doctrine' },
+        ],
+        envVar: 'CATEGORY',
+      },
+    ],
+  },
+
+  'reindex-kb-openai': {
+    cronName: 'reindex-kb-openai',
+    parameters: [
+      {
+        name: 'dailyLimit',
+        label: 'Limite quotidienne',
+        description: 'Nombre max de chunks à réindexer par exécution (recommandé: 50)',
+        type: 'number',
+        required: false,
+        defaultValue: 50,
+        min: 10,
+        max: 500,
+        step: 10,
+        envVar: 'DAILY_LIMIT',
+      },
+      {
+        name: 'minPriority',
+        label: 'Priorité minimum',
+        description: 'Score de priorité minimum des documents à traiter (0-100)',
+        type: 'number',
+        required: false,
+        defaultValue: 0,
+        min: 0,
+        max: 100,
+        step: 5,
+        envVar: 'MIN_PRIORITY',
+      },
+    ],
+  },
+
   'cleanup-executions': {
     cronName: 'cleanup-executions',
     parameters: [

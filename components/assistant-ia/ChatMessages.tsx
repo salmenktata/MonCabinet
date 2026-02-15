@@ -12,6 +12,7 @@ import { SourcesPanel } from './SourcesPanel'
 import { useVirtualizedMessages } from '@/lib/hooks/useVirtualizedMessages'
 import { AbrogationAlerts } from '@/components/chat/abrogation-alert' // Phase 3.4
 import type { AbrogationAlert } from '@/types/abrogation-alerts' // Phase 3.4
+import type { ModeConfig } from '@/app/(dashboard)/qadhya-ia/mode-config'
 
 const MarkdownMessage = dynamic(
   () => import('./MarkdownMessage').then(mod => mod.MarkdownMessage),
@@ -47,11 +48,13 @@ interface ChatMessagesProps {
   messages: ChatMessage[]
   isLoading?: boolean
   streamingContent?: string
+  modeConfig?: ModeConfig
   renderEnriched?: (message: ChatMessage) => React.ReactNode // Pour messages enrichis (structure/consult)
 }
 
-export function ChatMessages({ messages, isLoading, streamingContent, renderEnriched }: ChatMessagesProps) {
+export function ChatMessages({ messages, isLoading, streamingContent, modeConfig, renderEnriched }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
+  const tMode = useTranslations('qadhyaIA.modes')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Convertir les messages pour le hook de virtualisation
@@ -87,20 +90,32 @@ export function ChatMessages({ messages, isLoading, streamingContent, renderEnri
   }, [messages, streamingContent, isVirtualized])
 
   if (messages.length === 0 && !isLoading && !streamingContent) {
+    const modeKey = modeConfig?.translationKey || 'chat'
+    const ModeIcon = modeConfig ? Icons[modeConfig.icon] : Icons.messageSquare
+    const iconBg = modeConfig?.iconBgClass || 'bg-primary/10'
+    const iconText = modeConfig?.iconTextClass || 'text-primary'
+    const badgeCls = modeConfig?.badgeClass || ''
+
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Icons.messageSquare className="h-8 w-8 text-primary" />
+          <div className={cn('w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4', iconBg)}>
+            <ModeIcon className={cn('h-8 w-8', iconText)} />
           </div>
-          <h2 className="text-lg font-semibold mb-2">{t('welcomeTitle')}</h2>
-          <p className="text-muted-foreground text-sm">{t('welcomeMessage')}</p>
+          <h2 className="text-lg font-semibold mb-2">
+            {modeConfig ? tMode(`${modeKey}.welcomeTitle`) : t('welcomeTitle')}
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            {modeConfig ? tMode(`${modeKey}.welcomeMessage`) : t('welcomeMessage')}
+          </p>
           <div className="mt-6 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">{t('exampleQuestions')}</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              {modeConfig ? tMode(`${modeKey}.exampleQuestions`) : t('exampleQuestions')}
+            </p>
             <div className="flex flex-wrap gap-2 justify-center">
-              {['civil', 'commercial', 'divorce'].map((type) => (
-                <Badge key={type} variant="outline" className="cursor-default">
-                  {t(`examples.${type}`)}
+              {['ex1', 'ex2', 'ex3'].map((key) => (
+                <Badge key={key} variant="outline" className={cn('cursor-default', badgeCls)}>
+                  {modeConfig ? tMode(`${modeKey}.examples.${key}`) : t(`examples.${['civil', 'commercial', 'divorce'][['ex1', 'ex2', 'ex3'].indexOf(key)]}`)}
                 </Badge>
               ))}
             </div>

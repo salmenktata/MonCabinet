@@ -110,9 +110,10 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     description: 'Chat utilisateur temps réel (performance critique, volume élevé)',
 
     // Providers: Groq ultra-rapide (292ms) en priorité
+    // Sprint 3: Consolidation 5→3 providers (retiré DeepSeek)
     providers: {
       primary: 'groq',
-      fallback: ['gemini', 'deepseek', 'ollama'],
+      fallback: ['gemini', 'ollama'],
     },
 
     // ✨ OPTIMISATION RAG - Sprint 1 (Feb 2026)
@@ -147,9 +148,10 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     description: 'Analyse approfondie dossier (qualité critique)',
 
     // Providers: Gemini prioritaire (qualité + contexte 1M)
+    // Sprint 3: Consolidation 5→3 providers (retiré DeepSeek)
     providers: {
       primary: 'gemini',
-      fallback: ['groq', 'deepseek'],
+      fallback: ['groq', 'ollama'],
     },
 
     embeddings: {
@@ -230,9 +232,10 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     description: 'Consultation juridique formelle IRAC (qualité maximale)',
 
     // Providers: Gemini prioritaire (qualité + raisonnement)
+    // Sprint 3: Consolidation 5→3 providers (retiré DeepSeek)
     providers: {
       primary: 'gemini',
-      fallback: ['deepseek', 'groq'],
+      fallback: ['groq', 'ollama'],
     },
 
     embeddings: {

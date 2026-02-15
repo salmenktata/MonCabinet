@@ -29,7 +29,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const isTurbo = EMBEDDING_TURBO_CONFIG.enabled
   const batchSize = isTurbo
     ? EMBEDDING_TURBO_CONFIG.batchSize
-    : parseInt(process.env.KB_BATCH_SIZE || '2', 10)
+    : parseInt(process.env.KB_BATCH_SIZE || '5', 10)
   const maxBatches = isTurbo ? 100 : 50
   const batchDelay = isTurbo ? 100 : 500
 

@@ -85,12 +85,12 @@ export interface LLMResponse {
  * n'est fournie via `operationName`. Pour la plupart des cas, utiliser
  * operations-config.ts qui définit des stratégies optimisées.
  *
- * Gemini (gratuit, 1M context) → DeepSeek (économique) → Groq (rapide) →
- * OpenAI (stable) → Anthropic (dernier recours) → Ollama (local)
+ * Sprint 3 Consolidation : Gemini → Groq → OpenAI → Ollama
+ * (DeepSeek + Anthropic retirés du fallback actif)
  *
  * @see lib/ai/operations-config.ts pour stratégies par opération
  */
-const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'deepseek', 'groq', 'openai', 'anthropic', 'ollama']
+const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'groq', 'openai', 'ollama']
 
 /**
  * Stratégies de providers par contexte d'utilisation
@@ -117,20 +117,20 @@ function getProviderStrategyByContext(): Record<AIContext, LLMProvider[]> {
   // En prod : Stratégies optimisées par contexte
   return {
     // Chat/RAG - Volume élevé (2-3M tokens/jour), performance critique
-    // Priorité : Vitesse + Contexte 1M tokens + Coût
-    'rag-chat': ['gemini', 'gemini', 'deepseek', 'ollama'],
+    // Sprint 3: Consolidation - Gemini + Ollama fallback
+    'rag-chat': ['gemini', 'groq', 'ollama'],
 
     // Embeddings - Volume très élevé (5-10M tokens/jour), coût critique
     // Ollama exclusif pour économie maximale ($400-750/mois économisés)
     'embeddings': ['ollama'],
 
     // Analyse qualité KB - Précision critique (5-10K tokens/jour)
-    // Priorité : Qualité > Coût (OpenAI pour stabilité)
-    'quality-analysis': ['openai', 'deepseek', 'gemini'],
+    // Sprint 3: OpenAI + Gemini (retiré DeepSeek)
+    'quality-analysis': ['openai', 'gemini', 'ollama'],
 
     // Structuration dossiers - Qualité JSON critique (10-50 ops/mois)
-    // Priorité : Extraction structurée + Raisonnement
-    'structuring': ['deepseek', 'gemini', 'ollama'],
+    // Sprint 3: Gemini prioritaire (retiré DeepSeek)
+    'structuring': ['gemini', 'groq', 'ollama'],
 
     // Traduction bilingue - Langues critiques (<5K tokens/jour)
     // Priorité : Multilingue AR/FR + Coût

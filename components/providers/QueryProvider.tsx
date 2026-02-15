@@ -10,17 +10,25 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { type ReactNode } from 'react'
+import { type ReactNode, lazy, Suspense } from 'react'
 
-// Devtools optionnels (seulement en dev)
-let ReactQueryDevtools: any = null
-if (process.env.NODE_ENV === 'development') {
-  try {
-    ReactQueryDevtools = require('@tanstack/react-query-devtools').ReactQueryDevtools
-  } catch {
-    // Devtools non installés, pas grave
-  }
-}
+// Devtools optionnels (seulement en dev) - Import lazy pour éviter les problèmes de timing
+const ReactQueryDevtoolsProduction = lazy(() =>
+  import('@tanstack/react-query-devtools/build/modern/production.js').then(
+    (d) => ({
+      default: d.ReactQueryDevtools,
+    })
+  )
+)
+
+const ReactQueryDevtools =
+  process.env.NODE_ENV === 'development'
+    ? lazy(() =>
+        import('@tanstack/react-query-devtools').then((d) => ({
+          default: d.ReactQueryDevtools,
+        }))
+      )
+    : null
 
 // =============================================================================
 // CONFIGURATION
@@ -121,11 +129,12 @@ export function QueryProvider({ children }: QueryProviderProps) {
 
       {/* DevTools uniquement en développement */}
       {process.env.NODE_ENV === 'development' && ReactQueryDevtools && (
-        <ReactQueryDevtools
-          initialIsOpen={false}
-          position="bottom-right"
-          buttonPosition="bottom-right"
-        />
+        <Suspense fallback={null}>
+          <ReactQueryDevtools
+            initialIsOpen={false}
+            buttonPosition="bottom-right"
+          />
+        </Suspense>
       )}
     </QueryClientProvider>
   )

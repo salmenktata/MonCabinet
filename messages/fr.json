@@ -910,6 +910,29 @@
         "actions": "Actions recommandées"
       }
     },
+    "modes": {
+      "chat": {
+        "label": "Assistant IA",
+        "welcomeTitle": "Assistant juridique IA",
+        "welcomeMessage": "Posez vos questions juridiques et obtenez des réponses contextualisées basées sur la jurisprudence tunisienne.",
+        "exampleQuestions": "Exemples de questions :",
+        "examples": { "ex1": "Procédure civile", "ex2": "Litige commercial", "ex3": "Affaire de divorce" }
+      },
+      "structure": {
+        "label": "Structuration",
+        "welcomeTitle": "Structuration de dossiers",
+        "welcomeMessage": "Décrivez les faits d'une affaire et l'IA structurera automatiquement un dossier juridique complet.",
+        "exampleQuestions": "Exemples de descriptions :",
+        "examples": { "ex1": "Litige bail commercial", "ex2": "Accident de circulation", "ex3": "Conflit de travail" }
+      },
+      "consult": {
+        "label": "Consultation",
+        "welcomeTitle": "Consultation juridique",
+        "welcomeMessage": "Obtenez une analyse juridique formelle suivant la méthode IRAC avec références légales.",
+        "exampleQuestions": "Exemples de consultations :",
+        "examples": { "ex1": "Responsabilité contractuelle", "ex2": "Droit de propriété", "ex3": "Procédure d'appel" }
+      }
+    },
     "errors": {
       "sendFailed": "Impossible d'envoyer le message",
       "deleteFailed": "Impossible de supprimer la conversation"

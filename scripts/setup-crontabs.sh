@@ -37,6 +37,12 @@ cat > /tmp/qadhya-crontab << 'CRONTAB'
 # Acquisition Weekly Report - Dimanche à 10h
 0 10 * * 0 cd /opt/qadhya && npx tsx scripts/cron-acquisition-weekly.ts >> /var/log/qadhya/acquisition.log 2>&1
 
+# Analyse massive KB week-end (Ollama gratuit) - Sam & Dim toutes les 2h (8h-22h)
+0 8,10,12,14,16,18,20,22 * * 6,0 /opt/qadhya/scripts/cron-analyze-kb-weekend.sh >> /var/log/qadhya/analyze-kb-weekend.log 2>&1
+
+# Réindexation progressive OpenAI embeddings - Quotidien à 5h
+0 5 * * * /opt/qadhya/scripts/cron-reindex-kb-openai.sh >> /var/log/qadhya/reindex-kb-openai.log 2>&1
+
 # Cleanup old cron executions - Quotidien à 4h
 0 4 * * * docker exec 275ce01791bf_qadhya-postgres psql -U moncabinet -d qadhya -c "SELECT cleanup_old_cron_executions();" >> /var/log/qadhya/cleanup.log 2>&1
 

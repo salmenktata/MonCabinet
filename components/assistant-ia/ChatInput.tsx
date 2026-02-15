@@ -6,14 +6,16 @@ import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import type { ModeConfig } from '@/app/(dashboard)/qadhya-ia/mode-config'
 
 interface ChatInputProps {
   onSend: (message: string) => void
   disabled?: boolean
   placeholder?: string
+  modeConfig?: ModeConfig
 }
 
-export function ChatInput({ onSend, disabled = false, placeholder }: ChatInputProps) {
+export function ChatInput({ onSend, disabled = false, placeholder, modeConfig }: ChatInputProps) {
   const t = useTranslations('assistantIA')
   const [message, setMessage] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -68,7 +70,8 @@ export function ChatInput({ onSend, disabled = false, placeholder }: ChatInputPr
             disabled={disabled}
             className={cn(
               'min-h-[52px] max-h-[200px] md:max-h-[200px] resize-none pr-12',
-              'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+              'focus-visible:ring-2 focus-visible:ring-offset-2',
+              modeConfig?.ringClass || 'focus-visible:ring-primary',
               'transition-all duration-200'
             )}
             rows={1}

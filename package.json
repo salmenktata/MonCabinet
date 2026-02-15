@@ -211,11 +211,13 @@
     "web-vitals": "^5.1.0",
     "xml2js": "^0.6.2",
     "zod": "^3.25.76",
-    "zustand": "^5.0.2"
+    "zustand": "^5.0.2",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.1.6",
     "@playwright/test": "^1.58.2",
+    "@tanstack/react-query-devtools": "^5.91.3",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@types/bcryptjs": "^2.4.6",
@@ -243,7 +245,6 @@
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.9",
     "tailwindcss": "^3.4.17",
-    "tsx": "^4.21.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   },

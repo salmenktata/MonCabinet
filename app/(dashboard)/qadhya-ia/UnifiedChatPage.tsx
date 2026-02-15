@@ -12,11 +12,14 @@ import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 import { useToast } from '@/lib/hooks/use-toast'
 import { FeatureErrorBoundary } from '@/components/providers/FeatureErrorBoundary'
 import { ActionButtons, type ActionType } from '@/components/qadhya-ia/ActionButtons'
 import { EnrichedMessage } from '@/components/qadhya-ia/EnrichedMessage'
+import { MODE_CONFIGS } from './mode-config'
 import {
   ConversationsList,
   type Conversation as ConvType,
@@ -54,6 +57,10 @@ export function UnifiedChatPage({
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [currentAction, setCurrentAction] = useState<ActionType>(initialAction)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Mode config dérivée de l'action courante
+  const modeConfig = useMemo(() => MODE_CONFIGS[currentAction], [currentAction])
+  const ModeIcon = useMemo(() => Icons[modeConfig.icon], [modeConfig.icon])
 
   // React Query hooks - Cache automatique
   const {
@@ -208,7 +215,7 @@ export function UnifiedChatPage({
         onClick: () => router.push('/dashboard'),
       }}
     >
-      <div className="h-[calc(100vh-4rem)] flex bg-gradient-to-br from-background via-background to-muted/20">
+      <div className={cn('h-[calc(100vh-4rem)] flex bg-gradient-to-br', modeConfig.gradientClass)}>
         {/* Sidebar - Desktop avec Glassmorphism */}
         <aside className="hidden lg:flex lg:w-80 xl:w-96 border-r flex-col backdrop-blur-xl bg-background/95">
           {SidebarContent}
@@ -228,7 +235,10 @@ export function UnifiedChatPage({
                 {SidebarContent}
               </SheetContent>
             </Sheet>
-            <h1 className="font-semibold">{t('title')}</h1>
+            <Badge variant="outline" className={cn('gap-1.5', modeConfig.badgeClass)}>
+              <ModeIcon className="h-3.5 w-3.5" />
+              {t(`actions.${modeConfig.translationKey}.label`)}
+            </Badge>
             <div className="w-10" /> {/* Spacer */}
           </div>
 
@@ -237,6 +247,7 @@ export function UnifiedChatPage({
             <ChatMessages
               messages={messages}
               isLoading={isLoadingMessages}
+              modeConfig={modeConfig}
               // Utiliser EnrichedMessage pour les messages enrichis
               renderEnriched={(message) => <EnrichedMessage message={message} />}
             />
@@ -259,6 +270,7 @@ export function UnifiedChatPage({
               onSend={handleSendMessage}
               disabled={isSending}
               placeholder={getPlaceholder()}
+              modeConfig={modeConfig}
             />
           </div>
         </main>
