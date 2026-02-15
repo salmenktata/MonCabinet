@@ -659,7 +659,7 @@ export async function searchKnowledgeBaseHybrid(
     category,
     subcategory,
     limit = aiConfig.rag.maxResults,
-    threshold = aiConfig.rag.similarityThreshold - 0.05,
+    threshold = aiConfig.rag.similarityThreshold - 0.20, // SQL vector_threshold permissif (0.35) ; le HARD_QUALITY_GATE (0.50) filtre ensuite
     operationName,
   } = options
 

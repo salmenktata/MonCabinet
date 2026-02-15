@@ -696,11 +696,14 @@ export async function searchRelevantContext(
   // Limiter au nombre demandé (sur sources valides filtrées)
   let finalSources = filteredResult.validSources.slice(0, maxContextChunks)
 
-  // Hard quality gate: si TOUTES les sources sont < 0.50, ne pas les envoyer au LLM
-  // Évite les hallucinations quand aucune source n'est réellement pertinente
+  // Hard quality gate: si TOUTES les sources sont en dessous du seuil, ne pas les envoyer au LLM
+  // Seuil différencié : résultats vectoriels (similarity = vecSim réel) sont plus fiables que BM25-only
   const HARD_QUALITY_GATE = 0.50
-  if (finalSources.length > 0 && finalSources.every(s => s.similarity < HARD_QUALITY_GATE)) {
-    console.log(`[RAG Search] ⚠️ Hard quality gate: toutes ${finalSources.length} sources < ${HARD_QUALITY_GATE}, retour 0 sources`)
+  const HARD_QUALITY_GATE_VECTOR = 0.35 // Seuil plus bas pour résultats avec composante vectorielle
+  const hasVectorResults = finalSources.some(s => s.metadata?.searchType === 'vector' || s.metadata?.searchType === 'hybrid')
+  const effectiveGate = hasVectorResults ? HARD_QUALITY_GATE_VECTOR : HARD_QUALITY_GATE
+  if (finalSources.length > 0 && finalSources.every(s => s.similarity < effectiveGate)) {
+    console.log(`[RAG Search] ⚠️ Hard quality gate (${effectiveGate}): toutes ${finalSources.length} sources < seuil, retour 0 sources`)
     return { sources: [], cacheHit: false }
   }
 
