@@ -26,6 +26,9 @@ import { callLLMWithFallback } from './llm-fallback-service'
 // Longueur minimale pour déclencher l'expansion (en caractères)
 const MIN_QUERY_LENGTH_FOR_EXPANSION = 50
 
+// Longueur minimale pour déclencher la condensation (requêtes longues)
+const MIN_QUERY_LENGTH_FOR_CONDENSATION = 200
+
 // Longueur maximale de la query expandée (éviter embeddings trop longs)
 const MAX_EXPANDED_QUERY_LENGTH = 500
 
@@ -133,6 +136,90 @@ export async function expandQuery(query: string): Promise<string> {
     // Fallback: en cas d'erreur, retourner query originale
     console.error(
       '[Query Expansion] Erreur expansion:',
+      error instanceof Error ? error.message : error
+    )
+    return query
+  }
+}
+
+// =============================================================================
+// CONDENSATION (requêtes longues > 200 chars)
+// =============================================================================
+
+const CONDENSATION_PROMPT = `Tu es un expert juridique tunisien. Ta tâche: extraire les 3-5 concepts juridiques clés d'une question longue et les reformuler en une requête de recherche concise.
+
+RÈGLES:
+- Extraire UNIQUEMENT les concepts juridiques principaux
+- Séparer par " - "
+- Max 100 caractères
+- Garder la même langue que la question
+- Pas de phrase complète, juste les concepts clés
+
+EXEMPLES:
+
+Question: أريد أن أعرف ما هي الشروط القانونية للدفاع الشرعي في القانون التونسي وهل يمكن الاحتجاج بالدفاع الشرعي إذا كان الرد غير متناسب مع الاعتداء وما هي العقوبات المترتبة
+Condensation: الدفاع الشرعي - تناسب الرد - المجلة الجزائية - شروط الدفاع
+
+Question: Je voudrais savoir quelles sont les conditions de validité d'un contrat de bail commercial en Tunisie, notamment la durée minimale, les obligations du bailleur et du locataire, et les cas de résiliation anticipée
+Condensation: bail commercial - validité contrat - obligations bailleur locataire - résiliation
+
+MAINTENANT, condense cette question:
+
+Question: {query}
+
+Condensation (concepts clés séparés par " - ", max 100 caractères):`
+
+/**
+ * Condense une requête longue en extrayant les concepts juridiques clés
+ * pour produire un embedding plus ciblé
+ *
+ * @param query - Question juridique longue (>200 chars)
+ * @returns Query condensée avec concepts clés (~80-100 chars)
+ */
+export async function condenseQuery(query: string): Promise<string> {
+  if (!query || query.trim().length === 0) {
+    return query
+  }
+
+  if (query.length < MIN_QUERY_LENGTH_FOR_CONDENSATION) {
+    return query
+  }
+
+  try {
+    console.log(`[Query Condensation] Condensation query longue (${query.length} chars)...`)
+
+    const response = await callLLMWithFallback(
+      [
+        {
+          role: 'user',
+          content: CONDENSATION_PROMPT.replace('{query}', query),
+        },
+      ],
+      {
+        temperature: 0.1, // Très déterministe pour extraction
+        maxTokens: 100, // ~100 caractères max
+        operationName: 'assistant-ia',
+      }
+    )
+
+    let condensed = response.answer.trim()
+    condensed = condensed.replace(/^["'`]+|["'`]+$/g, '')
+
+    // Limiter à 150 chars
+    if (condensed.length > 150) {
+      condensed = condensed.substring(0, 150)
+    }
+
+    if (condensed.length > 0 && condensed.length < query.length) {
+      console.log(`[Query Condensation] ✓ Query condensée: ${query.length} chars → "${condensed}" (${condensed.length} chars)`)
+      return condensed
+    } else {
+      console.log('[Query Condensation] ⚠️ Condensation peu concluante, utilisation query originale')
+      return query
+    }
+  } catch (error) {
+    console.error(
+      '[Query Condensation] Erreur condensation:',
       error instanceof Error ? error.message : error
     )
     return query

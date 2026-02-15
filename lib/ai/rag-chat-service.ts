@@ -385,24 +385,39 @@ export async function searchRelevantContext(
     includeKnowledgeBase = true, // Activé par défaut
   } = options
 
-  // ✨ OPTIMISATION RAG - Sprint 2 (Feb 2026)
-  // 1. Query Expansion pour requêtes courtes
-  let expandedQuestion = question
-  if (ENABLE_QUERY_EXPANSION && question.length < 50) {
-    const { expandQuery } = await import('./query-expansion-service')
-    try {
-      expandedQuestion = await expandQuery(question)
-      if (expandedQuestion !== question) {
-        console.log(`[RAG Search] Query expandée: ${question} → ${expandedQuestion.substring(0, 80)}...`)
+  // ✨ OPTIMISATION RAG - Sprint 2 (Feb 2026) + Fix requêtes longues (Feb 16, 2026)
+  // 1. Query Expansion pour requêtes courtes / Condensation pour requêtes longues
+  let embeddingQuestion = question // Question utilisée pour l'embedding
+  if (ENABLE_QUERY_EXPANSION) {
+    if (question.length < 50) {
+      // Requêtes courtes : expansion (ajouter termes juridiques)
+      const { expandQuery } = await import('./query-expansion-service')
+      try {
+        embeddingQuestion = await expandQuery(question)
+        if (embeddingQuestion !== question) {
+          console.log(`[RAG Search] Query expandée: ${question} → ${embeddingQuestion.substring(0, 80)}...`)
+        }
+      } catch (error) {
+        console.error('[RAG Search] Erreur expansion query:', error)
+        embeddingQuestion = question
       }
-    } catch (error) {
-      console.error('[RAG Search] Erreur expansion query:', error)
-      expandedQuestion = question // Fallback
+    } else if (question.length > 200) {
+      // Requêtes longues : condensation (extraire concepts clés pour embedding ciblé)
+      const { condenseQuery } = await import('./query-expansion-service')
+      try {
+        embeddingQuestion = await condenseQuery(question)
+        if (embeddingQuestion !== question) {
+          console.log(`[RAG Search] Query condensée: ${question.length} chars → "${embeddingQuestion}" (${embeddingQuestion.length} chars)`)
+        }
+      } catch (error) {
+        console.error('[RAG Search] Erreur condensation query:', error)
+        embeddingQuestion = question
+      }
     }
   }
 
-  // Générer l'embedding de la question EXPANDÉE avec config opération
-  const queryEmbedding = await generateEmbedding(expandedQuestion, {
+  // Générer l'embedding de la question transformée (expandée ou condensée)
+  const queryEmbedding = await generateEmbedding(embeddingQuestion, {
     operationName: options.operationName,
   })
   const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
@@ -666,8 +681,9 @@ export async function searchRelevantContext(
   let rerankedSources = await rerankSources(aboveThreshold, question)
 
   // Seuils adaptatifs: si moins de 3 résultats, baisser le seuil de 20% (une seule fois)
-  // Plancher absolu à 0.45 pour éviter d'inclure du bruit (relevé de 0.35 → 0.45)
-  const ADAPTIVE_FLOOR = 0.45
+  // Plancher plus bas pour l'arabe (embeddings arabes produisent des scores plus faibles)
+  const queryLang = detectLanguage(question)
+  const ADAPTIVE_FLOOR = queryLang === 'ar' ? 0.35 : 0.45
   if (rerankedSources.length < 3 && allSources.length > rerankedSources.length) {
     const adaptiveThreshold = Math.max(RAG_THRESHOLDS.minimum * 0.8, ADAPTIVE_FLOOR)
     if (adaptiveThreshold < RAG_THRESHOLDS.minimum) {
@@ -698,12 +714,14 @@ export async function searchRelevantContext(
 
   // Hard quality gate: si TOUTES les sources sont en dessous du seuil, ne pas les envoyer au LLM
   // Seuil différencié : résultats vectoriels (similarity = vecSim réel) sont plus fiables que BM25-only
-  const HARD_QUALITY_GATE = 0.50
-  const HARD_QUALITY_GATE_VECTOR = 0.35 // Seuil plus bas pour résultats avec composante vectorielle
+  // Seuils plus bas pour l'arabe : embeddings arabes produisent systématiquement des scores plus faibles
+  const HARD_QUALITY_GATE = queryLang === 'ar' ? 0.40 : 0.50
+  const HARD_QUALITY_GATE_VECTOR = queryLang === 'ar' ? 0.25 : 0.35
   const hasVectorResults = finalSources.some(s => s.metadata?.searchType === 'vector' || s.metadata?.searchType === 'hybrid')
   const effectiveGate = hasVectorResults ? HARD_QUALITY_GATE_VECTOR : HARD_QUALITY_GATE
   if (finalSources.length > 0 && finalSources.every(s => s.similarity < effectiveGate)) {
-    console.log(`[RAG Search] ⚠️ Hard quality gate (${effectiveGate}): toutes ${finalSources.length} sources < seuil, retour 0 sources`)
+    const bestScore = Math.max(...finalSources.map(s => s.similarity))
+    console.warn(`[RAG Search] ⚠️ Hard quality gate (${effectiveGate}, lang=${queryLang}): toutes ${finalSources.length} sources < seuil, meilleur score=${bestScore.toFixed(3)}, retour 0 sources`)
     return { sources: [], cacheHit: false }
   }
 
@@ -1369,6 +1387,13 @@ export async function answerQuestion(
   // retourner un message clair au lieu d'appeler le LLM (évite les hallucinations)
   if (!isDegradedMode && sources.length === 0) {
     const noSourcesLang = detectLanguage(question)
+    console.warn(`[RAG Diagnostic] 🔍 Aucune source trouvée pour requête:`, {
+      queryLength: question.length,
+      language: noSourcesLang,
+      queryPreview: question.substring(0, 100) + (question.length > 100 ? '...' : ''),
+      searchTimeMs,
+      enableExpansion: ENABLE_QUERY_EXPANSION,
+    })
     const noSourcesMessage = noSourcesLang === 'fr'
       ? 'Je n\'ai trouvé aucun document pertinent pour votre question. Veuillez reformuler ou vérifier que les documents nécessaires ont été téléversés.'
       : 'لم أجد وثائق ذات صلة بسؤالك في قاعدة البيانات. يرجى إعادة صياغة السؤال أو التأكد من رفع المستندات المتعلقة بالموضوع.'

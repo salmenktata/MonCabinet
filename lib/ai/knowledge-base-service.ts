@@ -699,8 +699,11 @@ export async function searchKnowledgeBaseHybrid(
   // Déterminer provider (OpenAI ou Ollama)
   const useOpenAI = queryEmbedding.provider === 'openai'
 
-  // Préparer query texte pour BM25 (supprimer ponctuation)
-  const queryText = query.replace(/[^\w\s\u0600-\u06FF]/g, ' ').trim()
+  // Préparer query texte pour BM25 (supprimer ponctuation + diacritiques arabes tashkeel)
+  const queryText = query
+    .replace(/[\u064B-\u065F\u0670]/g, '') // Strip tashkeel/diacritiques arabes
+    .replace(/[^\w\s\u0600-\u06FF]/g, ' ')
+    .trim()
 
   // ✨ OPTIMISATION Phase 2.4 : Détection auto type de query + poids adaptatifs
   const queryAnalysis = detectQueryType(query)
