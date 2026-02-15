@@ -66,7 +66,7 @@ function parseTextWithCitations(text: string, sources: ChatSource[]): React.Reac
 
 export function MarkdownMessage({ content, sources = [], className }: MarkdownMessageProps) {
   return (
-    <div dir="auto" className={cn('prose dark:prose-invert max-w-none', className)}>
+    <div dir="auto" className={cn('prose dark:prose-invert max-w-none prose-sm prose-p:first:mt-0 prose-headings:first:mt-0', className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -74,7 +74,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
           a: ({ node, ...props }) => (
             <a
               {...props}
-              className="text-primary hover:underline font-medium"
+              className="text-primary hover:underline font-medium decoration-primary/30 underline-offset-2"
               target="_blank"
               rel="noopener noreferrer"
             />
@@ -85,7 +85,6 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             const match = /language-(\w+)/.exec(className || '')
             const language = match ? match[1] : ''
 
-            // Si c'est un bloc de code (avec une classe language-*), utiliser le syntax highlighter
             if (language) {
               return (
                 <CodeBlock
@@ -95,10 +94,9 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
               )
             }
 
-            // Sinon c'est du code inline
             return (
               <code
-                className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono"
+                className="bg-primary/8 text-primary px-1.5 py-0.5 rounded-md text-[13px] font-mono"
                 {...props}
               >
                 {children}
@@ -108,7 +106,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
 
           // Tables améliorées
           table: ({ node, ...props }) => (
-            <div className="overflow-x-auto my-5 rounded-lg border border-border">
+            <div className="overflow-x-auto my-5 rounded-xl border border-border/60 shadow-sm">
               <table
                 className="min-w-full border-collapse"
                 {...props}
@@ -118,41 +116,43 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
 
           th: ({ node, ...props }) => (
             <th
-              className="border-b border-border bg-muted/70 px-4 py-2.5 text-start font-semibold text-sm"
+              className="border-b border-border bg-muted/50 px-4 py-2.5 text-start font-semibold text-xs uppercase tracking-wider text-muted-foreground"
               {...props}
             />
           ),
 
           td: ({ node, ...props }) => (
             <td
-              className="border-b border-border/50 px-4 py-2.5 text-sm"
+              className="border-b border-border/30 px-4 py-2.5 text-sm"
               {...props}
             />
           ),
 
-          // Task lists (checkboxes)
+          // Task lists
           input: ({ node, ...props }) => (
             <input
               type="checkbox"
-              className="mr-2 align-middle"
+              className="mr-2 align-middle accent-primary"
               disabled
               {...props}
             />
           ),
 
-          // Séparateurs horizontaux - sections IRAC
+          // Séparateurs - sections IRAC
           hr: ({ node, ...props }) => (
-            <hr className="my-6 border-t-2 border-primary/15" {...props} />
+            <div className="my-6 flex items-center gap-3" {...props}>
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+            </div>
           ),
 
-          // Blockquotes - notes juridiques importantes
+          // Blockquotes - notes juridiques
           blockquote: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             return (
               <blockquote
-                className="border-s-4 border-primary/40 bg-primary/5 ps-4 pe-3 py-3 my-5 rounded-e-lg not-italic text-foreground/90"
+                className="border-s-[3px] border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ps-4 pe-4 py-3 my-5 rounded-e-xl not-italic text-foreground/85"
                 {...props}
               >
                 {parsedChildren}
@@ -160,37 +160,46 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             )
           },
 
-          // Headings - sections principales IRAC
+          // H1 - Titre principal
           h1: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             return (
-              <h1 className="text-xl font-bold mt-8 mb-4 pb-2 border-b-2 border-primary/20 text-foreground" {...props}>
+              <h1
+                className="text-lg font-bold mt-6 mb-4 pb-2.5 border-b border-border/50 text-foreground flex items-center gap-2"
+                {...props}
+              >
+                <span className="w-1 h-5 rounded-full bg-primary inline-block shrink-0" />
                 {parsedChildren}
               </h1>
             )
           },
 
+          // H2 - Sections principales
           h2: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             return (
-              <h2 className="text-lg font-bold mt-7 mb-3 text-foreground" {...props}>
+              <h2
+                className="text-[15px] font-bold mt-6 mb-3 text-primary flex items-center gap-2"
+                {...props}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block shrink-0" />
                 {parsedChildren}
               </h2>
             )
           },
 
-          // H3 = sections IRAC (أولاً, ثانياً, ثالثاً, رابعاً)
+          // H3 = sections IRAC
           h3: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             return (
               <h3
-                className="text-base font-bold mt-6 mb-3 ps-3 py-1.5 border-s-[3px] border-primary bg-primary/5 rounded-e-md text-foreground"
+                className="text-sm font-bold mt-5 mb-2.5 ps-3 py-2 border-s-[3px] border-primary/70 bg-primary/5 rounded-e-lg text-foreground"
                 {...props}
               >
                 {parsedChildren}
@@ -198,43 +207,49 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             )
           },
 
-          // Listes avec meilleur espacement
+          // Listes non-ordonnées
           ul: ({ node, ...props }) => (
-            <ul className="list-disc list-outside ms-6 my-4 space-y-2" {...props} />
+            <ul className="list-none ms-0 my-3 space-y-1.5 [&>li]:before:content-['▸'] [&>li]:before:text-primary/40 [&>li]:before:me-2 [&>li]:before:text-xs [&>li]:ps-1" {...props} />
           ),
 
+          // Listes ordonnées
           ol: ({ node, ...props }) => (
-            <ol className="list-decimal list-outside ms-6 my-4 space-y-2" {...props} />
+            <ol className="list-decimal list-outside ms-5 my-3 space-y-1.5 marker:text-primary/60 marker:font-semibold [&>li]:ps-1" {...props} />
           ),
 
-          // List items avec parsing des citations
+          // List items
           li: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             return (
-              <li className="leading-7" {...props}>{parsedChildren}</li>
+              <li className="leading-7" {...props}>
+                {parsedChildren}
+              </li>
             )
           },
 
           // Texte fort - références juridiques
           strong: ({ node, children, ...props }) => (
-            <strong className="font-bold text-foreground" {...props}>{children}</strong>
+            <strong className="font-semibold text-foreground not-prose" {...props}>{children}</strong>
           ),
 
-          // Paragraphes avec parsing des citations
+          // Emphase
+          em: ({ node, children, ...props }) => (
+            <em className="text-muted-foreground italic" {...props}>{children}</em>
+          ),
+
+          // Paragraphes
           p: ({ node, children, ...props }) => {
-            // Parser les children pour remplacer les citations
             const parsedChildren = React.Children.map(children, (child) => {
               if (typeof child === 'string') {
-                // Si c'est une string, parser les citations
                 return parseTextWithCitations(child, sources)
               }
               return child
             })
 
             return (
-              <p className="my-3.5 leading-7 text-foreground/90" {...props}>
+              <p className="my-3 leading-7 text-foreground/85" {...props}>
                 {parsedChildren}
               </p>
             )
@@ -258,20 +273,20 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
   }
 
   return (
-    <div className="relative group my-4">
+    <div className="relative group my-4 rounded-xl overflow-hidden border border-border/60 shadow-sm">
       {/* Header avec langue et bouton copier */}
-      <div className="flex items-center justify-between bg-muted/50 px-4 py-2 rounded-t-lg border border-b-0 border-border">
-        <span className="text-xs text-muted-foreground font-mono uppercase">
+      <div className="flex items-center justify-between bg-zinc-800 dark:bg-zinc-900 px-4 py-2">
+        <span className="text-[11px] text-zinc-400 font-mono uppercase tracking-wider">
           {language}
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors"
         >
           {copied ? (
             <>
-              <Icons.check className="h-3 w-3" />
-              Copié!
+              <Icons.check className="h-3 w-3 text-green-400" />
+              <span className="text-green-400">Copié!</span>
             </>
           ) : (
             <>
@@ -288,9 +303,9 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
         style={oneDark}
         customStyle={{
           margin: 0,
-          borderRadius: '0 0 0.5rem 0.5rem',
-          border: '1px solid hsl(var(--border))',
-          borderTop: 'none',
+          borderRadius: 0,
+          border: 'none',
+          fontSize: '13px',
         }}
         showLineNumbers
       >

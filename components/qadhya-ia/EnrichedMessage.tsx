@@ -3,11 +3,11 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 import { SourcesPanel } from '@/components/assistant-ia/SourcesPanel'
+import { MarkdownMessage } from '@/components/assistant-ia/MarkdownMessage'
 import { useToast } from '@/lib/hooks/use-toast'
 import { createDossierFromStructure } from '@/app/actions/create-dossier-from-structure'
 import type { ChatMessage, ChatSource } from '@/components/assistant-ia/ChatMessages'
@@ -30,15 +30,20 @@ export function EnrichedMessage({ message }: EnrichedMessageProps) {
     case 'consult':
       return <ConsultationMessage message={message} />
     default:
-      return <ChatMessage message={message} />
+      return <ChatMessageView message={message} />
   }
 }
 
-// Message de conversation normale
-function ChatMessage({ message }: { message: ChatMessage }) {
+// Message de conversation normale - utilise MarkdownMessage pour le rendu
+function ChatMessageView({ message }: { message: ChatMessage }) {
   return (
-    <div className="prose prose-sm max-w-none dark:prose-invert">
-      <p className="whitespace-pre-wrap">{message.content}</p>
+    <div>
+      <div className="text-sm">
+        <MarkdownMessage
+          content={message.content}
+          sources={message.sources}
+        />
+      </div>
       {message.sources && message.sources.length > 0 && (
         <div className="mt-3">
           <SourcesPanel sources={message.sources} />
@@ -102,39 +107,42 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Icons.edit className="h-5 w-5" />
-            {t('title')}
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            {structured.objet || t('noTitle')}
-          </p>
+    <div className="space-y-4">
+      {/* Header structuré */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+            <Icons.edit className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">{t('title')}</h3>
+            <p className="text-xs text-muted-foreground">{structured.objet || t('noTitle')}</p>
+          </div>
         </div>
         {structured.categorie && (
-          <Badge variant="secondary">{structured.categorie}</Badge>
+          <Badge variant="secondary" className="text-[11px]">{structured.categorie}</Badge>
         )}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Parties */}
         {structured.parties && (
-          <div>
-            <h4 className="font-medium mb-2 text-sm">{t('parties')}</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">
-                  {t('demandeur')}
-                </p>
-                <p className="text-sm">{structured.parties.demandeur || '-'}</p>
+          <div className="rounded-xl bg-muted/30 p-3">
+            <h4 className="font-medium mb-2 text-xs text-muted-foreground uppercase tracking-wider">{t('parties')}</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                <div>
+                  <p className="text-[11px] text-muted-foreground">{t('demandeur')}</p>
+                  <p className="text-sm font-medium">{structured.parties.demandeur || '-'}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">
-                  {t('defendeur')}
-                </p>
-                <p className="text-sm">{structured.parties.defendeur || '-'}</p>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                <div>
+                  <p className="text-[11px] text-muted-foreground">{t('defendeur')}</p>
+                  <p className="text-sm font-medium">{structured.parties.defendeur || '-'}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -143,26 +151,36 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
         {/* Faits */}
         {structured.faits && (
           <div>
-            <h4 className="font-medium mb-2 text-sm">{t('faits')}</h4>
-            <p className="text-sm text-muted-foreground">{structured.faits}</p>
+            <h4 className="font-medium mb-1.5 text-xs text-primary flex items-center gap-1.5">
+              <span className="w-1 h-3.5 rounded-full bg-primary/60" />
+              {t('faits')}
+            </h4>
+            <p className="text-sm text-foreground/80 leading-relaxed ps-3">{structured.faits}</p>
           </div>
         )}
 
         {/* Procédure */}
         {structured.procedure && (
           <div>
-            <h4 className="font-medium mb-2 text-sm">{t('procedure')}</h4>
-            <p className="text-sm text-muted-foreground">{structured.procedure}</p>
+            <h4 className="font-medium mb-1.5 text-xs text-primary flex items-center gap-1.5">
+              <span className="w-1 h-3.5 rounded-full bg-primary/60" />
+              {t('procedure')}
+            </h4>
+            <p className="text-sm text-foreground/80 leading-relaxed ps-3">{structured.procedure}</p>
           </div>
         )}
 
         {/* Prétentions */}
         {structured.pretentions && Array.isArray(structured.pretentions) && (
           <div>
-            <h4 className="font-medium mb-2 text-sm">{t('pretentions')}</h4>
-            <ul className="list-disc list-inside space-y-1">
+            <h4 className="font-medium mb-1.5 text-xs text-primary flex items-center gap-1.5">
+              <span className="w-1 h-3.5 rounded-full bg-primary/60" />
+              {t('pretentions')}
+            </h4>
+            <ul className="space-y-1 ps-3">
               {structured.pretentions.map((p: string, i: number) => (
-                <li key={i} className="text-sm text-muted-foreground">
+                <li key={i} className="text-sm text-foreground/80 flex items-start gap-2">
+                  <span className="text-primary/40 text-xs mt-1">&#9656;</span>
                   {p}
                 </li>
               ))}
@@ -172,26 +190,26 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 mt-6 pt-4 border-t">
-        <Button onClick={handleCreateDossier} className="flex-1" disabled={isCreating}>
+      <div className="flex gap-2 pt-3 border-t border-border/30">
+        <Button onClick={handleCreateDossier} size="sm" className="flex-1 rounded-xl" disabled={isCreating}>
           {isCreating ? (
             <>
-              <Icons.loader className="mr-2 h-4 w-4 animate-spin" />
+              <Icons.loader className="mr-2 h-3.5 w-3.5 animate-spin" />
               {t('creating')}
             </>
           ) : (
             <>
-              <Icons.check className="mr-2 h-4 w-4" />
+              <Icons.check className="mr-2 h-3.5 w-3.5" />
               {t('createDossier')}
             </>
           )}
         </Button>
-        <Button variant="outline" disabled={isCreating}>
-          <Icons.edit className="mr-2 h-4 w-4" />
+        <Button variant="outline" size="sm" className="rounded-xl" disabled={isCreating}>
+          <Icons.edit className="mr-2 h-3.5 w-3.5" />
           {t('edit')}
         </Button>
       </div>
-    </Card>
+    </div>
   )
 }
 
@@ -227,66 +245,80 @@ function ConsultationMessage({ message }: { message: ChatMessage }) {
   }, [consultation])
 
   return (
-    <Card className="p-6">
-      <div className="flex items-start gap-3 mb-4">
-        <Icons.scale className="h-5 w-5 text-primary mt-1" />
+    <div className="space-y-4">
+      {/* Header consultation */}
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+          <Icons.scale className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+        </div>
         <div>
-          <h3 className="text-lg font-semibold">{t('title')}</h3>
-          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+          <h3 className="text-sm font-semibold text-foreground">{t('title')}</h3>
+          <p className="text-[11px] text-muted-foreground">{t('subtitle')}</p>
         </div>
       </div>
 
-      <div className="space-y-4">
-        {/* Problématique */}
+      <div className="space-y-3">
+        {/* Sections IRAC avec couleurs distinctes */}
         {consultation.problematique && (
           <div>
-            <h4 className="font-medium mb-2 text-sm">{t('problematique')}</h4>
-            <p className="text-sm text-muted-foreground">
+            <h4 className="font-medium mb-1.5 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+              <span className="w-1 h-3.5 rounded-full bg-blue-500" />
+              {t('problematique')}
+            </h4>
+            <p className="text-sm text-foreground/80 leading-relaxed ps-3">
               {consultation.problematique}
             </p>
           </div>
         )}
 
-        {/* Règles */}
         {consultation.regles && (
           <div>
-            <h4 className="font-medium mb-2 text-sm">{t('regles')}</h4>
-            <p className="text-sm text-muted-foreground">{consultation.regles}</p>
+            <h4 className="font-medium mb-1.5 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <span className="w-1 h-3.5 rounded-full bg-amber-500" />
+              {t('regles')}
+            </h4>
+            <p className="text-sm text-foreground/80 leading-relaxed ps-3">{consultation.regles}</p>
           </div>
         )}
 
-        {/* Analyse */}
         {consultation.analyse && (
           <div>
-            <h4 className="font-medium mb-2 text-sm">{t('analyse')}</h4>
-            <p className="text-sm text-muted-foreground">{consultation.analyse}</p>
+            <h4 className="font-medium mb-1.5 text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+              <span className="w-1 h-3.5 rounded-full bg-purple-500" />
+              {t('analyse')}
+            </h4>
+            <p className="text-sm text-foreground/80 leading-relaxed ps-3">{consultation.analyse}</p>
           </div>
         )}
 
-        {/* Conclusion */}
         {consultation.conclusion && (
-          <div>
-            <h4 className="font-medium mb-2 text-sm">{t('conclusion')}</h4>
-            <p className="text-sm font-medium">{consultation.conclusion}</p>
+          <div className="rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/30 dark:border-emerald-800/30 p-3">
+            <h4 className="font-medium mb-1.5 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <Icons.check className="h-3.5 w-3.5" />
+              {t('conclusion')}
+            </h4>
+            <p className="text-sm font-medium text-foreground/90 leading-relaxed">{consultation.conclusion}</p>
           </div>
         )}
 
         {/* Conseil simple (si pas de structure IRAC) */}
         {!consultation.problematique && consultation.conseil && (
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-            <div dangerouslySetInnerHTML={{ __html: consultation.conseil }} />
+          <div className="text-sm">
+            <MarkdownMessage content={consultation.conseil} sources={message.sources} />
           </div>
         )}
 
         {/* Actions recommandées */}
         {actions.length > 0 && (
-          <div>
-            <h4 className="font-medium mb-2 text-sm">{t('actions')}</h4>
-            <ul className="space-y-2">
+          <div className="rounded-xl bg-muted/30 p-3">
+            <h4 className="font-medium mb-2 text-xs text-muted-foreground uppercase tracking-wider">{t('actions')}</h4>
+            <ul className="space-y-1.5">
               {actions.map((action: string, i: number) => (
                 <li key={i} className="flex items-start gap-2">
-                  <Icons.check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                  <span className="text-sm text-muted-foreground">{action}</span>
+                  <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                    <Icons.check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <span className="text-sm text-foreground/80">{action}</span>
                 </li>
               ))}
             </ul>
@@ -295,11 +327,9 @@ function ConsultationMessage({ message }: { message: ChatMessage }) {
 
         {/* Sources KB */}
         {message.sources && message.sources.length > 0 && (
-          <div className="pt-4 border-t">
-            <SourcesPanel sources={message.sources} />
-          </div>
+          <SourcesPanel sources={message.sources} />
         )}
       </div>
-    </Card>
+    </div>
   )
 }

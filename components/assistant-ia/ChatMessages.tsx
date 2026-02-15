@@ -50,10 +50,11 @@ interface ChatMessagesProps {
   isLoading?: boolean
   streamingContent?: string
   modeConfig?: ModeConfig
-  renderEnriched?: (message: ChatMessage) => React.ReactNode // Pour messages enrichis (structure/consult)
+  renderEnriched?: (message: ChatMessage) => React.ReactNode
+  onSendExample?: (text: string) => void
 }
 
-export function ChatMessages({ messages, isLoading, streamingContent, modeConfig, renderEnriched }: ChatMessagesProps) {
+export function ChatMessages({ messages, isLoading, streamingContent, modeConfig, renderEnriched, onSendExample }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
   const tMode = useTranslations('qadhyaIA.modes')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -95,33 +96,62 @@ export function ChatMessages({ messages, isLoading, streamingContent, modeConfig
     const ModeIcon = modeConfig ? Icons[modeConfig.icon] : Icons.messageSquare
     const iconBg = modeConfig?.iconBgClass || 'bg-primary/10'
     const iconText = modeConfig?.iconTextClass || 'text-primary'
-    const badgeCls = modeConfig?.badgeClass || ''
+
+    const examples = ['ex1', 'ex2', 'ex3'].map((key) =>
+      modeConfig ? tMode(`${modeKey}.examples.${key}`) : t(`examples.${['civil', 'commercial', 'divorce'][['ex1', 'ex2', 'ex3'].indexOf(key)]}`)
+    )
 
     return (
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="text-center max-w-md">
-          <div className={cn('w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4', iconBg)}>
-            <ModeIcon className={cn('h-8 w-8', iconText)} />
+      <div className="flex-1 flex items-center justify-center p-6 md:p-8">
+        <motion.div
+          className="text-center max-w-lg w-full"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+        >
+          <div className={cn(
+            'w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5',
+            'shadow-sm',
+            iconBg
+          )}>
+            <ModeIcon className={cn('h-7 w-7', iconText)} />
           </div>
-          <h2 className="text-lg font-semibold mb-2">
+          <h2 className="text-xl font-semibold mb-2 tracking-tight">
             {modeConfig ? tMode(`${modeKey}.welcomeTitle`) : t('welcomeTitle')}
           </h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
             {modeConfig ? tMode(`${modeKey}.welcomeMessage`) : t('welcomeMessage')}
           </p>
-          <div className="mt-6 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">
+
+          <div className="mt-8">
+            <p className="text-xs font-medium text-muted-foreground mb-3">
               {modeConfig ? tMode(`${modeKey}.exampleQuestions`) : t('exampleQuestions')}
             </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {['ex1', 'ex2', 'ex3'].map((key) => (
-                <Badge key={key} variant="outline" className={cn('cursor-default', badgeCls)}>
-                  {modeConfig ? tMode(`${modeKey}.examples.${key}`) : t(`examples.${['civil', 'commercial', 'divorce'][['ex1', 'ex2', 'ex3'].indexOf(key)]}`)}
-                </Badge>
+            <div className="flex flex-col gap-2 max-w-md mx-auto">
+              {examples.map((example, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => onSendExample?.(example)}
+                  className={cn(
+                    'group text-start px-4 py-3 rounded-xl border bg-card/50 backdrop-blur-sm',
+                    'hover:bg-card hover:shadow-md hover:border-primary/20',
+                    'transition-all duration-200 ease-out',
+                    'text-sm text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icons.arrowUp className={cn(
+                      'h-4 w-4 shrink-0 rotate-45 opacity-0 group-hover:opacity-100',
+                      'transition-all duration-200',
+                      iconText
+                    )} />
+                    <span className="line-clamp-2">{example}</span>
+                  </div>
+                </button>
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     )
   }
@@ -183,7 +213,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, modeConfig
 
   // Rendu standard pour < 50 messages avec animations
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
       <AnimatePresence mode="popLayout">
         {messages.map((message) => (
           <motion.div
@@ -237,7 +267,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, modeConfig
 function LoadingIndicator() {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
@@ -245,10 +275,19 @@ function LoadingIndicator() {
           <Icons.loader className="h-4 w-4 text-primary" />
         </motion.div>
       </div>
-      <div className="flex-1 space-y-2">
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-4 w-1/2" />
-        <Skeleton className="h-4 w-2/3" />
+      <div className="flex-1 pt-1">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            Qadhya IA
+          </span>
+          <span className="text-[11px] text-muted-foreground/50">en cours...</span>
+        </div>
+        <div className="rounded-2xl rounded-tl-md bg-card/80 border border-border/50 p-5 space-y-3">
+          <Skeleton className="h-3 w-[90%] rounded-full" />
+          <Skeleton className="h-3 w-[65%] rounded-full" />
+          <Skeleton className="h-3 w-[78%] rounded-full" />
+          <Skeleton className="h-3 w-[45%] rounded-full" />
+        </div>
       </div>
     </div>
   )
@@ -270,147 +309,121 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Si renderEnriched fourni et message assistant, l'utiliser
-  if (!isUser && renderEnriched) {
+  // Message utilisateur
+  if (isUser) {
     return (
-      <div className="flex items-start gap-3">
-        {/* Avatar */}
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
-          <Icons.zap className="h-4 w-4 text-primary" />
+      <div className="flex items-start gap-3 flex-row-reverse">
+        <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+          <Icons.user className="h-4 w-4 text-primary-foreground" />
         </div>
-
-        {/* Contenu enrichi */}
-        <div className="flex-1 max-w-[95%]">
-          {/* Label assistant */}
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-semibold text-primary">Qadhya IA</span>
-            <span className="text-xs text-muted-foreground">
-              {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-          </div>
-
-          {/* Phase 3.4 : Alertes abrogations */}
-          {message.abrogationAlerts && message.abrogationAlerts.length > 0 && (
-            <div className="mb-3">
-              <AbrogationAlerts alerts={message.abrogationAlerts} />
+        <div className="max-w-[80%] flex flex-col items-end">
+          <div className="rounded-2xl rounded-tr-sm px-4 py-3 text-sm bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-sm">
+            <div className="whitespace-pre-wrap break-words leading-relaxed">
+              {message.content}
             </div>
-          )}
-
-          {renderEnriched(message)}
+          </div>
+          <span className="text-[11px] text-muted-foreground/50 mt-1.5 me-1">
+            {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
         </div>
       </div>
     )
   }
 
+  // Message assistant - Rendu enrichi ou standard
   return (
-    <div className={cn('flex items-start gap-3', isUser && 'flex-row-reverse')}>
-      {/* Avatar */}
-      <div
-        className={cn(
-          'w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1',
-          isUser ? 'bg-primary' : 'bg-primary/10'
-        )}
-      >
-        {isUser ? (
-          <Icons.user className="h-4 w-4 text-primary-foreground" />
-        ) : (
-          <Icons.zap className="h-4 w-4 text-primary" />
-        )}
+    <div className="flex items-start gap-3">
+      {/* Avatar IA */}
+      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+        <Icons.zap className="h-4 w-4 text-primary" />
       </div>
 
       {/* Contenu */}
-      <div className={cn('flex-1', isUser ? 'max-w-[85%] flex flex-col items-end' : 'max-w-[95%]')}>
-        {/* Phase 3.4 : Alertes abrogations (affichées AVANT la réponse assistant) */}
-        {!isUser && message.abrogationAlerts && message.abrogationAlerts.length > 0 && (
+      <div className="flex-1 min-w-0">
+        {/* Header assistant */}
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="text-xs font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            Qadhya IA
+          </span>
+          <span className="text-muted-foreground/30 text-[10px]">&#183;</span>
+          <span className="text-[11px] text-muted-foreground/40 tabular-nums">
+            {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+        </div>
+
+        {/* Alertes abrogations */}
+        {message.abrogationAlerts && message.abrogationAlerts.length > 0 && (
           <div className="mb-3">
             <AbrogationAlerts alerts={message.abrogationAlerts} />
           </div>
         )}
 
-        {isUser ? (
-          // Message utilisateur : bubble compact
-          <div className="rounded-2xl px-4 py-3 text-sm bg-primary text-primary-foreground rounded-tr-sm">
-            <div className="whitespace-pre-wrap break-words">
-              {message.content}
-            </div>
-          </div>
-        ) : (
-          // Message assistant : design aéré type document
-          <div className="group relative">
-            {/* Label assistant */}
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-semibold text-primary">Qadhya IA</span>
-              <span className="text-xs text-muted-foreground">
-                {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-            </div>
-
-            {/* Contenu markdown */}
-            <div className="rounded-xl border border-border/60 bg-card px-5 py-4 shadow-sm">
-              <MarkdownMessage
-                content={message.content}
-                sources={message.sources}
-              />
-              {message.isStreaming && (
-                <span className="inline-block w-0.5 h-5 ml-1 bg-primary animate-blink" />
-              )}
-
-              {/* Indicateur "typing..." pour le streaming */}
-              {message.isStreaming && !message.content && (
-                <div className="flex items-center gap-1.5 py-2">
-                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              )}
-            </div>
-
-            {/* Barre d'actions sous le message */}
-            {!message.isStreaming && (
-              <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={handleCopyResponse}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  title="Copier la réponse"
-                >
-                  {copied ? (
-                    <><Icons.check className="h-3 w-3 text-green-500" /> <span className="text-green-500">Copié</span></>
-                  ) : (
-                    <><Icons.copy className="h-3 w-3" /> <span>Copier</span></>
+        {/* Carte réponse */}
+        <div className="group rounded-2xl rounded-tl-md bg-card/80 border border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="px-5 py-4">
+            {renderEnriched ? (
+              renderEnriched(message)
+            ) : (
+              <>
+                <div className="text-sm">
+                  <MarkdownMessage
+                    content={message.content}
+                    sources={message.sources}
+                  />
+                  {message.isStreaming && (
+                    <span className="inline-block w-0.5 h-5 ml-1 bg-primary animate-blink" />
                   )}
-                </button>
-              </div>
+                  {message.isStreaming && !message.content && (
+                    <div className="flex items-center gap-1 py-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1.4s' }} />
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1.4s' }} />
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
-        )}
 
-        {/* Panneau Sources enrichi */}
-        {!isUser && message.sources && message.sources.length > 0 && (
+          {/* Barre d'actions - en bas de la carte */}
+          {!message.isStreaming && (
+            <div className="flex items-center gap-0.5 px-3 py-1.5 border-t border-border/20 opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <button
+                onClick={handleCopyResponse}
+                className={cn(
+                  'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] transition-all duration-200',
+                  copied
+                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                )}
+                title="Copier la réponse"
+              >
+                {copied ? (
+                  <><Icons.check className="h-3 w-3" /> <span>Copié</span></>
+                ) : (
+                  <><Icons.copy className="h-3 w-3" /> <span>Copier</span></>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Panneau Sources - en dehors de la carte */}
+        {message.sources && message.sources.length > 0 && (
           <div className="mt-3">
             <SourcesPanel sources={message.sources} qualityIndicator={message.qualityIndicator} />
-          </div>
-        )}
-
-        {/* Timestamp (utilisateur uniquement, assistant a le sien dans le label) */}
-        {isUser && (
-          <div className="mt-1 text-xs text-muted-foreground">
-            {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
           </div>
         )}
       </div>
     </div>
   )
 }, (prevProps, nextProps) => {
-  // Custom comparison: ne re-render que si le message change vraiment
   return (
     prevProps.message.id === nextProps.message.id &&
     prevProps.message.content === nextProps.message.content &&
