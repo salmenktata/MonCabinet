@@ -70,9 +70,12 @@ RÈGLES DE CLASSIFICATION:
 - إداري → administratif
 - شغل/عمل → travail
 - أسرة/أحوال شخصية → famille
-- عقاري → immobilier
-- ضرائب → fiscal
-- etc.
+- عقاري/عقار → immobilier
+- ضرائب/ضريبة/جبائي → fiscal
+- رشوة/فساد/اختلاس/تدليس/استيلاء على المال العام → penal
+- صفقات عمومية/marchés publics → penal, administratif
+- تبييض أموال/غسيل أموال/blanchiment → penal
+- خيانة أمانة/abus de confiance → penal
 
 **Confiance**:
 - 0.9+ : Question très claire, mots-clés explicites
@@ -129,6 +132,15 @@ const CLASSIFICATION_EXAMPLES = [
       domains: ['penal'],
       confidence: 0.85,
       reasoning: 'Cas concret pénal, recherche jurisprudence applicable',
+    },
+  },
+  {
+    query: 'ما هي عقوبات الرشوة في الصفقات العمومية؟',
+    expected: {
+      categories: ['codes', 'jurisprudence', 'legislation'],
+      domains: ['penal', 'administratif'],
+      confidence: 0.92,
+      reasoning: 'Corruption pénale dans les marchés publics',
     },
   },
 ]
@@ -262,6 +274,17 @@ export function classifyQueryKeywords(query: string): QueryClassification {
     domains.push('penal')
   }
 
+  // Corruption et crimes financiers → penal
+  if (/رشوة|فساد|اختلاس|تدليس|استيلاء|تبييض|غسيل أموال|corruption|pot-de-vin|détournement|blanchiment/i.test(query)) {
+    if (!domains.includes('penal')) domains.push('penal')
+  }
+
+  // Marchés publics → penal + administratif
+  if (/صفق(?:ة|ات)\s*عمومي|marchés?\s*publics?/i.test(query)) {
+    if (!domains.includes('penal')) domains.push('penal')
+    if (!domains.includes('administratif')) domains.push('administratif')
+  }
+
   if (/مدني|civil/i.test(query)) {
     domains.push('civil')
   }
@@ -279,7 +302,17 @@ export function classifyQueryKeywords(query: string): QueryClassification {
   }
 
   if (/إداري|administratif/i.test(query)) {
-    domains.push('administratif')
+    if (!domains.includes('administratif')) domains.push('administratif')
+  }
+
+  // Immobilier
+  if (/عقاري|عقار|immobilier/i.test(query)) {
+    domains.push('immobilier')
+  }
+
+  // Fiscal
+  if (/ضرائب|ضريب|جبائي|fiscal|impôt/i.test(query)) {
+    domains.push('fiscal')
   }
 
   // Si aucune catégorie détectée, fallback global

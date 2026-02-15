@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useMemo, memo } from 'react'
+import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -262,6 +262,13 @@ interface MessageBubbleProps {
 const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: MessageBubbleProps) {
   const t = useTranslations('assistantIA')
   const isUser = message.role === 'user'
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyResponse = async () => {
+    await navigator.clipboard.writeText(message.content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   // Si renderEnriched fourni et message assistant, l'utiliser
   if (!isUser && renderEnriched) {
@@ -325,7 +332,7 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
             'rounded-2xl px-4 py-3 text-sm',
             isUser
               ? 'bg-primary text-primary-foreground rounded-tr-sm'
-              : 'bg-muted rounded-tl-sm'
+              : 'bg-muted rounded-tl-sm group relative'
           )}
         >
           {isUser ? (
@@ -353,6 +360,17 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
               <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '150ms' }} />
               <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
+          )}
+
+          {/* Bouton copier la réponse (assistant uniquement, pas en streaming) */}
+          {!isUser && !message.isStreaming && (
+            <button
+              onClick={handleCopyResponse}
+              className="absolute bottom-2 right-2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/80 text-muted-foreground hover:text-foreground"
+              title="Copier la réponse"
+            >
+              {copied ? <Icons.check className="h-3.5 w-3.5 text-green-500" /> : <Icons.copy className="h-3.5 w-3.5" />}
+            </button>
           )}
         </div>
 

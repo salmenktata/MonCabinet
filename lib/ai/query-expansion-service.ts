@@ -157,6 +157,11 @@ export function expandQueryKeywords(query: string): string {
     'شركة': 'شركة - شركات - sociétés - المجلة التجارية',
     'دفاع': 'دفاع شرعي - légitime défense - حالة الخطر الحال',
     'قتل': 'قتل - جريمة القتل - القتل العمد - القتل الخطأ - homicide',
+    'رشوة': 'رشوة - corruption - الفصل 83 المجلة الجزائية - ارتشاء - استغلال نفوذ - موظف عمومي',
+    'فساد': 'فساد - corruption - فساد مالي - فساد إداري - رشوة - اختلاس - détournement',
+    'صفقة': 'صفقة عمومية - marchés publics - تضارب مصالح - conflit d\'intérêts - مناقصة',
+    'اختلاس': 'اختلاس - détournement de fonds publics - خيانة أمانة - abus de confiance',
+    'تبييض': 'تبييض أموال - غسيل أموال - blanchiment d\'argent - أموال مشبوهة',
   }
 
   // Chercher correspondance exacte dans dictionnaire

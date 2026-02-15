@@ -324,15 +324,7 @@ async function delay(ms: number): Promise<void> {
  * En production : Tous les providers disponibles (Gemini, DeepSeek, etc.)
  */
 export function getAvailableProviders(): LLMProvider[] {
-  const isDevelopment = process.env.NODE_ENV === 'development'
-
-  // En dev : Ollama uniquement pour éviter consommation tokens payants
-  if (isDevelopment) {
-    console.log('[LLM-Fallback] 🏠 Mode développement → Ollama uniquement (0€)')
-    return ['ollama']
-  }
-
-  // En prod : Tous les providers disponibles
+  // Tous les providers disponibles (dev et prod utilisent les mêmes clés)
   return FALLBACK_ORDER.filter((provider) => {
     switch (provider) {
       case 'gemini':

@@ -609,17 +609,15 @@ export async function batchEnrichSourcesWithMetadata(
             decision_number,
             citation_count as cites_count,
             cited_by_count,
-            quality_score,
-            view_count,
-            last_viewed_at
+            quality_score
           FROM mv_kb_metadata_enriched
           WHERE id = ANY($1::uuid[])`,
           [documentIds]
         )
       } catch (mvError: any) {
-        // Fallback legacy si MV n'existe pas encore (migration non appliquée)
-        if (mvError?.code === '42P01') {
-          console.warn('[Batch Metadata] MV non disponible, fallback mode legacy')
+        // Fallback legacy si MV n'existe pas ou schéma incompatible
+        if (mvError?.code === '42P01' || mvError?.code === '42703') {
+          console.warn('[Batch Metadata] MV non disponible ou schéma incompatible, fallback mode legacy')
           result = null
         } else {
           throw mvError
@@ -673,9 +671,7 @@ export async function batchEnrichSourcesWithMetadata(
           extractionConfidence: row.extraction_confidence,
           citesCount: parseInt(row.cites_count || '0', 10),
           citedByCount: parseInt(row.cited_by_count || '0', 10),
-          qualityScore: row.quality_score, // Nouveau depuis MV
-          viewCount: row.view_count, // Nouveau depuis MV
-          lastViewedAt: row.last_viewed_at, // Nouveau depuis MV
+          qualityScore: row.quality_score,
         },
       })
     }
