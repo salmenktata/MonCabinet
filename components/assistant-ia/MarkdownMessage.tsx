@@ -64,6 +64,90 @@ function parseTextWithCitations(text: string, sources: ChatSource[]): React.Reac
   return parts.length > 0 ? parts : [text]
 }
 
+/**
+ * Extraire le texte brut d'un ReactNode (children)
+ */
+function getTextContent(children: React.ReactNode): string {
+  if (typeof children === 'string') return children
+  if (Array.isArray(children)) return children.map(getTextContent).join('')
+  if (children && typeof children === 'object' && 'props' in children) {
+    return getTextContent((children as React.ReactElement).props.children)
+  }
+  return ''
+}
+
+interface IRACSectionStyle {
+  step: string
+  bgClass: string
+  textClass: string
+  badgeBg: string
+  badgeText: string
+}
+
+/**
+ * Détecte les sections IRAC arabes/françaises et retourne un style distinct
+ */
+function getIRACSectionStyle(text: string): IRACSectionStyle | null {
+  const t = text.trim()
+
+  // Section 1 : Faits / الوقائع
+  if (t.includes('أولاً') || /^1[\.\)]\s/i.test(t) || /premièrement/i.test(t) || /الوقائع/i.test(t)) {
+    return {
+      step: '1',
+      bgClass: 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30',
+      textClass: 'text-blue-800 dark:text-blue-300',
+      badgeBg: 'bg-blue-500',
+      badgeText: 'text-white',
+    }
+  }
+
+  // Section 2 : Cadre juridique / الإطار القانوني
+  if (t.includes('ثانياً') || /^2[\.\)]\s/i.test(t) || /deuxièmement/i.test(t) || /الإطار القانوني/i.test(t)) {
+    return {
+      step: '2',
+      bgClass: 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30',
+      textClass: 'text-amber-800 dark:text-amber-300',
+      badgeBg: 'bg-amber-500',
+      badgeText: 'text-white',
+    }
+  }
+
+  // Section 3 : Analyse / التحليل
+  if (t.includes('ثالثاً') || /^3[\.\)]\s/i.test(t) || /troisièmement/i.test(t) || /التحليل/i.test(t)) {
+    return {
+      step: '3',
+      bgClass: 'bg-purple-50 dark:bg-purple-950/30 border border-purple-200/50 dark:border-purple-800/30',
+      textClass: 'text-purple-800 dark:text-purple-300',
+      badgeBg: 'bg-purple-500',
+      badgeText: 'text-white',
+    }
+  }
+
+  // Section 4 : Conclusion / الخلاصة
+  if (t.includes('رابعاً') || /^4[\.\)]\s/i.test(t) || /quatrièmement/i.test(t) || /الخلاصة|التوصيات/i.test(t)) {
+    return {
+      step: '4',
+      bgClass: 'bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30',
+      textClass: 'text-emerald-800 dark:text-emerald-300',
+      badgeBg: 'bg-emerald-500',
+      badgeText: 'text-white',
+    }
+  }
+
+  // Section 5+ : Autres
+  if (t.includes('خامساً') || /^5[\.\)]\s/i.test(t)) {
+    return {
+      step: '5',
+      bgClass: 'bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/30',
+      textClass: 'text-rose-800 dark:text-rose-300',
+      badgeBg: 'bg-rose-500',
+      badgeText: 'text-white',
+    }
+  }
+
+  return null
+}
+
 export function MarkdownMessage({ content, sources = [], className }: MarkdownMessageProps) {
   return (
     <div dir="auto" className={cn('prose dark:prose-invert max-w-none prose-sm prose-p:first:mt-0 prose-headings:first:mt-0', className)}>
@@ -176,11 +260,31 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             )
           },
 
-          // H2 - Sections principales
+          // H2 - Sections principales (IRAC ou génériques)
           h2: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
+            const textContent = getTextContent(children)
+            const sectionStyle = getIRACSectionStyle(textContent)
+
+            if (sectionStyle) {
+              return (
+                <h2
+                  className={cn(
+                    'text-[15px] font-bold mt-7 mb-3 px-4 py-2.5 rounded-xl flex items-center gap-2.5 not-prose',
+                    sectionStyle.bgClass, sectionStyle.textClass
+                  )}
+                  {...props}
+                >
+                  <span className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0', sectionStyle.badgeBg, sectionStyle.badgeText)}>
+                    {sectionStyle.step}
+                  </span>
+                  <span>{parsedChildren}</span>
+                </h2>
+              )
+            }
+
             return (
               <h2
                 className="text-[15px] font-bold mt-6 mb-3 text-primary flex items-center gap-2"
@@ -192,11 +296,31 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             )
           },
 
-          // H3 = sections IRAC
+          // H3 = sections IRAC ou sous-sections
           h3: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
+            const textContent = getTextContent(children)
+            const sectionStyle = getIRACSectionStyle(textContent)
+
+            if (sectionStyle) {
+              return (
+                <h3
+                  className={cn(
+                    'text-sm font-bold mt-6 mb-3 px-4 py-2.5 rounded-xl flex items-center gap-2.5 not-prose',
+                    sectionStyle.bgClass, sectionStyle.textClass
+                  )}
+                  {...props}
+                >
+                  <span className={cn('w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0', sectionStyle.badgeBg, sectionStyle.badgeText)}>
+                    {sectionStyle.step}
+                  </span>
+                  <span>{parsedChildren}</span>
+                </h3>
+              )
+            }
+
             return (
               <h3
                 className="text-sm font-bold mt-5 mb-2.5 ps-3 py-2 border-s-[3px] border-primary/70 bg-primary/5 rounded-e-lg text-foreground"
