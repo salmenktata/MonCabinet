@@ -124,7 +124,8 @@ export async function getAllOperationsConfigs(): Promise<MergedOperationConfig[]
     'dossiers-assistant',
     'dossiers-consultation',
     'kb-quality-analysis',
-    'kb-quality-analysis-short',
+    'query-classification',
+    'query-expansion',
   ]
 
   return Promise.all(operations.map((op) => getOperationConfig(op)))
@@ -419,8 +420,7 @@ export async function testProviderConnectivity(
           temperature: 0.1,
           maxTokens: 50,
           operationName,
-        },
-        false
+        }
       )
 
       const latencyMs = Date.now() - startTime
@@ -470,7 +470,8 @@ export async function clearOperationConfigCache(operationName?: OperationName): 
       'dossiers-assistant',
       'dossiers-consultation',
       'kb-quality-analysis',
-      'kb-quality-analysis-short',
+      'query-classification',
+      'query-expansion',
     ]
 
     await Promise.all(operations.map((op) => cache.del(`${CACHE_PREFIX}:${op}`)))

@@ -463,3 +463,184 @@ export function needsChunking(
   const wordCount = countWords(text)
   return wordCount > maxChunkSize
 }
+
+// =============================================================================
+// SEMANTIC CHUNKING
+// =============================================================================
+
+/**
+ * Split text into sentences (supports Arabic and French punctuation)
+ */
+function splitIntoSentences(text: string): string[] {
+  // Split on sentence-ending punctuation followed by whitespace
+  const sentences = text.match(/[^.!?؟]+[.!?؟]+[\s]*/g)
+  if (!sentences || sentences.length === 0) {
+    // Fallback: split on newlines
+    return text.split(/\n+/).filter(s => s.trim().length > 0)
+  }
+  return sentences.map(s => s.trim()).filter(s => s.length > 0)
+}
+
+/**
+ * Cosine similarity between two embedding vectors
+ */
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dotProduct = 0
+  let normA = 0
+  let normB = 0
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB)
+  return denom === 0 ? 0 : dotProduct / denom
+}
+
+/**
+ * Semantic chunking: split text at natural topic boundaries detected via embeddings.
+ *
+ * Algorithm:
+ * 1. Split text into sentences
+ * 2. Embed each sentence
+ * 3. Compute cosine similarity between consecutive sentences
+ * 4. Cut at similarity drops (below threshold)
+ * 5. Merge small groups to respect min/max chunk size
+ *
+ * Falls back to classic chunking if <3 sentences or embedding fails.
+ *
+ * @param text - Text to chunk
+ * @param options - Chunking options (chunkSize, overlap, category)
+ * @param embedFn - Function to generate embeddings for a batch of texts
+ * @returns Chunks with metadata
+ */
+export async function chunkTextSemantic(
+  text: string,
+  options: ChunkingOptions = {},
+  embedFn: (texts: string[]) => Promise<number[][]>
+): Promise<Chunk[]> {
+  const {
+    chunkSize = aiConfig.rag.chunkSize,
+    category,
+  } = options
+
+  if (!text || text.trim().length === 0) return []
+
+  const sentences = splitIntoSentences(text.trim())
+
+  // Fallback if too few sentences
+  if (sentences.length < 3) {
+    return chunkText(text, options)
+  }
+
+  // Embed all sentences
+  let embeddings: number[][]
+  try {
+    embeddings = await embedFn(sentences)
+  } catch (error) {
+    console.error('[Semantic Chunking] Embedding failed, fallback to classic:', error instanceof Error ? error.message : error)
+    return chunkText(text, options)
+  }
+
+  if (embeddings.length !== sentences.length) {
+    return chunkText(text, options)
+  }
+
+  // Compute cosine similarity between consecutive sentences
+  const similarities: number[] = []
+  for (let i = 0; i < embeddings.length - 1; i++) {
+    similarities.push(cosineSimilarity(embeddings[i], embeddings[i + 1]))
+  }
+
+  // Determine threshold: mean - 1 stddev (cut at significant drops)
+  const mean = similarities.reduce((a, b) => a + b, 0) / similarities.length
+  const stddev = Math.sqrt(
+    similarities.reduce((sum, s) => sum + (s - mean) ** 2, 0) / similarities.length
+  )
+  const threshold = mean - stddev
+
+  // Find boundary indices (where similarity drops below threshold)
+  const boundaries: number[] = []
+  for (let i = 0; i < similarities.length; i++) {
+    if (similarities[i] < threshold) {
+      boundaries.push(i + 1) // Cut AFTER sentence i
+    }
+  }
+
+  // Build sentence groups from boundaries
+  const groups: string[][] = []
+  let start = 0
+  for (const boundary of boundaries) {
+    groups.push(sentences.slice(start, boundary))
+    start = boundary
+  }
+  groups.push(sentences.slice(start))
+
+  // Merge groups that are too small (< chunkSize/3 words) with next group
+  const minWords = Math.floor(chunkSize / 3)
+  const maxWords = Math.floor(chunkSize * 1.5)
+  const mergedGroups: string[][] = []
+  let currentGroup: string[] = []
+
+  for (const group of groups) {
+    currentGroup.push(...group)
+    const wordCount = countWords(currentGroup.join(' '))
+
+    if (wordCount >= minWords) {
+      // If too large, split and push
+      if (wordCount > maxWords) {
+        // Use classic chunking on this oversized group
+        const subChunks = chunkText(currentGroup.join(' '), options)
+        for (const sub of subChunks) {
+          mergedGroups.push([sub.content])
+        }
+      } else {
+        mergedGroups.push([...currentGroup])
+      }
+      currentGroup = []
+    }
+  }
+
+  // Remaining sentences
+  if (currentGroup.length > 0) {
+    if (mergedGroups.length > 0) {
+      // Append to last group
+      mergedGroups[mergedGroups.length - 1].push(...currentGroup)
+    } else {
+      mergedGroups.push(currentGroup)
+    }
+  }
+
+  // Build chunks from merged groups
+  const chunks: Chunk[] = []
+  let textPosition = 0
+
+  for (const group of mergedGroups) {
+    const content = group.join(' ').trim()
+    if (!content) continue
+
+    const startPos = text.indexOf(content.substring(0, 50), Math.max(0, textPosition - 10))
+    const actualStart = startPos >= 0 ? startPos : textPosition
+
+    chunks.push({
+      content,
+      index: chunks.length,
+      metadata: {
+        wordCount: countWords(content),
+        charCount: content.length,
+        startPosition: actualStart,
+        endPosition: actualStart + content.length,
+        overlapWithPrevious: false,
+        overlapWithNext: false,
+      },
+    })
+
+    textPosition = actualStart + content.length
+  }
+
+  console.log(
+    `[Semantic Chunking] ${sentences.length} phrases → ${boundaries.length} boundaries → ${chunks.length} chunks (threshold: ${threshold.toFixed(3)}, category: ${category || 'default'})`
+  )
+
+  return chunks
+}

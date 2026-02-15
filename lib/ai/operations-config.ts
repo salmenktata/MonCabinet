@@ -1,13 +1,13 @@
 /**
- * Configuration IA par type d'opération métier
+ * Configuration IA par type d'opération métier - Mode No-Fallback
  *
- * Ce fichier définit une configuration spécifique pour chaque type d'opération,
- * permettant d'optimiser coût/performance/qualité selon le cas d'usage.
+ * Chaque opération utilise UN SEUL modèle fixe (pas de cascade).
+ * Si le provider échoue → throw + alerte email (pas de dégradation silencieuse).
  *
- * Février 2026 - Optimisation par opération métier
+ * Configuration définitive RAG Haute Qualité (Février 2026)
  */
 
-import type { AIContext, LLMProvider } from './llm-fallback-service'
+import type { LLMProvider } from './llm-fallback-service'
 
 // =============================================================================
 // TYPES
@@ -22,27 +22,29 @@ export type OperationName =
   | 'dossiers-assistant'
   | 'dossiers-consultation'
   | 'kb-quality-analysis'
-  | 'kb-quality-analysis-short'
+  | 'query-classification'
+  | 'query-expansion'
 
 /**
- * Configuration IA pour une opération spécifique
+ * Sévérité d'alerte en cas d'échec
+ */
+export type AlertSeverity = 'critical' | 'warning' | 'info'
+
+/**
+ * Configuration IA pour une opération spécifique - Mode No-Fallback
  */
 export interface OperationAIConfig {
-  // Mapping vers AIContext existant (réutilise les stratégies existantes)
-  context: AIContext
-
-  // Override des providers (optionnel, sinon utilise la stratégie du context)
-  providers?: {
-    primary: LLMProvider
-    fallback: LLMProvider[]
+  // Modèle unique fixe pour cette opération
+  model: {
+    provider: LLMProvider
+    name: string
   }
 
   // Configuration embeddings (si applicable)
   embeddings?: {
     provider: 'ollama' | 'openai'
-    fallbackProvider?: 'ollama' | 'openai'
-    model?: string
-    dimensions?: number
+    model: string
+    dimensions: number
   }
 
   // Timeouts spécifiques (en ms)
@@ -59,203 +61,213 @@ export interface OperationAIConfig {
     systemPromptType?: 'chat' | 'consultation' | 'structuration'
   }
 
+  // Alertes en cas d'échec
+  alerts: {
+    onFailure: 'email' | 'log'
+    severity: AlertSeverity
+  }
+
   // Description pour monitoring/debug
-  description?: string
+  description: string
 }
 
 // =============================================================================
-// CONFIGURATION PAR OPÉRATION
+// CONFIGURATION PAR OPÉRATION - MODE NO-FALLBACK
 // =============================================================================
 
+const isDev = process.env.NODE_ENV === 'development'
+
 /**
- * Configuration centralisée par type d'opération
+ * Configuration centralisée - 1 modèle fixe par opération, 0 fallback
  *
- * Chaque opération définit sa stratégie optimale de providers,
- * ses timeouts, et ses paramètres LLM.
+ * | Opération              | Provider | Modèle                    | Coût     |
+ * |------------------------|----------|---------------------------|----------|
+ * | Assistant IA (chat)    | Groq     | llama-3.3-70b-versatile   | 0€       |
+ * | Dossiers Assistant     | Gemini   | gemini-2.5-flash          | 0€       |
+ * | Consultations IRAC     | Gemini   | gemini-2.5-flash          | 0€       |
+ * | KB Quality Analysis    | OpenAI   | gpt-4o-mini               | ~$3/mois |
+ * | Query Classification   | Groq     | llama-3.3-70b-versatile   | 0€       |
+ * | Query Expansion        | Groq     | llama-3.3-70b-versatile   | 0€       |
+ * | Embeddings (tout)      | OpenAI   | text-embedding-3-small    | ~$2-5/mois |
+ * | Re-ranking             | Local    | ms-marco-MiniLM-L-6-v2    | 0€       |
+ * | Dev local              | Ollama   | qwen3:8b                  | 0€       |
  */
 export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
   // 1. INDEXATION (background processing)
   // ---------------------------------------------------------------------------
   'indexation': {
-    context: 'embeddings',  // Utilise stratégie embeddings existante
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'ollama', name: 'qwen3:8b' }, // Ollama pour classification (gratuit)
 
-    description: 'Indexation KB avec OpenAI (haute qualité, ~$2-5/mois)',
-
-    embeddings: {
-      provider: 'openai',
-      fallbackProvider: 'ollama',
-      model: 'text-embedding-3-small',
-      dimensions: 1536,
-    },
+    embeddings: isDev
+      ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
+      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
 
     timeouts: {
-      embedding: 10000,  // 10s par embedding (Ollama CPU-only)
-      chat: 30000,       // 30s pour classification LLM
-      total: 60000,      // 1min total max
+      embedding: 10000,
+      chat: 30000,
+      total: 60000,
     },
 
     llmConfig: {
-      temperature: 0.2,  // Déterministe pour classification
+      temperature: 0.2,
       maxTokens: 2000,
     },
+
+    alerts: { onFailure: 'log', severity: 'warning' },
+    description: 'Indexation KB - Ollama classification + OpenAI embeddings',
   },
 
   // ---------------------------------------------------------------------------
   // 2. ASSISTANT IA (chat temps réel utilisateur)
   // ---------------------------------------------------------------------------
   'assistant-ia': {
-    context: 'rag-chat',  // Utilise stratégie rag-chat existante
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
 
-    description: 'Chat utilisateur temps réel (performance critique, volume élevé)',
-
-    // Providers: Groq ultra-rapide (292ms) en priorité
-    // Sprint 3: Consolidation 5→3 providers (retiré DeepSeek)
-    providers: {
-      primary: 'groq',
-      fallback: ['gemini', 'ollama'],
-    },
-
-    // ✨ OPTIMISATION RAG - Sprint 1 (Feb 2026)
-    // OpenAI embeddings pour meilleure qualité (54-63% → 75-85% similarité)
-    // Coût: ~0.50€/mois (1M tokens ≈ $0.02, volume faible chat)
-    embeddings: {
-      provider: 'openai',   // Qualité supérieure pour assistant IA
-      fallbackProvider: 'ollama',  // Fallback si OpenAI indisponible
-      model: 'text-embedding-3-small',
-      dimensions: 1536,  // OpenAI dimensions (vs 1024 Ollama)
-    },
+    embeddings: isDev
+      ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
+      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
 
     timeouts: {
-      embedding: 3000,   // 3s max (OpenAI plus rapide qu'Ollama)
-      chat: 30000,       // 30s max (permet fallback Ollama 18s + marge)
-      total: 45000,      // 45s total (cascade complète + marge réseau)
+      embedding: 3000,
+      chat: 30000,
+      total: 45000,
     },
 
     llmConfig: {
-      temperature: 0.1,  // Très factuel pour conseil juridique (anti-hallucination)
-      maxTokens: 8000,   // Analyses juridiques complètes en arabe (~4000 mots, IRAC détaillé)
+      temperature: 0.1,
+      maxTokens: 8000,
       systemPromptType: 'chat',
     },
+
+    alerts: { onFailure: 'email', severity: 'critical' },
+    description: 'Chat utilisateur temps réel - Groq ultra-rapide (292ms)',
   },
 
   // ---------------------------------------------------------------------------
   // 3. ASSISTANT DOSSIERS (analyse approfondie)
   // ---------------------------------------------------------------------------
   'dossiers-assistant': {
-    context: 'quality-analysis',  // Qualité > vitesse
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'gemini', name: 'gemini-2.5-flash' },
 
-    description: 'Analyse approfondie dossier (qualité critique)',
-
-    // Providers: Gemini prioritaire (qualité + contexte 1M)
-    // Sprint 3: Consolidation 5→3 providers (retiré DeepSeek)
-    providers: {
-      primary: 'gemini',
-      fallback: ['groq', 'ollama'],
-    },
-
-    embeddings: {
-      provider: 'openai',   // Qualité supérieure pour analyse dossiers
-      fallbackProvider: 'ollama',
-      model: 'text-embedding-3-small',
-      dimensions: 1536,  // OpenAI dimensions
-    },
+    embeddings: isDev
+      ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
+      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
 
     timeouts: {
-      embedding: 5000,   // 5s max
-      chat: 40000,       // 40s (+15s pour analyses complexes 8K tokens multi-phases)
-      total: 60000,      // 60s total (permet cascade complète Gemini→Groq→DeepSeek)
+      embedding: 5000,
+      chat: 40000,
+      total: 60000,
     },
 
     llmConfig: {
-      temperature: 0.2,  // Précis et factuel
-      maxTokens: 8000,   // 8000 tokens (analyses juridiques complexes 7 phases arabes)
+      temperature: 0.2,
+      maxTokens: 8000,
       systemPromptType: 'chat',
     },
+
+    alerts: { onFailure: 'email', severity: 'critical' },
+    description: 'Analyse approfondie dossier - Gemini (contexte 1M tokens)',
   },
 
   // ---------------------------------------------------------------------------
-  // 4. ANALYSE QUALITÉ KB (analyse documents à grande échelle)
+  // 4. ANALYSE QUALITÉ KB (tous documents, courts et longs)
   // ---------------------------------------------------------------------------
   'kb-quality-analysis': {
-    context: 'quality-analysis',
-
-    description: 'Analyse qualité documents KB en batch (volume élevé, vitesse critique)',
-
-    // Providers: Gemini prioritaire (stable, gratuit pour volume)
-    providers: {
-      primary: 'gemini',
-      fallback: ['openai', 'ollama'],
-    },
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'openai', name: 'gpt-4o-mini' },
 
     timeouts: {
-      chat: 30000,       // 30s (analyse approfondie)
-      total: 60000,      // 1min total
+      chat: 30000,
+      total: 60000,
     },
 
     llmConfig: {
-      temperature: 0.1,  // Précision maximale pour évaluation
-      maxTokens: 4000,   // 4000 tokens pour JSON complet (était 2000, trop court)
-    },
-  },
-
-  // Analyse qualité documents courts (< 500 chars) - OpenAI plus strict sur JSON
-  'kb-quality-analysis-short': {
-    context: 'quality-analysis',
-
-    description: 'Analyse qualité documents courts (< 500 chars) - OpenAI strict sur JSON',
-
-    // Providers: OpenAI prioritaire (plus strict sur format JSON pour textes courts)
-    // Fallback: Ollama avant Gemini (Gemini échoue souvent sur textes courts AR)
-    providers: {
-      primary: 'openai',
-      fallback: ['ollama', 'gemini'],
+      temperature: 0.1,
+      maxTokens: 4000,
     },
 
-    timeouts: {
-      chat: 20000,       // 20s (textes courts, analyse rapide)
-      total: 40000,      // 40s total
-    },
-
-    llmConfig: {
-      temperature: 0.1,  // Précision maximale
-      maxTokens: 2000,   // 2000 tokens suffisent pour textes courts
-    },
+    alerts: { onFailure: 'email', severity: 'warning' },
+    description: 'Analyse qualité documents KB - OpenAI gpt-4o-mini (strict JSON)',
   },
 
   // ---------------------------------------------------------------------------
   // 5. CONSULTATION (génération formelle IRAC)
   // ---------------------------------------------------------------------------
   'dossiers-consultation': {
-    context: 'structuring',  // Structuration formelle
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'gemini', name: 'gemini-2.5-flash' },
 
-    description: 'Consultation juridique formelle IRAC (qualité maximale)',
-
-    // Providers: Gemini prioritaire (qualité + raisonnement)
-    // Sprint 3: Consolidation 5→3 providers (retiré DeepSeek)
-    providers: {
-      primary: 'gemini',
-      fallback: ['groq', 'ollama'],
-    },
-
-    embeddings: {
-      provider: 'openai',   // Qualité maximale pour consultation
-      fallbackProvider: 'ollama',
-      model: 'text-embedding-3-small',
-      dimensions: 1536,
-    },
+    embeddings: isDev
+      ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
+      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
 
     timeouts: {
-      embedding: 5000,   // 5s max
-      chat: 30000,       // 30s (consultation détaillée)
-      total: 60000,      // 1min total
+      embedding: 5000,
+      chat: 30000,
+      total: 60000,
     },
 
     llmConfig: {
-      temperature: 0.1,  // Très factuel et précis
-      maxTokens: 4000,   // Consultation longue
+      temperature: 0.1,
+      maxTokens: 4000,
       systemPromptType: 'consultation',
     },
+
+    alerts: { onFailure: 'email', severity: 'critical' },
+    description: 'Consultation juridique formelle IRAC - Gemini',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 6. QUERY CLASSIFICATION (pré-filtrage KB)
+  // ---------------------------------------------------------------------------
+  'query-classification': {
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
+
+    timeouts: {
+      chat: 5000,
+      total: 10000,
+    },
+
+    llmConfig: {
+      temperature: 0.1,
+      maxTokens: 500,
+    },
+
+    alerts: { onFailure: 'log', severity: 'info' },
+    description: 'Classification query pour filtrage catégories KB - Groq',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 7. QUERY EXPANSION (reformulation requêtes courtes)
+  // ---------------------------------------------------------------------------
+  'query-expansion': {
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
+
+    timeouts: {
+      chat: 5000,
+      total: 10000,
+    },
+
+    llmConfig: {
+      temperature: 0.3,
+      maxTokens: 200,
+    },
+
+    alerts: { onFailure: 'log', severity: 'info' },
+    description: 'Expansion queries courtes <50 chars - Groq',
   },
 }
 
@@ -285,25 +297,40 @@ export function getConfiguredOperations(): OperationName[] {
 }
 
 /**
- * Retourne le provider primaire pour une opération
+ * Retourne le provider fixe pour une opération (pas de fallback)
  */
-export function getPrimaryProvider(operation: OperationName): LLMProvider | undefined {
-  const config = getOperationConfig(operation)
-  return config.providers?.primary
+export function getOperationProvider(operation: OperationName): LLMProvider {
+  return AI_OPERATIONS_CONFIG[operation].model.provider
 }
 
 /**
- * Retourne les providers de fallback pour une opération
+ * Retourne le nom du modèle pour une opération
  */
-export function getFallbackProviders(operation: OperationName): LLMProvider[] {
-  const config = getOperationConfig(operation)
-  return config.providers?.fallback || []
+export function getOperationModel(operation: OperationName): string {
+  return AI_OPERATIONS_CONFIG[operation].model.name
 }
 
 /**
  * Retourne la description d'une opération (pour monitoring)
  */
 export function getOperationDescription(operation: OperationName): string {
-  const config = getOperationConfig(operation)
-  return config.description || operation
+  return AI_OPERATIONS_CONFIG[operation].description
+}
+
+// =============================================================================
+// RÉTROCOMPATIBILITÉ (deprecated, à supprimer dans version future)
+// =============================================================================
+
+/**
+ * @deprecated Utiliser getOperationProvider() - pas de fallback en mode no-fallback
+ */
+export function getPrimaryProvider(operation: OperationName): LLMProvider {
+  return getOperationProvider(operation)
+}
+
+/**
+ * @deprecated Plus de fallback en mode no-fallback - retourne []
+ */
+export function getFallbackProviders(_operation: OperationName): LLMProvider[] {
+  return []
 }

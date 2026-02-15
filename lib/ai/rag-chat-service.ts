@@ -286,7 +286,7 @@ async function rerankSources(
         metadata: s.metadata as Record<string, unknown>,
       }))
 
-      const rerankedResults = await rerankDocuments(query, docsToRerank)
+      const rerankedResults = await rerankDocuments(query, docsToRerank, undefined, { useCrossEncoder: true })
 
       // Combiner scores cross-encoder avec boosts existants
       rankedSources = rerankedResults.map((result) => {

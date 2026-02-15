@@ -105,24 +105,20 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
     content: truncateContent(content, 6000),
   })
 
-  // Détecter textes courts (< 500 chars) pour utiliser OpenAI (plus strict sur JSON)
-  const isShortDocument = content.length < 500
-  const operationName = isShortDocument ? 'kb-quality-analysis-short' : 'kb-quality-analysis'
-
   console.log(
-    `[KB Quality] Doc ${documentId} - Longueur: ${content.length} chars - Opération: ${operationName}`
+    `[KB Quality] Doc ${documentId} - Longueur: ${content.length} chars - Provider: OpenAI gpt-4o-mini`
   )
 
-  // Appeler le LLM avec configuration opération appropriée
+  // Appeler le LLM unique (OpenAI gpt-4o-mini pour tous les docs, courts et longs)
   const messages: LLMMessage[] = [
     { role: 'system', content: KB_QUALITY_ANALYSIS_SYSTEM_PROMPT },
     { role: 'user', content: userPrompt },
   ]
 
   const llmResult: LLMResponse = await callLLMWithFallback(messages, {
-    temperature: 0.1, // Précision maximale pour analyse
-    maxTokens: isShortDocument ? 2000 : 4000, // Moins de tokens pour textes courts
-    operationName, // 'kb-quality-analysis-short' (OpenAI) ou 'kb-quality-analysis' (Gemini)
+    temperature: 0.1,
+    maxTokens: 4000,
+    operationName: 'kb-quality-analysis',
   })
 
   console.log('[KB Quality] Réponse LLM provider:', llmResult.provider, 'model:', llmResult.modelUsed)

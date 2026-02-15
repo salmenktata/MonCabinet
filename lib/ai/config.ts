@@ -172,19 +172,27 @@ export function validateAIConfig(): {
       warnings.push(`Anthropic Claude activé (${aiConfig.anthropic.model})`)
     }
 
-    // Vérifier qu'au moins un provider d'embeddings est disponible
+    // Mode No-Fallback: Vérifier provider d'embeddings approprié
     const hasOllama = aiConfig.ollama.enabled
     const hasOpenAI = !!aiConfig.openai.apiKey
+    const isDevEnv = process.env.NODE_ENV === 'development'
 
     if (!hasOllama && !hasOpenAI) {
       errors.push(
-        'Aucun provider d\'embeddings disponible - Configurez OLLAMA_ENABLED=true ou OPENAI_API_KEY'
+        'Aucun provider d\'embeddings disponible - Configurez OPENAI_API_KEY (prod) ou OLLAMA_ENABLED=true (dev)'
       )
     }
 
-    if (hasOllama) {
+    // En prod, OPENAI_API_KEY est requis pour les embeddings haute qualité
+    if (!isDevEnv && !hasOpenAI && aiConfig.rag.enabled) {
+      errors.push(
+        'OPENAI_API_KEY requis en production pour embeddings 1536-dim. Configurez OPENAI_API_KEY.'
+      )
+    }
+
+    if (hasOllama && isDevEnv) {
       warnings.push(
-        `Ollama embeddings activé (${aiConfig.ollama.embeddingModel}) - Gratuit et illimité`
+        `Ollama embeddings activé pour dev (${aiConfig.ollama.embeddingModel})`
       )
     }
   } else {
@@ -239,22 +247,21 @@ export function isSemanticSearchEnabled(): boolean {
 
 /**
  * Retourne le provider d'embeddings actif
- * Priorité: Ollama (gratuit local) > OpenAI (payant, fallback/turbo)
+ * Mode No-Fallback: OpenAI en prod, Ollama en dev
  */
 export function getEmbeddingProvider(): 'ollama' | 'openai' | null {
   if (!aiConfig.rag.enabled) return null
-  if (aiConfig.ollama.enabled) return 'ollama'
+  const isDev = process.env.NODE_ENV === 'development'
+  if (isDev && aiConfig.ollama.enabled) return 'ollama'
   if (aiConfig.openai.apiKey) return 'openai'
+  if (aiConfig.ollama.enabled) return 'ollama'
   return null
 }
 
 /**
- * Retourne le provider d'embeddings de fallback (si différent du principal)
- * Utilisé quand Ollama est le provider principal et OpenAI est disponible en backup
+ * @deprecated Plus de fallback en mode no-fallback. Retourne toujours null.
  */
-export function getEmbeddingFallbackProvider(): 'openai' | null {
-  if (!aiConfig.rag.enabled) return null
-  if (aiConfig.ollama.enabled && aiConfig.openai.apiKey) return 'openai'
+export function getEmbeddingFallbackProvider(): null {
   return null
 }
 

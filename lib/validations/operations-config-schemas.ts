@@ -39,7 +39,8 @@ export const operationNameSchema = z.enum([
   'dossiers-assistant',
   'dossiers-consultation',
   'kb-quality-analysis',
-  'kb-quality-analysis-short',
+  'query-classification',
+  'query-expansion',
 ])
 
 /**

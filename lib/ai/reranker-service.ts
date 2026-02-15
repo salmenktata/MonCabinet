@@ -145,7 +145,7 @@ export async function rerankDocuments(
   // ✨ OPTIMISATION RAG - Sprint 3 (Feb 2026)
   // Utiliser Cross-Encoder Neural si activé (meilleure précision)
   // TEMPORAIREMENT DÉSACTIVÉ pour permettre build production (Phase 1 déploiement)
-  const useCrossEncoder = options.useCrossEncoder === true // Désactivé par défaut
+  const useCrossEncoder = options.useCrossEncoder !== false // Activé par défaut
 
   if (useCrossEncoder) {
     try {

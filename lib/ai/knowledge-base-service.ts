@@ -22,9 +22,11 @@ async function getDocumentParser() {
 }
 
 async function getChunkingService() {
-  const { chunkText } = await import('./chunking-service')
-  return { chunkText }
+  const { chunkText, chunkTextSemantic } = await import('./chunking-service')
+  return { chunkText, chunkTextSemantic }
 }
+
+const SEMANTIC_CHUNKING_ENABLED = process.env.SEMANTIC_CHUNKING_ENABLED === 'true'
 
 async function getEmbeddingsService() {
   const { generateEmbedding, generateEmbeddingsBatch, formatEmbeddingForPostgres } = await import('./embeddings-service')
@@ -269,20 +271,41 @@ export async function indexKnowledgeDocument(documentId: string): Promise<{
   }
 
   // Import dynamique des services
-  const { chunkText } = await getChunkingService()
+  const { chunkText, chunkTextSemantic } = await getChunkingService()
   const { generateEmbedding, generateEmbeddingsBatch, formatEmbeddingForPostgres } = await getEmbeddingsService()
 
   // ✨ OPTIMISATION Phase 2.3 : Chunking adaptatif par catégorie
   const category = (doc.category as KnowledgeCategory) || 'autre'
   const chunkConfig = getChunkConfig(category)
 
-  // Découper en chunks avec configuration adaptative
-  const chunks = chunkText(doc.full_text, {
+  const chunkingOptions = {
     chunkSize: chunkConfig.size,
     overlap: chunkConfig.overlap,
     preserveParagraphs: chunkConfig.preserveParagraphs ?? true,
     preserveSentences: chunkConfig.preserveSentences ?? true,
-  })
+    category,
+  }
+
+  // Semantic chunking si activé, sinon chunking classique
+  let chunks
+  if (SEMANTIC_CHUNKING_ENABLED) {
+    try {
+      chunks = await chunkTextSemantic(
+        doc.full_text,
+        chunkingOptions,
+        async (texts: string[]) => {
+          const results = await generateEmbeddingsBatch(texts)
+          return results.embeddings
+        }
+      )
+      console.log(`[KB Index] Semantic chunking: ${chunks.length} chunks (catégorie=${category})`)
+    } catch (error) {
+      console.error('[KB Index] Semantic chunking failed, fallback classique:', error instanceof Error ? error.message : error)
+      chunks = chunkText(doc.full_text, chunkingOptions)
+    }
+  } else {
+    chunks = chunkText(doc.full_text, chunkingOptions)
+  }
 
   console.log(
     `[KB Index] Chunking adaptatif: catégorie=${category}, size=${chunkConfig.size}, overlap=${chunkConfig.overlap}, chunks=${chunks.length}`

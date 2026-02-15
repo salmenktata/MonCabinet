@@ -201,7 +201,8 @@ function estimateCost(tokens: number, operationName: OperationName): number {
     'dossiers-assistant': 0.00000002, // OpenAI embeddings seulement (~$0.02/1M tokens)
     'dossiers-consultation': 0.00000002, // OpenAI embeddings seulement
     'kb-quality-analysis': 0, // Gemini gratuit
-    'kb-quality-analysis-short': 0.000001, // OpenAI GPT-4o (~$1/1M tokens input)
+    'query-classification': 0, // Groq gratuit
+    'query-expansion': 0, // Groq gratuit
   }
 
   return tokens * pricePerToken[operationName]

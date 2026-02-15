@@ -109,9 +109,13 @@ export const OPERATION_LABELS: Record<OperationName, { fr: string; ar: string }>
     fr: 'Analyse Qualité KB',
     ar: 'تحليل جودة قاعدة المعرفة',
   },
-  'kb-quality-analysis-short': {
-    fr: 'Analyse Qualité KB (Courts)',
-    ar: 'تحليل جودة (نصوص قصيرة)',
+  'query-classification': {
+    fr: 'Classification de requête',
+    ar: 'تصنيف الاستعلام',
+  },
+  'query-expansion': {
+    fr: 'Expansion de requête',
+    ar: 'توسيع الاستعلام',
   },
 }
 
@@ -123,8 +127,9 @@ export const OPERATION_DESCRIPTIONS: Record<OperationName, string> = {
   'indexation': 'Indexation documents KB en batch (background processing)',
   'dossiers-assistant': 'Analyse approfondie de dossiers juridiques (qualité prioritaire)',
   'dossiers-consultation': 'Génération de consultation juridique formelle IRAC',
-  'kb-quality-analysis': 'Analyse qualité documents KB longs (>500 chars)',
-  'kb-quality-analysis-short': 'Analyse qualité documents KB courts (<500 chars)',
+  'kb-quality-analysis': 'Analyse qualité documents KB (OpenAI gpt-4o-mini)',
+  'query-classification': 'Classification automatique de la requête utilisateur',
+  'query-expansion': 'Reformulation et expansion de requêtes courtes',
 }
 
 /**

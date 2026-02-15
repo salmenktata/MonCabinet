@@ -168,6 +168,8 @@ async function reindexWithOpenAI(options: ReindexOptions) {
   let processed = 0
   let succeeded = 0
   let failed = 0
+  let consecutiveErrors = 0
+  const MAX_CONSECUTIVE_ERRORS = 10
   const startTime = Date.now()
 
   while (processed < total) {
@@ -183,12 +185,12 @@ async function reindexWithOpenAI(options: ReindexOptions) {
 
     if (chunks.rows.length === 0) break
 
-    // Générer embeddings OpenAI en parallèle (pour batch performance)
+    // Générer embeddings OpenAI en parallèle (utilise config 'indexation' → OpenAI prod)
     const batchStart = Date.now()
     const embeddings = await Promise.allSettled(
       chunks.rows.map(chunk =>
         generateEmbedding(chunk.content, {
-          operationName: 'assistant-ia'  // Utilise config OpenAI
+          operationName: 'indexation'  // Config OpenAI text-embedding-3-small 1536-dim
         })
       )
     )
@@ -211,14 +213,23 @@ async function reindexWithOpenAI(options: ReindexOptions) {
           )
 
           succeeded++
+          consecutiveErrors = 0 // Reset sur succès
         } catch (error) {
           console.error(`❌ Erreur UPDATE chunk ${chunk.id}:`, error)
           failed++
+          consecutiveErrors++
         }
       } else {
         console.error(`❌ Erreur embedding chunk ${chunk.id}:`, embeddingResult.reason)
         failed++
+        consecutiveErrors++
       }
+    }
+
+    // Arrêt d'urgence après trop d'erreurs consécutives
+    if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+      console.error(`\n🛑 ARRÊT D'URGENCE: ${consecutiveErrors} erreurs consécutives. Vérifiez le provider OpenAI.`)
+      break
     }
 
     processed += chunks.rows.length
