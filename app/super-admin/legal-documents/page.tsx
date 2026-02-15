@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import { getStalenessThreshold } from '@/lib/legal-documents/freshness-service'
 import { LegalDocumentsTable } from '@/components/super-admin/legal-documents/LegalDocumentsTable'
+import { ImportLegalDocumentsDialog } from '@/components/super-admin/legal-documents/ImportLegalDocumentsDialog'
+import { normalizeLegalCategory, LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +34,19 @@ const TYPE_COLORS: Record<string, string> = {
   guide: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
   formulaire: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
   autre: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  code: 'Code',
+  loi: 'Loi',
+  decret: 'Décret',
+  arrete: 'Arrêté',
+  circulaire: 'Circulaire',
+  jurisprudence: 'Jurisprudence',
+  doctrine: 'Doctrine',
+  guide: 'Guide',
+  formulaire: 'Formulaire',
+  autre: 'Autre',
 }
 
 const CONSOLIDATION_COLORS: Record<string, string> = {
@@ -77,7 +92,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   const pageSize = 20
   const offset = (page - 1) * pageSize
 
-  const categoryFilter = params.category || null
+  const categoryFilter = params.category ? normalizeLegalCategory(params.category) : null
   const typeFilter = params.type || null
   const statusFilter = params.status || null
 
@@ -87,9 +102,10 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   let paramIndex = 1
 
   if (categoryFilter) {
-    conditions.push(`ld.primary_category = $${paramIndex}`)
-    queryParams.push(categoryFilter)
-    paramIndex++
+    // Matcher aussi les anciennes valeurs non normalisées (ex: code ET codes)
+    conditions.push(`(ld.primary_category = $${paramIndex} OR ld.primary_category = $${paramIndex + 1})`)
+    queryParams.push(categoryFilter, params.category || categoryFilter)
+    paramIndex += 2
   }
   if (typeFilter) {
     conditions.push(`ld.document_type = $${paramIndex}`)
@@ -106,7 +122,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-  const [statsResult, docsResult, countResult, categoriesResult, typesResult] = await Promise.all([
+  const [statsResult, docsResult, countResult, categoriesResult, typesResult, sourcesResult] = await Promise.all([
     // Stats globales (non filtrées)
     db.query<{
       total_docs: string
@@ -167,14 +183,24 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       WHERE document_type IS NOT NULL
       ORDER BY document_type
     `),
+    // Web sources actives pour l'import
+    db.query<{ id: string; name: string; base_url: string }>(`
+      SELECT id, name, base_url FROM web_sources
+      WHERE is_active = true
+      ORDER BY name
+    `),
   ])
 
   const stats = statsResult.rows[0]
   const docs = docsResult.rows
   const filteredCount = parseInt(countResult.rows[0].count)
   const totalPages = Math.ceil(filteredCount / pageSize)
-  const categories = categoriesResult.rows.map(r => r.primary_category)
+  // Normaliser et dédupliquer les catégories (ex: code → codes)
+  const categoriesRaw = categoriesResult.rows.map(r => r.primary_category)
+  const categoriesNormalized = [...new Set(categoriesRaw.map(c => normalizeLegalCategory(c)))]
+  const categories = categoriesNormalized.sort()
   const types = typesResult.rows.map(r => r.document_type)
+  const sources = sourcesResult.rows
 
   const hasFilters = categoryFilter || typeFilter || statusFilter
   const currentFilters = {
@@ -218,11 +244,14 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Documents Juridiques</h1>
-        <p className="text-slate-400 mt-1">
-          Couche document juridique - consolidation, fraîcheur et liens KB
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Documents Juridiques</h1>
+          <p className="text-slate-400 mt-1">
+            Couche document juridique - consolidation, fraicheur et liens KB
+          </p>
+        </div>
+        <ImportLegalDocumentsDialog sources={sources} />
       </div>
 
       {/* Stats */}
@@ -267,7 +296,10 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
         <FilterSelect
           label="Catégorie"
           value={categoryFilter}
-          options={categories.map(c => ({ value: c, label: c }))}
+          options={categories.map(c => ({
+            value: c,
+            label: LEGAL_CATEGORY_TRANSLATIONS[c]?.fr || c,
+          }))}
           buildHref={(val) => buildFilterParams(currentFilters, { category: val })}
         />
 
@@ -275,7 +307,10 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
         <FilterSelect
           label="Type"
           value={typeFilter}
-          options={types.map(t => ({ value: t, label: t }))}
+          options={types.map(t => ({
+            value: t,
+            label: TYPE_LABELS[t] || t,
+          }))}
           buildHref={(val) => buildFilterParams(currentFilters, { type: val })}
         />
 
