@@ -342,7 +342,7 @@ export async function POST(request: NextRequest) {
     if (chatMode && chatQuestion) {
       console.log(`[RAG Eval] Chat mode: "${chatQuestion.substring(0, 60)}..."`)
       const startTime = Date.now()
-      const response = await answerQuestion(chatQuestion, 'admin-eval', {
+      const response = await answerQuestion(chatQuestion, '00000000-0000-0000-0000-000000000000', {
         operationName: 'assistant-ia',
       })
       const totalTimeMs = Date.now() - startTime
