@@ -429,8 +429,24 @@ async function extractTextWithOcr(
     if (pageIndex >= pagesToProcess) break
 
     try {
+      const rawImageBuf = Buffer.from(pageImage)
+
+      // Diagnostic sur la première page : vérifier si l'image est vide
+      if (pageIndex === 0) {
+        const sharp = (await import('sharp')).default
+        const meta = await sharp(rawImageBuf).metadata()
+        const stats = await sharp(rawImageBuf).stats()
+        const isBlank = stats.channels.every((ch: { stdev: number }) => ch.stdev < 5)
+        console.log(
+          `[FileParser] OCR page 1 diag: ${meta.width}x${meta.height} ${meta.format} ` +
+          `${rawImageBuf.length} bytes, blank=${isBlank}, ` +
+          `mean=[${stats.channels.map((ch: { mean: number }) => ch.mean.toFixed(0)).join(',')}] ` +
+          `stdev=[${stats.channels.map((ch: { stdev: number }) => ch.stdev.toFixed(1)).join(',')}]`
+        )
+      }
+
       // Prétraiter l'image avec sharp (A2)
-      const preprocessed = await preprocessImageForOcr(Buffer.from(pageImage))
+      const preprocessed = await preprocessImageForOcr(rawImageBuf)
 
       // OCR avec Tesseract
       const { data } = await worker.recognize(preprocessed)
