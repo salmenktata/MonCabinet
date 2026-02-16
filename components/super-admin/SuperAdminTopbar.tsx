@@ -23,13 +23,11 @@ interface SuperAdminTopbarProps {
     prenom?: string
   }
   pendingCount?: number
-  unreadNotifications?: number
 }
 
 export function SuperAdminTopbar({
   user,
-  pendingCount = 0,
-  unreadNotifications = 0
+  pendingCount = 0
 }: SuperAdminTopbarProps) {
   const router = useRouter()
   const displayName = user.prenom && user.nom
@@ -65,23 +63,6 @@ export function SuperAdminTopbar({
 
         {/* Theme Toggle */}
         <ThemeToggle />
-
-        {/* Notifications */}
-        <Link href="/super-admin/notifications">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Notifications"
-            className="relative text-slate-400 hover:text-white hover:bg-slate-800"
-          >
-            <Icons.bell className="h-5 w-5" />
-            {unreadNotifications > 0 && (
-              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
-                {unreadNotifications > 9 ? '9+' : unreadNotifications}
-              </span>
-            )}
-          </Button>
-        </Link>
 
         {/* User menu */}
         <DropdownMenu>

@@ -30,19 +30,15 @@ interface NavGroup {
 
 interface SuperAdminSidebarProps {
   pendingCount?: number
-  unreadNotifications?: number
-  pendingReviews?: number
   pendingContradictions?: number
   pendingTaxonomySuggestions?: number
   isCollapsed?: boolean
   onToggleCollapse?: () => void
 }
 
-// Navigation Super Admin - 4 groupes, 17 items
+// Navigation Super Admin - 4 groupes, 14 items
 const getNavGroups = (
   pendingCount: number,
-  unreadNotifications: number,
-  pendingReviews: number,
   pendingContradictions: number,
   pendingTaxonomySuggestions: number
 ): NavGroup[] => [
@@ -79,23 +75,14 @@ const getNavGroups = (
     group: 'Contenu & Données',
     items: [
       { href: '/super-admin/pipeline', label: 'Pipeline KB', icon: 'merge' },
-      { href: '/super-admin/knowledge-base', label: 'Base de connaissances', icon: 'bookOpen' },
       { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
       { href: '/super-admin/legal-documents', label: 'Documents Juridiques', icon: 'scale' },
-      { href: '/super-admin/classification', label: 'Classification & RAG', icon: 'sparkles' },
       {
         href: '/super-admin/contradictions',
         label: 'Contradictions',
         icon: 'alertTriangle',
         badge: pendingContradictions || undefined,
         badgeVariant: 'secondary' as const,
-      },
-      {
-        href: '/super-admin/review-queue',
-        label: 'File de Revue',
-        icon: 'fileText',
-        badge: pendingReviews || undefined,
-        badgeVariant: 'destructive' as const,
       },
     ],
   },
@@ -105,13 +92,6 @@ const getNavGroups = (
       { href: '/super-admin/web-sources/maintenance', label: 'Maintenance', icon: 'wrench' },
       { href: '/super-admin/audit-logs', label: "Journal d'audit", icon: 'shield' },
       { href: '/super-admin/backups', label: 'Sauvegardes', icon: 'database' },
-      {
-        href: '/super-admin/notifications',
-        label: 'Notifications',
-        icon: 'bell',
-        badge: unreadNotifications || undefined,
-        badgeVariant: 'secondary' as const,
-      },
     ],
   },
 ]
@@ -186,8 +166,6 @@ const NavLink = memo(function NavLink({ item, isActive, isCollapsed }: NavLinkPr
 
 function SuperAdminSidebarComponent({
   pendingCount = 0,
-  unreadNotifications = 0,
-  pendingReviews = 0,
   pendingContradictions = 0,
   pendingTaxonomySuggestions = 0,
   isCollapsed = false,
@@ -206,12 +184,10 @@ function SuperAdminSidebarComponent({
     () =>
       getNavGroups(
         pendingCount,
-        unreadNotifications,
-        pendingReviews,
         pendingContradictions,
         pendingTaxonomySuggestions
       ),
-    [pendingCount, unreadNotifications, pendingReviews, pendingContradictions, pendingTaxonomySuggestions]
+    [pendingCount, pendingContradictions, pendingTaxonomySuggestions]
   )
 
   const groupsWithState = useMemo(() => {

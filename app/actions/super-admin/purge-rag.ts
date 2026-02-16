@@ -189,7 +189,7 @@ export async function purgeRAGAction(
     // 10. Revalider les chemins concernés
     revalidatePath('/super-admin/knowledge-base')
     revalidatePath('/super-admin/web-sources')
-    revalidatePath('/super-admin/content-review')
+    revalidatePath('/super-admin/pipeline')
     revalidatePath('/super-admin/dashboard')
     revalidatePath('/super-admin/settings')
 

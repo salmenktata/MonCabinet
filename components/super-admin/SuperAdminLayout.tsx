@@ -13,7 +13,6 @@ interface SuperAdminLayoutProps {
     prenom?: string
   }
   pendingCount?: number
-  unreadNotifications?: number
   pendingTaxonomySuggestions?: number
 }
 
@@ -21,7 +20,6 @@ export function SuperAdminLayout({
   children,
   user,
   pendingCount = 0,
-  unreadNotifications = 0,
   pendingTaxonomySuggestions = 0
 }: SuperAdminLayoutProps) {
   const { isCollapsed, toggle } = useSidebarCollapse()
@@ -31,7 +29,6 @@ export function SuperAdminLayout({
       {/* Sidebar */}
       <SuperAdminSidebar
         pendingCount={pendingCount}
-        unreadNotifications={unreadNotifications}
         pendingTaxonomySuggestions={pendingTaxonomySuggestions}
         isCollapsed={isCollapsed}
         onToggleCollapse={toggle}
@@ -43,7 +40,6 @@ export function SuperAdminLayout({
         <SuperAdminTopbar
           user={user}
           pendingCount={pendingCount}
-          unreadNotifications={unreadNotifications}
         />
 
         {/* Page content */}

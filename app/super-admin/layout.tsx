@@ -33,12 +33,6 @@ export default async function SuperAdminRootLayout({
   )
   const pendingCount = parseInt(pendingResult.rows[0]?.count || '0')
 
-  // Récupérer le nombre de notifications non lues
-  const notifResult = await query(
-    'SELECT COUNT(*) as count FROM admin_notifications WHERE is_read = FALSE'
-  )
-  const unreadNotifications = parseInt(notifResult.rows[0]?.count || '0')
-
   // Récupérer le nombre de suggestions de taxonomie en attente
   let pendingTaxonomySuggestions = 0
   try {
@@ -59,7 +53,6 @@ export default async function SuperAdminRootLayout({
           prenom: user.prenom,
         }}
         pendingCount={pendingCount}
-        unreadNotifications={unreadNotifications}
         pendingTaxonomySuggestions={pendingTaxonomySuggestions}
       >
         {children}

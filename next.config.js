@@ -128,28 +128,39 @@ const nextConfig = {
     return config
   },
 
-  // Redirections pour simplification super admin (Feb 2026)
+  // Redirections pour pages supprimées → Pipeline KB (Feb 2026)
   async redirects() {
     return [
-      // Review Queue (Tâche 1.1)
-      // REMOVED: /super-admin/classification redirect - now a dedicated page with Batch tab
       {
         source: '/super-admin/content-review',
-        destination: '/super-admin/review-queue?tab=content',
+        destination: '/super-admin/pipeline',
         permanent: true,
       },
-      // KB Management (Tâche 1.2)
+      {
+        source: '/super-admin/review-queue',
+        destination: '/super-admin/pipeline',
+        permanent: true,
+      },
+      {
+        source: '/super-admin/kb-management',
+        destination: '/super-admin/pipeline',
+        permanent: true,
+      },
       {
         source: '/super-admin/kb-quality',
-        destination: '/super-admin/kb-management?tab=health',
+        destination: '/super-admin/pipeline',
         permanent: true,
       },
       {
         source: '/super-admin/kb-quality-review',
-        destination: '/super-admin/kb-management?tab=validation',
+        destination: '/super-admin/pipeline',
         permanent: true,
       },
-      // Monitoring consolidation (Tâche 2.3)
+      {
+        source: '/super-admin/reindex-openai',
+        destination: '/super-admin/pipeline',
+        permanent: true,
+      },
       {
         source: '/super-admin/api-keys-health',
         destination: '/super-admin/monitoring?tab=api-health',
