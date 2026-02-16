@@ -370,20 +370,28 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       )
     }
 
-    // Générer les embeddings en batch
+    // Générer les embeddings en batch (respecte operations-config)
     const embeddingsResult = await generateEmbeddingsBatch(
-      chunks.map(c => c.content)
+      chunks.map(c => c.content),
+      { operationName: 'indexation' }
     )
 
     // Générer l'embedding du document (titre + description)
     const docSummary = `${row.title || ''}. ${row.meta_description || ''}`.trim()
-    const docEmbeddingResult = await generateEmbedding(docSummary || normalizedText.substring(0, 500))
+    const docEmbeddingResult = await generateEmbedding(
+      docSummary || normalizedText.substring(0, 500),
+      { operationName: 'indexation' }
+    )
+
+    // Déterminer la colonne d'embedding selon le provider utilisé
+    const isOpenAI = embeddingsResult.provider === 'openai'
+    const embeddingColumn = isOpenAI ? 'embedding_openai' : 'embedding'
 
     // Insérer les chunks
     for (let i = 0; i < chunks.length; i++) {
       await client.query(
         `INSERT INTO knowledge_base_chunks
-         (knowledge_base_id, chunk_index, content, embedding, metadata)
+         (knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata)
          VALUES ($1, $2, $3, $4::vector, $5)`,
         [
           knowledgeBaseId,
@@ -400,14 +408,21 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     }
 
     // Mettre à jour le document KB avec son embedding
-    await client.query(
-      `UPDATE knowledge_base SET
-        embedding = $2::vector,
-        is_indexed = true,
-        updated_at = NOW()
-      WHERE id = $1`,
-      [knowledgeBaseId, formatEmbeddingForPostgres(docEmbeddingResult.embedding)]
-    )
+    if (isOpenAI) {
+      await client.query(
+        `UPDATE knowledge_base SET is_indexed = true, updated_at = NOW() WHERE id = $1`,
+        [knowledgeBaseId]
+      )
+    } else {
+      await client.query(
+        `UPDATE knowledge_base SET
+          embedding = $2::vector,
+          is_indexed = true,
+          updated_at = NOW()
+        WHERE id = $1`,
+        [knowledgeBaseId, formatEmbeddingForPostgres(docEmbeddingResult.embedding)]
+      )
+    }
 
     // Mettre à jour la page web
     await client.query(
