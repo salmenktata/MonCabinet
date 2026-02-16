@@ -236,10 +236,14 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   const normalizedText = normalizeText(row.extracted_text)
   const detectedLang = row.language_detected || detectTextLanguage(normalizedText) || 'fr'
 
-  // Fix titre corrompu (noms fichiers Google Drive avec caractères arabes → underscores)
+  // Fix titre corrompu (noms fichiers Google Drive avec caractères arabes → underscores ou noms 8.3)
   let pageTitle = row.title || row.url
-  if (pageTitle && /_{3,}/.test(pageTitle)) {
-    // Extraire la première ligne significative du texte (> 5 chars, pas que des espaces)
+  const isCorruptedTitle = pageTitle && (
+    /_{3,}/.test(pageTitle) ||                         // underscores (arabe corrompu)
+    /^[A-F0-9~]+\.\w{3,4}$/i.test(pageTitle) ||       // noms 8.3 (A71E~D.DOC)
+    (/\.\w{3,4}$/.test(pageTitle) && !/[\u0600-\u06FF]/.test(pageTitle) && pageTitle.length < 30) // fichier court sans arabe
+  )
+  if (isCorruptedTitle) {
     const lines = normalizedText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 5)
     if (lines.length > 0) {
       pageTitle = lines[0].substring(0, 200)
