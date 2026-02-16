@@ -229,16 +229,14 @@ export function PipelineDocumentDetail({ documentId }: { documentId: string }) {
             </div>
           )}
 
-          {stage === 'classified' && (
-            <div className="rounded-lg border p-6">
-              <ClassificationPanel
-                document={{ ...doc, tags: doc.tags || [] }}
-                onSave={handleEdit}
-                onReplay={handleReplay}
-                isLoading={actionLoading}
-              />
-            </div>
-          )}
+          <div className="rounded-lg border p-6">
+            <ClassificationPanel
+              document={{ ...doc, tags: doc.tags || [] }}
+              onSave={handleEdit}
+              onReplay={handleReplay}
+              isLoading={actionLoading}
+            />
+          </div>
 
           {stage === 'indexed' && (
             <div className="rounded-lg border p-6">

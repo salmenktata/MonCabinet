@@ -4,12 +4,9 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
+import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 
-const CATEGORIES = [
-  'jurisprudence', 'legislation', 'codes', 'doctrine', 'modeles',
-  'formulaires', 'guides', 'conventions', 'constitutions', 'jorts',
-  'circulaires', 'decisions', 'reglements', 'articles', 'autre',
-]
+const CATEGORIES = getCategoriesForContext('knowledge_base').map(c => c.value)
 
 interface ClassificationPanelProps {
   document: {
