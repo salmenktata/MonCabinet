@@ -403,9 +403,11 @@ async function preprocessImageForOcr(imageBuffer: Buffer): Promise<Buffer> {
 /**
  * Extrait le texte d'un PDF scanné en utilisant l'OCR
  *
- * Stratégie en 2 passes :
- * 1. pdf-to-img (pdfjs) — rapide, fonctionne pour les PDFs vectoriels
- * 2. Si page 1 est vide → fallback pdftoppm (poppler) — gère les PDFs scannés (images intégrées)
+ * Utilise pdftoppm (poppler) si disponible, sinon pdf-to-img (pdfjs).
+ * pdftoppm est systématiquement préféré car :
+ * - Il rend correctement les images intégrées (PDFs scannés)
+ * - Combiné avec tesseract CLI natif (~5x plus rapide que WASM)
+ * - pdf-to-img/pdfjs échoue souvent sur les PDFs scannés (pages blanches)
  */
 async function extractTextWithOcr(
   buffer: Buffer,
@@ -415,34 +417,17 @@ async function extractTextWithOcr(
 
   console.log(`[FileParser] OCR: traitement de ${pagesToProcess} pages (max: ${OCR_CONFIG.MAX_OCR_PAGES})`)
 
-  // Essayer d'abord pdf-to-img, vérifier si page 1 est non-vide
-  const sharp = (await import('sharp')).default
-  let usePdftoppm = false
-
+  // Vérifier si pdftoppm est disponible
   try {
-    const { pdf } = await loadPdfToImg()
-    const doc = await pdf(buffer, { scale: OCR_CONFIG.SCALE })
-    for await (const pageImage of doc) {
-      const rawBuf = Buffer.from(pageImage)
-      const stats = await sharp(rawBuf).stats()
-      const isBlank = stats.channels.every((ch: { stdev: number }) => ch.stdev < 5)
-      if (isBlank) {
-        console.log('[FileParser] pdf-to-img rend des pages blanches (PDF scanné) → fallback pdftoppm')
-        usePdftoppm = true
-      } else {
-        console.log('[FileParser] pdf-to-img OK (pages non-vides)')
-      }
-      break // On teste seulement la première page
-    }
-  } catch {
-    console.log('[FileParser] pdf-to-img échoué → fallback pdftoppm')
-    usePdftoppm = true
-  }
-
-  if (usePdftoppm) {
+    const { exec } = await import('child_process')
+    const { promisify } = await import('util')
+    await promisify(exec)('pdftoppm -v', { timeout: 5000 })
+    console.log('[FileParser] OCR via pdftoppm + tesseract CLI (natif)')
     return extractTextWithOcrPdftoppm(buffer, pagesToProcess)
+  } catch {
+    console.log('[FileParser] pdftoppm non disponible, fallback pdf-to-img + tesseract.js')
+    return extractTextWithOcrPdfToImg(buffer, pagesToProcess)
   }
-  return extractTextWithOcrPdfToImg(buffer, pagesToProcess)
 }
 
 /**
