@@ -3,7 +3,7 @@
  * Tracking détaillé des tentatives de replay par étape
  */
 
-import { pool } from '@/lib/db/postgres'
+import { db } from '@/lib/db/postgres'
 
 export interface RetryAttempt {
   id: string
@@ -43,7 +43,7 @@ export async function createRetryAttempt(
   reason?: string
 ): Promise<string> {
   // Récupérer le dernier numéro de tentative pour ce document et cette étape
-  const lastAttempt = await pool.query(
+  const lastAttempt = await db.query(
     `SELECT MAX(attempt_number) as max_attempt
      FROM pipeline_retry_attempts
      WHERE knowledge_base_id = $1 AND stage = $2`,
@@ -52,7 +52,7 @@ export async function createRetryAttempt(
 
   const attemptNumber = (lastAttempt.rows[0]?.max_attempt || 0) + 1
 
-  const result = await pool.query(
+  const result = await db.query(
     `INSERT INTO pipeline_retry_attempts
       (knowledge_base_id, stage, attempt_number, triggered_by, status, retry_reason)
      VALUES ($1, $2, $3, $4, 'running', $5)
@@ -73,7 +73,7 @@ export async function updateRetryAttempt(
   errorMessage?: string,
   metadata?: Record<string, unknown>
 ): Promise<void> {
-  await pool.query(
+  await db.query(
     `UPDATE pipeline_retry_attempts
      SET status = $1,
          duration_ms = $2,
@@ -107,7 +107,7 @@ export async function getDocumentRetryAttempts(
        ORDER BY triggered_at DESC`
 
   const params = stage ? [documentId, stage] : [documentId]
-  const result = await pool.query(query, params)
+  const result = await db.query(query, params)
 
   return result.rows.map(row => ({
     ...row,
@@ -119,7 +119,7 @@ export async function getDocumentRetryAttempts(
  * Récupérer les statistiques de retry sur une période
  */
 export async function getRetryStats(hours: number = 24): Promise<RetryStats> {
-  const result = await pool.query(
+  const result = await db.query(
     `SELECT
       COUNT(*) as total,
       COUNT(*) FILTER (WHERE status = 'success') as succeeded,
@@ -133,7 +133,7 @@ export async function getRetryStats(hours: number = 24): Promise<RetryStats> {
   )
 
   // Top erreurs
-  const errorsResult = await pool.query(
+  const errorsResult = await db.query(
     `SELECT
       stage,
       LEFT(error_message, 100) as error,
@@ -172,7 +172,7 @@ export async function getRetryStats(hours: number = 24): Promise<RetryStats> {
  * Récupérer les statistiques de retry par étape
  */
 export async function getRetryStatsByStage(hours: number = 24): Promise<Record<string, RetryStats>> {
-  const result = await pool.query(
+  const result = await db.query(
     `SELECT
       stage,
       COUNT(*) as total,
@@ -206,7 +206,7 @@ export async function getRetryStatsByStage(hours: number = 24): Promise<Record<s
  * Nettoyer les anciennes tentatives (rétention 30 jours)
  */
 export async function cleanupOldRetryAttempts(daysToKeep: number = 30): Promise<number> {
-  const result = await pool.query(
+  const result = await db.query(
     `DELETE FROM pipeline_retry_attempts
      WHERE triggered_at < NOW() - INTERVAL '${daysToKeep} days'
      RETURNING id`

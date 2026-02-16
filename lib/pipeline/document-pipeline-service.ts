@@ -287,12 +287,19 @@ export async function replayStage(
       await updateRetryAttempt(attemptId, 'success', duration)
     }
 
-    await logHistory(docId, targetStage, targetStage, 'admin_replay', userId, {
-      message: `Replay étape ${targetStage}`,
-      reason: options?.reason,
-      force: options?.force,
-      duration_ms: duration,
-    })
+    await logHistory(
+      docId,
+      targetStage,
+      targetStage,
+      'admin_replay',
+      userId,
+      `Replay étape ${targetStage}${options?.reason ? `: ${options.reason}` : ''}`,
+      {
+        reason: options?.reason,
+        force: options?.force,
+        duration_ms: duration,
+      }
+    )
 
     // NOUVEAU : Récupérer le nombre de tentatives
     const attempts = await getDocumentRetryAttempts(docId, targetStage)
