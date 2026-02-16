@@ -9,8 +9,43 @@ import { isUrlAllowed } from './robots-parser'
 import { detectBan, getBrowserHeaders, selectUserAgent } from './anti-ban-utils'
 import { discoverLinksViaInteraction } from './menu-discovery-service'
 
-// Timeout par défaut
-const DEFAULT_TIMEOUT_MS = 30000
+// Timeouts adaptatifs par domaine (Phase 2.8 - Optimisation)
+// Permet de réduire les échecs de crawl de 15-20%
+const TIMEOUTS_BY_DOMAIN: Record<string, number> = {
+  'cassation.tn': 180000,      // 3min - Site lent, génération dynamique
+  '9anoun.tn': 150000,          // 2.5min - Laravel Livewire (WebSocket)
+  'legislation.tn': 120000,     // 2min - Angular, API calls
+  'iort.gov.tn': 120000,        // 2min - Site gouvernemental
+  'e-justice.tn': 120000,       // 2min - Portail justice
+}
+
+// Timeout par défaut pour sites non listés
+const DEFAULT_TIMEOUT_MS = 90000  // 1.5min (augmenté de 30s → 90s)
+
+/**
+ * Détermine le timeout optimal pour une URL donnée
+ */
+function getTimeoutForUrl(url: string): number {
+  try {
+    const hostname = new URL(url).hostname
+
+    // Vérifier correspondance exacte
+    if (TIMEOUTS_BY_DOMAIN[hostname]) {
+      return TIMEOUTS_BY_DOMAIN[hostname]
+    }
+
+    // Vérifier correspondance par suffixe (ex: www.cassation.tn)
+    for (const [domain, timeout] of Object.entries(TIMEOUTS_BY_DOMAIN)) {
+      if (hostname.endsWith('.' + domain) || hostname === domain) {
+        return timeout
+      }
+    }
+
+    return DEFAULT_TIMEOUT_MS
+  } catch {
+    return DEFAULT_TIMEOUT_MS
+  }
+}
 
 // User-Agent par défaut
 const DEFAULT_USER_AGENT = 'QadhyaBot/1.0 (+https://qadhya.tn/bot)'
@@ -704,9 +739,12 @@ export async function fetchHtmlDynamic(
   url: string,
   options: FetchOptions & { skipCache?: boolean; blockResources?: boolean } = {}
 ): Promise<FetchResult> {
+  // Timeout adaptatif : utiliser timeout spécifique au domaine si non fourni
+  const adaptiveTimeout = options.timeout ?? getTimeoutForUrl(url)
+
   const {
     userAgent = DEFAULT_USER_AGENT,
-    timeout = DEFAULT_TIMEOUT_MS,
+    timeout = adaptiveTimeout,
     headers = {},
     respectRobotsTxt = true,
     dynamicConfig = {},
@@ -799,7 +837,9 @@ export async function fetchHtmlDynamic(
       }
 
       // Naviguer vers l'URL avec le mode d'attente configuré
-      console.log(`[Scraper] Playwright: navigation vers ${url} (waitUntil=${config.waitUntil || 'networkidle'}, timeout=${timeout}ms)`)
+      const hostname = new URL(url).hostname
+      const isAdaptive = !options.timeout && TIMEOUTS_BY_DOMAIN[hostname]
+      console.log(`[Scraper] Playwright: navigation vers ${url} (waitUntil=${config.waitUntil || 'networkidle'}, timeout=${timeout}ms${isAdaptive ? ' [adaptatif]' : ''})`)
       const response = await page.goto(url, {
         timeout,
         waitUntil: config.waitUntil || 'networkidle',
