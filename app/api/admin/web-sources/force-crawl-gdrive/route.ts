@@ -8,7 +8,7 @@ import { crawlGoogleDriveFolder } from '@/lib/web-scraper/gdrive-crawler-service
 import { db } from '@/lib/db/postgres'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 600 // 10 minutes
+export const maxDuration = 3600 // 60 minutes (1715+ fichiers PDF à télécharger)
 
 const GDRIVE_SOURCE_ID = '546d11c8-b3fd-4559-977b-c3572aede0e4'
 
