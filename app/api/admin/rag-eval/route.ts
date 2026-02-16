@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchKnowledgeBaseHybrid, type KnowledgeBaseSearchResult } from '@/lib/ai/knowledge-base-service'
 import { enrichQueryWithLegalSynonyms, expandQuery, condenseQuery } from '@/lib/ai/query-expansion-service'
+import { answerQuestion } from '@/lib/ai/rag-chat-service'
 
 // =============================================================================
 // TYPES
@@ -318,6 +319,8 @@ export async function POST(request: NextRequest) {
     // Parse body (optionnel)
     let customQueries: EvalQuery[] | undefined
     let searchLimit = 15
+    let chatMode = false
+    let chatQuestion = ''
     try {
       const body = await request.json()
       if (body.queries && Array.isArray(body.queries)) {
@@ -326,8 +329,39 @@ export async function POST(request: NextRequest) {
       if (body.options?.limit) {
         searchLimit = Math.min(body.options.limit, 50)
       }
+      // Mode chat: exécuter le pipeline RAG complet avec réponse LLM
+      if (body.chat) {
+        chatMode = true
+        chatQuestion = body.chat
+      }
     } catch {
       // Pas de body = utiliser benchmark par défaut
+    }
+
+    // Mode chat: pipeline RAG complet (recherche + LLM)
+    if (chatMode && chatQuestion) {
+      console.log(`[RAG Eval] Chat mode: "${chatQuestion.substring(0, 60)}..."`)
+      const startTime = Date.now()
+      const response = await answerQuestion(chatQuestion, 'admin-eval', {
+        operationName: 'assistant-ia',
+      })
+      const totalTimeMs = Date.now() - startTime
+      return NextResponse.json({
+        mode: 'chat',
+        answer: response.answer,
+        model: response.model,
+        tokensUsed: response.tokensUsed,
+        sources: response.sources.map(s => ({
+          title: s.documentName,
+          score: s.similarity,
+          category: s.metadata?.category,
+          contentPreview: s.chunkContent?.substring(0, 200),
+        })),
+        sourceCount: response.sources.length,
+        citationWarnings: response.citationWarnings,
+        totalTimeMs,
+        timestamp: new Date().toISOString(),
+      })
     }
 
     const queries = customQueries || EVAL_BENCHMARK
