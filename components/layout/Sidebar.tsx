@@ -48,8 +48,8 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
       { href: '/qadhya-ia/chat', label: 'qadhyaIAChat', icon: 'messageSquare' },
       { href: '/qadhya-ia/structure', label: 'qadhyaIAStructure', icon: 'edit' },
       { href: '/qadhya-ia/consult', label: 'qadhyaIAConsult', icon: 'scale' },
-      // Base de connaissances visible pour les admins (super_admin ont leur propre page)
-      ...(userRole === 'admin' ? [{ href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' as keyof typeof Icons }] : []),
+      // Base de connaissances réservée super_admin
+      ...(userRole === 'super_admin' ? [{ href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' as keyof typeof Icons }] : []),
     ],
   },
   {
@@ -63,7 +63,7 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
       ] : []),
     ],
   },
-  ...((userRole === 'admin' || userRole === 'super_admin') ? [{
+  ...(userRole === 'super_admin' ? [{
     group: 'Administration',
     groupIcon: 'shield' as keyof typeof Icons,
     items: [

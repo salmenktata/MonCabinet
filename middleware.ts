@@ -92,26 +92,8 @@ export async function middleware(request: NextRequest) {
 
     // Vérifier le rôle pour les routes super-admin
     if (pathname.startsWith('/super-admin')) {
-      // Sous-pages web-sources réservées super_admin (écriture)
-      const webSourcesWritePages = [
-        '/super-admin/web-sources/new',
-        '/super-admin/web-sources/maintenance',
-      ]
-      const isWebSourcesWritePage = webSourcesWritePages.some(page => pathname.startsWith(page))
-        || /^\/super-admin\/web-sources\/[^/]+\/edit/.test(pathname)
-      if (isWebSourcesWritePage && user.role !== 'super_admin') {
-        return NextResponse.redirect(new URL('/super-admin/web-sources', request.url))
-      }
-
-      // Pages accessibles aux admins (en plus des super_admin)
-      const adminAllowedPages = ['/super-admin/pipeline', '/super-admin/web-sources']
-      const isAdminAllowedPage = adminAllowedPages.some(page => pathname.startsWith(page))
-
-      if (isAdminAllowedPage) {
-        if (user.role !== 'super_admin' && user.role !== 'admin') {
-          return NextResponse.redirect(new URL('/dashboard', request.url))
-        }
-      } else if (user.role !== 'super_admin') {
+      // Toutes les pages super-admin réservées aux super_admin uniquement
+      if (user.role !== 'super_admin') {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
     }
