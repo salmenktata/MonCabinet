@@ -14,7 +14,7 @@ import { editDocumentAtStage } from '@/lib/pipeline/document-pipeline-service'
 
 async function checkAdminAccess(userId: string): Promise<boolean> {
   const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  return result.rows[0]?.role === 'admin'
+  return ['admin', 'super_admin'].includes(result.rows[0]?.role)
 }
 
 export async function PATCH(
