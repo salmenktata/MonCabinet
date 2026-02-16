@@ -10,7 +10,6 @@
  */
 
 import { db } from '@/lib/db/postgres'
-import { getEmbeddingsService } from './embeddings-service'
 
 // =============================================================================
 // TYPES

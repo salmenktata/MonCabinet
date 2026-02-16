@@ -102,6 +102,9 @@ export interface RAGSearchOptions {
   /** Nombre maximum de résultats */
   limit?: number
 
+  /** Offset pour pagination (nombre de résultats à skip) */
+  offset?: number
+
   /** Seuil de similarité minimum (0-1) */
   threshold?: number
 
@@ -462,6 +465,7 @@ export async function search(
   options: RAGSearchOptions = {}
 ): Promise<RAGSearchResult[]> {
   const limit = options.limit || 10
+  const offset = options.offset || 0
   const threshold = options.threshold || RAG_THRESHOLDS.minimum
   const includeRelations = options.includeRelations || false
 
@@ -469,8 +473,9 @@ export async function search(
   const embeddingResult = await generateEmbedding(query)
   const embeddingStr = formatEmbeddingForPostgres(embeddingResult.embedding)
 
-  // 1. Vérifier le cache Redis (si userId disponible)
-  if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId) {
+  // 1. Vérifier le cache Redis (si userId disponible ET pas de pagination)
+  // Note: Cache désactivé si offset > 0 (pagination simplifie implémentation)
+  if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId && offset === 0) {
     const scope: SearchScope = {
       userId: options.userId,
       dossierId: filters.dossierId,
@@ -536,6 +541,14 @@ export async function search(
     paramIndex++
   }
 
+  // Ajouter OFFSET si pagination (Phase 4.3)
+  let offsetClause = ''
+  if (offset > 0) {
+    offsetClause = `OFFSET $${paramIndex}`
+    queryParams.push(offset)
+    paramIndex++
+  }
+
   const sqlQuery = `
     SELECT
       kb.id AS kb_id,
@@ -550,6 +563,7 @@ export async function search(
     WHERE ${whereClauses.join(' AND ')}
     ORDER BY similarity DESC
     LIMIT $3
+    ${offsetClause}
   `
 
   const result = await db.query(sqlQuery, queryParams)
@@ -590,8 +604,8 @@ export async function search(
     })
   )
 
-  // 6. Mettre en cache (async, pas bloquant)
-  if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId) {
+  // 6. Mettre en cache (async, pas bloquant) - Skip si pagination
+  if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId && offset === 0) {
     const scope: SearchScope = {
       userId: options.userId,
       dossierId: filters.dossierId,

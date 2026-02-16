@@ -29,6 +29,7 @@ interface KBSearchRequest {
     dateTo?: string // ISO date
   }
   limit?: number
+  offset?: number // Phase 4.3: Pagination offset
   includeRelations?: boolean // Inclure relations juridiques (citations, supersedes)
   sortBy?: 'relevance' | 'date' | 'citations'
 }
