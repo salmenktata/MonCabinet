@@ -11,7 +11,7 @@ import { getDocumentRetryAttempts } from '@/lib/pipeline/pipeline-retry-service'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { documentId: string } }
+  context: { params: Promise<{ documentId: string }> }
 ) {
   try {
     const session = await getServerSession()
@@ -23,6 +23,7 @@ export async function GET(
       )
     }
 
+    const params = await context.params
     const { documentId } = params
 
     // Validation UUID
