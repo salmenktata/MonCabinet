@@ -33,13 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ChevronLeft, ChevronRight, Eye, RefreshCw, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
+import { CronExecutionDetailsModal } from './CronExecutionDetailsModal'
 
 interface Execution {
   id: string
@@ -401,74 +395,12 @@ export function CronsExecutionsTable() {
         </CardContent>
       </Card>
 
-      {/* Modal Détails */}
-      {selectedExecution && (
-        <Dialog
-          open={!!selectedExecution}
-          onOpenChange={() => setSelectedExecution(null)}
-        >
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Détails Exécution</DialogTitle>
-              <DialogDescription>
-                {selectedExecution.cron_name} • {selectedExecution.id}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Statut</div>
-                  <div className="mt-1">{getStatusBadge(selectedExecution.status)}</div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Durée</div>
-                  <div className="mt-1 text-lg font-mono">
-                    {formatDuration(selectedExecution.duration_ms)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Démarré</div>
-                  <div className="mt-1 text-sm">
-                    {new Date(selectedExecution.started_at).toLocaleString('fr-FR')}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Terminé</div>
-                  <div className="mt-1 text-sm">
-                    {selectedExecution.completed_at
-                      ? new Date(selectedExecution.completed_at).toLocaleString('fr-FR')
-                      : 'En cours'}
-                  </div>
-                </div>
-              </div>
-
-              {selectedExecution.error_message && (
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-2">
-                    Erreur
-                  </div>
-                  <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm font-mono">
-                    {selectedExecution.error_message}
-                  </div>
-                </div>
-              )}
-
-              {selectedExecution.output &&
-                Object.keys(selectedExecution.output).length > 0 && (
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground mb-2">
-                      Output JSON
-                    </div>
-                    <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-                      {JSON.stringify(selectedExecution.output, null, 2)}
-                    </pre>
-                  </div>
-                )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* S1.1 : Modal Détails Enrichi */}
+      <CronExecutionDetailsModal
+        execution={selectedExecution}
+        open={!!selectedExecution}
+        onClose={() => setSelectedExecution(null)}
+      />
     </>
   )
 }
