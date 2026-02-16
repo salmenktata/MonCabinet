@@ -235,6 +235,12 @@ export async function generateEmbedding(
   text: string,
   options?: EmbeddingOptions
 ): Promise<EmbeddingResult> {
+  // Tronquer si le texte dépasse la limite du modèle d'embedding (~6000 chars pour 8192 tokens arabe)
+  const MAX_EMBEDDING_CHARS = 6000
+  if (text.length > MAX_EMBEDDING_CHARS) {
+    text = text.substring(0, MAX_EMBEDDING_CHARS)
+  }
+
   // Vérifier le cache
   const cached = await getCachedEmbedding(text)
   if (cached) {
@@ -270,6 +276,10 @@ export async function generateEmbeddingsBatch(
   if (texts.length === 0) {
     return { embeddings: [], totalTokens: 0, provider: 'openai' }
   }
+
+  // Tronquer les textes trop longs pour le modèle d'embedding
+  const MAX_EMBEDDING_CHARS = 6000
+  texts = texts.map(t => t.length > MAX_EMBEDDING_CHARS ? t.substring(0, MAX_EMBEDDING_CHARS) : t)
 
   const provider = resolveEmbeddingProvider(options)
 
