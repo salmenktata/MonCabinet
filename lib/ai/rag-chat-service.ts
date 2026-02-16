@@ -756,9 +756,13 @@ export async function searchRelevantContext(
     }
   }
 
-  // Filtrer par seuil minimum absolu
+  // Filtrer par seuil minimum absolu (plus bas pour l'arabe: embeddings produisent des scores plus faibles)
+  const queryLangForThreshold = detectLanguage(question)
+  const effectiveMinimum = queryLangForThreshold === 'ar'
+    ? Math.min(RAG_THRESHOLDS.minimum, 0.40)
+    : RAG_THRESHOLDS.minimum
   const aboveThreshold = allSources.filter(
-    (s) => s.similarity >= RAG_THRESHOLDS.minimum
+    (s) => s.similarity >= effectiveMinimum
   )
 
   // Appliquer re-ranking avec boost dynamique, cross-encoder et diversité
