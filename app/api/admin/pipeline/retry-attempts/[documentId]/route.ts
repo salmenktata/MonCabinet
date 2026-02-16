@@ -16,9 +16,11 @@ export async function GET(
   try {
     const session = await getSession()
 
-    if (!session?.user || session.user.role !== 'super_admin') {
+    // Vérification authentification et rôle (admin ou super_admin)
+    const allowedRoles = ['admin', 'super_admin']
+    if (!session?.user?.role || !allowedRoles.includes(session.user.role)) {
       return NextResponse.json(
-        { error: 'Non autorisé - rôle super_admin requis' },
+        { error: 'Non autorisé - rôle admin ou super_admin requis' },
         { status: 401 }
       )
     }

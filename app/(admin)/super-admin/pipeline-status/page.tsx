@@ -18,7 +18,9 @@ export const metadata: Metadata = {
 export default async function PipelineStatusPage() {
   const session = await getSession()
 
-  if (!session?.user || session.user.role !== 'super_admin') {
+  // Vérification authentification et rôle (admin ou super_admin)
+  const allowedRoles = ['admin', 'super_admin']
+  if (!session?.user?.role || !allowedRoles.includes(session.user.role)) {
     redirect('/login')
   }
 
