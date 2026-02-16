@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth/session'
+import { getSession } from '@/lib/auth/session'
 import { getDocumentsByFilters } from '@/lib/pipeline/pipeline-stats-service'
 import { replayStage } from '@/lib/pipeline/document-pipeline-service'
 import { z } from 'zod'
@@ -41,7 +41,7 @@ const batchReplaySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await getSession()
 
     if (!session?.user || session.user.role !== 'super_admin') {
       return NextResponse.json(

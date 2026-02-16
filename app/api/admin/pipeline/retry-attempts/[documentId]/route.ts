@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth/session'
+import { getSession } from '@/lib/auth/session'
 import { getDocumentRetryAttempts } from '@/lib/pipeline/pipeline-retry-service'
 
 export async function GET(
@@ -14,7 +14,7 @@ export async function GET(
   context: { params: Promise<{ documentId: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const session = await getSession()
 
     if (!session?.user || session.user.role !== 'super_admin') {
       return NextResponse.json(

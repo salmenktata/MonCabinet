@@ -6,13 +6,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth/session'
+import { getSession } from '@/lib/auth/session'
 import { getPipelineFunnelStats, getBottlenecks } from '@/lib/pipeline/pipeline-stats-service'
 import { getRetryStats, getRetryStatsByStage } from '@/lib/pipeline/pipeline-retry-service'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await getSession()
 
     // Vérification authentification et rôle
     if (!session?.user || session.user.role !== 'super_admin') {

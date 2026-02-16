@@ -3,7 +3,7 @@
  * Tracking détaillé des tentatives de replay par étape
  */
 
-import { pool } from '@/lib/db'
+import { pool } from '@/lib/db/postgres'
 
 export interface RetryAttempt {
   id: string

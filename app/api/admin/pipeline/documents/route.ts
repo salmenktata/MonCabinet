@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth/session'
+import { getSession } from '@/lib/auth/session'
 import { getStageDocuments } from '@/lib/pipeline/pipeline-stats-service'
 import type { PipelineStage } from '@/lib/pipeline/document-pipeline-service'
 
@@ -24,7 +24,7 @@ const VALID_STAGES: PipelineStage[] = [
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await getSession()
 
     if (!session?.user || session.user.role !== 'super_admin') {
       return NextResponse.json(

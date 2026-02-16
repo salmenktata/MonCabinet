@@ -6,7 +6,7 @@
  */
 
 import { Metadata } from 'next'
-import { getServerSession } from '@/lib/auth/session'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import PipelineStatusClient from './PipelineStatusClient'
 
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 }
 
 export default async function PipelineStatusPage() {
-  const session = await getServerSession()
+  const session = await getSession()
 
   if (!session?.user || session.user.role !== 'super_admin') {
     redirect('/login')
