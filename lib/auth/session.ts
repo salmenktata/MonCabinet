@@ -338,3 +338,83 @@ export async function loginUser(
 export async function logoutUser(): Promise<void> {
   await clearSessionCookie()
 }
+
+// =============================================================================
+// IMPERSONATION (Super Admin)
+// =============================================================================
+
+const IMPERSONATION_COOKIE = 'impersonation_original'
+
+/**
+ * Démarre l'impersonation : sauvegarde la session admin et crée une session pour l'utilisateur cible
+ */
+export async function startImpersonation(targetUserId: string): Promise<{ success: boolean; error?: string }> {
+  const cookieStore = await cookies()
+  const currentToken = cookieStore.get(COOKIE_NAME)?.value
+  if (!currentToken) return { success: false, error: 'Non authentifié' }
+
+  const targetUser = await fetchUserForSession(targetUserId)
+  if (!targetUser) return { success: false, error: 'Utilisateur cible introuvable ou non approuvé' }
+
+  // Sauvegarder le token admin original
+  cookieStore.set(IMPERSONATION_COOKIE, currentToken, {
+    ...COOKIE_OPTIONS,
+    maxAge: SESSION_DURATION,
+  })
+
+  // Remplacer la session par celle de l'utilisateur cible
+  await setSessionCookie(targetUser)
+
+  return { success: true }
+}
+
+/**
+ * Arrête l'impersonation : restaure la session admin originale
+ */
+export async function stopImpersonation(): Promise<{ success: boolean; error?: string }> {
+  const cookieStore = await cookies()
+  const originalToken = cookieStore.get(IMPERSONATION_COOKIE)?.value
+  if (!originalToken) return { success: false, error: 'Pas d\'impersonation en cours' }
+
+  // Restaurer le cookie admin original
+  cookieStore.set(COOKIE_NAME, originalToken, {
+    ...COOKIE_OPTIONS,
+    maxAge: SESSION_DURATION,
+  })
+
+  // Supprimer le cookie d'impersonation
+  cookieStore.delete(IMPERSONATION_COOKIE)
+
+  return { success: true }
+}
+
+/**
+ * Vérifie si une impersonation est en cours et retourne les infos de l'admin original
+ */
+export async function getImpersonationStatus(): Promise<{
+  isImpersonating: boolean
+  originalAdmin?: { email: string; name: string }
+  targetUser?: { email: string; name: string }
+}> {
+  try {
+    const cookieStore = await cookies()
+    const originalToken = cookieStore.get(IMPERSONATION_COOKIE)?.value
+    if (!originalToken) return { isImpersonating: false }
+
+    const adminUser = await verifyToken(originalToken)
+    if (!adminUser) return { isImpersonating: false }
+
+    // Récupérer les infos de l'utilisateur actuellement impersoné
+    const currentSession = await getSession()
+
+    return {
+      isImpersonating: true,
+      originalAdmin: { email: adminUser.email, name: adminUser.name },
+      targetUser: currentSession?.user
+        ? { email: currentSession.user.email, name: currentSession.user.name }
+        : undefined,
+    }
+  } catch {
+    return { isImpersonating: false }
+  }
+}

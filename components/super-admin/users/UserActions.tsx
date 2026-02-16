@@ -33,6 +33,7 @@ import {
   changeUserPlanAction,
   deleteUserAction
 } from '@/app/actions/super-admin/users'
+import { startImpersonationAction } from '@/app/actions/super-admin/impersonation'
 
 interface User {
   id: string
@@ -339,6 +340,41 @@ export function UserActions({ user }: UserActionsProps) {
           <Icons.creditCard className="h-4 w-4 mr-2" />
           Changer le plan
         </Button>
+
+        {/* Voir comme - seulement si approuvé et pas super_admin */}
+        {user.status === 'approved' && user.role !== 'super_admin' && (
+          <Button
+            onClick={async () => {
+              setLoading(true)
+              try {
+                const result = await startImpersonationAction(user.id)
+                if (result.error) {
+                  toast({
+                    title: 'Erreur',
+                    description: result.error,
+                    variant: 'destructive'
+                  })
+                } else {
+                  window.location.href = '/dashboard'
+                }
+              } catch {
+                toast({
+                  title: 'Erreur',
+                  description: 'Une erreur est survenue',
+                  variant: 'destructive'
+                })
+              } finally {
+                setLoading(false)
+              }
+            }}
+            disabled={loading}
+            variant="outline"
+            className="border-orange-600 text-orange-400 hover:bg-orange-900/30"
+          >
+            <Icons.eye className="h-4 w-4 mr-2" />
+            Voir comme cet utilisateur
+          </Button>
+        )}
 
         {/* Supprimer - seulement si pas super_admin */}
         {user.role !== 'super_admin' && (

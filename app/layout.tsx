@@ -7,6 +7,7 @@ import { SessionProvider } from '@/components/providers/SessionProvider'
 import { StorageCleanupProvider } from '@/components/providers/StorageCleanupProvider'
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import { WebVitalsReporter } from '@/components/monitoring/WebVitalsReporter'
+import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -60,6 +61,7 @@ export default async function RootLayout({
             <QueryProvider>
               <StorageCleanupProvider>
                 <NextIntlClientProvider messages={messages}>
+                  <ImpersonationBanner />
                   {children}
                 </NextIntlClientProvider>
               </StorageCleanupProvider>
