@@ -209,7 +209,6 @@
     "tailwind-merge": "^2.6.1",
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^5.1.1",
-    "tsx": "^4.21.0",
     "umap-js": "^1.4.0",
     "use-debounce": "^10.1.0",
     "web-vitals": "^5.1.0",
@@ -248,6 +247,7 @@
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.9",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   },

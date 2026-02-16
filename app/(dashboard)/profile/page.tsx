@@ -1,6 +1,6 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import ProfileForm from '@/components/profile/ProfileForm'
 
 export const metadata = {
@@ -21,6 +21,11 @@ export default async function ProfilePage() {
     [session.user.id]
   )
   const profile = result.rows[0]
+
+  // Protection NULL safety: rediriger si profil non trouvé
+  if (!profile) {
+    notFound()
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

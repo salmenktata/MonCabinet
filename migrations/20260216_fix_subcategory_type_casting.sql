@@ -81,6 +81,9 @@ $$ LANGUAGE plpgsql STABLE;
 -- 2. FIX search_knowledge_base (legacy avec vector 1536)
 -- =====================================================================
 
+DROP FUNCTION IF EXISTS search_knowledge_base(vector, text, text, integer, double precision);
+DROP FUNCTION IF EXISTS search_knowledge_base(vector(1536), text, text, integer, double precision);
+
 CREATE OR REPLACE FUNCTION search_knowledge_base(
   query_embedding vector(1536),
   p_category TEXT DEFAULT NULL,

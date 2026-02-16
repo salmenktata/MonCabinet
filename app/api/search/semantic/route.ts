@@ -69,10 +69,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<SemanticSe
     // Récupérer les paramètres
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get('q')
-    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10) || 10, 50)
     const dossierId = searchParams.get('dossierId')
-    const threshold = parseFloat(
-      searchParams.get('threshold') || String(aiConfig.rag.similarityThreshold)
+    const threshold = Math.max(
+      0,
+      Math.min(
+        parseFloat(searchParams.get('threshold') || String(aiConfig.rag.similarityThreshold)) || aiConfig.rag.similarityThreshold,
+        1.0
+      )
     )
 
     if (!query || query.trim().length < 2) {

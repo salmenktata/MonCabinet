@@ -27,13 +27,19 @@ export default async function DashboardLayout({
   const profile = profileResult.rows[0]
   const userRole = userResult.rows[0]?.role || 'user'
 
+  // Protection NULL safety: créer profil par défaut si inexistant
+  // Note: Le profil devrait toujours exister, mais évite crash si données corrompues
+  if (!profile) {
+    console.error('[Layout] Profil manquant pour user:', session.user.id)
+  }
+
   return (
     <GlobalErrorBoundary>
       <AppLayout
         user={{
           email: session.user.email!,
-          nom: profile?.nom,
-          prenom: profile?.prenom,
+          nom: profile?.nom || '',
+          prenom: profile?.prenom || '',
           role: userRole,
         }}
       >
