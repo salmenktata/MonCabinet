@@ -117,27 +117,42 @@ async function convertDocToDocxInternal(buffer: Buffer): Promise<Buffer> {
   const { promisify } = await import('util')
   const execAsync = promisify(exec)
 
-  // Créer fichier temporaire .doc
+  // Créer fichier temporaire .doc avec ID unique pour éviter collisions
   const tempDir = tmpdir()
-  const inputPath = join(tempDir, `temp-${Date.now()}.doc`)
+  const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const inputPath = join(tempDir, `lo-conv-${uid}.doc`)
   const outputDir = tempDir
+  // Profil LibreOffice isolé par conversion (évite locks et profils corrompus)
+  const profileDir = join(tempDir, `lo-profile-${uid}`)
 
   try {
     // Écrire le buffer dans un fichier temporaire
     await fs.writeFile(inputPath, buffer)
 
+    // Nettoyer d'éventuels lock files orphelins avant conversion
+    const lockFile = inputPath.replace('.doc', '.docx') + '#'
+    await fs.unlink(join(tempDir, `.~lock.${lockFile}`)).catch(() => {})
+
     // Convertir via LibreOffice headless
-    // --convert-to docx : format de sortie
-    // --outdir : dossier de sortie
-    // --headless : mode sans interface
-    const command = `libreoffice --headless --convert-to docx --outdir "${outputDir}" "${inputPath}"`
+    // --norestore --nofirststartwizard : évite dialogue de recovery
+    // -env:UserInstallation : profil isolé (évite locks sur profil partagé)
+    const command = [
+      'libreoffice',
+      '--headless',
+      '--norestore',
+      '--nofirststartwizard',
+      `-env:UserInstallation=file://${profileDir}`,
+      '--convert-to', 'docx',
+      '--outdir', `"${outputDir}"`,
+      `"${inputPath}"`,
+    ].join(' ')
 
     const { stdout, stderr } = await execAsync(command, {
-      timeout: 30000, // 30s timeout
+      timeout: 60000, // 60s timeout (certains .doc lourds sont lents)
       maxBuffer: 10 * 1024 * 1024, // 10MB buffer
     })
 
-    if (stderr && !stderr.includes('convert')) {
+    if (stderr && !stderr.includes('convert') && !stderr.includes('javaldx')) {
       console.warn('[LibreOffice] Warnings:', stderr)
     }
 
@@ -145,15 +160,17 @@ async function convertDocToDocxInternal(buffer: Buffer): Promise<Buffer> {
     const outputFilename = inputPath.replace('.doc', '.docx')
     const docxBuffer = await fs.readFile(outputFilename)
 
-    // Nettoyer les fichiers temporaires
+    // Nettoyer les fichiers temporaires + profil isolé
     await fs.unlink(inputPath).catch(() => {})
     await fs.unlink(outputFilename).catch(() => {})
+    await fs.rm(profileDir, { recursive: true, force: true }).catch(() => {})
 
     console.log('[LibreOffice] Conversion .doc → .docx réussie')
     return docxBuffer
   } catch (error: any) {
-    // Nettoyer le fichier temporaire en cas d'erreur
+    // Nettoyer les fichiers temporaires + profil en cas d'erreur
     await fs.unlink(inputPath).catch(() => {})
+    await fs.rm(profileDir, { recursive: true, force: true }).catch(() => {})
 
     const errorMsg = error?.message || 'Erreur inconnue'
     throw new Error(`Échec conversion LibreOffice: ${errorMsg}`)
