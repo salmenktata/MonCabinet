@@ -116,6 +116,7 @@ COPY --from=builder /app/.playwright ./.playwright
 # Copier modules natifs et externes depuis builder
 # Next.js standalone ne bundle pas les modules natifs utilisés uniquement dans scripts
 COPY --from=builder /app/node_modules/canvas ./node_modules/canvas
+COPY --from=builder /app/node_modules/@napi-rs ./node_modules/@napi-rs
 COPY --from=builder /app/node_modules/pg ./node_modules/pg
 COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
 
