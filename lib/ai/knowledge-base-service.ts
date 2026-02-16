@@ -691,9 +691,10 @@ export async function searchKnowledgeBaseHybrid(
   const useOpenAI = queryEmbedding.provider === 'openai'
 
   // Préparer query texte pour BM25 (supprimer ponctuation + diacritiques arabes tashkeel)
+  // FIX (Feb 16, 2026): Préserver les accents français/latins pour BM25
   const queryText = query
     .replace(/[\u064B-\u065F\u0670]/g, '') // Strip tashkeel/diacritiques arabes
-    .replace(/[^\w\s\u0600-\u06FF]/g, ' ')
+    .replace(/[^\w\s\u0600-\u06FF\u00C0-\u017F]/g, ' ') // Garde lettres latines étendues (à-ÿ, accents FR)
     .trim()
 
   // ✨ OPTIMISATION Phase 2.4 : Détection auto type de query + poids adaptatifs
