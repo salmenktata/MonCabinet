@@ -703,7 +703,7 @@ export async function searchRelevantContext(
           const categoryThreshold = queryLangForSearch === 'ar'
             ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.40)
             : RAG_THRESHOLDS.knowledgeBase
-          const categoryResults = await searchKnowledgeBaseHybrid(question, {
+          const categoryResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
             category: category as any,
             limit: Math.ceil(maxContextChunks / expandedCategories.size),
             threshold: categoryThreshold,
@@ -724,7 +724,7 @@ export async function searchRelevantContext(
           const fallbackThreshold = queryLangForSearch === 'ar'
             ? 0.25
             : Math.max(RAG_THRESHOLDS.knowledgeBase - 0.15, 0.25)
-          kbResults = await searchKnowledgeBaseHybrid(question, {
+          kbResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
             limit: maxContextChunks,
             threshold: fallbackThreshold,
             operationName: options.operationName,
@@ -739,7 +739,7 @@ export async function searchRelevantContext(
         console.log(
           `[RAG Search] Recherche KB globale hybride (classification confiance: ${(classification.confidence * 100).toFixed(1)}%, seuil: ${globalThreshold})`
         )
-        kbResults = await searchKnowledgeBaseHybrid(question, {
+        kbResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
           limit: maxContextChunks,
           threshold: globalThreshold,
           operationName: options.operationName,
