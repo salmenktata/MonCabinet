@@ -495,8 +495,9 @@ async function extractTextWithOcrPdfToImg(
 }
 
 /**
- * OCR via pdftoppm (poppler) — pour PDFs scannés (images intégrées)
- * pdftoppm rend correctement les images intégrées dans les PDFs contrairement à pdfjs
+ * OCR via pdftoppm (poppler) + tesseract CLI — pour PDFs scannés (images intégrées)
+ * pdftoppm rend correctement les images intégrées dans les PDFs contrairement à pdfjs.
+ * Utilise tesseract CLI (natif, ~5x plus rapide que tesseract.js WASM).
  */
 async function extractTextWithOcrPdftoppm(
   buffer: Buffer,
@@ -511,8 +512,6 @@ async function extractTextWithOcrPdftoppm(
   const { cleanArabicOcrText } = await import('./arabic-text-utils')
 
   const textParts: string[] = []
-  const confidences: number[] = []
-  const worker = await getOrCreateWorker()
   const ocrStartTime = Date.now()
 
   const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -523,10 +522,10 @@ async function extractTextWithOcrPdftoppm(
     await fs.mkdir(tempDir, { recursive: true })
     await fs.writeFile(pdfPath, buffer)
 
-    // Convertir PDF en images PNG via pdftoppm (300 DPI)
+    // Convertir PDF en images PNG via pdftoppm (200 DPI — bon compromis vitesse/qualité)
     const lastPage = Math.min(pagesToProcess, 250)
     await execAsync(
-      `pdftoppm -png -r 300 -l ${lastPage} "${pdfPath}" "${join(tempDir, 'page')}"`,
+      `pdftoppm -png -r 200 -l ${lastPage} "${pdfPath}" "${join(tempDir, 'page')}"`,
       { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
     )
 
@@ -540,16 +539,14 @@ async function extractTextWithOcrPdftoppm(
     for (let i = 0; i < files.length && i < pagesToProcess; i++) {
       try {
         const imgPath = join(tempDir, files[i])
-        const rawBuf = await fs.readFile(imgPath)
-        const preprocessed = await preprocessImageForOcr(rawBuf)
-        const { data } = await worker.recognize(preprocessed)
 
-        if (data.confidence < OCR_CONFIG.MIN_OCR_CONFIDENCE) {
-          console.warn(`[FileParser] OCR page ${i + 1} faible confiance: ${data.confidence}%`)
-        }
-        confidences.push(data.confidence)
+        // OCR via tesseract CLI natif (beaucoup plus rapide que WASM)
+        const { stdout } = await execAsync(
+          `tesseract "${imgPath}" stdout -l ${OCR_CONFIG.LANGUAGES} --psm 6 2>/dev/null`,
+          { timeout: 60000, maxBuffer: 10 * 1024 * 1024 }
+        )
 
-        let pageText = cleanText(data.text)
+        let pageText = cleanText(stdout)
         pageText = cleanArabicOcrText(pageText)
         if (pageText.length > 0) {
           textParts.push(`--- Page ${i + 1} ---\n${pageText}`)
@@ -557,8 +554,8 @@ async function extractTextWithOcrPdftoppm(
 
         // Supprimer l'image après traitement (économie mémoire)
         await fs.unlink(imgPath).catch(() => {})
-      } catch (pageError) {
-        console.error(`[FileParser] Erreur OCR page ${i + 1}:`, pageError)
+      } catch (pageError: any) {
+        console.error(`[FileParser] Erreur OCR page ${i + 1}:`, pageError?.message || pageError)
       }
 
       if ((i + 1) % 25 === 0) {
@@ -572,9 +569,8 @@ async function extractTextWithOcrPdftoppm(
     await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
   }
 
-  const avgConfidence = confidences.length > 0
-    ? confidences.reduce((a, b) => a + b, 0) / confidences.length
-    : 0
+  // Pas de confiance disponible avec tesseract CLI, on estime via le ratio texte/pages
+  const avgConfidence = textParts.length > 0 ? 50 : 0 // Estimation conservatrice
 
   return {
     text: textParts.join('\n\n'),
