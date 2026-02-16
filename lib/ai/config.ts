@@ -488,7 +488,7 @@ export const RAG_THRESHOLDS = {
 // =============================================================================
 
 export const SOURCE_BOOST: Record<string, number> = {
-  code: parseFloat(process.env.RAG_BOOST_CODE || '1.2'), // Codes juridiques prioritaires
+  code: parseFloat(process.env.RAG_BOOST_CODE || '1.3'), // Codes juridiques prioritaires (augmenté 1.2→1.3)
   jurisprudence: parseFloat(process.env.RAG_BOOST_JURISPRUDENCE || '1.1'),
   doctrine: parseFloat(process.env.RAG_BOOST_DOCTRINE || '1.0'),
   modele: parseFloat(process.env.RAG_BOOST_MODELE || '0.95'),

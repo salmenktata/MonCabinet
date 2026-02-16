@@ -239,6 +239,65 @@ function getSourceId(source: ChatSource): string {
 }
 
 /**
+ * Détecte si la query mentionne un domaine juridique spécifique
+ * et retourne les patterns de titre à booster
+ */
+function detectDomainBoost(query: string): { pattern: string; factor: number }[] | null {
+  const DOMAIN_KEYWORDS: { keywords: string[]; titlePatterns: string[]; factor: number }[] = [
+    // Pénal
+    {
+      keywords: ['جزائي', 'جزائية', 'جنائي', 'عقوبة', 'عقوبات', 'جريمة', 'القتل', 'السرقة', 'الدفاع الشرعي', 'الرشوة', 'pénal', 'criminel', 'légitime défense'],
+      titlePatterns: ['المجلة الجزائية', 'الإجراءات الجزائية'],
+      factor: 1.25,
+    },
+    // Civil
+    {
+      keywords: ['مدني', 'التزامات', 'عقود', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'civil', 'responsabilité', 'délictuel'],
+      titlePatterns: ['مجلة الالتزامات والعقود'],
+      factor: 1.25,
+    },
+    // Famille
+    {
+      keywords: ['أحوال شخصية', 'طلاق', 'زواج', 'نفقة', 'حضانة', 'ميراث', 'divorce', 'mariage', 'garde', 'famille'],
+      titlePatterns: ['مجلة الأحوال الشخصية'],
+      factor: 1.25,
+    },
+    // Travail
+    {
+      keywords: ['شغل', 'عمل', 'طرد تعسفي', 'إضراب', 'أجر', 'عامل', 'مؤجر', 'travail', 'licenciement', 'grève'],
+      titlePatterns: ['مجلة الشغل'],
+      factor: 1.25,
+    },
+    // Commercial
+    {
+      keywords: ['تجاري', 'تجارية', 'شيك', 'إفلاس', 'تفليس', 'كمبيالة', 'commercial', 'chèque', 'faillite'],
+      titlePatterns: ['المجلة التجارية', 'مجلة الشركات التجارية'],
+      factor: 1.25,
+    },
+    // Procédure civile
+    {
+      keywords: ['مرافعات', 'استئناف', 'تعقيب', 'دعوى', 'إجراءات مدنية', 'procédure'],
+      titlePatterns: ['مجلة المرافعات المدنية والتجارية'],
+      factor: 1.20,
+    },
+  ]
+
+  const matches: { pattern: string; factor: number }[] = []
+
+  for (const domain of DOMAIN_KEYWORDS) {
+    const queryLower = query.toLowerCase()
+    const hasKeyword = domain.keywords.some(kw => query.includes(kw) || queryLower.includes(kw))
+    if (hasKeyword) {
+      for (const pattern of domain.titlePatterns) {
+        matches.push({ pattern, factor: domain.factor })
+      }
+    }
+  }
+
+  return matches.length > 0 ? matches : null
+}
+
+/**
  * Re-rank les sources avec boost par type, cross-encoder et diversité
  * Utilise:
  * 1. Boost factors dynamiques basés sur le feedback utilisateur
@@ -265,10 +324,22 @@ async function rerankSources(
     }
   }
 
-  // 1. Appliquer boost par type (dynamique ou statique)
+  // 1. Appliquer boost par type (dynamique ou statique) + boost sémantique par domaine
+  const domainBoost = query ? detectDomainBoost(query) : null
   let rankedSources: RankedSource[] = sources.map((s) => {
     const sourceType = getSourceType(s.metadata as Record<string, unknown>)
-    const boost = boosts[sourceType] || boosts.autre || SOURCE_BOOST.autre || 1.0
+    let boost = boosts[sourceType] || boosts.autre || SOURCE_BOOST.autre || 1.0
+
+    // Boost sémantique: si la query mentionne un domaine, booster les résultats correspondants
+    if (domainBoost && s.documentName) {
+      for (const { pattern, factor } of domainBoost) {
+        if (s.documentName.includes(pattern)) {
+          boost *= factor
+          break
+        }
+      }
+    }
+
     return {
       ...s,
       boostedScore: s.similarity * boost,
