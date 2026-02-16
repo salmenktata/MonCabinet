@@ -3,13 +3,26 @@
 /**
  * Section Statut Batches
  * 3 cards : KB Indexation, Web Crawls, Analyses Qualité
+ * S1.2 : Actions Batches (Pause | Reprendre | Retry | Kill)
  */
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Database, Globe, Target, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Database, Globe, Target, RefreshCw, Pause, Play, RotateCcw, XCircle } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
 
 interface BatchStats {
   kbIndexation: {
@@ -40,6 +53,14 @@ interface BatchStats {
 export function BatchesStatusSection() {
   const [stats, setStats] = useState<BatchStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'pause' | 'resume' | 'retry' | 'kill'
+    batchType: string
+    title: string
+    description: string
+  } | null>(null)
+  const { toast } = useToast()
 
   const fetchBatchStats = async () => {
     try {
@@ -58,6 +79,45 @@ export function BatchesStatusSection() {
       console.error('[Batches Stats] Error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // S1.2 : Exécuter une action sur un batch
+  const executeBatchAction = async (
+    action: 'pause' | 'resume' | 'retry' | 'kill',
+    batchType: string
+  ) => {
+    try {
+      setActionLoading(true)
+
+      const response = await fetch(`/api/admin/batches/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchType }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: 'Action réussie',
+          description: `${action === 'pause' ? 'Pause' : action === 'resume' ? 'Reprise' : action === 'retry' ? 'Retry' : 'Arrêt'} du batch ${batchType} effectué avec succès.`,
+        })
+
+        // Rafraîchir les stats
+        await fetchBatchStats()
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible d\'exécuter l\'action',
+        variant: 'destructive',
+      })
+    } finally {
+      setActionLoading(false)
+      setConfirmAction(null)
     }
   }
 
@@ -138,6 +198,77 @@ export function BatchesStatusSection() {
                 </div>
                 <Progress value={stats.kbIndexation.successRate} className="h-2" />
               </div>
+
+              {/* S1.2 : Actions */}
+              <div className="pt-3 border-t flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={actionLoading}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'pause',
+                      batchType: 'kb-indexation',
+                      title: 'Pause KB Indexation',
+                      description: 'Mettre en pause les indexations en attente ?',
+                    })
+                  }
+                >
+                  <Pause className="h-3 w-3 mr-1" />
+                  Pause
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={actionLoading}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'resume',
+                      batchType: 'kb-indexation',
+                      title: 'Reprendre KB Indexation',
+                      description: 'Reprendre les indexations pausées ?',
+                    })
+                  }
+                >
+                  <Play className="h-3 w-3 mr-1" />
+                  Reprendre
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={actionLoading || stats.kbIndexation.failedToday === 0}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'retry',
+                      batchType: 'kb-indexation',
+                      title: 'Retry Échecs KB',
+                      description: `Relancer les ${stats.kbIndexation.failedToday} indexations échouées ?`,
+                    })
+                  }
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={actionLoading || stats.kbIndexation.processing === 0}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'kill',
+                      batchType: 'kb-indexation',
+                      title: 'Arrêter KB Indexation',
+                      description: 'Arrêter brutalement les indexations en cours ? (action irréversible)',
+                    })
+                  }
+                >
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Kill
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -190,6 +321,77 @@ export function BatchesStatusSection() {
                 </div>
                 <Progress value={stats.webCrawls.successRate} className="h-2" />
               </div>
+
+              {/* S1.2 : Actions */}
+              <div className="pt-3 border-t flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={actionLoading}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'pause',
+                      batchType: 'web-crawls',
+                      title: 'Pause Web Crawls',
+                      description: 'Mettre en pause les crawls en cours ?',
+                    })
+                  }
+                >
+                  <Pause className="h-3 w-3 mr-1" />
+                  Pause
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={actionLoading}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'resume',
+                      batchType: 'web-crawls',
+                      title: 'Reprendre Web Crawls',
+                      description: 'Reprendre les crawls pausés ?',
+                    })
+                  }
+                >
+                  <Play className="h-3 w-3 mr-1" />
+                  Reprendre
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={actionLoading || stats.webCrawls.pagesFailedToday === 0}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'retry',
+                      batchType: 'web-crawls',
+                      title: 'Retry Échecs Crawls',
+                      description: `Relancer les ${stats.webCrawls.pagesFailedToday} pages échouées ?`,
+                    })
+                  }
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={actionLoading || stats.webCrawls.activeJobs === 0}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'kill',
+                      batchType: 'web-crawls',
+                      title: 'Arrêter Web Crawls',
+                      description: 'Arrêter brutalement les crawls en cours ? (action irréversible)',
+                    })
+                  }
+                >
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Kill
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -240,10 +442,110 @@ export function BatchesStatusSection() {
                 </div>
                 <Progress value={stats.qualityAnalysis.successRate} className="h-2" />
               </div>
+
+              {/* S1.2 : Actions */}
+              <div className="pt-3 border-t flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={actionLoading}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'pause',
+                      batchType: 'quality-analysis',
+                      title: 'Pause Analyses Qualité',
+                      description: 'Mettre en pause les analyses en cours ?',
+                    })
+                  }
+                >
+                  <Pause className="h-3 w-3 mr-1" />
+                  Pause
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={actionLoading}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'resume',
+                      batchType: 'quality-analysis',
+                      title: 'Reprendre Analyses',
+                      description: 'Reprendre les analyses pausées ?',
+                    })
+                  }
+                >
+                  <Play className="h-3 w-3 mr-1" />
+                  Reprendre
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={actionLoading || stats.qualityAnalysis.lowQualityToday === 0}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'retry',
+                      batchType: 'quality-analysis',
+                      title: 'Retry Échecs Qualité',
+                      description: 'Relancer les analyses échouées ?',
+                    })
+                  }
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={actionLoading}
+                  onClick={() =>
+                    setConfirmAction({
+                      type: 'kill',
+                      batchType: 'quality-analysis',
+                      title: 'Arrêter Analyses',
+                      description: 'Arrêter brutalement les analyses en cours ? (action irréversible)',
+                    })
+                  }
+                >
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Kill
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* S1.2 : AlertDialog de confirmation */}
+      {confirmAction && (
+        <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{confirmAction.title}</AlertDialogTitle>
+              <AlertDialogDescription>{confirmAction.description}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={actionLoading}>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={actionLoading}
+                onClick={() => executeBatchAction(confirmAction.type, confirmAction.batchType)}
+                className={confirmAction.type === 'kill' ? 'bg-destructive' : ''}
+              >
+                {actionLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    En cours...
+                  </>
+                ) : (
+                  'Confirmer'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   )
 }

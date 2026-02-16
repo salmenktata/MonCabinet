@@ -12,6 +12,7 @@ import { CronsExecutionsTable } from './CronsExecutionsTable'
 import { BatchesStatusSection } from './BatchesStatusSection'
 import { CronQuickTrigger } from './CronQuickTrigger'
 import { ScheduledCronsSection } from './ScheduledCronsSection'
+import { CronsAlertsSection } from './CronsAlertsSection'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -261,10 +262,13 @@ export function CronsAndBatchesTab() {
         <CronsTimelineChart data={stats.timeline} />
       )}
 
-      {/* Section 3: Table Historique */}
+      {/* Section 3: Alertes Patterns Intelligentes (S1.3) */}
+      <CronsAlertsSection />
+
+      {/* Section 4: Table Historique */}
       <CronsExecutionsTable />
 
-      {/* Section 4: Batches Status */}
+      {/* Section 5: Batches Status */}
       <BatchesStatusSection />
     </div>
   )
