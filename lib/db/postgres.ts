@@ -23,8 +23,9 @@ export function getPool(): Pool {
       max: 20, // Maximum 20 connexions
       idleTimeoutMillis: 10000, // Fermer connexions inactives après 10s (réduit de 30s)
       connectionTimeoutMillis: 5000, // Timeout connexion 5s (fail fast)
-      statement_timeout: 10000, // Timeout requêtes 10s
-      query_timeout: 10000, // Timeout queries 10s
+      // Phase 4.2: Timeouts augmentés pour opérations longues (indexation KB, recherche hybride)
+      statement_timeout: 30000, // Timeout statements SQL 30s (était 10s)
+      query_timeout: 60000, // Timeout queries totales 60s (était 10s)
       // Keep-alive pour éviter les ECONNRESET sur connexions idle
       keepAlive: true,
       keepAliveInitialDelayMillis: 10000, // Premier keep-alive après 10s
