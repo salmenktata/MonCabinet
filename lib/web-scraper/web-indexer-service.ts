@@ -236,6 +236,24 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   const normalizedText = normalizeText(row.extracted_text)
   const detectedLang = row.language_detected || detectTextLanguage(normalizedText) || 'fr'
 
+  // Fix titre corrompu (noms fichiers Google Drive avec caractères arabes → underscores)
+  let pageTitle = row.title || row.url
+  if (pageTitle && /_{3,}/.test(pageTitle)) {
+    // Extraire la première ligne significative du texte (> 5 chars, pas que des espaces)
+    const lines = normalizedText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 5)
+    if (lines.length > 0) {
+      pageTitle = lines[0].substring(0, 200)
+    }
+  }
+
+  // Persister language_detected si manquant (évite re-détection à chaque cron)
+  if (!row.language_detected && detectedLang) {
+    db.query(
+      'UPDATE web_pages SET language_detected = $1 WHERE id = $2',
+      [detectedLang, pageId]
+    ).catch(() => {})
+  }
+
   // Stratégie arabe uniquement : ignorer le contenu non-arabe
   // Exception: Google Drive accepte français et mixte
   // NOTE : On utilise source_category pour ce check technique (propriété de la source)
@@ -440,6 +458,20 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     await client.query('COMMIT')
 
     console.log(`[WebIndexer] Page ${pageId} indexée: ${chunks.length} chunks${wasUpdate ? ' (mise à jour)' : ''}`)
+
+    // Auto-advance pipeline si éligible (après COMMIT)
+    if (knowledgeBaseId) {
+      try {
+        const { autoAdvanceIfEligible } = await import('@/lib/pipeline/document-pipeline-service')
+        const autoResult = await autoAdvanceIfEligible(knowledgeBaseId, 'system-crawler')
+        if (autoResult && autoResult.advanced.length > 0) {
+          console.log(`[WebIndexer] Auto-advance doc ${knowledgeBaseId}: ${autoResult.advanced.join(' → ')} (arrêt: ${autoResult.stoppedAt})`)
+        }
+      } catch (autoError) {
+        // Ne pas bloquer l'indexation si l'auto-advance échoue
+        console.warn(`[WebIndexer] Auto-advance échoué pour ${knowledgeBaseId}:`, autoError)
+      }
+    }
 
     // Notification admin si c'était une mise à jour
     if (wasUpdate) {

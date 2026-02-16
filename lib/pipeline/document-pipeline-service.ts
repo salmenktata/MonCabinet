@@ -168,7 +168,11 @@ export async function advanceStage(
   // Perform transition
   await performTransition(docId, currentStage, nextStage, 'admin_approve', userId, notes, changes, doc.quality_score)
 
-  return { success: true, documentId: docId, fromStage: currentStage, toStage: nextStage }
+  // Tenter l'auto-advance sur les étapes suivantes
+  const autoResult = await autoAdvanceIfEligible(docId, userId)
+  const finalStage = autoResult ? autoResult.stoppedAt : nextStage
+
+  return { success: true, documentId: docId, fromStage: currentStage, toStage: finalStage }
 }
 
 /**
@@ -565,6 +569,17 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts: number = 2, delay
 async function executeStageAction(doc: PipelineDocument, targetStage: PipelineStage, userId: string): Promise<void> {
   switch (targetStage) {
     case 'indexed':
+      // Skip si déjà indexé avec chunks (ex: crawl a déjà fait le travail)
+      if (doc.is_indexed) {
+        const existingChunks = await db.query(
+          'SELECT COUNT(*) as cnt FROM knowledge_base_chunks WHERE knowledge_base_id = $1',
+          [doc.id]
+        )
+        if (parseInt(existingChunks.rows[0].cnt) > 0) {
+          console.log(`[Pipeline] Doc ${doc.id} déjà indexé (${existingChunks.rows[0].cnt} chunks) - skip indexation`)
+          break
+        }
+      }
       // Lance l'indexation (chunking + embeddings) avec retry
       try {
         await withRetry(async () => {
@@ -578,6 +593,11 @@ async function executeStageAction(doc: PipelineDocument, targetStage: PipelineSt
       break
 
     case 'quality_analyzed':
+      // Skip si déjà analysé (score existant)
+      if (doc.quality_score !== null) {
+        console.log(`[Pipeline] Doc ${doc.id} déjà analysé (score: ${doc.quality_score}) - skip analyse qualité`)
+        break
+      }
       // Lance l'analyse qualité avec retry
       try {
         await withRetry(async () => {
