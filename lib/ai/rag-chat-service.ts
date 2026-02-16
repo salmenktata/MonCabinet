@@ -1715,7 +1715,7 @@ export async function answerQuestion(
             label: `[Source-${idx + 1}]`,
             content: src.chunkContent,
             title: src.documentName,
-            category: src.category,
+            category: src.metadata?.category as string | undefined,
           }))
 
           // Auto-correction

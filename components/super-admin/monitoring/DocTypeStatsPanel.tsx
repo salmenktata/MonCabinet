@@ -139,7 +139,10 @@ export function DocTypeStatsPanel() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry) => `${entry.icon} ${entry.name} (${((entry.value / totalDocs) * 100).toFixed(0)}%)`}
+                  label={(entry: any) => {
+                    const data = entry.payload as typeof pieData[0]
+                    return `${data.icon} ${data.name} (${((entry.value / totalDocs) * 100).toFixed(0)}%)`
+                  }}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"

@@ -5,13 +5,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/auth/session'
 import { getTestStats } from '@/lib/ai/ab-testing-service'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user || session.user.role !== 'super_admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

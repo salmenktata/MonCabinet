@@ -6,14 +6,13 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 
 export async function GET() {
   try {
     // Vérifier authentification super-admin
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user || session.user.role !== 'super_admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

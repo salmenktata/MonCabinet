@@ -4,6 +4,7 @@
  *
  * @module components/dossiers/consultation
  * @see Sprint 2 - Workflow Consultation → Actions
+ * @see Phase 4.3 - TODOs Critiques - Modals Consultation
  */
 
 'use client'
@@ -32,6 +33,7 @@ import { cn } from '@/lib/utils'
 import { useToastNotifications } from '@/components/feedback'
 import type { RecommendedAction, ConsultationContext } from '@/lib/utils/consultation-action-recommender'
 import { recommendActionsFromConsultation } from '@/lib/utils/consultation-action-recommender'
+import { DocumentChecklistModal, AddContactModal } from './modals'
 
 interface ConsultationNextActionsProps {
   /**
@@ -80,6 +82,47 @@ const PRIORITY_LABELS = {
 }
 
 /**
+ * Télécharge la consultation au format texte
+ * Phase 4.3 - Action download
+ */
+function downloadConsultation(context: ConsultationContext) {
+  const text = [
+    '═══════════════════════════════════════════════════',
+    '  CONSULTATION JURIDIQUE',
+    '═══════════════════════════════════════════════════',
+    '',
+    'QUESTION:',
+    context.question,
+    '',
+    '───────────────────────────────────────────────────',
+    '',
+    'RÉPONSE:',
+    context.answer,
+    '',
+    '───────────────────────────────────────────────────',
+    '',
+    'SOURCES JURIDIQUES:',
+    '',
+    ...context.sources.map((source, index) =>
+      `${index + 1}. [${source.type.toUpperCase()}] ${source.title}${source.category ? ` (${source.category})` : ''}`
+    ),
+    '',
+    '═══════════════════════════════════════════════════',
+    `Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`,
+  ].join('\n')
+
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `consultation-${Date.now()}.txt`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+/**
  * Composant d'actions contextuelles post-consultation
  */
 export function ConsultationNextActions({ context, className }: ConsultationNextActionsProps) {
@@ -89,6 +132,12 @@ export function ConsultationNextActions({ context, className }: ConsultationNext
 
   const [executingAction, setExecutingAction] = useState<string | null>(null)
   const [completedActions, setCompletedActions] = useState<Set<string>>(new Set())
+
+  // États des modals
+  const [documentChecklistOpen, setDocumentChecklistOpen] = useState(false)
+  const [documentChecklistData, setDocumentChecklistData] = useState<string[]>([])
+  const [addContactOpen, setAddContactOpen] = useState(false)
+  const [addContactSuggestions, setAddContactSuggestions] = useState<string[]>([])
 
   // Recommander les actions
   const recommendedActions = recommendActionsFromConsultation(context)
@@ -114,13 +163,25 @@ export function ConsultationNextActions({ context, className }: ConsultationNext
           break
 
         case 'open-modal':
-          // TODO: Implémenter les modals spécifiques
-          toast.info('Bientôt disponible', 'Cette fonctionnalité sera disponible prochainement')
+          // Phase 4.3: Implémenter les modals spécifiques
+          const { modal, data } = action.action.payload
+
+          if (modal === 'document-checklist') {
+            setDocumentChecklistData(data as string[])
+            setDocumentChecklistOpen(true)
+          } else if (modal === 'add-contact') {
+            setAddContactSuggestions(data as string[])
+            setAddContactOpen(true)
+          } else {
+            toast.info('Bientôt disponible', 'Ce modal sera disponible prochainement')
+          }
           break
 
         case 'download':
-          // TODO: Implémenter le téléchargement
-          toast.info('Bientôt disponible', 'Cette fonctionnalité sera disponible prochainement')
+          // Phase 4.3: Télécharger la consultation en format texte
+          downloadConsultation(context)
+          toast.success('Téléchargé', 'La consultation a été téléchargée')
+          setCompletedActions((prev) => new Set(prev).add(action.id))
           break
       }
     } catch (error) {
@@ -228,6 +289,23 @@ export function ConsultationNextActions({ context, className }: ConsultationNext
           )
         })}
       </CardContent>
+
+      {/* Modals - Phase 4.3 */}
+      <DocumentChecklistModal
+        open={documentChecklistOpen}
+        onClose={() => setDocumentChecklistOpen(false)}
+        documents={documentChecklistData}
+        question={context.question}
+      />
+
+      <AddContactModal
+        open={addContactOpen}
+        onClose={() => setAddContactOpen(false)}
+        suggestions={addContactSuggestions}
+        onContactAdded={() => {
+          setCompletedActions((prev) => new Set(prev).add('add-contact'))
+        }}
+      />
     </Card>
   )
 }

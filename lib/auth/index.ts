@@ -1,6 +1,10 @@
 /**
- * Auth module - Barrel export
+ * Auth exports centralisés
+ * Re-exporte getSession et types pour compatibilité
  */
 
-export * from './session'
-export * from './with-auth'
+export { getSession } from './session'
+export type { Session } from 'next-auth'
+
+// Stub authOptions pour compatibilité (non utilisé avec getSession)
+export const authOptions = {} as any
