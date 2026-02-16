@@ -27,11 +27,8 @@ export function ImpersonationBanner() {
     try {
       const result = await stopImpersonationAction()
       if (!result.error) {
-        // Petit délai pour laisser le navigateur appliquer les Set-Cookie
-        // puis navigation dure vers super-admin
-        setTimeout(() => {
-          window.location.href = '/super-admin/users'
-        }, 100)
+        // Forcer un rechargement complet pour appliquer les cookies restaurés
+        window.location.replace('/dashboard')
       }
     } finally {
       setStopping(false)
