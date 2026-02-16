@@ -55,7 +55,7 @@ fi
 # =============================================================================
 echo "$(date '\''+%Y-%m-%d %H:%M:%S'\'') - [WEB] Indexation web_pages..." >> $LOG_FILE
 
-WEB_RESPONSE=$(timeout 240 curl -s -X GET "http://127.0.0.1:3000/api/admin/index-web-pages" \
+WEB_RESPONSE=$(timeout 290 curl -s -X GET "http://127.0.0.1:3000/api/admin/index-web-pages" \
   -H "Authorization: Bearer $CRON_SECRET" 2>&1)
 
 WEB_EXIT=$?
