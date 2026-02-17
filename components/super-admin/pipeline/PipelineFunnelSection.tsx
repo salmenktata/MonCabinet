@@ -28,25 +28,19 @@ export default function PipelineFunnelSection({ stats }: PipelineFunnelSectionPr
     label: stage.label,
   }))
 
-  // Créer les liens (transitions) entre étapes
+  // Créer les liens entre stages NON-VIDES uniquement (skip les stages à 0)
+  // pour garantir un flux Sankey connecté même si des étapes intermédiaires sont vides
+  const nonZeroStages = stages.filter((s: any) => s.count > 0)
   const links = []
-  for (let i = 0; i < stages.length - 1; i++) {
-    const current = stages[i]
-    const next = stages[i + 1]
-
-    // Le lien représente les documents qui passent de current à next
-    // On utilise le count de l'étape suivante comme valeur du flux
-    if (next.count > 0) {
-      links.push({
-        source: current.stage,
-        target: next.stage,
-        value: next.count,
-      })
-    }
+  for (let i = 0; i < nonZeroStages.length - 1; i++) {
+    links.push({
+      source: nonZeroStages[i].stage,
+      target: nonZeroStages[i + 1].stage,
+      value: nonZeroStages[i + 1].count,
+    })
   }
 
-  // Filtrer les nœuds sans lien (source ou target) pour éviter un Sankey cassé
-  const connectedStageIds = new Set(links.flatMap(l => [l.source, l.target]))
+  const connectedStageIds = new Set(links.flatMap((l: any) => [l.source, l.target]))
   const filteredNodes = nodes.filter((n: { id: string }) => connectedStageIds.has(n.id))
   const hasData = links.length > 0 && filteredNodes.length >= 2
 
