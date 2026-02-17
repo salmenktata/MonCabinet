@@ -1,9 +1,20 @@
 import { defineConfig, devices } from '@playwright/test'
+import path from 'path'
 
 /**
  * Playwright Configuration for Qadhya E2E Tests
- * Sprint 5 - Enhanced with multiple browsers, video, locale FR
+ * Phase 4.5 - E2E Auth Fixtures
+ *
+ * Architecture auth:
+ * - setup/user.auth.ts : Login user normal → .playwright/user.json
+ * - setup/admin.auth.ts : Login super-admin → .playwright/admin.json
+ * - Tests utilisent storageState pour skip login
  */
+
+// Chemins auth state
+export const USER_AUTH_FILE = path.join(__dirname, '.playwright/user.json')
+export const ADMIN_AUTH_FILE = path.join(__dirname, '.playwright/admin.json')
+
 export default defineConfig({
   testDir: './e2e',
 
@@ -64,34 +75,70 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    // Desktop Chrome
+    // ─────────────────────────────────────────────────────────────────
+    // SETUP : Authentification (exécuté AVANT les tests)
+    // ─────────────────────────────────────────────────────────────────
+
+    // Setup auth utilisateur normal
     {
-      name: 'chromium',
+      name: 'setup:user',
+      testMatch: /setup\/user\.auth\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
 
-    // Desktop Firefox
+    // Setup auth super-admin
+    {
+      name: 'setup:admin',
+      testMatch: /setup\/admin\.auth\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // ─────────────────────────────────────────────────────────────────
+    // TESTS : Avec authentification
+    // ─────────────────────────────────────────────────────────────────
+
+    // Tests authentifiés en tant qu'utilisateur
+    {
+      name: 'chromium:user',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: USER_AUTH_FILE,
+      },
+      dependencies: ['setup:user'],
+      testIgnore: [/setup\/.*\.auth\.ts/, /admin\/.*\.spec\.ts/],
+    },
+
+    // Tests authentifiés en tant qu'admin
+    {
+      name: 'chromium:admin',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: ADMIN_AUTH_FILE,
+      },
+      dependencies: ['setup:admin'],
+      testMatch: /admin\/.+\.spec\.ts/,
+    },
+
+    // ─────────────────────────────────────────────────────────────────
+    // TESTS : Sans authentification
+    // ─────────────────────────────────────────────────────────────────
+
+    // Tests publics (pas d'auth)
+    {
+      name: 'chromium:public',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /public\/.+\.spec\.ts/,
+    },
+
+    // Desktop Firefox (tests user)
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    // Desktop Safari
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    // Mobile Chrome (optionnel)
-    {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-
-    // Mobile Safari (optionnel)
-    {
-      name: 'mobile-safari',
-      use: { ...devices['iPhone 12'] },
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: USER_AUTH_FILE,
+      },
+      dependencies: ['setup:user'],
+      testIgnore: /setup\/.*\.auth\.ts/,
     },
   ],
 

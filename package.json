@@ -106,6 +106,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
+    "test:e2e:setup": "playwright test --project=setup:user --project=setup:admin",
+    "test:e2e:auth": "playwright test --project=chromium:user --project=chromium:admin",
     "test:e2e:abrogation": "playwright test e2e/workflows/abrogation-detection.spec.ts",
     "test:integration": "vitest run --config vitest.config.integration.ts || echo 'Integration tests not configured'",
     "storage:cleanup": "node scripts/cleanup-storage-manual.js",

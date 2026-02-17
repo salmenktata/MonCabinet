@@ -12,21 +12,14 @@
  * 6. Affichage relations juridiques
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '@/e2e/fixtures'
 
 // =============================================================================
 // SETUP & HELPERS
 // =============================================================================
 
 test.describe('KB Browser Workflow', () => {
-  test.beforeEach(async ({ page }) => {
-    // Login si nécessaire
-    // await page.goto('/auth/signin')
-    // await page.fill('input[name="email"]', 'test@example.com')
-    // await page.fill('input[name="password"]', 'password')
-    // await page.click('button[type="submit"]')
-
-    // Navigate to KB Browser
+  test.beforeEach(async ({ authenticatedPage: page }) => {
     await page.goto('/client/knowledge-base')
   })
 

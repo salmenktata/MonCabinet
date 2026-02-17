@@ -8,11 +8,11 @@
  * - Pas de FOUC (Flash of Unstyled Content)
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '@/e2e/fixtures'
 
 test.describe('Dark Mode', () => {
-  test.beforeEach(async ({ page }) => {
-    // Clear localStorage before each test
+  test.beforeEach(async ({ authenticatedPage: page }) => {
+    // Clear localStorage before each test (auth already handled by fixture)
     await page.goto('/dashboard')
     await page.evaluate(() => localStorage.clear())
   })

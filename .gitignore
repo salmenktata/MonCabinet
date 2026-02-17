@@ -97,6 +97,9 @@ scripts/test-db/snapshots/
 prod_*.sql
 .secrets/
 
+# Playwright auth state (tokens de session E2E)
+.playwright/
+
 # Scripts de test avec clés API (NE PAS COMMITER)
 scripts/test-new-keys.sh
 scripts/update-api-keys.ts
