@@ -15,9 +15,9 @@ export async function GET() {
   try {
     // 1. Embeddings consistency (OpenAI vs Ollama ratio)
     const embeddingsStats = await db.query(`
-      SELECT 
-        COUNT(*) FILTER (WHERE embedding_openai IS NOT NULL) as openai_count,
-        COUNT(*) FILTER (WHERE embedding IS NOT NULL AND embedding_openai IS NULL) as ollama_count,
+      SELECT
+        COUNT(*) FILTER (WHERE kbc.embedding_openai IS NOT NULL) as openai_count,
+        COUNT(*) FILTER (WHERE kbc.embedding IS NOT NULL AND kbc.embedding_openai IS NULL) as ollama_count,
         COUNT(*) as total_chunks
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id

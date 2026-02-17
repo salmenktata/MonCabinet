@@ -762,6 +762,8 @@ jobs:
 
       - name: Generate Deployment Report
         if: always()
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           DEPLOYED_TIER="${{ needs.detect-changes.outputs.deploy_tier || 'unknown' }}"
 
@@ -771,7 +773,7 @@ jobs:
             --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --arg tier "$DEPLOYED_TIER" \
             --arg commit "${{ github.sha }}" \
-            --arg commitMessage "${{ github.event.head_commit.message }}" \
+            --arg commitMessage "$COMMIT_MSG" \
             --arg preDeploySchema "${{ needs.validate-schema.result }}" \
             --arg postDeployHealth "${{ steps.health.outputs.health_check_passed || 'unknown' }}" \
             --arg e2eTests "${{ steps.e2e.outputs.e2e_passed || 'unknown' }}" \
