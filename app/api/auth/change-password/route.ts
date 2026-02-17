@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 
 // Force dynamic rendering - pas de prérendu statique
 export const dynamic = 'force-dynamic'
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('[ChangePassword] Erreur:', error)
 
     // Erreur de validation Zod

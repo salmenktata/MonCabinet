@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { db } from '@/lib/db/postgres'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 
 /**
  * GET /api/admin/monitor-openai
@@ -46,12 +47,19 @@ export async function GET(request: NextRequest) {
       })
       openaiStatus = 'accessible'
       console.log(`[Monitor OpenAI] ✅ OpenAI accessible (${testResponse.model})`)
-    } catch (error: any) {
+    } catch (error) {
       openaiStatus = 'error'
-      testError = error.message
-      if (error.status === 401) testError = 'Clé API invalide ou expirée'
-      else if (error.status === 429) testError = 'Quota dépassé ou rate limit'
-      else if (error.code === 'insufficient_quota') testError = 'SOLDE ÉPUISÉ'
+      testError = getErrorMessage(error)
+
+      // Type guard pour erreurs OpenAI
+      if (error && typeof error === 'object' && 'status' in error) {
+        if (error.status === 401) testError = 'Clé API invalide ou expirée'
+        else if (error.status === 429) testError = 'Quota dépassé ou rate limit'
+      }
+
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'insufficient_quota') {
+        testError = 'SOLDE ÉPUISÉ'
+      }
     }
 
     // Stats mois en cours
@@ -198,12 +206,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result, {
       status: alertLevel === 'critical' ? 500 : 200,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Monitor OpenAI] Erreur:', error)
     return NextResponse.json(
       {
         timestamp: new Date().toISOString(),
-        error: error.message,
+        error: getErrorMessage(error),
         alert: { level: 'critical', message: 'Erreur monitoring OpenAI', details: [] },
       },
       { status: 500 }

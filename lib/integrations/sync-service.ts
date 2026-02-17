@@ -4,6 +4,7 @@
  */
 
 import { query } from '@/lib/db/postgres'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { createGoogleDriveProvider, ListFilesResult } from './cloud-storage'
 
 interface SyncResult {
@@ -274,9 +275,9 @@ export async function syncGoogleDriveToDatabase(
           )
           result.errors.push(`Erreur insertion ${file.name}: ${insertError.message}`)
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error(`[SyncService] Erreur traitement fichier ${file.name}:`, error)
-        result.errors.push(`Erreur ${file.name}: ${error.message}`)
+        result.errors.push(`Erreur ${file.name}: ${getErrorMessage(error)}`)
       }
     }
 
@@ -319,9 +320,9 @@ export async function syncGoogleDriveToDatabase(
     })
 
     return result
-  } catch (error: any) {
+  } catch (error) {
     console.error('[SyncService] Erreur synchronisation:', error)
-    result.errors.push(error.message || 'Erreur inconnue')
+    result.errors.push(getErrorMessage(error) || 'Erreur inconnue')
 
     if (result.syncLogId) {
       await updateSyncLogFailed(
@@ -396,7 +397,7 @@ async function listFilesRecursively(
     } while (pageToken)
 
     return allFiles
-  } catch (error: any) {
+  } catch (error) {
     console.error(`[SyncService] Erreur listFiles récursif:`, error)
     throw error
   }

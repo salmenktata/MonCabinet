@@ -50,7 +50,7 @@ async function main() {
     console.log('  Modèle:', response.modelUsed)
     console.log('  Tokens:', response.tokensUsed.total)
     console.log('  Durée:', duration + 'ms\n')
-  } catch (error: any) {
+  } catch (error) {
     console.error('  ❌ Erreur:', error.message)
     console.error('  Stack:', error.stack)
     process.exit(1)
@@ -71,7 +71,7 @@ async function main() {
     console.log('  Modèle:', response.modelUsed)
     console.log('  Fallback:', response.fallbackUsed ? 'Oui' : 'Non')
     console.log('  Durée:', duration + 'ms\n')
-  } catch (error: any) {
+  } catch (error) {
     console.error('  ❌ Erreur:', error.message)
     process.exit(1)
   }

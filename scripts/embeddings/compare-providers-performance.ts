@@ -179,8 +179,8 @@ async function test1SingleEmbedding() {
     log(`\n  Ratio : ${formatRatio(ratio)}`, 'green');
 
     return { ollamaDuration, openaiDuration, ratio };
-  } catch (error: any) {
-    logError(`Erreur : ${error.message}`);
+  } catch (error) {
+    logError(`Erreur : ${getErrorMessage(error)}`);
     throw error;
   }
 }
@@ -235,8 +235,8 @@ async function test2BatchEmbeddings() {
     log(`  Gain parallel    : ${((ollamaSeqDuration - ollamaParDuration) / ollamaSeqDuration * 100).toFixed(0)}%`, 'yellow');
 
     return { ollamaSeqDuration, ollamaParDuration, openaiDuration, ratioSeq, ratioPar };
-  } catch (error: any) {
-    logError(`Erreur : ${error.message}`);
+  } catch (error) {
+    logError(`Erreur : ${getErrorMessage(error)}`);
     throw error;
   }
 }
@@ -350,8 +350,8 @@ async function main() {
 
     logSuccess('\n✅ Benchmark terminé avec succès');
 
-  } catch (error: any) {
-    logError(`\nErreur fatale : ${error.message}`);
+  } catch (error) {
+    logError(`\nErreur fatale : ${getErrorMessage(error)}`);
     console.error(error);
     process.exit(1);
   }
@@ -359,7 +359,7 @@ async function main() {
 
 // Exécution
 main().catch((error) => {
-  logError(`Erreur non gérée : ${error.message}`);
+  logError(`Erreur non gérée : ${getErrorMessage(error)}`);
   console.error(error);
   process.exit(1);
 });

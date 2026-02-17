@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 
@@ -68,10 +69,10 @@ export async function GET(request: NextRequest) {
       success: true,
       document: result.rows[0],
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Document Sample] Error:', error)
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getErrorMessage(error) },
       { status: 500 }
     )
   }

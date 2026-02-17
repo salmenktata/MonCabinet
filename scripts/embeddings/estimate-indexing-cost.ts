@@ -296,8 +296,8 @@ async function main() {
 
     logSuccess('\n✅ Estimation terminée avec succès');
 
-  } catch (error: any) {
-    logError(`\nErreur fatale : ${error.message}`);
+  } catch (error) {
+    logError(`\nErreur fatale : ${getErrorMessage(error)}`);
     console.error(error);
     process.exit(1);
   }
@@ -305,7 +305,7 @@ async function main() {
 
 // Exécution
 main().catch((error) => {
-  logError(`Erreur non gérée : ${error.message}`);
+  logError(`Erreur non gérée : ${getErrorMessage(error)}`);
   console.error(error);
   process.exit(1);
 });

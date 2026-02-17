@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API: Configuration et métriques des crons schedulés
  * GET /api/admin/cron-schedules
@@ -39,10 +40,10 @@ export async function GET(req: NextRequest) {
       },
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Cron Schedules] Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }

@@ -114,8 +114,8 @@ async function main() {
       console.log(`   💤 Pause ${PAUSE_BETWEEN_BATCHES / 1000}s...`)
       await new Promise(resolve => setTimeout(resolve, PAUSE_BETWEEN_BATCHES))
 
-    } catch (error: any) {
-      console.log(`❌ Erreur: ${error.message}`)
+    } catch (error) {
+      console.log(`❌ Erreur: ${getErrorMessage(error)}`)
       break
     }
   }

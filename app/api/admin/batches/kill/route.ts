@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API Route : Kill Batch
  * POST /api/admin/batches/kill
@@ -89,10 +90,10 @@ export async function POST(request: NextRequest) {
       killedCount,
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Batch Kill API] Error:', error)
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getErrorMessage(error) },
       { status: 500 }
     )
   }

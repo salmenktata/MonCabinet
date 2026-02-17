@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API Route : Historique Exécutions d'un Cron
  * GET /api/admin/cron-executions/history?cronName=xxx&limit=5
@@ -79,10 +80,10 @@ export async function GET(request: NextRequest) {
       executions,
       stats,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Cron Executions History API] Error:', error)
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getErrorMessage(error) },
       { status: 500 }
     )
   }

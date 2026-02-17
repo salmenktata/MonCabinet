@@ -15,7 +15,7 @@ async function runMigration() {
   try {
     await db.query(sql)
     console.log('✅ Migration exécutée avec succès')
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erreur migration:', error.message)
     throw error
   }

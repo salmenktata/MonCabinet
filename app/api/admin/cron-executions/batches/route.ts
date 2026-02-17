@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API: Stats des batches (KB, Web Crawls, Quality Analysis)
  * GET /api/admin/cron-executions/batches
@@ -101,10 +102,10 @@ export async function GET(req: NextRequest) {
       },
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Batches Stats] Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }

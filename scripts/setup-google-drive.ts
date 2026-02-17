@@ -153,7 +153,7 @@ async function setupServiceAccount() {
       })
 
       console.log(`✅ ${files.data.files?.length || 0} fichier(s) découvert(s)\n`)
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 404) {
         console.log('❌ Dossier non trouvé. Vérifiez l\'URL.')
       } else if (error.code === 403) {
@@ -168,7 +168,7 @@ async function setupServiceAccount() {
     // Tout est OK, sauvegarder
     await saveServiceAccount(serviceAccountJson)
 
-  } catch (error: any) {
+  } catch (error) {
     console.log('❌ Erreur:', error.message)
     rl.close()
     process.exit(1)
@@ -266,7 +266,7 @@ async function setupOAuthToken() {
       token_type: tokens.token_type || 'Bearer',
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.log('❌ Erreur:', error.message)
     rl.close()
     process.exit(1)
@@ -297,7 +297,7 @@ async function saveServiceAccount(serviceAccountJson: any) {
     rl.close()
     await db.closePool()
     process.exit(0)
-  } catch (error: any) {
+  } catch (error) {
     console.log('❌ Erreur sauvegarde:', error.message)
     rl.close()
     process.exit(1)
@@ -328,7 +328,7 @@ async function saveOAuthToken(tokenData: any) {
     rl.close()
     await db.closePool()
     process.exit(0)
-  } catch (error: any) {
+  } catch (error) {
     console.log('❌ Erreur sauvegarde:', error.message)
     rl.close()
     process.exit(1)

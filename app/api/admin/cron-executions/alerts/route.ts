@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API Route : Alertes Patterns Intelligentes
  * GET /api/admin/cron-executions/alerts
@@ -214,10 +215,10 @@ export async function GET(request: NextRequest) {
       stats,
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Cron Alerts API] Error:', error)
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getErrorMessage(error) },
       { status: 500 }
     )
   }

@@ -30,8 +30,8 @@ async function main() {
         isPrimary: true,
       })
       imports.push('✅ gemini: Gemini API Key - Projet Qadhya')
-    } catch (error: any) {
-      imports.push(`❌ gemini: ${error.message}`)
+    } catch (error) {
+      imports.push(`❌ gemini: ${getErrorMessage(error)}`)
     }
   }
 
@@ -49,8 +49,8 @@ async function main() {
         isPrimary: false,
       })
       imports.push('✅ deepseek: DeepSeek API Key')
-    } catch (error: any) {
-      imports.push(`❌ deepseek: ${error.message}`)
+    } catch (error) {
+      imports.push(`❌ deepseek: ${getErrorMessage(error)}`)
     }
   }
 
@@ -69,8 +69,8 @@ async function main() {
         isPrimary: false,
       })
       imports.push('✅ groq: Groq API Key - Llama 3.3 70B')
-    } catch (error: any) {
-      imports.push(`❌ groq: ${error.message}`)
+    } catch (error) {
+      imports.push(`❌ groq: ${getErrorMessage(error)}`)
     }
   }
 

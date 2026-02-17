@@ -52,7 +52,7 @@ async function testApiKeysDB() {
       addResult('DB: DeepSeek Key', '❌', 'Clé non trouvée')
     }
 
-  } catch (error: any) {
+  } catch (error) {
     addResult('DB: Récupération clés', '❌', error.message)
   }
 }
@@ -74,8 +74,8 @@ async function testGeminiDirect() {
     console.log(`  📈 Tokens: ${response.tokensUsed.total}`)
 
     addResult('Gemini Direct', '✅', `${duration}ms - "${response.answer}"`, duration)
-  } catch (error: any) {
-    console.log(`  ❌ Erreur: ${error.message}`)
+  } catch (error) {
+    console.log(`  ❌ Erreur: ${getErrorMessage(error)}`)
     addResult('Gemini Direct', '❌', error.message)
   }
 }
@@ -92,7 +92,7 @@ async function testAvailableProviders() {
     }
 
     addResult('Providers Available', '✅', `${providers.length} providers: ${providers.join(', ')}`)
-  } catch (error: any) {
+  } catch (error) {
     addResult('Providers Available', '❌', error.message)
   }
 }
@@ -128,8 +128,8 @@ async function testFallbackByContext() {
       console.log(`     💬 Réponse: "${response.answer}"`)
 
       addResult(`Fallback: ${ctx.name}`, '✅', `${response.provider} - ${duration}ms`, duration)
-    } catch (error: any) {
-      console.log(`     ❌ Erreur: ${error.message}`)
+    } catch (error) {
+      console.log(`     ❌ Erreur: ${getErrorMessage(error)}`)
       addResult(`Fallback: ${ctx.name}`, '❌', error.message)
     }
   }
@@ -156,8 +156,8 @@ async function testModePremium() {
     } else {
       addResult('Mode Premium', '✅', `${response.provider} - ${duration}ms (pas Ollama)`, duration)
     }
-  } catch (error: any) {
-    console.log(`  ❌ Erreur: ${error.message}`)
+  } catch (error) {
+    console.log(`  ❌ Erreur: ${getErrorMessage(error)}`)
     addResult('Mode Premium', '❌', error.message)
   }
 }
@@ -193,7 +193,7 @@ async function testOllama() {
       console.log(`  ❌ Provider utilisé: ${response.provider} (attendu: ollama)`)
       addResult('Ollama Local', '❌', `${response.provider} utilisé au lieu d'Ollama`)
     }
-  } catch (error: any) {
+  } catch (error) {
     console.log(`  ⏭️  Ollama non démarré (comportement attendu)`)
     console.log(`     → Le système utilise les providers cloud (Gemini, DeepSeek)`)
     console.log(`     → Ollama est utilisé uniquement pour les embeddings (production)`)

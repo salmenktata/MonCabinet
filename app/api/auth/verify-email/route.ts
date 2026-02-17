@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 
 // Force dynamic rendering - pas de prérendu statique
 export const dynamic = 'force-dynamic'
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL('/auth/verify-email?success=verified', process.env.NEXT_PUBLIC_APP_URL!)
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('[VerifyEmail] Erreur:', error)
 
     return NextResponse.redirect(

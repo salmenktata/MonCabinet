@@ -100,7 +100,7 @@ async function main() {
 
     console.log('\n✅ Monitoring OK')
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('\n❌ ERREUR OpenAI:', error.message)
 
     if (error.status === 401) {

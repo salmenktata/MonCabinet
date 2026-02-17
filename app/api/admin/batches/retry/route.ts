@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API Route : Retry Failed Batches
  * POST /api/admin/batches/retry
@@ -90,10 +91,10 @@ export async function POST(request: NextRequest) {
       retriedCount,
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Batch Retry API] Error:', error)
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getErrorMessage(error) },
       { status: 500 }
     )
   }

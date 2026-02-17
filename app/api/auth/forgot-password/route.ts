@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 
 // Force dynamic rendering - pas de prérendu statique
 export const dynamic = 'force-dynamic'
@@ -181,7 +182,7 @@ L'équipe Qadhya
       },
       { status: 200 }
     )
-  } catch (error: any) {
+  } catch (error) {
     log.exception('Erreur', error)
 
     // Erreur de validation Zod

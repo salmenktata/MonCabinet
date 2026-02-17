@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -85,7 +86,7 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push('/login')
       }, 2000)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erreur:', error)
       setError('Une erreur est survenue. Veuillez réessayer.')
       setLoading(false)

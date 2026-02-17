@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkAndSendAlerts } from '@/lib/alerts/email-alert-service'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 
 /**
  * GET /api/admin/alerts/check
@@ -33,13 +34,13 @@ export async function GET(request: NextRequest) {
       ...result,
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Alerts API] Erreur:', error)
     return NextResponse.json(
       {
         timestamp: new Date().toISOString(),
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
       },
       { status: 500 }
     )

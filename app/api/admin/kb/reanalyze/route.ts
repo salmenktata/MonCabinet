@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
 
 export async function POST(request: NextRequest) {
@@ -21,10 +22,10 @@ export async function POST(request: NextRequest) {
       success: true,
       result,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Re-analyze] Error:', error)
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getErrorMessage(error) },
       { status: 500 }
     )
   }

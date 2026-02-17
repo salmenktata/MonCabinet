@@ -1,6 +1,7 @@
 'use server'
 
 import { query } from '@/lib/db/postgres'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { getSession } from '@/lib/auth/session'
 import { hash } from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
@@ -31,9 +32,9 @@ export async function updateProfileAction(data: { nom: string; prenom: string })
 
     revalidatePath('/profile')
     return { success: true }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erreur mise à jour profil:', error)
-    return { error: error.message || 'Erreur lors de la mise à jour du profil' }
+    return { error: getErrorMessage(error) || 'Erreur lors de la mise à jour du profil' }
   }
 }
 
@@ -68,9 +69,9 @@ export async function changePasswordAction(data: {
 
     revalidatePath('/profile')
     return { success: true }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erreur changement mot de passe:', error)
-    return { error: error.message || 'Erreur lors du changement de mot de passe' }
+    return { error: getErrorMessage(error) || 'Erreur lors du changement de mot de passe' }
   }
 }
 
@@ -108,8 +109,8 @@ export async function updateEmailAction(newEmail: string) {
       success: true,
       message: 'Email mis à jour. Veuillez vous reconnecter avec votre nouvelle adresse.',
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erreur mise à jour email:', error)
-    return { error: error.message || 'Erreur lors de la mise à jour de l\'email' }
+    return { error: getErrorMessage(error) || 'Erreur lors de la mise à jour de l\'email' }
   }
 }

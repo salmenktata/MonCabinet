@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 
@@ -74,11 +75,11 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Production Monitoring TimeSeries] Erreur:', error)
     return NextResponse.json(
       {
-        error: error.message || 'Erreur lors de la récupération des données temporelles',
+        error: getErrorMessage(error) || 'Erreur lors de la récupération des données temporelles',
       },
       { status: 500 }
     )

@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { runAudit, type AuditReport } from '@/scripts/audit-rag-data-quality'
 import { writeFile, mkdir } from 'fs/promises'
@@ -35,12 +36,12 @@ export async function POST(request: NextRequest) {
       report,
       savedTo: filePath,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[RAG Audit API] Erreur :', error)
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Erreur lors de l\'audit',
+        error: getErrorMessage(error) || 'Erreur lors de l\'audit',
       },
       { status: 500 }
     )

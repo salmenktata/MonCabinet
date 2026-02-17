@@ -125,7 +125,7 @@ async function main() {
     console.log('\n📝 Prochaine étape:')
     console.log('   npx tsx scripts/extract-fiscal-chunks.ts --ids <IDs>')
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('\n❌ Erreur:', error.message)
     process.exit(1)
   } finally {

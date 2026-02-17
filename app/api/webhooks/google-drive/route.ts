@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * Webhook Google Drive Push Notifications
  * Reçoit les notifications de changements dans Google Drive et déclenche la synchronisation
@@ -147,21 +148,21 @@ export async function POST(request: NextRequest) {
           filesNeedsClassification: syncResult.filesNeedsClassification,
         },
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error('[GoogleDrive Webhook] Erreur synchronisation:', error)
 
       // La synchronisation a échoué mais on retourne 200 pour ne pas que Google réessaye
       return NextResponse.json({
         success: false,
         error: 'Synchronisation failed',
-        message: error.message,
+        message: getErrorMessage(error),
       })
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[GoogleDrive Webhook] Erreur traitement notification:', error)
     return NextResponse.json(
-      { error: error.message || 'Erreur interne' },
+      { error: getErrorMessage(error) || 'Erreur interne' },
       { status: 500 }
     )
   }

@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API: Compléter une exécution de cron
  * POST /api/admin/cron-executions/complete
@@ -105,10 +106,10 @@ export async function POST(req: NextRequest) {
       status: execution.status,
       durationMs: execution.duration_ms,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Cron Complete] Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }

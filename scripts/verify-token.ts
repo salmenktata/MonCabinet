@@ -46,7 +46,7 @@ async function main() {
       })
 
       console.log(`✅ ${files.data.files?.length || 0} fichier(s) découvert(s)\n`)
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 404) {
         console.log('❌ Dossier non trouvé (404)')
         console.log('   Causes possibles:')
@@ -57,17 +57,17 @@ async function main() {
         console.log('❌ Accès refusé (403)')
         console.log('   Le dossier existe mais vous n\'avez pas les permissions\n')
       } else {
-        console.log(`❌ Erreur: ${error.message}\n`)
+        console.log(`❌ Erreur: ${getErrorMessage(error)}\n`)
       }
       process.exit(1)
     }
-  } catch (error: any) {
+  } catch (error) {
     if (error.code === 401) {
       console.log('❌ Token expiré (401)')
       console.log('   → Régénérer un nouveau token avec:')
       console.log('   npx tsx scripts/generate-auth-url.ts\n')
     } else {
-      console.log(`❌ Erreur: ${error.message}\n`)
+      console.log(`❌ Erreur: ${getErrorMessage(error)}\n`)
     }
     process.exit(1)
   }

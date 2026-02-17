@@ -110,7 +110,7 @@ async function testConnectivity() {
       'minor')
 
     return { success: true, html: await response.text(), duration }
-  } catch (error: any) {
+  } catch (error) {
     // Vérifier si c'est un problème SSL
     if (error.message?.includes('certificate') || error.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
       addResult('ssl_cert', false,
@@ -134,7 +134,7 @@ async function testConnectivity() {
       }
     }
 
-    addResult('connectivity', false, `Erreur de connexion: ${error.message}`, 'critical')
+    addResult('connectivity', false, `Erreur de connexion: ${getErrorMessage(error)}`, 'critical')
     return { success: false }
   }
 }
@@ -411,8 +411,8 @@ async function testFormSubmission() {
     }
 
     return { success: true, html, hasResults: resultsFound || (!hasError && html.length > 5000) }
-  } catch (error: any) {
-    addResult('form_post', false, `Erreur POST: ${error.message}`, 'critical')
+  } catch (error) {
+    addResult('form_post', false, `Erreur POST: ${getErrorMessage(error)}`, 'critical')
     return { success: false }
   }
 }
@@ -480,8 +480,8 @@ async function testSpecificSearch() {
     }
 
     return { success: true, links }
-  } catch (error: any) {
-    addResult('keyword_search', false, `Erreur: ${error.message}`, 'major')
+  } catch (error) {
+    addResult('keyword_search', false, `Erreur: ${getErrorMessage(error)}`, 'major')
     return { success: false }
   }
 }
@@ -594,15 +594,15 @@ async function testPlaywrightScraping() {
 
     await browser.close()
     return { success: true }
-  } catch (error: any) {
+  } catch (error) {
     if (browser) await browser.close().catch(() => {})
 
     if (error.message?.includes('playwright') || error.message?.includes('Cannot find module')) {
       addResult('playwright_available', false,
-        `Playwright non installé: ${error.message}`, 'minor')
+        `Playwright non installé: ${getErrorMessage(error)}`, 'minor')
     } else {
       addResult('playwright_test', false,
-        `Erreur Playwright: ${error.message}`, 'major')
+        `Erreur Playwright: ${getErrorMessage(error)}`, 'major')
     }
     return { success: false }
   }
@@ -698,9 +698,9 @@ async function testAccessoryPages() {
       const contentType = response.headers.get('content-type') || ''
       addResult(`page_${p.name}`, response.ok,
         `${p.name}: HTTP ${response.status} (${contentType.substring(0, 40)})`)
-    } catch (error: any) {
+    } catch (error) {
       addResult(`page_${p.name}`, false,
-        `${p.name}: Erreur - ${error.message}`, 'minor')
+        `${p.name}: Erreur - ${getErrorMessage(error)}`, 'minor')
     }
   }
 
@@ -713,8 +713,8 @@ async function testAccessoryPages() {
     })
     addResult('pdf_download', response.ok,
       `PDF Planning: HTTP ${response.status} (${response.headers.get('content-type')})`)
-  } catch (error: any) {
-    addResult('pdf_download', false, `PDF: ${error.message}`, 'minor')
+  } catch (error) {
+    addResult('pdf_download', false, `PDF: ${getErrorMessage(error)}`, 'minor')
   }
 }
 
@@ -843,7 +843,7 @@ async function main() {
 }
 
 main().catch(error => {
-  console.error(`\n${colors.red}Erreur fatale: ${error.message}${colors.reset}`)
+  console.error(`\n${colors.red}Erreur fatale: ${getErrorMessage(error)}${colors.reset}`)
   console.error(error.stack)
   process.exit(1)
 })

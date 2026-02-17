@@ -81,7 +81,7 @@ async function testGoogleDriveWebhook(userId: string) {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
     process.exit(0)
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erreur:', error.message)
     process.exit(1)
   } finally {

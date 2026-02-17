@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { db } from '@/lib/db/postgres'
 import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
 
@@ -108,14 +109,14 @@ export async function POST(request: NextRequest) {
         })
 
         console.log(`   ✅ Score: ${analysis.qualityScore}/100 (${Date.now() - startTime}ms)`)
-      } catch (error: any) {
-        console.error(`[KB Quality] ❌ Erreur:`, error.message)
+      } catch (error) {
+        console.error(`[KB Quality] ❌ Erreur:`, getErrorMessage(error))
 
         results.push({
           documentId: doc.id,
           title: doc.title,
           success: false,
-          error: error.message,
+          error: getErrorMessage(error),
           processingTimeMs: Date.now() - startTime,
         })
       }
@@ -132,12 +133,12 @@ export async function POST(request: NextRequest) {
       failed,
       results,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[KB Quality] Erreur:', error)
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Erreur lors de l\'analyse',
+        error: getErrorMessage(error) || 'Erreur lors de l\'analyse',
       },
       { status: 500 }
     )
@@ -178,12 +179,12 @@ export async function GET() {
           : 0,
       },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[KB Quality] Erreur stats:', error)
     return NextResponse.json(
       {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
       },
       { status: 500 }
     )

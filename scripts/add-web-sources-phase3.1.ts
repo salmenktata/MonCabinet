@@ -154,8 +154,8 @@ async function main() {
         } else {
           skipped++
         }
-      } catch (error: any) {
-        console.error(`❌ Erreur: ${source.name} - ${error.message}`)
+      } catch (error) {
+        console.error(`❌ Erreur: ${source.name} - ${getErrorMessage(error)}`)
         errors++
       }
     }
@@ -189,7 +189,7 @@ async function main() {
 
     console.log('\n✅ Terminé !')
 
-  } catch (error: any) {
+  } catch (error) {
     console.error(`\n❌ Erreur:`, error.message)
     process.exit(1)
   } finally {

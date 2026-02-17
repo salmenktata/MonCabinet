@@ -45,8 +45,8 @@ async function testDevMode() {
 
     console.log('\n🎉 Mode développement validé : 0€ consommé !')
     process.exit(0)
-  } catch (error: any) {
-    console.error(`\n❌ Erreur: ${error.message}`)
+  } catch (error) {
+    console.error(`\n❌ Erreur: ${getErrorMessage(error)}`)
     console.error('\n💡 Vérifiez que Ollama est démarré : ollama serve')
     process.exit(1)
   }

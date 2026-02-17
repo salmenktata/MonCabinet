@@ -231,7 +231,7 @@ async function printSummary(pool: pg.Pool) {
     try {
       const { rows } = await pool.query(`SELECT COUNT(*) as count FROM ${table.name}`)
       console.log(`   ${table.label.padEnd(20)} : ${rows[0].count} entrées`)
-    } catch (error: any) {
+    } catch (error) {
       console.log(`   ${table.label.padEnd(20)} : Erreur (${error.message.substring(0, 50)})`)
     }
   }

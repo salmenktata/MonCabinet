@@ -141,7 +141,7 @@ async function rechunkDocument(docId: string, title: string, category: string) {
       ])
 
       successCount++
-    } catch (error: any) {
+    } catch (error) {
       console.error(`   ❌ Erreur chunk ${index}:`, error.message)
       errorCount++
     }
@@ -241,14 +241,14 @@ async function main() {
         success: result.success,
         newChunks: result.newChunks,
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error(`❌ Erreur globale:`, error.message)
 
       results.push({
         docId: doc.doc_id,
         title: doc.title,
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
       })
     }
   }

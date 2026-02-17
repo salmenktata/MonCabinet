@@ -24,7 +24,7 @@ async function applyMigrations() {
 
       await db.query(sql)
       console.log(`✅ ${migrationFile} - OK\n`)
-    } catch (error: any) {
+    } catch (error) {
       if (error.message.includes('already exists')) {
         console.log(`⚠️  ${migrationFile} - Déjà appliquée\n`)
       } else {

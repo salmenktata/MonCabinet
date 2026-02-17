@@ -1,6 +1,7 @@
 'use server'
 
 import { query } from '@/lib/db/postgres'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { hash } from 'bcryptjs'
 
 /**
@@ -61,8 +62,8 @@ export async function registerUserAction(data: {
         prenom: user.prenom,
       },
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erreur inscription:', error)
-    return { error: error.message || 'Erreur lors de l\'inscription' }
+    return { error: getErrorMessage(error) || 'Erreur lors de l\'inscription' }
   }
 }

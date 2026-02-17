@@ -9,6 +9,7 @@
  */
 
 import type { WebSource, CrawlResult, CrawlError, GoogleDriveFile, LinkedFile } from './types'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { getGoogleDriveClient, downloadGoogleDriveFileForIndexing } from './storage-adapter'
 import {
   extractFolderIdFromBaseUrl,
@@ -147,12 +148,12 @@ export async function crawlGoogleDriveFolder(
     console.log(
       `[GDriveCrawler] Completed: ${result.pagesProcessed} processed, ${result.pagesNew} new, ${result.pagesChanged} changed, ${result.pagesFailed} failed`
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('[GDriveCrawler] Fatal error:', error)
     result.success = false
     result.errors.push({
       url: source.baseUrl,
-      error: error.message,
+      error: getErrorMessage(error),
       timestamp: new Date().toISOString(),
     })
   }

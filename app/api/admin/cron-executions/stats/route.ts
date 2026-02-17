@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { db } from '@/lib/db/postgres'
 import { safeParseInt } from '@/lib/utils/safe-number'
 
@@ -82,10 +83,10 @@ export async function GET(req: NextRequest) {
       hoursBack: hours,
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Cron Stats] Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }

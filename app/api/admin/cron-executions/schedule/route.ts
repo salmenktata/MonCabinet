@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API: Schedule Cron for Future Execution
  * POST /api/admin/cron-executions/schedule
@@ -89,10 +90,10 @@ export async function POST(req: NextRequest) {
         status: scheduled.status,
       },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Schedule Cron] Error:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error', details: error.message },
+      { success: false, error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }
@@ -121,10 +122,10 @@ export async function GET(req: NextRequest) {
       scheduled: result.rows,
       count: result.rows.length,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[List Scheduled Crons] Error:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error', details: error.message },
+      { success: false, error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }
@@ -183,10 +184,10 @@ export async function DELETE(req: NextRequest) {
       message: `Scheduled cron cancelled`,
       cronName: scheduled.cron_name,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Cancel Scheduled Cron] Error:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error', details: error.message },
+      { success: false, error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }

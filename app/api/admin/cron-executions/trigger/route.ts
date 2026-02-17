@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { db } from '@/lib/db/postgres'
 import {
   validateCronParameters,
@@ -143,10 +144,10 @@ export async function POST(req: NextRequest) {
       message: 'Cron execution started. Check table for results.',
       note: 'Execution is asynchronous. Refresh page in a few seconds.',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Manual Trigger] Error:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error', details: error.message },
+      { success: false, error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }
@@ -175,10 +176,10 @@ export async function GET(req: NextRequest) {
       success: true,
       crons,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[List Crons] Error:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error', details: error.message },
+      { success: false, error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }

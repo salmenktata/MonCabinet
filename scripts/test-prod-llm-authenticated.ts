@@ -116,13 +116,13 @@ async function testModeRapide(): Promise<TestResult> {
       responseLength: data.answer?.length || 0,
       answer: data.answer || '',
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       page,
       endpoint,
       success: false,
       responseTime: Date.now() - start,
-      error: error.message,
+      error: getErrorMessage(error),
     }
   }
 }
@@ -177,13 +177,13 @@ async function testModePremium(): Promise<TestResult> {
       responseLength: data.answer?.length || 0,
       answer: data.answer || '',
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       page,
       endpoint,
       success: false,
       responseTime: Date.now() - start,
-      error: error.message,
+      error: getErrorMessage(error),
     }
   }
 }
@@ -238,13 +238,13 @@ async function testSansJurisprudence(): Promise<TestResult> {
       responseLength: data.answer?.length || 0,
       answer: data.answer || '',
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       page,
       endpoint,
       success: false,
       responseTime: Date.now() - start,
-      error: error.message,
+      error: getErrorMessage(error),
     }
   }
 }

@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API temporaire - Indexation simple Knowledge Base (sans pipeline intelligent)
  * POST /api/admin/index-kb-simple
@@ -97,10 +98,10 @@ export async function POST(req: NextRequest) {
           console.error(`  ✗ Échec: ${result.error}`)
           errors.push(errorMsg)
         }
-      } catch (error: any) {
+      } catch (error) {
         failed++
-        const errorMsg = `${page.title}: ${error.message}`
-        console.error(`  ✗ Erreur: ${error.message}`)
+        const errorMsg = `${page.title}: ${getErrorMessage(error)}`
+        console.error(`  ✗ Erreur: ${getErrorMessage(error)}`)
         errors.push(errorMsg)
       }
 
@@ -124,12 +125,12 @@ export async function POST(req: NextRequest) {
       totalToIndex,
       errors: errors.slice(0, 5), // Max 5 erreurs dans la réponse
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erreur fatale:', error)
     return NextResponse.json(
       {
-        error: error.message,
-        stack: error.stack,
+        error: getErrorMessage(error),
+        stack: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 }
     )

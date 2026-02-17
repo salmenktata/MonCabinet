@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { db } from '@/lib/db/postgres'
 import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
 
@@ -83,14 +84,14 @@ export async function POST(request: NextRequest) {
 
         succeeded++
         console.log(`   ✅ ${doc.quality_score || 0} → ${analysis.qualityScore} (+${analysis.qualityScore - (doc.quality_score || 0)})`)
-      } catch (error: any) {
-        console.error(`[Reanalyze All] Error:`, error.message)
+      } catch (error) {
+        console.error(`[Reanalyze All] Error:`, getErrorMessage(error))
 
         results.push({
           documentId: doc.id,
           title: doc.title.substring(0, 60),
           success: false,
-          error: error.message,
+          error: getErrorMessage(error),
           processingTimeMs: Date.now() - startTime,
         })
 
@@ -107,12 +108,12 @@ export async function POST(request: NextRequest) {
       results,
       dryRun: false,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Reanalyze All] Error:', error)
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Erreur lors de la ré-analyse',
+        error: getErrorMessage(error) || 'Erreur lors de la ré-analyse',
       },
       { status: 500 }
     )
@@ -155,12 +156,12 @@ export async function GET() {
         },
       },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Reanalyze All] Error fetching stats:', error)
     return NextResponse.json(
       {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
       },
       { status: 500 }
     )

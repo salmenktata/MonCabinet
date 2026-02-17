@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API: Liste paginée des exécutions de crons
  * GET /api/admin/cron-executions/list?page=1&limit=50&status=failed&cronName=
@@ -69,10 +70,10 @@ export async function GET(req: NextRequest) {
       },
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Cron List] Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }

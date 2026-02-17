@@ -186,8 +186,8 @@ async function main() {
     } finally {
       client.release()
     }
-  } catch (error: any) {
-    log(`\n❌ Erreur: ${error.message}`, 'red')
+  } catch (error) {
+    log(`\n❌ Erreur: ${getErrorMessage(error)}`, 'red')
 
     if (error.code === '23505') {
       log('L\'email existe déjà dans la base de données', 'yellow')

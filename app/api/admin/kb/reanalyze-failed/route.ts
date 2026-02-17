@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { db } from '@/lib/db/postgres'
 import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
 import { getSession } from '@/lib/auth/session'
@@ -154,11 +155,11 @@ export async function POST(request: NextRequest) {
       breakdown: stats,
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Reanalyze Failed] Erreur:', error)
     return NextResponse.json(
       {
-        error: error.message || 'Erreur lors de la réanalyse',
+        error: getErrorMessage(error) || 'Erreur lors de la réanalyse',
       },
       { status: 500 }
     )

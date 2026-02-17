@@ -110,7 +110,7 @@ async function main() {
     }
     console.log('═'.repeat(60))
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erreur:', error.message)
     console.error(error.stack)
     process.exit(1)

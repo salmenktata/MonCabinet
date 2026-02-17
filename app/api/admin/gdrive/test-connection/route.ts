@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API Route: Test de connexion Google Drive
  *
@@ -51,10 +52,10 @@ export async function POST(req: NextRequest) {
       fileCount: result.fileCount,
       message: `Connexion réussie. ${result.fileCount} fichier(s) découvert(s).`,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[API] Test connection error:', error)
     return NextResponse.json(
-      { success: false, error: error.message || 'Erreur inconnue' },
+      { success: false, error: getErrorMessage(error) || 'Erreur inconnue' },
       { status: 500 }
     )
   }

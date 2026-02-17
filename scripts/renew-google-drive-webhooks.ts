@@ -56,7 +56,7 @@ async function renewGoogleDriveWebhooks() {
 
     // TODO: Implémenter le renouvellement automatique quand l'API Google Drive sera complète
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Webhook Renewal] Erreur globale:', error)
   } finally {
     await pool.end()

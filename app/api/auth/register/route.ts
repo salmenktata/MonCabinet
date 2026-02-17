@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 
 // Force dynamic rendering - pas de prérendu statique
 export const dynamic = 'force-dynamic'
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     )
-  } catch (error: any) {
+  } catch (error) {
     log.exception('Erreur inscription', error)
 
     // Erreur de validation Zod
@@ -181,7 +182,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Erreur de base de données
-    if (error.code === '23505') {
+    const pgCode = error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : null
+    if (pgCode === '23505') {
       // Unique violation
       return NextResponse.json(
         { error: 'Cet email est déjà utilisé' },

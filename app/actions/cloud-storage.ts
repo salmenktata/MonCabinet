@@ -5,6 +5,7 @@
 'use server'
 
 import { query } from '@/lib/db/postgres'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
 import { createGoogleDriveAuthProvider, createGoogleDriveProvider } from '@/lib/integrations/cloud-storage'
@@ -43,9 +44,9 @@ export async function getCloudProvidersAction() {
     }))
 
     return { data: sanitizedData || [] }
-  } catch (error: any) {
+  } catch (error) {
     console.error('[getCloudProvidersAction] Exception:', error)
-    return { error: error.message || 'Erreur lors de la récupération des configurations' }
+    return { error: getErrorMessage(error) || 'Erreur lors de la récupération des configurations' }
   }
 }
 
@@ -66,9 +67,9 @@ export async function getGoogleDriveAuthUrlAction() {
     const authUrl = provider.getAuthUrl(session.user.id)
 
     return { data: { authUrl } }
-  } catch (error: any) {
+  } catch (error) {
     console.error('[getGoogleDriveAuthUrlAction] Exception:', error)
-    return { error: error.message || 'Erreur lors de la génération de l\'URL OAuth' }
+    return { error: getErrorMessage(error) || 'Erreur lors de la génération de l\'URL OAuth' }
   }
 }
 
@@ -132,13 +133,13 @@ export async function disconnectCloudProviderAction(providerId: string) {
     revalidatePath('/settings/cloud-storage')
 
     return { success: true }
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return { error: error.errors[0].message }
     }
 
     console.error('[disconnectCloudProviderAction] Exception:', error)
-    return { error: error.message || 'Erreur lors de la déconnexion' }
+    return { error: getErrorMessage(error) || 'Erreur lors de la déconnexion' }
   }
 }
 
@@ -217,9 +218,9 @@ export async function toggleSyncAction(params: {
         updateData.webhook_address = webhookUrl
 
         console.log('[toggleSyncAction] Webhook Google Drive créé:', watchResult)
-      } catch (error: any) {
+      } catch (error) {
         console.error('[toggleSyncAction] Erreur création webhook:', error)
-        return { error: `Impossible d'activer la synchronisation: ${error.message}` }
+        return { error: `Impossible d'activer la synchronisation: ${getErrorMessage(error)}` }
       }
     }
 
@@ -270,13 +271,13 @@ export async function toggleSyncAction(params: {
     revalidatePath('/settings/cloud-storage')
 
     return { success: true, enabled: validated.enabled }
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return { error: error.errors[0].message }
     }
 
     console.error('[toggleSyncAction] Exception:', error)
-    return { error: error.message || 'Erreur lors de la modification de la synchronisation' }
+    return { error: getErrorMessage(error) || 'Erreur lors de la modification de la synchronisation' }
   }
 }
 
@@ -327,12 +328,12 @@ export async function setDefaultCloudProviderAction(providerId: string) {
     revalidatePath('/settings/cloud-storage')
 
     return { success: true }
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return { error: error.errors[0].message }
     }
 
     console.error('[setDefaultCloudProviderAction] Exception:', error)
-    return { error: error.message || 'Erreur lors de la définition du provider par défaut' }
+    return { error: getErrorMessage(error) || 'Erreur lors de la définition du provider par défaut' }
   }
 }

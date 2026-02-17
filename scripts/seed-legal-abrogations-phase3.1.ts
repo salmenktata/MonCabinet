@@ -145,10 +145,10 @@ async function seedPhase31() {
         skippedCount++
         console.log(`⏭️  Skipped (duplicate): ${abrogation.abrogated_reference}`)
       }
-    } catch (error: any) {
+    } catch (error) {
       errorCount++
       console.error(`❌ Erreur: ${abrogation.abrogated_reference}`)
-      console.error(`   Message: ${error.message}`)
+      console.error(`   Message: ${getErrorMessage(error)}`)
     }
   }
 

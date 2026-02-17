@@ -7,6 +7,8 @@
  * pour éviter les erreurs de build Next.js (File is not defined)
  */
 
+import { getErrorMessage } from '@/lib/utils/error-utils'
+
 // Tous les modules sont chargés dynamiquement pour éviter les erreurs de build
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mammothModule: typeof import('mammoth') | null = null
@@ -167,12 +169,12 @@ async function convertDocToDocxInternal(buffer: Buffer): Promise<Buffer> {
 
     console.log('[LibreOffice] Conversion .doc → .docx réussie')
     return docxBuffer
-  } catch (error: any) {
+  } catch (error) {
     // Nettoyer les fichiers temporaires + profil en cas d'erreur
     await fs.unlink(inputPath).catch(() => {})
     await fs.rm(profileDir, { recursive: true, force: true }).catch(() => {})
 
-    const errorMsg = error?.message || 'Erreur inconnue'
+    const errorMsg = getErrorMessage(error) || 'Erreur inconnue'
     throw new Error(`Échec conversion LibreOffice: ${errorMsg}`)
   }
 }
@@ -315,8 +317,8 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
         ocrConfidence: ocrApplied ? ocrConfidence : undefined,
       },
     }
-  } catch (error: any) {
-    const errorMsg = error?.message || error?.toString() || 'Erreur parsing PDF inconnue'
+  } catch (error) {
+    const errorMsg = getErrorMessage(error) || 'Erreur parsing PDF inconnue'
     console.error('[FileParser] Erreur parsing PDF:', errorMsg, error)
     return {
       success: false,

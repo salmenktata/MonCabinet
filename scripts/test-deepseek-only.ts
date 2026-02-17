@@ -42,8 +42,8 @@ async function testDeepSeek() {
     }
 
     process.exit(0)
-  } catch (error: any) {
-    console.error(`\n❌ Erreur: ${error.message}`)
+  } catch (error) {
+    console.error(`\n❌ Erreur: ${getErrorMessage(error)}`)
     process.exit(1)
   }
 }

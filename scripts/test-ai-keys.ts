@@ -61,8 +61,8 @@ async function testOllama(baseUrl: string, model: string): Promise<{ success: bo
       message: `✅ Réponse: ${data.response?.substring(0, 50)}...`,
       latency
     };
-  } catch (error: any) {
-    return { success: false, message: `❌ Erreur: ${error.message}` };
+  } catch (error) {
+    return { success: false, message: `❌ Erreur: ${getErrorMessage(error)}` };
   }
 }
 
@@ -95,8 +95,8 @@ async function testGroq(apiKey: string, model: string): Promise<{ success: boole
       message: `✅ Réponse: ${data.choices[0].message.content}`,
       latency
     };
-  } catch (error: any) {
-    return { success: false, message: `❌ Erreur: ${error.message}` };
+  } catch (error) {
+    return { success: false, message: `❌ Erreur: ${getErrorMessage(error)}` };
   }
 }
 
@@ -129,8 +129,8 @@ async function testDeepSeek(apiKey: string, model: string): Promise<{ success: b
       message: `✅ Réponse: ${data.choices[0].message.content}`,
       latency
     };
-  } catch (error: any) {
-    return { success: false, message: `❌ Erreur: ${error.message}` };
+  } catch (error) {
+    return { success: false, message: `❌ Erreur: ${getErrorMessage(error)}` };
   }
 }
 
@@ -161,8 +161,8 @@ async function testGemini(apiKey: string, model: string): Promise<{ success: boo
       message: `✅ Réponse: ${data.candidates[0].content.parts[0].text}`,
       latency
     };
-  } catch (error: any) {
-    return { success: false, message: `❌ Erreur: ${error.message}` };
+  } catch (error) {
+    return { success: false, message: `❌ Erreur: ${getErrorMessage(error)}` };
   }
 }
 
@@ -195,8 +195,8 @@ async function testOpenAI(apiKey: string, model: string): Promise<{ success: boo
       message: `✅ Embedding généré (${data.data[0].embedding.length} dimensions)`,
       latency
     };
-  } catch (error: any) {
-    return { success: false, message: `❌ Erreur: ${error.message}` };
+  } catch (error) {
+    return { success: false, message: `❌ Erreur: ${getErrorMessage(error)}` };
   }
 }
 
@@ -293,7 +293,7 @@ async function main() {
     console.log(`📈 Taux de réussite: ${((successCount / keys.length) * 100).toFixed(1)}%`);
     console.log(`${'='.repeat(60)}\n`);
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erreur lors du test:', error.message);
     process.exit(1);
   } finally {

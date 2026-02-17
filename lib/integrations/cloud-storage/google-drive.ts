@@ -4,6 +4,7 @@
  */
 
 import { google } from 'googleapis'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import type { drive_v3 } from 'googleapis'
 import { Readable } from 'stream'
 import type {
@@ -99,12 +100,12 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
         scope: tokens.scope || SCOPES.join(' '),
         tokenType: tokens.token_type || 'Bearer',
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new CloudStorageError(
-        `Échec échange code OAuth: ${error.message}`,
+        `Échec échange code OAuth: ${getErrorMessage(error)}`,
         'OAUTH_EXCHANGE_FAILED',
         'google_drive',
-        error.response?.status
+        (error as { response?: { status?: number } }).response?.status
       )
     }
   }
@@ -137,12 +138,12 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
           ? Math.floor((credentials.expiry_date - Date.now()) / 1000)
           : 3600,
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new CloudStorageError(
-        `Échec rafraîchissement token: ${error.message}`,
+        `Échec rafraîchissement token: ${getErrorMessage(error)}`,
         'REFRESH_FAILED',
         'google_drive',
-        error.response?.status
+        (error as { response?: { status?: number } }).response?.status
       )
     }
   }
@@ -209,18 +210,18 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
           ? new Date(file.modifiedTime)
           : new Date(),
       }
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         throw new TokenExpiredError('google_drive')
       }
-      if (error.response?.status === 429 || error.response?.status === 403) {
+      if ((error as { response?: { status?: number } }).response?.status === 429 || (error as { response?: { status?: number } }).response?.status === 403) {
         throw new QuotaExceededError('google_drive')
       }
       throw new CloudStorageError(
-        `Échec upload fichier: ${error.message}`,
+        `Échec upload fichier: ${getErrorMessage(error)}`,
         'UPLOAD_FAILED',
         'google_drive',
-        error.response?.status
+        (error as { response?: { status?: number } }).response?.status
       )
     }
   }
@@ -260,18 +261,18 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
         mimeType: metadataResponse.data.mimeType || 'application/octet-stream',
         fileName: metadataResponse.data.name || 'document',
       }
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 404) {
         throw new FileNotFoundError('google_drive', params.fileId)
       }
-      if (error.response?.status === 401) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         throw new TokenExpiredError('google_drive')
       }
       throw new CloudStorageError(
-        `Échec téléchargement fichier: ${error.message}`,
+        `Échec téléchargement fichier: ${getErrorMessage(error)}`,
         'DOWNLOAD_FAILED',
         'google_drive',
-        error.response?.status
+        (error as { response?: { status?: number } }).response?.status
       )
     }
   }
@@ -292,18 +293,18 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
       await this.drive.files.delete({
         fileId: params.fileId,
       })
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 404) {
         throw new FileNotFoundError('google_drive', params.fileId)
       }
-      if (error.response?.status === 401) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         throw new TokenExpiredError('google_drive')
       }
       throw new CloudStorageError(
-        `Échec suppression fichier: ${error.message}`,
+        `Échec suppression fichier: ${getErrorMessage(error)}`,
         'DELETE_FAILED',
         'google_drive',
-        error.response?.status
+        (error as { response?: { status?: number } }).response?.status
       )
     }
   }
@@ -350,15 +351,15 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
           ? new Date(folder.createdTime)
           : new Date(),
       }
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         throw new TokenExpiredError('google_drive')
       }
       throw new CloudStorageError(
-        `Échec création dossier: ${error.message}`,
+        `Échec création dossier: ${getErrorMessage(error)}`,
         'CREATE_FOLDER_FAILED',
         'google_drive',
-        error.response?.status
+        (error as { response?: { status?: number } }).response?.status
       )
     }
   }
@@ -414,15 +415,15 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
         files,
         nextPageToken: response.data.nextPageToken || undefined,
       }
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         throw new TokenExpiredError('google_drive')
       }
       throw new CloudStorageError(
-        `Échec liste fichiers: ${error.message}`,
+        `Échec liste fichiers: ${getErrorMessage(error)}`,
         'LIST_FILES_FAILED',
         'google_drive',
-        error.response?.status
+        (error as { response?: { status?: number } }).response?.status
       )
     }
   }
@@ -467,15 +468,15 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
         resourceId: response.data.resourceId,
         expiration: new Date(expiration),
       }
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         throw new TokenExpiredError('google_drive')
       }
       throw new CloudStorageError(
-        `Échec surveillance dossier: ${error.message}`,
+        `Échec surveillance dossier: ${getErrorMessage(error)}`,
         'WATCH_FAILED',
         'google_drive',
-        error.response?.status
+        (error as { response?: { status?: number } }).response?.status
       )
     }
   }
@@ -499,17 +500,17 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
           resourceId: params.resourceId,
         },
       })
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         throw new TokenExpiredError('google_drive')
       }
       // Ignorer erreur 404 (channel déjà expiré)
-      if (error.response?.status !== 404) {
+      if ((error as { response?: { status?: number } }).response?.status !== 404) {
         throw new CloudStorageError(
-          `Échec arrêt surveillance: ${error.message}`,
+          `Échec arrêt surveillance: ${getErrorMessage(error)}`,
           'STOP_WATCHING_FAILED',
           'google_drive',
-          error.response?.status
+          (error as { response?: { status?: number } }).response?.status
         )
       }
     }
@@ -556,18 +557,18 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
           : new Date(),
         parents: file.parents || undefined,
       }
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 404) {
         throw new FileNotFoundError('google_drive', fileId)
       }
-      if (error.response?.status === 401) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         throw new TokenExpiredError('google_drive')
       }
       throw new CloudStorageError(
-        `Échec récupération métadonnées: ${error.message}`,
+        `Échec récupération métadonnées: ${getErrorMessage(error)}`,
         'GET_METADATA_FAILED',
         'google_drive',
-        error.response?.status
+        (error as { response?: { status?: number } }).response?.status
       )
     }
   }
@@ -593,15 +594,15 @@ export class GoogleDriveProvider implements ICloudStorageProvider {
         email: response.data.email || '',
         name: response.data.name || '',
       }
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         throw new TokenExpiredError('google_drive')
       }
       throw new CloudStorageError(
-        `Échec récupération infos utilisateur: ${error.message}`,
+        `Échec récupération infos utilisateur: ${getErrorMessage(error)}`,
         'GET_USER_INFO_FAILED',
         'google_drive',
-        error.response?.status
+        (error as { response?: { status?: number } }).response?.status
       )
     }
   }

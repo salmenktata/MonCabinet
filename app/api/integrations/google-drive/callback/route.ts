@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * Route OAuth Callback Google Drive
  * Gère le retour de l'autorisation utilisateur et échange le code contre les tokens
@@ -132,11 +133,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       `${FRONTEND_URL}/settings/cloud-storage?success=true&provider=google_drive&email=${encodeURIComponent(userInfo.email)}`
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('[GoogleDrive OAuth] Erreur callback:', error)
 
     const errorMessage =
-      error.message || 'Erreur lors de la connexion à Google Drive'
+      getErrorMessage(error) || 'Erreur lors de la connexion à Google Drive'
 
     return NextResponse.redirect(
       `${FRONTEND_URL}/settings/cloud-storage?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`

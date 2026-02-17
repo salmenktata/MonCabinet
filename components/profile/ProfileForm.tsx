@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -69,12 +70,12 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
       })
 
       router.refresh()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erreur mise à jour profil:', error)
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: error.message || 'Impossible de mettre à jour le profil',
+        description: getErrorMessage(error) || 'Impossible de mettre à jour le profil',
       })
     } finally {
       setIsLoading(false)
@@ -126,12 +127,12 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
         newPassword: '',
         confirmPassword: '',
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erreur changement mot de passe:', error)
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: error.message || 'Impossible de changer le mot de passe',
+        description: getErrorMessage(error) || 'Impossible de changer le mot de passe',
       })
     } finally {
       setIsChangingPassword(false)

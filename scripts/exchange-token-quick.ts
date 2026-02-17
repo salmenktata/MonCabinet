@@ -77,7 +77,7 @@ async function main() {
 
     console.log(`✅ ${files.data.files?.length || 0} fichier(s) découvert(s)\n`)
     console.log('✨ Prêt! Vous pouvez créer la source maintenant.\n')
-  } catch (error: any) {
+  } catch (error) {
     console.log('❌ Erreur:', error.message)
   }
 }

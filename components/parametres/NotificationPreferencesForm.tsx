@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -67,11 +68,11 @@ export default function NotificationPreferencesForm({ preferences, userId }: Pro
       })
 
       router.refresh()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erreur sauvegarde préférences:', error)
       toast({
         title: 'Erreur',
-        description: error.message || 'Impossible de sauvegarder les préférences.',
+        description: getErrorMessage(error) || 'Impossible de sauvegarder les préférences.',
         variant: 'destructive',
       })
     } finally {

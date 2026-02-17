@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 
@@ -81,10 +82,10 @@ export async function POST(request: NextRequest) {
       resumedCount,
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Batch Resume API] Error:', error)
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getErrorMessage(error) },
       { status: 500 }
     )
   }

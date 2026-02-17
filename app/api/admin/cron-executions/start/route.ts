@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API: Démarrer une exécution de cron
  * POST /api/admin/cron-executions/start
@@ -73,10 +74,10 @@ export async function POST(req: NextRequest) {
       cronName: execution.cron_name,
       startedAt: execution.started_at,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Cron Start] Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }

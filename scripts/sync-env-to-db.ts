@@ -115,8 +115,8 @@ echo "ENCRYPTION_KEY=\$ENCRYPTION_KEY"
         } else {
           console.log(`  ⚠️  ${provider.name} : Non trouvé dans la DB`);
         }
-      } catch (error: any) {
-        console.error(`  ❌ ${provider.name} : Erreur - ${error.message}`);
+      } catch (error) {
+        console.error(`  ❌ ${provider.name} : Erreur - ${getErrorMessage(error)}`);
       }
     }
 
@@ -143,8 +143,8 @@ echo "ENCRYPTION_KEY=\$ENCRYPTION_KEY"
     console.log('\n📝 Note : Le fichier .env.production.local est la SOURCE DE VÉRITÉ');
     console.log('   Pour modifier une clé : éditer ce fichier puis relancer ce script');
 
-  } catch (error: any) {
-    console.error(`\n❌ Erreur : ${error.message}`);
+  } catch (error) {
+    console.error(`\n❌ Erreur : ${getErrorMessage(error)}`);
     process.exit(1);
   }
 }

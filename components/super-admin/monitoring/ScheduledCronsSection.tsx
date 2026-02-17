@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -82,8 +83,8 @@ export function ScheduledCronsSection() {
       } else {
         alert(`Erreur: ${data.error}`)
       }
-    } catch (error: any) {
-      alert(`Erreur: ${error.message}`)
+    } catch (error) {
+      alert(`Erreur: ${getErrorMessage(error)}`)
     } finally {
       setCancelling(null)
     }

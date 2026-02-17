@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API Route: OCR des PDFs scannés Google Drive sans texte extrait
  * Traite les PDFs un par un (concurrency=1) pour éviter OOM
@@ -164,9 +165,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             `(${parsed.metadata.wordCount} mots)`
           )
         }
-      } catch (error: any) {
+      } catch (error) {
         ocrFailed++
-        const errorMsg = error?.message || 'Erreur inconnue'
+        const errorMsg = getErrorMessage(error) || 'Erreur inconnue'
         details.push({
           title: pageTitle,
           words: 0,
@@ -204,10 +205,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       avgWordsPerDoc,
       details,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[OCR-Missing] Erreur:', error)
     return NextResponse.json(
-      { error: error.message || 'Erreur interne' },
+      { error: getErrorMessage(error) || 'Erreur interne' },
       { status: 500 }
     )
   }

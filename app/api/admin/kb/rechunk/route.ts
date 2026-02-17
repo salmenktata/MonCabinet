@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { chunkText } from '@/lib/ai/chunking-service'
@@ -201,8 +202,8 @@ export async function POST(request: NextRequest) {
             ])
 
             inserted++
-          } catch (error: any) {
-            console.error(`   ❌ Erreur chunk ${index}:`, error.message)
+          } catch (error) {
+            console.error(`   ❌ Erreur chunk ${index}:`, getErrorMessage(error))
           }
         }
 
@@ -223,8 +224,8 @@ export async function POST(request: NextRequest) {
         })
 
         console.log(`   ✅ ${inserted} chunks insérés (${Date.now() - startTime}ms)`)
-      } catch (error: any) {
-        console.error(`[KB Rechunk] ❌ Erreur:`, error.message)
+      } catch (error) {
+        console.error(`[KB Rechunk] ❌ Erreur:`, getErrorMessage(error))
 
         results.push({
           documentId: doc.id,
@@ -232,7 +233,7 @@ export async function POST(request: NextRequest) {
           success: false,
           oldChunks: doc.total_chunks,
           newChunks: 0,
-          error: error.message,
+          error: getErrorMessage(error),
           processingTimeMs: Date.now() - startTime,
         })
       }
@@ -249,12 +250,12 @@ export async function POST(request: NextRequest) {
       failed,
       results,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[KB Rechunk] Erreur:', error)
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Erreur lors du re-chunking',
+        error: getErrorMessage(error) || 'Erreur lors du re-chunking',
       },
       { status: 500 }
     )

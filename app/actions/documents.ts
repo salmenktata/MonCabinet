@@ -1,6 +1,7 @@
 'use server'
 
 import { query } from '@/lib/db/postgres'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
 import { createStorageManager } from '@/lib/integrations/storage-manager'
@@ -94,30 +95,32 @@ export async function uploadDocumentAction(formData: FormData) {
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${dossierId}`)
     return { success: true, data: documentResult.rows[0] }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erreur upload:', error)
 
     // Messages d'erreur spécifiques
-    if (error.code === 'TOKEN_EXPIRED') {
+    const errorCode = error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : null
+
+    if (errorCode === 'TOKEN_EXPIRED') {
       return {
         error: 'Token Google Drive expiré. Veuillez vous reconnecter dans les paramètres.',
       }
     }
 
-    if (error.code === 'QUOTA_EXCEEDED') {
+    if (errorCode === 'QUOTA_EXCEEDED') {
       return {
         error: 'Quota Google Drive dépassé. Veuillez libérer de l\'espace sur votre Drive.',
       }
     }
 
-    if (error.code === 'CONFIG_NOT_FOUND') {
+    if (errorCode === 'CONFIG_NOT_FOUND') {
       return {
         error: 'Configuration Google Drive non trouvée. Veuillez reconnecter votre compte.',
       }
     }
 
     return {
-      error: error.message || 'Une erreur est survenue lors de l\'upload',
+      error: getErrorMessage(error) || 'Une erreur est survenue lors de l\'upload',
     }
   }
 }
@@ -176,7 +179,7 @@ export async function deleteDocumentAction(id: string) {
         } else {
           console.warn('[deleteDocumentAction] Config Google Drive non trouvée, suppression BDD uniquement')
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('[deleteDocumentAction] Erreur suppression Google Drive:', error)
         // Continue quand même pour supprimer l'entrée en base
         // (le fichier peut déjà être supprimé manuellement de Drive)
@@ -394,17 +397,18 @@ export async function downloadDocumentAction(id: string) {
     }
 
     return { error: 'Document non disponible pour téléchargement' }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erreur téléchargement document:', error)
 
-    if (error.code === 'TOKEN_EXPIRED') {
+    const errorCode2 = error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : null
+    if (errorCode2 === 'TOKEN_EXPIRED') {
       return {
         error: 'Token Google Drive expiré. Veuillez vous reconnecter dans les paramètres.',
       }
     }
 
     return {
-      error: error.message || 'Erreur lors du téléchargement du document',
+      error: getErrorMessage(error) || 'Erreur lors du téléchargement du document',
     }
   }
 }

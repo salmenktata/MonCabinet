@@ -182,7 +182,7 @@ L'équipe Qadhya
       },
       { status: 200 }
     )
-  } catch (error: any) {
+  } catch (error) {
     log.exception('Erreur', error)
 
     // Erreur de validation Zod

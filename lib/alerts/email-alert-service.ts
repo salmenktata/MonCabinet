@@ -11,6 +11,7 @@
  */
 
 import { db } from '@/lib/db/postgres'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { getRedisClient } from '@/lib/cache/redis'
 import { isSemanticSearchEnabled } from '@/lib/ai/config'
 
@@ -495,8 +496,8 @@ async function sendAlertEmail(alert: AlertLevel): Promise<boolean> {
     console.log(`[Alert] Email envoyé avec succès : ${alert.title}`)
     return true
 
-  } catch (error: any) {
-    console.error('[Alert] Erreur envoi email:', error.message)
+  } catch (error) {
+    console.error('[Alert] Erreur envoi email:', getErrorMessage(error))
     return false
   }
 }
@@ -545,7 +546,7 @@ export async function checkAndSendAlerts(): Promise<{
       alerts,
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Alert] Erreur vérification alertes:', error)
     return {
       success: false,

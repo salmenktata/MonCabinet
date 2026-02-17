@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API Health Check des Clés API
  *
@@ -57,12 +58,12 @@ async function testGemini(): Promise<ProviderHealth> {
       model: process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp',
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       provider: 'gemini',
       status: 'error',
       responseTime: Date.now() - start,
-      error: error.message || 'Unknown error',
+      error: getErrorMessage(error) || 'Unknown error',
       lastChecked: new Date().toISOString(),
     }
   }
@@ -107,12 +108,12 @@ async function testGroq(): Promise<ProviderHealth> {
       model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       provider: 'groq',
       status: 'error',
       responseTime: Date.now() - start,
-      error: error.message || 'Unknown error',
+      error: getErrorMessage(error) || 'Unknown error',
       lastChecked: new Date().toISOString(),
     }
   }
@@ -157,12 +158,12 @@ async function testDeepSeek(): Promise<ProviderHealth> {
       model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       provider: 'deepseek',
       status: 'error',
       responseTime: Date.now() - start,
-      error: error.message || 'Unknown error',
+      error: getErrorMessage(error) || 'Unknown error',
       lastChecked: new Date().toISOString(),
     }
   }
@@ -203,12 +204,12 @@ async function testAnthropic(): Promise<ProviderHealth> {
       model: 'claude-3-5-sonnet-20241022',
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       provider: 'anthropic',
       status: 'error',
       responseTime: Date.now() - start,
-      error: error.message || 'Unknown error',
+      error: getErrorMessage(error) || 'Unknown error',
       lastChecked: new Date().toISOString(),
     }
   }
@@ -253,12 +254,12 @@ async function testOllama(): Promise<ProviderHealth> {
       model: `${data.models?.length || 0} models available`,
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       provider: 'ollama',
       status: 'error',
       responseTime: Date.now() - start,
-      error: error.message || 'Unknown error',
+      error: getErrorMessage(error) || 'Unknown error',
       lastChecked: new Date().toISOString(),
     }
   }
@@ -300,12 +301,12 @@ async function testOpenAIEmbeddings(): Promise<ProviderHealth> {
       model: 'text-embedding-3-small (1536-dim)',
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       provider: 'openai-embeddings',
       status: 'error',
       responseTime: Date.now() - start,
-      error: error.message || 'Unknown error',
+      error: getErrorMessage(error) || 'Unknown error',
       lastChecked: new Date().toISOString(),
     }
   }
@@ -359,13 +360,13 @@ export async function GET(request: NextRequest) {
         },
       }
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erreur health check API:', error)
 
     return NextResponse.json(
       {
         status: 'error',
-        error: error.message || 'Unknown error',
+        error: getErrorMessage(error) || 'Unknown error',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

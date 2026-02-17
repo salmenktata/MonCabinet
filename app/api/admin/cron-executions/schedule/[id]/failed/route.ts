@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API: Mark scheduled cron as failed
  * PATCH /api/admin/cron-executions/schedule/[id]/failed
@@ -33,10 +34,10 @@ export async function PATCH(
     )
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Mark Failed] Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }

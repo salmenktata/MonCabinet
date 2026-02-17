@@ -80,9 +80,9 @@ async function main() {
         failed++
         console.error(`  ✗ Échec: ${result.error}`)
       }
-    } catch (error: any) {
+    } catch (error) {
       failed++
-      console.error(`  ✗ Erreur: ${error.message}`)
+      console.error(`  ✗ Erreur: ${getErrorMessage(error)}`)
     }
 
     // Petit délai pour éviter de surcharger

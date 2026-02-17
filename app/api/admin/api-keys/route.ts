@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextResponse } from 'next/server'
 import { listApiKeys } from '@/lib/api-keys/api-keys-service'
 
@@ -29,10 +30,10 @@ export async function GET() {
         updatedAt: key.updatedAt,
       }))
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[API] Erreur listage clés API:', error)
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getErrorMessage(error) },
       { status: 500 }
     )
   }

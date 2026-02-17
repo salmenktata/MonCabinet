@@ -108,7 +108,7 @@ async function main() {
       console.log('   • Tester: npx tsx scripts/test-gdrive-connection.ts <URL_DOSSIER>')
       console.log('   • Créer une source: http://localhost:3000/super-admin/web-sources/new\n')
 
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 404) {
         console.log('⚠️  Dossier non trouvé (vérifiez que le dossier est partagé avec votre compte)')
       } else if (error.code === 403) {
@@ -119,7 +119,7 @@ async function main() {
       console.log('\n💡 Vous pouvez quand même tester avec vos propres dossiers!')
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.log('\n❌ Erreur:', error.message)
     console.log('\n💡 Le code a peut-être expiré. Réessayez avec un nouveau code.')
   }

@@ -155,7 +155,7 @@ async function main() {
         })
       }
 
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 404) {
         console.log('⚠️  Dossier non trouvé (normal si pas partagé avec votre compte)')
         console.log('   Pour tester avec votre propre dossier:')
@@ -176,7 +176,7 @@ async function main() {
     console.log('   • Créer une source: http://localhost:3000/super-admin/web-sources/new')
     console.log('   • Ou attendre le déploiement en production\n')
 
-  } catch (error: any) {
+  } catch (error) {
     console.log('\n❌ Erreur:', error.message)
     console.log('\n💡 Assurez-vous:')
     console.log('   • D\'avoir activé Google Drive API')

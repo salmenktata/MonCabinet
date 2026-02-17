@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API Route de diagnostic Google Drive
  * Test de la lecture depuis system_settings
@@ -40,12 +41,12 @@ export async function GET() {
       clientEmail: value?.client_email,
       type: value?.type,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[DEBUG] Erreur:', error)
     return NextResponse.json({
       success: false,
-      error: error.message,
-      stack: error.stack,
+      error: getErrorMessage(error),
+      stack: error instanceof Error ? error.stack : undefined,
     }, { status: 500 })
   }
 }

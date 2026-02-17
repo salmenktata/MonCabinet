@@ -84,7 +84,7 @@ async function testGoogleDriveOAuth(userId: string) {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
     process.exit(0)
-  } catch (error: any) {
+  } catch (error) {
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.error('❌ Test OAuth Google Drive ÉCHOUÉ')
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')

@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -109,10 +110,10 @@ export function BatchesStatusSection() {
       } else {
         throw new Error(data.error)
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Erreur',
-        description: error.message || 'Impossible d\'exécuter l\'action',
+        description: getErrorMessage(error) || 'Impossible d\'exécuter l\'action',
         variant: 'destructive',
       })
     } finally {

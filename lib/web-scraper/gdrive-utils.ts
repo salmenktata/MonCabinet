@@ -6,6 +6,7 @@
  */
 
 import type { WebSource, LinkedFile, GoogleDriveFile } from './types'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { getGoogleDriveClient } from './storage-adapter'
 
 /**
@@ -149,14 +150,16 @@ export async function validateDriveFolderAccess(folderId: string): Promise<{
         fileId: folderId,
         fields: 'id, name, mimeType',
       })
-    } catch (error: any) {
-      if (error.code === 404) {
+    } catch (error) {
+      const gdriveCode = error && typeof error === 'object' && 'code' in error ? Number((error as { code?: unknown }).code) : 0
+
+      if (gdriveCode === 404) {
         return {
           success: false,
           error: 'Dossier non trouvé. Vérifiez que le dossier existe et est partagé avec le service account.',
         }
       }
-      if (error.code === 403) {
+      if (gdriveCode === 403) {
         return {
           success: false,
           error: 'Accès refusé. Vérifiez que le dossier est partagé avec le service account en lecture.',
@@ -178,11 +181,11 @@ export async function validateDriveFolderAccess(folderId: string): Promise<{
       success: true,
       fileCount: files.length,
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('[GDriveUtils] Validation error:', error)
     return {
       success: false,
-      error: error.message || 'Erreur inconnue lors de la validation',
+      error: getErrorMessage(error) || 'Erreur inconnue lors de la validation',
     }
   }
 }

@@ -169,7 +169,7 @@ async function reindexProgressive(options: ProgressiveOptions) {
   try {
     await pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY vw_kb_docs_usage_priority')
     console.log('   ✅ Vue rafraîchie\n')
-  } catch (error: any) {
+  } catch (error) {
     // Si CONCURRENTLY échoue (premier refresh), essayer sans
     try {
       await pool.query('REFRESH MATERIALIZED VIEW vw_kb_docs_usage_priority')

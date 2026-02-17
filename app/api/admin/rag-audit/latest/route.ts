@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { readdir, readFile, mkdir } from 'fs/promises'
 import path from 'path'
@@ -42,12 +43,12 @@ export async function GET(request: NextRequest) {
       report,
       filename: latestFile,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[RAG Audit API] Erreur lecture latest :', error)
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Erreur lors de la lecture',
+        error: getErrorMessage(error) || 'Erreur lors de la lecture',
       },
       { status: 500 }
     )

@@ -160,8 +160,8 @@ async function importAbrogations(pool: Pool, abrogations: AbrogationCSV[], dryRu
       console.log(`✅ Importé: ${abr.abrogated_reference}`)
       imported++
 
-    } catch (error: any) {
-      console.error(`❌ Erreur: ${abr.abrogated_reference} - ${error.message}`)
+    } catch (error) {
+      console.error(`❌ Erreur: ${abr.abrogated_reference} - ${getErrorMessage(error)}`)
       errors++
     }
   }
@@ -229,7 +229,7 @@ async function main() {
 
     console.log(`\n✅ Import terminé !`)
 
-  } catch (error: any) {
+  } catch (error) {
     console.error(`\n❌ Erreur:`, error.message)
     process.exit(1)
   } finally {

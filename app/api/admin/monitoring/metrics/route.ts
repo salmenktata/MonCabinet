@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 
 /**
  * GET /api/admin/monitoring/metrics
@@ -227,12 +228,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response)
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Monitoring Metrics] Erreur:', error)
     return NextResponse.json(
       {
         timestamp: new Date().toISOString(),
-        error: error.message,
+        error: getErrorMessage(error),
       },
       { status: 500 }
     )

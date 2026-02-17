@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 
@@ -75,10 +76,10 @@ export async function GET() {
       bottomScores: bottom.rows,
       byCategory: cat.rows,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Quality Distribution] Error:', error)
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getErrorMessage(error) },
       { status: 500 }
     )
   }

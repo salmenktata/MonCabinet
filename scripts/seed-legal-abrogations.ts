@@ -378,7 +378,7 @@ async function seedAbrogations() {
 
       insertedCount++
       console.log(`✅ ${abrogation.abrogated.ref} → ${abrogation.abrogating.ref}`)
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === '23505') {
         // Duplicate - skip
         skippedCount++

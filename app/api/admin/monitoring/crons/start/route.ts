@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getPool } from '@/lib/db'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 10
@@ -47,10 +48,10 @@ export async function POST(request: NextRequest) {
       execution_id: result.rows[0].id,
       execution: result.rows[0],
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Cron Start] Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     )
   }

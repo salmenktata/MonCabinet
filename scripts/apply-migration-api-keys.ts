@@ -20,7 +20,7 @@ async function main() {
   try {
     await db.query(sql)
     console.log('✅ Migration appliquée avec succès\n')
-  } catch (error: any) {
+  } catch (error) {
     if (error.message.includes('already exists')) {
       console.log('ℹ️  Table api_keys existe déjà\n')
     } else {

@@ -236,7 +236,7 @@ async function runTests(): Promise<RegressionReport> {
       console.log(
         `  ${status} [${String(testQuery.id).padStart(3)}] ${scoreStr.padEnd(12)} ${latency}ms  ${testQuery.description}`
       )
-    } catch (error: any) {
+    } catch (error) {
       const latency = Date.now() - queryStart
       results.push({
         id: testQuery.id,
@@ -248,9 +248,9 @@ async function runTests(): Promise<RegressionReport> {
         avgScore: 0,
         minScore: 0,
         latencyMs: latency,
-        error: error.message,
+        error: getErrorMessage(error),
       })
-      console.log(`  ❌ [${String(testQuery.id).padStart(3)}] ERROR ${latency}ms  ${error.message}`)
+      console.log(`  ❌ [${String(testQuery.id).padStart(3)}] ERROR ${latency}ms  ${getErrorMessage(error)}`)
     }
   }
 
