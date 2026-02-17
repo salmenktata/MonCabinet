@@ -16,23 +16,12 @@ export async function POST(
   try {
     const { id: knowledgeBaseId } = await params
 
-    // 1. Vérifier authentification admin (TODO: implémenter)
-    // const session = await getServerSession()
-    const session = { user: { id: 'admin' } } // Mock pour l'instant
-
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Non authentifié' },
-        { status: 401 }
-      )
+    // Auth: X-Cron-Secret ou Bearer token
+    const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
+    if (cronSecret && authHeader !== cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
-
-    // Vérifier rôle admin (vous pouvez adapter selon votre système de rôles)
-    // if (session.user.role !== 'admin') {
-    //   return NextResponse.json(
-    //     { error: 'Accès non autorisé - Admin requis' },
-    //     { status: 403 }
-    //   )
     // }
 
     // 2. Parser les options depuis le body
@@ -92,8 +81,12 @@ export async function GET(
   try {
     const { id: knowledgeBaseId } = await params
 
-    // Vérifier authentification (TODO: implémenter)
-    const session = { user: { id: 'admin' } } // Mock pour l'instant
+    // Auth: X-Cron-Secret ou Bearer token
+    const getAuthHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization')
+    const getCronSecret = process.env.CRON_SECRET
+    if (getCronSecret && getAuthHeader !== getCronSecret && getAuthHeader !== `Bearer ${getCronSecret}`) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
 
     // Importer db ici pour éviter l'import au top level
     const { db } = await import('@/lib/db/postgres')

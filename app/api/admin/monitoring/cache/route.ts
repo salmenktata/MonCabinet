@@ -42,8 +42,12 @@ interface CacheMonitoringResponse {
  */
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Vérifier authentification admin
-    // Pour l'instant, on laisse ouvert pour développement
+    // Auth: X-Cron-Secret ou Bearer token
+    const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
+    if (cronSecret && authHeader !== cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
 
     // Vérifier disponibilité Redis
     const available = isRedisAvailable()

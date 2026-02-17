@@ -16,8 +16,12 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
  */
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Vérifier authentification admin ou cron secret
-    // Pour l'instant, on laisse ouvert pour développement
+    // Auth: X-Cron-Secret ou Bearer token
+    const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
+    if (cronSecret && authHeader !== cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
 
     console.log('[Monitoring Metrics] Récupération des métriques...')
 
