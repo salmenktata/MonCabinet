@@ -827,6 +827,24 @@ export async function searchKnowledgeBaseHybrid(
     providerLabels.push('gemini')
   }
 
+  // ✨ RECHERCHE FORCÉE CODES JURIDIQUES (Feb 17, 2026)
+  // Problème fondamental : les articles de codes légaux (المجلة الجزائية, مجلة الشغل...)
+  // ont une similarité vectorielle intrinsèquement basse (~0.35-0.45) avec les queries
+  // en langage naturel ("ما هي شروط الدفاع الشرعي"). Les docs doctrine (~0.55-0.65)
+  // les dominent toujours, même avec pool×3.
+  // Solution : recherche forcée dans 'codes' avec threshold très bas (0.20) +
+  // boost CODE_PRIORITY_BOOST pour compenser l'écart sémantique naturel.
+  // N'ajoute rien si on filtre déjà par codes (évite doublons).
+  const CODE_PRIORITY_BOOST = 1.45 // Boost pour rendre codes compétitifs vs doctrine
+  const shouldForceCodes = !category || category !== 'codes'
+  if (shouldForceCodes && openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
+    const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
+    searchPromises.push(
+      searchHybridSingle(queryText, embStr, 'codes', null, Math.ceil(limit / 2), 0.20, 'openai')
+    )
+    providerLabels.push('codes-forced')
+  }
+
   if (searchPromises.length === 0) {
     console.warn('[KB Hybrid Search] Aucun embedding disponible (OpenAI + Ollama + Gemini tous en échec)')
     return []
@@ -844,6 +862,10 @@ export async function searchKnowledgeBaseHybrid(
     countByProvider[label] = 0
 
     for (const r of resultSet) {
+      // Appliquer boost aux codes forcés pour compenser l'écart sémantique
+      if (label === 'codes-forced') {
+        r.similarity = Math.min(1.0, r.similarity * CODE_PRIORITY_BOOST)
+      }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
       const existing = seen.get(key)
       if (!existing || r.similarity > existing.similarity) {
