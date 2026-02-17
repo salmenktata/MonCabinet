@@ -13,11 +13,12 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
  */
 export async function GET() {
   try {
-    // 1. Embeddings consistency (OpenAI vs Ollama ratio)
+    // 1. Embeddings consistency (OpenAI vs Ollama vs Gemini ratio)
     const embeddingsStats = await db.query(`
       SELECT
         COUNT(*) FILTER (WHERE kbc.embedding_openai IS NOT NULL) as openai_count,
         COUNT(*) FILTER (WHERE kbc.embedding IS NOT NULL AND kbc.embedding_openai IS NULL) as ollama_count,
+        COUNT(*) FILTER (WHERE kbc.embedding_gemini IS NOT NULL) as gemini_count,
         COUNT(*) as total_chunks
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
@@ -26,6 +27,7 @@ export async function GET() {
 
     const openaiCount = parseInt(embeddingsStats.rows[0]?.openai_count || '0', 10)
     const ollamaCount = parseInt(embeddingsStats.rows[0]?.ollama_count || '0', 10)
+    const geminiCount = parseInt(embeddingsStats.rows[0]?.gemini_count || '0', 10)
     const totalChunks = parseInt(embeddingsStats.rows[0]?.total_chunks || '0', 10)
 
     // 2. Query success rate 24h/7j (depuis chat_messages)
@@ -100,6 +102,7 @@ export async function GET() {
     // Calculer ratios et taux de succès
     const openaiRatio = totalChunks > 0 ? (openaiCount / totalChunks) * 100 : 0
     const ollamaRatio = totalChunks > 0 ? (ollamaCount / totalChunks) * 100 : 0
+    const geminiRatio = totalChunks > 0 ? (geminiCount / totalChunks) * 100 : 0
     const successRate24h = queries24h.total > 0 ? (queries24h.successful / queries24h.total) * 100 : 100
     const successRate7d = queries7d.total > 0 ? (queries7d.successful / queries7d.total) * 100 : 100
 
@@ -109,9 +112,11 @@ export async function GET() {
         embeddings: {
           openai: openaiCount,
           ollama: ollamaCount,
+          gemini: geminiCount,
           total: totalChunks,
           openaiRatio: Math.round(openaiRatio * 100) / 100,
           ollamaRatio: Math.round(ollamaRatio * 100) / 100,
+          geminiRatio: Math.round(geminiRatio * 100) / 100,
         },
         queries: {
           '24h': {

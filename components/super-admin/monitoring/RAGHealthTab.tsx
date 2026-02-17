@@ -12,9 +12,11 @@ interface RAGHealthData {
   embeddings: {
     openai: number
     ollama: number
+    gemini: number
     total: number
     openaiRatio: number
     ollamaRatio: number
+    geminiRatio: number
   }
   queries: {
     '24h': {
@@ -49,6 +51,7 @@ interface RAGHealthData {
 const COLORS = {
   openai: '#10b981', // green
   ollama: '#3b82f6', // blue
+  gemini: '#8b5cf6', // purple
   success: '#10b981',
   warning: '#f59e0b',
   danger: '#ef4444',
@@ -92,6 +95,7 @@ export function RAGHealthTab() {
   const embeddingsChartData = [
     { name: 'OpenAI (1536-dim)', value: data.embeddings.openai, color: COLORS.openai },
     { name: 'Ollama (1024-dim)', value: data.embeddings.ollama, color: COLORS.ollama },
+    { name: 'Gemini (768-dim)', value: data.embeddings.gemini, color: COLORS.gemini },
   ]
 
   // Prepare line chart data
@@ -130,21 +134,27 @@ export function RAGHealthTab() {
         {/* KPI 1: Embeddings Consistency */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Embeddings Consistency</CardTitle>
+            <CardTitle className="text-sm font-medium">Embeddings Coverage</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.embeddings.total.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              OpenAI: {data.embeddings.openaiRatio.toFixed(1)}% | Ollama: {data.embeddings.ollamaRatio.toFixed(1)}%
+              chunks indexés (3 providers)
             </p>
-            <div className="mt-2 flex gap-2">
-              <Badge variant="outline" className="text-xs">
-                OpenAI: {data.embeddings.openai.toLocaleString()}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                Ollama: {data.embeddings.ollama.toLocaleString()}
-              </Badge>
+            <div className="mt-2 flex flex-col gap-1">
+              <div className="flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: COLORS.openai }} />
+                <span className="text-xs">OpenAI: {data.embeddings.openai.toLocaleString()} ({data.embeddings.openaiRatio.toFixed(0)}%)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: COLORS.ollama }} />
+                <span className="text-xs">Ollama: {data.embeddings.ollama.toLocaleString()} ({data.embeddings.ollamaRatio.toFixed(0)}%)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: COLORS.gemini }} />
+                <span className="text-xs">Gemini: {data.embeddings.gemini.toLocaleString()} ({data.embeddings.geminiRatio.toFixed(0)}%)</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -227,7 +237,7 @@ export function RAGHealthTab() {
           <CardHeader>
             <CardTitle>Distribution Embeddings</CardTitle>
             <CardDescription>
-              Répartition OpenAI (haute qualité) vs Ollama (économique)
+              OpenAI 1536-dim · Ollama 1024-dim · Gemini 768-dim
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -300,6 +310,17 @@ export function RAGHealthTab() {
               <AlertDescription>
                 Seulement {data.embeddings.openaiRatio.toFixed(1)}% des embeddings utilisent OpenAI haute qualité.
                 Envisagez de réindexer avec OpenAI pour améliorer la pertinence RAG.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {data.embeddings.geminiRatio < 50 && data.embeddings.gemini > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Réindexation Gemini en cours : {data.embeddings.geminiRatio.toFixed(1)}% couverts
+                ({data.embeddings.gemini.toLocaleString()} / {data.embeddings.total.toLocaleString()} chunks).
+                Relancez <code className="text-xs">/api/admin/reindex-kb-gemini</code> pour continuer.
               </AlertDescription>
             </Alert>
           )}
