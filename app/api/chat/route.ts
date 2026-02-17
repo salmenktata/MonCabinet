@@ -18,6 +18,7 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import {
   answerQuestion,
+  answerQuestionStream,
   createConversation,
   saveMessage,
   getUserConversations,
@@ -59,6 +60,23 @@ interface ChatApiResponse {
   abrogationAlerts?: AbrogationAlert[] // Phase 3.4 - Alertes abrogations détectées dans la question
   qualityIndicator?: 'high' | 'medium' | 'low'
   averageSimilarity?: number
+}
+
+// =============================================================================
+// HELPER : TIMEOUT
+// =============================================================================
+
+/**
+ * Wrapper Promise avec timeout.
+ * Utilisé pour limiter la durée globale des appels LLM (44s < timeout Nginx 60s).
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout ${label} après ${ms}ms`)), ms)
+    ),
+  ])
 }
 
 // =============================================================================
@@ -282,24 +300,42 @@ export async function POST(
       averageSimilarity?: number
     }
 
-    switch (actionType) {
-      case 'structure':
-        response = await handleStructureAction(question, userId, activeConversationId)
-        break
-      case 'consult':
-        response = await handleConsultAction(question, userId, activeConversationId, dossierId, docType)
-        break
-      default:
-        response = await handleChatAction(
-          question,
-          userId,
-          activeConversationId,
-          dossierId,
-          includeJurisprudence,
-          usePremiumModel,
-          docType
+    // Timeout global 44s (< timeout Nginx 60s) pour éviter les blocages Gemini
+    const ACTION_TIMEOUT_MS = 44000
+
+    try {
+      switch (actionType) {
+        case 'structure':
+          response = await withTimeout(
+            handleStructureAction(question, userId, activeConversationId),
+            ACTION_TIMEOUT_MS,
+            'structure'
+          )
+          break
+        case 'consult':
+          response = await withTimeout(
+            handleConsultAction(question, userId, activeConversationId, dossierId, docType),
+            ACTION_TIMEOUT_MS,
+            'consult'
+          )
+          break
+        default:
+          response = await withTimeout(
+            handleChatAction(question, userId, activeConversationId, dossierId, includeJurisprudence, usePremiumModel, docType),
+            ACTION_TIMEOUT_MS,
+            'chat'
+          )
+          break
+      }
+    } catch (timeoutError) {
+      if (timeoutError instanceof Error && timeoutError.message.startsWith('Timeout')) {
+        console.error('[Chat API] Timeout:', timeoutError.message)
+        return NextResponse.json(
+          { error: 'La réponse a pris trop de temps (timeout 44s). Veuillez réessayer.' },
+          { status: 504 }
         )
-        break
+      }
+      throw timeoutError
     }
 
     // Sauvegarder la réponse assistant avec metadata
@@ -545,86 +581,79 @@ async function handleStreamingResponse(
 ): Promise<Response> {
   const encoder = new TextEncoder()
 
-  // Récupérer le contexte RAG (sources) avant de streamer
-  const response = await answerQuestion(question, userId, {
+  // Streaming natif Gemini via answerQuestionStream()
+  const generator = answerQuestionStream(question, userId, {
     dossierId,
     conversationId,
     includeJurisprudence,
     usePremiumModel,
-    operationName: 'assistant-ia', // Configuration optimisée pour chat temps réel
+    operationName: 'assistant-ia',
     docType,
   })
 
-  // On a la réponse complète, maintenant on va la streamer
+  let savedSources: ChatSource[] = []
+  let savedModel = 'gemini'
   let fullAnswer = ''
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // Envoyer les métadonnées en premier (sources, conversationId)
-        const metadata = {
-          type: 'metadata',
-          conversationId,
-          sources: response.sources,
-          model: response.model,
-        }
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(metadata)}\n\n`))
+        for await (const event of generator) {
+          if (event.type === 'metadata') {
+            savedSources = event.sources
+            savedModel = event.model
+            // Envoyer les métadonnées en premier (sources disponibles dès la fin du RAG)
+            const metadata = {
+              type: 'metadata',
+              conversationId,
+              sources: event.sources,
+              model: event.model,
+            }
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(metadata)}\n\n`))
+          } else if (event.type === 'chunk') {
+            fullAnswer += event.text
+            const chunk = { type: 'content', content: event.text }
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
+          } else if (event.type === 'done') {
+            const done = { type: 'done', tokensUsed: event.tokensUsed }
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(done)}\n\n`))
+            controller.close()
 
-        // Streamer la réponse mot par mot (simulation)
-        const words = response.answer.split(' ')
-        for (let i = 0; i < words.length; i++) {
-          const word = words[i] + (i < words.length - 1 ? ' ' : '')
-          fullAnswer += word
+            // Post-stream : sauvegarder la réponse complète
+            await saveMessage(
+              conversationId,
+              'assistant',
+              fullAnswer,
+              savedSources,
+              event.tokensUsed.total,
+              savedModel
+            )
 
-          const chunk = {
-            type: 'content',
-            content: word,
+            // Générer titre si premier échange
+            const messageCount = await db.query(
+              `SELECT COUNT(*) as count FROM chat_messages WHERE conversation_id = $1`,
+              [conversationId]
+            )
+            const msgCount = parseInt(messageCount.rows[0]?.count || '0', 10) || 0
+
+            if (msgCount <= 2) {
+              const title = await generateConversationTitle(conversationId)
+              await db.query(
+                `UPDATE chat_conversations SET title = $1 WHERE id = $2`,
+                [title, conversationId]
+              )
+            }
+
+            if (msgCount >= 10) {
+              triggerSummaryGenerationIfNeeded(conversationId).catch((err) =>
+                console.error('[Stream] Erreur trigger résumé:', err)
+              )
+            }
+          } else if (event.type === 'error') {
+            const errorMessage = { type: 'error', error: event.message }
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorMessage)}\n\n`))
+            controller.close()
           }
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
-
-          // Petit délai pour simuler le streaming (à retirer en prod si streaming natif)
-          await new Promise((resolve) => setTimeout(resolve, 20))
-        }
-
-        // Envoyer le message de fin
-        const done = {
-          type: 'done',
-          tokensUsed: response.tokensUsed,
-        }
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(done)}\n\n`))
-
-        controller.close()
-
-        // Sauvegarder la réponse complète après le streaming
-        await saveMessage(
-          conversationId,
-          'assistant',
-          fullAnswer,
-          response.sources,
-          response.tokensUsed.total,
-          response.model
-        )
-
-        // Générer titre si premier échange
-        const messageCount = await db.query(
-          `SELECT COUNT(*) as count FROM chat_messages WHERE conversation_id = $1`,
-          [conversationId]
-        )
-        const msgCount = parseInt(messageCount.rows[0]?.count || '0', 10) || 0
-
-        if (msgCount <= 2) {
-          const title = await generateConversationTitle(conversationId)
-          await db.query(
-            `UPDATE chat_conversations SET title = $1 WHERE id = $2`,
-            [title, conversationId]
-          )
-        }
-
-        // Trigger résumé si nécessaire
-        if (msgCount >= 10) {
-          triggerSummaryGenerationIfNeeded(conversationId).catch((err) =>
-            console.error('[Stream] Erreur trigger résumé:', err)
-          )
         }
       } catch (error) {
         const errorMessage = {

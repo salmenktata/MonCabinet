@@ -72,6 +72,7 @@ import {
   LLMMessage,
   LLMResponse,
 } from './llm-fallback-service'
+import { callGeminiStream } from './gemini-client'
 import { type OperationName } from './operations-config'
 import {
   validateArticleCitations,
@@ -487,7 +488,9 @@ export async function searchRelevantContext(
       // Requêtes longues : condensation (extraire concepts clés pour embedding ciblé)
       const { condenseQuery } = await import('./query-expansion-service')
       try {
-        embeddingQuestion = await condenseQuery(question)
+        // Timeout 5s : condenseQuery appelle un LLM → peut bloquer si lent
+        embeddingQuestion = await withTimeout(condenseQuery(question), 5000, 'condenseQuery')
+          .catch(() => question) // Fallback silencieux : question originale
         if (embeddingQuestion !== question) {
           console.log(`[RAG Search] Query condensée: ${question.length} chars → "${embeddingQuestion}" (${embeddingQuestion.length} chars)`)
         }
@@ -1885,6 +1888,146 @@ export async function answerQuestion(
     qualityIndicator: qualityMetrics.qualityLevel,
     averageSimilarity: qualityMetrics.averageSimilarity,
   }
+}
+
+// =============================================================================
+// STREAMING NATIF GEMINI
+// =============================================================================
+
+/**
+ * Événements émis par answerQuestionStream()
+ */
+export type StreamChunk =
+  | { type: 'metadata'; sources: ChatSource[]; model: string; qualityIndicator: 'high' | 'medium' | 'low'; averageSimilarity: number }
+  | { type: 'chunk'; text: string }
+  | { type: 'done'; tokensUsed: { input: number; output: number; total: number } }
+  | { type: 'error'; message: string }
+
+/**
+ * Répond à une question en streaming natif Gemini.
+ *
+ * Phase 1 : Pipeline RAG complet (non-streaming) → sources + contexte
+ * Phase 2 : callGeminiStream() → yield chunks texte en temps réel
+ * Phase 3 : Post-processing (sanitize citations, métriques)
+ *
+ * Format des événements :
+ * - 'metadata' → sources trouvées, à envoyer en premier au client
+ * - 'chunk'    → fragment de texte généré par Gemini
+ * - 'done'     → fin du stream avec tokensUsed estimés
+ * - 'error'    → erreur fatale (rate limit, timeout…)
+ */
+export async function* answerQuestionStream(
+  question: string,
+  userId: string,
+  options: ChatOptions = {}
+): AsyncGenerator<StreamChunk> {
+  if (!isChatEnabled()) {
+    yield { type: 'error', message: 'Chat IA désactivé (activer OLLAMA_ENABLED ou configurer GROQ_API_KEY)' }
+    return
+  }
+
+  // 1. Phase RAG (non-streaming)
+  let sources: ChatSource[] = []
+  try {
+    const searchResult = ENABLE_QUERY_EXPANSION
+      ? await searchRelevantContextBilingual(question, userId, options)
+      : await searchRelevantContext(question, userId, options)
+    sources = searchResult.sources
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : 'Erreur recherche contexte'
+    console.error('[RAG Stream] Erreur recherche:', errMsg)
+    yield { type: 'error', message: errMsg }
+    return
+  }
+
+  const questionLang = detectLanguage(question)
+
+  // Aucune source → réponse rapide sans appel LLM
+  if (sources.length === 0) {
+    const noSourcesMsg = questionLang === 'fr'
+      ? 'Je n\'ai trouvé aucun document pertinent pour votre question. Veuillez reformuler.'
+      : 'لم أجد وثائق ذات صلة بسؤالك. يرجى إعادة صياغة السؤال.'
+    yield { type: 'metadata', sources: [], model: 'gemini', qualityIndicator: 'low', averageSimilarity: 0 }
+    yield { type: 'chunk', text: noSourcesMsg }
+    yield { type: 'done', tokensUsed: { input: 0, output: 0, total: 0 } }
+    return
+  }
+
+  // 2. Construire le contexte RAG
+  const context = await buildContextFromSources(sources, questionLang)
+  const qualityMetrics = computeSourceQualityMetrics(sources)
+  const contextWithWarning = qualityMetrics.warningMessage
+    ? `${qualityMetrics.warningMessage}\n\n---\n\n${context}`
+    : context
+
+  // 3. Historique conversation
+  let conversationHistory: ConversationMessage[] = []
+  let conversationSummary: string | null = null
+  if (options.conversationId) {
+    const historyContext = await getConversationHistoryWithSummary(
+      options.conversationId,
+      SUMMARY_CONFIG.recentMessagesLimit
+    )
+    conversationHistory = historyContext.messages
+    conversationSummary = historyContext.summary
+  }
+
+  // 4. Construire messages
+  const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
+  const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
+  const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang)
+  const systemPrompt = conversationSummary
+    ? `${baseSystemPrompt}\n\n[Résumé de la conversation précédente]\n${conversationSummary}`
+    : baseSystemPrompt
+
+  const messagesForLLM: Array<{ role: string; content: string }> = []
+  for (const msg of conversationHistory) {
+    messagesForLLM.push({ role: msg.role, content: msg.content })
+  }
+  const msgTemplate = USER_MESSAGE_TEMPLATES[supportedLang]
+  messagesForLLM.push({
+    role: 'user',
+    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n\n---\n\n${msgTemplate.questionLabel} ${question}`,
+  })
+
+  // 5. Yield metadata (sources disponibles avant le stream LLM)
+  const modelName = `gemini/${aiConfig.gemini.model}`
+  yield {
+    type: 'metadata',
+    sources,
+    model: modelName,
+    qualityIndicator: qualityMetrics.qualityLevel,
+    averageSimilarity: qualityMetrics.averageSimilarity,
+  }
+
+  // 6. Stream Gemini → yield chunks
+  const promptConfig = PROMPT_CONFIG[contextType]
+  let fullText = ''
+  try {
+    const geminiGenerator = callGeminiStream(messagesForLLM, {
+      temperature: options.temperature ?? promptConfig.temperature,
+      maxTokens: promptConfig.maxTokens,
+      systemInstruction: systemPrompt,
+    })
+
+    for await (const chunk of geminiGenerator) {
+      fullText += chunk
+      yield { type: 'chunk', text: chunk }
+    }
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : 'Erreur Gemini streaming'
+    console.error('[RAG Stream] Erreur Gemini:', errMsg)
+    yield { type: 'error', message: errMsg }
+    return
+  }
+
+  // 7. Post-processing : sanitize citations
+  fullText = sanitizeCitations(fullText, sources.length)
+
+  // Estimation tokens output (4 chars ≈ 1 token)
+  const estimatedOutputTokens = Math.ceil(fullText.length / 4)
+
+  yield { type: 'done', tokensUsed: { input: 0, output: estimatedOutputTokens, total: estimatedOutputTokens } }
 }
 
 // =============================================================================

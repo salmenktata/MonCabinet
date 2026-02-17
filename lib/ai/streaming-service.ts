@@ -7,7 +7,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { aiConfig } from './config'
 
-export type StreamProvider = 'anthropic' | 'groq' | 'ollama' | 'openai'
+export type StreamProvider = 'anthropic' | 'groq' | 'ollama' | 'openai' | 'gemini'
 
 export interface StreamMessage {
   role: 'user' | 'assistant' | 'system'
@@ -40,6 +40,8 @@ export async function createAIStream(
       return createOllamaStream(messages, { model, temperature, maxTokens, systemPrompt })
     case 'openai':
       return createOpenAIStream(messages, { model, temperature, maxTokens, systemPrompt })
+    case 'gemini':
+      return createGeminiStream(messages, { model, temperature, maxTokens, systemPrompt })
     default:
       throw new Error(`Provider non supporté: ${provider}`)
   }
@@ -236,6 +238,42 @@ async function createOllamaStream(
           }
         }
 
+        controller.close()
+      } catch (error) {
+        controller.error(error)
+      }
+    },
+  })
+}
+
+/**
+ * Stream Gemini (gemini-2.5-flash)
+ */
+async function createGeminiStream(
+  messages: StreamMessage[],
+  options: Partial<StreamOptions>
+): Promise<ReadableStream<Uint8Array>> {
+  const encoder = new TextEncoder()
+  const { callGeminiStream } = await import('./gemini-client')
+
+  // Filtrer le message system (passer en systemInstruction) et conserver le reste
+  const systemMessage = messages.find((m) => m.role === 'system')?.content || options.systemPrompt
+  const conversationMessages = messages
+    .filter((m) => m.role !== 'system')
+    .map((m) => ({ role: m.role, content: m.content }))
+
+  const generator = callGeminiStream(conversationMessages, {
+    temperature: options.temperature,
+    maxTokens: options.maxTokens,
+    systemInstruction: systemMessage,
+  })
+
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const chunk of generator) {
+          controller.enqueue(encoder.encode(chunk))
+        }
         controller.close()
       } catch (error) {
         controller.error(error)
