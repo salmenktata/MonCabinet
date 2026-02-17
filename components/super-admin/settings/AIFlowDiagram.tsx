@@ -17,273 +17,329 @@ const AIFlowDiagram: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            ⚡ Architecture Hybride IA - Option C
+            ⚡ Architecture IA - Mode No-Fallback
           </CardTitle>
           <CardDescription>
-            Système dual-mode optimisant coûts et performance : Mode Rapide (gratuit, Ollama local) pour l'usage quotidien,
-            Mode Premium (cloud providers) pour les tâches critiques.
+            1 provider fixe par opération — fiabilité maximale sans dégradation silencieuse.
+            En cas d&apos;échec, l&apos;opération lève une exception et déclenche une alerte email immédiate.
+            LLM_FALLBACK_ENABLED=false (défaut prod).
           </CardDescription>
         </CardHeader>
       </Card>
 
-      {/* Tableau comparatif Mode Rapide vs Mode Premium */}
+      {/* Tableau des 8 opérations */}
       <Card>
         <CardHeader>
-          <CardTitle>Comparaison des Modes</CardTitle>
+          <CardTitle>8 Opérations — Configuration Prod (Fév 2026)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-3 font-semibold">Provider</th>
-                  <th className="text-center p-3 font-semibold">Mode Rapide ⚡</th>
-                  <th className="text-center p-3 font-semibold">Mode Premium 🧠</th>
+                  <th className="text-left p-3 font-semibold">Opération</th>
+                  <th className="text-left p-3 font-semibold">Rôle</th>
+                  <th className="text-center p-3 font-semibold">Provider (Prod)</th>
+                  <th className="text-center p-3 font-semibold">Modèle</th>
                   <th className="text-center p-3 font-semibold">Embeddings</th>
-                  <th className="text-center p-3 font-semibold">Latence</th>
-                  <th className="text-center p-3 font-semibold">Coût</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b hover:bg-muted/50">
-                  <td className="p-3 font-medium">🤖 Ollama</td>
+                  <td className="p-3 font-mono text-xs">assistant-ia</td>
+                  <td className="p-3 text-muted-foreground">Chat utilisateur</td>
                   <td className="p-3 text-center">
-                    <Badge className="bg-green-500">🟢 Priorité</Badge>
+                    <Badge className="bg-blue-500">Gemini</Badge>
                   </td>
-                  <td className="p-3 text-center">
-                    <Badge variant="secondary">⚫ Skip</Badge>
-                  </td>
-                  <td className="p-3 text-center">
-                    <Badge className="bg-green-500">🟢 Exclusif</Badge>
-                  </td>
-                  <td className="p-3 text-center">~15-20s</td>
-                  <td className="p-3 text-center font-semibold text-green-600">0€</td>
+                  <td className="p-3 text-center font-mono text-xs">gemini-2.5-flash</td>
+                  <td className="p-3 text-center font-mono text-xs">text-embedding-3-small</td>
                 </tr>
                 <tr className="border-b hover:bg-muted/50">
-                  <td className="p-3 font-medium">🧠 Gemini</td>
+                  <td className="p-3 font-mono text-xs">dossiers-assistant</td>
+                  <td className="p-3 text-muted-foreground">Analyse dossiers</td>
                   <td className="p-3 text-center">
-                    <Badge variant="outline">🟡 Fallback 1</Badge>
+                    <Badge className="bg-blue-500">Gemini</Badge>
                   </td>
-                  <td className="p-3 text-center">
-                    <Badge className="bg-blue-500">🟢 Priorité</Badge>
-                  </td>
-                  <td className="p-3 text-center">
-                    <Badge variant="destructive">❌</Badge>
-                  </td>
-                  <td className="p-3 text-center">~10-15s</td>
-                  <td className="p-3 text-center font-semibold text-green-600">Gratuit*</td>
+                  <td className="p-3 text-center font-mono text-xs">gemini-2.5-flash</td>
+                  <td className="p-3 text-center font-mono text-xs">text-embedding-3-small</td>
                 </tr>
                 <tr className="border-b hover:bg-muted/50">
-                  <td className="p-3 font-medium">💜 DeepSeek</td>
+                  <td className="p-3 font-mono text-xs">dossiers-consultation</td>
+                  <td className="p-3 text-muted-foreground">Consultation IRAC</td>
                   <td className="p-3 text-center">
-                    <Badge variant="outline">🟡 Fallback 2</Badge>
+                    <Badge className="bg-blue-500">Gemini</Badge>
                   </td>
-                  <td className="p-3 text-center">
-                    <Badge variant="outline">🟡 Fallback 1</Badge>
-                  </td>
-                  <td className="p-3 text-center">
-                    <Badge variant="destructive">❌</Badge>
-                  </td>
-                  <td className="p-3 text-center">~15-25s</td>
-                  <td className="p-3 text-center">0.14$/1M tokens</td>
+                  <td className="p-3 text-center font-mono text-xs">gemini-2.5-flash</td>
+                  <td className="p-3 text-center font-mono text-xs">text-embedding-3-small</td>
                 </tr>
                 <tr className="border-b hover:bg-muted/50">
-                  <td className="p-3 font-medium">⚡ Groq</td>
+                  <td className="p-3 font-mono text-xs">kb-quality-analysis</td>
+                  <td className="p-3 text-muted-foreground">Analyse qualité KB</td>
                   <td className="p-3 text-center">
-                    <Badge variant="outline">🟡 Fallback 3</Badge>
+                    <Badge className="bg-blue-500">Gemini</Badge>
                   </td>
+                  <td className="p-3 text-center font-mono text-xs">gemini-2.5-flash</td>
+                  <td className="p-3 text-center text-muted-foreground">—</td>
+                </tr>
+                <tr className="border-b hover:bg-muted/50">
+                  <td className="p-3 font-mono text-xs">document-consolidation</td>
+                  <td className="p-3 text-muted-foreground">Consolidation docs</td>
                   <td className="p-3 text-center">
-                    <Badge className="bg-blue-500">🟢 Priorité</Badge>
+                    <Badge className="bg-blue-500">Gemini</Badge>
                   </td>
+                  <td className="p-3 text-center font-mono text-xs">gemini-2.5-flash</td>
+                  <td className="p-3 text-center font-mono text-xs">text-embedding-3-small</td>
+                </tr>
+                <tr className="border-b hover:bg-muted/50">
+                  <td className="p-3 font-mono text-xs">query-classification</td>
+                  <td className="p-3 text-muted-foreground">Classification query</td>
                   <td className="p-3 text-center">
-                    <Badge variant="destructive">❌</Badge>
+                    <Badge className="bg-orange-500">Groq</Badge>
                   </td>
-                  <td className="p-3 text-center">~1-5s</td>
-                  <td className="p-3 text-center font-semibold text-green-600">Gratuit*</td>
+                  <td className="p-3 text-center font-mono text-xs">llama-3.3-70b-versatile</td>
+                  <td className="p-3 text-center text-muted-foreground">—</td>
+                </tr>
+                <tr className="border-b hover:bg-muted/50">
+                  <td className="p-3 font-mono text-xs">query-expansion</td>
+                  <td className="p-3 text-muted-foreground">Expansion query</td>
+                  <td className="p-3 text-center">
+                    <Badge className="bg-orange-500">Groq</Badge>
+                  </td>
+                  <td className="p-3 text-center font-mono text-xs">llama-3.3-70b-versatile</td>
+                  <td className="p-3 text-center text-muted-foreground">—</td>
+                </tr>
+                <tr className="border-b hover:bg-muted/50">
+                  <td className="p-3 font-mono text-xs">indexation</td>
+                  <td className="p-3 text-muted-foreground">Indexation KB</td>
+                  <td className="p-3 text-center">
+                    <Badge variant="secondary">Ollama</Badge>
+                  </td>
+                  <td className="p-3 text-center font-mono text-xs">qwen3:8b</td>
+                  <td className="p-3 text-center font-mono text-xs">text-embedding-3-small</td>
                 </tr>
               </tbody>
             </table>
             <p className="text-xs text-muted-foreground mt-2">
-              * Gratuit avec quotas limités (Gemini: 60 req/min, 1500 req/jour | Groq: 30 req/min, 14400 req/jour)
+              Dev local : tous les providers remplacés par Ollama qwen3:8b + qwen3-embedding:0.6b
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Diagramme de flux Mermaid */}
+      {/* Diagramme No-Fallback */}
       <Card>
         <CardHeader>
-          <CardTitle>Diagramme de Fallback LLM</CardTitle>
+          <CardTitle>Comportement No-Fallback</CardTitle>
           <CardDescription>
-            Hiérarchie de fallback automatique en cas d'erreur ou de rate limiting (429/5xx)
+            Chaque opération appelle un unique provider fixe — pas de cascade automatique
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="bg-muted p-4 rounded-lg overflow-x-auto">
             <pre className="text-xs font-mono whitespace-pre">
-{`┌─────────────────────────┐
-│   Requête IA (Chat)     │
-└───────────┬─────────────┘
-            │
-            ▼
-    ┌───────────────┐
-    │ Mode Sélect ? │
-    └───┬───────┬───┘
-        │       │
-   ⚡ Rapide   🧠 Premium
-        │       │
-        ▼       ▼
-    ┌──────┐ ┌──────┐
-    │Ollama│ │ Groq │
-    └───┬──┘ └───┬──┘
-        │        │
-    Erreur?  429/5xx?
-        │        │
-        ▼        ▼
-    ┌────────┐ ┌────────┐
-    │ Gemini │ │ Gemini │
-    └───┬────┘ └───┬────┘
-        │           │
-    429/5xx?    429/5xx?
-        │           │
-        ▼           ▼
-    ┌──────────┐ ┌──────────┐
-    │ DeepSeek │ │ DeepSeek │
-    └────┬─────┘ └────┬─────┘
-         │           │
-     429/5xx?    429/5xx?
-         │           │
-         ▼           ▼
-      ┌──────┐  ┌────────┐
-      │ Groq │  │ Ollama │
-      └───┬──┘  └────┬───┘
-          │           │
-      429/5xx?  Échec final
-          │           │
-          ▼           ▼
-     ┌────────────┐ ┌────────────┐
-     │ ❌ Erreur  │ │ ❌ Erreur  │
-     └────────────┘ └────────────┘`}
+{`┌─────────────────────────────────┐
+│   Requête IA (ex: assistant-ia) │
+└───────────────┬─────────────────┘
+                │
+                ▼
+   ┌────────────────────────────┐
+   │  Provider fixe configuré  │
+   │  (ex: Gemini 2.5 Flash)   │
+   └───────────┬────────────────┘
+               │
+       ┌───────┴────────┐
+       │                │
+    Succès           Échec
+       │                │
+       ▼                ▼
+  ┌─────────┐    ┌──────────────────┐
+  │ Réponse │    │ throw Exception  │
+  └─────────┘    │ + Email Alert    │
+                 └──────────────────┘`}
             </pre>
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Aucune dégradation silencieuse — une opération échoue clairement ou réussit.
+            Alerte email immédiate pour les opérations critiques (severity: critical).
+          </p>
         </CardContent>
       </Card>
 
-      {/* Stratégies par contexte */}
+      {/* Accordion 8 opérations */}
       <Card>
         <CardHeader>
-          <CardTitle>Stratégies par Contexte d'Usage</CardTitle>
+          <CardTitle>Détail des 8 Opérations</CardTitle>
           <CardDescription>
-            Chaque opération IA utilise une stratégie de fallback optimisée selon ses besoins
+            Configuration effective en production (source : lib/ai/operations-config.ts)
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="rag-chat">
+            <AccordionItem value="assistant-ia">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge>rag-chat</Badge>
+                  <Badge className="bg-blue-500">Gemini</Badge>
+                  <span className="font-mono text-xs">assistant-ia</span>
                   <span className="text-sm font-normal text-muted-foreground">
-                    Chat RAG avec recherche vectorielle
+                    Chat utilisateur temps réel
                   </span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Stratégie :</strong> Groq (primary, 292ms) → Gemini → DeepSeek → Ollama</p>
-                  <p><strong>Volume :</strong> 2-3M tokens/jour (haute fréquence)</p>
-                  <p><strong>Raison :</strong> Groq ultra-rapide (292ms) en primary pour chat temps réel, fallback Gemini/DeepSeek</p>
+                  <p><strong>Modèle :</strong> gemini-2.5-flash</p>
+                  <p><strong>Embeddings :</strong> OpenAI text-embedding-3-small (1536-dim)</p>
+                  <p><strong>Timeout :</strong> chat 30s, total 45s</p>
+                  <p><strong>Alerte :</strong> email, severity critical</p>
+                  <p><strong>Contexte :</strong> Chat RAG avec streaming SSE natif, seuil arabe 0.30</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="embeddings">
+            <AccordionItem value="dossiers-assistant">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge>embeddings</Badge>
+                  <Badge className="bg-blue-500">Gemini</Badge>
+                  <span className="font-mono text-xs">dossiers-assistant</span>
                   <span className="text-sm font-normal text-muted-foreground">
-                    Génération d'embeddings vectoriels
+                    Analyse approfondie de dossiers
                   </span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Stratégie :</strong> Ollama exclusif (qwen3-embedding:0.6b)</p>
-                  <p><strong>Économie :</strong> -400 à -750$/mois (OpenAI text-embedding-3-small)</p>
-                  <p><strong>Raison :</strong> Volume massif (1000+ docs), coût prohibitif en cloud</p>
-                  <p className="text-destructive"><strong>⚠️ Pas de fallback :</strong> Throw error si Ollama down</p>
+                  <p><strong>Modèle :</strong> gemini-2.5-flash</p>
+                  <p><strong>Embeddings :</strong> OpenAI text-embedding-3-small (1536-dim)</p>
+                  <p><strong>Timeout :</strong> chat 40s, total 60s</p>
+                  <p><strong>Alerte :</strong> email, severity critical</p>
+                  <p><strong>Contexte :</strong> Analyse juridique avec contexte 1M tokens Gemini</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="quality-analysis">
+            <AccordionItem value="dossiers-consultation">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge>quality-analysis</Badge>
+                  <Badge className="bg-blue-500">Gemini</Badge>
+                  <span className="font-mono text-xs">dossiers-consultation</span>
                   <span className="text-sm font-normal text-muted-foreground">
-                    Analyse qualité juridique
+                    Consultation formelle IRAC
                   </span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Stratégie :</strong> DeepSeek → Gemini → Ollama</p>
-                  <p><strong>Volume :</strong> Faible (quelques centaines/jour)</p>
-                  <p><strong>Raison :</strong> DeepSeek excellent rapport qualité/prix pour analyse approfondie</p>
+                  <p><strong>Modèle :</strong> gemini-2.5-flash</p>
+                  <p><strong>Embeddings :</strong> OpenAI text-embedding-3-small (1536-dim)</p>
+                  <p><strong>Timeout :</strong> chat 30s, total 60s</p>
+                  <p><strong>Alerte :</strong> email, severity critical</p>
+                  <p><strong>Contexte :</strong> Génération consultation juridique structurée (Issue / Rule / Application / Conclusion)</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="structuring">
+            <AccordionItem value="kb-quality-analysis">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge>structuring</Badge>
+                  <Badge className="bg-blue-500">Gemini</Badge>
+                  <span className="font-mono text-xs">kb-quality-analysis</span>
                   <span className="text-sm font-normal text-muted-foreground">
-                    Structuration de documents
+                    Analyse qualité de la Knowledge Base
                   </span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Stratégie :</strong> DeepSeek → Gemini → Ollama</p>
-                  <p><strong>Volume :</strong> Moyen (quelques milliers/jour)</p>
-                  <p><strong>Raison :</strong> Tâche structurée bénéficiant de la précision DeepSeek</p>
+                  <p><strong>Modèle :</strong> gemini-2.5-flash</p>
+                  <p><strong>Embeddings :</strong> — (LLM seul)</p>
+                  <p><strong>Timeout :</strong> chat 45s, total 90s</p>
+                  <p><strong>Alerte :</strong> email, severity warning</p>
+                  <p><strong>Contexte :</strong> Analyse qualité arabe juridique, output JSON structuré, contexte 12k tokens</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="translation">
+            <AccordionItem value="document-consolidation">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge>translation</Badge>
+                  <Badge className="bg-blue-500">Gemini</Badge>
+                  <span className="font-mono text-xs">document-consolidation</span>
                   <span className="text-sm font-normal text-muted-foreground">
-                    Traduction bilingue FR/AR
+                    Consolidation de documents multi-pages
                   </span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Stratégie :</strong> Gemini → Groq</p>
-                  <p><strong>Volume :</strong> Faible (quelques centaines/jour)</p>
-                  <p><strong>Raison :</strong> Gemini excellent en multilingue, Groq ultra-rapide en fallback</p>
+                  <p><strong>Modèle :</strong> gemini-2.5-flash</p>
+                  <p><strong>Embeddings :</strong> OpenAI text-embedding-3-small (1536-dim)</p>
+                  <p><strong>Timeout :</strong> chat 60s, total 120s</p>
+                  <p><strong>Alerte :</strong> log, severity warning</p>
+                  <p><strong>Contexte :</strong> Fusion de plusieurs pages en 1 document cohérent, exploite le contexte 1M tokens</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="web-scraping">
+            <AccordionItem value="query-classification">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge>web-scraping</Badge>
+                  <Badge className="bg-orange-500">Groq</Badge>
+                  <span className="font-mono text-xs">query-classification</span>
                   <span className="text-sm font-normal text-muted-foreground">
-                    Extraction web intelligente
+                    Classification de requêtes pour filtrage KB
                   </span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Stratégie :</strong> Gemini → Ollama</p>
-                  <p><strong>Volume :</strong> Variable (dépend du crawling)</p>
-                  <p><strong>Raison :</strong> Extraction simple, Gemini suffisant avec fallback local</p>
+                  <p><strong>Modèle :</strong> llama-3.3-70b-versatile</p>
+                  <p><strong>Embeddings :</strong> — (LLM seul)</p>
+                  <p><strong>Timeout :</strong> chat 5s, total 10s</p>
+                  <p><strong>Alerte :</strong> log, severity info</p>
+                  <p><strong>Contexte :</strong> Détermine les catégories KB pertinentes avant recherche vectorielle, ultra-rapide</p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="query-expansion">
+              <AccordionTrigger>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-orange-500">Groq</Badge>
+                  <span className="font-mono text-xs">query-expansion</span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    Expansion et reformulation de requêtes courtes
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Modèle :</strong> llama-3.3-70b-versatile</p>
+                  <p><strong>Embeddings :</strong> — (LLM seul)</p>
+                  <p><strong>Timeout :</strong> chat 5s, total 10s</p>
+                  <p><strong>Alerte :</strong> log, severity info</p>
+                  <p><strong>Contexte :</strong> Reformule les requêtes &lt;50 caractères pour améliorer le rappel RAG</p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="indexation">
+              <AccordionTrigger>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">Ollama</Badge>
+                  <span className="font-mono text-xs">indexation</span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    Indexation KB (background)
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2 text-sm">
+                  <p><strong>LLM :</strong> Ollama qwen3:8b (classification)</p>
+                  <p><strong>Embeddings prod :</strong> OpenAI text-embedding-3-small (1536-dim)</p>
+                  <p><strong>Embeddings dev :</strong> Ollama qwen3-embedding:0.6b (1024-dim)</p>
+                  <p><strong>Timeout :</strong> embedding 10s, chat 30s, total 60s</p>
+                  <p><strong>Alerte :</strong> log, severity warning</p>
+                  <p><strong>Contexte :</strong> Triple embedding parallèle (OpenAI + Ollama + Gemini) pour hybrid search</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -291,7 +347,7 @@ const AIFlowDiagram: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Économies réalisées */}
+      {/* Économies réelles */}
       <Card className="border-green-500 bg-green-50 dark:bg-green-950">
         <CardHeader>
           <CardTitle className="text-green-700 dark:text-green-300">
@@ -301,23 +357,23 @@ const AIFlowDiagram: React.FC = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">~100€/mois</p>
-              <p className="text-sm text-muted-foreground">Coût avant Option C</p>
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400">~150-200€/mois</p>
+              <p className="text-sm text-muted-foreground">Si GPT-4o / Claude (LLM payant)</p>
             </div>
             <div>
               <p className="text-3xl font-bold text-green-600 dark:text-green-400">→</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">~0-5€/mois</p>
-              <p className="text-sm text-muted-foreground">Coût après Option C</p>
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400">~$2-5/mois</p>
+              <p className="text-sm text-muted-foreground">Coût actuel (OpenAI embeddings uniquement)</p>
             </div>
           </div>
           <div className="mt-4 text-center">
             <p className="text-4xl font-bold text-green-700 dark:text-green-300">
-              ~1200€/an économisés 🎉
+              ~98% d&apos;économie sur les LLM
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Gain principal : Embeddings Ollama local vs OpenAI cloud (-400 à -750$/mois)
+              Gain principal : LLM gratuits (Gemini 2.5 Flash + Groq llama-3.3-70b) — seuls les embeddings OpenAI sont facturés (~$2-5/mois)
             </p>
           </div>
         </CardContent>
