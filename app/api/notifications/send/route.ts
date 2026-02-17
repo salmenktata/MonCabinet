@@ -191,8 +191,8 @@ export async function POST(request: NextRequest) {
         await sendEmail({
           to: user.email,
           subject: emailContent.subject,
-          html: emailContent.html,
-          text: emailContent.text,
+          htmlContent: emailContent.html,
+          textContent: emailContent.text,
         })
 
         sent++

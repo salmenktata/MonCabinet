@@ -203,8 +203,8 @@ ${new Date().toLocaleString(langue === 'ar' ? 'ar-TN' : 'fr-FR')}
     await sendEmail({
       to: user.email,
       subject,
-      html,
-      text,
+      htmlContent: html,
+      textContent: text,
     })
 
     log.info('Test notification sent successfully', {
