@@ -171,7 +171,7 @@ jobs:
             export BREVO_API_KEY="${{ secrets.BREVO_API_KEY }}"
             export CRON_SECRET="${{ secrets.CRON_SECRET }}"
 
-            bash scripts/update-secrets-from-gha.sh .env.production
+            bash scripts/update-secrets-from-gha.sh .env.production.local
           EOF
 
       - name: Execute deployment
