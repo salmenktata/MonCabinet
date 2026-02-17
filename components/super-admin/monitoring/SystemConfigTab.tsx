@@ -8,10 +8,30 @@
  * - Providers embeddings actifs
  * - Statistiques KB (docs indexés, chunks)
  * - Alertes misconfiguration
+ * - Variables d'environnement (présentes/manquantes/dépréciées)
  */
 
 import { useEffect, useState } from 'react'
-import { AlertCircle, CheckCircle, XCircle, Database, Cpu, Cloud, HardDrive } from 'lucide-react'
+import { AlertCircle, CheckCircle, XCircle, Database, Cpu, Cloud, HardDrive, ShieldCheck } from 'lucide-react'
+
+interface EnvVarConfig {
+  status: 'ok' | 'warning' | 'critical'
+  missing: string[]
+  present: string[]
+  importantMissing: string[]
+  importantPresent: string[]
+  deprecated: { name: string; replacedBy: string }[]
+  ragConfig: {
+    ragEnabled: boolean
+    ollamaEnabled: boolean
+    openaiConfigured: boolean
+    groqConfigured: boolean
+    googleConfigured: boolean
+    redisConfigured: boolean
+  }
+  totalChecked: number
+  checkedAt: string
+}
 
 interface RAGConfig {
   enabled: boolean
@@ -39,6 +59,7 @@ interface HealthCheckResponse {
 
 export default function SystemConfigTab() {
   const [healthData, setHealthData] = useState<HealthCheckResponse | null>(null)
+  const [envVarData, setEnvVarData] = useState<EnvVarConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
@@ -52,18 +73,40 @@ export default function SystemConfigTab() {
       setHealthData(data)
       setError(null)
       setLastUpdate(new Date())
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Health check failed')
     } finally {
       setLoading(false)
     }
   }
 
-  // Initial load + auto-refresh every 30s
+  // Fetch env var drift data
+  const fetchEnvVarConfig = async () => {
+    try {
+      const response = await fetch('/api/admin/monitoring/system-config')
+
+      if (!response.ok) {
+        // Non bloquant : afficher sans la section env vars
+        return
+      }
+
+      const data = await response.json()
+      setEnvVarData(data)
+    } catch {
+      // Silencieux : section env vars optionnelle
+    }
+  }
+
+  // Initial load + auto-refresh every 60s
   useEffect(() => {
     fetchHealthCheck()
-    const interval = setInterval(fetchHealthCheck, 30000)
-    return () => clearInterval(interval)
+    fetchEnvVarConfig()
+    const healthInterval = setInterval(fetchHealthCheck, 30000)
+    const envInterval = setInterval(fetchEnvVarConfig, 60000)
+    return () => {
+      clearInterval(healthInterval)
+      clearInterval(envInterval)
+    }
   }, [])
 
   if (loading) {
@@ -253,6 +296,120 @@ export default function SystemConfigTab() {
                 <div className="text-sm text-green-700 mt-1">Chunks disponibles</div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section Variables d'Environnement */}
+      {envVarData && (
+        <div className="bg-card rounded-lg border border-border p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className={`w-6 h-6 ${
+                envVarData.status === 'critical' ? 'text-red-600' :
+                envVarData.status === 'warning' ? 'text-yellow-600' : 'text-green-600'
+              }`} />
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Variables d&apos;Environnement</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {envVarData.totalChecked} variables vérifiées
+                </p>
+              </div>
+            </div>
+            <div className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+              envVarData.status === 'critical'
+                ? 'bg-red-100 border-red-300 text-red-800'
+                : envVarData.status === 'warning'
+                  ? 'bg-yellow-100 border-yellow-300 text-yellow-800'
+                  : 'bg-green-100 border-green-300 text-green-800'
+            }`}>
+              {envVarData.status === 'critical' ? 'CRITIQUE' :
+               envVarData.status === 'warning' ? 'AVERTISSEMENT' : 'OK'}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* Variables REQUIRED manquantes → rouge */}
+            {envVarData.missing.length > 0 && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <XCircle className="w-4 h-4 text-red-600" />
+                  <h4 className="text-sm font-semibold text-red-900">
+                    Variables obligatoires manquantes ({envVarData.missing.length})
+                  </h4>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {envVarData.missing.map((v) => (
+                    <code key={v} className="px-2 py-1 bg-red-100 border border-red-300 rounded text-xs font-mono text-red-800">
+                      {v}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Variables IMPORTANT manquantes → jaune */}
+            {envVarData.importantMissing.length > 0 && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="w-4 h-4 text-yellow-600" />
+                  <h4 className="text-sm font-semibold text-yellow-900">
+                    Variables importantes manquantes ({envVarData.importantMissing.length})
+                  </h4>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {envVarData.importantMissing.map((v) => (
+                    <code key={v} className="px-2 py-1 bg-yellow-100 border border-yellow-300 rounded text-xs font-mono text-yellow-800">
+                      {v}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Variables DEPRECATED présentes → jaune */}
+            {envVarData.deprecated.length > 0 && (
+              <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="w-4 h-4 text-orange-600" />
+                  <h4 className="text-sm font-semibold text-orange-900">
+                    Variables dépréciées présentes ({envVarData.deprecated.length})
+                  </h4>
+                </div>
+                <div className="space-y-1.5">
+                  {envVarData.deprecated.map((d) => (
+                    <div key={d.name} className="flex items-center gap-2 text-xs">
+                      <code className="px-2 py-1 bg-orange-100 border border-orange-300 rounded font-mono text-orange-800">
+                        {d.name}
+                      </code>
+                      <span className="text-orange-600">→ remplacer par</span>
+                      <code className="px-2 py-1 bg-orange-100 border border-orange-300 rounded font-mono text-orange-800">
+                        {d.replacedBy}
+                      </code>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Variables REQUIRED présentes → vert */}
+            {envVarData.present.length > 0 && (
+              <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <h4 className="text-sm font-semibold text-green-900">
+                    Variables obligatoires configurées ({envVarData.present.length}/{envVarData.present.length + envVarData.missing.length})
+                  </h4>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {envVarData.present.map((v) => (
+                    <code key={v} className="px-2 py-1 bg-green-100 border border-green-300 rounded text-xs font-mono text-green-800">
+                      {v}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
