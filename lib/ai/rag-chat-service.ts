@@ -1930,7 +1930,7 @@ export async function saveMessage(
       role,
       content,
       sources ? JSON.stringify(sources) : null,
-      tokensUsed || null,
+      tokensUsed != null ? tokensUsed : null,
       model || null,
       metadata ? JSON.stringify(metadata) : null,
     ]

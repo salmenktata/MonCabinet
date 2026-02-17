@@ -147,11 +147,16 @@ if [ "$NO_EMBEDDINGS" = true ]; then
 fi
 echo -e "${YELLOW}Les données locales de ces tables seront ÉCRASÉES.${NC}"
 echo ""
-read -p "Continuer ? (y/N) " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  echo "Annulé."
-  exit 0
+if [ -t 0 ]; then
+  read -p "Continuer ? (y/N) " -n 1 -r
+  echo ""
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Annulé."
+    exit 0
+  fi
+else
+  REPLY="y"
+  echo "Mode non-interactif : confirmation automatique"
 fi
 
 # ============================================================================
