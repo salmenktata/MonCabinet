@@ -438,10 +438,16 @@ if [ "$NO_EMBEDDINGS" = true ]; then
     COPY (SELECT id, knowledge_base_id, chunk_index, content, metadata, created_at
           FROM knowledge_base_chunks) TO STDOUT WITH CSV HEADER\"" > "${DUMP_FILE}.chunks.csv"
 else
-  # Dump complet avec embeddings — format custom (binaire, pas de problème d'interprétation SQL)
-  ssh "$REMOTE_HOST" "docker exec ${REMOTE_CONTAINER} pg_dump -Fc -U ${REMOTE_USER} -d ${REMOTE_DB} \
+  # Dump complet avec embeddings — dump côté serveur d'abord, puis scp (évite timeout SSH sur gros volumes)
+  REMOTE_DUMP_FILE="/tmp/qadhya-kb-prod-${TIMESTAMP}.dump"
+  ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=20 "$REMOTE_HOST" \
+    "docker exec ${REMOTE_CONTAINER} pg_dump -Fc -U ${REMOTE_USER} -d ${REMOTE_DB} \
     --data-only --no-owner --no-privileges --disable-triggers \
-    ${TABLES}" > "$DUMP_FILE"
+    ${TABLES} > ${REMOTE_DUMP_FILE}"
+  echo -e "  Transfert SCP en cours..."
+  scp -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+    "${REMOTE_HOST}:${REMOTE_DUMP_FILE}" "$DUMP_FILE"
+  ssh "$REMOTE_HOST" "rm -f ${REMOTE_DUMP_FILE}"
 fi
 
 END_TIME=$(date +%s)

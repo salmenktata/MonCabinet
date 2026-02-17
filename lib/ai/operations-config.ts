@@ -83,7 +83,7 @@ const isDev = process.env.NODE_ENV === 'development'
  *
  * | Opération              | Provider | Modèle                    | Coût     |
  * |------------------------|----------|---------------------------|----------|
- * | Assistant IA (chat)    | Groq     | llama-3.3-70b-versatile   | 0€       |
+ * | Assistant IA (chat)    | Gemini   | gemini-2.5-flash          | 0€       |
  * | Dossiers Assistant     | Gemini   | gemini-2.5-flash          | 0€       |
  * | Consultations IRAC     | Gemini   | gemini-2.5-flash          | 0€       |
  * | KB Quality Analysis    | OpenAI   | gpt-4o-mini               | ~$3/mois |
@@ -127,7 +127,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'assistant-ia': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
+      : { provider: 'gemini', name: 'gemini-2.5-flash' },
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
@@ -146,7 +146,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Chat utilisateur temps réel - Groq ultra-rapide (292ms)',
+    description: 'Chat utilisateur temps réel - Gemini 2.5 Flash',
   },
 
   // ---------------------------------------------------------------------------
