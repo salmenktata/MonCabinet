@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 
 /**
  * GET /api/admin/monitoring/rag-health
@@ -18,8 +19,9 @@ export async function GET() {
         COUNT(*) FILTER (WHERE embedding_openai IS NOT NULL) as openai_count,
         COUNT(*) FILTER (WHERE embedding IS NOT NULL AND embedding_openai IS NULL) as ollama_count,
         COUNT(*) as total_chunks
-      FROM knowledge_base_chunks
-      WHERE is_active = true
+      FROM knowledge_base_chunks kbc
+      JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+      WHERE kb.is_indexed = true
     `)
 
     const openaiCount = parseInt(embeddingsStats.rows[0]?.openai_count || '0', 10)
@@ -129,12 +131,12 @@ export async function GET() {
         },
       },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[RAG Health API] Error:', error)
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Failed to fetch RAG health metrics',
+        error: getErrorMessage(error) || 'Failed to fetch RAG health metrics',
       },
       { status: 500 }
     )
