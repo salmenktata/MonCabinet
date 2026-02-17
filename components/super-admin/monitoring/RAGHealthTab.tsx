@@ -105,7 +105,7 @@ export function RAGHealthTab() {
   }))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 overflow-hidden">
       {/* Alertes critiques */}
       {data.alerts.hasMismatch && (
         <Alert variant="destructive">
@@ -240,7 +240,7 @@ export function RAGHealthTab() {
               OpenAI 1536-dim · Ollama 1024-dim · Gemini 768-dim
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-hidden">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -274,12 +274,12 @@ export function RAGHealthTab() {
               Évolution du taux de succès des requêtes RAG
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-hidden">
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={timelineChartData}>
+              <LineChart data={timelineChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis domain={[0, 100]} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                <YAxis domain={[0, 100]} width={40} />
                 <Tooltip
                   formatter={(value) => `${Number(value).toFixed(1)}%`}
                   labelFormatter={(label) => `Date: ${label}`}
@@ -320,7 +320,7 @@ export function RAGHealthTab() {
               <AlertDescription>
                 Réindexation Gemini en cours : {data.embeddings.geminiRatio.toFixed(1)}% couverts
                 ({data.embeddings.gemini.toLocaleString()} / {data.embeddings.total.toLocaleString()} chunks).
-                Relancez <code className="text-xs">/api/admin/reindex-kb-gemini</code> pour continuer.
+                Relancez <code className="text-xs break-all">/api/admin/reindex-kb-gemini</code> pour continuer.
               </AlertDescription>
             </Alert>
           )}
