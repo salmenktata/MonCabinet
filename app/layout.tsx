@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Noto_Sans_Arabic } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, getLocale } from 'next-intl/server'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
@@ -17,6 +17,15 @@ const inter = Inter({
   display: 'swap',
   preload: true,
   fallback: ['system-ui', 'arial'],
+})
+
+// Police arabe chargée on-demand (ne bloque pas LCP)
+const notoSansArabic = Noto_Sans_Arabic({
+  subsets: ['arabic'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  preload: false,
+  variable: '--font-arabic',
 })
 
 export const metadata: Metadata = {
@@ -55,7 +64,7 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={`${inter.className}${locale === 'ar' ? ' font-arabic' : ''}`}>
+      <body className={`${inter.className} ${notoSansArabic.variable}${locale === 'ar' ? ' font-arabic' : ''}`}>
         <SessionProvider>
           <ThemeProvider>
             <QueryProvider>

@@ -76,6 +76,14 @@ function getTextContent(children: React.ReactNode): string {
   return ''
 }
 
+/**
+ * Détecte si un texte est majoritairement en arabe (>25% de caractères arabes)
+ */
+function isArabicText(text: string): boolean {
+  const arabicChars = (text.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/g) || []).length
+  return arabicChars > 0 && arabicChars / text.replace(/\s/g, '').length > 0.25
+}
+
 interface IRACSectionStyle {
   step: string
   bgClass: string
@@ -150,7 +158,7 @@ function getIRACSectionStyle(text: string): IRACSectionStyle | null {
 
 export function MarkdownMessage({ content, sources = [], className }: MarkdownMessageProps) {
   return (
-    <div dir="auto" className={cn('prose dark:prose-invert max-w-none prose-p:first:mt-0 prose-headings:first:mt-0', className)}>
+    <div dir="auto" className={cn('chat-ai-content prose dark:prose-invert max-w-none prose-p:first:mt-0 prose-headings:first:mt-0', className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -234,9 +242,15 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
+            const blockquoteText = getTextContent(children)
+            const isArabicBq = isArabicText(blockquoteText)
             return (
               <blockquote
-                className="border-s-[3px] border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ps-4 pe-4 py-3 my-5 rounded-e-xl not-italic text-foreground/85"
+                className={cn(
+                  "border-s-[3px] border-amber-400 dark:border-amber-500 bg-amber-50/70 dark:bg-amber-950/25 ps-4 pe-4 py-3 my-5 rounded-e-xl not-italic text-foreground/90",
+                  isArabicBq && "font-arabic leading-[2.1]"
+                )}
+                dir={isArabicBq ? "rtl" : undefined}
                 {...props}
               >
                 {parsedChildren}
@@ -287,10 +301,9 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
 
             return (
               <h2
-                className="text-base font-bold mt-6 mb-3 text-primary flex items-center gap-2"
+                className="text-base font-bold mt-6 mb-3 text-foreground flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border-s-[3px] border-primary"
                 {...props}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block shrink-0" />
                 {parsedChildren}
               </h2>
             )
@@ -323,7 +336,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
 
             return (
               <h3
-                className="text-[15px] font-bold mt-5 mb-2.5 ps-3 py-2 border-s-[3px] border-primary/70 bg-primary/5 rounded-e-lg text-foreground"
+                className="text-[15px] font-semibold mt-5 mb-2.5 ps-3 py-1.5 border-s-2 border-primary/50 text-foreground/90"
                 {...props}
               >
                 {parsedChildren}
@@ -333,7 +346,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
 
           // Listes non-ordonnées
           ul: ({ node, ...props }) => (
-            <ul className="list-none ms-0 my-3 space-y-1.5 [&>li]:before:content-['▸'] [&>li]:before:text-primary/40 [&>li]:before:me-2 [&>li]:before:text-xs [&>li]:ps-1" {...props} />
+            <ul className="list-none ms-0 my-3 space-y-1.5 [&>li]:before:content-['▸'] [&>li]:before:text-primary/65 [&>li]:before:me-2 [&>li]:before:text-xs [&>li]:ps-1" {...props} />
           ),
 
           // Listes ordonnées
@@ -346,8 +359,13 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
+            const textContent = getTextContent(children)
+            const isArabic = isArabicText(textContent)
             return (
-              <li className="text-base leading-8" {...props}>
+              <li className={cn(
+                "text-base",
+                isArabic ? "font-arabic leading-[2.1]" : "leading-relaxed"
+              )} {...props}>
                 {parsedChildren}
               </li>
             )
@@ -371,9 +389,14 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
               }
               return child
             })
+            const textContent = getTextContent(children)
+            const isArabic = isArabicText(textContent)
 
             return (
-              <p className="my-3 text-base leading-8 text-foreground/85" {...props}>
+              <p className={cn(
+                "my-3 text-base text-foreground/90",
+                isArabic ? "font-arabic leading-[2.1] tracking-normal" : "leading-relaxed"
+              )} dir={isArabic ? "rtl" : undefined} {...props}>
                 {parsedChildren}
               </p>
             )
