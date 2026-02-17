@@ -293,6 +293,54 @@ const LEGAL_SYNONYMS: Record<string, string[]> = {
   'الحبس': ['السجن', 'الإيداع', 'الاحتفاظ', 'الإيقاف التحفظي'],
   'الكفالة القضائية': ['السراح الشرطي', 'الإفراج المؤقت', 'السراح بكفالة'],
   'الصلح': ['التصالح', 'المصالحة الجزائية', 'إنهاء النزاع صلحا'],
+
+  // === TERMES FRANÇAIS → ARABES (pour requêtes en français) ===
+  // Droit de la famille
+  'divorce': ['طلاق', 'فسخ عقد الزواج', 'حل عقدة النكاح', 'التفريق', 'مجلة الأحوال الشخصية'],
+  'mariage': ['زواج', 'عقد النكاح', 'الصداق', 'المهر', 'مجلة الأحوال الشخصية'],
+  'garde': ['حضانة', 'كفالة الطفل', 'رعاية المحضون', 'حق الحضانة'],
+  'pension alimentaire': ['نفقة', 'واجب النفقة', 'نفقة الأبناء', 'الإنفاق'],
+  'succession': ['الميراث', 'الإرث', 'التركة', 'الفريضة', 'الأنصباء'],
+  'héritage': ['الميراث', 'الإرث', 'التركة', 'الفريضة'],
+
+  // Droit pénal
+  'légitime défense': ['الدفاع الشرعي', 'دفع صائلا', 'درء الاعتداء', 'الخطر الحال', 'المجلة الجزائية'],
+  'homicide': ['القتل', 'قتل النفس', 'القتل العمد', 'المجلة الجزائية'],
+  'vol': ['السرقة', 'اختلس', 'الاستيلاء خلسة', 'أخذ مال الغير'],
+  'viol': ['الاغتصاب', 'مواقعة بالقوة', 'هتك عرض بالقوة'],
+  'harcèlement': ['التحرش', 'اعتداء على العرض', 'الفعل المخل بالحياء'],
+  'corruption': ['الرشوة', 'ارتشاء', 'استغلال النفوذ', 'أخذ عطية'],
+  'détournement': ['اختلاس', 'خيانة الأمانة', 'بدد أو اختلس', 'التصرف في مال الغير'],
+  'escroquerie': ['النصب', 'احتيال', 'توصل بطرق احتيالية'],
+  'faux': ['التزوير', 'افتعال', 'تدليس', 'تحريف الحقيقة'],
+
+  // Droit civil
+  'responsabilité civile': ['المسؤولية المدنية', 'جبر الضرر', 'الضمان', 'التعدي', 'مجلة الالتزامات والعقود'],
+  'responsabilité': ['المسؤولية', 'الضمان', 'الخطأ الموجب', 'مجلة الالتزامات والعقود'],
+  'contrat': ['عقد', 'الاتفاق', 'الالتزام', 'الإيجاب والقبول', 'التعاقد'],
+  'bail': ['كراء', 'عقد كراء', 'المكتري', 'المكري', 'contrat de location'],
+  'propriété': ['الملكية', 'حق التصرف', 'حق الملك', 'الانتفاع'],
+  'prescription': ['التقادم', 'مرور الزمن', 'سقوط الحق', 'انقضاء المدة'],
+  'indemnisation': ['التعويض', 'جبر الضرر', 'غرم', 'إصلاح الضرر'],
+  'préjudice': ['الضرر', 'الأذى', 'جبر الضرر', 'التعويض عن الضرر'],
+
+  // Droit du travail
+  'licenciement': ['طرد تعسفي', 'فسخ عقد الشغل', 'الإنهاء غير المشروع', 'مجلة الشغل'],
+  'licenciement abusif': ['طرد تعسفي', 'فسخ بدون موجب', 'الإنهاء غير المشروع', 'مجلة الشغل'],
+  'contrat de travail': ['عقد الشغل', 'العلاقة الشغلية', 'الأجير والمؤجر'],
+  'salaire': ['الأجر', 'المرتب', 'الأجرة', 'التعويضات والمنح'],
+  'grève': ['الإضراب', 'التوقف عن العمل', 'إيقاف العمل', 'الإضراب المشروع'],
+
+  // Droit commercial
+  'faillite': ['الإفلاس', 'التفليس', 'التوقف عن الدفع', 'المجلة التجارية'],
+  'chèque': ['الشيك', 'الصك', 'ورقة تجارية', 'المجلة التجارية'],
+  'chèque sans provision': ['شيك بدون رصيد', 'إصدار شيك دون رصيد', 'الساحب', 'المجلة التجارية'],
+  'société': ['شركة', 'شركات تجارية', 'المجلة التجارية'],
+
+  // Procédure
+  'appel': ['الاستئناف', 'الطعن بالاستئناف', 'محكمة الدرجة الثانية'],
+  'cassation': ['التعقيب', 'الطعن بالتعقيب', 'النقض', 'محكمة التعقيب'],
+  'détention': ['الحبس', 'السجن', 'الإيداع', 'الاحتفاظ'],
 }
 
 /**
@@ -302,9 +350,14 @@ const LEGAL_SYNONYMS: Record<string, string[]> = {
  */
 export function enrichQueryWithLegalSynonyms(query: string): string {
   const matchedSynonyms: string[] = []
+  const lowerQuery = query.toLowerCase()
 
   for (const [modernTerm, classicSynonyms] of Object.entries(LEGAL_SYNONYMS)) {
-    if (query.includes(modernTerm)) {
+    // Insensible à la casse pour les termes français (ASCII), exact pour l'arabe
+    const matches = modernTerm.charCodeAt(0) > 127
+      ? query.includes(modernTerm)                     // Arabe : sensible à la casse
+      : lowerQuery.includes(modernTerm.toLowerCase())  // Français : insensible à la casse
+    if (matches) {
       // Ajouter les synonymes classiques qui ne sont pas déjà dans la query
       for (const synonym of classicSynonyms) {
         if (!query.includes(synonym) && !matchedSynonyms.includes(synonym)) {
