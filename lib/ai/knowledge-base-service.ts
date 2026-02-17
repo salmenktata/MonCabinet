@@ -768,35 +768,41 @@ export async function searchKnowledgeBaseHybrid(
 
     // Fallback Ollama si :
     // 1. Couverture insuffisante (< 3 résultats) - cas des chunks sans embedding_openai
-    // 2. Qualité insuffisante (max score < 0.65) - cas des queries arabes mal servies par OpenAI
-    //    (99.8% des chunks ont embedding_openai mais OpenAI text-embedding-3-small
-    //     ne capture pas bien la sémantique légale arabe, ex. "دفاع" vs "دفع صائلا")
-    const needsOllamaFallback = openaiResults.length < 3 || maxOpenAIScore < 0.65
+    // 2. Qualité insuffisante (max score < 0.50) - cas des queries arabes mal servies par OpenAI
+    //    (seuil 0.50 vs 0.65 avant : avec pool×3, les scores sont naturellement plus bas
+    //     car on compare avec plus de candidats — 0.65 déclenchait trop de fallbacks Ollama)
+    const needsOllamaFallback = openaiResults.length < 3 || maxOpenAIScore < 0.50
 
     if (needsOllamaFallback) {
       console.log(`[KB Hybrid Search] Qualité OpenAI insuffisante (${openaiResults.length} résultats, maxScore=${maxOpenAIScore.toFixed(3)}), fallback dual-provider...`)
 
-      // Générer embedding Ollama pour couvrir les chunks legacy (1024-dim)
-      const ollamaEmbedding = await generateEmbedding(query, {
-        operationName: undefined, // Force Ollama (défaut sans opération)
-      })
-      const ollamaEmbStr = formatEmbeddingForPostgres(ollamaEmbedding.embedding)
+      try {
+        // Générer embedding Ollama pour couvrir les chunks legacy (1024-dim)
+        const ollamaEmbedding = await generateEmbedding(query, {
+          operationName: undefined, // Force Ollama (défaut sans opération)
+        })
+        const ollamaEmbStr = formatEmbeddingForPostgres(ollamaEmbedding.embedding)
 
-      const ollamaResults = await searchHybridSingle(
-        queryText, ollamaEmbStr, category || null, singleDocType, sqlCandidatePool, threshold, false
-      )
+        const ollamaResults = await searchHybridSingle(
+          queryText, ollamaEmbStr, category || null, singleDocType, sqlCandidatePool, threshold, false
+        )
 
-      // Fusionner : dédupliquer par chunk_id, prioriser meilleur score (OpenAI ou Ollama)
-      const seenChunks = new Set(openaiResults.map(r => r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50)))
-      const mergedOllama = ollamaResults.filter(r =>
-        !seenChunks.has(r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
-      )
+        // Fusionner : dédupliquer par chunk_id, prioriser meilleur score (OpenAI ou Ollama)
+        const seenChunks = new Set(openaiResults.map(r => r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50)))
+        const mergedOllama = ollamaResults.filter(r =>
+          !seenChunks.has(r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
+        )
 
-      results = [...openaiResults, ...mergedOllama]
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, sqlCandidatePool) // Garder tout le pool — callers slicent après domain boost
+        results = [...openaiResults, ...mergedOllama]
+          .sort((a, b) => b.similarity - a.similarity)
+          .slice(0, sqlCandidatePool) // Garder tout le pool — callers slicent après domain boost
 
-      console.log(`[KB Hybrid Search] Dual-provider: ${openaiResults.length} OpenAI + ${mergedOllama.length} Ollama → ${results.length} total (pool=${sqlCandidatePool})`)
+        console.log(`[KB Hybrid Search] Dual-provider: ${openaiResults.length} OpenAI + ${mergedOllama.length} Ollama → ${results.length} total (pool=${sqlCandidatePool})`)
+      } catch (ollamaErr) {
+        // Dimension mismatch (1024 vs 1536) ou Ollama indisponible → utiliser OpenAI uniquement
+        console.warn(`[KB Hybrid Search] Ollama fallback échoué, utilisation OpenAI uniquement:`, ollamaErr instanceof Error ? ollamaErr.message : ollamaErr)
+        results = openaiResults
+      }
     } else {
       // Retourner tout le pool SQL — les callers appliquent domain boost puis slicent
       results = openaiResults
