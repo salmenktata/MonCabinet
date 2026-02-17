@@ -96,7 +96,7 @@ async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResul
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: aiConfig.ollama.embeddingModel,
-        prompt: text.substring(0, 6500),
+        prompt: text.substring(0, 2000),
         keep_alive: '10m',
       }),
       signal: controller.signal,
@@ -331,7 +331,7 @@ export async function generateEmbedding(
 ): Promise<EmbeddingResult> {
   // Tronquer si le texte dépasse la limite du modèle d'embedding.
   // text-embedding-3-small : 8191 tokens max (~24 000 chars arabe, ~32 000 chars français)
-  // Ollama qwen3-embedding : 6500 chars (cf. generateEmbeddingWithOllama)
+  // Ollama qwen3-embedding : 2000 chars max (fenêtre contextuelle limitée du modèle)
   // Gemini embedding-001 : 8000 chars (cf. generateEmbeddingWithGemini)
   // On utilise 6000 comme dénominateur commun conservateur pour tous les providers.
   const MAX_EMBEDDING_CHARS = 6000
