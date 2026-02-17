@@ -24,8 +24,8 @@ name: Deploy Production
 run-name: "Deploy #${{ github.run_number }} - ${{ github.event.head_commit.message || 'manual' }}"
 
 on:
-  push:
-    branches: [main]
+  # DÉSACTIVÉ: ce workflow est remplacé par deploy-vps.yml (2-tier Lightning/Docker)
+  # Réactiver uniquement pour tests via workflow_dispatch
   workflow_dispatch:
 
 concurrency:
