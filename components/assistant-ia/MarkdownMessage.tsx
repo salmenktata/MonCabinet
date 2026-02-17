@@ -93,13 +93,15 @@ interface IRACSectionStyle {
 }
 
 /**
- * Détecte les sections IRAC arabes/françaises et retourne un style distinct
+ * Détecte les sections IRAC arabes/françaises et retourne un style distinct.
+ * Couvre les deux variantes Unicode du tanwin : اً (U+0627 U+064B) et ًا (U+064B U+0627)
  */
 function getIRACSectionStyle(text: string): IRACSectionStyle | null {
   const t = text.trim()
 
   // Section 1 : Faits / الوقائع
-  if (t.includes('أولاً') || /^1[\.\)]\s/i.test(t) || /premièrement/i.test(t) || /الوقائع/i.test(t)) {
+  // أول[اً] couvre أولاً et أولًا (les deux variantes tanwin)
+  if (/أول[اًً]/.test(t) || /^1[\.\)]\s/i.test(t) || /premièrement/i.test(t) || /الوقائع/i.test(t)) {
     return {
       step: '1',
       bgClass: 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30',
@@ -110,7 +112,7 @@ function getIRACSectionStyle(text: string): IRACSectionStyle | null {
   }
 
   // Section 2 : Cadre juridique / الإطار القانوني
-  if (t.includes('ثانياً') || /^2[\.\)]\s/i.test(t) || /deuxièmement/i.test(t) || /الإطار القانوني/i.test(t)) {
+  if (/ثاني[اًً]/.test(t) || /^2[\.\)]\s/i.test(t) || /deuxièmement/i.test(t) || /الإطار القانوني/i.test(t)) {
     return {
       step: '2',
       bgClass: 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30',
@@ -121,7 +123,7 @@ function getIRACSectionStyle(text: string): IRACSectionStyle | null {
   }
 
   // Section 3 : Analyse / التحليل
-  if (t.includes('ثالثاً') || /^3[\.\)]\s/i.test(t) || /troisièmement/i.test(t) || /التحليل/i.test(t)) {
+  if (/ثالث[اًً]/.test(t) || /^3[\.\)]\s/i.test(t) || /troisièmement/i.test(t) || /التحليل/i.test(t)) {
     return {
       step: '3',
       bgClass: 'bg-purple-50 dark:bg-purple-950/30 border border-purple-200/50 dark:border-purple-800/30',
@@ -132,7 +134,7 @@ function getIRACSectionStyle(text: string): IRACSectionStyle | null {
   }
 
   // Section 4 : Conclusion / الخلاصة
-  if (t.includes('رابعاً') || /^4[\.\)]\s/i.test(t) || /quatrièmement/i.test(t) || /الخلاصة|التوصيات/i.test(t)) {
+  if (/رابع[اًً]/.test(t) || /^4[\.\)]\s/i.test(t) || /quatrièmement/i.test(t) || /الخلاصة|التوصيات/i.test(t)) {
     return {
       step: '4',
       bgClass: 'bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30',
@@ -143,7 +145,7 @@ function getIRACSectionStyle(text: string): IRACSectionStyle | null {
   }
 
   // Section 5+ : Autres
-  if (t.includes('خامساً') || /^5[\.\)]\s/i.test(t)) {
+  if (/خامس[اًً]/.test(t) || /^5[\.\)]\s/i.test(t)) {
     return {
       step: '5',
       bgClass: 'bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/30',
@@ -371,10 +373,36 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             )
           },
 
-          // Texte fort - références juridiques
-          strong: ({ node, children, ...props }) => (
-            <strong className="font-semibold text-foreground not-prose" {...props}>{children}</strong>
-          ),
+          // Texte fort - références juridiques + sections IRAC en bold
+          strong: ({ node, children, ...props }) => {
+            const textContent = getTextContent(children)
+            const sectionStyle = getIRACSectionStyle(textContent)
+
+            if (sectionStyle) {
+              return (
+                <strong
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-sm not-prose my-2',
+                    sectionStyle.bgClass,
+                    sectionStyle.textClass
+                  )}
+                  {...props}
+                >
+                  <span className={cn(
+                    'w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-black shrink-0',
+                    sectionStyle.badgeBg, sectionStyle.badgeText
+                  )}>
+                    {sectionStyle.step}
+                  </span>
+                  {children}
+                </strong>
+              )
+            }
+
+            return (
+              <strong className="font-semibold text-foreground not-prose" {...props}>{children}</strong>
+            )
+          },
 
           // Emphase
           em: ({ node, children, ...props }) => (
