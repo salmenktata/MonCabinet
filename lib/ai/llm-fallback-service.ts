@@ -68,8 +68,8 @@ export interface LLMResponse {
 /** Kill switch d'urgence: réactive le mode cascade legacy si true */
 const LLM_FALLBACK_ENABLED = process.env.LLM_FALLBACK_ENABLED === 'true'
 
-/** Ordre de fallback legacy (uniquement si LLM_FALLBACK_ENABLED=true) */
-const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'groq', 'openai', 'ollama']
+/** Ordre de fallback pour les réponses chat : Gemini → OpenAI → Ollama */
+const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'openai', 'ollama']
 
 // =============================================================================
 // CLIENTS LLM (singletons)
@@ -198,6 +198,31 @@ export function isRateLimitError(error: unknown): boolean {
     return err.status === 429 || err.statusCode === 429
   }
 
+  return false
+}
+
+/**
+ * Vérifie si l'erreur est une erreur serveur ou timeout (récupérable par fallback)
+ */
+export function isServerOrTimeoutError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase()
+    return (
+      message.includes('timeout') ||
+      message.includes('timed out') ||
+      message.includes('abort') ||
+      message.includes('503') ||
+      message.includes('502') ||
+      message.includes('500') ||
+      message.includes('service unavailable') ||
+      message.includes('internal server error') ||
+      message.includes('overloaded')
+    )
+  }
+  if (typeof error === 'object' && error !== null) {
+    const err = error as { status?: number; statusCode?: number }
+    return [500, 502, 503, 504].includes(err.status ?? err.statusCode ?? 0)
+  }
   return false
 }
 
@@ -478,17 +503,19 @@ export async function callLLMWithFallback(
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error))
 
-      // Sur erreur 429 (rate limit), basculer vers cascade fallback au lieu de throw
-      if (isRateLimitError(error)) {
+      // Sur erreur récupérable (429 rate-limit, 5xx serveur, timeout) → cascade Gemini→OpenAI→Ollama
+      const isRecoverable = isRateLimitError(error) || isServerOrTimeoutError(error)
+      if (isRecoverable) {
+        const reason = isRateLimitError(error) ? 'rate-limité' : 'erreur serveur/timeout'
         console.warn(
-          `[LLM] ⚠️ ${provider} rate-limité pour ${options.operationName || 'default'}, cascade fallback...`
+          `[LLM] ⚠️ ${provider} ${reason} pour ${options.operationName || 'default'}, cascade fallback...`
         )
         // Trouver les providers alternatifs disponibles
         const available = getAvailableProviders().filter(p => p !== provider)
         for (const fallbackProvider of available) {
           try {
             const response = await callProvider(fallbackProvider, messages, options)
-            console.log(`[LLM] ✓ Fallback rate-limit réussi: ${provider} → ${fallbackProvider}`)
+            console.log(`[LLM] ✓ Fallback réussi: ${provider} → ${fallbackProvider} (${reason})`)
             return {
               ...response,
               fallbackUsed: true,
@@ -500,7 +527,7 @@ export async function callLLMWithFallback(
         }
         // Si tous les fallbacks échouent aussi
         throw new Error(
-          `Provider ${provider} rate-limité et aucun fallback disponible pour ${options.operationName || 'default'}: ${err.message}`
+          `Provider ${provider} indisponible (${reason}) et aucun fallback pour ${options.operationName || 'default'}: ${err.message}`
         )
       }
 

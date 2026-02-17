@@ -332,10 +332,11 @@ export async function indexKnowledgeDocument(
     return { success: false, chunksCreated: 0, error: 'Aucun chunk généré' }
   }
 
-  // Générer les embeddings en batch (provider principal : OpenAI en prod, Ollama en dev)
-  const [embeddingsResult, geminiEmbeddingsResult] = await Promise.allSettled([
+  // Générer les embeddings en parallèle pour les 3 providers
+  const [embeddingsResult, geminiEmbeddingsResult, ollamaEmbeddingsResult] = await Promise.allSettled([
     generateEmbeddingsBatch(chunks.map((c) => c.content)),
     generateEmbeddingsBatch(chunks.map((c) => c.content), { forceGemini: true }),
+    generateEmbeddingsBatch(chunks.map((c) => c.content), { forceOllama: true }),
   ])
 
   if (embeddingsResult.status === 'rejected') {
@@ -353,6 +354,14 @@ export async function indexKnowledgeDocument(
   const hasGeminiEmbeddings = geminiEmbeddingsResult.status === 'fulfilled' && geminiEmbeddingsResult.value.embeddings.length > 0
   if (hasGeminiEmbeddings) {
     console.log(`[KB Index] Embeddings Gemini générés (768-dim) pour ${geminiEmbeddingsResult.value.embeddings.length} chunks`)
+  }
+
+  if (ollamaEmbeddingsResult.status === 'rejected') {
+    console.warn(`[KB Index] Embeddings Ollama non disponibles: ${ollamaEmbeddingsResult.reason?.message || 'erreur inconnue'}`)
+  }
+  const hasOllamaEmbeddings = ollamaEmbeddingsResult.status === 'fulfilled' && ollamaEmbeddingsResult.value.embeddings.length > 0
+  if (hasOllamaEmbeddings) {
+    console.log(`[KB Index] Embeddings Ollama générés (1024-dim) pour ${ollamaEmbeddingsResult.value.embeddings.length} chunks`)
   }
 
   // Générer un embedding pour le document entier (titre + description)
@@ -427,6 +436,21 @@ export async function indexKnowledgeDocument(
         `INSERT INTO knowledge_base_chunks ${insertColumns} VALUES ${placeholders.join(', ')}`,
         values
       )
+    }
+
+    // Backfill Ollama embeddings sur les chunks venant d'être insérés (si disponibles)
+    if (hasOllamaEmbeddings) {
+      const ollamaEmbeddings = ollamaEmbeddingsResult.value.embeddings
+      for (let i = 0; i < chunks.length; i++) {
+        if (ollamaEmbeddings[i]) {
+          await client.query(
+            `UPDATE knowledge_base_chunks SET embedding = $1::vector(1024)
+             WHERE knowledge_base_id = $2 AND chunk_index = $3`,
+            [formatEmbeddingForPostgres(ollamaEmbeddings[i]), documentId, i]
+          )
+        }
+      }
+      console.log(`[KB Index] Embeddings Ollama écrits pour ${chunks.length} chunks`)
     }
 
     // Mettre à jour le document avec son embedding, stratégie et marquer comme indexé

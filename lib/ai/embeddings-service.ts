@@ -268,6 +268,28 @@ async function generateEmbeddingsBatchWithOpenAI(
 // GEMINI EMBEDDINGS (text-embedding-004, 768-dim)
 // =============================================================================
 
+async function generateEmbeddingsBatchWithGemini(
+  texts: string[]
+): Promise<BatchEmbeddingResult> {
+  if (texts.length === 0) {
+    return { embeddings: [], totalTokens: 0, provider: 'gemini' }
+  }
+
+  // Gemini n'a pas de batch natif — appels parallèles avec concurrence 5 (rate limit 1500/min)
+  const CONCURRENCY = 5
+  const allEmbeddings: number[][] = []
+
+  for (let i = 0; i < texts.length; i += CONCURRENCY) {
+    const batch = texts.slice(i, i + CONCURRENCY)
+    const results = await Promise.all(batch.map((text) => generateEmbeddingWithGemini(text)))
+    for (const r of results) {
+      allEmbeddings.push(r.embedding)
+    }
+  }
+
+  return { embeddings: allEmbeddings, totalTokens: 0, provider: 'gemini' }
+}
+
 async function generateEmbeddingWithGemini(text: string): Promise<EmbeddingResult> {
   if (!aiConfig.gemini.apiKey) {
     throw new Error('Gemini API key non configurée (GOOGLE_API_KEY)')
@@ -385,11 +407,33 @@ export async function generateEmbeddingsBatch(
 
   const provider = resolveEmbeddingProvider(options)
 
-  if (provider === 'openai') {
-    return await generateEmbeddingsBatchWithOpenAI(texts)
-  } else {
-    return await generateEmbeddingsBatchWithOllama(texts)
+  // Forçage explicite (ex: backfill Gemini/Ollama) — pas de fallback
+  if (options?.forceGemini) return await generateEmbeddingsBatchWithGemini(texts)
+  if (options?.forceOllama) return await generateEmbeddingsBatchWithOllama(texts)
+
+  // Fallback en cascade : OpenAI → Gemini → Ollama
+  if (provider === 'openai' || provider === 'gemini') {
+    // Essai OpenAI en premier (production)
+    if (aiConfig.openai.apiKey) {
+      try {
+        return await generateEmbeddingsBatchWithOpenAI(texts)
+      } catch (error) {
+        console.warn(`[Embeddings] OpenAI batch échoué, fallback Gemini: ${error instanceof Error ? error.message : error}`)
+      }
+    }
+
+    // Fallback Gemini
+    if (aiConfig.gemini.apiKey) {
+      try {
+        return await generateEmbeddingsBatchWithGemini(texts)
+      } catch (error) {
+        console.warn(`[Embeddings] Gemini batch échoué, fallback Ollama: ${error instanceof Error ? error.message : error}`)
+      }
+    }
   }
+
+  // Fallback final Ollama (dev ou dernier recours)
+  return await generateEmbeddingsBatchWithOllama(texts)
 }
 
 // =============================================================================
