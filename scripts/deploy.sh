@@ -152,7 +152,9 @@ validate_environment_selection() {
     # Vérifier .env existe
     local env_file=".env"
     if [ "$DEPLOY_ENV" = "prod" ]; then
-        env_file=".env.production.local"
+        # En prod, l'env principal est dans /opt/moncabinet/.env
+        # (contient DB_NAME, DB_USER, DB_PASSWORD, NEXTAUTH_SECRET, etc.)
+        env_file="/opt/moncabinet/.env"
     fi
 
     if [ ! -f "$env_file" ]; then
@@ -185,7 +187,7 @@ pre_flight_checks() {
     # 2. Validation configuration
     if [ "$SKIP_VALIDATION" = false ]; then
         local env_file=".env"
-        [ "$DEPLOY_ENV" = "prod" ] && env_file=".env.production.local"
+        [ "$DEPLOY_ENV" = "prod" ] && env_file="/opt/moncabinet/.env"
 
         validate_environment_config "$env_file" || {
             log_error "Configuration environnement invalide"

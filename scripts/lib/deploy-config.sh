@@ -122,11 +122,13 @@ export ROLLBACK_BACKUP_DIR="${BACKUP_DIR_PROD}/rollback"
 
 # Variables critiques requises (minimum)
 export REQUIRED_ENV_VARS=(
-    "DATABASE_URL"
+    "DB_NAME"
+    "DB_USER"
+    "DB_PASSWORD"
     "NEXTAUTH_SECRET"
-    "MINIO_ACCESS_KEY"
-    "MINIO_SECRET_KEY"
-    "REDIS_URL"
+    "MINIO_ROOT_USER"
+    "MINIO_ROOT_PASSWORD"
+    "CRON_SECRET"
 )
 
 # Variables RAG critiques
