@@ -86,7 +86,7 @@ const isDev = process.env.NODE_ENV === 'development'
  * | Assistant IA (chat)    | Gemini   | gemini-2.5-flash          | 0€       |
  * | Dossiers Assistant     | Gemini   | gemini-2.5-flash          | 0€       |
  * | Consultations IRAC     | Gemini   | gemini-2.5-flash          | 0€       |
- * | KB Quality Analysis    | OpenAI   | gpt-4o-mini               | ~$3/mois |
+ * | KB Quality Analysis    | Gemini   | gemini-2.5-flash          | 0€       |
  * | Query Classification   | Groq     | llama-3.3-70b-versatile   | 0€       |
  * | Query Expansion        | Groq     | llama-3.3-70b-versatile   | 0€       |
  * | Embeddings (tout)      | OpenAI   | text-embedding-3-small    | ~$2-5/mois |
@@ -183,20 +183,20 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'kb-quality-analysis': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'openai', name: 'gpt-4o-mini' },
+      : { provider: 'gemini', name: 'gemini-2.5-flash' },
 
     timeouts: {
-      chat: 30000,
-      total: 60000,
+      chat: 45000,
+      total: 90000,
     },
 
     llmConfig: {
       temperature: 0.1,
-      maxTokens: 4000,
+      maxTokens: 8000,
     },
 
     alerts: { onFailure: 'email', severity: 'warning' },
-    description: 'Analyse qualité documents KB - OpenAI gpt-4o-mini (strict JSON)',
+    description: 'Analyse qualité documents KB - Gemini 2.5 Flash (arabe juridique, JSON fiable)',
   },
 
   // ---------------------------------------------------------------------------

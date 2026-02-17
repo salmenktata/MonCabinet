@@ -102,14 +102,14 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
     language: doc.language || 'ar',
     description: doc.description || 'Aucune description',
     tags: (doc.tags || []).join(', ') || 'Aucun tag',
-    content: truncateContent(content, 6000),
+    content: truncateContent(content, 12000),
   })
 
   console.log(
-    `[KB Quality] Doc ${documentId} - Longueur: ${content.length} chars - Provider: OpenAI gpt-4o-mini`
+    `[KB Quality] Doc ${documentId} - Longueur: ${content.length} chars - Provider: Gemini 2.5 Flash`
   )
 
-  // Appeler le LLM unique (OpenAI gpt-4o-mini pour tous les docs, courts et longs)
+  // Appeler le LLM unique (Gemini 2.5 Flash pour tous les docs, meilleur pour l'arabe)
   const messages: LLMMessage[] = [
     { role: 'system', content: KB_QUALITY_ANALYSIS_SYSTEM_PROMPT },
     { role: 'user', content: userPrompt },
@@ -117,7 +117,7 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
 
   const llmResult: LLMResponse = await callLLMWithFallback(messages, {
     temperature: 0.1,
-    maxTokens: 4000,
+    maxTokens: 8000,
     operationName: 'kb-quality-analysis',
   })
 

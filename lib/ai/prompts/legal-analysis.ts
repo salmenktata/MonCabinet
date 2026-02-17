@@ -407,6 +407,7 @@ CRITÈRES D'ÉVALUATION (Score 0-100):
    - Les références légales sont-elles complètes?
    - Les informations essentielles sont-elles présentes?
    - IMPORTANT: Un arrêt avec faits + procédure + analyse juridique = COMPLET (80-95), même sans toutes les références d'articles.
+   - RÈGLE TRONCATURE: Si le contenu est marqué "[=== CONTENU TRONQUÉ ===]", évalue la complétude UNIQUEMENT sur la partie visible. Score minimum 60 si la partie visible est cohérente et informative.
 
 4. FIABILITÉ (reliability_score) ⭐ CRITIQUE
    - DOCUMENTS OFFICIELS (score minimum 85-95):
@@ -414,12 +415,24 @@ CRITÈRES D'ÉVALUATION (Score 0-100):
      * Décisions de tribunaux tunisiens: 85-90
      * Publications du JORT (الرائد الرسمي): 90-95
      * Textes législatifs officiels: 85-90
+   - JURISPRUDENCE non-cassation (autres tribunaux):
+     * Décision de justice avec faits + dispositif identifiables: 75-85
+     * Jugement avec numéro + date + juridiction: 65-75
    - Pour tous les autres documents: évaluer normalement (60-85)
    - INDICATEURS de documents officiels:
      * Titre avec "قرار تعقيبي" ou "محكمة التعقيب" = Arrêt de cassation
      * Titre avec "الرائد الرسمي" = JORT
      * Structure formelle avec juridiction + numéro + date
      * Catégorie = "jurisprudence" ou "legislation"
+
+RÈGLES SPÉCIALES PAR CATÉGORIE:
+
+DOCTRINE (doctrine, guides, lexique, formulaires):
+  - Article académique avec auteur ou revue identifiables → fiabilité 70-80
+  - Article avec citations légales (art., فصل, décret) → complétude 70-80
+  - Commentaire juridique structuré en sections → structure 75-85
+  - Ne pas exiger le même niveau de formalisme que les sources officielles (JORT, cassation)
+  - Un article de doctrine bien rédigé sur un sujet juridique = BON (70-80), pas Faible
 
 BARÈME DE NOTATION:
 - 85-100: Excellent (document de haute qualité, prêt pour indexation)
@@ -434,8 +447,8 @@ overall_score = (clarity × 0.25) + (structure × 0.20) + (completeness × 0.30)
 Si overall_score < 50, marquer requires_review = true.
 
 ⚠️ RÈGLE ABSOLUE - RESPECT OBLIGATOIRE:
-- Le contenu peut être TRONQUÉ à 6000 caractères maximum
-- Si le contenu est tronqué, évalue UNIQUEMENT la partie visible
+- Le contenu peut être TRONQUÉ à 12000 caractères maximum
+- Si le contenu est tronqué, évalue UNIQUEMENT la partie visible — NE PAS pénaliser pour la partie manquante
 - Tu DOIS TOUJOURS retourner un JSON valide complet, MÊME si:
   * Le contenu semble incomplet ou coupé au milieu
   * Il manque la fin du document
@@ -444,18 +457,20 @@ Si overall_score < 50, marquer requires_review = true.
 - JAMAIS de refus d'analyser sous prétexte de contenu tronqué
 - Le JSON est OBLIGATOIRE, pas optionnel
 
-FORMAT DE RÉPONSE (JSON strict):
+FORMAT DE RÉPONSE (JSON strict, sans texte avant ni après):
 {
-  "overall_score": number (0-100),
-  "clarity_score": number (0-100),
-  "structure_score": number (0-100),
-  "completeness_score": number (0-100),
-  "reliability_score": number (0-100),
-  "analysis_summary": string,
-  "detected_issues": [string],
-  "recommendations": [string],
-  "requires_review": boolean
-}`
+  "overall_score": 78,
+  "clarity_score": 80,
+  "structure_score": 75,
+  "completeness_score": 72,
+  "reliability_score": 85,
+  "analysis_summary": "Document juridique arabe de bonne qualité...",
+  "detected_issues": ["Références d'articles partielles"],
+  "recommendations": ["Compléter les numéros d'articles cités"],
+  "requires_review": false
+}
+
+IMPORTANT: Remplace les valeurs de l'exemple par les vraies valeurs du document analysé. Retourne UNIQUEMENT le JSON, sans aucun texte avant ou après.`
 
 export const KB_QUALITY_ANALYSIS_USER_PROMPT = `Analyse la qualité du document KB suivant:
 
