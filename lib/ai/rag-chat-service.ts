@@ -975,8 +975,16 @@ const RAG_MAX_CONTEXT_TOKENS = parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '6
 
 // Templates bilingues pour le message utilisateur
 const USER_MESSAGE_TEMPLATES = {
-  ar: { prefix: 'وثائق مرجعية:', questionLabel: 'السؤال:' },
-  fr: { prefix: 'Documents du dossier:', questionLabel: 'Question:' },
+  ar: {
+    prefix: 'وثائق مرجعية:',
+    questionLabel: 'السؤال:',
+    analysisHint: 'تعليمات: استخرج الشروط القانونية من كل فصل، حدّد الآجال والإجراءات العملية، واربط بين النصوص المختلفة.',
+  },
+  fr: {
+    prefix: 'Documents du dossier:',
+    questionLabel: 'Question:',
+    analysisHint: 'Instructions: extraire les conditions légales de chaque article, identifier les délais et procédures, relier les textes entre eux.',
+  },
 }
 
 /**
@@ -1297,7 +1305,55 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
 
   console.log(`[RAG Context] ${sourcesUsed}/${sources.length} sources, ~${totalTokens} tokens, métadonnées enrichies`)
 
-  return contextParts.join('\n\n---\n\n')
+  // Grouper les sources par type pour faciliter le croisement par le LLM
+  // On garde les index originaux pour préserver le numérotage [KB-N]
+  const grouped: { codes: string[]; jurisprudence: string[]; doctrine: string[]; other: string[] } = {
+    codes: [], jurisprudence: [], doctrine: [], other: [],
+  }
+
+  for (let i = 0; i < contextParts.length; i++) {
+    const source = enrichedSources[i]
+    const meta = source?.metadata as any
+    const sourceType = meta?.type
+    const category = meta?.category
+
+    if (sourceType === 'jurisprudence') {
+      grouped.jurisprudence.push(contextParts[i])
+    } else if (category === 'codes' || category === 'codes_juridiques') {
+      grouped.codes.push(contextParts[i])
+    } else if (category === 'doctrine' || category === 'articles_juridiques') {
+      grouped.doctrine.push(contextParts[i])
+    } else {
+      grouped.other.push(contextParts[i])
+    }
+  }
+
+  // Si tout est dans "other" (pas de métadonnées type/category), retourner en ordre original
+  if (grouped.codes.length === 0 && grouped.jurisprudence.length === 0 && grouped.doctrine.length === 0) {
+    return contextParts.join('\n\n---\n\n')
+  }
+
+  // Construire le contexte groupé avec headers (réutilise `lang` déjà déclaré plus haut)
+  const sections: string[] = []
+
+  if (grouped.codes.length > 0) {
+    const header = lang === 'ar' ? '📚 النصوص القانونية' : '📚 Textes juridiques'
+    sections.push(`${header}\n\n${grouped.codes.join('\n\n---\n\n')}`)
+  }
+  if (grouped.jurisprudence.length > 0) {
+    const header = lang === 'ar' ? '⚖️ الاجتهاد القضائي' : '⚖️ Jurisprudence'
+    sections.push(`${header}\n\n${grouped.jurisprudence.join('\n\n---\n\n')}`)
+  }
+  if (grouped.doctrine.length > 0) {
+    const header = lang === 'ar' ? '📖 الفقه والمقالات' : '📖 Doctrine'
+    sections.push(`${header}\n\n${grouped.doctrine.join('\n\n---\n\n')}`)
+  }
+  if (grouped.other.length > 0) {
+    const header = lang === 'ar' ? '📄 مصادر أخرى' : '📄 Autres sources'
+    sections.push(`${header}\n\n${grouped.other.join('\n\n---\n\n')}`)
+  }
+
+  return sections.join('\n\n===\n\n')
 }
 
 /**
@@ -1535,9 +1591,11 @@ export async function answerQuestion(
 
   // Ajouter la nouvelle question avec le contexte (template bilingue)
   const msgTemplate = USER_MESSAGE_TEMPLATES[supportedLang]
+  // Ajouter l'instruction d'analyse seulement pour le chat (pas consultation/structuration)
+  const analysisLine = contextType === 'chat' ? `\n${msgTemplate.analysisHint}\n` : ''
   messagesOpenAI.push({
     role: 'user',
-    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n\n---\n\n${msgTemplate.questionLabel} ${question}`,
+    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n${analysisLine}\n---\n\n${msgTemplate.questionLabel} ${question}`,
   })
 
   // Messages format Anthropic (sans 'system' dans les messages)
@@ -1547,7 +1605,7 @@ export async function answerQuestion(
   }
   messagesAnthropic.push({
     role: 'user',
-    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n\n---\n\n${msgTemplate.questionLabel} ${question}`,
+    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n${analysisLine}\n---\n\n${msgTemplate.questionLabel} ${question}`,
   })
 
   // Log si résumé utilisé
@@ -1904,9 +1962,11 @@ export async function* answerQuestionStream(
     messagesForLLM.push({ role: msg.role, content: msg.content })
   }
   const msgTemplate = USER_MESSAGE_TEMPLATES[supportedLang]
+  // Ajouter l'instruction d'analyse seulement pour le chat
+  const analysisLine = contextType === 'chat' ? `\n${msgTemplate.analysisHint}\n` : ''
   messagesForLLM.push({
     role: 'user',
-    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n\n---\n\n${msgTemplate.questionLabel} ${question}`,
+    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n${analysisLine}\n---\n\n${msgTemplate.questionLabel} ${question}`,
   })
 
   // 5. Yield metadata (sources disponibles avant le stream LLM)
