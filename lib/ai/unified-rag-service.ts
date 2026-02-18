@@ -459,12 +459,12 @@ export async function search(
   const embeddingStr = formatEmbeddingForPostgres(embeddingResult.embedding)
 
   // 3a. Recherche hybride BM25 + vectorielle (si ENABLE_HYBRID_SEARCH=true)
-  // Utilise search_knowledge_base_hybrid() qui supporte Ollama (1024-dim) et OpenAI (1536-dim).
-  // Gemini non supporté → fallback dense. Pagination (offset > 0) → fallback dense.
-  // En cas d'échec SQL → fallback dense automatique.
-  if (process.env.ENABLE_HYBRID_SEARCH === 'true' && offset === 0 && embeddingResult.provider !== 'gemini') {
+  // Utilise search_knowledge_base_hybrid() avec signature 8 params (Gemini migration).
+  // Supporte OpenAI (1536-dim), Ollama (1024-dim) et Gemini (768-dim).
+  // Pagination (offset > 0) → fallback dense. Échec SQL → fallback dense automatique.
+  if (process.env.ENABLE_HYBRID_SEARCH === 'true' && offset === 0) {
     try {
-      const useOpenAI = embeddingResult.provider === 'openai'
+      const provider = embeddingResult.provider || 'ollama'
       const hybridResult = await db.query(
         `SELECT
           knowledge_base_id AS kb_id,
@@ -473,8 +473,8 @@ export async function search(
           similarity,
           chunk_content,
           chunk_index
-         FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::int, $5::float, $6::boolean)`,
-        [query, embeddingStr, filters.category || null, limit, threshold, useOpenAI]
+         FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::text, $5::integer, $6::double precision, $7::text)`,
+        [query, embeddingStr, filters.category || null, null, limit, threshold, provider]
       )
 
       const hKbIds = hybridResult.rows.map((r) => r.kb_id as string)
@@ -516,7 +516,7 @@ export async function search(
       })
 
       console.log(
-        `[UnifiedRAG] ✓ Hybrid search (${useOpenAI ? 'OpenAI' : 'Ollama'}): ${hybridResults.length} résultats`
+        `[UnifiedRAG] ✓ Hybrid search (${provider}): ${hybridResults.length} résultats`
       )
       return hybridResults
     } catch (error) {
