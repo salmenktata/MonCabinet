@@ -256,7 +256,7 @@ export async function uploadKnowledgeDocument(
  */
 export async function indexKnowledgeDocument(
   documentId: string,
-  options: { strategy?: 'adaptive' | 'article' | 'semantic' } = {}
+  options: { strategy?: 'adaptive' | 'article' | 'semantic'; skipExistingGeminiEmbeddings?: boolean } = {}
 ): Promise<{
   success: boolean
   chunksCreated: number
@@ -346,10 +346,29 @@ export async function indexKnowledgeDocument(
     return { success: false, chunksCreated: 0, error: 'Aucun chunk généré' }
   }
 
+  // Skip embeddings Gemini si déjà générés (évite re-génération lors mise à jour de métadonnées)
+  let savedGeminiEmbeddings: number[][] | null = null
+  if (options.skipExistingGeminiEmbeddings) {
+    const existingGemini = await db.query(
+      'SELECT content, embedding_gemini FROM knowledge_base_chunks WHERE knowledge_base_id = $1 AND embedding_gemini IS NOT NULL ORDER BY chunk_index',
+      [documentId]
+    )
+    if (existingGemini.rows.length > 0) {
+      const geminiMap = new Map<string, number[]>(existingGemini.rows.map((r: {content: string; embedding_gemini: number[]}) => [r.content, r.embedding_gemini]))
+      const allChunksCovered = chunks.every((c) => geminiMap.has(c.content))
+      if (allChunksCovered) {
+        savedGeminiEmbeddings = chunks.map((c) => geminiMap.get(c.content)!)
+        console.log(`[KB Index] Embeddings Gemini réutilisés (${savedGeminiEmbeddings.length} chunks, skip API Gemini)`)
+      }
+    }
+  }
+
   // Générer les embeddings en parallèle pour les 3 providers
   const [embeddingsResult, geminiEmbeddingsResult, ollamaEmbeddingsResult] = await Promise.allSettled([
     generateEmbeddingsBatch(chunks.map((c) => c.content)),
-    generateEmbeddingsBatch(chunks.map((c) => c.content), { forceGemini: true }),
+    savedGeminiEmbeddings
+      ? Promise.resolve({ embeddings: savedGeminiEmbeddings, totalTokens: 0, provider: 'gemini' as const })
+      : generateEmbeddingsBatch(chunks.map((c) => c.content), { forceGemini: true }),
     generateEmbeddingsBatch(chunks.map((c) => c.content), { forceOllama: true }),
   ])
 
@@ -819,9 +838,15 @@ export async function searchKnowledgeBaseHybrid(
   const sqlCandidatePool = Math.min(limit * 3, 100)
 
   // 1. Générer les 3 embeddings en parallèle
+  // ✨ FIX C (TTFT): Timeout 3s sur Ollama — CPU-bound, peut prendre 8-10s pour 0 résultats en prod
+  // OpenAI (1536-dim) + Gemini (768-dim) couvrent ~100% des chunks KB prod → Ollama optionnel
+  const ollamaWithTimeout = Promise.race([
+    generateEmbedding(query, { forceOllama: true }),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Ollama embedding timeout (3s)')), 3000)),
+  ])
   const [openaiEmbResult, ollamaEmbResult, geminiEmbResult] = await Promise.allSettled([
     generateEmbedding(query, { operationName: operationName as any }),       // OpenAI (1536-dim)
-    generateEmbedding(query, { forceOllama: true }),                         // Ollama (1024-dim, chunks legacy)
+    ollamaWithTimeout,                                                        // Ollama (1024-dim, chunks legacy, timeout 3s)
     generateEmbedding(query, { forceGemini: true }),                         // Gemini (768-dim, multilingue AR)
   ])
 
