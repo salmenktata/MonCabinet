@@ -2,8 +2,8 @@
  * Client Gemini 2.0 Flash-Lite
  *
  * Modèle économique de Google pour RAG à grande échelle.
- * - Tier gratuit: illimité en input/output (avec rate limiting 15 RPM)
- * - Tier payant: $0.075/M input, $0.30/M output
+ * - Paid Tier 1: 300 RPM, 1M TPM, 1500 RPD
+ * - Coût: $0.075/M input, $0.30/M output
  * - Contexte: 1M tokens (excellent pour longs documents PDF)
  * - Langues: Excellent support AR/FR
  *
@@ -43,12 +43,12 @@ export interface GeminiResponse {
 // CONFIGURATION
 // =============================================================================
 
-// Tier gratuit Gemini : 15 RPM (requêtes par minute)
-// Source: https://ai.google.dev/pricing
-const FREE_TIER_RPM_LIMIT = 15
+// Paid Tier 1 Gemini : 300 RPM pour gemini-2.5-flash
+// Source: https://ai.google.dev/gemini-api/docs/rate-limits
+const PAID_TIER1_RPM_LIMIT = 300
 
-// Seuil de sécurité Redis (marge de 2 pour éviter les races cross-instance)
-const REDIS_RATE_LIMIT_THRESHOLD = 13
+// Seuil de sécurité Redis (marge de 50 pour éviter les races cross-instance)
+const REDIS_RATE_LIMIT_THRESHOLD = 250
 
 // Compteur in-memory pour les stats de monitoring (approximation locale)
 let requestsThisMinute = 0
@@ -66,7 +66,7 @@ function resetRPMCounterIfNeeded(): void {
  * Vérifie le rate limit Gemini via Redis (partagé entre instances Docker).
  *
  * - Sliding window par minute (clé TTL 60s)
- * - Seuil 13/min (marge de sécurité sous la limite 15 RPM)
+ * - Seuil 250/min (marge de sécurité sous la limite Paid Tier 1 de 300 RPM)
  * - Si Redis indisponible → fallback in-memory (fail open)
  * - Le throw '429:...' est capturé par isRateLimitError() dans llm-fallback-service.ts
  *   → cascade automatique vers Groq llama-3.3-70b
@@ -82,8 +82,8 @@ async function checkGeminiRateLimitRedis(): Promise<void> {
 
     if (!client) {
       // Redis indisponible → vérification in-memory uniquement
-      if (requestsThisMinute > FREE_TIER_RPM_LIMIT) {
-        throw new Error(`429: Gemini rate limit atteint (${requestsThisMinute}/${FREE_TIER_RPM_LIMIT} RPM in-memory)`)
+      if (requestsThisMinute > PAID_TIER1_RPM_LIMIT) {
+        throw new Error(`429: Gemini rate limit atteint (${requestsThisMinute}/${PAID_TIER1_RPM_LIMIT} RPM in-memory)`)
       }
       return
     }
@@ -102,7 +102,7 @@ async function checkGeminiRateLimitRedis(): Promise<void> {
     requestsThisMinute = count
 
     if (count > REDIS_RATE_LIMIT_THRESHOLD) {
-      throw new Error(`429: Gemini rate limit atteint (${count}/${FREE_TIER_RPM_LIMIT} RPM Redis)`)
+      throw new Error(`429: Gemini rate limit atteint (${count}/${PAID_TIER1_RPM_LIMIT} RPM Redis)`)
     }
   } catch (error) {
     // Re-throw les erreurs de rate limit (429)
@@ -126,8 +126,8 @@ export function getGeminiRPMStats(): {
   resetRPMCounterIfNeeded()
   return {
     requestsThisMinute,
-    limit: FREE_TIER_RPM_LIMIT,
-    availableSlots: Math.max(0, FREE_TIER_RPM_LIMIT - requestsThisMinute),
+    limit: PAID_TIER1_RPM_LIMIT,
+    availableSlots: Math.max(0, PAID_TIER1_RPM_LIMIT - requestsThisMinute),
     minuteTimestamp: currentMinuteTimestamp,
   }
 }
@@ -480,6 +480,6 @@ export function getGeminiInfo(): {
     costInput: '$0.075/M',
     costOutput: '$0.30/M',
     freeTier: true,
-    rpmLimit: FREE_TIER_RPM_LIMIT,
+    rpmLimit: PAID_TIER1_RPM_LIMIT,
   }
 }

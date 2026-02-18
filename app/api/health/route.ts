@@ -100,7 +100,7 @@ export async function GET() {
         const kbStats = await db.query(`
           SELECT
             (SELECT COUNT(*) FROM knowledge_base WHERE is_indexed = true) as docs_indexed,
-            (SELECT COUNT(*) FROM knowledge_base_chunks WHERE embedding IS NOT NULL) as chunks_available
+            (SELECT COUNT(*) FROM knowledge_base_chunks WHERE embedding_openai IS NOT NULL OR embedding_gemini IS NOT NULL) as chunks_available
         `)
         kbDocsIndexed = kbStats.rows[0]?.docs_indexed || 0
         kbChunksAvailable = kbStats.rows[0]?.chunks_available || 0
