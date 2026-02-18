@@ -4,9 +4,51 @@ Historique des modifications pour la plateforme juridique Qadhya.
 
 ---
 
-## [1.0.0] - 2026-02-05
+## [1.0.0] - 2026-02-18 — Qadhya IA v1.0.0
 
-### 🎉 Implémentation Initiale Complète
+### Système RAG juridique tunisien stabilisé
+
+Cette version marque la maturité du système IA/RAG avec un benchmark hit@5 de 100% (20/20 questions).
+
+#### IA & RAG
+- **Triple embedding** : OpenAI (1536-dim) + Ollama (1024-dim) + Gemini text-embedding-004 (768-dim)
+- **Hybrid search** : vectoriel 70% + BM25 30% avec cross-encoder re-ranking
+- **Cascade LLM multi-provider** : Groq llama-3.3-70b → Gemini 2.5 Flash → DeepSeek → Ollama
+- **Streaming SSE natif** Gemini dans le chat IA
+- **Domain boost** avec PRIORITY rules (ex: شيك→5x, تفليس→4.5x)
+- **Codes-forced search** : 5ème recherche parallèle dans category='codes'
+- **Cache Redis classifyQuery()** : TTL 24h, clé `qclass:{md5}` (-300ms sur requêtes répétées)
+- **Citation validation + abrogation detection parallélisées** (Promise.all)
+
+#### Base de Connaissances
+- **3,411 docs indexés actifs**, 9,914 web_pages indexées
+- **5 types doc_type** : TEXTES | JURIS | PROC | TEMPLATES | DOCTRINE (mapping auto)
+- **Web scraping multi-source** : 9anoun.tn, cassation.tn, legislation.tn, Google Drive, Blogger
+- **Indexation batch progressive** via cron (5 docs/batch, max 50 batches)
+
+#### Chat IA unifié
+- 3 modes : structure de dossier, consultation juridique, chat libre
+- Conversations persistantes avec renommage inline
+- Feedback utilisateur intégré (like/dislike par message)
+- Export/copie des conversations
+
+#### Monitoring & Ops
+- Dashboard super-admin avec 6 onglets (system-config, kb-quality, crons...)
+- 6 crons trackés avec alertes email (Brevo, anti-spam 6h)
+- Suivi coûts Gemini via Redis
+- Rate limiting Gemini (13 RPM, sliding window)
+
+#### Performance
+- Benchmark eval : hit@5 **100% (20/20)**, tous pos #1, avgTopScore 4.593
+- Latence chat : ~2s (Groq 292ms + search + reranking)
+- Timeout chat : 44s avec HTTP 504 graceful
+- Déploiement 2-tier : Lightning ~3-5min (code-only) | Docker ~5-10min (deps)
+
+---
+
+## [0.9.0] - 2026-02-05
+
+### Implémentation Initiale Complète (Infrastructure VPS)
 
 Cette version marque l'implémentation complète du plan de déploiement Qadhya sur VPS Contabo avec migration totale depuis Supabase Cloud vers infrastructure auto-hébergée.
 
@@ -493,7 +535,7 @@ Merci à :
 
 ---
 
-**Version** : 1.0.0
+**Version** : 0.9.0
 **Date** : 2026-02-05
 **Auteur** : Équipe Qadhya
 **Licence** : UNLICENSED (propriétaire)

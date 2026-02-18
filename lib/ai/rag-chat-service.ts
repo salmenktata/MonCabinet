@@ -1745,41 +1745,39 @@ export async function answerQuestion(
   // Sanitizer: supprimer les citations inventées par le LLM
   answer = sanitizeCitations(answer, sources.length)
 
-  // Phase 2.2 : Valider citations juridiques
+  // Phase 2.2+2.3 : Validation citations + détection abrogations (parallèle)
   let citationWarnings: string[] = []
-  if (process.env.ENABLE_CITATION_VALIDATION !== 'false') {
-    try {
-      const validationResult = validateArticleCitations(answer, sources)
+  let abrogationWarnings: AbrogationWarning[] = []
 
-      if (validationResult.warnings.length > 0) {
-        logger.warn('filter', 'Citations non vérifiées détectées', {
-          count: validationResult.warnings.length,
-          warnings: formatValidationWarnings(validationResult),
+  const [citationResult, abrogationResult] = await Promise.all([
+    (process.env.ENABLE_CITATION_VALIDATION !== 'false')
+      ? Promise.resolve(validateArticleCitations(answer, sources)).catch((error) => {
+          logger.error('filter', 'Erreur validation citations', error)
+          return null
         })
-        citationWarnings = validationResult.warnings.map(w => w.citation)
-      }
-    } catch (error) {
-      logger.error('filter', 'Erreur validation citations', error)
-      // Ne pas bloquer la réponse
-    }
+      : Promise.resolve(null),
+    (process.env.ENABLE_ABROGATION_DETECTION !== 'false')
+      ? detectAbrogatedReferences(answer, sources).catch((error) => {
+          logger.error('abrogation', 'Erreur détection abrogations', error)
+          return [] as AbrogationWarning[]
+        })
+      : Promise.resolve([] as AbrogationWarning[]),
+  ])
+
+  if (citationResult?.warnings?.length) {
+    logger.warn('filter', 'Citations non vérifiées détectées', {
+      count: citationResult.warnings.length,
+      warnings: formatValidationWarnings(citationResult),
+    })
+    citationWarnings = citationResult.warnings.map(w => w.citation)
   }
 
-  // Phase 2.3 : Détecter lois/articles abrogés
-  let abrogationWarnings: AbrogationWarning[] = []
-  if (process.env.ENABLE_ABROGATION_DETECTION !== 'false') {
-    try {
-      abrogationWarnings = await detectAbrogatedReferences(answer, sources)
-
-      if (abrogationWarnings.length > 0) {
-        logger.warn('abrogation', 'Lois abrogées détectées dans la réponse', {
-          count: abrogationWarnings.length,
-          warnings: formatAbrogationWarnings(abrogationWarnings),
-        })
-      }
-    } catch (error) {
-      logger.error('abrogation', 'Erreur détection abrogations', error)
-      // Ne pas bloquer la réponse
-    }
+  abrogationWarnings = abrogationResult || []
+  if (abrogationWarnings.length > 0) {
+    logger.warn('abrogation', 'Lois abrogées détectées dans la réponse', {
+      count: abrogationWarnings.length,
+      warnings: formatAbrogationWarnings(abrogationWarnings),
+    })
   }
 
   // Log métriques finales du pipeline complet

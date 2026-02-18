@@ -26,6 +26,10 @@ import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 import type { DocumentType } from '@/lib/categories/doc-types'
 import { ALL_DOC_TYPES } from '@/lib/categories/doc-types'
+import { getRedisClient } from '@/lib/cache/redis'
+import { createHash } from 'crypto'
+
+const QUERY_CLASS_TTL = 86400 // 24h
 
 // =============================================================================
 // TYPES
@@ -197,6 +201,21 @@ export async function classifyQuery(
     }
   }
 
+  // Cache Redis: éviter re-appel LLM pour requêtes identiques
+  const queryHash = createHash('md5').update(query.trim().toLowerCase()).digest('hex')
+  const cacheKey = `qclass:${queryHash}`
+  const redis = await getRedisClient()
+  if (redis) {
+    try {
+      const cached = await redis.get(cacheKey)
+      if (cached) {
+        const parsed = JSON.parse(cached as string) as QueryClassification
+        console.log('[Query Classifier] Cache hit:', { query: query.substring(0, 50) })
+        return parsed
+      }
+    } catch { /* cache miss or parse error, continue to LLM */ }
+  }
+
   // Construction prompt avec exemples (few-shot learning)
   const examplesText = CLASSIFICATION_EXAMPLES
     .map(
@@ -252,6 +271,11 @@ Réponse (JSON uniquement):`
       categories: result.categories,
       confidence: result.confidence,
     })
+
+    // Mise en cache Redis
+    if (redis) {
+      redis.set(cacheKey, JSON.stringify(result), { EX: QUERY_CLASS_TTL }).catch(() => {})
+    }
 
     return result
   } catch (error) {

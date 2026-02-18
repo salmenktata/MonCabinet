@@ -1,8 +1,8 @@
 {
   "name": "qadhya",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "Qadhya - Plateforme SaaS de gestion de cabinet juridique pour avocats tunisiens - Phase 3.3 + 3.4 Abrogations",
+  "description": "Qadhya - Plateforme IA juridique tunisienne avec RAG multi-provider, triple embedding et assistant IA",
   "author": "Qadhya Team",
   "license": "UNLICENSED",
   "scripts": {
