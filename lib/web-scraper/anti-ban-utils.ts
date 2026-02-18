@@ -25,15 +25,20 @@ export function detectBan(
   }
 
   // 2. Détection de captcha (haute confiance)
+  // Note: g-recaptcha v3 "invisible" (Elementor forms) est exclu — ce n'est pas un ban
   const captchaPatterns = [
-    'cf-captcha-container', // Cloudflare
-    'g-recaptcha',          // Google reCAPTCHA
-    'h-captcha',            // hCaptcha
+    'cf-captcha-container', // Cloudflare challenge
+    'h-captcha',            // hCaptcha challenge
     'captcha-box',
     'challenge-form',
+    'class="g-recaptcha"',  // reCAPTCHA v2 visible (challenge interactif uniquement)
   ]
 
-  if (captchaPatterns.some(pattern => html.includes(pattern))) {
+  // Exclure le reCAPTCHA v3 invisible (widget de formulaire, pas un challenge)
+  const hasInvisibleRecaptcha = html.includes('data-size="invisible"') || html.includes("data-size='invisible'")
+  const hasCaptchaChallenge = captchaPatterns.some(pattern => html.includes(pattern))
+
+  if (hasCaptchaChallenge && !hasInvisibleRecaptcha) {
     return {
       isBanned: true,
       reason: 'Captcha détecté',
