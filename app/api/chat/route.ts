@@ -28,6 +28,7 @@ import {
 import { isChatEnabled, getChatProvider } from '@/lib/ai/config'
 import { triggerSummaryGenerationIfNeeded } from '@/lib/ai/conversation-summary-service'
 import { createAIStream } from '@/lib/ai/streaming-service'
+import { scheduleHallucinationCheck } from '@/lib/ai/hallucination-monitor-service'
 import { detectAbrogations, type AbrogationAlert } from '@/lib/legal/abrogation-detector-service'
 import { structurerDossier } from '@/lib/ai/dossier-structuring-service'
 
@@ -352,6 +353,16 @@ export async function POST(
       response.metadata // Phase 8: Sauvegarder actionType dans metadata
     )
 
+    // B2: Suivi hallucination asynchrone (10% échantillonnage, fire-and-forget)
+    scheduleHallucinationCheck(
+      activeConversationId,
+      undefined,
+      question,
+      response.answer,
+      response.sources,
+      response.model
+    )
+
     // Générer un titre si c'est le premier échange
     const messageCount = await db.query(
       `SELECT COUNT(*) as count FROM chat_messages WHERE conversation_id = $1`,
@@ -632,6 +643,16 @@ async function handleStreamingResponse(
               event.tokensUsed.total,
               savedModel,
               { actionType: 'chat' } // Sauvegarder actionType pour le filtre historique
+            )
+
+            // B2: Suivi hallucination asynchrone (10% échantillonnage, fire-and-forget)
+            scheduleHallucinationCheck(
+              conversationId,
+              undefined,
+              question,
+              fullAnswer,
+              savedSources,
+              savedModel
             )
 
             // Générer titre si premier échange

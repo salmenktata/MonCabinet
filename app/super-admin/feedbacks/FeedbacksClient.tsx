@@ -35,6 +35,19 @@ interface FeedbackStats {
   most_common_issue: string | null
 }
 
+interface DomainStats {
+  domain: string
+  total_feedbacks: number
+  avg_rating: number
+  positive_count: number
+  negative_count: number
+  satisfaction_rate: number
+  hallucination_count: number
+  missing_info_count: number
+  avg_rag_confidence: number | null
+  avg_response_time_ms: number | null
+}
+
 interface Feedback {
   id: string
   conversationId: string
@@ -65,6 +78,7 @@ interface Feedback {
 
 export function FeedbacksClient() {
   const [stats, setStats] = useState<FeedbackStats | null>(null)
+  const [domainStats, setDomainStats] = useState<DomainStats[]>([])
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
   const [resolving, setResolving] = useState<string | null>(null)
@@ -77,9 +91,10 @@ export function FeedbacksClient() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [statsRes, feedbacksRes] = await Promise.all([
+      const [statsRes, feedbacksRes, domainRes] = await Promise.all([
         fetch(`/api/admin/feedback/stats?days=${period}`),
         fetch(`/api/admin/feedback/recent?days=${period}&limit=50&unresolved=${unresolvedOnly}`),
+        fetch(`/api/admin/feedback/by-domain?days=${period}`),
       ])
 
       if (statsRes.ok) {
@@ -90,6 +105,11 @@ export function FeedbacksClient() {
       if (feedbacksRes.ok) {
         const feedbacksData = await feedbacksRes.json()
         setFeedbacks(feedbacksData.feedbacks || [])
+      }
+
+      if (domainRes.ok) {
+        const domainData = await domainRes.json()
+        setDomainStats(domainData.domains || [])
       }
     } catch (error) {
       console.error('Erreur chargement feedbacks:', error)
@@ -199,6 +219,60 @@ export function FeedbacksClient() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Satisfaction par domaine */}
+      {domainStats.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Satisfaction par domaine</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="pb-2 pr-4">Domaine</th>
+                    <th className="pb-2 pr-4 text-right">Total</th>
+                    <th className="pb-2 pr-4 text-right">Note moy.</th>
+                    <th className="pb-2 pr-4 text-right">Satisfaction</th>
+                    <th className="pb-2 pr-4 text-right">Hallucinations</th>
+                    <th className="pb-2 text-right">Temps moy.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {domainStats.map(d => (
+                    <tr key={d.domain} className="border-b last:border-0">
+                      <td className="py-2 pr-4 font-medium">{d.domain}</td>
+                      <td className="py-2 pr-4 text-right">{d.total_feedbacks}</td>
+                      <td className="py-2 pr-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {parseFloat(String(d.avg_rating)).toFixed(1)}
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        </div>
+                      </td>
+                      <td className="py-2 pr-4 text-right">
+                        <span className={parseFloat(String(d.satisfaction_rate)) >= 70 ? 'text-green-600' : parseFloat(String(d.satisfaction_rate)) >= 50 ? 'text-yellow-600' : 'text-red-600'}>
+                          {parseFloat(String(d.satisfaction_rate)).toFixed(0)}%
+                        </span>
+                      </td>
+                      <td className="py-2 pr-4 text-right">
+                        {parseInt(String(d.hallucination_count)) > 0 ? (
+                          <Badge variant="destructive" className="text-xs">{d.hallucination_count}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </td>
+                      <td className="py-2 text-right text-muted-foreground">
+                        {d.avg_response_time_ms ? `${(parseFloat(String(d.avg_response_time_ms)) / 1000).toFixed(1)}s` : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filtres */}
       <div className="flex items-center gap-4">
