@@ -758,9 +758,16 @@ function isTextGarbled(text: string): boolean {
   if (totalLetters < 100) return false
 
   const arabicRatio = arabicChars / totalLetters
+  const latinRatio = latinChars / totalLetters
+
+  // Un PDF purement latin (>90% latin) est probablement un vrai texte en français/anglais,
+  // pas du garbled. La KB est bilingue AR+FR donc on accepte les PDFs en français.
+  if (latinRatio > 0.9 && latinChars > 200) {
+    return false
+  }
 
   // Un PDF juridique tunisien devrait avoir > 10% d'arabe.
-  // Si < MIN_ARABIC_RATIO et beaucoup de latin → texte garbled
+  // Si < MIN_ARABIC_RATIO et beaucoup de latin → texte garbled (encodage de police arabe)
   if (arabicRatio < OCR_CONFIG.MIN_ARABIC_RATIO && latinChars > 100) {
     console.log(
       `[FileParser] Texte garbled détecté: ratio arabe ${(arabicRatio * 100).toFixed(1)}% ` +
