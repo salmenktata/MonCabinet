@@ -1315,6 +1315,382 @@
     },
     "byCategory": "Répartition par catégorie"
   },
+  "marketing": {
+    "nav": {
+      "features": "Fonctionnalités",
+      "pricing": "Tarification",
+      "about": "À propos",
+      "contact": "Contact",
+      "login": "Se connecter",
+      "register": "Essai gratuit",
+      "menu": "Menu"
+    },
+    "footer": {
+      "tagline": "La plateforme intelligente pour les cabinets d'avocats tunisiens",
+      "product": "Produit",
+      "company": "Entreprise",
+      "legal": "Légal",
+      "features": "Fonctionnalités",
+      "pricing": "Tarification",
+      "createAccount": "Créer un compte",
+      "login": "Se connecter",
+      "about": "À propos",
+      "contact": "Contact",
+      "terms": "Conditions d'utilisation",
+      "privacy": "Politique de confidentialité",
+      "copyright": "© {year} Qadhya. Tous droits réservés.",
+      "developedBy": "Developed by"
+    },
+    "hero": {
+      "badge": "Plateforme #1 pour avocats en Tunisie",
+      "title": "Gérez votre cabinet avec intelligence",
+      "subtitle": "La plateforme tout-en-un qui simplifie la gestion de votre cabinet juridique. Dossiers, délais, facturation et IA juridique — le tout dans un seul outil.",
+      "cta": "Commencer gratuitement",
+      "ctaSecondary": "Voir les fonctionnalités",
+      "trustLine": "Aucune carte requise • Essai 14 jours • Sans engagement",
+      "socialProof": "500+ avocats nous font confiance"
+    },
+    "stats": {
+      "lawyers": "500+",
+      "lawyersLabel": "Avocats",
+      "cases": "10K+",
+      "casesLabel": "Dossiers gérés",
+      "uptime": "99.9%",
+      "uptimeLabel": "Disponibilité",
+      "support": "24/7",
+      "supportLabel": "Support"
+    },
+    "problem": {
+      "badge": "Le problème",
+      "title": "Vous perdez du temps en gestion administrative ?",
+      "subtitle": "La plupart des avocats passent plus de temps à gérer leur cabinet qu'à exercer leur métier.",
+      "pain1": {
+        "title": "Dossiers éparpillés",
+        "description": "Des fichiers partout, pas de vue d'ensemble sur vos affaires en cours"
+      },
+      "pain2": {
+        "title": "Délais oubliés",
+        "description": "Des échéances manquées qui mettent en péril les dossiers de vos clients"
+      },
+      "pain3": {
+        "title": "Facturation chaotique",
+        "description": "Des heures perdues à créer des factures et suivre les paiements"
+      }
+    },
+    "features": {
+      "badge": "Fonctionnalités",
+      "title": "Tout ce dont vous avez besoin",
+      "subtitle": "Une plateforme complète pour gérer votre cabinet juridique efficacement",
+      "dossiers": {
+        "title": "Gestion des dossiers",
+        "description": "Suivez tous vos dossiers juridiques en un seul endroit avec workflows et statuts"
+      },
+      "delais": {
+        "title": "Calcul des délais",
+        "description": "Calcul automatique des délais légaux tunisiens avec alertes intelligentes"
+      },
+      "facturation": {
+        "title": "Facturation",
+        "description": "Créez et gérez vos factures, devis et suivez les paiements facilement"
+      },
+      "ia": {
+        "title": "Qadhya IA",
+        "description": "Intelligence artificielle pour vous assister dans vos recherches juridiques"
+      },
+      "viewAll": "Voir toutes les fonctionnalités"
+    },
+    "aiHighlight": {
+      "badge": "Intelligence Artificielle",
+      "title": "Qadhya IA — Votre assistant juridique intelligent",
+      "subtitle": "Posez vos questions juridiques et obtenez des réponses contextualisées basées sur 3 400+ documents de droit tunisien.",
+      "feature1": "Recherche dans la jurisprudence tunisienne",
+      "feature2": "Structuration automatique des dossiers",
+      "feature3": "Consultation juridique IRAC",
+      "feature4": "Base de connaissances de 3 400+ documents"
+    },
+    "benefits": {
+      "badge": "Pourquoi Qadhya",
+      "title": "Pourquoi choisir Qadhya ?",
+      "benefit1": "Interface intuitive et moderne",
+      "benefit2": "Conforme aux normes juridiques tunisiennes",
+      "benefit3": "Données hébergées en Tunisie",
+      "benefit4": "Support technique réactif",
+      "benefit5": "Mises à jour régulières",
+      "benefit6": "Formation et accompagnement"
+    },
+    "testimonials": {
+      "badge": "Témoignages",
+      "title": "Ce que disent nos utilisateurs",
+      "subtitle": "Des avocats à travers la Tunisie nous font confiance",
+      "t1": {
+        "quote": "Qadhya a transformé ma façon de gérer mon cabinet. Je gagne un temps précieux chaque jour.",
+        "author": "Me. Sarah Ben Ali",
+        "role": "Avocate, Barreau de Tunis"
+      },
+      "t2": {
+        "quote": "Le calcul automatique des délais légaux m'a évité plusieurs erreurs coûteuses. Indispensable !",
+        "author": "Me. Karim Hammami",
+        "role": "Avocat, Barreau de Sfax"
+      },
+      "t3": {
+        "quote": "L'assistant IA est impressionnant. Il me fait gagner des heures de recherche juridique chaque semaine.",
+        "author": "Me. Leila Bouazizi",
+        "role": "Avocate, Barreau de Sousse"
+      }
+    },
+    "pricingTeaser": {
+      "badge": "Tarification",
+      "title": "Plans flexibles pour chaque cabinet",
+      "subtitle": "Commencez gratuitement, évoluez selon vos besoins",
+      "cta": "Voir les tarifs"
+    },
+    "ctaFinal": {
+      "title": "Prêt à transformer votre cabinet ?",
+      "subtitle": "Rejoignez des centaines d'avocats qui ont déjà optimisé leur pratique avec Qadhya",
+      "cta": "Commencer gratuitement",
+      "ctaSecondary": "Nous contacter"
+    },
+    "trust": {
+      "ssl": "Connexion SSL sécurisée",
+      "tunisia": "Hébergé en Tunisie",
+      "barreau": "Conforme au Barreau",
+      "support": "Support réactif"
+    },
+    "pricing": {
+      "badge": "Tarification",
+      "title": "Un prix simple et transparent",
+      "subtitle": "Choisissez le plan qui correspond à votre cabinet. Changez à tout moment.",
+      "monthly": "Mensuel",
+      "annual": "Annuel",
+      "annualSave": "Économisez 20%",
+      "perMonth": "/mois",
+      "free": "Gratuit",
+      "popular": "Le plus populaire",
+      "starter": {
+        "name": "Starter",
+        "description": "Pour l'avocat solo qui démarre",
+        "price": "0",
+        "features": ["5 dossiers actifs", "3 clients maximum", "Calcul des délais", "1 utilisateur", "Support email"]
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "Pour l'avocat qui veut tout optimiser",
+        "priceMonthly": "79",
+        "priceAnnual": "63",
+        "features": ["Dossiers illimités", "Clients illimités", "Qadhya IA juridique", "Facturation complète", "Templates documents", "Support prioritaire"]
+      },
+      "cabinet": {
+        "name": "Cabinet",
+        "description": "Pour les cabinets multi-associés",
+        "priceMonthly": "199",
+        "priceAnnual": "159",
+        "features": ["Tout dans Pro", "Jusqu'à 10 utilisateurs", "Rôles et permissions", "SLA garanti", "Stockage illimité", "Support dédié", "Formation incluse"]
+      },
+      "cta": "Commencer",
+      "ctaFree": "Commencer gratuitement",
+      "ctaPro": "Essai gratuit 14 jours",
+      "ctaCabinet": "Nous contacter",
+      "guarantee": "Satisfait ou remboursé pendant 30 jours",
+      "currency": "DT",
+      "comparison": {
+        "title": "Comparer les plans en détail",
+        "feature": "Fonctionnalité",
+        "dossiers": "Dossiers",
+        "clients": "Clients",
+        "users": "Utilisateurs",
+        "delais": "Calcul des délais",
+        "facturation": "Facturation",
+        "templates": "Templates documents",
+        "ia": "Qadhya IA",
+        "stockage": "Stockage",
+        "support": "Support",
+        "sla": "SLA garanti",
+        "formation": "Formation",
+        "unlimited": "Illimité",
+        "limited5": "5 max",
+        "limited3": "3 max",
+        "limited1": "1",
+        "upTo10": "Jusqu'à 10",
+        "basic": "Basique",
+        "full": "Complet",
+        "email": "Email",
+        "priority": "Prioritaire",
+        "dedicated": "Dédié",
+        "gb1": "1 Go",
+        "gb10": "10 Go",
+        "included": "Incluse"
+      }
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "q1": { "question": "Est-ce que mes données sont sécurisées ?", "answer": "Absolument. Vos données sont hébergées en Tunisie sur des serveurs sécurisés avec chiffrement SSL. Nous respectons les normes de sécurité les plus strictes et ne partageons jamais vos données." },
+      "q2": { "question": "Y a-t-il un engagement minimum ?", "answer": "Non, aucun engagement. Vous pouvez annuler à tout moment. Le plan Starter est gratuit à vie." },
+      "q3": { "question": "Puis-je essayer avant de payer ?", "answer": "Oui ! Le plan Starter est entièrement gratuit. Et le plan Pro offre un essai de 14 jours sans carte bancaire requise." },
+      "q4": { "question": "Est-ce conforme aux exigences du Barreau ?", "answer": "Qadhya est conçu spécifiquement pour les avocats tunisiens et respecte les normes et procédures du Barreau de Tunisie, incluant les calculs de délais légaux." },
+      "q5": { "question": "Comment fonctionne l'IA juridique ?", "answer": "Qadhya IA est alimentée par une base de plus de 3 400 documents juridiques tunisiens. Elle vous aide à rechercher la jurisprudence, structurer vos dossiers et obtenir des consultations juridiques contextualisées." },
+      "q6": { "question": "Puis-je importer mes dossiers existants ?", "answer": "Oui, vous pouvez créer vos dossiers manuellement ou utiliser l'assistant IA pour les structurer automatiquement à partir d'une description en langage naturel." },
+      "q7": { "question": "Quel support est disponible ?", "answer": "Le plan Starter inclut le support par email. Le plan Pro offre un support prioritaire, et le plan Cabinet bénéficie d'un support dédié avec formation incluse." },
+      "q8": { "question": "Les mises à jour sont-elles incluses ?", "answer": "Oui, toutes les mises à jour et nouvelles fonctionnalités sont incluses dans votre abonnement, sans frais supplémentaires." }
+    },
+    "featuresPage": {
+      "badge": "Fonctionnalités",
+      "title": "Toutes les fonctionnalités dont votre cabinet a besoin",
+      "subtitle": "Qadhya est conçu spécifiquement pour les avocats tunisiens. Découvrez tout ce que la plateforme peut faire pour vous.",
+      "dossiers": {
+        "title": "Gestion des dossiers",
+        "subtitle": "Organisez, suivez et gérez tous vos dossiers",
+        "description": "Créez et gérez vos dossiers avec des workflows personnalisés, des statuts automatiques et un suivi complet de chaque étape procédurale. Gardez une vue d'ensemble claire sur toutes vos affaires en cours.",
+        "f1": "Workflows personnalisés par type de procédure",
+        "f2": "Suivi automatique des étapes procédurales",
+        "f3": "Documents et pièces jointes centralisés",
+        "f4": "Historique complet des actions"
+      },
+      "delais": {
+        "title": "Calcul des délais légaux",
+        "subtitle": "Ne manquez plus jamais une échéance",
+        "description": "Calcul automatique des délais légaux tunisiens — jours calendaires, ouvrables et francs. Recevez des alertes intelligentes avant chaque échéance critique.",
+        "f1": "Calcul automatique selon le code tunisien",
+        "f2": "Jours calendaires, ouvrables et francs",
+        "f3": "Alertes email avant chaque échéance",
+        "f4": "Exclusion des jours fériés et vacances judiciaires"
+      },
+      "facturation": {
+        "title": "Facturation simplifiée",
+        "subtitle": "Facturez efficacement, suivez vos paiements",
+        "description": "Créez des devis et factures professionnels en quelques clics. Suivez les paiements, gérez les relances et gardez une vision claire de votre trésorerie.",
+        "f1": "Création rapide de devis et factures",
+        "f2": "Calcul automatique TVA",
+        "f3": "Suivi des paiements et relances",
+        "f4": "Suivi du temps facturable"
+      },
+      "ia": {
+        "title": "Qadhya IA — Assistant juridique",
+        "subtitle": "L'intelligence artificielle au service du droit",
+        "description": "Posez vos questions juridiques et obtenez des réponses contextualisées. Structurez vos dossiers automatiquement. Accédez à plus de 3 400 documents de droit tunisien.",
+        "f1": "Chat juridique avec IA contextuelle",
+        "f2": "Structuration automatique des dossiers",
+        "f3": "Consultation juridique méthode IRAC",
+        "f4": "Base de 3 400+ documents tunisiens"
+      },
+      "documents": {
+        "title": "Documents & Templates",
+        "subtitle": "Générez vos documents en un clic",
+        "description": "Utilisez des templates prédéfinis ou créez les vôtres avec des variables dynamiques. Générez des documents professionnels instantanément.",
+        "f1": "Templates avec variables dynamiques",
+        "f2": "Génération instantanée de documents",
+        "f3": "Stockage cloud sécurisé",
+        "f4": "Partage de templates entre collègues"
+      },
+      "clients": {
+        "title": "Gestion des clients",
+        "subtitle": "Centralisez vos relations clients",
+        "description": "Gérez vos clients personnes physiques et morales. Retrouvez l'historique complet de chaque relation client en un clin d'œil.",
+        "f1": "Personnes physiques et morales",
+        "f2": "Historique complet par client",
+        "f3": "Dossiers et factures associés",
+        "f4": "Recherche rapide et filtres avancés"
+      },
+      "security": {
+        "badge": "Sécurité",
+        "title": "Vos données sont en sécurité",
+        "subtitle": "Infrastructure sécurisée hébergée en Tunisie",
+        "s1": { "title": "Chiffrement SSL", "description": "Toutes les communications sont chiffrées de bout en bout" },
+        "s2": { "title": "Hébergé en Tunisie", "description": "Vos données restent en Tunisie, conformément à la réglementation" },
+        "s3": { "title": "Sauvegardes quotidiennes", "description": "Vos données sont sauvegardées automatiquement chaque jour" },
+        "s4": { "title": "Accès sécurisé", "description": "Authentification forte et gestion des rôles et permissions" }
+      }
+    },
+    "about": {
+      "badge": "À propos",
+      "title": "Simplifier la pratique juridique en Tunisie",
+      "subtitle": "Qadhya est née d'un constat simple : les avocats tunisiens méritent des outils modernes pour exercer leur métier.",
+      "mission": {
+        "title": "Notre mission",
+        "description": "Nous croyons que la technologie peut transformer la pratique juridique en Tunisie. Qadhya est conçue pour libérer les avocats des tâches administratives et leur permettre de se concentrer sur ce qui compte vraiment : défendre leurs clients."
+      },
+      "story": {
+        "title": "Pourquoi Qadhya ?",
+        "description": "Fondée en 2025, Qadhya est le fruit d'une collaboration étroite entre développeurs et professionnels du droit. Nous avons identifié les défis quotidiens des avocats tunisiens — dossiers éparpillés, délais oubliés, facturation chronophage — et avons construit une solution qui y répond concrètement."
+      },
+      "values": {
+        "title": "Nos valeurs",
+        "v1": { "title": "Confiance", "description": "Nous bâtissons une relation de confiance durable avec chaque utilisateur" },
+        "v2": { "title": "Sécurité", "description": "La protection de vos données est notre priorité absolue" },
+        "v3": { "title": "Innovation", "description": "Nous intégrons les dernières avancées en IA pour vous servir mieux" },
+        "v4": { "title": "Local d'abord", "description": "Conçu en Tunisie, pour la Tunisie, avec une expertise locale" }
+      },
+      "cta": {
+        "title": "Rejoignez-nous",
+        "subtitle": "Faites partie de la communauté d'avocats qui transforment leur pratique",
+        "button": "Créer un compte gratuit"
+      }
+    },
+    "contact": {
+      "badge": "Contact",
+      "title": "Nous sommes là pour vous aider",
+      "subtitle": "Une question ? Un besoin spécifique ? Notre équipe vous répond rapidement.",
+      "form": {
+        "name": "Nom complet",
+        "namePlaceholder": "Me. Mohamed Ben Ahmed",
+        "email": "Email",
+        "emailPlaceholder": "votre@email.com",
+        "subject": "Sujet",
+        "subjectPlaceholder": "Comment pouvons-nous vous aider ?",
+        "message": "Message",
+        "messagePlaceholder": "Décrivez votre demande en détail...",
+        "submit": "Envoyer le message",
+        "sending": "Envoi en cours...",
+        "success": "Message envoyé avec succès ! Nous vous répondrons dans les plus brefs délais.",
+        "error": "Erreur lors de l'envoi. Veuillez réessayer.",
+        "validation": {
+          "nameRequired": "Le nom est requis",
+          "emailRequired": "L'email est requis",
+          "emailInvalid": "Email invalide",
+          "subjectRequired": "Le sujet est requis",
+          "messageRequired": "Le message est requis",
+          "messageTooShort": "Le message doit contenir au moins 10 caractères"
+        }
+      },
+      "info": {
+        "responseTime": "Temps de réponse",
+        "responseTimeValue": "Sous 24h en jours ouvrés",
+        "availability": "Disponibilité",
+        "availabilityValue": "Du lundi au vendredi",
+        "support": "Support technique",
+        "supportValue": "Aide à la prise en main incluse"
+      }
+    },
+    "terms": {
+      "title": "Conditions Générales d'Utilisation",
+      "lastUpdated": "Dernière mise à jour : février 2026",
+      "sections": {
+        "s1": { "title": "1. Objet", "content": "Les présentes conditions générales d'utilisation (CGU) régissent l'accès et l'utilisation de la plateforme Qadhya, éditée par Quelyos, accessible à l'adresse qadhya.tn. Qadhya est une plateforme SaaS de gestion de cabinet juridique destinée aux avocats et cabinets d'avocats en Tunisie." },
+        "s2": { "title": "2. Acceptation des CGU", "content": "L'inscription et l'utilisation de la plateforme impliquent l'acceptation pleine et entière des présentes CGU. Si vous n'acceptez pas ces conditions, vous ne devez pas utiliser la plateforme." },
+        "s3": { "title": "3. Description du service", "content": "Qadhya propose un ensemble de fonctionnalités incluant la gestion de dossiers juridiques, le calcul de délais légaux, la facturation, la gestion documentaire, et un assistant juridique basé sur l'intelligence artificielle. Les fonctionnalités disponibles dépendent du plan d'abonnement choisi." },
+        "s4": { "title": "4. Inscription et compte utilisateur", "content": "L'utilisateur s'engage à fournir des informations exactes lors de son inscription et à maintenir la confidentialité de ses identifiants de connexion. Chaque compte est personnel et ne peut être partagé, sauf dans le cadre des plans multi-utilisateurs." },
+        "s5": { "title": "5. Tarification et paiement", "content": "Les tarifs sont indiqués en Dinars Tunisiens (DT) et sont susceptibles de modification avec un préavis de 30 jours. Le plan Starter est gratuit sans limitation de durée. Les plans payants sont facturés mensuellement ou annuellement selon le choix de l'utilisateur." },
+        "s6": { "title": "6. Protection des données", "content": "Qadhya s'engage à protéger les données personnelles de ses utilisateurs conformément à la loi organique n° 2004-63 du 27 juillet 2004 portant sur la protection des données à caractère personnel en Tunisie. Les données sont hébergées sur des serveurs situés en Tunisie." },
+        "s7": { "title": "7. Propriété intellectuelle", "content": "L'ensemble des éléments constituant la plateforme (code, design, contenus, marques) est la propriété exclusive de Quelyos. Toute reproduction, distribution ou utilisation non autorisée est interdite." },
+        "s8": { "title": "8. Limitation de responsabilité", "content": "Qadhya fournit un outil d'aide à la gestion. Les informations générées par l'assistant IA ne constituent pas un avis juridique et ne remplacent pas le conseil d'un professionnel qualifié. Qadhya ne saurait être tenu responsable des décisions prises sur la base des informations fournies par la plateforme." },
+        "s9": { "title": "9. Résiliation", "content": "L'utilisateur peut résilier son compte à tout moment depuis les paramètres de son compte. En cas de violation des CGU, Qadhya se réserve le droit de suspendre ou résilier le compte de l'utilisateur sans préavis." },
+        "s10": { "title": "10. Droit applicable", "content": "Les présentes CGU sont soumises au droit tunisien. Tout litige relatif à l'utilisation de la plateforme sera soumis à la compétence exclusive des tribunaux de Tunis." }
+      }
+    },
+    "privacy": {
+      "title": "Politique de Confidentialité",
+      "lastUpdated": "Dernière mise à jour : février 2026",
+      "sections": {
+        "s1": { "title": "1. Collecte des données", "content": "Nous collectons uniquement les données nécessaires au fonctionnement du service : nom, prénom, adresse email, informations professionnelles. Les données relatives à vos dossiers juridiques sont strictement confidentielles et ne sont accessibles qu'à vous et aux utilisateurs autorisés de votre cabinet." },
+        "s2": { "title": "2. Utilisation des données", "content": "Vos données sont utilisées exclusivement pour fournir et améliorer le service Qadhya. Nous ne vendons, ne louons et ne partageons jamais vos données personnelles avec des tiers à des fins commerciales." },
+        "s3": { "title": "3. Hébergement et sécurité", "content": "Toutes les données sont hébergées sur des serveurs sécurisés situés en Tunisie. Les communications sont chiffrées via SSL/TLS. Nous effectuons des sauvegardes quotidiennes et des audits de sécurité réguliers." },
+        "s4": { "title": "4. Intelligence artificielle", "content": "L'assistant Qadhya IA traite vos requêtes pour fournir des réponses juridiques contextualisées. Les conversations avec l'IA sont confidentielles et ne sont pas utilisées pour entraîner des modèles. La base de connaissances juridique est constituée de documents publics." },
+        "s5": { "title": "5. Cookies", "content": "Nous utilisons des cookies strictement nécessaires au fonctionnement de la plateforme (session, préférences de langue). Nous n'utilisons pas de cookies de pistage publicitaire." },
+        "s6": { "title": "6. Droits des utilisateurs", "content": "Conformément à la loi tunisienne sur la protection des données personnelles, vous disposez d'un droit d'accès, de rectification, de suppression et de portabilité de vos données. Pour exercer ces droits, contactez-nous via le formulaire de contact." },
+        "s7": { "title": "7. Conservation des données", "content": "Vos données sont conservées pendant toute la durée d'utilisation de votre compte. En cas de suppression de compte, vos données sont définitivement effacées dans un délai de 30 jours, sauf obligation légale de conservation." },
+        "s8": { "title": "8. Modifications", "content": "Nous nous réservons le droit de modifier cette politique de confidentialité. Les utilisateurs seront informés de toute modification substantielle par email ou notification dans l'application." }
+      }
+    }
+  },
   "consultation": {
     "title": "Consultation Juridique",
     "subtitle": "Obtenez un conseil juridique rapide basé sur vos documents et la jurisprudence tunisienne",

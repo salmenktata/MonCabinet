@@ -1,10 +1,15 @@
 import Link from 'next/link'
-import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import { Logo } from '@/components/ui/Logo'
+import { BackgroundBlobs } from '@/components/marketing/BackgroundBlobs'
+import { MarketingHeader } from '@/components/marketing/MarketingHeader'
+import { MarketingFooter } from '@/components/marketing/MarketingFooter'
+import { SectionHeading } from '@/components/marketing/SectionHeading'
+import { FeatureCard } from '@/components/marketing/FeatureCard'
+import { StatItem } from '@/components/marketing/StatItem'
+import { TestimonialCard } from '@/components/marketing/TestimonialCard'
+import { TrustBadges } from '@/components/marketing/TrustBadges'
 
-// La page utilise getTranslations (cookies) → pas de force-static
 export const dynamic = 'force-dynamic'
 
 function CheckIcon({ className }: { className?: string }) {
@@ -47,218 +52,152 @@ function SparkleIcon() {
   )
 }
 
-interface FeatureCardProps {
-  icon: React.ReactNode
-  title: string
-  description: string
-  delay: string
-}
-
-function FeatureCard({ icon, title, description, delay }: FeatureCardProps) {
+function AlertIcon() {
   return (
-    <div
-      className={`group glass-card rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/10 animate-fade-in-up ${delay}`}
-    >
-      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center text-blue-400 mb-4 group-hover:scale-110 transition-transform duration-300">
-        {icon}
-      </div>
-      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-sm text-slate-300 leading-relaxed">{description}</p>
-    </div>
-  )
-}
-
-interface StatItemProps {
-  value: string
-  label: string
-  delay: string
-}
-
-function StatItem({ value, label, delay }: StatItemProps) {
-  return (
-    <div className={`text-center animate-fade-in-up ${delay}`}>
-      <div className="text-3xl md:text-4xl font-bold gradient-gold-text mb-1">{value}</div>
-      <div className="text-sm text-slate-300">{label}</div>
-    </div>
+    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+    </svg>
   )
 }
 
 export default async function HomePage() {
-  const [t, tAuth] = await Promise.all([
-    getTranslations('home'),
-    getTranslations('authLayout'),
-  ])
+  const t = await getTranslations('marketing')
 
   return (
     <div className="dark min-h-screen bg-slate-950 text-white overflow-hidden">
-      {/* Background decorations */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-3xl" />
-      </div>
-
-      {/* Header */}
-      <header className="relative z-10 py-4 px-4 sm:px-6 lg:px-8">
-        <nav className="max-w-7xl mx-auto flex items-center justify-between">
-          <Logo size="sm" variant="juridique" showTag={false} animate={false} />
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
-            <Link
-              href="/login"
-              className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
-            >
-              {t('loginButton')}
-            </Link>
-            <Link
-              href="/register"
-              className="btn-premium px-4 py-2 rounded-lg text-sm font-semibold text-white"
-            >
-              {t('registerButton')}
-            </Link>
-          </div>
-        </nav>
-      </header>
+      <BackgroundBlobs />
+      <MarketingHeader />
 
       {/* Hero Section */}
       <section className="relative z-10 pt-16 pb-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto text-center">
-          {/* Logo central avec animation */}
-          <div className="mb-8 animate-fade-in-up">
+          {/* Badge */}
+          <div className="inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-6 animate-fade-in-up">
+            {t('hero.badge')}
+          </div>
+
+          {/* Logo */}
+          <div className="mb-8 animate-fade-in-up stagger-1">
             <Logo size="xl" variant="juridique" showTag={true} animate={true} />
           </div>
 
-          {/* Titre */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 animate-fade-in-up stagger-1">
-            {t('title')}
+          {/* Title */}
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 animate-fade-in-up stagger-2">
+            {t('hero.title')}
           </h1>
 
-          {/* Sous-titre */}
-          <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-10 animate-fade-in-up stagger-2">
-            {t('subtitle')}
+          {/* Subtitle */}
+          <p className="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto mb-8 animate-fade-in-up stagger-3">
+            {t('hero.subtitle')}
           </p>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-in-up stagger-3">
-            <Link
-              href="/register"
-              className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white animate-glow"
-            >
-              {t('registerButton')}
+          {/* CTA */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6 animate-fade-in-up stagger-4">
+            <Link href="/register" className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white animate-glow">
+              {t('hero.cta')}
             </Link>
-            <Link
-              href="/login"
-              className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white hover:bg-white/10 dark:hover:bg-white/5 transition-all"
-            >
-              {t('loginButton')}
+            <Link href="/fonctionnalites" className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white hover:bg-white/10 transition-all">
+              {t('hero.ctaSecondary')}
             </Link>
           </div>
+
+          {/* Trust line */}
+          <p className="text-sm text-slate-400 mb-4 animate-fade-in-up stagger-5">
+            {t('hero.trustLine')}
+          </p>
+          <p className="text-sm text-emerald-400 font-medium animate-fade-in-up stagger-5">
+            {t('hero.socialProof')}
+          </p>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
-            <StatItem value="500+" label="Avocats" delay="stagger-4" />
-            <StatItem value="10K+" label="Dossiers" delay="stagger-5" />
-            <StatItem value="99.9%" label="Disponibilité" delay="stagger-6" />
-            <StatItem value="24/7" label="Support" delay="stagger-6" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto mt-16">
+            <StatItem value={t('stats.lawyers')} label={t('stats.lawyersLabel')} delay="stagger-4" />
+            <StatItem value={t('stats.cases')} label={t('stats.casesLabel')} delay="stagger-5" />
+            <StatItem value={t('stats.uptime')} label={t('stats.uptimeLabel')} delay="stagger-6" />
+            <StatItem value={t('stats.support')} label={t('stats.supportLabel')} delay="stagger-6" />
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Problem Section */}
       <section className="relative z-10 py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 animate-fade-in-up">
-              Tout ce dont vous avez besoin
-            </h2>
-            <p className="text-lg text-slate-300 max-w-2xl mx-auto animate-fade-in-up stagger-1">
-              Une plateforme complète pour gérer votre cabinet juridique efficacement
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <FeatureCard
-              icon={<FolderIcon />}
-              title={t('features.dossiers.title')}
-              description={t('features.dossiers.description')}
-              delay="stagger-1"
-            />
-            <FeatureCard
-              icon={<ClockIcon />}
-              title={t('features.delais.title')}
-              description={t('features.delais.description')}
-              delay="stagger-2"
-            />
-            <FeatureCard
-              icon={<CurrencyIcon />}
-              title={t('features.facturation.title')}
-              description={t('features.facturation.description')}
-              delay="stagger-3"
-            />
-            <FeatureCard
-              icon={<SparkleIcon />}
-              title={tAuth('feature4')}
-              description="Intelligence artificielle pour vous assister dans vos recherches juridiques"
-              delay="stagger-4"
-            />
+          <SectionHeading
+            badge={t('problem.badge')}
+            title={t('problem.title')}
+            subtitle={t('problem.subtitle')}
+          />
+          <div className="grid md:grid-cols-3 gap-6 mt-12">
+            {(['pain1', 'pain2', 'pain3'] as const).map((pain, i) => (
+              <div key={pain} className={`glass-card rounded-2xl p-6 border-red-500/20 animate-fade-in-up stagger-${i + 1}`}>
+                <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400 mb-4">
+                  <AlertIcon />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">{t(`problem.${pain}.title`)}</h3>
+                <p className="text-sm text-slate-400">{t(`problem.${pain}.description`)}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Benefits Section */}
+      {/* Features Grid */}
       <section className="relative z-10 py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <div className="glass-card rounded-3xl p-8 md:p-12">
+          <SectionHeading
+            badge={t('features.badge')}
+            title={t('features.title')}
+            subtitle={t('features.subtitle')}
+          />
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
+            <FeatureCard icon={<FolderIcon />} title={t('features.dossiers.title')} description={t('features.dossiers.description')} delay="stagger-1" />
+            <FeatureCard icon={<ClockIcon />} title={t('features.delais.title')} description={t('features.delais.description')} delay="stagger-2" accent="amber" />
+            <FeatureCard icon={<CurrencyIcon />} title={t('features.facturation.title')} description={t('features.facturation.description')} delay="stagger-3" accent="emerald" />
+            <FeatureCard icon={<SparkleIcon />} title={t('features.ia.title')} description={t('features.ia.description')} delay="stagger-4" accent="purple" />
+          </div>
+          <div className="text-center mt-8">
+            <Link href="/fonctionnalites" className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
+              {t('features.viewAll')} &rarr;
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* AI Highlight */}
+      <section className="relative z-10 py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="glass-card rounded-3xl p-8 md:p-12 border-blue-500/20">
             <div className="grid md:grid-cols-2 gap-12 items-center">
-              {/* Left: Benefits list */}
               <div>
-                <h2 className="text-3xl font-bold text-white mb-8">
-                  Pourquoi choisir Qadhya ?
-                </h2>
-                <ul className="space-y-4">
-                  {[
-                    'Interface intuitive et moderne',
-                    'Conforme aux normes juridiques tunisiennes',
-                    'Données hébergées en Tunisie',
-                    'Support technique réactif',
-                    'Mises à jour régulières',
-                    'Formation et accompagnement',
-                  ].map((benefit, index) => (
-                    <li key={index} className="flex items-center gap-3 text-slate-300">
-                      <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                        <CheckIcon className="w-4 h-4 text-emerald-400" />
+                <div className="inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 mb-4">
+                  {t('aiHighlight.badge')}
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-4">{t('aiHighlight.title')}</h2>
+                <p className="text-slate-300 mb-6">{t('aiHighlight.subtitle')}</p>
+                <ul className="space-y-3">
+                  {(['feature1', 'feature2', 'feature3', 'feature4'] as const).map((f) => (
+                    <li key={f} className="flex items-center gap-3 text-slate-300">
+                      <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                        <CheckIcon className="w-4 h-4 text-purple-400" />
                       </div>
-                      <span>{benefit}</span>
+                      <span>{t(`aiHighlight.${f}`)}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-
-              {/* Right: Testimonial */}
-              <div className="glass rounded-2xl p-6">
-                <div className="flex items-center gap-1 mb-4">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <svg
-                      key={star}
-                      className="w-5 h-5 text-amber-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
+              {/* Chat mockup */}
+              <div className="glass rounded-2xl p-6 space-y-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+                    <SparkleIcon />
+                  </div>
+                  <span className="font-semibold text-white">Qadhya IA</span>
                 </div>
-                <blockquote className="text-lg text-white italic mb-6">
-                  &ldquo;{tAuth('testimonial.quote')}&rdquo;
-                </blockquote>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-bold text-lg">
-                    S
-                  </div>
-                  <div>
-                    <p className="font-semibold text-white">{tAuth('testimonial.author')}</p>
-                    <p className="text-sm text-slate-300">{tAuth('testimonial.role')}</p>
-                  </div>
+                <div className="glass rounded-xl p-3 text-sm text-slate-300">
+                  ما هي شروط الطعن بالاستئناف في القانون التونسي؟
+                </div>
+                <div className="glass rounded-xl p-3 text-sm text-slate-300 border-l-2 border-purple-500">
+                  وفقاً للفصل 130 من مجلة المرافعات المدنية والتجارية، أجل الاستئناف هو 20 يوماً من تاريخ الإعلام بالحكم...
                 </div>
               </div>
             </div>
@@ -266,66 +205,92 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* Benefits + Trust */}
+      <section className="relative z-10 py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="glass-card rounded-3xl p-8 md:p-12">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <SectionHeading badge={t('benefits.badge')} title={t('benefits.title')} center={false} />
+                <ul className="space-y-4 mt-6">
+                  {(['benefit1', 'benefit2', 'benefit3', 'benefit4', 'benefit5', 'benefit6'] as const).map((b) => (
+                    <li key={b} className="flex items-center gap-3 text-slate-300">
+                      <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                        <CheckIcon className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <span>{t(`benefits.${b}`)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {/* Testimonial */}
+              <TestimonialCard
+                quote={t('testimonials.t1.quote')}
+                author={t('testimonials.t1.author')}
+                role={t('testimonials.t1.role')}
+                initial="S"
+              />
+            </div>
+          </div>
+          <div className="mt-12">
+            <TrustBadges ssl={t('trust.ssl')} tunisia={t('trust.tunisia')} barreau={t('trust.barreau')} support={t('trust.support')} />
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="relative z-10 py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeading
+            badge={t('testimonials.badge')}
+            title={t('testimonials.title')}
+            subtitle={t('testimonials.subtitle')}
+          />
+          <div className="grid md:grid-cols-3 gap-6 mt-12">
+            <TestimonialCard quote={t('testimonials.t1.quote')} author={t('testimonials.t1.author')} role={t('testimonials.t1.role')} initial="S" delay="stagger-1" />
+            <TestimonialCard quote={t('testimonials.t2.quote')} author={t('testimonials.t2.author')} role={t('testimonials.t2.role')} initial="K" delay="stagger-2" />
+            <TestimonialCard quote={t('testimonials.t3.quote')} author={t('testimonials.t3.author')} role={t('testimonials.t3.role')} initial="L" delay="stagger-3" />
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Teaser */}
       <section className="relative z-10 py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Prêt à transformer votre cabinet ?
-          </h2>
-          <p className="text-lg text-slate-300 mb-10 max-w-2xl mx-auto">
-            Rejoignez des centaines d&apos;avocats qui ont déjà optimisé leur pratique avec Qadhya
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/register"
-              className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white"
-            >
-              Commencer gratuitement
-            </Link>
-            <Link
-              href="/login"
-              className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white border border-white/30 hover:bg-white/10 dark:hover:bg-white/5 transition-all"
-            >
-              Se connecter
+          <SectionHeading
+            badge={t('pricingTeaser.badge')}
+            title={t('pricingTeaser.title')}
+            subtitle={t('pricingTeaser.subtitle')}
+          />
+          <div className="mt-8">
+            <Link href="/tarification" className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white">
+              {t('pricingTeaser.cta')}
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 py-12 px-4 sm:px-6 lg:px-8 border-t border-white/10">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Logo size="sm" variant="juridique" showTag={false} showText={true} animate={false} />
-            </div>
-
-            <div className="flex items-center gap-6 text-sm text-slate-300">
-              <Link href="#" className="hover:text-white transition-colors">
-                Conditions d&apos;utilisation
-              </Link>
-              <Link href="#" className="hover:text-white transition-colors">
-                Politique de confidentialité
-              </Link>
-              <Link href="#" className="hover:text-white transition-colors">
-                Contact
-              </Link>
-            </div>
-
-            <p className="text-sm text-slate-300">
-              © {new Date().getFullYear()} Qadhya. Tous droits réservés. Developed by{' '}
-              <a
-                href="https://quelyos.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                quelyos.com
-              </a>
-            </p>
+      {/* CTA Final */}
+      <section className="relative z-10 py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            {t('ctaFinal.title')}
+          </h2>
+          <p className="text-lg text-slate-300 mb-10 max-w-2xl mx-auto">
+            {t('ctaFinal.subtitle')}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/register" className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white">
+              {t('ctaFinal.cta')}
+            </Link>
+            <Link href="/contact" className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white border border-white/30 hover:bg-white/10 transition-all">
+              {t('ctaFinal.ctaSecondary')}
+            </Link>
           </div>
         </div>
-      </footer>
+      </section>
+
+      <MarketingFooter />
     </div>
   )
 }
