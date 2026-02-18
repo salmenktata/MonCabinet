@@ -48,8 +48,6 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
       { href: '/qadhya-ia/chat', label: 'qadhyaIAChat', icon: 'messageSquare' },
       { href: '/qadhya-ia/structure', label: 'qadhyaIAStructure', icon: 'edit' },
       { href: '/qadhya-ia/consult', label: 'qadhyaIAConsult', icon: 'scale' },
-      // Base de connaissances réservée super_admin
-      ...(userRole === 'super_admin' ? [{ href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' as keyof typeof Icons }] : []),
     ],
   },
   {
@@ -57,22 +55,8 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     groupIcon: 'search',
     items: [
       { href: '/client/knowledge-base', label: 'knowledgeBaseExplorer', icon: 'bookOpen' },
-      ...(userRole === 'super_admin' ? [
-        { href: '/client/jurisprudence-timeline', label: 'jurisprudenceTimeline', icon: 'history' as keyof typeof Icons },
-        { href: '/client/legal-reasoning', label: 'legalReasoning', icon: 'lightbulb' as keyof typeof Icons },
-      ] : []),
     ],
   },
-  ...((userRole === 'super_admin' || userRole === 'admin') ? [{
-    group: 'Administration',
-    groupIcon: 'shield' as keyof typeof Icons,
-    items: [
-      { href: '/super-admin/pipeline', label: 'pipeline', icon: 'layers' as keyof typeof Icons },
-      ...(userRole === 'super_admin' ? [
-        { href: '/super-admin/web-sources', label: 'webSources', icon: 'globe' as keyof typeof Icons },
-      ] : []),
-    ],
-  }] : []),
   {
     group: 'Finance',
     items: [
