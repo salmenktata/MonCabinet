@@ -28,6 +28,13 @@ async function checkAdminAccess(userId: string): Promise<boolean> {
   return role === 'admin' || role === 'super_admin'
 }
 
+async function checkCronAuth(request: NextRequest): Promise<boolean> {
+  const authHeader = request.headers.get('Authorization')
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) return false
+  return authHeader === `Bearer ${cronSecret}`
+}
+
 // =============================================================================
 // POST: Indexer les pages d'une source
 // =============================================================================
@@ -37,14 +44,17 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const session = await getSession()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-    }
-
-    const isAdmin = await checkAdminAccess(session.user.id)
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    // Accepter CRON_SECRET comme alternative à la session admin
+    const isCron = await checkCronAuth(request)
+    if (!isCron) {
+      const session = await getSession()
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      }
+      const isAdmin = await checkAdminAccess(session.user.id)
+      if (!isAdmin) {
+        return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+      }
     }
 
     const { id } = await params
