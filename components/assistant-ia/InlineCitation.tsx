@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useLayoutEffect, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 import { cn } from '@/lib/utils'
@@ -14,6 +14,34 @@ interface InlineCitationProps {
 
 export function InlineCitation({ citationNumber, source, className }: InlineCitationProps) {
   const [showPopover, setShowPopover] = useState(false)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({})
+
+  const adjustPopoverPosition = useCallback(() => {
+    const el = popoverRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const padding = 8
+    let offsetX = 0
+    if (rect.right > window.innerWidth - padding) {
+      offsetX = window.innerWidth - padding - rect.right
+    } else if (rect.left < padding) {
+      offsetX = padding - rect.left
+    }
+    if (offsetX !== 0) {
+      setPopoverStyle({ transform: `translateX(calc(-50% + ${offsetX}px))` })
+    } else {
+      setPopoverStyle({})
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    if (showPopover) {
+      adjustPopoverPosition()
+    } else {
+      setPopoverStyle({})
+    }
+  }, [showPopover, adjustPopoverPosition])
 
   // Fallback gracieux : badge désactivé si source undefined
   if (!source) {
@@ -79,13 +107,15 @@ export function InlineCitation({ citationNumber, source, className }: InlineCita
       {/* Popover avec détails de la source */}
       {showPopover && source && (
         <div
+          ref={popoverRef}
           className={cn(
-            'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50',
+            'absolute bottom-full left-1/2 mb-2 z-50',
             'w-80 max-w-[90vw]',
             'bg-popover border rounded-lg shadow-lg p-4',
             'text-popover-foreground',
             'animate-scale-in'
           )}
+          style={{ transform: popoverStyle.transform || 'translateX(-50%)' }}
           onMouseEnter={() => setShowPopover(true)}
           onMouseLeave={() => setShowPopover(false)}
         >

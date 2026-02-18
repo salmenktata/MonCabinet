@@ -84,7 +84,7 @@ function isArabicText(text: string): boolean {
   return arabicChars > 0 && arabicChars / text.replace(/\s/g, '').length > 0.25
 }
 
-interface IRACSectionStyle {
+interface SectionStyle {
   step: string
   bgClass: string
   textClass: string
@@ -93,15 +93,15 @@ interface IRACSectionStyle {
 }
 
 /**
- * Détecte les sections IRAC arabes/françaises et retourne un style distinct.
+ * Détecte les sections des 6 Blocs Stratégiques et retourne un style distinct.
+ * Rétrocompatible avec les anciens mots-clés IRAC (أولاً, ثانياً, etc.)
  * Couvre les deux variantes Unicode du tanwin : اً (U+0627 U+064B) et ًا (U+064B U+0627)
  */
-function getIRACSectionStyle(text: string): IRACSectionStyle | null {
+function getSectionStyle(text: string): SectionStyle | null {
   const t = text.trim()
 
-  // Section 1 : Faits / الوقائع
-  // أول[اً] couvre أولاً et أولًا (les deux variantes tanwin)
-  if (/أول[اًً]/.test(t) || /^1[\.\)]\s/i.test(t) || /premièrement/i.test(t) || /الوقائع/i.test(t)) {
+  // Bloc 1 : Qualification juridique / التكييف القانوني (+ rétrocompat أولاً, الوقائع)
+  if (/التكييف القانوني/.test(t) || /أول[اًً]/.test(t) || /الوقائع/.test(t)) {
     return {
       step: '1',
       bgClass: 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30',
@@ -111,8 +111,8 @@ function getIRACSectionStyle(text: string): IRACSectionStyle | null {
     }
   }
 
-  // Section 2 : Cadre juridique / الإطار القانوني
-  if (/ثاني[اًً]/.test(t) || /^2[\.\)]\s/i.test(t) || /deuxièmement/i.test(t) || /الإطار القانوني/i.test(t)) {
+  // Bloc 2 : Normes hiérarchisées / الإطار المعياري (+ rétrocompat ثانياً, الإطار القانوني)
+  if (/الإطار المعياري/.test(t) || /ثاني[اًً]/.test(t) || /الإطار القانوني/.test(t)) {
     return {
       step: '2',
       bgClass: 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30',
@@ -122,35 +122,46 @@ function getIRACSectionStyle(text: string): IRACSectionStyle | null {
     }
   }
 
-  // Section 3 : Analyse / التحليل
-  if (/ثالث[اًً]/.test(t) || /^3[\.\)]\s/i.test(t) || /troisièmement/i.test(t) || /التحليل/i.test(t)) {
+  // Bloc 3 : Interprétation dominante / التفسير السائد (+ rétrocompat ثالثاً, التحليل)
+  if (/التفسير السائد/.test(t) || /ثالث[اًً]/.test(t) || /التحليل/.test(t)) {
     return {
       step: '3',
-      bgClass: 'bg-purple-50 dark:bg-purple-950/30 border border-purple-200/50 dark:border-purple-800/30',
-      textClass: 'text-purple-800 dark:text-purple-300',
-      badgeBg: 'bg-purple-500',
+      bgClass: 'bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200/50 dark:border-indigo-800/30',
+      textClass: 'text-indigo-800 dark:text-indigo-300',
+      badgeBg: 'bg-indigo-500',
       badgeText: 'text-white',
     }
   }
 
-  // Section 4 : Conclusion / الخلاصة
-  if (/رابع[اًً]/.test(t) || /^4[\.\)]\s/i.test(t) || /quatrièmement/i.test(t) || /الخلاصة|التوصيات/i.test(t)) {
+  // Bloc 4 : Argumentation & variantes / الحجج والمواقف المتباينة (+ rétrocompat رابعاً)
+  if (/الحجج والمواقف/.test(t) || /رابع[اًً]/.test(t)) {
     return {
       step: '4',
-      bgClass: 'bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30',
-      textClass: 'text-emerald-800 dark:text-emerald-300',
-      badgeBg: 'bg-emerald-500',
+      bgClass: 'bg-orange-50 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30',
+      textClass: 'text-orange-800 dark:text-orange-300',
+      badgeBg: 'bg-orange-500',
       badgeText: 'text-white',
     }
   }
 
-  // Section 5+ : Autres
-  if (/خامس[اًً]/.test(t) || /^5[\.\)]\s/i.test(t)) {
+  // Bloc 5 : Score de stabilité & risque / تقييم الاستقرار والمخاطر (+ rétrocompat خامساً, الخلاصة)
+  if (/تقييم الاستقرار/.test(t) || /تقييم المخاطر/.test(t) || /خامس[اًً]/.test(t) || /الخلاصة/.test(t)) {
     return {
       step: '5',
       bgClass: 'bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/30',
       textClass: 'text-rose-800 dark:text-rose-300',
       badgeBg: 'bg-rose-500',
+      badgeText: 'text-white',
+    }
+  }
+
+  // Bloc 6 : Recommandation opérationnelle / التوصية العملية (+ rétrocompat سادساً, التوصيات)
+  if (/التوصية العملية/.test(t) || /سادس[اًً]/.test(t) || /التوصيات/.test(t)) {
+    return {
+      step: '6',
+      bgClass: 'bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30',
+      textClass: 'text-emerald-800 dark:text-emerald-300',
+      badgeBg: 'bg-emerald-500',
       badgeText: 'text-white',
     }
   }
@@ -232,7 +243,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             />
           ),
 
-          // Séparateurs - sections IRAC
+          // Séparateurs - sections 6 Blocs
           hr: ({ node, ...props }) => (
             <div className="my-6 flex items-center gap-3" {...props}>
               <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -276,13 +287,13 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             )
           },
 
-          // H2 - Sections principales (IRAC ou génériques)
+          // H2 - Sections principales (6 Blocs Stratégiques ou génériques)
           h2: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             const textContent = getTextContent(children)
-            const sectionStyle = getIRACSectionStyle(textContent)
+            const sectionStyle = getSectionStyle(textContent)
 
             if (sectionStyle) {
               return (
@@ -311,13 +322,13 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             )
           },
 
-          // H3 = sections IRAC ou sous-sections
+          // H3 = sections 6 Blocs ou sous-sections
           h3: ({ node, children, ...props }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             const textContent = getTextContent(children)
-            const sectionStyle = getIRACSectionStyle(textContent)
+            const sectionStyle = getSectionStyle(textContent)
 
             if (sectionStyle) {
               return (
@@ -373,10 +384,10 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             )
           },
 
-          // Texte fort - références juridiques + sections IRAC en bold
+          // Texte fort - références juridiques + sections 6 Blocs en bold
           strong: ({ node, children, ...props }) => {
             const textContent = getTextContent(children)
-            const sectionStyle = getIRACSectionStyle(textContent)
+            const sectionStyle = getSectionStyle(textContent)
 
             if (sectionStyle) {
               return (
