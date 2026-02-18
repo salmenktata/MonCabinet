@@ -41,7 +41,8 @@ const OCR_CONFIG = {
   MIN_CHARS_PER_PAGE: 100,
   // Nombre maximum de pages à traiter avec OCR
   // 250 permet de couvrir les gros codes juridiques (COC = 218 pages)
-  MAX_OCR_PAGES: 250,
+  // Configurable via OCR_MAX_PAGES env var (mettre 50 sur VPS pour les PDFs web)
+  MAX_OCR_PAGES: parseInt(process.env.OCR_MAX_PAGES || '250', 10),
   // Langues supportées pour l'OCR (arabe + français)
   LANGUAGES: 'ara+fra',
   // Scale factor pour pdf-to-img (3.0 ≈ 300 DPI, meilleur pour l'arabe)
