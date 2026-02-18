@@ -593,8 +593,8 @@ jobs:
               docker pull ghcr.io/salmenktata/moncabinet:latest
               docker compose -f docker-compose.prod.yml up -d --force-recreate nextjs
 
-              # Cleanup anciennes images
-              docker image prune -f
+              # Cleanup anciennes images (toutes, pas seulement dangling)
+              docker image prune -a -f
             '
 
       - name: Health check

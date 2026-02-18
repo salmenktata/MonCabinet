@@ -35,6 +35,27 @@ cron_start "check-alerts" "scheduled"
 # Trap pour gérer les erreurs inattendues
 trap 'cron_fail "Script terminé avec erreur" $?' EXIT
 
+# --- Vérification Health endpoint ---
+echo ""
+echo "--- Vérification Health ---"
+HEALTH_RESPONSE=$(curl -s --max-time 10 -w "\nHTTP_CODE:%{http_code}" https://qadhya.tn/api/health 2>/dev/null || echo -e "\nHTTP_CODE:000")
+HEALTH_HTTP_CODE=$(echo "$HEALTH_RESPONSE" | grep HTTP_CODE | cut -d: -f2)
+HEALTH_BODY=$(echo "$HEALTH_RESPONSE" | sed '/HTTP_CODE/d')
+HEALTH_STATUS=$(echo "$HEALTH_BODY" | jq -r '.status' 2>/dev/null || echo "unknown")
+
+if [ "$HEALTH_HTTP_CODE" = "000" ] || [ "${HEALTH_HTTP_CODE:-0}" -ge 500 ]; then
+  echo "🔴 Site inaccessible (HTTP ${HEALTH_HTTP_CODE}) — le watchdog devrait gérer le restart"
+elif [ "$HEALTH_STATUS" != "healthy" ]; then
+  echo "⚠️  Health status dégradé: $HEALTH_STATUS (HTTP $HEALTH_HTTP_CODE)"
+  # Déclencher une vérification d'alerte supplémentaire (l'API est accessible)
+  curl -s --max-time 10 \
+    -H "X-Cron-Secret: $CRON_SECRET" \
+    "https://qadhya.tn/api/admin/alerts/check" > /dev/null 2>&1 || true
+else
+  echo "✅ Health OK (status=$HEALTH_STATUS)"
+fi
+echo ""
+
 # Appeler l'API de vérification alertes
 RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
   -H "X-Cron-Secret: $CRON_SECRET" \
@@ -93,7 +114,8 @@ OUTPUT_JSON=$(cat <<EOF
   "success": true,
   "alertsDetected": $ALERTS_DETECTED,
   "alertsSent": $ALERTS_SENT,
-  "httpCode": $HTTP_CODE
+  "httpCode": $HTTP_CODE,
+  "healthStatus": "$HEALTH_STATUS"
 }
 EOF
 )
