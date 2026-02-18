@@ -654,8 +654,6 @@ export async function searchRelevantContext(
       // ✨ OPTIMISATION RAG - Sprint 2 (Feb 2026)
       // 2. Metadata Filtering Intelligent via classification query
       // FIX A: Réutiliser le Promise lancé en début de fonction (déjà ~2s d'avance)
-      const { isClassificationConfident } = await import('./query-classifier-service')
-
       // Classifier la query — si lancé en avance, déjà résolu ou proche de l'être
       const classification = _earlyClassifyPromise
         ? await _earlyClassifyPromise
@@ -670,117 +668,21 @@ export async function searchRelevantContext(
         metadata: Record<string, unknown>
       }> = []
 
-      // Mapping catégories classifieur → catégories réelles DB
-      // Le classifieur peut retourner 'codes' mais la DB utilise 'legislation'
-      const CATEGORY_DB_MAPPING: Record<string, string[]> = {
-        codes: ['codes'],
-        legislation: ['legislation'],
-        jurisprudence: ['jurisprudence'],
-        doctrine: ['doctrine'],
-        modeles: ['modeles'],
-        procedures: ['procedures'],
-        jort: ['jort'],
-        formulaires: ['formulaires'],
-        constitution: ['constitution', 'legislation'],
-        conventions: ['conventions'],
-        guides: ['guides'],
-        lexique: ['lexique'],
-        actualites: ['actualites'],
-        autre: ['autre'],
-      }
-
-      // DOMAIN-TO-CATEGORY BOOST: domaines → catégories pertinentes
-      const DOMAIN_CATEGORY_BOOST: Record<string, string[]> = {
-        penal: ['codes', 'legislation', 'jurisprudence', 'procedures'],
-        civil: ['codes', 'legislation', 'jurisprudence'],
-        commercial: ['codes', 'legislation', 'jurisprudence'],
-        administratif: ['legislation', 'jurisprudence', 'jort'],
-        travail: ['codes', 'legislation', 'jurisprudence'],
-        famille: ['codes', 'legislation', 'jurisprudence'],
-        immobilier: ['codes', 'legislation', 'jurisprudence'],
-        fiscal: ['codes', 'legislation', 'jort'],
-      }
-
-      if (classification.domains.length > 0 && classification.categories.length < 3) {
-        const domainCategories = new Set<string>(classification.categories)
-        for (const domain of classification.domains) {
-          const boosted = DOMAIN_CATEGORY_BOOST[domain]
-          if (boosted) boosted.forEach(c => domainCategories.add(c))
-        }
-        if (domainCategories.size > classification.categories.length) {
-          classification.categories = [...domainCategories].slice(0, 4) as any
-          console.log(`[RAG Search] Domain boost: ${classification.domains.join(',')} → ${classification.categories.join(',')}`)
-        }
-      }
-
-      // Recherche filtrée par catégorie si classification confiante
-      if (isClassificationConfident(classification) && classification.categories.length > 0) {
-        // Expand les catégories avec le mapping DB
-        const expandedCategories = new Set<string>()
-        for (const cat of classification.categories) {
-          const mapped = CATEGORY_DB_MAPPING[cat] || [cat]
-          mapped.forEach(c => expandedCategories.add(c))
-        }
-
-        console.log(
-          `[RAG Search] Filtrage KB par catégories: ${[...expandedCategories].join(', ')} (classifieur: ${classification.categories.join(', ')}, domaines: ${classification.domains.join(',') || 'aucun'}, confiance: ${(classification.confidence * 100).toFixed(1)}%)`
-        )
-
-        // ✨ FIX B (TTFT): Recherche HYBRIDE parallèle par catégorie
-        // Avant: séquentielle N×~3s (pour 3 catégories = ~9s)
-        // Après: parallèle max(~3s) quelle que soit N → gain ~4-6s
-        const categoryThreshold = queryLangForSearch === 'ar'
-          ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.30)
-          : RAG_THRESHOLDS.knowledgeBase
-        const categoryLimit = Math.max(3, Math.ceil(maxContextChunks / expandedCategories.size))
-        const allCategoryResults = await Promise.all(
-          [...expandedCategories].map(category =>
-            searchKnowledgeBaseHybrid(embeddingQuestion, {
-              category: category as any,
-              limit: categoryLimit,
-              threshold: categoryThreshold,
-              operationName: options.operationName,
-              docType: options.docType,
-            })
-          )
-        )
-        kbResults = allCategoryResults.flat()
-
-        // Re-trier par similarité globale et limiter
-        kbResults.sort((a, b) => b.similarity - a.similarity)
-        kbResults = kbResults.slice(0, maxContextChunks)
-
-        // Fallback: recherche globale HYBRIDE si la recherche filtrée retourne 0 résultats
-        if (kbResults.length === 0) {
-          console.log(
-            `[RAG Search] ⚠️ 0 résultats filtrés → fallback recherche globale hybride (seuil abaissé)`
-          )
-          const fallbackThreshold = queryLangForSearch === 'ar'
-            ? 0.25
-            : Math.max(RAG_THRESHOLDS.knowledgeBase - 0.15, 0.25)
-          kbResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
-            limit: maxContextChunks,
-            threshold: fallbackThreshold,
-            operationName: options.operationName,
-            docType: options.docType,
-          })
-        }
-      } else {
-        // Recherche globale hybride (fallback si classification non confiante)
-        // Seuil plus permissif pour l'arabe (embeddings arabes → scores systématiquement plus bas)
-        const globalThreshold = queryLangForSearch === 'ar'
-          ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.30)
-          : RAG_THRESHOLDS.knowledgeBase
-        console.log(
-          `[RAG Search] Recherche KB globale hybride (classification confiance: ${(classification.confidence * 100).toFixed(1)}%, seuil: ${globalThreshold})`
-        )
-        kbResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
-          limit: maxContextChunks,
-          threshold: globalThreshold,
-          operationName: options.operationName,
-          docType: options.docType,
-        })
-      }
+      // Recherche globale hybride (sans filtrage par catégorie)
+      // Le filtrage par catégorie excluait des résultats pertinents cross-catégorie
+      // La recherche globale + codes-forced + re-ranking produit de meilleurs résultats (benchmark 100% hit@5)
+      const globalThreshold = queryLangForSearch === 'ar'
+        ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.30)
+        : RAG_THRESHOLDS.knowledgeBase
+      console.log(
+        `[RAG Search] Recherche KB globale hybride (classifieur: ${classification.categories.join(', ')}, domaines: ${classification.domains.join(',') || 'aucun'}, confiance: ${(classification.confidence * 100).toFixed(1)}%, seuil: ${globalThreshold})`
+      )
+      kbResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
+        limit: maxContextChunks,
+        threshold: globalThreshold,
+        operationName: options.operationName,
+        docType: options.docType,
+      })
 
       // Ajouter résultats KB aux sources
       for (const result of kbResults) {
