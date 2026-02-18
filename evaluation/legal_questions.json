@@ -1,0 +1,10 @@
+[
+  {
+    "question": "Quelle est la durée du délai de préavis pour un licenciement pour motif personnel ?",
+    "golden_answer": "Pour un salarié ayant entre six mois et deux ans d'ancienneté, le délai de préavis est d'un mois. Pour un salarié ayant deux ans d'ancienneté ou plus, le délai est de deux mois. Ces durées peuvent être augmentées par convention collective, accord de branche, ou le contrat de travail."
+  },
+  {
+    "question": "Qu'est-ce que le vice caché en droit de la vente ?",
+    "golden_answer": "Un vice caché est un défaut grave, non apparent au moment de l'achat, qui rend le bien impropre à l'usage auquel on le destine, ou qui diminue tellement cet usage que l'acheteur ne l'aurait pas acquis, ou n'en aurait donné qu'un moindre prix, s'il l'avait connu. Il est défini par l'article 1641 du Code civil."
+  }
+]
