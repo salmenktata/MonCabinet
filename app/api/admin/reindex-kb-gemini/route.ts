@@ -36,6 +36,15 @@ export async function POST(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
+
+    // Guard anti-re-déclenchement : opération one-time déjà terminée (25,249 chunks indexés)
+    const force = searchParams.get('force') === 'true'
+    if (!force) {
+      return NextResponse.json({
+        message: 'Gemini reindex already completed (25,249 chunks). Use ?force=true to re-run.',
+        status: 'skipped',
+      }, { status: 200 })
+    }
     const batchSize = Math.min(parseInt(searchParams.get('batch_size') || '100'), 500)
     const concurrency = Math.min(parseInt(searchParams.get('concurrency') || '5'), 10)
     const category = searchParams.get('category')

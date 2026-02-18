@@ -83,12 +83,13 @@ const isDev = process.env.NODE_ENV === 'development'
  *
  * | Opération              | Provider | Modèle                    | Coût     |
  * |------------------------|----------|---------------------------|----------|
- * | Assistant IA (chat)    | Gemini   | gemini-2.5-flash          | 0€       |
- * | Dossiers Assistant     | Gemini   | gemini-2.5-flash          | 0€       |
- * | Consultations IRAC     | Gemini   | gemini-2.5-flash          | 0€       |
- * | KB Quality Analysis    | Gemini   | gemini-2.5-flash          | 0€       |
+ * | Assistant IA (chat)    | Groq     | llama-3.3-70b-versatile   | 0€       |
+ * | Dossiers Assistant     | Gemini   | gemini-2.5-flash          | ~€1-2/mois |
+ * | Consultations IRAC     | Groq     | llama-3.3-70b-versatile   | 0€       |
+ * | KB Quality Analysis    | Groq     | llama-3.3-70b-versatile   | 0€       |
  * | Query Classification   | Groq     | llama-3.3-70b-versatile   | 0€       |
  * | Query Expansion        | Groq     | llama-3.3-70b-versatile   | 0€       |
+ * | Consolidation docs     | Groq     | llama-3.3-70b-versatile   | 0€       |
  * | Embeddings (tout)      | OpenAI   | text-embedding-3-small    | ~$2-5/mois |
  * | Re-ranking             | Local    | ms-marco-MiniLM-L-6-v2    | 0€       |
  * | Dev local              | Ollama   | qwen3:8b                  | 0€       |
@@ -127,7 +128,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'assistant-ia': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'gemini', name: 'gemini-2.5-flash' },
+      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
@@ -146,7 +147,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Chat utilisateur temps réel - Gemini 2.5 Flash',
+    description: 'Chat utilisateur temps réel - Groq llama-3.3-70b (gratuit)',
   },
 
   // ---------------------------------------------------------------------------
@@ -183,7 +184,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'kb-quality-analysis': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'gemini', name: 'gemini-2.5-flash' },
+      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
 
     timeouts: {
       chat: 45000,
@@ -196,7 +197,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'warning' },
-    description: 'Analyse qualité documents KB - Gemini 2.5 Flash (arabe juridique, JSON fiable)',
+    description: 'Analyse qualité documents KB - Groq llama-3.3-70b (gratuit)',
   },
 
   // ---------------------------------------------------------------------------
@@ -205,7 +206,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'dossiers-consultation': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'gemini', name: 'gemini-2.5-flash' },
+      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
@@ -224,7 +225,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Consultation juridique formelle IRAC - Gemini',
+    description: 'Consultation juridique formelle IRAC - Groq llama-3.3-70b (gratuit)',
   },
 
   // ---------------------------------------------------------------------------
@@ -277,7 +278,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'document-consolidation': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'gemini', name: 'gemini-2.5-flash' },
+      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
 
     timeouts: {
       chat: 60000,
@@ -290,7 +291,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'warning' },
-    description: 'Consolidation documents multi-pages - Gemini contexte 1M tokens',
+    description: 'Consolidation documents multi-pages - Groq llama-3.3-70b (gratuit)',
   },
 }
 

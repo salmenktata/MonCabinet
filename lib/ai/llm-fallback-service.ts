@@ -12,8 +12,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { aiConfig, SYSTEM_PROMPTS } from './config'
-import { callGemini, GeminiResponse } from './gemini-client'
-import { getOperationConfig, type OperationName } from './operations-config'
+import { callGemini, callGeminiStream, GeminiResponse } from './gemini-client'
+import { getOperationConfig, getOperationProvider, getOperationModel, type OperationName } from './operations-config'
 
 // =============================================================================
 // TYPES
@@ -617,3 +617,68 @@ export async function callSpecificProvider(
  * Alias pour callLLMWithFallback (rétrocompatibilité)
  */
 export const callLLM = callLLMWithFallback
+
+// =============================================================================
+// STREAMING
+// =============================================================================
+
+/**
+ * Stream Groq via OpenAI SDK compatible
+ */
+export async function* callGroqStream(
+  messages: Array<{ role: string; content: string }>,
+  options: { maxTokens?: number; temperature?: number; model?: string; systemInstruction?: string }
+): AsyncGenerator<string> {
+  const client = getGroqClient()
+  const model = options.model ?? aiConfig.groq.model
+
+  const allMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = []
+  if (options.systemInstruction) {
+    allMessages.push({ role: 'system', content: options.systemInstruction })
+  }
+  for (const m of messages) {
+    allMessages.push({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })
+  }
+
+  const stream = await client.chat.completions.create({
+    model,
+    messages: allMessages,
+    stream: true,
+    max_tokens: options.maxTokens ?? 8000,
+    temperature: options.temperature ?? 0.1,
+  })
+
+  for await (const chunk of stream) {
+    const text = chunk.choices[0]?.delta?.content || ''
+    if (text) yield text
+  }
+}
+
+/**
+ * Dispatcher streaming générique selon le provider configuré pour l'opération.
+ * Supporte Groq (gratuit) et Gemini (payant) - sélection automatique via operations-config.
+ */
+export async function* callLLMStream(
+  messages: Array<{ role: string; content: string }>,
+  options: {
+    maxTokens?: number
+    temperature?: number
+    operationName?: OperationName
+    systemInstruction?: string
+  }
+): AsyncGenerator<string> {
+  const provider = options.operationName
+    ? getOperationProvider(options.operationName)
+    : 'groq'
+
+  if (provider === 'groq') {
+    const model = options.operationName ? getOperationModel(options.operationName) : undefined
+    yield* callGroqStream(messages, { ...options, model })
+  } else {
+    yield* callGeminiStream(messages, {
+      temperature: options.temperature,
+      maxTokens: options.maxTokens,
+      systemInstruction: options.systemInstruction,
+    })
+  }
+}

@@ -69,11 +69,11 @@ import {
 import { recordRAGMetric } from '@/lib/metrics/rag-metrics'
 import {
   callLLMWithFallback,
+  callLLMStream,
   LLMMessage,
   LLMResponse,
 } from './llm-fallback-service'
-import { callGeminiStream } from './gemini-client'
-import { type OperationName } from './operations-config'
+import { type OperationName, getOperationProvider, getOperationModel } from './operations-config'
 import {
   validateArticleCitations,
   formatValidationWarnings,
@@ -1913,7 +1913,7 @@ export type StreamChunk =
  * Répond à une question en streaming natif Gemini.
  *
  * Phase 1 : Pipeline RAG complet (non-streaming) → sources + contexte
- * Phase 2 : callGeminiStream() → yield chunks texte en temps réel
+ * Phase 2 : callLLMStream() → yield chunks texte en temps réel (Groq ou Gemini)
  * Phase 3 : Post-processing (sanitize citations, métriques)
  *
  * Format des événements :
@@ -1953,7 +1953,7 @@ export async function* answerQuestionStream(
     const noSourcesMsg = questionLang === 'fr'
       ? 'Je n\'ai trouvé aucun document pertinent pour votre question. Veuillez reformuler.'
       : 'لم أجد وثائق ذات صلة بسؤالك. يرجى إعادة صياغة السؤال.'
-    yield { type: 'metadata', sources: [], model: 'gemini', qualityIndicator: 'low', averageSimilarity: 0 }
+    yield { type: 'metadata', sources: [], model: 'groq/llama-3.3-70b-versatile', qualityIndicator: 'low', averageSimilarity: 0 }
     yield { type: 'chunk', text: noSourcesMsg }
     yield { type: 'done', tokensUsed: { input: 0, output: 0, total: 0 } }
     return
@@ -1997,7 +1997,10 @@ export async function* answerQuestionStream(
   })
 
   // 5. Yield metadata (sources disponibles avant le stream LLM)
-  const modelName = `gemini/${aiConfig.gemini.model}`
+  const opName = options.operationName ?? 'assistant-ia'
+  const streamProvider = getOperationProvider(opName)
+  const streamModel = getOperationModel(opName)
+  const modelName = `${streamProvider}/${streamModel}`
   yield {
     type: 'metadata',
     sources,
@@ -2006,23 +2009,24 @@ export async function* answerQuestionStream(
     averageSimilarity: qualityMetrics.averageSimilarity,
   }
 
-  // 6. Stream Gemini → yield chunks
+  // 6. Stream LLM → yield chunks (Groq ou Gemini selon operations-config)
   const promptConfig = PROMPT_CONFIG[contextType]
   let fullText = ''
   try {
-    const geminiGenerator = callGeminiStream(messagesForLLM, {
+    const streamGen = callLLMStream(messagesForLLM, {
       temperature: options.temperature ?? promptConfig.temperature,
       maxTokens: promptConfig.maxTokens,
+      operationName: options.operationName ?? 'assistant-ia',
       systemInstruction: systemPrompt,
     })
 
-    for await (const chunk of geminiGenerator) {
+    for await (const chunk of streamGen) {
       fullText += chunk
       yield { type: 'chunk', text: chunk }
     }
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : 'Erreur Gemini streaming'
-    console.error('[RAG Stream] Erreur Gemini:', errMsg)
+    const errMsg = error instanceof Error ? error.message : 'Erreur streaming LLM'
+    console.error('[RAG Stream] Erreur streaming:', errMsg)
     yield { type: 'error', message: errMsg }
     return
   }
