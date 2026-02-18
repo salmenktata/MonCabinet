@@ -170,11 +170,20 @@ export async function crawlSource(
     if (skipped > 0) {
       console.log(`[Crawler] ⚠️ Sitemap: ${skipped} URLs hors-domaine ignorées (domaine attendu: ${baseUrlHostname})`)
     }
-    console.log(`[Crawler] ✓ Sitemap détecté: ${filteredSitemapUrls.length} URLs ajoutées à la queue`)
-    // Ajouter les URLs filtrées du sitemap avec depth=1
-    filteredSitemapUrls.forEach(url => {
-      initialQueue.push({ url, depth: 1 })
-    })
+    if (filteredSitemapUrls.length > 0) {
+      console.log(`[Crawler] ✓ Sitemap détecté: ${filteredSitemapUrls.length} URLs ajoutées à la queue`)
+      // Ajouter les URLs filtrées du sitemap avec depth=1
+      filteredSitemapUrls.forEach(url => {
+        initialQueue.push({ url, depth: 1 })
+      })
+    } else {
+      // Sitemap inutilisable (toutes URLs hors-domaine) → fallback mode classique
+      console.log(`[Crawler] ⚠️ Sitemap vide après filtrage, fallback mode classique`)
+      initialQueue.push({ url: sourceBaseUrl, depth: 0 })
+      sourceSeedUrls.forEach((u: string) => {
+        initialQueue.push({ url: u, depth: 1 })
+      })
+    }
   } else {
     // Pas de sitemap: mode classique avec base URL + seed URLs
     console.log(`[Crawler] ⚠️ Aucun sitemap trouvé, mode crawl classique`)
