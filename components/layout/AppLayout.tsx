@@ -18,10 +18,9 @@ interface AppLayoutProps {
 
 // Hook personnalisé pour détecter mobile avec debounce
 function useIsMobile(breakpoint = 1024, delay = 150) {
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState<boolean | null>(null)
 
   useEffect(() => {
-    // Check initial
     setIsMobile(window.innerWidth < breakpoint)
 
     let timeoutId: NodeJS.Timeout
@@ -51,25 +50,27 @@ function AppLayoutComponent({ children, user }: AppLayoutProps) {
   const openMobile = useCallback(() => setMobileOpen(true), [])
 
   return (
-    <div className="relative flex min-h-screen">
+    <div className="relative flex min-h-[100dvh]">
       {/* Desktop Sidebar - Toujours étendu */}
-      {!isMobile && (
+      {isMobile === false && (
         <Sidebar userRole={user.role} />
       )}
 
       {/* Mobile Drawer */}
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="p-0 w-64">
-          <Sidebar userRole={user.role} onClose={closeMobile} />
-        </SheetContent>
-      </Sheet>
+      {isMobile === true && (
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="p-0 w-64">
+            <Sidebar userRole={user.role} onClose={closeMobile} />
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         <Topbar
           user={user}
           onMenuClick={openMobile}
-          showMenuButton={isMobile}
+          showMenuButton={isMobile === true}
         />
         <main className={cn(
           'flex-1 overflow-y-auto',

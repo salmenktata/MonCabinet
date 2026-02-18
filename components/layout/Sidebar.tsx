@@ -37,6 +37,7 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
       { href: '/clients', label: 'clients', icon: 'clients' },
       { href: '/dossiers', label: 'dossiers', icon: 'dossiers' },
       { href: '/echeances', label: 'deadlines', icon: 'deadlines' },
+      { href: '/client/knowledge-base', label: 'knowledgeBaseExplorer', icon: 'bookOpen' },
     ],
   },
   {
@@ -44,17 +45,9 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     variant: 'highlighted',
     groupIcon: 'sparkles',
     items: [
-      // 3 liens distincts pour les modes de Qadhya IA
       { href: '/qadhya-ia/chat', label: 'qadhyaIAChat', icon: 'messageSquare' },
       { href: '/qadhya-ia/structure', label: 'qadhyaIAStructure', icon: 'edit' },
       { href: '/qadhya-ia/consult', label: 'qadhyaIAConsult', icon: 'scale' },
-    ],
-  },
-  {
-    group: 'Research',
-    groupIcon: 'search',
-    items: [
-      { href: '/client/knowledge-base', label: 'knowledgeBaseExplorer', icon: 'bookOpen' },
     ],
   },
   {
@@ -90,7 +83,7 @@ const NavLink = memo(function NavLink({ item, isActive, label, onClick }: NavLin
         className={cn(
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
           'hover:bg-accent hover:text-accent-foreground',
-          isActive && 'bg-accent text-accent-foreground border-s-4 border-primary'
+          isActive && 'bg-accent text-accent-foreground border-l-4 border-primary pl-[8px]'
         )}
       >
         <Icon className="h-5 w-5 shrink-0" />
@@ -136,7 +129,7 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
   const settingsActive = useMemo(() => isActive('/settings'), [isActive])
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r bg-card">
+    <aside className="flex h-screen w-64 flex-col border-r bg-card" aria-label="Navigation principale">
       {/* Logo */}
       <div className="flex h-16 items-center px-4 border-b">
         <Link href="/dashboard" prefetch={true} onClick={onClose}>
@@ -145,7 +138,7 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-6 p-4 overflow-y-auto">
+      <nav className="flex-1 space-y-6 p-4 overflow-y-auto" aria-label="Menu principal">
         {groupsWithState.map((group, groupIndex) => {
           const isHighlighted = group.variant === 'highlighted'
           const GroupIcon = group.groupIcon ? Icons[group.groupIcon] : null
@@ -175,7 +168,7 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
             <div key={group.group}>
               {isHighlighted ? (
                 <div className="relative rounded-lg border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/60 dark:bg-indigo-950/30 p-2 space-y-1">
-                  <div className="absolute inset-y-1 start-0 w-1 rounded-full bg-gradient-to-b from-indigo-500 to-violet-500" />
+                  <div className="absolute inset-y-1 left-0 w-1 rounded-full bg-gradient-to-b from-indigo-500 to-violet-500" />
                   {groupContent}
                 </div>
               ) : (
@@ -210,7 +203,7 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
               'hover:bg-accent hover:text-accent-foreground',
-              settingsActive && 'bg-accent text-accent-foreground'
+              settingsActive && 'bg-accent text-accent-foreground border-l-4 border-primary pl-[8px]'
             )}
           >
             <Icons.settings className="h-5 w-5 shrink-0" />

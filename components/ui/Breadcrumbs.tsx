@@ -29,6 +29,18 @@ export default function Breadcrumbs() {
       'time-tracking': t('timeTracking'),
       documents: t('documents'),
       templates: t('templates'),
+      'qadhya-ia': 'Qadhya IA',
+      chat: 'Chat',
+      structure: 'Structure',
+      consult: 'Consultation',
+      parametres: t('settings'),
+      cabinet: 'Cabinet',
+      notifications: 'Notifications',
+      'cloud-storage': 'Cloud',
+      client: 'Espace Client',
+      'knowledge-base': t('knowledgeBaseExplorer'),
+      settings: t('settings'),
+      profile: 'Profil',
       new: tBreadcrumbs('new'),
       edit: tBreadcrumbs('edit'),
     }
@@ -54,7 +66,7 @@ export default function Breadcrumbs() {
   if (breadcrumbs.length <= 1) return null
 
   return (
-    <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-4">
+    <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
       {breadcrumbs.map((crumb, index) => (
         <div key={`${crumb.href}-${index}`} className="flex items-center">
           {index > 0 && (

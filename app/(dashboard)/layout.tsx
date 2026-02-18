@@ -30,6 +30,7 @@ export default async function DashboardLayout({
 
   return (
     <GlobalErrorBoundary>
+      <div dir="ltr">
       <AppLayout
         user={{
           email: session.user.email!,
@@ -40,6 +41,7 @@ export default async function DashboardLayout({
       >
         {children}
       </AppLayout>
+      </div>
       <GlobalKeyboardShortcuts />
       <Toaster />
       <ToastManager />

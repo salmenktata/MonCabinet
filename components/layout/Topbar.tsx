@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { Icons } from '@/lib/icons'
@@ -22,7 +23,7 @@ const GlobalSearch = dynamic(
   () => import('./GlobalSearch').then(mod => ({ default: mod.GlobalSearch })),
   {
     loading: () => (
-      <div className="hidden md:flex md:w-64 h-9 bg-slate-800 animate-pulse rounded-md" />
+      <div className="hidden md:flex md:w-64 h-9 bg-muted animate-pulse rounded-md" />
     ),
     ssr: false
   }
@@ -87,10 +88,8 @@ export function Topbar({ user, onMenuClick, showMenuButton = false }: TopbarProp
           <ThemeToggle />
 
           {/* Notifications - TODO: implémenter */}
-          <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+          <Button variant="ghost" size="icon" aria-label="Notifications">
             <Icons.bell className="h-5 w-5" />
-            {/* Badge de notification */}
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
           </Button>
 
           {/* Menu utilisateur */}
@@ -115,18 +114,21 @@ export function Topbar({ user, onMenuClick, showMenuButton = false }: TopbarProp
                   <p className="text-sm text-muted-foreground">{user.email}</p>
                 </div>
               </div>
+              <div className="sm:hidden px-2 py-1.5">
+                <LanguageSwitcher />
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <a href="/settings">
+                <Link href="/settings">
                   <Icons.settings className="mr-2 h-4 w-4" />
                   <span>{t('settings')}</span>
-                </a>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a href="/profile">
+                <Link href="/profile">
                   <Icons.user className="mr-2 h-4 w-4" />
                   <span>{t('profile')}</span>
-                </a>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
