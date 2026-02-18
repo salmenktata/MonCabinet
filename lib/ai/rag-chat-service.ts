@@ -292,6 +292,12 @@ function detectDomainBoost(query: string): { pattern: string; factor: number }[]
       titlePatterns: ['مجلة المرافعات المدنية والتجارية'],
       factor: 2.0,
     },
+    // Saisies conservatoires / طرق التنفيذ
+    {
+      keywords: ['عقلة', 'تحفظي', 'تحفظية', 'طرق التنفيذ', 'اعتراض تحفظي', 'عريضة', 'ضرب عقلة', 'saisie', 'conservatoire'],
+      titlePatterns: ['عقلة', 'طرق التنفيذ', 'تحفظ'],
+      factor: 2.5,
+    },
   ]
 
   const matches: { pattern: string; factor: number }[] = []

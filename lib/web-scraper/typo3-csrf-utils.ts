@@ -60,28 +60,75 @@ const JURISPRUDENCE_URL = `${CASSATION_BASE_URL}/fr/%D9%81%D9%82%D9%87-%D8%A7%D9
  * Extrait les tokens CSRF d'une page TYPO3 contenant un formulaire
  *
  * Flow en 2 étapes:
- * 1. GET la page → Parse le HTML pour extraire les tokens cachés
- * 2. Utiliser les tokens dans le POST suivant
+ * 1. GET la page → Parse le HTML + capture les cookies de session Set-Cookie
+ * 2. Utiliser les tokens ET les cookies dans le POST suivant
+ *
+ * Fix 403 : TYPO3 valide que le POST porte le même cookie de session que le GET initial.
+ * fetch() Node.js n'a pas de cookie jar automatique → on capture manuellement les Set-Cookie
+ * et on les retransmet dans le header Cookie du POST.
  */
 export async function extractCsrfTokens(
   pageUrl: string = JURISPRUDENCE_URL,
   options: { ignoreSSLErrors?: boolean } = {}
-): Promise<{ tokens: Typo3CsrfTokens; html: string } | null> {
-  const result = await fetchHtml(pageUrl, {
-    ignoreSSLErrors: options.ignoreSSLErrors ?? true,
-    stealthMode: true,
-    headers: {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'ar,fr;q=0.9,en;q=0.8',
-    },
-  })
+): Promise<{ tokens: Typo3CsrfTokens; html: string; sessionCookies?: string } | null> {
+  // Fetch natif pour capturer les Set-Cookie headers (fetchHtml ne les expose pas)
+  let sslAgent: import('undici').Agent | undefined
+  if (options.ignoreSSLErrors !== false) {
+    try {
+      const { Agent } = await import('undici')
+      sslAgent = new Agent({ connect: { rejectUnauthorized: false } })
+    } catch {
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    }
+  }
 
-  if (!result.success || !result.html) {
-    console.error('[TYPO3-CSRF] Échec du GET initial:', result.error)
+  const fetchInit: RequestInit & { dispatcher?: import('undici').Agent } = {
+    method: 'GET',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'ar,fr;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+    },
+    redirect: 'follow',
+  }
+  if (sslAgent) {
+    fetchInit.dispatcher = sslAgent
+  }
+
+  let rawResponse: Response
+  try {
+    rawResponse = await fetch(pageUrl, fetchInit as RequestInit)
+  } catch (err) {
+    console.error('[TYPO3-CSRF] Erreur fetch GET:', err)
     return null
   }
 
-  const $ = cheerio.load(result.html)
+  if (!rawResponse.ok) {
+    console.error('[TYPO3-CSRF] GET échoué:', rawResponse.status)
+    return null
+  }
+
+  // Capturer les cookies de session (Set-Cookie headers)
+  // getSetCookie() disponible Node.js 18+ — retourne chaque cookie séparément
+  const setCookieHeaders: string[] = typeof rawResponse.headers.getSetCookie === 'function'
+    ? rawResponse.headers.getSetCookie()
+    : (rawResponse.headers.get('set-cookie') || '').split(/,(?=[^ ])/).filter(Boolean)
+
+  const sessionCookies = setCookieHeaders
+    .map(c => c.split(';')[0].trim()) // garder uniquement name=value
+    .filter(Boolean)
+    .join('; ')
+
+  if (sessionCookies) {
+    console.log(`[TYPO3-CSRF] Cookies session capturés: ${sessionCookies.substring(0, 60)}…`)
+  }
+
+  const html = await rawResponse.text()
+
+  const $ = cheerio.load(html)
   const form = $('form[name="search"]')
 
   if (form.length === 0) {
@@ -112,7 +159,8 @@ export async function extractCsrfTokens(
         ? formAction
         : `${CASSATION_BASE_URL}${formAction.startsWith('/') ? '' : '/'}${formAction}`,
     },
-    html: result.html,
+    html,
+    sessionCookies: sessionCookies || undefined,
   }
 }
 
@@ -174,18 +222,23 @@ export async function searchCassationJurisprudence(
   // Étape 2: Construire le body POST
   const body = buildSearchPostBody(csrfResult.tokens, params)
 
-  // Étape 3: POST de recherche
+  // Étape 3: POST de recherche — inclure les cookies de session capturés lors du GET
+  const postHeaders: Record<string, string> = {
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'ar,fr;q=0.9,en;q=0.8',
+    'Referer': JURISPRUDENCE_URL,
+    'Origin': CASSATION_BASE_URL,
+  }
+  if (csrfResult.sessionCookies) {
+    postHeaders['Cookie'] = csrfResult.sessionCookies
+  }
+
   const result = await fetchHtml(csrfResult.tokens.formAction, {
     method: 'POST',
     body,
     ignoreSSLErrors: options.ignoreSSLErrors ?? true,
     stealthMode: true,
-    headers: {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'ar,fr;q=0.9,en;q=0.8',
-      'Referer': JURISPRUDENCE_URL,
-      'Origin': CASSATION_BASE_URL,
-    },
+    headers: postHeaders,
   })
 
   if (!result.success || !result.html) {

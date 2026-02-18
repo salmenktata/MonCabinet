@@ -182,6 +182,51 @@ export const SPA_PROFILE: CrawlerProfile = {
 }
 
 /**
+ * Profil optimisé pour jibaya.tn (Direction Générale des Impôts — DGI Tunisie)
+ *
+ * Caractéristiques découvertes via benchmark (fév 2026) :
+ * - WordPress avec 17 sous-sitemaps (1623 URLs total)
+ * - Contenu en français (0% arabe dans les articles)
+ * - PDFs avec polices custom (texte garbled) → OCR systématique obligatoire
+ * - Sitemaps utiles : docs-sitemap.xml (798 docs), formulaire_a_telecha-sitemap.xml (258)
+ * - Pages lentes : 2-3s/page → rate limit élevé nécessaire
+ */
+export const JIBAYA_PROFILE: CrawlerProfile = {
+  name: 'Jibaya DGI',
+  description: 'Site officiel DGI Tunisie (jibaya.tn) — WordPress, contenu fiscal français',
+  useSitemap: true, // Sitemap riche : 17 sous-sitemaps
+  requiresJavascript: false, // WordPress standard
+  timeoutMs: 60000, // 60s/page (pages lentes)
+  maxPages: 1000,
+  followLinks: false, // On préfère le sitemap exhaustif
+  urlPatterns: [
+    '/docs/*',            // docs-sitemap : 798 documents
+    '/formulaire*',       // formulaire_a_telecha-sitemap : 258 formulaires
+    '/publication/*',
+    '/depliant/*',
+    '/revue_de_presse/*',
+  ],
+  excludedPatterns: [
+    '/wp-admin/*',
+    '/wp-login.php',
+    '/feed/',
+    '/blog/*',         // Articles de blog (faible valeur KB)
+    '/event/*',        // Événements
+    '/albums/*',       // Albums photos
+    '/carrousel*',     // Carrousels d'actualité
+    '/tribe_events/*', // Événements Tribe
+  ],
+  concurrency: 2, // Pages lentes → limiter concurrence
+  rateLimit: 1500, // 1.5s entre requêtes
+  fetchStrategy: 'static',
+  contentSelectors: {
+    main: ['.entry-content', 'article', '.post-content', '.content', '.docs-content'],
+    title: ['.entry-title', 'h1.post-title', 'h1'],
+    date: ['.entry-date', 'time.published'],
+  },
+}
+
+/**
  * Profil par défaut (conservateur)
  */
 export const DEFAULT_PROFILE: CrawlerProfile = {
