@@ -138,7 +138,7 @@ export function ChatActions({
 
   return (
     <div className="border-t bg-muted/30 px-4 py-3">
-      <div className="flex items-center gap-2 max-w-4xl mx-auto">
+      <div className="flex items-center gap-2 px-4 md:px-8">
         <span className="text-xs text-muted-foreground mr-2">{t('actions')}:</span>
 
         <Button variant="outline" size="sm" onClick={onCreateDossier}>

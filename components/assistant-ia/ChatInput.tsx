@@ -100,7 +100,7 @@ export function ChatInput({
 
   return (
     <div className="p-3 md:p-4">
-      <div className="max-w-4xl mx-auto space-y-2">
+      <div className="space-y-2">
         {/* Filtre doc_type */}
         {showDocTypeFilter && (
           <div className="flex items-center gap-2 px-1">
