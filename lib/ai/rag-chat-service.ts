@@ -1627,8 +1627,8 @@ export async function answerQuestion(
       fallbackUsed = llmResponse.fallbackUsed
 
       // ✨ PHASE 5: Citation-First Enforcement
-      // Valider que la réponse commence par une citation
-      if (sources.length > 0) {
+      // Valider que la réponse commence par une citation (seulement pour consultation, pas chat)
+      if (contextType !== 'chat' && sources.length > 0) {
         const citationValidation = validateCitationFirst(answer)
 
         if (!citationValidation.valid) {
