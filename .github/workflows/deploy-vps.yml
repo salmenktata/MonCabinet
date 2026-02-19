@@ -368,25 +368,19 @@ jobs:
               mkdir -p /tmp/deploy-bundle
               tar xzf /tmp/deploy.tar.gz -C /tmp/deploy-bundle
 
-              # Stopper le container AVANT suppression (évite Permission denied sur fichiers lockés par Next.js)
-              docker stop qadhya-nextjs
+              # CRITIQUE: Supprimer .next/server EN ROOT pour éviter Permission denied
+              docker exec -u root qadhya-nextjs rm -rf /app/.next/server /app/.next/server-* /app/.next/static || true
 
-              # CRITIQUE: Supprimer .next/server via docker cp d'un dossier vide (container stoppé)
-              # docker exec ne marche pas sur container stoppé, donc on écrase directement
-              rm -rf /tmp/empty-next && mkdir -p /tmp/empty-next/server
-              docker cp /tmp/empty-next/server qadhya-nextjs:/app/.next/server
-
-              # Copy into stopped container (server.js, .next/, public/)
+              # Copy into running container (server.js, .next/, public/)
               docker cp /tmp/deploy-bundle/server.js qadhya-nextjs:/app/server.js
               docker cp /tmp/deploy-bundle/.next/. qadhya-nextjs:/app/.next/
               docker cp /tmp/deploy-bundle/public/. qadhya-nextjs:/app/public/
 
-              # Redémarrer le container (chown via entrypoint ou start command)
-              docker start qadhya-nextjs
-
-              # Fix permissions après start
-              sleep 2
+              # Fix permissions (docker cp copie avec root, pas nextjs)
               docker exec -u root qadhya-nextjs chown -R nextjs:nodejs /app/.next /app/public /app/server.js
+
+              # Restart container to pick up new code
+              docker restart qadhya-nextjs
 
               # Cleanup
               rm -rf /tmp/deploy-bundle /tmp/deploy.tar.gz
