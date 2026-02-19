@@ -267,7 +267,7 @@ jobs:
     name: Lightning Deploy
     needs: detect-changes
     if: needs.detect-changes.outputs.needs_docker == 'false' && github.ref == 'refs/heads/main'
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
