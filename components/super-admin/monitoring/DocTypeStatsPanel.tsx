@@ -6,6 +6,15 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 import { Loader2 } from 'lucide-react'
 import { DOC_TYPE_TRANSLATIONS, type DocumentType } from '@/lib/categories/doc-types'
 
+interface DocTypeStatsRaw {
+  doc_type: string | null
+  total_docs: number
+  indexed_docs: number
+  avg_quality: number
+  total_chunks: number
+  indexation_rate: number
+}
+
 interface DocTypeStats {
   doc_type: DocumentType
   total_docs: number
@@ -16,7 +25,7 @@ interface DocTypeStats {
 }
 
 interface DocTypeBreakdown {
-  doc_type: DocumentType
+  doc_type: string | null
   category: string
   doc_count: number
   indexed_count: number
@@ -41,6 +50,7 @@ const DOC_TYPE_ICONS: Record<DocumentType, string> = {
 
 export function DocTypeStatsPanel() {
   const [stats, setStats] = useState<DocTypeStats[]>([])
+  const [unclassified, setUnclassified] = useState<DocTypeStatsRaw | null>(null)
   const [breakdown, setBreakdown] = useState<DocTypeBreakdown[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,8 +67,13 @@ export function DocTypeStatsPanel() {
       if (!response.ok) throw new Error('Failed to fetch stats')
 
       const data = await response.json()
-      setStats(data.stats || [])
-      setBreakdown(data.breakdown || [])
+      const allStats: DocTypeStatsRaw[] = data.stats || []
+      // Séparer les docs classés des non-classés (doc_type null)
+      const classified = allStats.filter((s): s is DocTypeStats => s.doc_type != null && s.doc_type !== '' && s.doc_type in DOC_TYPE_TRANSLATIONS)
+      const unclassifiedRow = allStats.find((s) => s.doc_type == null || s.doc_type === '' || !(s.doc_type in DOC_TYPE_TRANSLATIONS))
+      setStats(classified)
+      setUnclassified(unclassifiedRow || null)
+      setBreakdown((data.breakdown || []).filter((b: DocTypeBreakdown) => b.doc_type != null && b.doc_type !== '' && b.doc_type in DOC_TYPE_TRANSLATIONS))
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
@@ -85,7 +100,8 @@ export function DocTypeStatsPanel() {
     )
   }
 
-  const totalDocs = stats.reduce((sum, s) => sum + s.total_docs, 0)
+  const classifiedDocs = stats.reduce((sum, s) => sum + s.total_docs, 0)
+  const totalDocs = classifiedDocs + (unclassified?.total_docs || 0)
 
   const pieData = stats.map((s) => ({
     name: DOC_TYPE_TRANSLATIONS[s.doc_type].fr,
@@ -95,6 +111,23 @@ export function DocTypeStatsPanel() {
 
   return (
     <div className="space-y-6">
+      {/* Bandeau docs non classés */}
+      {unclassified && unclassified.total_docs > 0 && (
+        <Card className="border-orange-300 bg-orange-50 dark:bg-orange-950/20">
+          <CardContent className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-2">
+              <span className="text-orange-600">&#9888;</span>
+              <span className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                {unclassified.total_docs.toLocaleString()} documents sans type (doc_type NULL)
+              </span>
+            </div>
+            <span className="text-xs text-orange-600 dark:text-orange-400">
+              {unclassified.total_chunks.toLocaleString()} chunks | Qualité moy: {unclassified.avg_quality}/100
+            </span>
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPIs Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {stats.map((stat) => {
@@ -180,8 +213,8 @@ export function DocTypeStatsPanel() {
                     <tr key={i} className="border-b">
                       <td className="p-2">
                         <span className="flex items-center gap-1">
-                          {DOC_TYPE_ICONS[row.doc_type]}
-                          <span className="text-xs">{row.doc_type}</span>
+                          {row.doc_type && DOC_TYPE_ICONS[row.doc_type as DocumentType]}
+                          <span className="text-xs">{row.doc_type || 'Non classé'}</span>
                         </span>
                       </td>
                       <td className="p-2 text-muted-foreground">{row.category}</td>
