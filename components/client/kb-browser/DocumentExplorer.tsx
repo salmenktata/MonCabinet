@@ -29,6 +29,7 @@ import { DocumentCard } from './DocumentCard'
 import { getCategoryLabel } from './kb-browser-utils'
 import { useRAGSearchMutation } from '@/lib/hooks/useRAGSearch'
 import type { RAGSearchResult as APISearchResult } from '@/lib/hooks/useRAGSearch'
+import { useKBBrowse } from '@/lib/hooks/useKBBrowse'
 
 // =============================================================================
 // TYPES
@@ -38,7 +39,7 @@ export interface SearchResultItem {
   kbId: string
   title: string
   category: string
-  similarity: number
+  similarity: number | null
   chunkContent?: string
   metadata: {
     tribunalCode?: string | null
@@ -125,7 +126,46 @@ export function DocumentExplorer({
   const [displayedCount, setDisplayedCount] = useState(20)
   const [processingTimeMs, setProcessingTimeMs] = useState<number | null>(null)
 
-  const { mutate: search, isPending: isLoading } = useRAGSearchMutation({
+  // Browse mode: category selected but no search query
+  const isBrowseMode = !searchQuery.trim() && !!filters.category
+  const browseSort = sortField === 'title' ? 'title' as const : 'date' as const
+
+  const {
+    data: browseData,
+    isLoading: isBrowseLoading,
+    isError: isBrowseError,
+    error: browseError,
+  } = useKBBrowse({
+    category: filters.category,
+    limit: 100,
+    offset: 0,
+    sort: browseSort,
+    enabled: isBrowseMode,
+  })
+
+  // When browse data arrives, update results
+  useEffect(() => {
+    if (isBrowseMode && browseData?.results) {
+      const items: SearchResultItem[] = browseData.results.map((r) => ({
+        kbId: r.kbId,
+        title: r.title,
+        category: r.category,
+        similarity: null,
+        metadata: r.metadata as SearchResultItem['metadata'],
+      }))
+      setResults(items)
+      setHasSearched(true)
+      setDisplayedCount(20)
+      setProcessingTimeMs(null)
+      setError(null)
+    }
+    if (isBrowseMode && isBrowseError && browseError) {
+      setError((browseError as Error).message || 'Erreur lors du chargement')
+      setHasSearched(true)
+    }
+  }, [isBrowseMode, browseData, isBrowseError, browseError])
+
+  const { mutate: search, isPending: isSearchLoading } = useRAGSearchMutation({
     onSuccess: (data: APISearchResult) => {
       const items = (data.results || []) as SearchResultItem[]
       setResults(items)
@@ -140,15 +180,20 @@ export function DocumentExplorer({
     },
   })
 
+  const isLoading = isBrowseMode ? isBrowseLoading : isSearchLoading
+
   const handleSearch = useCallback(() => {
     const query = searchQuery.trim()
     const hasCategory = !!filters.category
 
     if (!query && !hasCategory) return
 
+    // Browse mode is handled by useKBBrowse, no need to call search
+    if (!query && hasCategory) return
+
     setError(null)
     search({
-      question: query || `catégorie:${filters.category}`,
+      question: query,
       filters: {
         category: filters.category,
         domain: filters.domain,
@@ -167,7 +212,10 @@ export function DocumentExplorer({
   useEffect(() => {
     if (!initialSearchDone && (initialCategory || initialQuery)) {
       setInitialSearchDone(true)
-      handleSearch()
+      // Browse mode auto-triggers via useKBBrowse, only call handleSearch for text queries
+      if (initialQuery) {
+        handleSearch()
+      }
     }
   }, [initialSearchDone, initialCategory, initialQuery, handleSearch])
 
@@ -192,7 +240,7 @@ export function DocumentExplorer({
     let comparison = 0
     switch (sortField) {
       case 'relevance':
-        comparison = b.similarity - a.similarity
+        comparison = (b.similarity ?? 0) - (a.similarity ?? 0)
         break
       case 'date': {
         const dateA = a.metadata.decisionDate ? new Date(a.metadata.decisionDate).getTime() : 0
@@ -406,7 +454,9 @@ export function DocumentExplorer({
       {hasSearched && !isLoading && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            {results.length} {results.length === 1 ? 'résultat' : 'résultats'}
+            {isBrowseMode && browseData?.pagination
+              ? `${browseData.pagination.total} documents`
+              : `${results.length} ${results.length === 1 ? 'résultat' : 'résultats'}`}
             {processingTimeMs != null && (
               <span className="ml-1">({(processingTimeMs / 1000).toFixed(1)}s)</span>
             )}

@@ -33,9 +33,11 @@ export function DocumentCard({ document, viewMode, onClick }: DocumentCardProps)
             <h3 className="font-semibold text-sm line-clamp-2 flex-1">
               {document.title}
             </h3>
-            <Badge variant="outline" className={`shrink-0 ${getSimilarityColor(document.similarity)}`}>
-              {Math.round(document.similarity * 100)}%
-            </Badge>
+            {document.similarity != null && document.similarity < 1 && (
+              <Badge variant="outline" className={`shrink-0 ${getSimilarityColor(document.similarity)}`}>
+                {Math.round(document.similarity * 100)}%
+              </Badge>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-1">

@@ -92,9 +92,11 @@ export function DocumentDetailModal({
             <Badge className={categoryColor || ''}>
               {getCategoryLabel(document.category)}
             </Badge>
-            <Badge variant="outline">
-              Pertinence: {Math.round(document.similarity * 100)}%
-            </Badge>
+            {document.similarity != null && document.similarity < 1 && (
+              <Badge variant="outline">
+                Pertinence: {Math.round(document.similarity * 100)}%
+              </Badge>
+            )}
             {metadata.decisionNumber && (
               <Badge variant="outline">N° {metadata.decisionNumber}</Badge>
             )}
