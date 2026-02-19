@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Icons } from '@/lib/icons'
+import { Search, X, BookOpen, Gavel, Scale, ClipboardCheck, Briefcase, FileText } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -15,20 +15,21 @@ import {
 } from '@/lib/categories/legal-categories'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
 import { DocumentExplorer } from './DocumentExplorer'
+import { getCategoryCardStyles } from './kb-browser-utils'
 
 // =============================================================================
-// ICON MAP (string → Icons registry)
+// ICON MAP (catégorie → composant lucide-react)
 // =============================================================================
 
 const CATEGORY_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  codes: Icons.bookOpen,
-  jurisprudence: Icons.gavel,
-  doctrine: Icons.bookOpen,
-  legislation: Icons.scale,
-  procedures: Icons.clipboardCheck,
-  conventions: Icons.briefcase,
-  constitution: Icons.fileText,
-  jort: Icons.fileText,
+  codes: BookOpen,
+  jurisprudence: Gavel,
+  doctrine: BookOpen,
+  legislation: Scale,
+  procedures: ClipboardCheck,
+  conventions: Briefcase,
+  constitution: FileText,
+  jort: FileText,
 }
 
 // Catégories principales à afficher sur la landing
@@ -40,29 +41,6 @@ const MAIN_CATEGORIES: LegalCategory[] = [
   'procedures',
   'conventions',
 ]
-
-// Couleurs de bordure pour les cartes catégorie
-const CATEGORY_CARD_COLORS: Record<string, string> = {
-  codes: 'border-indigo-500 hover:bg-indigo-500/5',
-  jurisprudence: 'border-purple-500 hover:bg-purple-500/5',
-  doctrine: 'border-green-500 hover:bg-green-500/5',
-  legislation: 'border-blue-500 hover:bg-blue-500/5',
-  procedures: 'border-cyan-500 hover:bg-cyan-500/5',
-  conventions: 'border-teal-500 hover:bg-teal-500/5',
-  constitution: 'border-pink-500 hover:bg-pink-500/5',
-  jort: 'border-red-500 hover:bg-red-500/5',
-}
-
-const CATEGORY_ICON_COLORS: Record<string, string> = {
-  codes: 'text-indigo-500',
-  jurisprudence: 'text-purple-500',
-  doctrine: 'text-green-500',
-  legislation: 'text-blue-500',
-  procedures: 'text-cyan-500',
-  conventions: 'text-teal-500',
-  constitution: 'text-pink-500',
-  jort: 'text-red-500',
-}
 
 const fadeSlide = {
   initial: { opacity: 0, y: 12 },
@@ -149,7 +127,7 @@ export function KnowledgeBaseBrowser() {
             <div className="max-w-2xl mx-auto pt-2">
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <Icons.search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     placeholder="Rechercher un texte de loi, un arrêt, une doctrine..."
                     value={searchQuery}
@@ -164,7 +142,7 @@ export function KnowledgeBaseBrowser() {
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
                       aria-label="Effacer la recherche"
                     >
-                      <Icons.x className="h-4 w-4 text-muted-foreground" />
+                      <X className="h-4 w-4 text-muted-foreground" />
                     </button>
                   )}
                 </div>
@@ -183,17 +161,16 @@ export function KnowledgeBaseBrowser() {
             <h2 className="text-lg font-semibold mb-4">Explorer par catégorie</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {MAIN_CATEGORIES.map((cat) => {
-                const Icon = CATEGORY_ICON_MAP[cat] || Icons.bookOpen
+                const Icon = CATEGORY_ICON_MAP[cat] || BookOpen
                 const label = LEGAL_CATEGORY_TRANSLATIONS[cat]?.fr || cat
                 const description = LEGAL_CATEGORY_DESCRIPTIONS[cat]?.fr || ''
                 const count = stats?.byCategory[cat] || 0
-                const borderColor = CATEGORY_CARD_COLORS[cat] || 'border-slate-500'
-                const iconColor = CATEGORY_ICON_COLORS[cat] || 'text-slate-500'
+                const styles = getCategoryCardStyles(cat)
 
                 return (
                   <Card
                     key={cat}
-                    className={`cursor-pointer border-l-4 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none ${borderColor}`}
+                    className={`cursor-pointer border-l-4 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none ${styles.borderClass} ${styles.hoverBg}`}
                     onClick={() => handleCategoryClick(cat)}
                     onKeyDown={(e) => handleCardKeyDown(e, cat)}
                     role="button"
@@ -202,7 +179,7 @@ export function KnowledgeBaseBrowser() {
                   >
                     <CardContent className="p-5">
                       <div className="flex items-start gap-4">
-                        <div className={`shrink-0 ${iconColor}`}>
+                        <div className={`shrink-0 ${styles.iconColor}`}>
                           <Icon className="h-8 w-8" />
                         </div>
                         <div className="flex-1 min-w-0">

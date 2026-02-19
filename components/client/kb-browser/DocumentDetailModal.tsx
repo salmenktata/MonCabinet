@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import { toast } from 'sonner'
 import { BookOpen, Scale, Calendar, Building2, Users, FileText, Link2, Copy, Download } from 'lucide-react'
 import {
   Dialog,
@@ -12,9 +13,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { LEGAL_CATEGORY_TRANSLATIONS, LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
+import { LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
 import type { SearchResultItem } from './DocumentExplorer'
+import { formatDateLong, getCategoryLabel } from './kb-browser-utils'
 
 // =============================================================================
 // TYPES
@@ -27,23 +29,6 @@ interface DocumentDetailModalProps {
   onCopy?: () => void
   onExport?: () => void
   onAddToDossier?: () => void
-}
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-function formatDate(dateStr: string | null | undefined): string | null {
-  if (!dateStr) return null
-  try {
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-  } catch {
-    return null
-  }
 }
 
 // =============================================================================
@@ -60,7 +45,7 @@ export function DocumentDetailModal({
 }: DocumentDetailModalProps) {
   const { metadata, relations } = document
   const categoryColor = LEGAL_CATEGORY_COLORS[document.category as LegalCategory]
-  const formattedDate = formatDate(metadata.decisionDate as string | null)
+  const formattedDate = formatDateLong(metadata.decisionDate as string | null)
 
   const handleCopy = useCallback(() => {
     if (onCopy) {
@@ -68,6 +53,7 @@ export function DocumentDetailModal({
     } else {
       const text = document.chunkContent || document.title
       navigator.clipboard.writeText(text)
+      toast.success('Contenu copié dans le presse-papiers')
     }
   }, [onCopy, document])
 
@@ -93,6 +79,7 @@ export function DocumentDetailModal({
       a.download = `${document.title.slice(0, 60).replace(/[^a-zA-Z0-9\u0600-\u06FF ]/g, '_')}.txt`
       a.click()
       URL.revokeObjectURL(url)
+      toast.success('Document exporté')
     }
   }, [onExport, document, metadata, formattedDate])
 
@@ -377,7 +364,3 @@ function RelationCard({ relation, type = 'default' }: RelationCardProps) {
   )
 }
 
-function getCategoryLabel(category: string): string {
-  const translations = LEGAL_CATEGORY_TRANSLATIONS[category as LegalCategory]
-  return translations?.fr || category
-}
