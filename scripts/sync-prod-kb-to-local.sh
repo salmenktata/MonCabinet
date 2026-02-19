@@ -209,6 +209,9 @@ ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_assessed_at timestam
 ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_llm_provider text;
 ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_llm_model text;
 
+-- Colonnes potentiellement manquantes sur web_sources
+ALTER TABLE web_sources ADD COLUMN IF NOT EXISTS allowed_pdf_domains text[] DEFAULT '{}'::text[];
+
 -- Index GIN pour BM25
 CREATE INDEX IF NOT EXISTS idx_kb_chunks_tsvector_gin
   ON knowledge_base_chunks USING gin(content_tsvector);
