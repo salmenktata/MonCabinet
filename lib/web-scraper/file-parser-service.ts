@@ -692,11 +692,87 @@ export function parseTxt(buffer: Buffer): ParsedFile {
 }
 
 // =============================================================================
+// VALIDATION CONTENT-TYPE (MAGIC BYTES)
+// =============================================================================
+
+/**
+ * Signatures de fichiers connues (magic bytes)
+ */
+const FILE_SIGNATURES: Record<string, { bytes: number[]; offset?: number }[]> = {
+  pdf: [{ bytes: [0x25, 0x50, 0x44, 0x46] }], // %PDF
+  docx: [{ bytes: [0x50, 0x4B, 0x03, 0x04] }], // PK (ZIP)
+  doc: [{ bytes: [0xD0, 0xCF, 0x11, 0xE0] }], // OLE2
+  xlsx: [{ bytes: [0x50, 0x4B, 0x03, 0x04] }], // PK (ZIP)
+  pptx: [{ bytes: [0x50, 0x4B, 0x03, 0x04] }], // PK (ZIP)
+}
+
+/**
+ * Valide qu'un buffer correspond au type de fichier attendu via magic bytes
+ * Retourne true si le contenu est valide, false sinon
+ */
+export function validateFileContent(
+  buffer: Buffer,
+  expectedType: string
+): { valid: boolean; detectedType?: string; reason?: string } {
+  const type = expectedType.toLowerCase().replace('.', '')
+
+  if (buffer.length < 4) {
+    return { valid: false, reason: 'Fichier trop petit (< 4 bytes)' }
+  }
+
+  const signatures = FILE_SIGNATURES[type]
+  if (!signatures) {
+    // Type non reconnu — on laisse passer (txt, etc.)
+    return { valid: true }
+  }
+
+  // Vérifier si les magic bytes correspondent
+  for (const sig of signatures) {
+    const offset = sig.offset || 0
+    const matches = sig.bytes.every((byte, i) => buffer[offset + i] === byte)
+    if (matches) {
+      return { valid: true }
+    }
+  }
+
+  // Essayer de détecter le type réel
+  const detectedType = detectFileType(buffer)
+
+  // Cas spécial : un .doc peut en réalité être un .docx (ZIP)
+  if (type === 'doc' && detectedType === 'zip') {
+    return { valid: true, detectedType: 'docx' }
+  }
+
+  // Vérifier si c'est du HTML (page 404 déguisée en .pdf)
+  const header = buffer.subarray(0, 100).toString('utf-8', 0, 100).trim().toLowerCase()
+  if (header.startsWith('<!doctype') || header.startsWith('<html') || header.startsWith('<head')) {
+    return { valid: false, detectedType: 'html', reason: 'Fichier HTML (probable page 404)' }
+  }
+
+  return {
+    valid: false,
+    detectedType,
+    reason: `Magic bytes ne correspondent pas au type ${type}`,
+  }
+}
+
+/**
+ * Détecte le type de fichier basé sur les magic bytes
+ */
+function detectFileType(buffer: Buffer): string | undefined {
+  if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) return 'pdf'
+  if (buffer[0] === 0x50 && buffer[1] === 0x4B) return 'zip'
+  if (buffer[0] === 0xD0 && buffer[1] === 0xCF && buffer[2] === 0x11 && buffer[3] === 0xE0) return 'doc'
+  return undefined
+}
+
+// =============================================================================
 // DISPATCH
 // =============================================================================
 
 /**
  * Parse un fichier selon son type
+ * Effectue une validation magic bytes avant le parsing
  */
 export async function parseFile(
   buffer: Buffer,
@@ -704,7 +780,27 @@ export async function parseFile(
 ): Promise<ParsedFile> {
   const type = fileType.toLowerCase().replace('.', '') as SupportedFileType
 
-  switch (type) {
+  // Validation content-type via magic bytes
+  const validation = validateFileContent(buffer, type)
+  if (!validation.valid) {
+    console.warn(
+      `[FileParser] Contenu invalide pour type ${type}: ${validation.reason}` +
+      (validation.detectedType ? ` (type détecté: ${validation.detectedType})` : '')
+    )
+    return {
+      success: false,
+      text: '',
+      metadata: { wordCount: 0 },
+      error: `Contenu invalide: ${validation.reason}`,
+    }
+  }
+
+  // Si le type réel détecté est différent, utiliser le type corrigé
+  const effectiveType = (validation.detectedType === 'docx' && type === 'doc')
+    ? 'docx' as SupportedFileType
+    : type
+
+  switch (effectiveType) {
     case 'pdf':
       return parsePdf(buffer)
     case 'docx':

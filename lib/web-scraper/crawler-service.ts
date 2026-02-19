@@ -737,6 +737,11 @@ async function crawlFormResults(
   ignoreSSLErrors: boolean,
   rateLimitMs: number,
 ): Promise<string[]> {
+  if (config.type === 'webdev-iort') {
+    console.log('[Crawler] Type webdev-iort: utiliser scripts/crawl-iort.ts pour le crawl IORT')
+    return []
+  }
+
   if (config.type !== 'typo3-cassation') {
     console.warn(`[Crawler] Type de formulaire inconnu: ${config.type}`)
     return []
@@ -1148,6 +1153,179 @@ function pushError(state: CrawlState, url: string, error: string): void {
     })
   }
   // Au-delà de MAX_ERRORS_KEPT+1, on ne stocke plus (évite OOM)
+}
+
+/**
+ * Crawle une seule page
+ */
+export interface ScrapeUrlListOptions {
+  /** Concurrence max (défaut: 5) */
+  concurrency?: number
+  /** Délai entre requêtes en ms (défaut: rateLimitMs de la source) */
+  rateLimitMs?: number
+  /** Indexer automatiquement après scrape (si autoIndexFiles actif) */
+  indexAfterScrape?: boolean
+  /** Télécharger les fichiers liés (PDFs, DOCX) */
+  downloadFiles?: boolean
+}
+
+export interface ScrapeUrlListResult {
+  success: boolean
+  pagesProcessed: number
+  pagesNew: number
+  pagesUpdated: number
+  pagesFailed: number
+  filesDownloaded: number
+  errors: CrawlError[]
+}
+
+/**
+ * Scrape une liste d'URLs connues sans crawler (pas de découverte de liens)
+ * Utile pour : re-indexer des pages spécifiques, importer des listes JORT,
+ * traiter des URLs manuelles
+ */
+export async function scrapeUrlList(
+  source: WebSource,
+  urls: string[],
+  options: ScrapeUrlListOptions = {}
+): Promise<ScrapeUrlListResult> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s = source as any
+  const sourceId = s.id
+  const sourceName = s.name
+  const sourceRateLimit = s.rateLimitMs ?? s.rate_limit_ms ?? 1000
+  const sourceDownloadFiles = options.downloadFiles ?? (s.downloadFiles ?? s.download_files ?? false)
+  const sourceAutoIndex = options.indexAfterScrape ?? (s.autoIndexFiles ?? s.auto_index_files ?? false)
+  const sourceCategory = s.category || 'autre'
+
+  const {
+    concurrency = 5,
+    rateLimitMs = sourceRateLimit,
+  } = options
+
+  // Dédupliquer les URLs
+  const uniqueUrls = [...new Set(urls)]
+
+  console.log(`[Crawler] scrapeUrlList: ${uniqueUrls.length} URLs à traiter (concurrence: ${concurrency})`)
+
+  const result: ScrapeUrlListResult = {
+    success: true,
+    pagesProcessed: 0,
+    pagesNew: 0,
+    pagesUpdated: 0,
+    pagesFailed: 0,
+    filesDownloaded: 0,
+    errors: [],
+  }
+
+  // Traiter par batch
+  for (let i = 0; i < uniqueUrls.length; i += concurrency) {
+    const batch = uniqueUrls.slice(i, i + concurrency)
+
+    const batchResults = await Promise.allSettled(
+      batch.map(async (url) => {
+        try {
+          const scrapeResult = await scrapeUrl(url, source)
+
+          if (!scrapeResult.success || !scrapeResult.content) {
+            return { url, success: false, error: scrapeResult.error || 'Erreur scraping', isNew: false }
+          }
+
+          const content = scrapeResult.content
+          const urlHash = hashUrl(url)
+          const contentHash = hashContent(content.content)
+
+          // Télécharger les fichiers liés si demandé
+          let downloadedFiles = content.files
+          let filesDownloaded = 0
+          if (sourceDownloadFiles && content.files.length > 0) {
+            downloadedFiles = await downloadLinkedFiles(source, content.files)
+            filesDownloaded = downloadedFiles.filter(f => f.downloaded).length
+          }
+
+          // Sauvegarder ou mettre à jour la page
+          const existingPage = await getPageByUrlHash(sourceId, urlHash)
+          let savedPageId: string
+          let isNew = false
+
+          if (existingPage) {
+            await updatePage(existingPage.id, {
+              content,
+              contentHash,
+              files: downloadedFiles,
+              fetchResult: scrapeResult.fetchResult,
+            })
+            savedPageId = existingPage.id
+          } else {
+            savedPageId = await insertPage(sourceId, url, urlHash, 0, {
+              content,
+              contentHash,
+              files: downloadedFiles,
+              fetchResult: scrapeResult.fetchResult,
+            })
+            isNew = true
+          }
+
+          // Auto-indexation des fichiers si activée
+          if (sourceAutoIndex && savedPageId && downloadedFiles.length > 0) {
+            await autoIndexFilesForPage(savedPageId, downloadedFiles, sourceId, sourceName, sourceCategory)
+          }
+
+          return { url, success: true, isNew, filesDownloaded }
+        } catch (error) {
+          return {
+            url,
+            success: false,
+            error: error instanceof Error ? error.message : 'Erreur inconnue',
+            isNew: false,
+          }
+        }
+      })
+    )
+
+    // Comptabiliser les résultats du batch
+    for (const settled of batchResults) {
+      const r = settled.status === 'fulfilled'
+        ? settled.value
+        : { url: 'unknown', success: false, error: String(settled.reason), isNew: false, filesDownloaded: 0 }
+
+      result.pagesProcessed++
+      if (r.success) {
+        if (r.isNew) result.pagesNew++
+        else result.pagesUpdated++
+        result.filesDownloaded += (r as { filesDownloaded?: number }).filesDownloaded || 0
+      } else {
+        result.pagesFailed++
+        pushError(
+          { errors: result.errors } as CrawlState,
+          r.url,
+          r.error || 'Erreur inconnue'
+        )
+      }
+    }
+
+    // Log de progression
+    if (result.pagesProcessed % 10 === 0 || i + concurrency >= uniqueUrls.length) {
+      console.log(
+        `[Crawler] scrapeUrlList: ${result.pagesProcessed}/${uniqueUrls.length} ` +
+        `(${result.pagesNew} new, ${result.pagesUpdated} updated, ${result.pagesFailed} failed)`
+      )
+    }
+
+    // Rate limiting entre batches
+    if (rateLimitMs > 0 && i + concurrency < uniqueUrls.length) {
+      await sleep(rateLimitMs)
+    }
+  }
+
+  result.success = result.pagesFailed < result.pagesProcessed / 2
+
+  console.log(
+    `[Crawler] scrapeUrlList terminé: ${result.pagesProcessed} pages ` +
+    `(${result.pagesNew} new, ${result.pagesUpdated} updated, ${result.pagesFailed} failed, ${result.filesDownloaded} files)`
+  )
+
+  return result
 }
 
 /**

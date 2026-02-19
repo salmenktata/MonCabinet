@@ -39,6 +39,7 @@ export {
   // Crawling
   crawlSource,
   crawlSinglePage,
+  scrapeUrlList,
 } from './crawler-service'
 
 export {
@@ -142,3 +143,22 @@ export type {
   Typo3CsrfTokens,
   CassationSearchParams,
 } from './typo3-csrf-utils'
+
+export {
+  // Scraper IORT (Journal Officiel - iort.gov.tn)
+  IortSessionManager,
+  IORT_TEXT_TYPES,
+  IORT_BASE_URL,
+  IORT_RATE_CONFIG,
+  crawlYearType,
+  getOrCreateIortSource,
+  saveIortPage,
+  updateIortSourceStats,
+  generateIortUrl,
+} from './iort-scraper-utils'
+export type {
+  IortTextType,
+  IortSearchResult,
+  IortExtractedText,
+  IortCrawlStats,
+} from './iort-scraper-utils'

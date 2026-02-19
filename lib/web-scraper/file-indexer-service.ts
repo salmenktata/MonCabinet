@@ -45,6 +45,9 @@ export interface BatchFileResult {
 const WEB_FILES_BUCKET = 'web-files'
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB max
 const DOWNLOAD_TIMEOUT = 60000 // 60 secondes
+const DOWNLOAD_CONCURRENCY = 3 // Téléchargements parallèles par page
+// Seuil au-delà duquel on utilise le streaming (évite buffer mémoire pour gros fichiers)
+const STREAMING_THRESHOLD = 10 * 1024 * 1024 // 10 MB
 
 // =============================================================================
 // TÉLÉCHARGEMENT
@@ -94,15 +97,44 @@ export async function downloadAndStoreFile(
       }
     }
 
-    // Lire le contenu
-    const arrayBuffer = await response.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    // Lire le contenu — streaming pour les gros fichiers (évite saturation mémoire)
+    const declaredSize = contentLength ? parseInt(contentLength) : 0
+    let buffer: Buffer
 
-    if (buffer.length > MAX_FILE_SIZE) {
-      return {
-        success: false,
-        file,
-        error: `Fichier trop volumineux: ${Math.round(buffer.length / 1024 / 1024)}MB`,
+    if (declaredSize > STREAMING_THRESHOLD && response.body) {
+      // Streaming download via chunks pour gros fichiers
+      const chunks: Buffer[] = []
+      let totalSize = 0
+      const reader = response.body.getReader()
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        totalSize += value.length
+        if (totalSize > MAX_FILE_SIZE) {
+          reader.cancel()
+          return {
+            success: false,
+            file,
+            error: `Fichier trop volumineux: ${Math.round(totalSize / 1024 / 1024)}MB (streaming interrompu)`,
+          }
+        }
+        chunks.push(Buffer.from(value))
+      }
+      buffer = Buffer.concat(chunks)
+      console.log(`[FileIndexer] Streaming download: ${(buffer.length / 1024 / 1024).toFixed(1)}MB`)
+    } else {
+      // Download classique pour petits fichiers
+      const arrayBuffer = await response.arrayBuffer()
+      buffer = Buffer.from(arrayBuffer)
+
+      if (buffer.length > MAX_FILE_SIZE) {
+        return {
+          success: false,
+          file,
+          error: `Fichier trop volumineux: ${Math.round(buffer.length / 1024 / 1024)}MB`,
+        }
       }
     }
 
@@ -171,23 +203,49 @@ export async function downloadPageFiles(
 
   const downloadedFiles: LinkedFile[] = []
 
+  // Séparer les fichiers déjà téléchargés de ceux à télécharger
+  const alreadyDownloaded: LinkedFile[] = []
+  const toDownload: LinkedFile[] = []
+
   for (const file of files) {
-    // Ne télécharger que les fichiers non encore téléchargés
     if (file.downloaded && file.minioPath) {
-      // Fichier déjà téléchargé, on le garde
-      downloadedFiles.push(file)
-      continue
-    }
-
-    const downloadResult = await downloadAndStoreFile(file, sourceId, pageId)
-
-    if (downloadResult.success) {
-      result.downloaded++
-      downloadedFiles.push(downloadResult.file)
+      alreadyDownloaded.push(file)
     } else {
-      result.failed++
-      if (downloadResult.error) {
-        result.errors.push(`${file.filename}: ${downloadResult.error}`)
+      toDownload.push(file)
+    }
+  }
+
+  downloadedFiles.push(...alreadyDownloaded)
+
+  // Télécharger en parallèle par batch (concurrence limitée à DOWNLOAD_CONCURRENCY)
+  for (let i = 0; i < toDownload.length; i += DOWNLOAD_CONCURRENCY) {
+    const batch = toDownload.slice(i, i + DOWNLOAD_CONCURRENCY)
+
+    const batchResults = await Promise.allSettled(
+      batch.map(file => downloadAndStoreFile(file, sourceId, pageId))
+    )
+
+    for (let j = 0; j < batchResults.length; j++) {
+      const settled = batchResults[j]
+      const file = batch[j]
+
+      if (settled.status === 'fulfilled') {
+        const downloadResult = settled.value
+        if (downloadResult.success) {
+          result.downloaded++
+          downloadedFiles.push(downloadResult.file)
+        } else {
+          result.failed++
+          if (downloadResult.error) {
+            result.errors.push(`${file.filename}: ${downloadResult.error}`)
+          }
+          // Garder le fichier avec downloaded=false pour retry ultérieur
+          downloadedFiles.push({ ...file, downloaded: false })
+        }
+      } else {
+        result.failed++
+        result.errors.push(`${file.filename}: ${String(settled.reason)}`)
+        downloadedFiles.push({ ...file, downloaded: false })
       }
     }
   }
@@ -314,12 +372,13 @@ export async function indexFile(
     try {
       await client.query('BEGIN')
 
-      // Créer le document dans knowledge_base
+      // Créer le document dans knowledge_base (avec tracking OCR)
+      const ocrApplied = parsed.metadata.ocrApplied || false
       const kbResult = await client.query(
         `INSERT INTO knowledge_base (
           title, full_text, category, language, source_file,
-          file_name, file_type, is_indexed, chunk_count
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8)
+          file_name, file_type, is_indexed, chunk_count, ocr_applied
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)
         RETURNING id`,
         [
           parsed.metadata.title || file.filename,
@@ -330,17 +389,30 @@ export async function indexFile(
           file.filename,
           file.type,
           chunks.length,
+          ocrApplied,
         ]
       )
 
       const knowledgeBaseId = kbResult.rows[0].id
 
-      // Créer les chunks
+      // Créer les chunks (avec OCR confidence si applicable)
+      const chunkMetadataBase: Record<string, unknown> = {}
+      if (ocrApplied && parsed.metadata.ocrConfidence !== undefined) {
+        chunkMetadataBase.ocrConfidence = parsed.metadata.ocrConfidence
+        chunkMetadataBase.ocrApplied = true
+      }
+
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i]
         const embedding = embeddings[i]
 
         if (!embedding) continue
+
+        const chunkMetadata = {
+          ...chunkMetadataBase,
+          wordCount: chunk.metadata.wordCount,
+          tokenCount: Math.ceil(chunk.metadata.wordCount * 1.3),
+        }
 
         await client.query(
           `INSERT INTO knowledge_base_chunks (
@@ -351,7 +423,7 @@ export async function indexFile(
             i,
             chunk.content,
             formatEmbeddingForPostgres(embedding),
-            JSON.stringify({ wordCount: chunk.metadata.wordCount, tokenCount: Math.ceil(chunk.metadata.wordCount * 1.3) }),
+            JSON.stringify(chunkMetadata),
           ]
         )
       }
