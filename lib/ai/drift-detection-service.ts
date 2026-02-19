@@ -13,6 +13,8 @@
  */
 
 import { db } from '@/lib/db/postgres'
+import { sendEmail } from '@/lib/email/brevo'
+import { getRedisClient } from '@/lib/cache/redis'
 
 // =============================================================================
 // TYPES
@@ -291,11 +293,81 @@ export async function generateDriftReport(periodDays: number = 7): Promise<Drift
 
 /**
  * Vérifie le drift et retourne uniquement les alertes (pour cron)
+ * Envoie un email si dégradation détectée (anti-spam 6h)
  */
 export async function checkDrift(periodDays: number = 7): Promise<{
   status: 'stable' | 'warning' | 'degraded'
   alerts: DriftAlert[]
 }> {
   const report = await generateDriftReport(periodDays)
+
+  // Envoyer email si warning ou dégradation
+  if (report.overallStatus !== 'stable' && report.alerts.length > 0) {
+    sendDriftAlertEmail(report).catch(err =>
+      console.error('[Drift] Erreur envoi email:', err instanceof Error ? err.message : err)
+    )
+  }
+
   return { status: report.overallStatus, alerts: report.alerts }
+}
+
+/**
+ * Envoie un email d'alerte drift (anti-spam: max 1 email / 6h)
+ */
+async function sendDriftAlertEmail(report: DriftReport): Promise<void> {
+  const ALERT_EMAIL = process.env.ALERT_EMAIL || 'admin@qadhya.tn'
+  const ANTI_SPAM_KEY = 'alert:drift:last_sent'
+  const ANTI_SPAM_TTL = 6 * 60 * 60 // 6h
+
+  // Anti-spam check
+  try {
+    const redis = await getRedisClient()
+    if (redis) {
+      const lastSent = await redis.get(ANTI_SPAM_KEY)
+      if (lastSent) {
+        console.log('[Drift] Email supprimé (anti-spam 6h)')
+        return
+      }
+      await redis.set(ANTI_SPAM_KEY, new Date().toISOString(), { EX: ANTI_SPAM_TTL })
+    }
+  } catch {
+    // Redis indisponible, on envoie quand même
+  }
+
+  const isCritical = report.overallStatus === 'degraded'
+  const alertLines = report.alerts.map(a =>
+    `<li style="margin:8px 0;"><strong>[${a.severity.toUpperCase()}]</strong> ${a.message}</li>`
+  ).join('')
+
+  const htmlContent = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+      <div style="background:${isCritical ? '#dc2626' : '#f59e0b'};color:white;padding:20px;border-radius:8px 8px 0 0">
+        <h2 style="margin:0">${isCritical ? '🚨' : '⚠️'} Drift RAG détecté — ${report.overallStatus.toUpperCase()}</h2>
+      </div>
+      <div style="background:#f9fafb;padding:20px;border-radius:0 0 8px 8px">
+        <p>Période analysée : ${report.currentPeriod.period.from} → ${report.currentPeriod.period.to}</p>
+        <h3>Alertes (${report.alerts.length})</h3>
+        <ul>${alertLines}</ul>
+        <h3>Métriques actuelles</h3>
+        <table style="width:100%;border-collapse:collapse">
+          <tr><td style="padding:4px 8px;border-bottom:1px solid #e5e7eb">Similarité moy.</td><td style="text-align:right">${report.currentPeriod.metrics.avgSimilarity?.toFixed(3) ?? '—'}</td></tr>
+          <tr><td style="padding:4px 8px;border-bottom:1px solid #e5e7eb">Taux abstention</td><td style="text-align:right">${report.currentPeriod.metrics.abstentionRate?.toFixed(1) ?? '—'}%</td></tr>
+          <tr><td style="padding:4px 8px;border-bottom:1px solid #e5e7eb">Taux hallucination</td><td style="text-align:right">${report.currentPeriod.metrics.hallucinationRate?.toFixed(1) ?? '—'}%</td></tr>
+          <tr><td style="padding:4px 8px;border-bottom:1px solid #e5e7eb">Satisfaction</td><td style="text-align:right">${report.currentPeriod.metrics.satisfactionRate?.toFixed(1) ?? '—'}%</td></tr>
+          <tr><td style="padding:4px 8px">Conversations</td><td style="text-align:right">${report.currentPeriod.metrics.totalConversations}</td></tr>
+        </table>
+        <p style="margin-top:20px;font-size:12px;color:#6b7280">
+          Qadhya Monitoring — ${report.generatedAt}
+        </p>
+      </div>
+    </div>`
+
+  await sendEmail({
+    to: ALERT_EMAIL,
+    subject: `[${report.overallStatus.toUpperCase()}] Drift RAG détecté — ${report.alerts.length} alerte(s)`,
+    htmlContent,
+    tags: ['drift-detection', report.overallStatus],
+  })
+
+  console.log(`[Drift] Email alerte envoyé à ${ALERT_EMAIL} (${report.overallStatus}, ${report.alerts.length} alertes)`)
 }

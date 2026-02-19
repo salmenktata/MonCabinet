@@ -41,12 +41,20 @@ const activeRuns = new Map<string, { status: 'running' | 'done' | 'error'; progr
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession()
-    if (!session?.user?.id || (session.user.role !== 'admin' && session.user.role !== 'super_admin')) {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-    }
-
+    // Auth : session admin OU CRON_SECRET
+    const cronSecret = process.env.CRON_SECRET
+    const authHeader = request.headers.get('authorization')
     const body = await request.json()
+    const bodySecret = (body as Record<string, unknown>)?.secret
+
+    const isCronAuth = cronSecret && (authHeader === `Bearer ${cronSecret}` || bodySecret === cronSecret)
+
+    if (!isCronAuth) {
+      const session = await getSession()
+      if (!session?.user?.id || (session.user.role !== 'admin' && session.user.role !== 'super_admin')) {
+        return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+      }
+    }
     const mode = body.mode || 'quick'
     const runMode: RunMode = body.runMode || 'retrieval'
     const label: string | undefined = body.label

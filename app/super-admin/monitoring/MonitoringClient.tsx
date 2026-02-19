@@ -18,6 +18,7 @@ import { ImpersonationsTab } from '@/components/super-admin/monitoring/Impersona
 import SystemConfigTab from '@/components/super-admin/monitoring/SystemConfigTab'
 import { DocTypeStatsPanel } from '@/components/super-admin/monitoring/DocTypeStatsPanel'
 import { RAGHealthTab } from '@/components/super-admin/monitoring/RAGHealthTab'
+import { DriftDetectionTab } from '@/components/super-admin/monitoring/DriftDetectionTab'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -93,6 +94,10 @@ export function MonitoringClient() {
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Crons & Batches</span>
           </TabsTrigger>
+          <TabsTrigger value="drift" className="flex items-center gap-2">
+            <Radar className="h-4 w-4" />
+            <span className="hidden sm:inline">Drift</span>
+          </TabsTrigger>
           <TabsTrigger value="impersonations" className="flex items-center gap-2">
             <Eye className="h-4 w-4" />
             <span className="hidden sm:inline">Impersonations</span>
@@ -145,7 +150,12 @@ export function MonitoringClient() {
           <CronsAndBatchesTab />
         </TabsContent>
 
-        {/* Tab 8: Impersonations */}
+        {/* Tab 8: Drift Detection */}
+        <TabsContent value="drift" className="space-y-6">
+          <DriftDetectionTab />
+        </TabsContent>
+
+        {/* Tab 9: Impersonations */}
         <TabsContent value="impersonations" className="space-y-6">
           <ImpersonationsTab />
         </TabsContent>
