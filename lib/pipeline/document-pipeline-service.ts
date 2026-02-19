@@ -732,9 +732,8 @@ async function executeReplay(doc: PipelineDocument, stage: PipelineStage): Promi
       break
 
     case 'indexed':
-      // Re-index: delete chunks and re-generate
-      await db.query('DELETE FROM knowledge_base_chunks WHERE knowledge_base_id = $1', [doc.id])
-      await db.query('UPDATE knowledge_base SET is_indexed = false WHERE id = $1', [doc.id])
+      // Re-index: indexKnowledgeDocument gère le DELETE chunks + INSERT + is_indexed
+      // dans sa propre transaction atomique (pas de pre-delete ici pour éviter les orphelins)
       try {
         const { indexKnowledgeDocument } = await import('@/lib/ai/knowledge-base-service')
         await indexKnowledgeDocument(doc.id)

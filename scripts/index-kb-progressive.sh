@@ -2,7 +2,8 @@
 # Script d'indexation progressive via API endpoints
 # Indexe knowledge_base ET web_pages (2 docs par batch chacun)
 
-set -e
+# NB: PAS de set -e — les timeouts curl retournent des codes non-zero
+# et ne doivent pas interrompre le script (les deux phases doivent toujours s'exécuter)
 
 # Charger library cron logging
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,7 +17,7 @@ if [ -z "$NEXTJS_CONTAINER" ]; then
   exit 1
 fi
 
-CRON_SECRET=$(docker exec "$NEXTJS_CONTAINER" env | grep CRON_SECRET | cut -d= -f2)
+CRON_SECRET=$(docker exec "$NEXTJS_CONTAINER" env | grep CRON_SECRET | cut -d= -f2-)
 LOG_FILE="/var/log/qadhya/kb-indexing.log"
 
 # Configurer cron-logger

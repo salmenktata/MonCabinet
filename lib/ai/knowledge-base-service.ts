@@ -547,19 +547,26 @@ export async function indexKnowledgeDocument(
       )
     }
 
-    // Backfill Ollama embeddings sur les chunks venant d'être insérés (si disponibles)
+    // Backfill Ollama embeddings via UPDATE batch (1 requête au lieu de N)
     if (hasOllamaEmbeddings) {
       const ollamaEmbeddings = ollamaEmbeddingsResult.value.embeddings
+      const indices: number[] = []
+      const vectors: string[] = []
       for (let i = 0; i < chunks.length; i++) {
         if (ollamaEmbeddings[i]) {
-          await client.query(
-            `UPDATE knowledge_base_chunks SET embedding = $1::vector(1024)
-             WHERE knowledge_base_id = $2 AND chunk_index = $3`,
-            [formatEmbeddingForPostgres(ollamaEmbeddings[i]), documentId, i]
-          )
+          indices.push(i)
+          vectors.push(formatEmbeddingForPostgres(ollamaEmbeddings[i]))
         }
       }
-      console.log(`[KB Index] Embeddings Ollama écrits pour ${chunks.length} chunks`)
+      if (indices.length > 0) {
+        await client.query(
+          `UPDATE knowledge_base_chunks kbc SET embedding = batch.vec::vector(1024)
+           FROM unnest($1::int[], $2::text[]) AS batch(idx, vec)
+           WHERE kbc.knowledge_base_id = $3 AND kbc.chunk_index = batch.idx`,
+          [indices, vectors, documentId]
+        )
+        console.log(`[KB Index] Embeddings Ollama écrits pour ${indices.length} chunks (batch)`)
+      }
     }
 
     // Mettre à jour le document avec son embedding, stratégie et marquer comme indexé
@@ -611,10 +618,14 @@ export async function indexPendingDocuments(limit: number = 10): Promise<{
   // Priorité 1: Catégories critiques (jurisprudence, codes, legislation)
   // Priorité 2: Documents jamais analysés (quality_score IS NULL)
   // Priorité 3: Anciens d'abord (FIFO)
+  // Exclure les documents dont l'indexation a échoué récemment (< 1h)
+  // pour éviter de les re-tenter à chaque batch et bloquer les autres documents.
+  // Après 1h, ils seront retentés automatiquement.
   const pendingResult = await db.query(
     `SELECT id, title, category, quality_score
      FROM knowledge_base
      WHERE is_indexed = false AND full_text IS NOT NULL
+     AND (last_index_error IS NULL OR last_index_attempt_at < NOW() - INTERVAL '1 hour')
      ORDER BY
        -- Priorité 1: Catégories critiques
        CASE
@@ -634,6 +645,19 @@ export async function indexPendingDocuments(limit: number = 10): Promise<{
   for (const row of pendingResult.rows) {
     try {
       const indexResult = await indexKnowledgeDocument(row.id)
+      if (indexResult.success) {
+        // Effacer l'erreur précédente si l'indexation réussit
+        await db.query(
+          `UPDATE knowledge_base SET last_index_error = NULL, last_index_attempt_at = NOW() WHERE id = $1`,
+          [row.id]
+        ).catch(() => {}) // non-bloquant
+      } else {
+        // Marquer l'échec pour le cooldown de 1h
+        await db.query(
+          `UPDATE knowledge_base SET last_index_error = $2, last_index_attempt_at = NOW() WHERE id = $1`,
+          [row.id, (indexResult.error || 'Échec indexation').substring(0, 500)]
+        ).catch(() => {})
+      }
       results.push({
         id: row.id,
         title: row.title,
@@ -641,11 +665,17 @@ export async function indexPendingDocuments(limit: number = 10): Promise<{
         error: indexResult.error,
       })
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Erreur inconnue'
+      // Marquer l'échec pour le cooldown de 1h
+      await db.query(
+        `UPDATE knowledge_base SET last_index_error = $2, last_index_attempt_at = NOW() WHERE id = $1`,
+        [row.id, errorMsg.substring(0, 500)]
+      ).catch(() => {})
       results.push({
         id: row.id,
         title: row.title,
         success: false,
-        error: error instanceof Error ? error.message : 'Erreur inconnue',
+        error: errorMsg,
       })
     }
   }

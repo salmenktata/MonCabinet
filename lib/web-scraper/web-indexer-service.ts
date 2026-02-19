@@ -299,6 +299,17 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   try {
     await client.query('BEGIN')
 
+    // Verrouiller la page pour éviter l'indexation concurrente (SKIP LOCKED = pas de blocage)
+    const lockResult = await client.query(
+      `SELECT id FROM web_pages WHERE id = $1 AND is_indexed = false FOR UPDATE SKIP LOCKED`,
+      [pageId]
+    )
+    if (lockResult.rows.length === 0) {
+      await client.query('ROLLBACK')
+      client.release()
+      return { success: true, chunksCreated: 0, error: 'Page déjà indexée ou en cours d\'indexation' }
+    }
+
     // Créer ou mettre à jour le document KB
     if (!knowledgeBaseId) {
       // Créer un nouveau document KB avec classification IA pure
@@ -392,11 +403,17 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       )
     }
 
-    // Générer les embeddings en batch (respecte operations-config)
-    const embeddingsResult = await generateEmbeddingsBatch(
-      chunks.map(c => c.content),
-      { operationName: 'indexation' }
-    )
+    // Générer les embeddings en parallèle pour tous les providers disponibles
+    const chunkContents = chunks.map(c => c.content)
+    const [embeddingsResult, geminiEmbeddingsResult] = await Promise.allSettled([
+      generateEmbeddingsBatch(chunkContents, { operationName: 'indexation' }),
+      generateEmbeddingsBatch(chunkContents, { forceGemini: true }),
+    ])
+
+    if (embeddingsResult.status === 'rejected') {
+      throw new Error(`Échec génération embeddings primaires: ${embeddingsResult.reason}`)
+    }
+    const primaryEmbeddings = embeddingsResult.value
 
     // Générer l'embedding du document (titre + description)
     const docSummary = `${row.title || ''}. ${row.meta_description || ''}`.trim()
@@ -406,27 +423,50 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     )
 
     // Déterminer la colonne d'embedding selon le provider utilisé
-    const isOpenAI = embeddingsResult.provider === 'openai'
+    const isOpenAI = primaryEmbeddings.provider === 'openai'
     const embeddingColumn = isOpenAI ? 'embedding_openai' : 'embedding'
 
-    // Insérer les chunks
+    const hasGemini = geminiEmbeddingsResult.status === 'fulfilled' && geminiEmbeddingsResult.value.embeddings.length > 0
+    if (geminiEmbeddingsResult.status === 'rejected') {
+      console.warn(`[WebIndexer] Embeddings Gemini non disponibles: ${geminiEmbeddingsResult.reason?.message || 'erreur'}`)
+    }
+
+    // Insérer les chunks avec embedding primaire + Gemini si disponible
     for (let i = 0; i < chunks.length; i++) {
-      await client.query(
-        `INSERT INTO knowledge_base_chunks
-         (knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata)
-         VALUES ($1, $2, $3, $4::vector, $5)`,
-        [
-          knowledgeBaseId,
-          chunks[i].index,
-          chunks[i].content,
-          formatEmbeddingForPostgres(embeddingsResult.embeddings[i]),
-          JSON.stringify({
-            wordCount: chunks[i].metadata.wordCount,
-            charCount: chunks[i].metadata.charCount,
-            sourceUrl: row.url,
-          }),
-        ]
-      )
+      const meta = JSON.stringify({
+        wordCount: chunks[i].metadata.wordCount,
+        charCount: chunks[i].metadata.charCount,
+        sourceUrl: row.url,
+      })
+
+      if (hasGemini) {
+        await client.query(
+          `INSERT INTO knowledge_base_chunks
+           (knowledge_base_id, chunk_index, content, ${embeddingColumn}, embedding_gemini, metadata)
+           VALUES ($1, $2, $3, $4::vector, $5::vector, $6)`,
+          [
+            knowledgeBaseId,
+            chunks[i].index,
+            chunks[i].content,
+            formatEmbeddingForPostgres(primaryEmbeddings.embeddings[i]),
+            formatEmbeddingForPostgres(geminiEmbeddingsResult.value.embeddings[i]),
+            meta,
+          ]
+        )
+      } else {
+        await client.query(
+          `INSERT INTO knowledge_base_chunks
+           (knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata)
+           VALUES ($1, $2, $3, $4::vector, $5)`,
+          [
+            knowledgeBaseId,
+            chunks[i].index,
+            chunks[i].content,
+            formatEmbeddingForPostgres(primaryEmbeddings.embeddings[i]),
+            meta,
+          ]
+        )
+      }
     }
 
     // Mettre à jour le document KB avec son embedding
@@ -848,51 +888,78 @@ export async function indexLegalDocument(documentId: string): Promise<IndexingRe
       )
     }
 
-    // Générer embeddings en batch (respecte operations-config: Ollama en dev, OpenAI en prod)
-    const embeddingsResult = await generateEmbeddingsBatch(
-      chunks.map(c => c.content),
-      { operationName: 'indexation' }
-    )
+    // Générer embeddings en parallèle pour tous les providers
+    const chunkContents = chunks.map(c => c.content)
+    const [embeddingsResult, geminiEmbeddingsResult] = await Promise.allSettled([
+      generateEmbeddingsBatch(chunkContents, { operationName: 'indexation' }),
+      generateEmbeddingsBatch(chunkContents, { forceGemini: true }),
+    ])
+
+    if (embeddingsResult.status === 'rejected') {
+      throw new Error(`[WebIndexer] Échec embeddings primaires doc juridique: ${embeddingsResult.reason}`)
+    }
+    const primaryEmbeddings = embeddingsResult.value
 
     // Embedding document-level
     const docSummary = `${doc.official_title_ar || ''} ${doc.official_title_fr || ''} ${doc.citation_key}`.trim()
     const docEmbedding = await generateEmbedding(docSummary, { operationName: 'indexation' })
 
     // Déterminer la colonne d'embedding selon le provider utilisé
-    const isOpenAI = embeddingsResult.provider === 'openai'
+    const isOpenAI = primaryEmbeddings.provider === 'openai'
     const embeddingColumn = isOpenAI ? 'embedding_openai' : 'embedding'
 
-    console.log(`[WebIndexer] Provider embeddings: ${embeddingsResult.provider} → colonne ${embeddingColumn}`)
+    const hasGemini = geminiEmbeddingsResult.status === 'fulfilled' && geminiEmbeddingsResult.value.embeddings.length > 0
+    if (geminiEmbeddingsResult.status === 'rejected') {
+      console.warn(`[WebIndexer] Embeddings Gemini doc juridique non disponibles: ${geminiEmbeddingsResult.reason?.message || 'erreur'}`)
+    }
 
-    // Insérer les chunks
+    console.log(`[WebIndexer] Provider embeddings: ${primaryEmbeddings.provider} → colonne ${embeddingColumn}${hasGemini ? ' + Gemini' : ''}`)
+
+    // Insérer les chunks avec embedding primaire + Gemini si disponible
     for (let i = 0; i < chunks.length; i++) {
       const chunkMeta = chunks[i].metadata as any
-      await client.query(
-        `INSERT INTO knowledge_base_chunks
-         (knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata)
-         VALUES ($1, $2, $3, $4::vector, $5)`,
-        [
-          knowledgeBaseId,
-          i,
-          chunks[i].content,
-          formatEmbeddingForPostgres(embeddingsResult.embeddings[i]),
-          JSON.stringify({
-            wordCount: chunks[i].metadata.wordCount,
-            articleNumber: chunkMeta.articleNumber || null,
-            bookNumber: chunkMeta.bookNumber || null,
-            chapterNumber: chunkMeta.chapterNumber || null,
-            codeName: chunkMeta.codeName || null,
-            citationKey: doc.citation_key,
-            sourceType: 'legal_document',
-            sourceUrl: getDocumentAbsoluteUrl(doc.citation_key, chunkMeta.articleNumber || undefined),
-          }),
-        ]
-      )
+      const meta = JSON.stringify({
+        wordCount: chunks[i].metadata.wordCount,
+        articleNumber: chunkMeta.articleNumber || null,
+        bookNumber: chunkMeta.bookNumber || null,
+        chapterNumber: chunkMeta.chapterNumber || null,
+        codeName: chunkMeta.codeName || null,
+        citationKey: doc.citation_key,
+        sourceType: 'legal_document',
+        sourceUrl: getDocumentAbsoluteUrl(doc.citation_key, chunkMeta.articleNumber || undefined),
+      })
+
+      if (hasGemini) {
+        await client.query(
+          `INSERT INTO knowledge_base_chunks
+           (knowledge_base_id, chunk_index, content, ${embeddingColumn}, embedding_gemini, metadata)
+           VALUES ($1, $2, $3, $4::vector, $5::vector, $6)`,
+          [
+            knowledgeBaseId,
+            i,
+            chunks[i].content,
+            formatEmbeddingForPostgres(primaryEmbeddings.embeddings[i]),
+            formatEmbeddingForPostgres(geminiEmbeddingsResult.value.embeddings[i]),
+            meta,
+          ]
+        )
+      } else {
+        await client.query(
+          `INSERT INTO knowledge_base_chunks
+           (knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata)
+           VALUES ($1, $2, $3, $4::vector, $5)`,
+          [
+            knowledgeBaseId,
+            i,
+            chunks[i].content,
+            formatEmbeddingForPostgres(primaryEmbeddings.embeddings[i]),
+            meta,
+          ]
+        )
+      }
     }
 
     // Marquer comme indexé + embedding document-level
-    // Note: knowledge_base n'a que la colonne `embedding` (1024-dim, Ollama)
-    // Avec OpenAI (1536-dim), on ne stocke pas l'embedding doc-level (les recherches utilisent les chunks)
     if (isOpenAI) {
       await client.query(
         `UPDATE knowledge_base SET is_indexed = true, updated_at = NOW() WHERE id = $1`,
