@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useLocale } from 'next-intl'
 import { useState, useCallback, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -14,11 +15,16 @@ import {
 import { Icons } from '@/lib/icons'
 import { getAllCategoryOptions } from '@/lib/web-scraper/category-labels'
 import { useDebouncedCallback } from 'use-debounce'
+import type { SortField, SortDirection, ViewMode } from './types'
 
 interface WebSourcesFiltersProps {
   category: string
   status: string
   search: string
+  language: string
+  sortBy: string
+  sortDir: string
+  view: ViewMode
 }
 
 const getStatuses = (locale: 'fr' | 'ar') => [
@@ -28,7 +34,22 @@ const getStatuses = (locale: 'fr' | 'ar') => [
   { value: 'failing', label: locale === 'ar' ? 'خطأ' : 'En erreur' },
 ]
 
-export function WebSourcesFilters({ category, status, search }: WebSourcesFiltersProps) {
+const LANGUAGES = [
+  { value: 'all', label: 'Toutes les langues' },
+  { value: 'ar', label: 'Arabe' },
+  { value: 'fr', label: 'Francais' },
+  { value: 'mixed', label: 'Mixte' },
+]
+
+const SORT_OPTIONS: { value: SortField; label: string }[] = [
+  { value: 'priority', label: 'Priorite' },
+  { value: 'name', label: 'Nom' },
+  { value: 'last_crawl_at', label: 'Dernier crawl' },
+  { value: 'pages_count', label: 'Pages' },
+  { value: 'indexation_rate', label: 'Taux indexation' },
+]
+
+export function WebSourcesFilters({ category, status, search, language, sortBy, sortDir, view }: WebSourcesFiltersProps) {
   const router = useRouter()
   const locale = useLocale() as 'fr' | 'ar'
   const [searchValue, setSearchValue] = useState(search)
@@ -39,13 +60,23 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
   const updateUrl = useCallback((params: Record<string, string>) => {
     const searchParams = new URLSearchParams()
     Object.entries(params).forEach(([key, value]) => {
-      if (value) searchParams.set(key, value)
+      if (value && value !== 'all') searchParams.set(key, value)
     })
     router.push(`/super-admin/web-sources?${searchParams.toString()}`)
   }, [router])
 
+  const currentParams = useCallback(() => ({
+    category: category || '',
+    status: status || '',
+    search: searchValue,
+    language: language || '',
+    sortBy: sortBy || '',
+    sortDir: sortDir || '',
+    view: view || '',
+  }), [category, status, searchValue, language, sortBy, sortDir, view])
+
   const debouncedSearch = useDebouncedCallback((value: string) => {
-    updateUrl({ category, status, search: value })
+    updateUrl({ ...currentParams(), search: value })
   }, 300)
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,15 +86,32 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
   }
 
   const handleCategoryChange = (value: string) => {
-    updateUrl({ category: value === 'all' ? '' : value, status: status === 'all' ? '' : status, search: searchValue })
+    updateUrl({ ...currentParams(), category: value })
   }
 
   const handleStatusChange = (value: string) => {
-    updateUrl({ category: category === 'all' ? '' : category, status: value === 'all' ? '' : value, search: searchValue })
+    updateUrl({ ...currentParams(), status: value })
+  }
+
+  const handleLanguageChange = (value: string) => {
+    updateUrl({ ...currentParams(), language: value })
+  }
+
+  const handleSortChange = (value: string) => {
+    updateUrl({ ...currentParams(), sortBy: value })
+  }
+
+  const handleSortDirToggle = () => {
+    updateUrl({ ...currentParams(), sortDir: sortDir === 'asc' ? 'desc' : 'asc' })
+  }
+
+  const handleViewChange = (newView: ViewMode) => {
+    updateUrl({ ...currentParams(), view: newView })
   }
 
   return (
-    <div className="flex flex-wrap gap-4 items-center">
+    <div className="flex flex-wrap gap-3 items-center">
+      {/* Search */}
       <div className="relative flex-1 min-w-[200px] max-w-md">
         <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
@@ -75,9 +123,10 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
         />
       </div>
 
+      {/* Category */}
       <Select value={category || 'all'} onValueChange={handleCategoryChange}>
-        <SelectTrigger className="w-[280px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par catégorie">
-          <SelectValue placeholder="Catégorie" />
+        <SelectTrigger className="w-[220px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par categorie">
+          <SelectValue placeholder="Categorie" />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-700">
           {categories.map((cat) => (
@@ -92,8 +141,9 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
         </SelectContent>
       </Select>
 
+      {/* Status */}
       <Select value={status || 'all'} onValueChange={handleStatusChange}>
-        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par statut">
+        <SelectTrigger className="w-[140px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par statut">
           <SelectValue placeholder="Statut" />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-700">
@@ -108,6 +158,79 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
           ))}
         </SelectContent>
       </Select>
+
+      {/* Language */}
+      <Select value={language || 'all'} onValueChange={handleLanguageChange}>
+        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par langue">
+          <SelectValue placeholder="Langue" />
+        </SelectTrigger>
+        <SelectContent className="bg-slate-800 border-slate-700">
+          {LANGUAGES.map((lang) => (
+            <SelectItem
+              key={lang.value}
+              value={lang.value}
+              className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700"
+            >
+              {lang.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Sort */}
+      <Select value={sortBy || 'priority'} onValueChange={handleSortChange}>
+        <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white" aria-label="Trier par">
+          <SelectValue placeholder="Trier par" />
+        </SelectTrigger>
+        <SelectContent className="bg-slate-800 border-slate-700">
+          {SORT_OPTIONS.map((opt) => (
+            <SelectItem
+              key={opt.value}
+              value={opt.value}
+              className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700"
+            >
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Sort direction */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={handleSortDirToggle}
+        className="bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white"
+        title={sortDir === 'asc' ? 'Tri croissant' : 'Tri decroissant'}
+      >
+        {sortDir === 'asc' ? (
+          <Icons.arrowUp className="h-4 w-4" />
+        ) : (
+          <Icons.arrowDown className="h-4 w-4" />
+        )}
+      </Button>
+
+      {/* View toggle */}
+      <div className="flex border border-slate-700 rounded-md overflow-hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => handleViewChange('table')}
+          className={`rounded-none h-9 w-9 ${view === 'table' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+          title="Vue tableau"
+        >
+          <Icons.list className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => handleViewChange('cards')}
+          className={`rounded-none h-9 w-9 ${view === 'cards' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+          title="Vue cartes"
+        >
+          <Icons.grid className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   )
 }

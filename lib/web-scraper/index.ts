@@ -70,6 +70,8 @@ export {
   // Stats
   getWebSourcesStats,
   getSourcesToCrawl,
+  // Page listing
+  getWebSourcesListData,
 } from './source-service'
 
 export {

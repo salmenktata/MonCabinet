@@ -652,6 +652,213 @@ export async function restoreWebPageVersion(
 }
 
 // =============================================================================
+// PAGE LISTING (pour la page super-admin/web-sources)
+// =============================================================================
+
+export type WebSourcesSortField = 'name' | 'last_crawl_at' | 'pages_count' | 'priority' | 'indexation_rate'
+export type WebSourcesSortDir = 'asc' | 'desc'
+
+/**
+ * Récupère les données consolidées pour la page de listing des web sources
+ * Remplace le SQL inline dans page.tsx
+ */
+export async function getWebSourcesListData(params: {
+  category?: string
+  status?: string
+  search?: string
+  language?: string
+  sortBy?: WebSourcesSortField
+  sortDir?: WebSourcesSortDir
+  page: number
+  limit?: number
+}) {
+  const limit = params.limit || 20
+  const offset = (params.page - 1) * limit
+
+  let whereClause = 'WHERE 1=1'
+  const queryParams: (string | boolean | number)[] = []
+  let paramIndex = 1
+
+  if (params.category) {
+    whereClause += ` AND ws.category = $${paramIndex++}`
+    queryParams.push(params.category)
+  }
+
+  if (params.status === 'active') {
+    whereClause += ` AND ws.is_active = true`
+  } else if (params.status === 'inactive') {
+    whereClause += ` AND ws.is_active = false`
+  } else if (params.status === 'failing') {
+    whereClause += ` AND ws.health_status IN ('failing', 'degraded')`
+  }
+
+  if (params.language) {
+    whereClause += ` AND ws.language = $${paramIndex++}`
+    queryParams.push(params.language)
+  }
+
+  if (params.search) {
+    whereClause += ` AND (ws.name ILIKE $${paramIndex} OR ws.base_url ILIKE $${paramIndex})`
+    queryParams.push(`%${params.search}%`)
+    paramIndex++
+  }
+
+  // Tri
+  const sortMap: Record<WebSourcesSortField, string> = {
+    name: 'ws.name',
+    last_crawl_at: 'ws.last_crawl_at',
+    pages_count: 'pages_count',
+    priority: 'ws.priority',
+    indexation_rate: 'CASE WHEN pages_count > 0 THEN indexed_count::float / pages_count ELSE 0 END',
+  }
+  const sortField = sortMap[params.sortBy || 'priority'] || 'ws.priority'
+  const sortDir = params.sortDir === 'asc' ? 'ASC' : 'DESC'
+  const orderClause = `ORDER BY ${sortField} ${sortDir}${params.sortBy !== 'name' ? ', ws.name ASC' : ''}`
+
+  // Count
+  const countResult = await db.query(
+    `SELECT COUNT(*) FROM web_sources ws ${whereClause}`,
+    queryParams
+  )
+  const total = parseInt(countResult.rows[0].count, 10)
+
+  // Sources avec stats
+  const sourcesResult = await db.query(
+    `SELECT
+      ws.id,
+      ws.name,
+      ws.base_url,
+      ws.description,
+      ws.category,
+      ws.language,
+      ws.priority,
+      ws.is_active,
+      ws.health_status,
+      ws.consecutive_failures,
+      ws.last_crawl_at,
+      ws.next_crawl_at,
+      ws.total_pages_discovered,
+      ws.avg_pages_per_crawl,
+      ws.drive_config,
+      (SELECT COUNT(*) FROM web_pages WHERE web_source_id = ws.id) as pages_count,
+      (SELECT COUNT(*) FROM web_pages WHERE web_source_id = ws.id AND is_indexed = true) as indexed_count
+    FROM web_sources ws
+    ${whereClause}
+    ${orderClause}
+    LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
+    [...queryParams, limit, offset]
+  )
+
+  // Stats globales
+  let stats = {
+    total_sources: 0,
+    active_sources: 0,
+    healthy_sources: 0,
+    failing_sources: 0,
+    total_pages: 0,
+    indexed_pages: 0,
+    pending_jobs: 0,
+    running_jobs: 0,
+  }
+
+  try {
+    const statsResult = await db.query('SELECT * FROM get_web_sources_stats()')
+    if (statsResult.rows[0]) {
+      stats = statsResult.rows[0]
+    }
+  } catch {
+    try {
+      const [sourcesStats, pagesStats, jobsStats] = await Promise.all([
+        db.query(`
+          SELECT
+            COUNT(*) as total_sources,
+            COUNT(*) FILTER (WHERE is_active = true) as active_sources,
+            COUNT(*) FILTER (WHERE health_status = 'healthy') as healthy_sources,
+            COUNT(*) FILTER (WHERE health_status = 'failing') as failing_sources
+          FROM web_sources
+        `),
+        db.query(`
+          SELECT
+            COUNT(*) as total_pages,
+            COUNT(*) FILTER (WHERE is_indexed = true) as indexed_pages
+          FROM web_pages
+        `),
+        db.query(`
+          SELECT
+            COUNT(*) FILTER (WHERE status = 'pending') as pending_jobs,
+            COUNT(*) FILTER (WHERE status = 'running') as running_jobs
+          FROM web_crawl_jobs
+        `),
+      ])
+      stats = {
+        ...sourcesStats.rows[0],
+        ...pagesStats.rows[0],
+        ...jobsStats.rows[0],
+      }
+    } catch {
+      // Garder les valeurs par défaut
+    }
+  }
+
+  // Sérialiser les dates pour le client
+  interface SerializedSource {
+    id: string
+    name: string
+    base_url: string
+    description: string | null
+    category: string
+    language: string
+    priority: number
+    is_active: boolean
+    health_status: string
+    consecutive_failures: number
+    last_crawl_at: string | null
+    next_crawl_at: string | null
+    pages_count: number
+    indexed_count: number
+    total_pages_discovered: number
+    avg_pages_per_crawl: number
+    drive_config: Record<string, unknown> | null
+  }
+
+  const serializedSources: SerializedSource[] = sourcesResult.rows.map((source: Record<string, unknown>) => ({
+    id: source.id as string,
+    name: source.name as string,
+    base_url: source.base_url as string,
+    description: source.description as string | null,
+    category: source.category as string,
+    language: source.language as string,
+    priority: source.priority as number,
+    is_active: source.is_active as boolean,
+    health_status: source.health_status as string,
+    consecutive_failures: source.consecutive_failures as number,
+    last_crawl_at: source.last_crawl_at ? (source.last_crawl_at as Date).toISOString() : null,
+    next_crawl_at: source.next_crawl_at ? (source.next_crawl_at as Date).toISOString() : null,
+    pages_count: Number(source.pages_count) || 0,
+    indexed_count: Number(source.indexed_count) || 0,
+    total_pages_discovered: source.total_pages_discovered as number,
+    avg_pages_per_crawl: source.avg_pages_per_crawl as number,
+    drive_config: (source.drive_config as Record<string, unknown>) || null,
+  }))
+
+  return {
+    sources: serializedSources,
+    total,
+    totalPages: Math.ceil(total / limit),
+    stats: {
+      totalSources: Number(stats.total_sources) || 0,
+      activeSources: Number(stats.active_sources) || 0,
+      healthySources: Number(stats.healthy_sources) || 0,
+      failingSources: Number(stats.failing_sources) || 0,
+      totalPages: Number(stats.total_pages) || 0,
+      indexedPages: Number(stats.indexed_pages) || 0,
+      pendingJobs: Number(stats.pending_jobs) || 0,
+      runningJobs: Number(stats.running_jobs) || 0,
+    },
+  }
+}
+
+// =============================================================================
 // MAPPERS
 // =============================================================================
 
