@@ -306,7 +306,6 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     )
     if (lockResult.rows.length === 0) {
       await client.query('ROLLBACK')
-      client.release()
       return { success: true, chunksCreated: 0, error: 'Page déjà indexée ou en cours d\'indexation' }
     }
 
