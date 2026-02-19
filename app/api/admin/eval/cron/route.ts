@@ -1,13 +1,11 @@
 /**
- * API Route - Cron Évaluation RAG Hebdomadaire
+ * API Route - Cron Évaluation RAG Hebdomadaire (V2)
  *
  * POST /api/admin/eval/cron
  * Authorization: Bearer ${CRON_SECRET}
  *
- * Exécute 20 questions gold, compare avec le run précédent,
- * envoie une alerte email si régression détectée (>5% sur Recall@5 ou MRR).
- *
- * Crontab suggéré : 0 3 * * 1 (chaque lundi à 3h)
+ * V2: Utilise searchKnowledgeBaseHybrid() (vrai pipeline triple-embed)
+ *     Stocke les nouvelles colonnes V2 (run_label, run_mode, avg_similarity, etc.)
  *
  * @module app/api/admin/eval/cron/route
  */
@@ -17,7 +15,7 @@ import { db } from '@/lib/db/postgres'
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
+import { searchKnowledgeBaseHybrid } from '@/lib/ai/knowledge-base-service'
 import {
   computeRecallAtK,
   computePrecisionAtK,
@@ -25,21 +23,10 @@ import {
   computeCitationAccuracy,
   computeFaithfulness,
 } from '@/lib/ai/rag-eval-metrics'
+import type { GoldEvalCase } from '@/lib/ai/rag-eval-types'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
-
-interface GoldEvalCase {
-  id: string
-  domain: string
-  difficulty: string
-  question: string
-  intentType: string
-  expectedAnswer: { keyPoints: string[]; mandatoryCitations: string[] }
-  expectedArticles?: string[]
-  goldChunkIds?: string[]
-  goldDocumentIds?: string[]
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,7 +39,6 @@ export async function POST(request: NextRequest) {
 
     const startTime = Date.now()
 
-    // Charger gold dataset
     const goldPath = path.join(process.cwd(), 'data', 'gold-eval-dataset.json')
     if (!fs.existsSync(goldPath)) {
       return NextResponse.json({ error: 'Gold dataset non trouvé' }, { status: 404 })
@@ -60,49 +46,44 @@ export async function POST(request: NextRequest) {
 
     const allCases: GoldEvalCase[] = JSON.parse(fs.readFileSync(goldPath, 'utf-8'))
 
-    // Sélectionner 20 questions aléatoires (stratifiées par difficulté si possible)
+    // 20 questions aléatoires
     const shuffled = allCases.sort(() => Math.random() - 0.5)
     const selectedCases = shuffled.slice(0, 20)
 
     const runId = `cron_eval_${new Date().toISOString().replace(/[:.]/g, '-')}_${crypto.randomBytes(4).toString('hex')}`
 
-    // Exécuter le benchmark
     const results: Array<{ recall_at_5: number; mrr: number; faithfulness_score: number }> = []
 
     for (const evalCase of selectedCases) {
       try {
-        const embeddingResult = await generateEmbedding(evalCase.question)
-        const embeddingStr = formatEmbeddingForPostgres(embeddingResult.embedding)
+        const retrievalStart = Date.now()
 
-        const searchResult = await db.query(
-          `SELECT
-             kbc.id as chunk_id,
-             kbc.knowledge_base_id as document_id,
-             kbc.content,
-             kb.title,
-             1 - (kbc.embedding_openai <=> $1::vector) as similarity
-           FROM knowledge_base_chunks kbc
-           JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
-           WHERE kb.is_indexed = true AND kbc.embedding_openai IS NOT NULL
-           ORDER BY kbc.embedding_openai <=> $1::vector
-           LIMIT 10`,
-          [embeddingStr]
-        )
+        // Vrai pipeline hybride (triple-embed, BM25, re-ranking)
+        const searchResults = await searchKnowledgeBaseHybrid(evalCase.question, {
+          limit: 10,
+          operationName: 'eval-cron-weekly',
+        })
 
-        const retrievedChunkIds = searchResult.rows.map((r: any) => r.chunk_id)
-        const retrievedDocIds = searchResult.rows.map((r: any) => r.document_id)
+        const retrievalLatencyMs = Date.now() - retrievalStart
+
+        const retrievedChunkIds = searchResults.map(r => r.chunkId)
+        const retrievedDocIds = searchResults.map(r => r.knowledgeBaseId)
+        const avgSimilarity = searchResults.length > 0
+          ? searchResults.reduce((sum, r) => sum + r.similarity, 0) / searchResults.length
+          : 0
+
         const goldChunkIds = evalCase.goldChunkIds || []
         const goldDocIds = evalCase.goldDocumentIds || []
         const goldIdsForRecall = goldChunkIds.length > 0 ? goldChunkIds : goldDocIds
         const retrievedIdsForRecall = goldChunkIds.length > 0 ? retrievedChunkIds : retrievedDocIds
 
-        const simulatedAnswer = searchResult.rows.map((r: any) => (r.content as string).substring(0, 500)).join('\n')
+        const simulatedAnswer = searchResults.map(r => r.chunkContent.substring(0, 500)).join('\n')
 
         const recall5 = computeRecallAtK(goldIdsForRecall, retrievedIdsForRecall, 5)
-        const mrr = computeMRR(goldIdsForRecall, retrievedIdsForRecall)
+        const mrrVal = computeMRR(goldIdsForRecall, retrievedIdsForRecall)
         const faith = computeFaithfulness(evalCase.question, simulatedAnswer, evalCase.expectedAnswer.keyPoints)
 
-        results.push({ recall_at_5: recall5, mrr, faithfulness_score: faith })
+        results.push({ recall_at_5: recall5, mrr: mrrVal, faithfulness_score: faith })
 
         await db.query(
           `INSERT INTO rag_eval_results (
@@ -110,8 +91,9 @@ export async function POST(request: NextRequest) {
             gold_chunk_ids, retrieved_chunk_ids,
             recall_at_1, recall_at_3, recall_at_5, recall_at_10,
             precision_at_5, mrr, faithfulness_score, citation_accuracy,
-            expected_answer, actual_answer, sources_returned, latency_ms
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+            expected_answer, actual_answer, sources_returned, latency_ms,
+            run_label, run_mode, retrieval_latency_ms, avg_similarity
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
           [
             runId, evalCase.id, evalCase.question,
             /[\u0600-\u06FF]/.test(evalCase.question) ? 'ar' : 'fr',
@@ -122,12 +104,13 @@ export async function POST(request: NextRequest) {
             recall5,
             computeRecallAtK(goldIdsForRecall, retrievedIdsForRecall, 10),
             computePrecisionAtK(goldIdsForRecall, retrievedIdsForRecall, 5),
-            mrr, faith,
+            mrrVal, faith,
             computeCitationAccuracy(simulatedAnswer, evalCase.expectedArticles || []),
             evalCase.expectedAnswer.keyPoints.join(' | '),
             simulatedAnswer.substring(0, 1000),
-            JSON.stringify(searchResult.rows.map((r: any) => ({ id: r.chunk_id, title: r.title, score: parseFloat(r.similarity) }))),
-            Date.now() - startTime,
+            JSON.stringify(searchResults.map(r => ({ id: r.chunkId, title: r.title, score: r.similarity }))),
+            retrievalLatencyMs,
+            'cron-weekly', 'retrieval', retrievalLatencyMs, avgSimilarity,
           ]
         )
       } catch (error) {
@@ -135,7 +118,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calculer métriques agrégées
+    // Métriques agrégées
     const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
     const currentRecall5 = avg(results.map(r => r.recall_at_5))
     const currentMRR = avg(results.map(r => r.mrr))

@@ -1,9 +1,12 @@
 /**
- * API Route - Résultats d'évaluation RAG
+ * API Route - Résultats d'évaluation RAG (V2)
  *
  * GET /api/admin/eval/results
- *   ?run_id=xxx     → résultats d'un run spécifique
- *   (sans params)   → liste des runs avec métriques agrégées
+ *   ?run_id=xxx        → résultats détaillés d'un run
+ *   ?breakdown=true    → breakdown par domaine et difficulté (du dernier run ou run_id spécifié)
+ *   (sans params)      → liste des runs avec métriques agrégées
+ *
+ * V2: Inclut run_label, run_mode, judge_score dans les agrégats
  *
  * @module app/api/admin/eval/results/route
  */
@@ -22,6 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     const runId = request.nextUrl.searchParams.get('run_id')
+    const breakdown = request.nextUrl.searchParams.get('breakdown') === 'true'
 
     if (runId) {
       // Résultats détaillés d'un run
@@ -43,21 +47,60 @@ export async function GET(request: NextRequest) {
            ROUND(AVG(faithfulness_score)::numeric, 3) as avg_faithfulness,
            ROUND(AVG(citation_accuracy)::numeric, 3) as avg_citation_accuracy,
            ROUND(AVG(latency_ms)::numeric, 0) as avg_latency_ms,
+           ROUND(AVG(judge_score)::numeric, 3) as avg_judge_score,
            COUNT(*) FILTER (WHERE recall_at_5 >= 0.8) as high_recall_count,
            COUNT(*) FILTER (WHERE recall_at_5 < 0.5 AND array_length(gold_chunk_ids, 1) > 0) as failed_count
          FROM rag_eval_results WHERE run_id = $1`,
         [runId]
       )
 
-      return NextResponse.json({
+      const response: Record<string, unknown> = {
         success: true,
         runId,
         summary: agg.rows[0],
         results: result.rows,
-      })
+      }
+
+      // Breakdown optionnel
+      if (breakdown) {
+        const domainBreakdown = await db.query(
+          `SELECT
+             domain,
+             COUNT(*) as count,
+             ROUND(AVG(recall_at_5)::numeric, 3) as avg_recall_5,
+             ROUND(AVG(mrr)::numeric, 3) as avg_mrr,
+             ROUND(AVG(faithfulness_score)::numeric, 3) as avg_faithfulness,
+             ROUND(AVG(judge_score)::numeric, 3) as avg_judge_score
+           FROM rag_eval_results
+           WHERE run_id = $1 AND domain IS NOT NULL
+           GROUP BY domain
+           ORDER BY domain`,
+          [runId]
+        )
+
+        const difficultyBreakdown = await db.query(
+          `SELECT
+             difficulty,
+             COUNT(*) as count,
+             ROUND(AVG(recall_at_5)::numeric, 3) as avg_recall_5,
+             ROUND(AVG(mrr)::numeric, 3) as avg_mrr,
+             ROUND(AVG(faithfulness_score)::numeric, 3) as avg_faithfulness,
+             ROUND(AVG(judge_score)::numeric, 3) as avg_judge_score
+           FROM rag_eval_results
+           WHERE run_id = $1 AND difficulty IS NOT NULL
+           GROUP BY difficulty
+           ORDER BY difficulty`,
+          [runId]
+        )
+
+        response.domainBreakdown = domainBreakdown.rows
+        response.difficultyBreakdown = difficultyBreakdown.rows
+      }
+
+      return NextResponse.json(response)
     }
 
-    // Liste des runs (historique)
+    // Liste des runs (historique) avec V2 colonnes
     const runs = await db.query(
       `SELECT
          run_id,
@@ -68,7 +111,10 @@ export async function GET(request: NextRequest) {
          ROUND(AVG(faithfulness_score)::numeric, 3) as avg_faithfulness,
          ROUND(AVG(citation_accuracy)::numeric, 3) as avg_citation_accuracy,
          ROUND(AVG(latency_ms)::numeric, 0) as avg_latency_ms,
-         COUNT(*) FILTER (WHERE recall_at_5 < 0.5 AND array_length(gold_chunk_ids, 1) > 0) as failed_count
+         COUNT(*) FILTER (WHERE recall_at_5 < 0.5 AND array_length(gold_chunk_ids, 1) > 0) as failed_count,
+         MAX(run_label) as run_label,
+         MAX(run_mode) as run_mode,
+         ROUND(AVG(judge_score)::numeric, 3) as avg_judge_score
        FROM rag_eval_results
        GROUP BY run_id
        ORDER BY MIN(created_at) DESC
