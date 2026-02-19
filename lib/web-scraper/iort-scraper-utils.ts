@@ -2,9 +2,14 @@
  * Utilitaires scraper IORT (Journal Officiel - iort.gov.tn)
  *
  * Le site IORT utilise un framework WebDev/WinDev CGI avec sessions dynamiques
- * (CTX tokens), navigation POST-only, et aucune API REST.
- * Ce module fournit un scraper Playwright dédié pour naviguer programmatiquement
- * dans les formulaires de recherche et extraire les textes juridiques.
+ * (CTX tokens), navigation POST-only via _JSL(), et aucune API REST.
+ *
+ * Structure du site (vérifiée Feb 2026):
+ * - Homepage → _JSL(M7) = JORT Lois/Décrets → _JSL(A9) = Recherche par texte
+ * - Formulaire: select A8 (année), A9 (type), A27/A14 (ministère), A3 (mot-clé)
+ * - Submit: _JSL(A40), Reset: _JSL(A39)
+ * - Résultats: looper A4 (DIV#A4_1..A4_N), compteur A5, pagination A10
+ * - Détail texte: _PAGE_.A4.value=N; _JSL(A17,'_blank') (nouvel onglet)
  */
 
 import type { Page, Browser, BrowserContext } from 'playwright'
@@ -18,65 +23,53 @@ import { hashUrl, hashContent, countWords, detectTextLanguage } from './content-
 /** URL de base du site IORT */
 export const IORT_BASE_URL = 'http://www.iort.gov.tn'
 
-/** Types de textes disponibles sur IORT */
+/** Types de textes disponibles sur IORT (labels exactement comme sur le site) */
 export const IORT_TEXT_TYPES = {
   law: { ar: 'قانون', fr: 'Loi', value: 'قانون' },
   decree: { ar: 'مرسوم', fr: 'Décret', value: 'مرسوم' },
   order: { ar: 'أمر', fr: 'Ordre/Arrêté', value: 'أمر' },
   decision: { ar: 'قرار', fr: 'Décision', value: 'قرار' },
-  notice: { ar: 'رأي', fr: 'Avis', value: 'رأي' },
+  notice: { ar: 'رإي', fr: 'Avis', value: 'رإي' },  // NB: le site utilise رإي (pas رأي)
 } as const
 
 export type IortTextType = keyof typeof IORT_TEXT_TYPES
 
 /** Configuration rate limiting */
 export const IORT_RATE_CONFIG = {
-  /** Délai minimum entre interactions Playwright (ms) */
   minDelay: 5000,
-  /** Pause longue toutes les N pages */
   longPauseEvery: 50,
-  /** Durée de la pause longue (ms) */
   longPauseMs: 30000,
-  /** Pause entre combos année/type (ms) */
   comboPauseMs: 30000,
-  /** Nombre de pages avant refresh contexte Playwright */
   refreshEvery: 200,
-  /** Timeout navigation Playwright (ms) */
   navigationTimeout: 60000,
-  /** Timeout attente sélecteur (ms) */
   selectorTimeout: 30000,
 } as const
 
 /** Résultat parsé d'une entrée de recherche */
 export interface IortSearchResult {
-  /** Titre du texte */
   title: string
-  /** Type de texte (قانون, مرسوم, etc.) */
   textType: string
-  /** Date du texte (format arabe ou ISO) */
   date: string | null
-  /** Numéro JORT */
   issueNumber: string | null
-  /** Index dans la liste de résultats (pour navigation) */
+  /** Index 1-based dans le looper A4 (utilisé pour _PAGE_.A4.value=N) */
   resultIndex: number
+  /** true si le texte complet est disponible (A17), false si "ليس هنالك نص كامل" (A16) */
+  hasFullText: boolean
 }
 
 /** Résultat d'extraction d'une page de détail */
 export interface IortExtractedText {
-  /** Titre complet */
   title: string
-  /** Texte intégral extrait */
   content: string
-  /** Date du texte */
   date: string | null
-  /** Numéro JORT */
   issueNumber: string | null
-  /** Année */
   year: number
-  /** Type de texte */
   textType: string
-  /** URL du PDF si disponible */
   pdfUrl: string | null
+  /** Buffer du PDF téléchargé via action A7 */
+  pdfBuffer: Buffer | null
+  /** Nom du fichier PDF suggéré par le serveur */
+  pdfFilename: string | null
 }
 
 /** Stats de crawl pour un combo année/type */
@@ -93,9 +86,6 @@ export interface IortCrawlStats {
 // SESSION MANAGER
 // =============================================================================
 
-/**
- * Gère la session Playwright pour naviguer sur IORT
- */
 export class IortSessionManager {
   private browser: Browser | null = null
   private context: BrowserContext | null = null
@@ -135,9 +125,6 @@ export class IortSessionManager {
     return this.page
   }
 
-  /**
-   * Incrémente le compteur et refresh le contexte si nécessaire
-   */
   async tick(): Promise<void> {
     this.pageCount++
     if (this.pageCount >= IORT_RATE_CONFIG.refreshEvery) {
@@ -147,27 +134,24 @@ export class IortSessionManager {
     }
   }
 
-  /**
-   * Vérifie si la session est encore valide (tokens WebDev actifs)
-   */
   async isSessionValid(): Promise<boolean> {
     try {
       const page = this.getPage()
       const content = await page.content()
-      // WebDev utilise WD_ACTION_ dans ses formulaires
-      return content.includes('WD_ACTION_') || content.includes('WD_')
+      return content.includes('WD_ACTION_')
     } catch {
       return false
     }
   }
 
   /**
-   * Navigue vers la page d'accueil et atteint le formulaire de recherche
+   * Navigue vers la page de recherche IORT:
+   * Homepage → _JSL(M7) → _JSL(A9)
    */
   async navigateToSearch(): Promise<void> {
     const page = this.getPage()
 
-    // 1. Page d'accueil
+    // 1. Homepage
     console.log('[IORT] Navigation vers la page d\'accueil...')
     await page.goto(IORT_BASE_URL, {
       waitUntil: 'load',
@@ -175,24 +159,32 @@ export class IortSessionManager {
     })
     await sleep(3000)
 
-    // 2. Chercher et cliquer sur le lien "الرائد الرسمي القوانين و الأوامر" (JORT Lois & Décrets)
-    // Le site WebDev utilise des onclick WD_ACTION, donc on cherche le lien par texte
-    const jortLink = await page.$('a:has-text("الرائد الرسمي"), a:has-text("القوانين"), td:has-text("الرائد الرسمي") a')
-    if (jortLink) {
-      await jortLink.click()
+    // 2. _JSL(M7) = "الرائد الرسمي القوانين و الأوامر و القرارات و الأراء"
+    console.log('[IORT] Navigation M7 (JORT lois et décrets)...')
+    await page.evaluate(() => {
+      // @ts-expect-error WebDev global function
+      _JSL(_PAGE_, 'M7', '_self', '', '')
+    })
+    await page.waitForLoadState('load')
+    await sleep(3000)
+
+    // 3. Vérifier si on a déjà le formulaire de recherche (select A8)
+    const hasSearchForm = await page.$('select[name="A8"]')
+    if (!hasSearchForm) {
+      // _JSL(A9) = "البحث عن النص"
+      console.log('[IORT] Navigation A9 (recherche par texte)...')
+      await page.evaluate(() => {
+        // @ts-expect-error WebDev global function
+        _JSL(_PAGE_, 'A9', '_self', '', '')
+      })
       await page.waitForLoadState('load')
       await sleep(3000)
-    } else {
-      // Essayer navigation directe si le lien n'est pas trouvé
-      console.log('[IORT] Lien JORT non trouvé sur l\'accueil, tentative de navigation directe...')
     }
 
-    // 3. Chercher le lien "البحث عن النص" (Recherche par texte)
-    const searchLink = await page.$('a:has-text("البحث"), a:has-text("بحث"), td:has-text("البحث") a')
-    if (searchLink) {
-      await searchLink.click()
-      await page.waitForLoadState('load')
-      await sleep(3000)
+    // Vérifier que le formulaire est présent
+    const yearSelect = await page.$('select[name="A8"]')
+    if (!yearSelect) {
+      throw new Error('[IORT] Formulaire de recherche non trouvé (select A8 absent)')
     }
 
     console.log('[IORT] Page de recherche atteinte')
@@ -215,8 +207,9 @@ export class IortSessionManager {
 // =============================================================================
 
 /**
- * Effectue une recherche par année et type de texte
- * Retourne le nombre total de résultats
+ * Effectue une recherche par année et type de texte.
+ * Sélectionne dans A8 (année) et A9 (type), puis soumet via _JSL(A40).
+ * Retourne le nombre total de résultats (champ A5).
  */
 export async function searchByYearAndType(
   page: Page,
@@ -227,62 +220,31 @@ export async function searchByYearAndType(
 
   console.log(`[IORT] Recherche: année=${year}, type=${typeConfig.fr} (${typeConfig.ar})`)
 
-  // Sélectionner l'année dans le dropdown
-  // WebDev utilise souvent des select classiques ou des divs custom
-  const yearSelect = await page.$('select[name*="annee"], select[name*="year"], select[name*="ANNEE"]')
-  if (yearSelect) {
-    await yearSelect.selectOption(String(year))
-    await sleep(1000)
-  } else {
-    // Essayer de trouver un input texte pour l'année
-    const yearInput = await page.$('input[name*="annee"], input[name*="year"], input[name*="ANNEE"]')
-    if (yearInput) {
-      await yearInput.fill(String(year))
-      await sleep(500)
-    }
-  }
-
-  // Sélectionner le type de texte
-  const typeSelect = await page.$('select[name*="type"], select[name*="nature"], select[name*="TYPE"]')
-  if (typeSelect) {
-    // Essayer de sélectionner par valeur ou par texte
-    try {
-      await typeSelect.selectOption({ label: typeConfig.ar })
-    } catch {
-      try {
-        await typeSelect.selectOption({ value: typeConfig.value })
-      } catch {
-        // Chercher l'option contenant le texte arabe
-        const options = await typeSelect.$$('option')
-        for (const option of options) {
-          const text = await option.textContent()
-          if (text && text.includes(typeConfig.ar)) {
-            const value = await option.getAttribute('value')
-            if (value) {
-              await typeSelect.selectOption(value)
-              break
-            }
-          }
-        }
-      }
-    }
-    await sleep(1000)
-  }
-
-  // Soumettre le formulaire
-  const submitBtn = await page.$('input[type="submit"], button[type="submit"], input[name*="BTN"], input[value*="بحث"], a:has-text("بحث")')
-  if (submitBtn) {
-    await submitBtn.click()
-  } else {
-    // Fallback : appuyer sur Entrée
-    await page.keyboard.press('Enter')
-  }
-
-  // Attendre les résultats
+  // Réinitialiser le formulaire d'abord via _JSL(A39)
+  await page.evaluate(() => {
+    // @ts-expect-error WebDev global function
+    _JSL(_PAGE_, 'A39', '_self', '', '')
+  })
   await page.waitForLoadState('load')
-  await sleep(3000)
+  await sleep(2000)
 
-  // Parser le nombre total de résultats
+  // Sélectionner l'année via select[name="A8"] (par label texte)
+  await page.selectOption('select[name="A8"]', { label: String(year) })
+  await sleep(500)
+
+  // Sélectionner le type via select[name="A9"] (par label arabe exact)
+  await page.selectOption('select[name="A9"]', { label: typeConfig.ar })
+  await sleep(500)
+
+  // Soumettre via _JSL(A40) (bouton recherche image)
+  await page.evaluate(() => {
+    // @ts-expect-error WebDev global function
+    _JSL(_PAGE_, 'A40', '_self', '', '')
+  })
+  await page.waitForLoadState('load')
+  await sleep(5000)
+
+  // Lire le nombre total dans input[name="A5"]
   const totalResults = await parseTotalResults(page)
   console.log(`[IORT] ${totalResults} résultats trouvés pour ${year}/${typeConfig.fr}`)
 
@@ -290,31 +252,23 @@ export async function searchByYearAndType(
 }
 
 /**
- * Parse le nombre total de résultats depuis la page
+ * Parse le nombre total de résultats depuis le champ A5
  */
 async function parseTotalResults(page: Page): Promise<number> {
-  const content = await page.content()
+  // Le champ A5 (input text readonly) contient le nombre total de résultats
+  const a5Value = await page.$eval(
+    'input[name="A5"]',
+    (el) => (el as HTMLInputElement).value,
+  ).catch(() => '')
 
-  // Chercher des patterns courants pour le nombre total
-  // Pattern arabe : "عدد النتائج : 1234" ou "1234 نتيجة"
-  const patterns = [
-    /عدد\s*(?:ال)?نتائج\s*[:：]\s*(\d+)/,
-    /(\d+)\s*نتيجة/,
-    /(\d+)\s*résultat/i,
-    /total\s*[:：]\s*(\d+)/i,
-    /(\d+)\s*(?:enregistrement|texte)/i,
-  ]
-
-  for (const pattern of patterns) {
-    const match = content.match(pattern)
-    if (match) {
-      return parseInt(match[1], 10)
-    }
+  if (a5Value) {
+    const num = parseInt(a5Value.trim(), 10)
+    if (!isNaN(num)) return num
   }
 
-  // Fallback : compter les lignes de résultat visibles
-  const rows = await page.$$('tr[class*="ligne"], tr[class*="result"], table tr:not(:first-child)')
-  return rows.length
+  // Fallback: compter les éléments du looper A4
+  const looperItems = await page.$$('div[id^="A4_"]')
+  return looperItems.length
 }
 
 // =============================================================================
@@ -322,56 +276,87 @@ async function parseTotalResults(page: Page): Promise<number> {
 // =============================================================================
 
 /**
- * Parse les résultats de recherche de la page courante
+ * Parse les résultats du looper A4 sur la page courante.
+ * Les résultats sont dans des DIV#A4_1, A4_2, ... A4_N.
+ * Chaque DIV contient un lien titre avec href:
+ *   javascript:_PAGE_.A4.value=N;javascript:{_JSL(_PAGE_,'A17','_blank','','')}
+ * ou A16 pour les textes sans contenu complet.
  */
 export async function parseSearchResults(page: Page): Promise<IortSearchResult[]> {
   const results: IortSearchResult[] = []
 
-  // WebDev affiche les résultats en tableau
-  // Chercher les lignes de résultat
-  const rows = await page.$$('tr[class*="ligne"], tr[class*="Ligne"], table.result tr, table tr[bgcolor], table tr[class]')
+  // Le looper WebDev A4: items dans div[id^="A4_"]
+  const items = await page.$$('div[id^="A4_"]')
 
-  let index = 0
-  for (const row of rows) {
+  for (const item of items) {
     try {
-      const cells = await row.$$('td')
-      if (cells.length < 2) continue
+      const itemId = await item.getAttribute('id')
+      if (!itemId) continue
 
-      // Extraire le texte de chaque cellule
-      const cellTexts: string[] = []
-      for (const cell of cells) {
-        const text = await cell.textContent()
-        cellTexts.push((text || '').trim())
+      // Extraire l'index du looper (A4_1 → 1, A4_2 → 2, ...)
+      const indexMatch = itemId.match(/A4_(\d+)/)
+      if (!indexMatch) continue
+      const index = parseInt(indexMatch[1], 10)
+
+      // Extraire le texte complet du div
+      const fullText = (await item.textContent() || '').trim()
+      if (!fullText || fullText.length < 10) continue
+
+      // Trouver le lien principal (titre du texte) — le plus long lien
+      const links = await item.$$('a')
+      let titleLink = null
+      let titleText = ''
+      let hasFullText = true
+
+      for (const link of links) {
+        const text = (await link.textContent() || '').trim()
+        const href = (await link.getAttribute('href') || '')
+
+        // "ليس هنالك نص كامل" = pas de texte complet disponible
+        if (text.includes('ليس هنالك نص كامل')) {
+          hasFullText = false
+          continue
+        }
+
+        // Le titre est le lien le plus long (pas "قانون", "التنقيحات", "PDF-نص", etc.)
+        if (text.length > titleText.length && text.length > 15 && !text.match(/^(التنقيحات|PDF|قانون|مرسوم|أمر|قرار|رإي)$/)) {
+          titleLink = link
+          titleText = text
+        }
       }
 
-      // Identifier les champs (l'ordre peut varier)
-      const title = cellTexts.find(t => t.length > 20) || cellTexts[0] || ''
-      if (!title || title.length < 5) continue
+      if (!titleText) {
+        // Fallback: utiliser le texte complet du div sans les labels
+        titleText = fullText
+          .replace(/^(قانون|مرسوم|أمر|قرار|رإي)\s*/g, '')
+          .replace(/التنقيحات/g, '')
+          .replace(/PDF-نص/g, '')
+          .replace(/ليس هنالك نص كامل/g, '')
+          .replace(/لغتان/g, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+      }
 
-      // Chercher la date (format JJ/MM/AAAA ou AAAA-MM-JJ)
-      const dateMatch = cellTexts.join(' ').match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2})/)
+      if (titleText.length < 5) continue
+
+      // Extraire la date depuis le titre (format: "مؤرخ في DD MMMM YYYY")
+      const dateMatch = titleText.match(/مؤرخ في\s+(\d{1,2}\s+\S+\s+\d{4})/)
       const date = dateMatch ? dateMatch[1] : null
 
-      // Chercher le numéro JORT
-      const jortMatch = cellTexts.join(' ').match(/(?:عدد|n°?|numéro)\s*(\d+)/i)
-      const issueNumber = jortMatch ? jortMatch[1] : null
-
-      // Type de texte
-      const textType = cellTexts.find(t =>
-        Object.values(IORT_TEXT_TYPES).some(tt => t.includes(tt.ar))
-      ) || ''
+      // Extraire le numéro depuis le titre ("عدد NN")
+      const numMatch = titleText.match(/عدد\s+(\d+)/)
+      const issueNumber = numMatch ? numMatch[1] : null
 
       results.push({
-        title: title.replace(/\s+/g, ' ').trim(),
-        textType,
+        title: titleText.replace(/\s+/g, ' ').trim(),
+        textType: fullText.match(/^(قانون|مرسوم|أمر|قرار|رإي)/)?.[1] || '',
         date,
         issueNumber,
         resultIndex: index,
+        hasFullText,
       })
-
-      index++
     } catch (err) {
-      console.warn(`[IORT] Erreur parsing ligne ${index}:`, err instanceof Error ? err.message : err)
+      console.warn(`[IORT] Erreur parsing item:`, err instanceof Error ? err.message : err)
     }
   }
 
@@ -379,28 +364,21 @@ export async function parseSearchResults(page: Page): Promise<IortSearchResult[]
 }
 
 /**
- * Vérifie s'il y a une page suivante et clique dessus
- * Retourne true si navigation réussie
+ * Navigue vers la page suivante de résultats.
+ * La pagination IORT est dans #A10: "1 2 > >>"
+ * Le lien ">" avance d'une page.
  */
 export async function goToNextPage(page: Page): Promise<boolean> {
-  // Chercher le bouton/lien "suivant" ou ">"
-  const nextBtn = await page.$(
-    'a:has-text("التالي"), a:has-text("suivant"), a:has-text(">"), a:has-text(">>"), ' +
-    'input[value*="التالي"], input[value*="suivant"], ' +
-    'a[title*="suivant"], a[title*="التالي"], ' +
-    // WebDev pagination
-    'td.pagination a:last-child, .WD_PAGE a:last-child'
-  )
-
-  if (!nextBtn) return false
-
-  // Vérifier que le bouton n'est pas désactivé
-  const isDisabled = await nextBtn.getAttribute('disabled')
-  const className = await nextBtn.getAttribute('class')
-  if (isDisabled || (className && className.includes('disabled'))) return false
+  // Chercher dans la zone de pagination (#A10 ou son conteneur)
+  // Le lien ">" est le bouton page suivante
+  const nextLink = await page.$('#A10 a:has-text(">"):not(:has-text(">>"))')
+  if (!nextLink) {
+    // Essayer le >> (dernière page) comme fallback si > n'existe pas
+    return false
+  }
 
   try {
-    await nextBtn.click()
+    await nextLink.click()
     await page.waitForLoadState('load')
     await sleep(3000)
     return true
@@ -414,7 +392,8 @@ export async function goToNextPage(page: Page): Promise<boolean> {
 // =============================================================================
 
 /**
- * Navigue vers la page de détail d'un résultat et extrait le texte complet
+ * Ouvre le détail d'un résultat dans un nouvel onglet via _PAGE_.A4.value=N; _JSL(A17)
+ * et extrait le texte complet.
  */
 export async function extractTextDetail(
   page: Page,
@@ -423,91 +402,90 @@ export async function extractTextDetail(
   textType: IortTextType,
 ): Promise<IortExtractedText | null> {
   try {
-    // Cliquer sur le lien du résultat
-    // WebDev utilise souvent des onclick sur les lignes de tableau
-    const rows = await page.$$('tr[class*="ligne"], tr[class*="Ligne"], table.result tr, table tr[bgcolor], table tr[class]')
-
-    let targetRow = rows[result.resultIndex]
-    if (!targetRow) {
-      // Fallback : chercher par titre
-      for (const row of rows) {
-        const text = await row.textContent()
-        if (text && text.includes(result.title.substring(0, 30))) {
-          targetRow = row
-          break
-        }
-      }
-    }
-
-    if (!targetRow) {
-      console.warn(`[IORT] Ligne résultat #${result.resultIndex} non trouvée`)
+    if (!result.hasFullText) {
+      console.log(`[IORT] Pas de texte complet pour "${result.title.substring(0, 50)}..."`)
       return null
     }
 
-    // Cliquer sur la ligne ou le lien dans la ligne
-    const link = await targetRow.$('a, td[onclick], tr[onclick]')
-    if (link) {
-      await link.click()
-    } else {
-      await targetRow.click()
-    }
+    // Ouvrir le détail: set A4.value = resultIndex, puis _JSL(A17, '_blank')
+    // Comme A17 ouvre dans _blank, on doit capturer le popup
+    const [detailPage] = await Promise.all([
+      page.context().waitForEvent('page', { timeout: 30000 }),
+      page.evaluate((idx) => {
+        // @ts-expect-error WebDev form
+        _PAGE_.A4.value = idx
+        // @ts-expect-error WebDev global function
+        _JSL(_PAGE_, 'A17', '_blank', '', '')
+      }, result.resultIndex),
+    ])
 
-    await page.waitForLoadState('load')
+    await detailPage.waitForLoadState('load')
     await sleep(3000)
 
     // Extraire le contenu de la page de détail
-    const content = await page.content()
-    const cheerio = await import('cheerio')
-    const $ = cheerio.load(content)
+    const html = await detailPage.content()
 
-    // Supprimer les éléments de navigation
-    $('script, style, nav, header, footer, .menu, .navigation, [class*="menu"]').remove()
-
-    // Extraire le titre
-    let title = $('h1, h2, .titre, .title, td.titre').first().text().trim()
-    if (!title) title = result.title
-
-    // Extraire le texte principal
-    // WebDev met souvent le contenu dans des tables avec des classes spécifiques
+    // Utiliser cheerio si disponible, sinon extraction manuelle
     let textContent = ''
-    const contentSelectors = [
-      '.contenu', '.content', '.texte', '.text',
-      'td.texte', 'td.contenu', 'div.texte',
-      'table.detail td', 'table.contenu',
-    ]
+    let title = result.title
+    let pdfUrl: string | null = null
 
-    for (const selector of contentSelectors) {
-      const el = $(selector)
-      if (el.length && el.text().trim().length > 100) {
-        textContent = el.text().trim()
-        break
+    try {
+      const cheerio = await import('cheerio')
+      const $ = cheerio.load(html)
+
+      // Supprimer les éléments de navigation/noise
+      $('script, style, nav, header, footer, form[name*="WD"], [class*="menu"], [class*="Menu"], [class*="entete"], [class*="pied"]').remove()
+
+      // Le contenu est souvent dans des tables ou divs spécifiques
+      const contentSelectors = [
+        '.contenu', '.texte', 'td.texte', 'td.contenu',
+        'div.texte', '#contenu', '.Texte',
+      ]
+
+      for (const selector of contentSelectors) {
+        const el = $(selector)
+        if (el.length && el.text().trim().length > 100) {
+          textContent = el.text().trim()
+          break
+        }
       }
-    }
 
-    // Fallback : prendre le body entier nettoyé
-    if (!textContent || textContent.length < 100) {
-      textContent = $('body').text().trim()
+      // Fallback: body entier nettoyé
+      if (!textContent || textContent.length < 100) {
+        // Prendre le texte visible en excluant les éléments de navigation
+        textContent = $('body').text().trim()
+      }
+
+      // Chercher un lien PDF
+      const pdfLink = $('a[href*=".pdf"], a[href*="PDF"]')
+      if (pdfLink.length) {
+        const href = pdfLink.first().attr('href')
+        if (href) {
+          pdfUrl = href.startsWith('http') ? href : `${IORT_BASE_URL}${href.startsWith('/') ? '' : '/'}${href}`
+        }
+      }
+    } catch {
+      // Fallback sans cheerio: extraction via Playwright
+      textContent = await detailPage.evaluate(() => document.body.innerText)
     }
 
     // Nettoyer le texte
     textContent = textContent
       .replace(/\s+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
+      // Retirer les noise WebDev
+      .replace(/WD_ACTION_[^\s]*/g, '')
+      .replace(/جميع الحقوق محفوظة.*$/g, '')
+      .replace(/Copyright.*IORT/gi, '')
       .trim()
+
+    // Fermer l'onglet de détail
+    await detailPage.close()
 
     if (textContent.length < 50) {
       console.warn(`[IORT] Contenu trop court pour "${title}" (${textContent.length} chars)`)
       return null
-    }
-
-    // Chercher un lien PDF
-    let pdfUrl: string | null = null
-    const pdfLink = $('a[href*=".pdf"], a[href*="PDF"], a:has-text("PDF"), a:has-text("تحميل")')
-    if (pdfLink.length) {
-      const href = pdfLink.first().attr('href')
-      if (href) {
-        pdfUrl = href.startsWith('http') ? href : `${IORT_BASE_URL}${href.startsWith('/') ? '' : '/'}${href}`
-      }
     }
 
     // Extraire le numéro JORT depuis le contenu
@@ -532,29 +510,28 @@ export async function extractTextDetail(
       year,
       textType: IORT_TEXT_TYPES[textType].ar,
       pdfUrl,
+      pdfBuffer: null,
+      pdfFilename: null,
     }
   } catch (err) {
     console.error(`[IORT] Erreur extraction détail "${result.title}":`, err instanceof Error ? err.message : err)
+
+    // Fermer tout onglet supplémentaire qui aurait pu s'ouvrir
+    const pages = page.context().pages()
+    for (const p of pages) {
+      if (p !== page) await p.close().catch(() => {})
+    }
+
     return null
   }
 }
 
 /**
- * Retourne à la page de résultats depuis une page de détail
+ * Retourne à la page de résultats (no-op car on utilise des popups _blank)
  */
-export async function goBackToResults(page: Page): Promise<void> {
-  // Essayer le bouton retour WebDev
-  const backBtn = await page.$('a:has-text("رجوع"), a:has-text("العودة"), a:has-text("retour"), input[value*="رجوع"]')
-  if (backBtn) {
-    await backBtn.click()
-    await page.waitForLoadState('load')
-    await sleep(2000)
-    return
-  }
-
-  // Fallback : navigation arrière du navigateur
-  await page.goBack({ waitUntil: 'load' })
-  await sleep(2000)
+export async function goBackToResults(_page: Page): Promise<void> {
+  // Les détails s'ouvrent dans un nouvel onglet via _blank
+  // Pas besoin de naviguer en arrière — l'onglet principal reste sur les résultats
 }
 
 // =============================================================================
@@ -562,44 +539,82 @@ export async function goBackToResults(page: Page): Promise<void> {
 // =============================================================================
 
 /**
- * Télécharge un PDF JORT via Playwright (gestion des téléchargements WebDev)
+ * Télécharge le PDF d'un texte juridique via l'action A7 du framework WebDev.
+ * _PAGE_.A4.value=idx; _JSL(A7,'_self') déclenche un download direct.
  */
-export async function downloadJortPdf(
+async function downloadPdfViaA7(
   page: Page,
-  pdfUrl: string,
+  resultIndex: number,
+): Promise<{ buffer: Buffer; filename: string } | null> {
+  try {
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 30000 }),
+      page.evaluate((idx) => {
+        // @ts-expect-error WebDev form
+        _PAGE_.A4.value = idx
+        // @ts-expect-error WebDev global function
+        _JSL(_PAGE_, 'A7', '_self', '', '')
+      }, resultIndex),
+    ])
+
+    const filename = download.suggestedFilename() || `iort-${resultIndex}.pdf`
+
+    // Lire le contenu du fichier téléchargé
+    const path = await download.path()
+    if (!path) {
+      console.warn(`[IORT] PDF download path null pour index ${resultIndex}`)
+      return null
+    }
+
+    const fs = await import('fs')
+    const buffer = fs.readFileSync(path)
+
+    // Attendre que la page soit de retour à la liste (A7 est _self)
+    await page.waitForLoadState('load').catch(() => {})
+    await sleep(2000)
+
+    console.log(`[IORT] PDF téléchargé: ${filename} (${Math.round(buffer.length / 1024)} KB)`)
+    return { buffer, filename }
+  } catch (err) {
+    console.warn(`[IORT] Échec download PDF A7 (index ${resultIndex}):`, err instanceof Error ? err.message : err)
+    // S'assurer qu'on est toujours sur la bonne page
+    await page.waitForLoadState('load').catch(() => {})
+    return null
+  }
+}
+
+/**
+ * Upload un PDF IORT vers MinIO.
+ * Accepte soit un buffer direct (de downloadPdfViaA7), soit une URL.
+ */
+export async function uploadIortPdf(
   sourceId: string,
   pageTitle: string,
+  pdfBuffer: Buffer,
+  pdfFilename: string,
 ): Promise<{ minioPath: string; size: number } | null> {
   try {
     const { uploadFile } = await import('@/lib/storage/minio')
 
-    // Télécharger le PDF
-    const { downloadFile } = await import('./scraper-service')
-    const result = await downloadFile(pdfUrl, { timeout: 120000 })
-
-    if (!result.success || !result.buffer) {
-      console.warn(`[IORT] Échec téléchargement PDF: ${result.error}`)
-      return null
-    }
-
-    // Générer un nom de fichier propre
+    // Utiliser le titre du texte (unique) plutôt que le suggestedFilename WebDev (souvent SYNC_xxx)
     const slug = pageTitle
       .replace(/[^\w\u0600-\u06FF\s-]/g, '')
       .replace(/\s+/g, '-')
-      .substring(0, 80)
-    const filename = `iort/${sourceId}/${slug}.pdf`
+      .substring(0, 100)
+    // Ajouter un hash court pour éviter les collisions
+    const hash = hashContent(pageTitle).substring(0, 8)
+    const filename = `iort/${sourceId}/${slug}-${hash}.pdf`
 
-    // Upload vers MinIO
-    await uploadFile(result.buffer, filename, { contentType: 'application/pdf' }, 'web-files')
+    await uploadFile(pdfBuffer, filename, { contentType: 'application/pdf' }, 'web-files')
 
-    console.log(`[IORT] PDF uploadé: ${filename} (${Math.round(result.size! / 1024)} KB)`)
+    console.log(`[IORT] PDF uploadé MinIO: ${filename} (${Math.round(pdfBuffer.length / 1024)} KB)`)
 
     return {
       minioPath: filename,
-      size: result.size!,
+      size: pdfBuffer.length,
     }
   } catch (err) {
-    console.error(`[IORT] Erreur téléchargement PDF:`, err instanceof Error ? err.message : err)
+    console.error(`[IORT] Erreur upload PDF MinIO:`, err instanceof Error ? err.message : err)
     return null
   }
 }
@@ -608,10 +623,6 @@ export async function downloadJortPdf(
 // SAUVEGARDE EN DB
 // =============================================================================
 
-/**
- * Génère une URL synthétique stable pour un texte IORT
- * (les URLs WebDev avec CTX expirent)
- */
 export function generateIortUrl(
   year: number,
   issueNumber: string | null,
@@ -627,10 +638,6 @@ export function generateIortUrl(
   return `${IORT_BASE_URL}/jort/${year}/${issue}/${typeSlug}/${slug}`
 }
 
-/**
- * Sauvegarde un texte IORT dans web_pages
- * Vérifie d'abord si l'URL existe déjà (résumabilité)
- */
 export async function saveIortPage(
   sourceId: string,
   extracted: IortExtractedText,
@@ -677,6 +684,9 @@ export async function saveIortPage(
     source: 'iort',
   })
 
+  // Convertir la date arabe en ISO si possible, sinon null (la date reste dans structured_data)
+  const isoDate = parseArabicDate(extracted.date)
+
   const result = await db.query(
     `INSERT INTO web_pages (
       web_source_id, url, url_hash, canonical_url,
@@ -702,7 +712,7 @@ export async function saveIortPage(
       wordCount,
       language,
       `${extracted.textType} - ${extracted.title}`.substring(0, 500),
-      extracted.date,
+      isoDate,
       structuredData,
       linkedFiles,
     ],
@@ -710,7 +720,6 @@ export async function saveIortPage(
 
   const pageId = result.rows[0]?.id as string
 
-  // Créer la version initiale
   if (pageId) {
     try {
       const { createWebPageVersion } = await import('./source-service')
@@ -723,13 +732,10 @@ export async function saveIortPage(
   return { id: pageId, skipped: false }
 }
 
-/**
- * Met à jour les compteurs de la source IORT
- */
 export async function updateIortSourceStats(sourceId: string): Promise<void> {
   await db.query(
     `UPDATE web_sources SET
-      total_pages_crawled = (SELECT COUNT(*) FROM web_pages WHERE web_source_id = $1),
+      total_pages_discovered = (SELECT COUNT(*) FROM web_pages WHERE web_source_id = $1),
       total_pages_indexed = (SELECT COUNT(*) FROM web_pages WHERE web_source_id = $1 AND is_indexed = true),
       last_crawl_at = NOW(),
       updated_at = NOW()
@@ -742,9 +748,6 @@ export async function updateIortSourceStats(sourceId: string): Promise<void> {
 // CRAWL PRINCIPAL
 // =============================================================================
 
-/**
- * Crawle tous les textes IORT pour un combo année/type
- */
 export async function crawlYearType(
   session: IortSessionManager,
   sourceId: string,
@@ -792,43 +795,49 @@ export async function crawlYearType(
     const results = await parseSearchResults(page)
     console.log(`[IORT] Page ${pageNum}: ${results.length} résultats à traiter`)
 
+    // Phase 1: Extraire texte + sauvegarder (via popup A17)
+    // Phase 2: Télécharger les PDFs (via A7 sur la page de résultats)
+    // On sépare les phases car A7 pourrait perturber la page de résultats.
+
+    const extractedResults: Array<{
+      result: typeof results[0]
+      extracted: IortExtractedText
+      pageId: string
+    }> = []
+
     for (const result of results) {
       if (signal?.aborted) break
 
       try {
-        // Extraire le détail
+        // Phase 1: Extraire le texte (ouvre dans nouvel onglet via A17)
         const extracted = await extractTextDetail(page, result, year, textType)
         if (!extracted) {
-          stats.errors++
-          await goBackToResults(page)
+          if (!result.hasFullText) {
+            stats.skipped++
+          } else {
+            stats.errors++
+          }
           await sleep(IORT_RATE_CONFIG.minDelay)
           continue
         }
 
-        // Télécharger le PDF si disponible
-        let pdfInfo = null
-        if (extracted.pdfUrl) {
-          pdfInfo = await downloadJortPdf(page, extracted.pdfUrl, sourceId, extracted.title)
-        }
-
-        // Sauvegarder
-        const { skipped } = await saveIortPage(sourceId, extracted, pdfInfo)
+        // Sauvegarder le texte (sans PDF pour l'instant)
+        const { id: pageId, skipped } = await saveIortPage(sourceId, extracted, null)
 
         if (skipped) {
           stats.skipped++
         } else {
           stats.crawled++
+          extractedResults.push({ result, extracted, pageId })
+          console.log(`[IORT] ✓ ${result.title.substring(0, 60)}...`)
         }
-
-        // Retourner aux résultats
-        await goBackToResults(page)
 
         // Rate limiting
         await sleep(IORT_RATE_CONFIG.minDelay)
         await session.tick()
 
         // Pause longue périodique
-        if ((stats.crawled + stats.skipped) % IORT_RATE_CONFIG.longPauseEvery === 0) {
+        if ((stats.crawled + stats.skipped) % IORT_RATE_CONFIG.longPauseEvery === 0 && stats.crawled > 0) {
           console.log(`[IORT] Pause longue après ${stats.crawled + stats.skipped} pages...`)
           await sleep(IORT_RATE_CONFIG.longPauseMs)
         }
@@ -836,19 +845,55 @@ export async function crawlYearType(
         stats.errors++
         console.error(`[IORT] Erreur traitement "${result.title}":`, err instanceof Error ? err.message : err)
 
-        // Essayer de revenir aux résultats
-        try {
-          await goBackToResults(page)
-        } catch {
-          // Session probablement cassée, re-naviguer
-          console.log('[IORT] Re-navigation après erreur...')
-          await session.navigateToSearch()
-          await searchByYearAndType(page, year, textType)
-          // Sauter cette page de résultats
-          break
+        // Fermer tout onglet popup restant
+        const ctxPages = page.context().pages()
+        for (const p of ctxPages) {
+          if (p !== page) await p.close().catch(() => {})
         }
 
         await sleep(IORT_RATE_CONFIG.minDelay)
+      }
+    }
+
+    // Phase 2: Télécharger les PDFs via A7 pour les résultats nouvellement crawlés
+    if (extractedResults.length > 0) {
+      console.log(`[IORT] Téléchargement PDFs pour ${extractedResults.length} résultats...`)
+
+      for (const { result, extracted, pageId } of extractedResults) {
+        if (signal?.aborted) break
+
+        try {
+          const downloadResult = await downloadPdfViaA7(page, result.resultIndex)
+          if (downloadResult) {
+            const pdfInfo = await uploadIortPdf(sourceId, extracted.title, downloadResult.buffer, downloadResult.filename)
+            if (pdfInfo && pageId) {
+              // Mettre à jour la page avec les infos PDF
+              await db.query(
+                `UPDATE web_pages SET linked_files = $1::jsonb WHERE id = $2`,
+                [JSON.stringify([{
+                  url: generateIortUrl(extracted.year, extracted.issueNumber, extracted.textType, extracted.title),
+                  type: 'pdf',
+                  filename: downloadResult.filename,
+                  minioPath: pdfInfo.minioPath,
+                  size: pdfInfo.size,
+                  contentType: 'application/pdf',
+                }]), pageId],
+              )
+            }
+          }
+          await sleep(2000)
+        } catch (err) {
+          console.warn(`[IORT] Erreur PDF "${result.title.substring(0, 40)}":`, err instanceof Error ? err.message : err)
+        }
+      }
+
+      // Vérifier si la page de résultats est toujours intacte
+      const stillOnResults = await page.$('div[id^="A4_"]')
+      if (!stillOnResults) {
+        console.log('[IORT] Page résultats perdue après PDFs, re-navigation...')
+        await session.navigateToSearch()
+        await searchByYearAndType(page, year, textType)
+        // On ne ré-itère pas cette page de résultats, on passe à la suivante
       }
     }
 
@@ -874,11 +919,32 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-/**
- * Récupère ou crée la source IORT en DB
- */
+/** Mois arabes tunisiens → numéro */
+const ARABIC_MONTHS: Record<string, number> = {
+  'جانفي': 1, 'فيفري': 2, 'مارس': 3, 'أفريل': 4,
+  'ماي': 5, 'جوان': 6, 'جويلية': 7, 'أوت': 8,
+  'سبتمبر': 9, 'أكتوبر': 10, 'نوفمبر': 11, 'ديسمبر': 12,
+}
+
+/** Convertit une date arabe tunisienne ("31 ديسمبر 2025") en ISO ou null */
+function parseArabicDate(dateStr: string | null): string | null {
+  if (!dateStr) return null
+
+  // Format: "DD MMMM YYYY" (arabe tunisien)
+  const match = dateStr.match(/(\d{1,2})\s+(\S+)\s+(\d{4})/)
+  if (!match) return null
+
+  const day = parseInt(match[1], 10)
+  const monthName = match[2]
+  const year = parseInt(match[3], 10)
+  const month = ARABIC_MONTHS[monthName]
+
+  if (!month || day < 1 || day > 31 || year < 1900) return null
+
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
 export async function getOrCreateIortSource(): Promise<string> {
-  // Chercher par base_url
   const result = await db.query(
     "SELECT id FROM web_sources WHERE base_url ILIKE '%iort%'",
   )
@@ -887,7 +953,6 @@ export async function getOrCreateIortSource(): Promise<string> {
     return result.rows[0].id as string
   }
 
-  // Créer la source
   const { createWebSource } = await import('./source-service')
   const adminResult = await db.query(
     "SELECT id FROM users WHERE role IN ('admin', 'super_admin') LIMIT 1",
