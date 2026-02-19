@@ -15,6 +15,7 @@ import {
   type CacheMetrics,
 } from '@/lib/cache/search-cache'
 import { isRedisAvailable } from '@/lib/cache/redis'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 // =============================================================================
 // TYPES RÉPONSE
@@ -40,15 +41,8 @@ interface CacheMonitoringResponse {
  *
  * Retourne métriques cache Redis pour monitoring
  */
-export async function GET(request: NextRequest) {
+export const GET = withAdminApiAuth(async (_request: NextRequest, _ctx, _session) => {
   try {
-    // Auth: X-Cron-Secret ou Bearer token
-    const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-    if (cronSecret && authHeader !== cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-    }
-
     // Vérifier disponibilité Redis
     const available = isRedisAvailable()
 
@@ -81,7 +75,7 @@ export async function GET(request: NextRequest) {
 
     if (todayMetrics.hitRate > 80 && todayMetrics.hits + todayMetrics.misses > 50) {
       recommendations.push(
-        `Excellent hit rate (${todayMetrics.hitRate.toFixed(1)}%) - Cache très efficace ✅`
+        `Excellent hit rate (${todayMetrics.hitRate.toFixed(1)}%) - Cache très efficace`
       )
     }
 
@@ -115,4 +109,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

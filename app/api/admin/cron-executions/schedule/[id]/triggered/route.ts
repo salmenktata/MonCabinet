@@ -6,22 +6,12 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { db } from '@/lib/db/postgres'
 
-const CRON_SECRET = process.env.CRON_SECRET
-
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PATCH = withAdminApiAuth(async (req, ctx, _session) => {
   try {
-    // Vérification auth
-    const authHeader = req.headers.get('x-cron-secret')
-    if (!authHeader || authHeader !== CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { id } = await params
+    const { id } = await ctx.params!
 
     await db.query(
       `UPDATE scheduled_cron_executions
@@ -38,4 +28,4 @@ export async function PATCH(
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

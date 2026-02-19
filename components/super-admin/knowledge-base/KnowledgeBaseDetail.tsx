@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   deleteKnowledgeDocumentAction,
   indexKnowledgeDocumentAction,
@@ -98,7 +98,7 @@ interface KnowledgeBaseDetailProps {
 
 export function KnowledgeBaseDetail({ document, versions, relations = [] }: KnowledgeBaseDetailProps) {
   const router = useRouter()
-  const { toast } = useToast()
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [indexing, setIndexing] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -108,24 +108,13 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
     try {
       const result = await indexKnowledgeDocumentAction(document.id)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive',
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Document indexé',
-          description: `${result.chunksCreated} chunks créés.`,
-        })
+        toast.success(`Document index\u00e9 \u2014 ${result.chunksCreated} chunks cr\u00e9\u00e9s.`)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de l\'indexation',
-        variant: 'destructive',
-      })
+      toast.error('Erreur lors de l\'indexation')
     } finally {
       setIndexing(false)
     }
@@ -136,24 +125,13 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
     try {
       const result = await deleteKnowledgeDocumentAction(document.id)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive',
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Document supprimé',
-          description: 'Le document a été supprimé.',
-        })
+        toast.success('Document supprim\u00e9')
         router.push('/super-admin/knowledge-base')
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de la suppression',
-        variant: 'destructive',
-      })
+      toast.error('Erreur lors de la suppression')
     } finally {
       setDeleting(false)
       setDeleteDialogOpen(false)

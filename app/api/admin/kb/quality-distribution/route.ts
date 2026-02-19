@@ -1,8 +1,9 @@
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
-export async function GET() {
+export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     // 1. Distribution générale
     const dist = await db.query(`
@@ -83,4 +84,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
+})

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import OpenAI from 'openai'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -10,6 +11,8 @@ const openai = new OpenAI({
  * POST /api/admin/generate-embeddings
  * Génère les embeddings OpenAI pour les chunks qui n'en ont pas
  *
+ * Auth: session super_admin OU CRON_SECRET
+ *
  * Body (optionnel):
  * {
  *   "batchSize": 50,
@@ -17,23 +20,14 @@ const openai = new OpenAI({
  *   "maxChunks": 1000
  * }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request: NextRequest, _ctx, _session) => {
   try {
-    // Auth via CRON_SECRET ou session admin
-    const authHeader = request.headers.get('x-cron-secret')
-    if (authHeader !== process.env.CRON_SECRET) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     const body = await request.json().catch(() => ({}))
     const batchSize = body.batchSize || 50
     const category = body.category || null
     const maxChunks = body.maxChunks || 0 // 0 = illimité
 
-    console.log('🚀 Démarrage génération embeddings OpenAI')
+    console.log('Démarrage génération embeddings OpenAI')
     console.log(`   Batch size: ${batchSize}`)
     console.log(`   Catégorie: ${category || 'toutes'}`)
     console.log(`   Max chunks: ${maxChunks || 'illimité'}`)
@@ -74,7 +68,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`📋 ${chunks.rows.length} chunks à traiter`)
+    console.log(`${chunks.rows.length} chunks à traiter`)
 
     // Traiter par batch
     let processed = 0
@@ -109,14 +103,14 @@ export async function POST(request: NextRequest) {
           if (processed % 50 === 0) {
             const elapsed = (Date.now() - startTime) / 1000
             const rate = Math.round(processed / elapsed)
-            console.log(`   ✅ ${processed}/${chunks.rows.length} (${rate} chunks/s)`)
+            console.log(`   ${processed}/${chunks.rows.length} (${rate} chunks/s)`)
           }
 
           // Délai pour rate limiting
           await new Promise(resolve => setTimeout(resolve, 20))
 
         } catch (error) {
-          console.error(`   ❌ Échec chunk ${chunk.id}:`, error)
+          console.error(`   Échec chunk ${chunk.id}:`, error)
           failed++
         }
       }
@@ -134,10 +128,10 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Erreur génération embeddings:', error)
+    console.error('Erreur génération embeddings:', error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

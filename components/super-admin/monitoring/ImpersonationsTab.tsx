@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface ActiveImpersonation {
   id: string
@@ -34,7 +34,7 @@ interface ActiveImpersonation {
 export function ImpersonationsTab() {
   const [impersonations, setImpersonations] = useState<ActiveImpersonation[]>([])
   const [loading, setLoading] = useState(true)
-  const { toast } = useToast()
+
 
   const fetchImpersonations = async () => {
     try {
@@ -71,20 +71,13 @@ export function ImpersonationsTab() {
       })
 
       if (response.ok) {
-        toast({
-          title: 'Session arrêtée',
-          description: 'L\'impersonnalisation a été forcée à s\'arrêter.',
-        })
+        toast.success('Session arr\u00eat\u00e9e \u2014 L\'impersonnalisation a \u00e9t\u00e9 forc\u00e9e \u00e0 s\'arr\u00eater.')
         fetchImpersonations()
       } else {
         throw new Error('Erreur API')
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible d\'arrêter la session',
-        variant: 'destructive',
-      })
+      toast.error('Impossible d\'arr\u00eater la session')
     }
   }
 

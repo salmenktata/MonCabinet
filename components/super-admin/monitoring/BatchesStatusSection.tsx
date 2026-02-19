@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Database, Globe, Target, RefreshCw, Pause, Play, RotateCcw, XCircle } from 'lucide-react'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 
 interface BatchStats {
   kbIndexation: {
@@ -61,7 +61,7 @@ export function BatchesStatusSection() {
     title: string
     description: string
   } | null>(null)
-  const { toast } = useToast()
+
 
   const fetchBatchStats = async () => {
     try {
@@ -100,10 +100,7 @@ export function BatchesStatusSection() {
       const data = await response.json()
 
       if (data.success) {
-        toast({
-          title: 'Action réussie',
-          description: `${action === 'pause' ? 'Pause' : action === 'resume' ? 'Reprise' : action === 'retry' ? 'Retry' : 'Arrêt'} du batch ${batchType} effectué avec succès.`,
-        })
+        toast.success(`${action === 'pause' ? 'Pause' : action === 'resume' ? 'Reprise' : action === 'retry' ? 'Retry' : 'Arr\u00eat'} du batch ${batchType} effectu\u00e9 avec succ\u00e8s.`)
 
         // Rafraîchir les stats
         await fetchBatchStats()
@@ -111,11 +108,7 @@ export function BatchesStatusSection() {
         throw new Error(data.error)
       }
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: getErrorMessage(error) || 'Impossible d\'exécuter l\'action',
-        variant: 'destructive',
-      })
+      toast.error(getErrorMessage(error) || 'Impossible d\'ex\u00e9cuter l\'action')
     } finally {
       setActionLoading(false)
       setConfirmAction(null)

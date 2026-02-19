@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { db } from '@/lib/db/postgres'
 import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
 import { aiConfig } from '@/lib/ai/config'
@@ -20,15 +21,8 @@ import { aiConfig } from '@/lib/ai/config'
  * Note: Ollama est lent (~0.5-1s/embedding). concurrency=2 recommandé.
  * Temps estimé complet: ~25 000 chunks / 2 concurrency / 1s = ~3.5h
  */
-export async function POST(req: NextRequest) {
+export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
-    const authHeader = req.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
-
-    if (!token || token !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     if (!aiConfig.ollama.enabled) {
       return NextResponse.json(
         { error: 'OLLAMA_ENABLED=false — Ollama embeddings indisponibles' },
@@ -173,21 +167,14 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })
 
 /**
  * GET /api/admin/reindex-kb-ollama
  * Statut de la réindexation Ollama
  */
-export async function GET(req: NextRequest) {
+export const GET = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
-    const authHeader = req.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
-
-    if (!token || token !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const statsResult = await db.query(`
       SELECT
         COUNT(*) as total,
@@ -225,4 +212,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

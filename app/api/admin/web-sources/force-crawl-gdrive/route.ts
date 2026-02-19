@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { crawlGoogleDriveFolder } from '@/lib/web-scraper/gdrive-crawler-service'
 import { db } from '@/lib/db/postgres'
 import { safeParseInt } from '@/lib/utils/safe-number'
@@ -13,15 +14,7 @@ export const maxDuration = 3600 // 60 minutes (1715+ fichiers PDF à télécharg
 
 const GDRIVE_SOURCE_ID = '546d11c8-b3fd-4559-977b-c3572aede0e4'
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  // Vérifier CRON_SECRET
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  }
-
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const body = await request.json().catch(() => ({}))
     const incrementalMode = body.incremental ?? false
@@ -141,4 +134,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -101,7 +101,6 @@ function formatDate(date: string | null): string {
 
 export function WebFilesList({ sources = [] }: WebFilesListProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const [files, setFiles] = useState<WebFile[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -157,15 +156,11 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         byStatus: { pending: 0, downloaded: 0, indexed: 0, error: 0 },
       })
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur chargement fichiers',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur chargement fichiers')
     } finally {
       setLoading(false)
     }
-  }, [page, sourceFilter, typeFilter, statusFilter, search, toast])
+  }, [page, sourceFilter, typeFilter, statusFilter, search])
 
   useEffect(() => {
     fetchFiles()
@@ -192,17 +187,10 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         throw new Error(data.error || 'Erreur réindexation')
       }
 
-      toast({
-        title: 'Fichier réindexé',
-        description: `${data.chunksCreated} chunks créés`,
-      })
+      toast.success(`Fichier réindexé — ${data.chunksCreated} chunks créés`)
       fetchFiles()
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur réindexation',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur réindexation')
     } finally {
       setActionLoading(null)
     }
@@ -222,14 +210,10 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         throw new Error(data.error || 'Erreur suppression')
       }
 
-      toast({ title: 'Fichier supprimé' })
+      toast.success('Fichier supprimé')
       fetchFiles()
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur suppression',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur suppression')
     } finally {
       setActionLoading(null)
       setDeleteFile(null)

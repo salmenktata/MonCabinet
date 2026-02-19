@@ -6,6 +6,7 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { db } from '@/lib/db/postgres'
 import { parsePdf, terminateOcrWorker } from '@/lib/web-scraper/file-parser-service'
 import { downloadGoogleDriveFileForIndexing } from '@/lib/web-scraper/storage-adapter'
@@ -25,14 +26,7 @@ interface OcrResult {
   error?: string
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  }
-
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   const { searchParams } = new URL(request.url)
   const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 500)
 
@@ -212,4 +206,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

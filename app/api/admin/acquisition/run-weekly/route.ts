@@ -7,29 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
-// Protection CRON_SECRET
-function validateCronSecret(request: NextRequest): boolean {
-  const cronSecret = request.headers.get('x-cron-secret')
-  const expectedSecret = process.env.CRON_SECRET
-
-  if (!expectedSecret) {
-    console.error('❌ CRON_SECRET non configuré')
-    return false
-  }
-
-  return cronSecret === expectedSecret
-}
-
-export async function POST(request: NextRequest) {
-  // Vérifier authentification cron
-  if (!validateCronSecret(request)) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized - Invalid CRON_SECRET' },
-      { status: 401 }
-    )
-  }
-
+export const POST = withAdminApiAuth(async (_request: NextRequest, _ctx, _session) => {
   try {
     // 1. Récupérer toutes les sources actives configurées pour acquisition
     const sources = await db.query(
@@ -90,7 +70,7 @@ export async function POST(request: NextRequest) {
           })
         }
       } catch (error) {
-        console.error(`❌ Erreur crawl source ${source.id}:`, error)
+        console.error(`Erreur crawl source ${source.id}:`, error)
         results.push({
           sourceId: source.id,
           name: source.name,
@@ -109,7 +89,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error('❌ Erreur acquisition hebdomadaire:', error)
+    console.error('Erreur acquisition hebdomadaire:', error)
 
     return NextResponse.json(
       {
@@ -119,4 +99,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

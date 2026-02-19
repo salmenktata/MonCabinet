@@ -3,7 +3,6 @@ import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { SuperAdminLayout } from '@/components/super-admin/SuperAdminLayout'
-import { Toaster } from '@/components/ui/toaster'
 import { safeParseInt } from '@/lib/utils/safe-number'
 
 // Pages super-admin accessibles aux admins (en plus des super_admin)
@@ -76,7 +75,6 @@ export default async function SuperAdminRootLayout({
       >
         {children}
       </SuperAdminLayout>
-      <Toaster />
     </>
   )
 }

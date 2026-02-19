@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   Table,
   TableBody,
@@ -55,7 +55,7 @@ export function LegalDocumentsTable({
   consolidationLabels,
 }: LegalDocumentsTableProps) {
   const router = useRouter()
-  const { toast } = useToast()
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
 
@@ -83,18 +83,15 @@ export function LegalDocumentsTable({
     try {
       const result = await bulkApproveLegalDocuments(action, Array.from(selectedIds))
       if (result.error) {
-        toast({ title: 'Erreur', description: result.error, variant: 'destructive' })
+        toast.error(result.error)
       } else {
         const label = action === 'approve' ? 'approuvé(s)' : 'révoqué(s)'
-        toast({
-          title: 'Action effectuée',
-          description: `${result.count} document(s) ${label}`,
-        })
+        toast.success(`Action effectu\u00e9e \u2014 ${result.count} document(s) ${label}`)
         setSelectedIds(new Set())
         router.refresh()
       }
     } catch {
-      toast({ title: 'Erreur', description: "Erreur lors de l'action groupée", variant: 'destructive' })
+      toast.error("Erreur lors de l'action group\u00e9e")
     } finally {
       setBulkLoading(false)
     }

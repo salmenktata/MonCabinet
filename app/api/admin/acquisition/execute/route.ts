@@ -11,12 +11,13 @@ import {
   batchValidateSourceDocuments,
   type QualityCriteria,
 } from '@/lib/knowledge-base/acquisition-pipeline-service'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 // =============================================================================
 // POST - Exécuter l'acquisition et validation qualité
 // =============================================================================
 
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const body = await request.json()
     const {
@@ -128,4 +129,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

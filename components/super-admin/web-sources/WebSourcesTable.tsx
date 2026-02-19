@@ -16,7 +16,7 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { getCategoryLabel, CATEGORY_COLORS } from '@/lib/web-scraper/category-labels'
 import type { WebSourceCategory } from '@/lib/web-scraper/types'
 import { HealthBadge } from './HealthBadge'
@@ -72,7 +72,6 @@ export function WebSourcesTable({
 }: WebSourcesTableProps) {
   const router = useRouter()
   const locale = useLocale() as 'fr' | 'ar'
-  const { toast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -114,13 +113,13 @@ export function WebSourcesTable({
       })
       const data = await res.json()
       if (!res.ok) {
-        toast({ title: 'Erreur', description: data.error || 'Erreur lors du crawl', variant: 'destructive' })
+        toast.error(data.error || 'Erreur lors du crawl')
       } else {
-        toast({ title: 'Crawl lance', description: data.async ? 'Job ajoute a la queue' : `${data.crawl?.pagesProcessed} pages traitees` })
+        toast.success(data.async ? 'Crawl lance — Job ajoute a la queue' : `Crawl lance — ${data.crawl?.pagesProcessed} pages traitees`)
         router.refresh()
       }
     } catch {
-      toast({ title: 'Erreur', description: 'Erreur lors du crawl', variant: 'destructive' })
+      toast.error('Erreur lors du crawl')
     } finally {
       setLoading(null)
     }
@@ -136,13 +135,13 @@ export function WebSourcesTable({
       })
       if (!res.ok) {
         const data = await res.json()
-        toast({ title: 'Erreur', description: data.error || 'Erreur lors de la mise a jour', variant: 'destructive' })
+        toast.error(data.error || 'Erreur lors de la mise a jour')
       } else {
-        toast({ title: isActive ? 'Source desactivee' : 'Source activee' })
+        toast.success(isActive ? 'Source desactivee' : 'Source activee')
         router.refresh()
       }
     } catch {
-      toast({ title: 'Erreur', description: 'Erreur lors de la mise a jour', variant: 'destructive' })
+      toast.error('Erreur lors de la mise a jour')
     } finally {
       setLoading(null)
     }
@@ -155,14 +154,14 @@ export function WebSourcesTable({
       const res = await fetch(`/api/admin/web-sources/${deleteId}`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) {
-        toast({ title: 'Erreur', description: data.message || data.error || 'Erreur', variant: 'destructive', duration: 10000 })
+        toast.error(data.message || data.error || 'Erreur', { duration: 10000 })
       } else {
         const stats = data.stats
-        toast({ title: 'Source supprimee', description: stats ? `${stats.webPages} pages, ${stats.knowledgeBaseDocs} docs KB supprimes` : 'Donnees supprimees' })
+        toast.success(stats ? `Source supprimee — ${stats.webPages} pages, ${stats.knowledgeBaseDocs} docs KB supprimes` : 'Source supprimee — Donnees supprimees')
         router.refresh()
       }
     } catch (err) {
-      toast({ title: 'Erreur', description: err instanceof Error ? err.message : 'Erreur', variant: 'destructive' })
+      toast.error(err instanceof Error ? err.message : 'Erreur')
     } finally {
       setLoading(null)
       setDeleteId(null)
@@ -181,15 +180,15 @@ export function WebSourcesTable({
       })
       const data = await res.json()
       if (!res.ok) {
-        toast({ title: 'Erreur', description: data.error || 'Erreur bulk', variant: 'destructive' })
+        toast.error(data.error || 'Erreur bulk')
       } else {
         const labels = { crawl: 'Crawls lances', activate: 'Sources activees', deactivate: 'Sources desactivees' }
-        toast({ title: labels[action], description: `${data.success} reussi(s)${data.failed > 0 ? `, ${data.failed} echec(s)` : ''}` })
+        toast.success(`${labels[action]} — ${data.success} reussi(s)${data.failed > 0 ? `, ${data.failed} echec(s)` : ''}`)
         setSelectedIds(new Set())
         router.refresh()
       }
     } catch {
-      toast({ title: 'Erreur', description: 'Erreur lors de l\'operation bulk', variant: 'destructive' })
+      toast.error('Erreur lors de l\'operation bulk')
     } finally {
       setBulkLoading(false)
     }

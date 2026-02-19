@@ -2,27 +2,17 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API: Compléter une exécution de cron
  * POST /api/admin/cron-executions/complete
- * Auth: X-Cron-Secret header
+ * Auth: session super_admin OU CRON_SECRET
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { redis } from '@/lib/cache/redis'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
-const CRON_SECRET = process.env.CRON_SECRET
-
-export async function POST(req: NextRequest) {
+export const POST = withAdminApiAuth(async (req: NextRequest, _ctx, _session) => {
   try {
-    // 1. Vérification auth
-    const authHeader = req.headers.get('x-cron-secret')
-    if (!authHeader || authHeader !== CRON_SECRET) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // 2. Parse body
+    // Parse body
     const body = await req.json()
     const {
       executionId,
@@ -47,7 +37,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 3. Mettre à jour le record
+    // Mettre à jour le record
     const result = await db.query(
       `UPDATE cron_executions
        SET status = $1,
@@ -82,7 +72,7 @@ export async function POST(req: NextRequest) {
       `[Cron Complete] ${execution.cron_name} - ${status} (${execution.duration_ms}ms)`
     )
 
-    // 4. Publier événement Redis pour SSE
+    // Publier événement Redis pour SSE
     try {
       const event = {
         type: status === 'completed' ? 'completed' : 'failed',
@@ -113,4 +103,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

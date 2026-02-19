@@ -333,7 +333,7 @@ export function FacturesDataTable({
         pageSizeOptions={[10, 25, 50, 100]}
         emptyMessage="Aucune facture trouvée"
         onRowClick={(facture) => {
-          window.location.href = `/factures/${facture.id}`
+          router.push(`/factures/${facture.id}`)
         }}
         getRowId={(facture) => facture.id}
       />

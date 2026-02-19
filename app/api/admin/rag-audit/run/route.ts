@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runAudit, type AuditReport } from '@/scripts/audit-rag-data-quality'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * POST /api/admin/rag-audit/run
@@ -12,7 +13,7 @@ import path from 'path'
  *
  * @returns AuditReport JSON
  */
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (_request, _ctx, _session) => {
   try {
     console.log('[RAG Audit API] Démarrage de l\'audit...')
 
@@ -46,4 +47,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

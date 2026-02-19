@@ -15,7 +15,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import type { ChatMessage } from './ChatMessages'
 import { copyToClipboard, downloadExport, type ExportFormat } from '@/lib/export/conversation-exporter'
 
@@ -35,7 +35,6 @@ export function ChatActions({
   onCreateDossier,
 }: ChatActionsProps) {
   const t = useTranslations('assistantIA')
-  const { toast } = useToast()
   const [isExporting, setIsExporting] = useState(false)
 
   if (!hasMessages) return null
@@ -53,16 +52,9 @@ export function ChatActions({
   const handleCopy = async (format: 'text' | 'markdown' = 'text') => {
     const success = await copyToClipboard(conversationData, format)
     if (success) {
-      toast({
-        title: 'Copié!',
-        description: 'La conversation a été copiée dans le presse-papiers.',
-      })
+      toast.success('Copié! — La conversation a été copiée dans le presse-papiers.')
     } else {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de copier la conversation.',
-        variant: 'destructive',
-      })
+      toast.error('Impossible de copier la conversation.')
     }
   }
 
@@ -75,16 +67,9 @@ export function ChatActions({
         includeMetadata: true,
         locale: 'fr',
       })
-      toast({
-        title: 'Export réussi',
-        description: `Conversation exportée au format ${format.toUpperCase()}.`,
-      })
+      toast.success(`Conversation exportée au format ${format.toUpperCase()}.`)
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible d\'exporter la conversation.',
-        variant: 'destructive',
-      })
+      toast.error('Impossible d\'exporter la conversation.')
     }
   }
 
@@ -120,17 +105,10 @@ export function ChatActions({
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
 
-      toast({
-        title: 'Export réussi',
-        description: `Conversation exportée au format ${format.toUpperCase()}.`,
-      })
+      toast.success(`Conversation exportée au format ${format.toUpperCase()}.`)
     } catch (error) {
       console.error('Erreur export:', error)
-      toast({
-        title: 'Erreur',
-        description: 'Impossible d\'exporter la conversation.',
-        variant: 'destructive',
-      })
+      toast.error('Impossible d\'exporter la conversation.')
     } finally {
       setIsExporting(false)
     }

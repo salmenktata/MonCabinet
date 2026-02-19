@@ -31,7 +31,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface Rule {
   id: string
@@ -98,7 +98,6 @@ export function RulesManager({
   taxonomy,
 }: RulesManagerProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false)
@@ -143,11 +142,7 @@ export function RulesManager({
 
   const handleCreate = async () => {
     if (!formData.name || formData.conditions.some(c => !c.value)) {
-      toast({
-        title: 'Erreur',
-        description: 'Veuillez remplir tous les champs obligatoires',
-        variant: 'destructive',
-      })
+      toast.error('Veuillez remplir tous les champs obligatoires')
       return
     }
 
@@ -174,20 +169,13 @@ export function RulesManager({
         throw new Error(data.error || 'Erreur lors de la création')
       }
 
-      toast({
-        title: 'Succès',
-        description: 'Règle créée avec succès',
-      })
+      toast.success('Règle créée avec succès')
 
       setIsCreateDialogOpen(false)
       resetForm()
       router.refresh()
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la création',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la création')
     } finally {
       setIsLoading(false)
     }
@@ -220,21 +208,14 @@ export function RulesManager({
         throw new Error(data.error || 'Erreur lors de la modification')
       }
 
-      toast({
-        title: 'Succès',
-        description: 'Règle modifiée avec succès',
-      })
+      toast.success('Règle modifiée avec succès')
 
       setIsEditDialogOpen(false)
       setSelectedRule(null)
       resetForm()
       router.refresh()
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la modification',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la modification')
     } finally {
       setIsLoading(false)
     }
@@ -258,11 +239,7 @@ export function RulesManager({
 
       router.refresh()
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur')
     } finally {
       setIsLoading(false)
     }
@@ -283,18 +260,11 @@ export function RulesManager({
         throw new Error('Erreur lors de la suppression')
       }
 
-      toast({
-        title: 'Succès',
-        description: 'Règle supprimée',
-      })
+      toast.success('Règle supprimée')
 
       router.refresh()
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur')
     } finally {
       setIsLoading(false)
     }
@@ -317,11 +287,7 @@ export function RulesManager({
 
       setTestResults(data.data.testResults || [])
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur')
     } finally {
       setIsLoading(false)
     }

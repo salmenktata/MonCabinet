@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * GET /api/admin/web-pages/[id]/classification
  *
  * Récupère les détails de classification d'une page web spécifique.
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAdminApiAuth(async (request, ctx, _session) => {
   try {
-    const { id: pageId } = await params
+    const { id: pageId } = await ctx.params!
 
     if (!pageId) {
       return NextResponse.json({ error: 'Missing page ID' }, { status: 400 })
@@ -97,4 +95,4 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+})

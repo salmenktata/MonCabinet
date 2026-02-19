@@ -5,8 +5,9 @@
  */
 import { NextResponse } from 'next/server'
 import { getGeminiDailyCosts, getGeminiRPMStats } from '@/lib/ai/gemini-client'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
-export async function GET() {
+export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
   const [costs, rpmStats] = await Promise.all([
     getGeminiDailyCosts(7),
     Promise.resolve(getGeminiRPMStats()),
@@ -21,4 +22,4 @@ export async function GET() {
       dailyCostUSDAlert: 1.0,
     },
   })
-}
+})

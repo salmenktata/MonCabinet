@@ -30,7 +30,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface TaxonomyItem {
   id: string
@@ -68,7 +68,6 @@ const TYPE_LABELS: Record<string, { ar: string; fr: string; icon: keyof typeof I
 
 export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<TaxonomyItem | null>(null)
@@ -88,11 +87,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
 
   const handleCreate = async () => {
     if (!formData.code || !formData.labelFr || !formData.labelAr) {
-      toast({
-        title: 'Erreur',
-        description: 'Veuillez remplir tous les champs obligatoires',
-        variant: 'destructive',
-      })
+      toast.error('Veuillez remplir tous les champs obligatoires')
       return
     }
 
@@ -110,20 +105,13 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
         throw new Error(data.error || 'Erreur lors de la création')
       }
 
-      toast({
-        title: 'Succès',
-        description: 'Élément créé avec succès',
-      })
+      toast.success('Élément créé avec succès')
 
       setIsCreateDialogOpen(false)
       resetForm()
       router.refresh()
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la création',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la création')
     } finally {
       setIsLoading(false)
     }
@@ -152,21 +140,14 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
         throw new Error(data.error || 'Erreur lors de la modification')
       }
 
-      toast({
-        title: 'Succès',
-        description: 'Élément modifié avec succès',
-      })
+      toast.success('Élément modifié avec succès')
 
       setIsEditDialogOpen(false)
       setSelectedItem(null)
       resetForm()
       router.refresh()
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la modification',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la modification')
     } finally {
       setIsLoading(false)
     }
@@ -174,11 +155,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
 
   const handleDelete = async (code: string, isSystem: boolean) => {
     if (isSystem) {
-      toast({
-        title: 'Erreur',
-        description: 'Les éléments système ne peuvent pas être supprimés',
-        variant: 'destructive',
-      })
+      toast.error('Les éléments système ne peuvent pas être supprimés')
       return
     }
 
@@ -198,18 +175,11 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
         throw new Error(data.error || 'Erreur lors de la suppression')
       }
 
-      toast({
-        title: 'Succès',
-        description: 'Élément supprimé avec succès',
-      })
+      toast.success('Élément supprimé avec succès')
 
       router.refresh()
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la suppression',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la suppression')
     } finally {
       setIsLoading(false)
     }

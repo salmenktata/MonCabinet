@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { db } from '@/lib/db/postgres'
 import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * POST /api/admin/kb/analyze-quality
@@ -15,7 +16,7 @@ import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
  *
  * @returns Rapport d'analyse
  */
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const body = await request.json()
     const batchSize = parseInt(body.batchSize || '10', 10)
@@ -161,14 +162,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * GET /api/admin/kb/analyze-quality
  *
  * Retourne les statistiques d'analyse de qualité
  */
-export async function GET() {
+export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const stats = await db.query<{
       total_docs: number
@@ -207,4 +208,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
+})

@@ -11,20 +11,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { reindexLongDocuments } from '@/lib/web-scraper/reindex-long-documents'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  // Vérifier l'authentification via CRON_SECRET
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  }
-
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const body = await request.json()
     const { sourceId, limit = 10, dryRun = false } = body
@@ -61,4 +54,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { db } from '@/lib/db/postgres'
 import {
@@ -117,7 +118,7 @@ const CRON_SCRIPTS: Record<string, { script: string; description: string; estima
   },
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
     // 1. Parse body
     const body = await req.json()
@@ -216,10 +217,10 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })
 
 // GET: List available crons with their configuration
-export async function GET(req: NextRequest) {
+export const GET = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
     // Get current running status for each cron
     const runningCrons = await db.query(
@@ -248,4 +249,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

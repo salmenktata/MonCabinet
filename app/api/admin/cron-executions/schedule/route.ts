@@ -11,9 +11,10 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { validateCronParameters } from '@/lib/cron/cron-parameters'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 // POST: Planifier un cron pour exécution future
-export async function POST(req: NextRequest) {
+export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
     const body = await req.json()
     const { cronName, scheduledAt, parameters = {}, createdBy } = body
@@ -97,10 +98,10 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 // GET: Lister les crons planifiés
-export async function GET(req: NextRequest) {
+export const GET = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status') || 'pending' // 'pending', 'all'
@@ -129,10 +130,10 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 // DELETE: Annuler un cron planifié
-export async function DELETE(req: NextRequest) {
+export const DELETE = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
@@ -191,4 +192,4 @@ export async function DELETE(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

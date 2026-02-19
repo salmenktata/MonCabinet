@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { FeatureErrorBoundary } from '@/components/providers/FeatureErrorBoundary'
 import { ActionButtons, type ActionType } from '@/components/qadhya-ia/ActionButtons'
 import { EnrichedMessage } from '@/components/qadhya-ia/EnrichedMessage'
@@ -57,7 +57,6 @@ export function UnifiedChatPage({
 }: UnifiedChatPageProps) {
   const t = useTranslations('qadhyaIA')
   const router = useRouter()
-  const { toast } = useToast()
   const queryClient = useQueryClient()
 
   // State
@@ -132,25 +131,16 @@ export function UnifiedChatPage({
     },
     onError: (error) => {
       setPendingUserMessage(null)
-      toast({
-        title: t('errors.sendFailed'),
-        description: error.message,
-        variant: 'destructive',
-      })
+      toast.error(`${t('errors.sendFailed')} — ${error.message}`)
     },
   })
 
   const { mutate: deleteConversation } = useDeleteConversation({
     onSuccess: () => {
-      toast({
-        title: t('success.deleted'),
-      })
+      toast.success(t('success.deleted'))
     },
     onError: () => {
-      toast({
-        title: t('errors.deleteFailed'),
-        variant: 'destructive',
-      })
+      toast.error(t('errors.deleteFailed'))
     },
   })
 

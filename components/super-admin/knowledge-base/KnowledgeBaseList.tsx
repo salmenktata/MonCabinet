@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,7 +69,7 @@ export function KnowledgeBaseList({
   search
 }: KnowledgeBaseListProps) {
   const router = useRouter()
-  const { toast } = useToast()
+
   const [loading, setLoading] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -80,24 +80,13 @@ export function KnowledgeBaseList({
     try {
       const result = await indexKnowledgeDocumentAction(id)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Document indexé',
-          description: `${result.chunksCreated} chunks créés`
-        })
+        toast.success(`Document index\u00e9 \u2014 ${result.chunksCreated} chunks cr\u00e9\u00e9s`)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de l\'indexation',
-        variant: 'destructive'
-      })
+      toast.error('Erreur lors de l\'indexation')
     } finally {
       setLoading(null)
     }
@@ -110,24 +99,13 @@ export function KnowledgeBaseList({
     try {
       const result = await deleteKnowledgeDocumentAction(deleteId)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Document supprimé',
-          description: 'Le document a été supprimé'
-        })
+        toast.success('Document supprim\u00e9')
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de la suppression',
-        variant: 'destructive'
-      })
+      toast.error('Erreur lors de la suppression')
     } finally {
       setLoading(null)
       setDeleteId(null)
@@ -142,25 +120,14 @@ export function KnowledgeBaseList({
     try {
       const result = await bulkKnowledgeDocumentAction(action, Array.from(selectedIds))
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Action effectuée',
-          description: `${result.summary?.succeeded}/${result.summary?.total} documents traités`
-        })
+        toast.success(`Action effectu\u00e9e \u2014 ${result.summary?.succeeded}/${result.summary?.total} documents trait\u00e9s`)
         setSelectedIds(new Set())
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de l\'action groupée',
-        variant: 'destructive'
-      })
+      toast.error('Erreur lors de l\'action group\u00e9e')
     } finally {
       setBulkLoading(false)
     }

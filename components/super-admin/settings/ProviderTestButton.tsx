@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 type EmailProvider = 'brevo' | 'resend'
@@ -30,7 +30,6 @@ export function ProviderTestButton({
   className,
 }: ProviderTestButtonProps) {
   const [loading, setLoading] = useState(false)
-  const { toast } = useToast()
 
   const isAIProvider = AI_PROVIDERS.includes(provider as AIProvider)
 
@@ -60,23 +59,12 @@ export function ProviderTestButton({
       const data = await res.json()
 
       if (data.success) {
-        toast({
-          title: 'Test réussi',
-          description: data.message || `Test ${provider} effectué avec succès`,
-        })
+        toast.success(data.message || `Test ${provider} effectué avec succès`)
       } else {
-        toast({
-          title: 'Erreur',
-          description: data.error || `Échec du test ${provider}`,
-          variant: 'destructive',
-        })
+        toast.error(data.error || `Échec du test ${provider}`)
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur de connexion au serveur',
-        variant: 'destructive',
-      })
+      toast.error('Erreur de connexion au serveur')
     } finally {
       setLoading(false)
     }

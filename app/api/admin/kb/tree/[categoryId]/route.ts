@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * GET /api/admin/kb/tree/:categoryId
@@ -8,12 +9,9 @@ import { safeParseInt } from '@/lib/utils/safe-number'
  * Retourne les documents d'une catégorie donnée (lazy loading)
  * Le categoryId est au format "category" ou "category:subcategory"
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ categoryId: string }> }
-) {
+export const GET = withAdminApiAuth(async (request, ctx, _session) => {
   try {
-    const { categoryId } = await params
+    const { categoryId } = await ctx.params!
     const decoded = decodeURIComponent(categoryId)
 
     // Parse category:subcategory
@@ -71,4 +69,4 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+})

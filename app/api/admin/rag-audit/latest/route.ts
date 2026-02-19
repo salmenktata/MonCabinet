@@ -2,6 +2,7 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { readdir, readFile, mkdir } from 'fs/promises'
 import path from 'path'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * GET /api/admin/rag-audit/latest
@@ -10,7 +11,7 @@ import path from 'path'
  *
  * @returns AuditReport JSON ou null si aucun audit
  */
-export async function GET(request: NextRequest) {
+export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
   try {
     const auditDir = path.join(process.cwd(), 'tmp', 'rag-audits')
 
@@ -53,4 +54,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

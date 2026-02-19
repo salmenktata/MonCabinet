@@ -1,13 +1,14 @@
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * GET /api/admin/production-monitoring/timeseries
  *
  * Données temporelles pour graphiques (queries, latence, erreurs, coût)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const { searchParams } = new URL(request.url)
     const range = searchParams.get('range') || '24h'
@@ -84,4 +85,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

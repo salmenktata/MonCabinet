@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { searchKnowledgeBaseHybrid, type KnowledgeBaseSearchResult } from '@/lib/ai/knowledge-base-service'
 import { enrichQueryWithLegalSynonyms, expandQuery, condenseQuery } from '@/lib/ai/query-expansion-service'
 import { answerQuestion } from '@/lib/ai/rag-chat-service'
@@ -363,14 +364,8 @@ function buildSummary(details: EvalResultDetail[]): EvalSummary {
 // ROUTE HANDLER
 // =============================================================================
 
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
-    // Auth check
-    const cronSecret = request.headers.get('X-Cron-Secret')
-    if (cronSecret !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     // Parse body (optionnel)
     let customQueries: EvalQuery[] | undefined
     let searchLimit = 15
@@ -471,19 +466,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })
 
 // GET pour vérification rapide
-export async function GET(request: NextRequest) {
-  const cronSecret = request.headers.get('X-Cron-Secret')
-  if (cronSecret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
   return NextResponse.json({
     status: 'ready',
     benchmarkSize: EVAL_BENCHMARK.length,
     domains: Array.from(new Set(EVAL_BENCHMARK.map(q => q.domain))),
     usage: 'POST /api/admin/rag-eval with X-Cron-Secret header',
   })
-}
+}, { allowCronSecret: true })

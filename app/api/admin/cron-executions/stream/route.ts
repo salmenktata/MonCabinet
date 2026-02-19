@@ -4,9 +4,10 @@
  * Auth: Session admin (Next-Auth)
  */
 
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { redis } from '@/lib/cache/redis'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 // Type pour les événements SSE
 interface CronExecutionEvent {
@@ -22,14 +23,8 @@ interface CronExecutionEvent {
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function GET(req: NextRequest) {
-  // 1. Vérifier auth admin (optionnel, décommenter si nécessaire)
-  // const session = await getServerSession(authOptions)
-  // if (!session || session.user.role !== 'admin') {
-  //   return new Response('Unauthorized', { status: 401 })
-  // }
-
-  // 2. Créer stream SSE
+export const GET = withAdminApiAuth(async (req, _ctx, _session) => {
+  // Créer stream SSE
   const encoder = new TextEncoder()
 
   const stream = new ReadableStream({
@@ -104,7 +99,7 @@ export async function GET(req: NextRequest) {
     },
   })
 
-  return new Response(stream, {
+  return new NextResponse(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
@@ -112,4 +107,4 @@ export async function GET(req: NextRequest) {
       'X-Accel-Buffering': 'no', // Disable nginx buffering
     },
   })
-}
+})

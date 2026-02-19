@@ -2,6 +2,7 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { readdir, readFile, stat, mkdir } from 'fs/promises'
 import path from 'path'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 interface AuditHistoryItem {
   filename: string
@@ -23,7 +24,7 @@ interface AuditHistoryItem {
  *
  * @returns Array<AuditHistoryItem>
  */
-export async function GET(request: NextRequest) {
+export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
   try {
     const auditDir = path.join(process.cwd(), 'tmp', 'rag-audits')
 
@@ -79,4 +80,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

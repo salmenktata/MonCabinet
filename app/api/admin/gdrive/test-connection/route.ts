@@ -14,10 +14,11 @@ import {
   validateDriveFolderAccess,
   parseGoogleDriveFolderUrl
 } from '@/lib/web-scraper/gdrive-utils'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
-export async function POST(req: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
-    const body = await req.json()
+    const body = await request.json()
     const { folderId } = body
 
     if (!folderId || typeof folderId !== 'string') {
@@ -59,4 +60,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

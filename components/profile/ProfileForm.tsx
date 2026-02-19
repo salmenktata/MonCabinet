@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { Separator } from '@/components/ui/separator'
 import { updateProfileAction, changePasswordAction, updateEmailAction } from '@/app/actions/profile'
 
@@ -22,7 +22,7 @@ interface ProfileFormProps {
 
 export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
   const router = useRouter()
-  const { toast } = useToast()
+
   const [isLoading, setIsLoading] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
 
@@ -58,25 +58,15 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
           throw new Error(emailResult.error)
         }
 
-        toast({
-          title: 'Email mis à jour',
-          description: emailResult.message || 'Veuillez vous reconnecter avec votre nouvelle adresse email.',
-        })
+        toast.success(`Email mis \u00e0 jour \u2014 ${emailResult.message || 'Veuillez vous reconnecter avec votre nouvelle adresse email.'}`)
       }
 
-      toast({
-        title: 'Profil mis à jour',
-        description: 'Vos informations ont été enregistrées avec succès.',
-      })
+      toast.success('Profil mis \u00e0 jour \u2014 Vos informations ont \u00e9t\u00e9 enregistr\u00e9es avec succ\u00e8s.')
 
       router.refresh()
     } catch (error) {
       console.error('Erreur mise à jour profil:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: getErrorMessage(error) || 'Impossible de mettre à jour le profil',
-      })
+      toast.error(getErrorMessage(error) || 'Impossible de mettre \u00e0 jour le profil')
     } finally {
       setIsLoading(false)
     }
@@ -86,20 +76,12 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
     e.preventDefault()
 
     if (formData.newPassword !== formData.confirmPassword) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'Les mots de passe ne correspondent pas',
-      })
+      toast.error('Les mots de passe ne correspondent pas')
       return
     }
 
     if (formData.newPassword.length < 6) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'Le mot de passe doit contenir au moins 6 caractères',
-      })
+      toast.error('Le mot de passe doit contenir au moins 6 caract\u00e8res')
       return
     }
 
@@ -115,10 +97,7 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
         throw new Error(result.error)
       }
 
-      toast({
-        title: 'Mot de passe modifié',
-        description: 'Votre mot de passe a été changé avec succès.',
-      })
+      toast.success('Mot de passe modifi\u00e9 \u2014 Votre mot de passe a \u00e9t\u00e9 chang\u00e9 avec succ\u00e8s.')
 
       // Réinitialiser les champs
       setFormData({
@@ -129,11 +108,7 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
       })
     } catch (error) {
       console.error('Erreur changement mot de passe:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: getErrorMessage(error) || 'Impossible de changer le mot de passe',
-      })
+      toast.error(getErrorMessage(error) || 'Impossible de changer le mot de passe')
     } finally {
       setIsChangingPassword(false)
     }

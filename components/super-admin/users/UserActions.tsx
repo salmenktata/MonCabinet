@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -51,7 +51,7 @@ interface UserActionsProps {
 
 export function UserActions({ user }: UserActionsProps) {
   const router = useRouter()
-  const { toast } = useToast()
+
   const [loading, setLoading] = useState(false)
 
   // Dialogs
@@ -74,24 +74,13 @@ export function UserActions({ user }: UserActionsProps) {
     try {
       const result = await approveUserAction(user.id)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Utilisateur approuvé',
-          description: `${user.email} a été approuvé avec succès.`
-        })
+        toast.success(`${user.email} a \u00e9t\u00e9 approuv\u00e9 avec succ\u00e8s.`)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive'
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -102,26 +91,15 @@ export function UserActions({ user }: UserActionsProps) {
     try {
       const result = await rejectUserAction(user.id, reason)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Utilisateur rejeté',
-          description: `La demande de ${user.email} a été rejetée.`
-        })
+        toast.success(`Utilisateur rejet\u00e9 \u2014 La demande de ${user.email} a \u00e9t\u00e9 rejet\u00e9e.`)
         setShowRejectDialog(false)
         setReason('')
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive'
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -132,26 +110,15 @@ export function UserActions({ user }: UserActionsProps) {
     try {
       const result = await suspendUserAction(user.id, reason)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Utilisateur suspendu',
-          description: `Le compte de ${user.email} a été suspendu.`
-        })
+        toast.success(`Utilisateur suspendu \u2014 Le compte de ${user.email} a \u00e9t\u00e9 suspendu.`)
         setShowSuspendDialog(false)
         setReason('')
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive'
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -162,24 +129,13 @@ export function UserActions({ user }: UserActionsProps) {
     try {
       const result = await reactivateUserAction(user.id)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Utilisateur réactivé',
-          description: `Le compte de ${user.email} a été réactivé.`
-        })
+        toast.success(`Utilisateur r\u00e9activ\u00e9 \u2014 Le compte de ${user.email} a \u00e9t\u00e9 r\u00e9activ\u00e9.`)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive'
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -190,25 +146,14 @@ export function UserActions({ user }: UserActionsProps) {
     try {
       const result = await changeUserRoleAction(user.id, newRole)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Rôle modifié',
-          description: `Le rôle de ${user.email} a été changé en ${newRole}.`
-        })
+        toast.success(`R\u00f4le modifi\u00e9 \u2014 Le r\u00f4le de ${user.email} a \u00e9t\u00e9 chang\u00e9 en ${newRole}.`)
         setShowRoleDialog(false)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive'
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -219,25 +164,14 @@ export function UserActions({ user }: UserActionsProps) {
     try {
       const result = await changeUserPlanAction(user.id, newPlan)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Plan modifié',
-          description: `Le plan de ${user.email} a été changé en ${newPlan}.`
-        })
+        toast.success(`Plan modifi\u00e9 \u2014 Le plan de ${user.email} a \u00e9t\u00e9 chang\u00e9 en ${newPlan}.`)
         setShowPlanDialog(false)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive'
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -248,27 +182,16 @@ export function UserActions({ user }: UserActionsProps) {
     try {
       const result = await deleteUserAction(user.id, confirmEmail)
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Utilisateur supprimé',
-          description: `Le compte de ${user.email} a été supprimé définitivement.`
-        })
+        toast.success(`Utilisateur supprim\u00e9 \u2014 Le compte de ${user.email} a \u00e9t\u00e9 supprim\u00e9 d\u00e9finitivement.`)
         setShowDeleteDialog(false)
         setConfirmEmail('')
         router.push('/super-admin/users')
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive'
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -609,24 +532,13 @@ export function UserActions({ user }: UserActionsProps) {
                 try {
                   const result = await startImpersonationAction(user.id, impersonationReason)
                   if (result.error) {
-                    toast({
-                      title: 'Erreur',
-                      description: result.error,
-                      variant: 'destructive'
-                    })
+                    toast.error(result.error)
                   } else {
-                    toast({
-                      title: 'Impersonnalisation démarrée',
-                      description: 'Redirection en cours...'
-                    })
+                    toast.success('Impersonnalisation d\u00e9marr\u00e9e \u2014 Redirection en cours...')
                     window.location.href = '/dashboard'
                   }
                 } catch {
-                  toast({
-                    title: 'Erreur',
-                    description: 'Une erreur est survenue',
-                    variant: 'destructive'
-                  })
+                  toast.error('Une erreur est survenue')
                 } finally {
                   setLoading(false)
                   setImpersonationReason('')

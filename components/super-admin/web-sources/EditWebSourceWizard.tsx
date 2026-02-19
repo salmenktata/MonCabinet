@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
@@ -63,7 +63,6 @@ const FREQUENCIES = [
 
 export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWizardProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialData)
 
@@ -117,25 +116,14 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
       const data = await res.json()
 
       if (!res.ok) {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Erreur mise à jour source',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Erreur mise à jour source')
       } else {
-        toast({
-          title: 'Source mise à jour',
-          description: 'Les modifications ont été enregistrées',
-        })
+        toast.success('Source mise à jour — Les modifications ont été enregistrées')
         router.push(`/super-admin/web-sources/${sourceId}`)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de la mise à jour',
-        variant: 'destructive',
-      })
+      toast.error('Erreur lors de la mise à jour')
     } finally {
       setLoading(false)
     }

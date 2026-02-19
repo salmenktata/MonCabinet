@@ -7,22 +7,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { extractStructuredMetadataV2 } from '@/lib/knowledge-base/structured-metadata-extractor-service'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const POST = withAdminApiAuth(async (request, ctx, _session) => {
   try {
-    const { id: knowledgeBaseId } = await params
-
-    // Auth: X-Cron-Secret ou Bearer token
-    const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-    if (cronSecret && authHeader !== cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-    }
-    // }
+    const { id: knowledgeBaseId } = await ctx.params!
 
     // 2. Parser les options depuis le body
     const body = await request.json().catch(() => ({}))
@@ -67,26 +57,16 @@ export async function POST(
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })
 
 /**
  * GET /api/admin/kb/extract-metadata/:id
  *
  * Récupère les métadonnées structurées existantes pour un document KB
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAdminApiAuth(async (request, ctx, _session) => {
   try {
-    const { id: knowledgeBaseId } = await params
-
-    // Auth: X-Cron-Secret ou Bearer token
-    const getAuthHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization')
-    const getCronSecret = process.env.CRON_SECRET
-    if (getCronSecret && getAuthHeader !== getCronSecret && getAuthHeader !== `Bearer ${getCronSecret}`) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-    }
+    const { id: knowledgeBaseId } = await ctx.params!
 
     // Importer db ici pour éviter l'import au top level
     const { db } = await import('@/lib/db/postgres')
@@ -185,4 +165,4 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { db } from '@/lib/db/postgres'
 import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
 import { safeParseInt } from '@/lib/utils/safe-number'
@@ -16,19 +17,8 @@ import { safeParseInt } from '@/lib/utils/safe-number'
  * Headers requis:
  * - Authorization: Bearer ${CRON_SECRET}
  */
-export async function POST(req: NextRequest) {
+export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
-    // Vérifier l'authentification
-    const authHeader = req.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
-
-    if (!token || token !== process.env.CRON_SECRET) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     // Parser les query params
     const { searchParams } = new URL(req.url)
     const batchSize = parseInt(searchParams.get('batch_size') || '50')
@@ -173,26 +163,15 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })
 
 /**
  * GET /api/admin/reindex-kb-openai
  *
  * Retourne le statut de la réindexation
  */
-export async function GET(req: NextRequest) {
+export const GET = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
-    // Vérifier l'authentification
-    const authHeader = req.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
-
-    if (!token || token !== process.env.CRON_SECRET) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     // Récupérer les statistiques
     const statsResult = await db.query(`
       SELECT
@@ -245,4 +224,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

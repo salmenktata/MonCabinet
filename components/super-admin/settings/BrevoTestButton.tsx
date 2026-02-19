@@ -3,11 +3,10 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 
 export function BrevoTestButton() {
   const [loading, setLoading] = useState(false)
-  const { toast } = useToast()
 
   const handleTest = async () => {
     setLoading(true)
@@ -16,23 +15,12 @@ export function BrevoTestButton() {
       const data = await res.json()
 
       if (data.success) {
-        toast({
-          title: 'Test réussi',
-          description: 'Email de test envoyé avec succès.',
-        })
+        toast.success('Test réussi — Email de test envoyé avec succès.')
       } else {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Échec du test Brevo',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Échec du test Brevo')
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur de connexion au serveur',
-        variant: 'destructive',
-      })
+      toast.error('Erreur de connexion au serveur')
     } finally {
       setLoading(false)
     }

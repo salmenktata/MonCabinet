@@ -5,6 +5,7 @@ import {
   deleteApiKey,
 } from '@/lib/api-keys/api-keys-service'
 import { z } from 'zod'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 // Schema de validation pour la mise à jour d'une clé API
 const updateApiKeySchema = z.object({
@@ -32,12 +33,9 @@ const API_KEY_PATTERNS: Record<string, RegExp> = {
  * PUT /api/admin/api-keys/[provider]
  * Mettre à jour ou créer une clé API pour un provider
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ provider: string }> }
-) {
+export const PUT = withAdminApiAuth(async (request, ctx, _session) => {
   try {
-    const { provider } = await params
+    const { provider } = await ctx.params!
 
     // Valider le body
     const body = await request.json()
@@ -94,18 +92,15 @@ export async function PUT(
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * DELETE /api/admin/api-keys/[provider]
  * Supprimer une clé API pour un provider
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ provider: string }> }
-) {
+export const DELETE = withAdminApiAuth(async (request, ctx, _session) => {
   try {
-    const { provider } = await params
+    const { provider } = await ctx.params!
 
     // Vérifier que la clé existe et n'est pas primaire
     const existingKey = await getApiKeyData(provider.toLowerCase())
@@ -145,18 +140,15 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * GET /api/admin/api-keys/[provider]
  * Récupérer une clé API pour un provider (sans la clé décryptée)
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ provider: string }> }
-) {
+export const GET = withAdminApiAuth(async (request, ctx, _session) => {
   try {
-    const { provider } = await params
+    const { provider } = await ctx.params!
 
     const apiKey = await getApiKeyData(provider.toLowerCase())
 
@@ -185,4 +177,4 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+})

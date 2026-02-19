@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getCategoryLabel, getSubcategoryLabel } from '@/lib/knowledge-base/categories'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 
 // =============================================================================
 // TYPES
@@ -70,7 +70,6 @@ const CATEGORY_ICONS: Record<string, string> = {
 // =============================================================================
 
 export function KnowledgeBaseTreeView() {
-  const { toast } = useToast()
   const [categories, setCategories] = useState<TreeCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
@@ -87,11 +86,11 @@ export function KnowledgeBaseTreeView() {
       const data = await res.json()
       setCategories(data.categories || [])
     } catch {
-      toast({ title: 'Erreur', description: 'Impossible de charger l\'arbre KB', variant: 'destructive' })
+      toast.error('Impossible de charger l\'arbre KB')
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [])
 
   // Charger au premier rendu
   useState(() => { loadTree() })
@@ -106,7 +105,7 @@ export function KnowledgeBaseTreeView() {
       const data = await res.json()
       setDocuments(prev => ({ ...prev, [key]: data.documents || [] }))
     } catch {
-      toast({ title: 'Erreur', description: 'Impossible de charger les documents', variant: 'destructive' })
+      toast.error('Impossible de charger les documents')
     } finally {
       setLoadingDocs(prev => {
         const next = new Set(prev)
@@ -146,12 +145,9 @@ export function KnowledgeBaseTreeView() {
         body: JSON.stringify({ category, dryRun: false }),
       })
       const data = await res.json()
-      toast({
-        title: 'Re-indexation lancée',
-        description: `${data.processed || 0} documents traités pour "${getCategoryLabel(category, 'ar')}"`,
-      })
+      toast.success(`Re-indexation lancée — ${data.processed || 0} documents traités pour "${getCategoryLabel(category, 'ar')}"`)
     } catch {
-      toast({ title: 'Erreur', description: 'Échec de la re-indexation', variant: 'destructive' })
+      toast.error('Échec de la re-indexation')
     } finally {
       setReindexing(prev => {
         const next = new Set(prev)

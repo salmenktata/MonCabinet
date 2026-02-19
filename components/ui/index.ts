@@ -1,6 +1,4 @@
 // Export tous les composants UI pour faciliter les imports
-export { Toast, ToastProvider, ToastViewport, ToastTitle, ToastDescription, ToastClose, ToastAction, type ToastProps, type ToastActionElement } from './toast'
-export { useToast, toast } from '@/lib/hooks/use-toast'
 export { default as Breadcrumbs } from './Breadcrumbs'
 export { default as LoadingSpinner, LoadingOverlay, LoadingPage, SavingIndicator } from './LoadingSpinner'
 export { ConfirmDialogProvider, useConfirm } from './ConfirmDialog'

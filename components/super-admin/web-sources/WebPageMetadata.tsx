@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface PageMetadata {
   // Common fields
@@ -123,7 +123,6 @@ function ConfidenceIndicator({ confidence }: { confidence: number }) {
 }
 
 export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
-  const { toast } = useToast()
   const [metadata, setMetadata] = useState<PageMetadata | null>(null)
   const [loading, setLoading] = useState(true)
   const [extracting, setExtracting] = useState(false)
@@ -143,15 +142,11 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
       const data = await response.json()
       setMetadata(data.metadata || data || null)
     } catch (err) {
-      toast({
-        title: 'Erreur',
-        description: err instanceof Error ? err.message : 'Impossible de charger les métadonnées.',
-        variant: 'destructive',
-      })
+      toast.error(err instanceof Error ? err.message : 'Impossible de charger les métadonnées.')
     } finally {
       setLoading(false)
     }
-  }, [sourceId, pageId, toast])
+  }, [sourceId, pageId])
 
   useEffect(() => {
     fetchMetadata()
@@ -177,16 +172,9 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
       const data = await response.json()
       setMetadata(data.metadata || data || null)
 
-      toast({
-        title: 'Métadonnées extraites',
-        description: 'Les métadonnées ont été ré-extraites avec succès.',
-      })
+      toast.success('Métadonnées extraites — Les métadonnées ont été ré-extraites avec succès.')
     } catch (err) {
-      toast({
-        title: 'Erreur',
-        description: err instanceof Error ? err.message : 'Impossible de ré-extraire les métadonnées.',
-        variant: 'destructive',
-      })
+      toast.error(err instanceof Error ? err.message : 'Impossible de ré-extraire les métadonnées.')
     } finally {
       setExtracting(false)
     }

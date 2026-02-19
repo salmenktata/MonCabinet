@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { db } from '@/lib/db/postgres'
 
 /**
@@ -6,18 +7,8 @@ import { db } from '@/lib/db/postgres'
  *
  * Supprime les chunks de knowledge_base_chunks dont le document parent
  * n'existe plus dans knowledge_base (chunks orphelins).
- *
- * Headers requis:
- * - Authorization: Bearer ${CRON_SECRET}
  */
-export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  const token = authHeader?.replace('Bearer ', '')
-
-  if (!token || token !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+export const POST = withAdminApiAuth(async (_req, _ctx, _session) => {
   try {
     // Compter d'abord
     const countResult = await db.query(`
@@ -46,20 +37,13 @@ export async function POST(req: NextRequest) {
     console.error('[cleanup-orphan-chunks] Error:', error)
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 })
   }
-}
+}, { allowCronSecret: true })
 
 /**
  * GET /api/admin/cleanup-orphan-chunks
  * Compte les chunks orphelins sans supprimer (dry-run)
  */
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  const token = authHeader?.replace('Bearer ', '')
-
-  if (!token || token !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+export const GET = withAdminApiAuth(async (_req, _ctx, _session) => {
   const result = await db.query(`
     SELECT COUNT(*) as count
     FROM knowledge_base_chunks
@@ -69,4 +53,4 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     orphanedChunks: parseInt(result.rows[0].count, 10),
   })
-}
+}, { allowCronSecret: true })

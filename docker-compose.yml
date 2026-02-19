@@ -45,11 +45,11 @@ services:
     command:
       - "postgres"
       - "-c"
-      - "shared_buffers=4GB"
+      - "shared_buffers=2GB"
       - "-c"
-      - "effective_cache_size=12GB"
+      - "effective_cache_size=6GB"
       - "-c"
-      - "maintenance_work_mem=1GB"
+      - "maintenance_work_mem=512MB"
       - "-c"
       - "checkpoint_completion_target=0.9"
       - "-c"
@@ -61,11 +61,11 @@ services:
       - "-c"
       - "effective_io_concurrency=200"
       - "-c"
-      - "work_mem=26214kB"
+      - "work_mem=32MB"
       - "-c"
-      - "min_wal_size=1GB"
+      - "min_wal_size=512MB"
       - "-c"
-      - "max_wal_size=4GB"
+      - "max_wal_size=2GB"
       - "-c"
       - "max_worker_processes=4"
       - "-c"
@@ -79,7 +79,7 @@ services:
   # Redis Stack Server (Cache + RediSearch + modules)
   # --------------------------------------------------------------------------
   redis:
-    image: redis/redis-stack-server:latest
+    image: redis/redis-stack-server:7.4.0-v2
     container_name: qadhya-redis
     restart: unless-stopped
     # Configuration production: 4 modules (RediSearch, RedisTimeSeries, RedisJSON, RedisBloom)
@@ -115,7 +115,7 @@ services:
   # MinIO Object Storage (Documents, avatars, uploads)
   # --------------------------------------------------------------------------
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-02-18T16-25-55Z
     container_name: qadhya-minio
     restart: unless-stopped
     environment:

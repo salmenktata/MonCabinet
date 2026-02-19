@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { DataTable, DataTableColumn } from '@/components/ui/data-table'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,7 @@ interface ClientsDataTableProps {
 }
 
 export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
+  const router = useRouter()
   const t = useTranslations('clients')
 
   // Fonction pour obtenir les initiales
@@ -193,8 +195,7 @@ export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
       pageSizeOptions={[10, 25, 50, 100]}
       emptyMessage="Aucun client trouvé"
       onRowClick={(client) => {
-        // Navigation vers la page de détail
-        window.location.href = `/clients/${client.id}`
+        router.push(`/clients/${client.id}`)
       }}
       getRowId={(client) => client.id}
     />

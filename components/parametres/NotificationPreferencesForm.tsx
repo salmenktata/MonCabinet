@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Loader2, Save } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { saveNotificationPreferencesAction, type NotificationPreferences } from '@/app/actions/cabinet'
 
 interface NotificationPreferencesDB extends NotificationPreferences {
@@ -27,7 +27,7 @@ interface Props {
 
 export default function NotificationPreferencesForm({ preferences, userId }: Props) {
   const router = useRouter()
-  const { toast } = useToast()
+
   const [loading, setLoading] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -62,19 +62,12 @@ export default function NotificationPreferencesForm({ preferences, userId }: Pro
         throw new Error(result.error)
       }
 
-      toast({
-        title: 'Préférences enregistrées',
-        description: 'Vos préférences de notifications ont été mises à jour.',
-      })
+      toast.success('Pr\u00e9f\u00e9rences enregistr\u00e9es \u2014 Vos pr\u00e9f\u00e9rences de notifications ont \u00e9t\u00e9 mises \u00e0 jour.')
 
       router.refresh()
     } catch (error) {
       console.error('Erreur sauvegarde préférences:', error)
-      toast({
-        title: 'Erreur',
-        description: getErrorMessage(error) || 'Impossible de sauvegarder les préférences.',
-        variant: 'destructive',
-      })
+      toast.error(getErrorMessage(error) || 'Impossible de sauvegarder les pr\u00e9f\u00e9rences.')
     } finally {
       setLoading(false)
     }

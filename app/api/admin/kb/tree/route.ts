@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * GET /api/admin/kb/tree
@@ -8,7 +9,7 @@ import { safeParseInt } from '@/lib/utils/safe-number'
  * Retourne les stats KB groupées par catégorie/sous-catégorie
  * pour la vue arborescente
  */
-export async function GET() {
+export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
   try {
     const result = await db.query(`
       SELECT
@@ -98,4 +99,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
+})

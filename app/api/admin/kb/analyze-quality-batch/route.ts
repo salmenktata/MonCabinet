@@ -28,8 +28,9 @@ import {
   checkAndProcessAllPendingBatches,
   checkAndProcessBatch,
 } from '@/lib/kb/kb-quality-batch-service'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const body = await request.json().catch(() => ({}))
     const batchSize = Math.min(parseInt(body.batchSize || '500', 10), 2000)
@@ -54,9 +55,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
-export async function GET(request: NextRequest) {
+export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const { searchParams } = new URL(request.url)
     const process = searchParams.get('process') === 'true'
@@ -114,4 +115,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

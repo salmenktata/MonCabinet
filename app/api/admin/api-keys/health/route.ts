@@ -9,6 +9,7 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
 import { callGemini } from '@/lib/ai/gemini-client'
@@ -315,7 +316,7 @@ async function testOpenAIEmbeddings(): Promise<ProviderHealth> {
 /**
  * Endpoint principal
  */
-export async function GET(request: NextRequest) {
+export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     console.log('🔍 Health check des clés API démarré...')
 
@@ -372,4 +373,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

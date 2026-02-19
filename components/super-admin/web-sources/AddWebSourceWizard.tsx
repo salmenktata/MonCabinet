@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { getAllCategoryOptions } from '@/lib/web-scraper/category-labels'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
@@ -76,7 +76,6 @@ const FREQUENCIES = [
 export function AddWebSourceWizard() {
   const router = useRouter()
   const locale = useLocale() as 'fr' | 'ar'
-  const { toast } = useToast()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [gdriveTestLoading, setGdriveTestLoading] = useState(false)
@@ -142,11 +141,7 @@ export function AddWebSourceWizard() {
 
   const handleGDriveTest = async () => {
     if (!formData.gdriveFolderId) {
-      toast({
-        title: 'Erreur',
-        description: 'Veuillez saisir une URL ou un ID de dossier Google Drive',
-        variant: 'destructive',
-      })
+      toast.error('Veuillez saisir une URL ou un ID de dossier Google Drive')
       return
     }
 
@@ -170,31 +165,20 @@ export function AddWebSourceWizard() {
           success: true,
           fileCount: data.fileCount,
         })
-        toast({
-          title: 'Connexion réussie',
-          description: `${data.fileCount} fichier(s) découvert(s)`,
-        })
+        toast.success(`Connexion réussie — ${data.fileCount} fichier(s) découvert(s)`)
       } else {
         setGdriveTestResult({
           success: false,
           error: data.error,
         })
-        toast({
-          title: 'Erreur de connexion',
-          description: data.error,
-          variant: 'destructive',
-        })
+        toast.error(`Erreur de connexion — ${data.error}`)
       }
     } catch (error) {
       setGdriveTestResult({
         success: false,
         error: 'Erreur réseau',
       })
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de tester la connexion',
-        variant: 'destructive',
-      })
+      toast.error('Impossible de tester la connexion')
     } finally {
       setGdriveTestLoading(false)
     }
@@ -347,24 +331,13 @@ export function AddWebSourceWizard() {
       console.log('[DEBUG Client] Réponse serveur:', data)
 
       if (!res.ok) {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Erreur création source',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Erreur création source')
       } else {
-        toast({
-          title: 'Source créée',
-          description: 'La source a été ajoutée avec succès',
-        })
+        toast.success('Source créée — La source a été ajoutée avec succès')
         router.push(`/super-admin/web-sources/${data.source.id}`)
       }
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de la création',
-        variant: 'destructive',
-      })
+      toast.error('Erreur lors de la création')
     } finally {
       setLoading(false)
     }

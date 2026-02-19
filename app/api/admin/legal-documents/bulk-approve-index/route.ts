@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { db } from '@/lib/db/postgres'
 import { indexLegalDocument } from '@/lib/web-scraper/web-indexer-service'
 import { safeParseInt } from '@/lib/utils/safe-number'
@@ -27,13 +28,8 @@ interface DocumentResult {
  * Headers:
  * - X-Cron-Secret: Secret cron pour authentification
  */
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
-    const cronSecret = request.headers.get('X-Cron-Secret')
-    if (cronSecret !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const dryRun = request.nextUrl.searchParams.get('dry-run') === 'true'
     const startTime = Date.now()
 
@@ -262,4 +258,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

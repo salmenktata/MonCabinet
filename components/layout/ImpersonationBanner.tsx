@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { stopImpersonationAction } from '@/app/actions/super-admin/impersonation'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 interface ImpersonationStatus {
@@ -17,7 +17,7 @@ export function ImpersonationBanner() {
   const [status, setStatus] = useState<ImpersonationStatus | null>(null)
   const [stopping, setStopping] = useState(false)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const { toast } = useToast()
+
 
   useEffect(() => {
     fetch('/api/auth/impersonation-status')
@@ -44,25 +44,17 @@ export function ImpersonationBanner() {
       // Alerte si > 1h45 (6300 secondes = 105 minutes)
       // Toaster seulement aux minutes rondes pour éviter spam
       if (elapsed === 6300) {
-        toast({
-          title: '⚠️ Impersonnalisation longue',
-          description: 'Session active depuis plus de 1h45. Arrêt automatique dans 15 minutes.',
-          variant: 'destructive',
-        })
+        toast.error('Impersonnalisation longue \u2014 Session active depuis plus de 1h45. Arr\u00eat automatique dans 15 minutes.')
       }
 
       // Alerte finale à 1h58 (7080 secondes)
       if (elapsed === 7080) {
-        toast({
-          title: '🚨 Expiration imminente',
-          description: 'Arrêt automatique dans 2 minutes !',
-          variant: 'destructive',
-        })
+        toast.error('Expiration imminente \u2014 Arr\u00eat automatique dans 2 minutes !')
       }
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [status, toast])
+  }, [status])
 
   if (!status?.isImpersonating) return null
 
@@ -74,11 +66,7 @@ export function ImpersonationBanner() {
         // Forcer un rechargement complet pour appliquer les cookies restaurés
         window.location.replace('/super-admin/users')
       } else {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive',
-        })
+        toast.error(result.error)
       }
     } finally {
       setStopping(false)

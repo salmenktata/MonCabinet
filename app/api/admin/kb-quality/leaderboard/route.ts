@@ -7,12 +7,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 // =============================================================================
 // GET - Leaderboard des validateurs
 // =============================================================================
 
-export async function GET(request: NextRequest) {
+export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '10', 10)
@@ -96,4 +97,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { db } from '@/lib/db/postgres'
 import { getErrorMessage } from '@/lib/utils/error-utils'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * GET /api/admin/monitor-openai
@@ -15,19 +16,12 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
  * - Alertes progressives (80%, 90%, 95%)
  * - Historique usage par jour (7 derniers jours)
  *
- * Headers:
- * - X-Cron-Secret: Secret cron pour authentification
+ * Auth: session super_admin OU CRON_SECRET
  *
  * @returns Rapport de monitoring complet
  */
-export async function GET(request: NextRequest) {
+export const GET = withAdminApiAuth(async (_request: NextRequest, _ctx, _session) => {
   try {
-    // Vérifier le secret cron
-    const cronSecret = request.headers.get('X-Cron-Secret')
-    if (cronSecret !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     console.log('[Monitor OpenAI] Démarrage vérification...')
 
     // Configuration
@@ -46,7 +40,7 @@ export async function GET(request: NextRequest) {
         max_tokens: 5,
       })
       openaiStatus = 'accessible'
-      console.log(`[Monitor OpenAI] ✅ OpenAI accessible (${testResponse.model})`)
+      console.log(`[Monitor OpenAI] OpenAI accessible (${testResponse.model})`)
     } catch (error) {
       openaiStatus = 'error'
       testError = getErrorMessage(error)
@@ -217,4 +211,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

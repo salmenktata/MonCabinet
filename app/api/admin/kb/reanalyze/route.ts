@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const body = await request.json()
     const { documentId } = body
@@ -29,4 +30,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

@@ -17,7 +17,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { restoreKnowledgeDocumentVersionAction } from '@/app/actions/knowledge-base'
 import { useRouter } from 'next/navigation'
 
@@ -56,7 +56,6 @@ export function VersionHistory({
   onVersionRestored,
 }: VersionHistoryProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [selectedVersion, setSelectedVersion] = useState<Version | null>(null)
   const [restoreReason, setRestoreReason] = useState('')
@@ -74,16 +73,9 @@ export function VersionHistory({
       )
 
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive',
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Version restaurée',
-          description: `Le document a été restauré à la version ${selectedVersion.version}.`,
-        })
+        toast.success(`Version restaurée — Le document a été restauré à la version ${selectedVersion.version}.`)
         setRestoreDialogOpen(false)
         setSelectedVersion(null)
         setRestoreReason('')
@@ -91,11 +83,7 @@ export function VersionHistory({
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive',
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setLoading(false)
     }

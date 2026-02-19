@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface Suggestion {
   id: string
@@ -66,7 +66,6 @@ const TYPE_LABELS: Record<string, string> = {
 
 export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestionsProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false)
   const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null)
   const [action, setAction] = useState<'approve' | 'reject' | 'merge'>('approve')
@@ -98,14 +97,13 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
         throw new Error(data.error || 'Erreur lors du traitement')
       }
 
-      toast({
-        title: 'Succès',
-        description: action === 'approve'
+      toast.success(
+        action === 'approve'
           ? 'Suggestion approuvée et élément créé'
           : action === 'reject'
           ? 'Suggestion rejetée'
-          : 'Suggestion fusionnée',
-      })
+          : 'Suggestion fusionnée'
+      )
 
       setIsActionDialogOpen(false)
       setSelectedSuggestion(null)
@@ -114,11 +112,7 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
       setParentCode('')
       router.refresh()
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors du traitement',
-        variant: 'destructive',
-      })
+      toast.error(error instanceof Error ? error.message : 'Erreur lors du traitement')
     } finally {
       setIsLoading(false)
     }

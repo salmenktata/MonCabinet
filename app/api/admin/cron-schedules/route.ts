@@ -7,8 +7,9 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
-export async function GET(req: NextRequest) {
+export const GET = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
     // 1. Récupérer via vue dashboard
     const result = await db.query(`
@@ -47,4 +48,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

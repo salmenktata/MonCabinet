@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { markAllNotificationsReadAction } from '@/app/actions/super-admin/notifications'
 
 interface NotificationActionsProps {
@@ -14,7 +14,6 @@ interface NotificationActionsProps {
 
 export function NotificationActions({ unreadCount, adminId }: NotificationActionsProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
 
   const handleMarkAllRead = async () => {
@@ -22,24 +21,13 @@ export function NotificationActions({ unreadCount, adminId }: NotificationAction
     try {
       const result = await markAllNotificationsReadAction()
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Notifications lues',
-          description: `${result.count} notifications marquées comme lues`
-        })
+        toast.success(`Notifications lues — ${result.count} notifications marquées comme lues`)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive'
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setLoading(false)
     }

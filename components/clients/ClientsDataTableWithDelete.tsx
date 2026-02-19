@@ -234,7 +234,7 @@ export function ClientsDataTableWithDelete({
         pageSizeOptions={[10, 25, 50, 100]}
         emptyMessage="Aucun client trouvé"
         onRowClick={(client) => {
-          window.location.href = `/clients/${client.id}`
+          router.push(`/clients/${client.id}`)
         }}
         getRowId={(client) => client.id}
       />

@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { FeatureErrorBoundary } from '@/components/providers/FeatureErrorBoundary'
 import { CreateDossierFromChatModal } from '@/components/chat/CreateDossierFromChatModal'
 import {
@@ -39,7 +39,6 @@ interface ChatPageProps {
 export function ChatPage({ userId }: ChatPageProps) {
   const t = useTranslations('assistantIA')
   const router = useRouter()
-  const { toast } = useToast()
 
   // State (réduit grâce à React Query)
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
@@ -73,27 +72,16 @@ export function ChatPage({ userId }: ChatPageProps) {
       }
     },
     onError: (error) => {
-      toast({
-        title: t('error'),
-        description: error.message || t('errorSendingMessage'),
-        variant: 'destructive',
-      })
+      toast.error(error.message || t('errorSendingMessage'))
     },
   })
 
   const { mutate: deleteConversation } = useDeleteConversation({
     onSuccess: () => {
-      toast({
-        title: t('success'),
-        description: t('conversationDeleted'),
-      })
+      toast.success(t('conversationDeleted'))
     },
     onError: (error) => {
-      toast({
-        title: t('error'),
-        description: t('errorDeletingConversation'),
-        variant: 'destructive',
-      })
+      toast.error(t('errorDeletingConversation'))
     },
   })
 
@@ -164,11 +152,7 @@ export function ChatPage({ userId }: ChatPageProps) {
     if (messages.length > 0 && selectedConversationId) {
       setShowCreateDossier(true)
     } else {
-      toast({
-        title: t('error'),
-        description: 'Aucune conversation sélectionnée',
-        variant: 'destructive',
-      })
+      toast.error('Aucune conversation sélectionnée')
     }
   }
 
@@ -285,10 +269,7 @@ export function ChatPage({ userId }: ChatPageProps) {
             conversations.find((c) => c.id === selectedConversationId)?.title ?? undefined
           }
           onDossierCreated={(dossierId) => {
-            toast({
-              title: t('success'),
-              description: 'Dossier créé avec succès',
-            })
+            toast.success('Dossier créé avec succès')
           }}
         />
       )}

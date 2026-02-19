@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 // =============================================================================
 // Types
@@ -35,7 +36,7 @@ interface ValidationPayload {
 // POST - Valider métadonnées
 // =============================================================================
 
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const payload: ValidationPayload = await request.json()
     const { documentId, userId, metadata, validated, comment } = payload
@@ -164,4 +165,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

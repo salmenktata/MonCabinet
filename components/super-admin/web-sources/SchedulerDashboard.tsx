@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface SchedulerStatus {
   config: {
@@ -43,7 +43,6 @@ const FREQUENCIES = [
 ]
 
 export function SchedulerDashboard() {
-  const { toast } = useToast()
   const [status, setStatus] = useState<SchedulerStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -74,15 +73,11 @@ export function SchedulerDashboard() {
         setEndHour(c.scheduleEndHour)
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de charger le statut du scheduler',
-        variant: 'destructive',
-      })
+      toast.error('Impossible de charger le statut du scheduler')
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [])
 
   useEffect(() => {
     fetchStatus()
@@ -109,14 +104,10 @@ export function SchedulerDashboard() {
         throw new Error(err.error)
       }
 
-      toast({ title: 'Configuration sauvegardée' })
+      toast.success('Configuration sauvegardée')
       fetchStatus()
     } catch (err) {
-      toast({
-        title: 'Erreur',
-        description: err instanceof Error ? err.message : 'Erreur sauvegarde',
-        variant: 'destructive',
-      })
+      toast.error(err instanceof Error ? err.message : 'Erreur sauvegarde')
     } finally {
       setSaving(false)
     }

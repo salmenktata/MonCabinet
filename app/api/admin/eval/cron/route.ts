@@ -2,7 +2,7 @@
  * API Route - Cron Évaluation RAG Hebdomadaire (V2)
  *
  * POST /api/admin/eval/cron
- * Authorization: Bearer ${CRON_SECRET}
+ * Auth: session super_admin OU CRON_SECRET
  *
  * V2: Utilise searchKnowledgeBaseHybrid() (vrai pipeline triple-embed)
  *     Stocke les nouvelles colonnes V2 (run_label, run_mode, avg_similarity, etc.)
@@ -24,19 +24,13 @@ import {
   computeFaithfulness,
 } from '@/lib/ai/rag-eval-metrics'
 import type { GoldEvalCase } from '@/lib/ai/rag-eval-types'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (_request: NextRequest, _ctx, _session) => {
   try {
-    // Auth via CRON_SECRET
-    const authHeader = request.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
-    if (!token || token !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-    }
-
     const startTime = Date.now()
 
     const goldPath = path.join(process.cwd(), 'data', 'gold-eval-dataset.json')
@@ -225,4 +219,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

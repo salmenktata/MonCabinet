@@ -22,7 +22,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   updateKnowledgeDocumentAction,
   updateKnowledgeDocumentContentAction,
@@ -53,7 +53,6 @@ interface KnowledgeBaseEditProps {
 
 export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
   const router = useRouter()
-  const { toast } = useToast()
 
   // État du formulaire
   const [title, setTitle] = useState(document.title)
@@ -88,24 +87,13 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
       })
 
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive',
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Modifications enregistrées',
-          description: 'Les métadonnées ont été mises à jour.',
-        })
+        toast.success('Modifications enregistrées — Les métadonnées ont été mises à jour.')
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive',
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setSavingMetadata(false)
     }
@@ -113,11 +101,7 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
 
   const handleSaveContent = async () => {
     if (!file && !text) {
-      toast({
-        title: 'Erreur',
-        description: 'Veuillez fournir un fichier ou du texte',
-        variant: 'destructive',
-      })
+      toast.error('Veuillez fournir un fichier ou du texte')
       return
     }
 
@@ -138,27 +122,16 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
       const result = await updateKnowledgeDocumentContentAction(document.id, formData)
 
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive',
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Contenu mis à jour',
-          description: `Version ${result.versionCreated} créée.${reindex ? ' Ré-indexation en cours.' : ''}`,
-        })
+        toast.success(`Contenu mis à jour — Version ${result.versionCreated} créée.${reindex ? ' Ré-indexation en cours.' : ''}`)
         setFile(null)
         setText('')
         setChangeReason('')
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive',
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setSavingContent(false)
     }

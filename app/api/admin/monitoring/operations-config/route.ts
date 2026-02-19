@@ -23,6 +23,7 @@
 
 import { NextResponse } from 'next/server'
 import { AI_OPERATIONS_CONFIG, type OperationName } from '@/lib/ai/operations-config'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 // Labels FR pour chaque opération
 const OPERATION_LABELS: Record<OperationName, string> = {
@@ -53,7 +54,7 @@ const COST_ESTIMATES: Record<OperationName, string> = {
 // Tous les providers connus
 const ALL_KNOWN_PROVIDERS = ['gemini', 'openai', 'groq', 'ollama', 'deepseek', 'anthropic'] as const
 
-export async function GET() {
+export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
   const env = process.env.NODE_ENV || 'development'
 
   // Construire la liste des opérations
@@ -100,4 +101,4 @@ export async function GET() {
     env,
     generatedAt: new Date().toISOString(),
   })
-}
+})

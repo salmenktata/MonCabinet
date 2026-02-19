@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { db } from '@/lib/db/postgres'
 import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * POST /api/admin/kb/reanalyze-all
@@ -9,7 +10,7 @@ import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
  * Lance une ré-analyse complète de tous les documents KB avec les nouveaux prompts
  * Option pour mode dry-run ou exécution réelle
  */
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const body = await request.json()
     const batchSize = parseInt(body.batchSize || '20', 10)
@@ -119,14 +120,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * GET /api/admin/kb/reanalyze-all
  *
  * Retourne les statistiques de ré-analyse
  */
-export async function GET() {
+export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
   try {
     const stats = await db.query(`
       SELECT
@@ -167,4 +168,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
+})

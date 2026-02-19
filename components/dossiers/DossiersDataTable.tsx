@@ -296,7 +296,7 @@ export function DossiersDataTable({
         pageSizeOptions={[10, 25, 50, 100]}
         emptyMessage="Aucun dossier trouvé"
         onRowClick={(dossier) => {
-          window.location.href = `/dossiers/${dossier.id}`
+          router.push(`/dossiers/${dossier.id}`)
         }}
         getRowId={(dossier) => dossier.id}
       />

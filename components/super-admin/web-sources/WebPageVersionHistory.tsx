@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface PageVersion {
   id: string
@@ -45,7 +45,6 @@ const CHANGE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
 }
 
 export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistoryProps) {
-  const { toast } = useToast()
   const [versions, setVersions] = useState<PageVersion[]>([])
   const [loading, setLoading] = useState(true)
   const [restoringId, setRestoringId] = useState<string | null>(null)
@@ -65,15 +64,11 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
       const data = await response.json()
       setVersions(data.versions || data || [])
     } catch (err) {
-      toast({
-        title: 'Erreur',
-        description: err instanceof Error ? err.message : 'Impossible de charger les versions.',
-        variant: 'destructive',
-      })
+      toast.error(err instanceof Error ? err.message : 'Impossible de charger les versions.')
     } finally {
       setLoading(false)
     }
-  }, [sourceId, pageId, toast])
+  }, [sourceId, pageId])
 
   useEffect(() => {
     fetchVersions()
@@ -97,19 +92,12 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
         throw new Error(errData.error || `Erreur ${response.status}`)
       }
 
-      toast({
-        title: 'Version restaurée',
-        description: `La page a été restaurée à la version ${versionNumber}.`,
-      })
+      toast.success(`Version restaurée — La page a été restaurée à la version ${versionNumber}.`)
 
       // Refresh version list
       await fetchVersions()
     } catch (err) {
-      toast({
-        title: 'Erreur',
-        description: err instanceof Error ? err.message : 'Impossible de restaurer la version.',
-        variant: 'destructive',
-      })
+      toast.error(err instanceof Error ? err.message : 'Impossible de restaurer la version.')
     } finally {
       setRestoringId(null)
     }

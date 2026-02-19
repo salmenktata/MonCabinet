@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 import { SourcesPanel } from '@/components/assistant-ia/SourcesPanel'
 import { MarkdownMessage } from '@/components/assistant-ia/MarkdownMessage'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { createDossierFromStructure } from '@/app/actions/create-dossier-from-structure'
 import type { ChatMessage, ChatSource } from '@/components/assistant-ia/ChatMessages'
 
@@ -56,7 +56,7 @@ function ChatMessageView({ message }: { message: ChatMessage }) {
 // Message dossier structuré
 function StructuredDossierMessage({ message }: { message: ChatMessage }) {
   const router = useRouter()
-  const { toast } = useToast()
+
   const t = useTranslations('qadhyaIA.enriched.structure')
   const [isCreating, setIsCreating] = useState(false)
 
@@ -83,24 +83,13 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
       const result = await createDossierFromStructure(structured)
 
       if (result.success && result.dossierId) {
-        toast({
-          title: t('success'),
-          description: t('dossierCreated'),
-        })
+        toast.success(`${t('success')} \u2014 ${t('dossierCreated')}`)
         router.push(`/dossiers/${result.dossierId}`)
       } else {
-        toast({
-          title: t('error'),
-          description: result.error || t('createError'),
-          variant: 'destructive',
-        })
+        toast.error(result.error || t('createError'))
       }
     } catch (error) {
-      toast({
-        title: t('error'),
-        description: t('createError'),
-        variant: 'destructive',
-      })
+      toast.error(t('createError'))
     } finally {
       setIsCreating(false)
     }

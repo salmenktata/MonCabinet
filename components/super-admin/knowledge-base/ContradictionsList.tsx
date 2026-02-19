@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface Contradiction {
   id: string
@@ -36,7 +36,6 @@ const SEVERITY_CONFIG = {
 
 export function ContradictionsList({ relations, currentDocumentId }: ContradictionsListProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
 
   const contradictions = relations.filter(r => r.relationType === 'contradiction')
@@ -51,10 +50,10 @@ export function ContradictionsList({ relations, currentDocumentId }: Contradicti
         body: JSON.stringify({ status }),
       })
       if (!res.ok) throw new Error('Erreur')
-      toast({ title: 'Statut mis à jour' })
+      toast.success('Statut mis à jour')
       router.refresh()
     } catch {
-      toast({ title: 'Erreur', variant: 'destructive' })
+      toast.error('Erreur')
     } finally {
       setLoading(null)
     }

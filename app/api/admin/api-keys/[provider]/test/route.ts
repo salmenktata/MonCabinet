@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApiKeyData } from '@/lib/api-keys/api-keys-service'
 import { testProviderConnection } from '@/lib/api-keys/test-connection'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * POST /api/admin/api-keys/[provider]/test
  * Tester la connexion à un provider
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ provider: string }> }
-) {
+export const POST = withAdminApiAuth(async (request, ctx, _session) => {
   try {
-    const { provider } = await params
+    const { provider } = await ctx.params!
     const providerLower = provider.toLowerCase()
 
     // Récupérer la clé API depuis la base de données
@@ -61,4 +59,4 @@ export async function POST(
       { status: 500 }
     )
   }
-}
+})

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   Select,
   SelectContent,
@@ -57,7 +57,6 @@ function fileNameToTitle(name: string): string {
 }
 
 export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadProps) {
-  const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [files, setFiles] = useState<FileEntry[]>([])
@@ -87,17 +86,13 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
     })
 
     if (rejected.length > 0) {
-      toast({
-        title: 'Fichiers ignorés',
-        description: `${rejected.length} fichier(s) non supporté(s): ${rejected.slice(0, 3).join(', ')}${rejected.length > 3 ? '...' : ''}`,
-        variant: 'destructive',
-      })
+      toast.error(`Fichiers ignorés — ${rejected.length} fichier(s) non supporté(s): ${rejected.slice(0, 3).join(', ')}${rejected.length > 3 ? '...' : ''}`)
     }
 
     if (accepted.length > 0) {
       setFiles((prev) => [...prev, ...accepted])
     }
-  }, [toast])
+  }, [])
 
   const removeFile = useCallback((id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id))
@@ -146,11 +141,7 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
 
   const handleSubmit = async () => {
     if (files.length === 0) {
-      toast({
-        title: 'Aucun fichier',
-        description: 'Veuillez sélectionner au moins un fichier.',
-        variant: 'destructive',
-      })
+      toast.error('Veuillez sélectionner au moins un fichier.')
       return
     }
 
@@ -187,20 +178,13 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
 
       const result = await response.json()
 
-      toast({
-        title: 'Import lancé',
-        description: `${files.length} fichier(s) envoyé(s) pour traitement.${result.batchId ? ` Lot: ${result.batchId}` : ''}`,
-      })
+      toast.success(`Import lancé — ${files.length} fichier(s) envoyé(s) pour traitement.${result.batchId ? ` Lot: ${result.batchId}` : ''}`)
 
       setFiles([])
       setProgress(100)
       onComplete?.()
     } catch (err) {
-      toast({
-        title: 'Erreur',
-        description: err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'upload.',
-        variant: 'destructive',
-      })
+      toast.error(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'upload.')
     } finally {
       setUploading(false)
     }

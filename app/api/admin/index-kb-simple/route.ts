@@ -8,11 +8,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { indexWebPage } from '@/lib/web-scraper/web-indexer-service'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes
 
-export async function POST(req: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     // Désactiver le pipeline intelligent
     process.env.ENABLE_INTELLIGENT_PIPELINE = 'false'
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     console.log(`📁 Source: ${sourceName}`)
 
     // Récupérer le nombre de fichiers à indexer depuis le body (optionnel)
-    const body = await req.json().catch(() => ({}))
+    const body = await request.json().catch(() => ({}))
     const batchSize = body.batchSize || 10 // Par défaut 10 fichiers à la fois
 
     // Compter les pages à indexer
@@ -135,4 +136,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

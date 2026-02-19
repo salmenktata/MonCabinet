@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db/postgres'
 import { sendEmail } from '@/lib/email/brevo-client'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * POST /api/admin/alerts/check-impersonations
  * Vérifie les impersonnalisations actives et alerte si durée > 1h
- * Protégé par X-Cron-Secret
+ * Auth: session super_admin OU CRON_SECRET
  */
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (_request: NextRequest, _ctx, _session) => {
   try {
-    // Vérification authentification cron
-    const cronSecret = request.headers.get('x-cron-secret')
-    if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
-      return NextResponse.json(
-        { error: 'Accès refusé - CRON_SECRET invalide' },
-        { status: 401 }
-      )
-    }
-
     const ONE_HOUR = 60 * 60 * 1000 // 1 heure en millisecondes
 
     // Récupérer toutes les sessions actives > 1h
@@ -92,7 +84,7 @@ export async function POST(request: NextRequest) {
       <body style="font-family: system-ui, -apple-system, sans-serif; background-color: #0f172a; color: #e2e8f0; padding: 20px;">
         <div style="max-width: 800px; margin: 0 auto; background-color: #1e293b; border-radius: 8px; padding: 24px; border: 1px solid #334155;">
           <h1 style="color: #f97316; margin-top: 0; display: flex; align-items: center; gap: 8px;">
-            ⚠️ Impersonnalisations Actives Longues
+            Impersonnalisations Actives Longues
           </h1>
 
           <p style="color: #cbd5e1; font-size: 16px;">
@@ -116,7 +108,7 @@ export async function POST(request: NextRequest) {
 
           <div style="background-color: #422006; border: 1px solid #ea580c; border-radius: 6px; padding: 16px; margin-top: 24px;">
             <p style="margin: 0; color: #fed7aa;">
-              <strong>⚠️ Rappel :</strong> Les impersonnalisations ont une durée maximale de 2 heures et sont automatiquement arrêtées à l'expiration.
+              <strong>Rappel :</strong> Les impersonnalisations ont une durée maximale de 2 heures et sont automatiquement arrêtées à l'expiration.
             </p>
           </div>
 
@@ -139,7 +131,7 @@ export async function POST(request: NextRequest) {
     for (const email of adminEmails) {
       await sendEmail({
         to: email,
-        subject: `🚨 ${result.rows.length} Impersonnalisation${result.rows.length > 1 ? 's' : ''} Active${result.rows.length > 1 ? 's' : ''} Longue${result.rows.length > 1 ? 's' : ''}`,
+        subject: `${result.rows.length} Impersonnalisation${result.rows.length > 1 ? 's' : ''} Active${result.rows.length > 1 ? 's' : ''} Longue${result.rows.length > 1 ? 's' : ''}`,
         htmlContent: htmlContent,
       })
     }
@@ -157,4 +149,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

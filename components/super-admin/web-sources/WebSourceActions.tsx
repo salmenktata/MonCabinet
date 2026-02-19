@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { SplitButton } from '@/components/ui/split-button'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +38,7 @@ interface WebSourceActionsProps {
 
 export function WebSourceActions({ source, readOnly = false }: WebSourceActionsProps) {
   const router = useRouter()
-  const { toast } = useToast()
+
   const [loading, setLoading] = useState<string | null>(null)
   const [showDelete, setShowDelete] = useState(false)
   const [showOrganize, setShowOrganize] = useState(false)
@@ -60,24 +60,13 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const data = await res.json()
 
       if (!res.ok) {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Erreur lors du crawl',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Erreur lors du crawl')
       } else {
-        toast({
-          title: 'Crawl terminé',
-          description: `${data.crawl?.pagesProcessed || 0} pages traitées, ${data.crawl?.pagesNew || 0} nouvelles`,
-        })
+        toast.success(`Crawl termin\u00e9 \u2014 ${data.crawl?.pagesProcessed || 0} pages trait\u00e9es, ${data.crawl?.pagesNew || 0} nouvelles`)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors du crawl',
-        variant: 'destructive',
-      })
+      toast.error('Erreur lors du crawl')
     } finally {
       setLoading(null)
     }
@@ -94,24 +83,13 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const data = await res.json()
 
       if (!res.ok) {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Erreur lors de l\'indexation',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Erreur lors de l\'indexation')
       } else {
-        toast({
-          title: 'Indexation terminée',
-          description: `${data.succeeded}/${data.processed} pages indexées${data.remaining > 0 ? ` (${data.remaining} restantes)` : ''}`,
-        })
+        toast.success(`Indexation termin\u00e9e \u2014 ${data.succeeded}/${data.processed} pages index\u00e9es${data.remaining > 0 ? ` (${data.remaining} restantes)` : ''}`)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de l\'indexation',
-        variant: 'destructive',
-      })
+      toast.error('Erreur lors de l\'indexation')
     } finally {
       setLoading(null)
     }
@@ -128,24 +106,13 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const data = await res.json()
 
       if (!res.ok) {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Erreur lors de l\'indexation des fichiers',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Erreur lors de l\'indexation des fichiers')
       } else {
-        toast({
-          title: 'Fichiers traités',
-          description: `${data.indexed} indexés, ${data.downloaded} téléchargés${data.failed > 0 ? `, ${data.failed} échoués` : ''}`,
-        })
+        toast.success(`Fichiers trait\u00e9s \u2014 ${data.indexed} index\u00e9s, ${data.downloaded} t\u00e9l\u00e9charg\u00e9s${data.failed > 0 ? `, ${data.failed} \u00e9chou\u00e9s` : ''}`)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de l\'indexation des fichiers',
-        variant: 'destructive',
-      })
+      toast.error('Erreur lors de l\'indexation des fichiers')
     } finally {
       setLoading(null)
     }
@@ -162,23 +129,13 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
 
       if (!res.ok) {
         const data = await res.json()
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Erreur lors de la mise à jour',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Erreur lors de la mise \u00e0 jour')
       } else {
-        toast({
-          title: source.is_active ? 'Source désactivée' : 'Source activée',
-        })
+        toast.success(source.is_active ? 'Source d\u00e9sactiv\u00e9e' : 'Source activ\u00e9e')
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de la mise à jour',
-        variant: 'destructive',
-      })
+      toast.error('Erreur lors de la mise \u00e0 jour')
     } finally {
       setLoading(null)
     }
@@ -198,12 +155,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
         const errorMessage = data.message || data.error || 'Erreur lors de la suppression'
         const details = data.details?.length > 0 ? data.details.join(' | ') : undefined
 
-        toast({
-          title: 'Erreur de suppression',
-          description: details ? `${errorMessage}\n\n${details}` : errorMessage,
-          variant: 'destructive',
-          duration: 10000, // Afficher plus longtemps pour lire l'erreur
-        })
+        toast.error(details ? `${errorMessage} \u2014 ${details}` : errorMessage, { duration: 10000 })
       } else {
         // Succès
         const stats = data.stats
@@ -211,19 +163,12 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
           ? `${stats.webPages} pages, ${stats.knowledgeBaseDocs} docs KB supprimés`
           : undefined
 
-        toast({
-          title: 'Source supprimée',
-          description: statsMessage,
-        })
+        toast.success(statsMessage ? `Source supprim\u00e9e \u2014 ${statsMessage}` : 'Source supprim\u00e9e')
 
         router.push('/super-admin/web-sources')
       }
     } catch (err) {
-      toast({
-        title: 'Erreur réseau',
-        description: err instanceof Error ? err.message : 'Erreur lors de la suppression',
-        variant: 'destructive',
-      })
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression')
     } finally {
       setLoading(null)
       setShowDelete(false)
@@ -237,11 +182,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const data = await res.json()
 
       if (!res.ok) {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Erreur lors de la récupération des stats',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Erreur lors de la r\u00e9cup\u00e9ration des stats')
         return
       }
 
@@ -259,11 +200,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       })
       setShowOrganize(true)
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de la récupération des stats',
-        variant: 'destructive',
-      })
+      toast.error('Erreur lors de la r\u00e9cup\u00e9ration des stats')
     } finally {
       setLoading(null)
     }
@@ -281,25 +218,14 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const data = await res.json()
 
       if (!res.ok) {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Erreur lors de l\'organisation',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Erreur lors de l\'organisation')
       } else {
-        toast({
-          title: 'Organisation lancée',
-          description: `Extraction et classification en cours... ${data.message || ''}`,
-        })
+        toast.success(`Organisation lanc\u00e9e \u2014 Extraction et classification en cours... ${data.message || ''}`)
         setShowOrganize(false)
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de l\'organisation',
-        variant: 'destructive',
-      })
+      toast.error('Erreur lors de l\'organisation')
     } finally {
       setLoading(null)
     }

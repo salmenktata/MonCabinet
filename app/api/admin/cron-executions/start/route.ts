@@ -2,27 +2,17 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
 /**
  * API: Démarrer une exécution de cron
  * POST /api/admin/cron-executions/start
- * Auth: X-Cron-Secret header
+ * Auth: session super_admin OU CRON_SECRET
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { redis } from '@/lib/cache/redis'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
-const CRON_SECRET = process.env.CRON_SECRET
-
-export async function POST(req: NextRequest) {
+export const POST = withAdminApiAuth(async (req: NextRequest, _ctx, _session) => {
   try {
-    // 1. Vérification auth
-    const authHeader = req.headers.get('x-cron-secret')
-    if (!authHeader || authHeader !== CRON_SECRET) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // 2. Parse body
+    // Parse body
     const body = await req.json()
     const { cronName, triggerType = 'scheduled', metadata = {} } = body
 
@@ -33,7 +23,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 3. Créer record d'exécution
+    // Créer record d'exécution
     const result = await db.query(
       `INSERT INTO cron_executions (cron_name, status, triggered_by, metadata, started_at)
        VALUES ($1, $2, $3, $4, NOW())
@@ -53,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Cron Start] ${cronName} - execution ${execution.id}`)
 
-    // 4. Publier événement Redis pour SSE
+    // Publier événement Redis pour SSE
     try {
       const event = {
         type: 'started',
@@ -81,4 +71,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

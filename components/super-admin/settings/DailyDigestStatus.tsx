@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface DailyDigestStatusProps {
   brevoConfigured: boolean
@@ -19,8 +19,6 @@ export function DailyDigestStatus({ brevoConfigured, cronConfigured }: DailyDige
     emailsFailed: number
     duration: string
   } | null>(null)
-  const { toast } = useToast()
-
   const isReady = brevoConfigured && cronConfigured
 
   const handleManualRun = async () => {
@@ -38,23 +36,12 @@ export function DailyDigestStatus({ brevoConfigured, cronConfigured }: DailyDige
           emailsFailed: data.stats?.emailsFailed || 0,
           duration: data.stats?.duration || '0ms',
         })
-        toast({
-          title: 'Digest envoyé',
-          description: `${data.stats?.emailsSent || 0} emails envoyés avec succès.`,
-        })
+        toast.success(`Digest envoyé — ${data.stats?.emailsSent || 0} emails envoyés avec succès.`)
       } else {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Échec de l\'envoi',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Échec de l\'envoi')
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur de connexion au serveur',
-        variant: 'destructive',
-      })
+      toast.error('Erreur de connexion au serveur')
     } finally {
       setLoading(false)
     }

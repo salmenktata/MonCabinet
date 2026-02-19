@@ -3,7 +3,6 @@ import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { GlobalKeyboardShortcuts } from '@/components/ui/KeyboardShortcuts'
-import { Toaster } from '@/components/ui/toaster'
 import { GlobalErrorBoundary } from '@/components/providers/GlobalErrorBoundary'
 import { ToastManager, LoadingOverlay } from '@/components/feedback'
 
@@ -43,7 +42,6 @@ export default async function DashboardLayout({
       </AppLayout>
       </div>
       <GlobalKeyboardShortcuts />
-      <Toaster />
       <ToastManager />
       <LoadingOverlay />
     </GlobalErrorBoundary>

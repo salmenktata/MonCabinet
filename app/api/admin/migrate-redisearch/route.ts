@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { createClient } from 'redis'
 import { db } from '@/lib/db/postgres'
 
-// Protection CRON_SECRET
-const CRON_SECRET = process.env.CRON_SECRET
 const REDIS_URL = process.env.REDIS_URL || 'redis://redis:6379'
 const INDEX_NAME = 'idx:kb_chunks'
 const KEY_PREFIX = 'kb:chunk:'
@@ -18,17 +17,8 @@ interface KBChunk {
   embedding: number[] | null
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
-    // Vérifier autorisation
-    const authHeader = request.headers.get('authorization')
-    if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 }
-      )
-    }
-
     // Paramètres
     const { forceRecreate = false, dryRun = false } = await request.json().catch(() => ({}))
 
@@ -216,4 +206,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

@@ -1,28 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkAndSendAlerts } from '@/lib/alerts/email-alert-service'
 import { getErrorMessage } from '@/lib/utils/error-utils'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * GET /api/admin/alerts/check
  *
  * Vérifie les alertes KB et envoie emails si nécessaire
  *
- * Headers:
- * - X-Cron-Secret: Secret cron pour authentification
+ * Auth: session super_admin OU CRON_SECRET
  *
  * @returns Rapport alertes (détectées, envoyées)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAdminApiAuth(async (_request: NextRequest, _ctx, _session) => {
   try {
-    // Vérifier le secret cron
-    const cronSecret = request.headers.get('X-Cron-Secret')
-    if (cronSecret !== process.env.CRON_SECRET) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     console.log('[Alerts API] Démarrage vérification alertes...')
 
     const result = await checkAndSendAlerts()
@@ -45,4 +36,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

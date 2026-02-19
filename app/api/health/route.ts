@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server'
 import { healthCheck as dbHealthCheck, db } from '@/lib/db/postgres'
 import { healthCheck as storageHealthCheck } from '@/lib/storage/minio'
 import { isSemanticSearchEnabled } from '@/lib/ai/config'
+import { getRedisClient } from '@/lib/cache/redis'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,11 +58,17 @@ export async function GET() {
   try {
     const dbHealthy = await checkWithRetry(dbHealthCheck, 'PostgreSQL')
     const storageHealthy = await checkWithRetry(storageHealthCheck, 'MinIO')
+    const redisHealthy = await checkWithRetry(async () => {
+      const client = await getRedisClient()
+      if (!client) return false
+      const pong = await client.ping()
+      return pong === 'PONG'
+    }, 'Redis')
     const duration = Date.now() - startTime
 
     // Grace period: Retourner 200 même si services pas encore ready
     if (containerAge < GRACE_PERIOD_SECONDS) {
-      if (!dbHealthy || !storageHealthy) {
+      if (!dbHealthy || !storageHealthy || !redisHealthy) {
         console.log(
           `⏳ Container initializing (${Math.floor(containerAge)}s / ${GRACE_PERIOD_SECONDS}s grace period)`
         )
@@ -75,6 +82,7 @@ export async function GET() {
             services: {
               database: dbHealthy ? 'healthy' : 'initializing',
               storage: storageHealthy ? 'healthy' : 'initializing',
+              redis: redisHealthy ? 'healthy' : 'initializing',
               api: 'healthy',
             },
             message: 'Container initializing, services starting...',
@@ -86,7 +94,7 @@ export async function GET() {
     }
 
     // Après grace period : normal behavior
-    if (dbHealthy && storageHealthy) {
+    if (dbHealthy && storageHealthy && redisHealthy) {
       // Récupérer statistiques RAG
       const ragEnabled = process.env.RAG_ENABLED === 'true'
       const semanticSearchEnabled = isSemanticSearchEnabled()
@@ -117,6 +125,7 @@ export async function GET() {
           services: {
             database: 'healthy',
             storage: 'healthy',
+            redis: 'healthy',
             api: 'healthy',
           },
           // NOUVELLE SECTION RAG
@@ -146,6 +155,7 @@ export async function GET() {
         services: {
           database: dbHealthy ? 'healthy' : 'unhealthy',
           storage: storageHealthy ? 'healthy' : 'unhealthy',
+          redis: redisHealthy ? 'healthy' : 'unhealthy',
           api: 'healthy',
         },
         version: process.env.npm_package_version || '1.0.0',

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { db } from '@/lib/db/postgres'
 import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
 import { aiConfig } from '@/lib/ai/config'
@@ -19,15 +20,8 @@ import { aiConfig } from '@/lib/ai/config'
  *
  * Taux Gemini free tier : 1500 req/min → concurrency=5 très safe.
  */
-export async function POST(req: NextRequest) {
+export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
-    const authHeader = req.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
-
-    if (!token || token !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     if (!aiConfig.gemini.apiKey) {
       return NextResponse.json(
         { error: 'GOOGLE_API_KEY non configurée — Gemini embeddings indisponibles' },
@@ -181,21 +175,14 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })
 
 /**
  * GET /api/admin/reindex-kb-gemini
  * Statut de la réindexation Gemini
  */
-export async function GET(req: NextRequest) {
+export const GET = withAdminApiAuth(async (req, _ctx, _session) => {
   try {
-    const authHeader = req.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
-
-    if (!token || token !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const statsResult = await db.query(`
       SELECT
         COUNT(*) as total,
@@ -233,4 +220,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { allowCronSecret: true })

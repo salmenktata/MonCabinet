@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { chunkText } from '@/lib/ai/chunking-service'
 import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * POST /api/admin/kb/rechunk
@@ -17,7 +18,7 @@ import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddin
  *
  * @returns Rapport de re-chunking
  */
-export async function POST(request: NextRequest) {
+export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
     const body = await request.json()
     const documentId = body.documentId || null
@@ -260,4 +261,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

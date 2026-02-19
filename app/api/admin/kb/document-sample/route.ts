@@ -1,8 +1,9 @@
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
-export async function GET(request: NextRequest) {
+export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
   const searchParams = request.nextUrl.searchParams
   const scoreRange = searchParams.get('range') || 'low' // low, medium, high
 
@@ -76,4 +77,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

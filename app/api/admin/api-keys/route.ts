@@ -1,12 +1,13 @@
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { NextResponse } from 'next/server'
 import { listApiKeys } from '@/lib/api-keys/api-keys-service'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 /**
  * GET /api/admin/api-keys
  * Liste toutes les clés API (masquées) depuis la base de données
  */
-export async function GET() {
+export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
   try {
     const keys = await listApiKeys()
 
@@ -37,4 +38,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
+})

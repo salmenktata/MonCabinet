@@ -28,7 +28,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import { Loader2, ThumbsUp, ThumbsDown, ExternalLink } from 'lucide-react'
 import { LEGAL_CATEGORY_TRANSLATIONS, type LegalCategory } from '@/lib/categories/legal-categories'
 import { LEGAL_DOMAIN_TRANSLATIONS, DOCUMENT_NATURE_TRANSLATIONS, type LegalDomain, type DocumentNature } from '@/lib/web-scraper/types'
@@ -66,7 +66,6 @@ const PRIORITY_COLORS: Record<string, string> = {
 }
 
 export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModalProps) {
-  const { toast } = useToast()
   const queryClient = useQueryClient()
 
   const [correctedCategory, setCorrectedCategory] = useState<string>('')
@@ -104,32 +103,21 @@ export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModal
       return response.json()
     },
     onSuccess: (result: { hasGeneratedRule: boolean }) => {
-      toast({
-        title: 'Correction enregistrée',
-        description: result.hasGeneratedRule
-          ? '✨ Une règle de classification a été générée automatiquement !'
-          : 'La correction a été enregistrée avec succès',
-      })
+      toast.success(result.hasGeneratedRule
+          ? 'Correction enregistrée — Une règle de classification a été générée automatiquement !'
+          : 'Correction enregistrée — La correction a été enregistrée avec succès')
       queryClient.invalidateQueries({ queryKey: ['classification-queue'] })
       onComplete()
       onClose()
     },
     onError: (error: Error) => {
-      toast({
-        title: 'Erreur',
-        description: error.message,
-        variant: 'destructive',
-      })
+      toast.error(error.message)
     },
   })
 
   const handleSave = () => {
     if (!correctedCategory) {
-      toast({
-        title: 'Champ requis',
-        description: 'Veuillez sélectionner une catégorie',
-        variant: 'destructive',
-      })
+      toast.error('Champ requis — Veuillez sélectionner une catégorie')
       return
     }
 

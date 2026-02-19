@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import { ProviderTestButton } from './ProviderTestButton'
 import { cn } from '@/lib/utils'
 
@@ -36,7 +36,6 @@ export function EmailProvidersConfig() {
   const [resendApiKey, setResendApiKey] = useState('')
   const [showBrevoKey, setShowBrevoKey] = useState(false)
   const [showResendKey, setShowResendKey] = useState(false)
-  const { toast } = useToast()
 
   // Charger la configuration
   useEffect(() => {
@@ -52,18 +51,10 @@ export function EmailProvidersConfig() {
         setConfig(data.data)
         setMode(data.data.mode)
       } else {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Impossible de charger la configuration',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Impossible de charger la configuration')
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur de connexion au serveur',
-        variant: 'destructive',
-      })
+      toast.error('Erreur de connexion au serveur')
     } finally {
       setLoading(false)
     }
@@ -93,10 +84,7 @@ export function EmailProvidersConfig() {
       }
 
       if (Object.keys(body).length === 0) {
-        toast({
-          title: 'Info',
-          description: 'Aucune modification à enregistrer',
-        })
+        toast.success('Aucune modification à enregistrer')
         setSaving(false)
         return
       }
@@ -110,26 +98,15 @@ export function EmailProvidersConfig() {
       const data = await res.json()
 
       if (data.success) {
-        toast({
-          title: 'Succès',
-          description: data.message || 'Configuration enregistrée',
-        })
+        toast.success(data.message || 'Configuration enregistrée')
         setConfig(data.data)
         setBrevoApiKey('')
         setResendApiKey('')
       } else {
-        toast({
-          title: 'Erreur',
-          description: data.error || 'Échec de la sauvegarde',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Échec de la sauvegarde')
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Erreur de connexion au serveur',
-        variant: 'destructive',
-      })
+      toast.error('Erreur de connexion au serveur')
     } finally {
       setSaving(false)
     }

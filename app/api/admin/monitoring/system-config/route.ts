@@ -6,7 +6,7 @@
  * Vérifie la présence des variables d'environnement critiques,
  * importantes et signale les variables dépréciées.
  *
- * Auth: Protégée par middleware session super-admin (route /super-admin/*)
+ * Auth: session super_admin OU CRON_SECRET
  *
  * Réponse:
  * {
@@ -21,7 +21,8 @@
  * }
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
 // Variables OBLIGATOIRES — leur absence = erreur critique (rouge)
 const REQUIRED_VARS = [
@@ -55,10 +56,7 @@ const DEPRECATED_VARS: { name: string; replacedBy: string }[] = [
   { name: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', replacedBy: 'NEXTAUTH_SECRET' },
 ]
 
-export async function GET() {
-  // Auth: protégée par middleware session super-admin
-  // Les routes /api/admin/* sont appelées uniquement depuis /super-admin/* (session vérifiée)
-
+export const GET = withAdminApiAuth(async (_request: NextRequest, _ctx, _session) => {
   // Vérifier variables REQUIRED
   const missing = REQUIRED_VARS.filter((v) => !process.env[v])
   const present = REQUIRED_VARS.filter((v) => !!process.env[v])
@@ -102,4 +100,4 @@ export async function GET() {
     totalChecked: REQUIRED_VARS.length + IMPORTANT_VARS.length + DEPRECATED_VARS.length,
     checkedAt: new Date().toISOString(),
   })
-}
+}, { allowCronSecret: true })

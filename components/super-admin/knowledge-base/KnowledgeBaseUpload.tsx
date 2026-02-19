@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Icons } from '@/lib/icons'
-import { useToast } from '@/lib/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   Select,
   SelectContent,
@@ -36,7 +36,6 @@ import type { KnowledgeCategory } from '@/lib/knowledge-base/categories'
 
 export function KnowledgeBaseUpload() {
   const router = useRouter()
-  const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
@@ -74,16 +73,9 @@ export function KnowledgeBaseUpload() {
       const result = await uploadKnowledgeDocumentAction(formData)
 
       if (result.error) {
-        toast({
-          title: 'Erreur',
-          description: result.error,
-          variant: 'destructive'
-        })
+        toast.error(result.error)
       } else {
-        toast({
-          title: 'Document uploadé',
-          description: `Le document "${result.document?.title}" a été ajouté.`
-        })
+        toast.success(`Document uploadé — Le document "${result.document?.title}" a été ajouté.`)
         // Reset form
         setIsOpen(false)
         setFile(null)
@@ -94,11 +86,7 @@ export function KnowledgeBaseUpload() {
         router.refresh()
       }
     } catch {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive'
-      })
+      toast.error('Une erreur est survenue')
     } finally {
       setLoading(false)
     }
