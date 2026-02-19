@@ -546,10 +546,16 @@ export async function searchRelevantContext(
   const allSources: ChatSource[] = []
 
   // Recherche dans les documents du dossier ou de l'utilisateur
+  // Skip si userId n'est pas un UUID valide (ex: 'eval-system' dans les benchmarks)
+  const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
   let docSql: string
   let docParams: (string | number)[]
 
-  if (dossierId) {
+  if (!isValidUUID) {
+    // Skip document_embeddings search for non-UUID userIds (eval, system, etc.)
+    docSql = 'SELECT 1 WHERE false'
+    docParams = []
+  } else if (dossierId) {
     docSql = `
       SELECT
         de.document_id,
