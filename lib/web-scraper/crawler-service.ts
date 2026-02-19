@@ -270,6 +270,7 @@ export async function crawlSource(
 
   let consecutiveFailures = 0
 
+  try {
   // Boucle principale de crawl (par batch concurrent)
   while (state.queue.length > 0 && state.pagesProcessed < maxPages && !shutdownRequested) {
     // Collecter un batch de pages à traiter (jusqu'à effectiveConcurrency)
@@ -387,7 +388,8 @@ export async function crawlSource(
           }
         }
       } else {
-        // Échec — pagesFailed déjà incrémenté dans processPage, comptabiliser uniquement ici
+        // Échec final (après retries) — incrémenter ici pour éviter le double-comptage
+        state.pagesFailed++
         consecutiveFailures++
 
         if (result.error?.message.includes('BAN_DETECTED')) {
@@ -439,9 +441,11 @@ export async function crawlSource(
     }
   }
 
-  // Nettoyer les listeners
-  process.removeListener('SIGINT', onShutdown)
-  process.removeListener('SIGTERM', onShutdown)
+  } finally {
+    // Nettoyer les listeners (garanti même en cas d'exception)
+    process.removeListener('SIGINT', onShutdown)
+    process.removeListener('SIGTERM', onShutdown)
+  }
 
   // Mettre à jour le statut final
   if (state.status === 'running') {
@@ -551,7 +555,8 @@ async function processPage(
     if (existingPage) {
       await updatePageError(existingPage.id, scrapeResult.error || 'Erreur scraping')
     }
-    state.pagesFailed++
+    // NB: pagesFailed est incrémenté dans la boucle batch (pas ici)
+    // pour éviter le double-comptage lors des retries via withRetry
     throw new Error(scrapeResult.error || 'Erreur scraping')
   }
 

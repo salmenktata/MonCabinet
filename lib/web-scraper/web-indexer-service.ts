@@ -766,7 +766,7 @@ export async function getSourceIndexingStats(sourceId: string): Promise<{
     `SELECT
       COUNT(*) as total_pages,
       COUNT(*) FILTER (WHERE is_indexed = true) as indexed_pages,
-      COUNT(*) FILTER (WHERE status IN ('crawled', 'unchanged') AND is_indexed = false) as pending_pages,
+      COUNT(*) FILTER (WHERE status IN ('crawled', 'unchanged', 'indexed') AND is_indexed = false) as pending_pages,
       COUNT(*) FILTER (WHERE status = 'failed') as failed_pages,
       COALESCE(SUM(chunks_count), 0) as total_chunks
      FROM web_pages

@@ -584,6 +584,13 @@ export async function indexKnowledgeDocument(
 
     await client.query('COMMIT')
 
+    // Sync web_pages.chunks_count si la page est liée (évite le compteur stale)
+    await db.query(
+      `UPDATE web_pages SET chunks_count = $2, updated_at = NOW()
+       WHERE knowledge_base_id = $1 AND chunks_count IS DISTINCT FROM $2`,
+      [documentId, chunks.length]
+    ).catch((err) => console.error('[KB Index] Erreur sync chunks_count web_pages:', err))
+
     // Invalider le cache des documents similaires
     await onKnowledgeDocumentChange(documentId, 'index')
 
@@ -1466,6 +1473,7 @@ export async function updateKnowledgeDocumentContent(
   document?: KnowledgeBaseDocument
   versionCreated?: number
   error?: string
+  reindexFailed?: boolean
 }> {
   const { file, text, reindex = true, changeReason } = data
 
@@ -1544,11 +1552,17 @@ export async function updateKnowledgeDocumentContent(
   const doc = mapRowToKnowledgeBase(result.rows[0])
 
   // Ré-indexer si demandé
+  let reindexFailed = false
   if (reindex && isSemanticSearchEnabled()) {
     try {
-      await indexKnowledgeDocument(documentId)
+      const indexResult = await indexKnowledgeDocument(documentId)
+      if (!indexResult.success) {
+        console.error(`Échec ré-indexation document ${documentId}: ${indexResult.error}`)
+        reindexFailed = true
+      }
     } catch (error) {
       console.error(`Erreur ré-indexation document ${documentId}:`, error)
+      reindexFailed = true
     }
   }
 
@@ -1556,6 +1570,7 @@ export async function updateKnowledgeDocumentContent(
     success: true,
     document: await getKnowledgeDocument(documentId) || doc,
     versionCreated: doc.version,
+    reindexFailed,
   }
 }
 

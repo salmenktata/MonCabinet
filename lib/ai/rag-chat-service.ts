@@ -902,13 +902,35 @@ async function searchRelevantContextBilingual(
       : Promise.reject(new Error('Translation disabled')),
   ])
 
-  // Vérifier résultat recherche primaire
+  // Vérifier résultat recherche primaire — fallback KB search simple si timeout
   if (primaryResult.status === 'rejected') {
-    console.error(
-      '[RAG Bilingual] Erreur recherche primaire:',
-      primaryResult.reason instanceof Error ? primaryResult.reason.message : primaryResult.reason
-    )
-    return { sources: [], cacheHit: false } // Retourner vide en cas d'échec total
+    const errMsg = primaryResult.reason instanceof Error ? primaryResult.reason.message : String(primaryResult.reason)
+    console.error('[RAG Bilingual] Erreur recherche primaire:', errMsg)
+
+    // Fallback : recherche KB simple (sans router/expansion) pour éviter 0 résultats
+    try {
+      console.log('[RAG Bilingual] Fallback recherche KB simple...')
+      const fallbackResults = await withTimeout(
+        searchKnowledgeBaseHybrid(question, { limit: 10 }),
+        15000,
+        'fallback KB search'
+      )
+      if (fallbackResults.length > 0) {
+        const fallbackSources: ChatSource[] = fallbackResults.slice(0, 5).map(r => ({
+          documentId: r.knowledgeBaseId,
+          documentName: r.title || 'Document',
+          chunkContent: r.chunkContent,
+          similarity: r.similarity || 0,
+          metadata: r.metadata,
+        }))
+        console.log(`[RAG Bilingual] Fallback: ${fallbackSources.length} sources récupérées`)
+        return { sources: fallbackSources, cacheHit: false }
+      }
+    } catch (fallbackErr) {
+      console.error('[RAG Bilingual] Fallback KB search échoué:', fallbackErr instanceof Error ? fallbackErr.message : fallbackErr)
+    }
+
+    return { sources: [], cacheHit: false }
   }
 
   // Si traduction non disponible ou échouée, retourner résultats primaires seuls

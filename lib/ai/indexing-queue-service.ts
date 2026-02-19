@@ -270,18 +270,20 @@ export async function processNextJob(): Promise<boolean> {
       // Analyse qualité du contenu
       const { analyzeContentQuality } = await import('../web-scraper/content-analyzer-service')
       const result = await analyzeContentQuality(job.targetId)
-      await completeJob(job.id, true)
+      const success = result.overallScore > 0
+      await completeJob(job.id, success, success ? undefined : 'Score qualité 0 (parsing LLM échoué)')
       console.log(
-        `[IndexingQueue] Analyse qualité terminée: ${job.targetId} (score: ${result.overallScore})`
+        `[IndexingQueue] Analyse qualité terminée: ${job.targetId} (score: ${result.overallScore}${!success ? ' ⚠️ ÉCHEC' : ''})`
       )
     } else if (job.jobType === 'legal_classification') {
       // Classification juridique
       const { classifyLegalContent } = await import('../web-scraper/legal-classifier-service')
       const result = await classifyLegalContent(job.targetId)
-      await completeJob(job.id, true)
+      const success = !!result.primaryCategory && result.confidenceScore > 0
+      await completeJob(job.id, success, success ? undefined : 'Classification vide ou confiance 0')
       console.log(
         `[IndexingQueue] Classification terminée: ${job.targetId} ` +
-        `(${result.primaryCategory}/${result.domain}, confiance: ${result.confidenceScore.toFixed(2)})`
+        `(${result.primaryCategory}/${result.domain}, confiance: ${result.confidenceScore.toFixed(2)}${!success ? ' ⚠️ ÉCHEC' : ''})`
       )
     } else if (job.jobType === 'contradiction_check') {
       // Détection des contradictions
@@ -307,9 +309,10 @@ export async function processNextJob(): Promise<boolean> {
       // Analyse qualité document KB
       const { analyzeKBDocumentQuality } = await import('./kb-quality-analyzer-service')
       const result = await analyzeKBDocumentQuality(job.targetId)
-      await completeJob(job.id, true)
+      const success = result.qualityScore > 0
+      await completeJob(job.id, success, success ? undefined : 'Score qualité KB 0 (parsing LLM échoué)')
       console.log(
-        `[IndexingQueue] Qualité KB analysée: ${job.targetId} (score: ${result.qualityScore})`
+        `[IndexingQueue] Qualité KB analysée: ${job.targetId} (score: ${result.qualityScore}${!success ? ' ⚠️ ÉCHEC' : ''})`
       )
     } else if (job.jobType === 'kb_duplicate_check') {
       // Détection doublons KB
