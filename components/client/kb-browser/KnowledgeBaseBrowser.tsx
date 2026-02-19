@@ -115,13 +115,13 @@ export function KnowledgeBaseBrowser() {
             <h1 className="text-3xl font-bold tracking-tight">
               Base de Connaissances Juridique
             </h1>
-            <p className="text-muted-foreground text-lg">
+            <div className="text-muted-foreground text-lg">
               {statsLoading ? (
                 <Skeleton className="h-5 w-48 mx-auto" />
               ) : (
                 `${(stats?.totalDocuments || 0).toLocaleString('fr-FR')}+ documents juridiques tunisiens`
               )}
-            </p>
+            </div>
 
             {/* Grande barre de recherche */}
             <div className="max-w-2xl mx-auto pt-2">
