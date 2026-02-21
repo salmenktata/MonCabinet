@@ -116,6 +116,11 @@ const CRON_SCRIPTS: Record<string, { script: string; description: string; estima
     description: 'Drift Detection RAG',
     estimatedDuration: 60000,
   },
+  'kb-quality-maintenance': {
+    script: '/opt/qadhya/scripts/kb-quality-maintenance.sh',
+    description: 'Maintenance Qualité KB (fill scores + rechunk + reindex articles)',
+    estimatedDuration: 900000,
+  },
 }
 
 export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
