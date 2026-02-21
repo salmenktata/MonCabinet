@@ -12,6 +12,7 @@ import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
  * Body params:
  * - batchSize (default: 10) - Nombre de documents à analyser
  * - category (optional) - Filtrer par catégorie
+ * - sourceUrl (optional) - Filtrer par URL de source web (ex: 'cassation.tn')
  * - skipAnalyzed (default: true) - Skip documents déjà analysés
  *
  * @returns Rapport d'analyse
@@ -21,10 +22,11 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
     const body = await request.json()
     const batchSize = parseInt(body.batchSize || '10', 10)
     const category = body.category || null
+    const sourceUrl = body.sourceUrl || null
     const skipAnalyzed = body.skipAnalyzed !== false
     const deactivateShortDocs = body.deactivateShortDocs === true
 
-    console.log('[KB Quality] Démarrage:', { batchSize, category, skipAnalyzed, deactivateShortDocs })
+    console.log('[KB Quality] Démarrage:', { batchSize, category, sourceUrl, skipAnalyzed, deactivateShortDocs })
 
     // Identifier les documents à analyser
     let query = `
@@ -39,6 +41,18 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
     if (category) {
       query += ` AND category = $${paramIndex}`
       params.push(category)
+      paramIndex++
+    }
+
+    if (sourceUrl) {
+      query += ` AND id IN (
+        SELECT ld.knowledge_base_id FROM legal_documents ld
+        JOIN web_pages_documents wpd ON wpd.legal_document_id = ld.id
+        JOIN web_pages wp ON wp.id = wpd.web_page_id
+        JOIN web_sources ws ON ws.id = wp.web_source_id
+        WHERE ws.url ILIKE $${paramIndex}
+      )`
+      params.push(`%${sourceUrl}%`)
       paramIndex++
     }
 

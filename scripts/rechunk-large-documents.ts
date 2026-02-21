@@ -19,6 +19,7 @@
 import { db } from '@/lib/db/postgres'
 import { chunkText } from '@/lib/ai/chunking-service'
 import { generateEmbedding } from '@/lib/ai/embeddings-service'
+import { getErrorMessage } from '@/lib/utils/error-utils'
 
 // ============================================================================
 // Configuration

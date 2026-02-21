@@ -342,6 +342,51 @@ function extractWithRegex(
         metadata.decision_number = numberMatch[0]
       }
     }
+
+    // Patterns arabes pour cassation.tn (décisions en arabe)
+    if (!metadata.decision_number) {
+      // عدد XXXXX, رقم XXXXX/YYYY
+      const arDecisionPattern = /(?:عدد|رقم)\s*[:：]?\s*(\d+(?:\/\d{4})?)/g
+      const arDecisionMatch = content.match(arDecisionPattern)
+      if (arDecisionMatch) {
+        const numMatch = arDecisionMatch[0].match(/(\d+(?:\/\d{4})?)/)
+        if (numMatch) {
+          metadata.decision_number = numMatch[0]
+        }
+      }
+    }
+
+    // Date arabe : بتاريخ DD/MM/YYYY ou DD-MM-YYYY
+    if (!metadata.decision_date) {
+      const arDatePattern = /بتاريخ\s+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/g
+      const arDateMatch = content.match(arDatePattern)
+      if (arDateMatch) {
+        const dateStr = arDateMatch[0].replace('بتاريخ', '').trim()
+        const sep = dateStr.includes('/') ? '/' : '-'
+        const [day, month, year] = dateStr.split(sep)
+        if (day && month && year) {
+          metadata.decision_date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+        }
+      }
+    }
+
+    // Chambre arabe → mapping FR
+    if (!metadata.chambre) {
+      const arChambreMap: Record<string, string> = {
+        'مدني': 'civil',
+        'تجاري': 'commercial',
+        'جزائي': 'pénal',
+        'أحوال شخصية': 'statut_personnel',
+        'عقاري': 'immobilier',
+        'اجتماعي': 'social',
+      }
+      for (const [arName, frName] of Object.entries(arChambreMap)) {
+        if (content.includes(arName)) {
+          metadata.chambre = frName
+          break
+        }
+      }
+    }
   }
 
   // Extraction numéro loi (legislation)

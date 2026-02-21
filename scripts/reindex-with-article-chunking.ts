@@ -86,7 +86,7 @@ async function getCandidateDocuments() {
       values.push(flags.category)
     } else {
       // Par défaut: catégories juridiques
-      conditions.push(`kb.category IN ('codes', 'legislation', 'constitution')`)
+      conditions.push(`kb.category IN ('codes', 'legislation', 'constitution', 'jort')`)
     }
 
     // Seulement documents pas encore migrés

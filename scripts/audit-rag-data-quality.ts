@@ -826,12 +826,27 @@ function displayReport(report: AuditReport) {
   console.log()
 
   report.chunkingAnalysis.sizeDistribution.forEach((cat) => {
-    const pctNormal = cat.pct_normal ?? 0
-    const avgWords = Math.round(cat.avg_words ?? 0)
-    const status = pctNormal >= 95 - THRESHOLDS.CHUNK_PROBLEMATIC_PCT ? '✅' : '⚠️'
+    const pctNormalRaw = cat.pct_normal ?? 0
+    const avgWordsRaw = cat.avg_words ?? 0
+    const totalChunksRaw = cat.total_chunks ?? 0
+
+    const pctNormal = Number.isFinite(pctNormalRaw as number)
+      ? (pctNormalRaw as number)
+      : parseFloat(String(pctNormalRaw || 0))
+    const avgWords = Number.isFinite(avgWordsRaw as number)
+      ? (avgWordsRaw as number)
+      : parseFloat(String(avgWordsRaw || 0))
+    const totalChunks = Number.isFinite(totalChunksRaw as number)
+      ? (totalChunksRaw as number)
+      : parseInt(String(totalChunksRaw || 0), 10)
+
+    const safePct = Number.isFinite(pctNormal) ? pctNormal : 0
+    const safeAvg = Number.isFinite(avgWords) ? avgWords : 0
+
+    const status = safePct >= 95 - THRESHOLDS.CHUNK_PROBLEMATIC_PCT ? '✅' : '⚠️'
     console.log(
-      `   ${status} ${cat.category.padEnd(20)} : ${cat.total_chunks} chunks, ` +
-        `${avgWords} mots moy. (${pctNormal.toFixed(1)}% normal)`
+      `   ${status} ${cat.category.padEnd(20)} : ${totalChunks} chunks, ` +
+        `${Math.round(safeAvg)} mots moy. (${safePct.toFixed(1)}% normal)`
     )
   })
   console.log()
