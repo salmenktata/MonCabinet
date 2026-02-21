@@ -27,16 +27,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const response = NextResponse.json({ success: true })
+    const url = new URL('/login', request.url)
+    const response = NextResponse.redirect(url)
     clearSessionCookie(response)
     return response
   } catch (error) {
     console.error('[API Signout] Erreur:', error)
-    return NextResponse.json(
-      { success: false, error: 'Erreur serveur' },
-      { status: 500 }
-    )
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 }
