@@ -119,14 +119,12 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
           const embedding = await generateEmbedding(chunk.content)
           await db.query(`
             INSERT INTO knowledge_base_chunks (
-              knowledge_base_id, chunk_index, content, word_count, char_count, embedding
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+              knowledge_base_id, chunk_index, content, embedding
+            ) VALUES ($1, $2, $3, $4)
           `, [
             doc.doc_id,
             index,
             chunk.content,
-            chunk.metadata.wordCount,
-            chunk.metadata.charCount,
             JSON.stringify(embedding),
           ])
           insertedCount++
