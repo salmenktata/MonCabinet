@@ -28,6 +28,8 @@ export interface WebSourceListItem {
   total_pages_discovered: number
   avg_pages_per_crawl: number
   drive_config: Record<string, unknown> | null
+  files_count: number
+  indexed_files_count: number
 }
 
 /**

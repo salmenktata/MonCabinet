@@ -753,7 +753,9 @@ export async function getWebSourcesListData(params: {
       ws.avg_pages_per_crawl,
       ws.drive_config,
       (SELECT COUNT(*) FROM web_pages WHERE web_source_id = ws.id) as pages_count,
-      (SELECT COUNT(*) FROM web_pages WHERE web_source_id = ws.id AND is_indexed = true) as indexed_count
+      (SELECT COUNT(*) FROM web_pages WHERE web_source_id = ws.id AND is_indexed = true) as indexed_count,
+      (SELECT COUNT(*) FROM web_files WHERE web_source_id = ws.id) as files_count,
+      (SELECT COUNT(*) FROM web_files WHERE web_source_id = ws.id AND is_indexed = true) as indexed_files_count
     FROM web_sources ws
     ${whereClause}
     ${orderClause}
@@ -831,6 +833,8 @@ export async function getWebSourcesListData(params: {
     total_pages_discovered: number
     avg_pages_per_crawl: number
     drive_config: Record<string, unknown> | null
+    files_count: number
+    indexed_files_count: number
   }
 
   const serializedSources: SerializedSource[] = sourcesResult.rows.map((source: Record<string, unknown>) => ({
@@ -851,6 +855,8 @@ export async function getWebSourcesListData(params: {
     total_pages_discovered: source.total_pages_discovered as number,
     avg_pages_per_crawl: source.avg_pages_per_crawl as number,
     drive_config: (source.drive_config as Record<string, unknown>) || null,
+    files_count: Number(source.files_count) || 0,
+    indexed_files_count: Number(source.indexed_files_count) || 0,
   }))
 
   return {

@@ -223,6 +223,14 @@ export function WebSourcesCards({
                       total={Number(source.pages_count)}
                       compact
                     />
+                    {source.files_count > 0 && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Icons.file className="h-3 w-3 text-slate-500 shrink-0" />
+                        <span className="text-xs text-slate-400">
+                          {Number(source.indexed_files_count).toLocaleString()}/{Number(source.files_count).toLocaleString()} docs
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <span className="text-xs text-slate-400">
                     Crawl: {formatRelativeTime(source.last_crawl_at)}

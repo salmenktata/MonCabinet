@@ -323,6 +323,7 @@ export function WebSourcesTable({
                   Pages <SortIcon field="pages_count" />
                 </button>
               </TableHead>
+              <TableHead className="text-slate-400 w-[160px]">Docs</TableHead>
               <TableHead className="text-slate-400 w-[130px]">
                 <button onClick={() => handleSort('last_crawl_at')} className="flex items-center hover:text-white transition">
                   Dernier crawl <SortIcon field="last_crawl_at" />
@@ -390,6 +391,20 @@ export function WebSourcesTable({
                       total={Number(source.pages_count)}
                       compact
                     />
+                  </TableCell>
+                  <TableCell>
+                    {source.files_count > 0 ? (
+                      <div className="flex items-center gap-1.5">
+                        <Icons.file className="h-3 w-3 text-slate-500 shrink-0" />
+                        <IndexationProgress
+                          indexed={Number(source.indexed_files_count)}
+                          total={Number(source.files_count)}
+                          compact
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-600">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <span className="text-xs text-slate-400">
