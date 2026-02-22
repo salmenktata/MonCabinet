@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import type { LegalStance } from '@/lib/ai/legal-reasoning-prompts'
 
 const STORAGE_KEY = 'qadhya_stance'
@@ -26,6 +26,20 @@ function readStoredStance(): LegalStance {
 export function StanceProvider({ children }: { children: React.ReactNode }) {
   // Lazy initializer : lit localStorage dès le premier rendu (pas de flash)
   const [stance, setStanceState] = useState<LegalStance>(readStoredStance)
+
+  // Sync inter-onglets : écoute les changements localStorage depuis d'autres onglets
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        const next = e.newValue as LegalStance
+        if (next === 'defense' || next === 'attack' || next === 'neutral') {
+          setStanceState(next)
+        }
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
 
   const setStance = (s: LegalStance) => {
     setStanceState(s)
