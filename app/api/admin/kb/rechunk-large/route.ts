@@ -30,6 +30,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
     const batchSize = Math.min(parseInt(body.batchSize || '5', 10), 20)
     const maxChunkChars = parseInt(body.maxChunkChars || '2000', 10)
 
+
     console.log('[RechunkLarge] Démarrage:', { batchSize, maxChunkChars })
 
     // Trouver les documents avec des chunks trop grands
@@ -165,4 +166,4 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
       { status: 500 }
     )
   }
-})
+}, { allowCronSecret: true })

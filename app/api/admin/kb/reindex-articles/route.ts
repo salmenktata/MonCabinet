@@ -143,4 +143,4 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
       { status: 500 }
     )
   }
-})
+}, { allowCronSecret: true })
