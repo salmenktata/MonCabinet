@@ -1,6 +1,8 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
+
+export const dynamic = 'force-dynamic'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { GlobalKeyboardShortcuts } from '@/components/ui/KeyboardShortcuts'
 import { GlobalErrorBoundary } from '@/components/providers/GlobalErrorBoundary'

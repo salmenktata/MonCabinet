@@ -1,6 +1,8 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
+
+export const dynamic = 'force-dynamic'
 import { headers } from 'next/headers'
 import { SuperAdminLayout } from '@/components/super-admin/SuperAdminLayout'
 import { safeParseInt } from '@/lib/utils/safe-number'
