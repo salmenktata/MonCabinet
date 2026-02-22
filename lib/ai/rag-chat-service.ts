@@ -259,6 +259,107 @@ function getSourceId(source: ChatSource): string {
   return `doc:${source.documentId}`
 }
 
+// =============================================================================
+// HIÉRARCHIE DES NORMES (BOOST DÉTERMINISTE)
+// =============================================================================
+
+type HierarchyClass = 'norme' | 'jurisprudence' | 'doctrine' | 'modeles' | 'autre'
+
+const HIERARCHY_CLASS_BOOST: Record<HierarchyClass, number> = {
+  norme: 1.08,
+  jurisprudence: 1.04,
+  doctrine: 0.97,
+  modeles: 0.95,
+  autre: 1.0,
+}
+
+const NORMATIVE_CATEGORIES = new Set([
+  'constitution',
+  'conventions',
+  'legislation',
+  'codes',
+  'jort',
+])
+
+const JURIS_CATEGORIES = new Set(['jurisprudence'])
+const MODEL_CATEGORIES = new Set(['modeles', 'templates', 'procedures', 'formulaires', 'google_drive'])
+const DOCTRINE_CATEGORIES = new Set(['doctrine', 'guides', 'lexique', 'actualites', 'autre'])
+
+const NORMATIVE_LEVEL_BOOSTS: Array<{ patterns: RegExp[]; boost: number }> = [
+  { patterns: [/constitution|دستور/i], boost: 1.08 },
+  { patterns: [/convention|conventions|traite|traité|اتفاقية|اتفاقيات|معاهدة/i], boost: 1.06 },
+  { patterns: [/loi[\s_-]?organique|قانون\s*أساسي/i], boost: 1.04 },
+  { patterns: [/^loi$|law|legislation|code|code_article|مجلة|قانون(?!\s*أساسي)/i], boost: 1.02 },
+  { patterns: [/decret|décret|decree|مرسوم/i], boost: 1.01 },
+  { patterns: [/ordre|order|أمر/i], boost: 1.0 },
+  { patterns: [/arrete|arrêté|قرار|ministerial|وزاري/i], boost: 0.99 },
+]
+
+function normalizeHierarchyValue(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  const str = String(value).trim()
+  return str.length > 0 ? str.toLowerCase() : null
+}
+
+function classifyHierarchyType(
+  category: string | null,
+  docTypeMeta: string | null,
+  docTypeRaw: string | null
+): HierarchyClass {
+  const meta = docTypeMeta || ''
+  if (meta === 'textes') return 'norme'
+  if (meta === 'juris') return 'jurisprudence'
+  if (meta === 'doctrine') return 'doctrine'
+  if (meta === 'templates' || meta === 'proc') return 'modeles'
+
+  if (category && NORMATIVE_CATEGORIES.has(category)) return 'norme'
+  if (category && JURIS_CATEGORIES.has(category)) return 'jurisprudence'
+  if (category && MODEL_CATEGORIES.has(category)) return 'modeles'
+  if (category && DOCTRINE_CATEGORIES.has(category)) return 'doctrine'
+
+  if (docTypeRaw) {
+    if (/juris|arret|arrêt|jugement|decision|cassation|appel/i.test(docTypeRaw)) return 'jurisprudence'
+    if (/modele|formulaire|template|proc/i.test(docTypeRaw)) return 'modeles'
+    if (/doctrine|commentaire|guide|lexique/i.test(docTypeRaw)) return 'doctrine'
+    if (NORMATIVE_LEVEL_BOOSTS.some(level => level.patterns.some(p => p.test(docTypeRaw)))) return 'norme'
+  }
+
+  return 'autre'
+}
+
+function getNormativeLevelBoost(value: string | null): number {
+  if (!value) return 1.0
+  for (const level of NORMATIVE_LEVEL_BOOSTS) {
+    if (level.patterns.some(p => p.test(value))) {
+      return level.boost
+    }
+  }
+  return 1.01
+}
+
+function getHierarchyBoost(metadata: Record<string, unknown> | undefined): number {
+  if (!metadata) return 1.0
+
+  const category = normalizeHierarchyValue(metadata.category)
+  const docTypeMeta = normalizeHierarchyValue(metadata.doc_type)
+  const docTypeRaw = normalizeHierarchyValue(
+    (metadata.document_type as string | undefined) ||
+    (metadata.documentType as string | undefined) ||
+    (metadata.documentNature as string | undefined) ||
+    (metadata.document_nature as string | undefined) ||
+    (metadata.doc_type as string | undefined)
+  )
+
+  const classType = classifyHierarchyType(category, docTypeMeta, docTypeRaw)
+  let boost = HIERARCHY_CLASS_BOOST[classType] || 1.0
+
+  if (classType === 'norme') {
+    boost *= getNormativeLevelBoost(docTypeRaw || category)
+  }
+
+  return boost
+}
+
 /**
  * Détecte si la query mentionne un domaine juridique spécifique
  * et retourne les patterns de titre à booster
@@ -379,6 +480,9 @@ async function rerankSources(
         console.log(`[RAG Branch] Pénalité 0.05× sur "${s.documentName}" (branch=${branch}, forbidden=[${branchOptions.forbiddenBranches.join(',')}])`)
       }
     }
+
+    // Boost hiérarchique (normes > jurisprudence > doctrine > modèles)
+    boost *= getHierarchyBoost(s.metadata as Record<string, unknown> | undefined)
 
     // Boost stance-aware : favoriser les types de documents pertinents à la posture
     // Fix 4 : fallback sur category si doc_type absent (évite boost nul silencieux)

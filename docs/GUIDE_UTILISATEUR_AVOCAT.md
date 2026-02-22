@@ -372,7 +372,19 @@ Qadhya applique la **hiérarchie juridique tunisienne** :
    └─ Argument d'autorité (non contraignant)
 ```
 
-### 7.3 Exemple de Résolution
+### 7.3 Hiérarchie des Normes (Tunisie)
+
+En cas de conflit entre textes, la norme **supérieure** prévaut :
+
+1. Constitution
+2. Conventions et traités internationaux ratifiés
+3. Lois organiques
+4. Lois ordinaires
+5. Décrets
+6. Ordres réglementaires
+7. Arrêtés ministériels
+
+### 7.4 Exemple de Résolution
 
 ```markdown
 ### ⚠️ Contradiction Détectée

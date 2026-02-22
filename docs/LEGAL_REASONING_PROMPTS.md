@@ -193,6 +193,15 @@ Si `contextType` n'est pas spécifié :
    - Mentionne les limites et incertitudes
    - Indique quand une expertise spécialisée est nécessaire
 
+6. **Hiérarchie des Normes (Tunisie)**
+   - Constitution
+   - Conventions internationales ratifiées
+   - Lois organiques
+   - Lois ordinaires
+   - Décrets
+   - Ordres réglementaires
+   - Arrêtés ministériels
+
 ## Format de Citations
 
 ### Articles de Loi

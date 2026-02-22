@@ -38,6 +38,11 @@ export interface LegalSource {
     domain?: string
     articleNumber?: string
     codeReference?: string
+    documentType?: string
+    document_type?: string
+    doc_type?: string
+    documentNature?: string
+    document_nature?: string
   }
 }
 
@@ -161,6 +166,238 @@ const CHAIN_CONFIG = {
     temperature: 0.1, // Précision validation
     maxTokens: 1000,
   },
+}
+
+// =============================================================================
+// HIÉRARCHIE DÉTERMINISTE (AVANT CHAIN 2)
+// =============================================================================
+
+type HierarchyClass = 'norme' | 'jurisprudence' | 'doctrine' | 'modeles' | 'autre'
+
+interface SourceHierarchyInfo {
+  classType: HierarchyClass
+  classRank: number
+  levelRank: number
+  label: string
+}
+
+const NORMATIVE_CATEGORIES = new Set([
+  'constitution',
+  'conventions',
+  'legislation',
+  'codes',
+  'jort',
+])
+
+const JURIS_CATEGORIES = new Set([
+  'jurisprudence',
+])
+
+const MODEL_CATEGORIES = new Set([
+  'modeles',
+  'templates',
+  'procedures',
+  'formulaires',
+  'google_drive',
+])
+
+const DOCTRINE_CATEGORIES = new Set([
+  'doctrine',
+  'guides',
+  'lexique',
+  'actualites',
+  'autre',
+])
+
+const NORMATIVE_LEVELS: Array<{ level: number; label: string; patterns: RegExp[] }> = [
+  { level: 1, label: 'دستور / Constitution', patterns: [/constitution|دستور/i] },
+  { level: 2, label: 'اتفاقيات / Conventions', patterns: [/convention|conventions|traite|traité|اتفاقية|اتفاقيات|معاهدة/i] },
+  { level: 3, label: 'قانون أساسي / Loi organique', patterns: [/loi[\s_-]?organique|قانون\s*أساسي/i] },
+  { level: 4, label: 'قانون عادي / Loi', patterns: [/^loi$|law|legislation|code|code_article|مجلة|قانون(?!\s*أساسي)/i] },
+  { level: 5, label: 'مرسوم / Décret', patterns: [/decret|décret|decree|مرسوم/i] },
+  { level: 6, label: 'أمر ترتيبي / Ordre', patterns: [/ordre|order|أمر/i] },
+  { level: 7, label: 'قرار وزاري / Arrêté', patterns: [/arrete|arrêté|قرار|ministerial|وزاري/i] },
+]
+
+function normalizeValue(value: string | undefined | null): string | null {
+  if (!value) return null
+  return value.toString().trim().toLowerCase()
+}
+
+function extractDocumentTypeHint(source: LegalSource): string | null {
+  const meta = source.metadata
+  return normalizeValue(
+    meta?.documentType ||
+    meta?.document_type ||
+    meta?.doc_type ||
+    meta?.documentNature ||
+    meta?.document_nature
+  )
+}
+
+function isNormativeDocType(docType: string | null): boolean {
+  if (!docType) return false
+  return NORMATIVE_LEVELS.some(level => level.patterns.some(p => p.test(docType)))
+}
+
+function getNormativeLevel(docType: string | null, category: string): { level: number; label: string } | null {
+  const cat = normalizeValue(category)
+  const value = docType || cat
+  if (!value) return null
+  if (!isNormativeDocType(value) && !(cat && NORMATIVE_CATEGORIES.has(cat))) {
+    return null
+  }
+  for (const level of NORMATIVE_LEVELS) {
+    if (level.patterns.some(p => p.test(value))) {
+      return { level: level.level, label: level.label }
+    }
+  }
+  // Si catégorie normative sans détail fin, placer au niveau "loi" par défaut
+  return { level: 4, label: 'قانون / Loi (générique)' }
+}
+
+function getJurisprudenceLevel(tribunalCode?: string | null): { level: number; label: string } {
+  const code = normalizeValue(tribunalCode)
+  if (!code) return { level: 5, label: 'Juridiction non précisée' }
+  if (code.includes('cassation') || code.includes('تعقيب')) return { level: 1, label: 'Cassation' }
+  if (code.includes('appel') || code.includes('استئناف')) return { level: 2, label: 'Appel' }
+  if (code.includes('instance') || code.includes('ابتدائية')) return { level: 3, label: 'Première instance' }
+  return { level: 5, label: 'Juridiction non classée' }
+}
+
+function getSourceHierarchyInfo(source: LegalSource): SourceHierarchyInfo {
+  const category = normalizeValue(source.category) || 'autre'
+  const docType = extractDocumentTypeHint(source)
+
+  let classType: HierarchyClass = 'autre'
+  if (NORMATIVE_CATEGORIES.has(category) || isNormativeDocType(docType)) {
+    classType = 'norme'
+  } else if (JURIS_CATEGORIES.has(category) || (docType && docType.includes('juris'))) {
+    classType = 'jurisprudence'
+  } else if (MODEL_CATEGORIES.has(category)) {
+    classType = 'modeles'
+  } else if (DOCTRINE_CATEGORIES.has(category)) {
+    classType = 'doctrine'
+  }
+
+  const classRank = classType === 'norme' ? 1
+    : classType === 'jurisprudence' ? 2
+      : classType === 'doctrine' ? 3
+        : classType === 'modeles' ? 4
+          : 5
+
+  if (classType === 'norme') {
+    const norm = getNormativeLevel(docType, category)
+    return {
+      classType,
+      classRank,
+      levelRank: norm?.level ?? 8,
+      label: `Norme: ${norm?.label ?? 'niveau non précisé'}`,
+    }
+  }
+
+  if (classType === 'jurisprudence') {
+    const juris = getJurisprudenceLevel(source.metadata?.tribunalCode)
+    return {
+      classType,
+      classRank,
+      levelRank: juris.level,
+      label: `Jurisprudence: ${juris.label}`,
+    }
+  }
+
+  if (classType === 'doctrine') {
+    return {
+      classType,
+      classRank,
+      levelRank: 8,
+      label: 'Doctrine / analyses',
+    }
+  }
+
+  if (classType === 'modeles') {
+    return {
+      classType,
+      classRank,
+      levelRank: 9,
+      label: 'Modèles / procédures',
+    }
+  }
+
+  return {
+    classType,
+    classRank,
+    levelRank: 10,
+    label: 'Autre',
+  }
+}
+
+function getDecisionTimestamp(value: unknown): number | null {
+  if (!value) return null
+  const date = value instanceof Date ? value : new Date(String(value))
+  const ts = date.getTime()
+  return Number.isFinite(ts) ? ts : null
+}
+
+function choosePreferredSource(
+  sourceA: LegalSource,
+  sourceB: LegalSource
+): LegalSource {
+  const infoA = getSourceHierarchyInfo(sourceA)
+  const infoB = getSourceHierarchyInfo(sourceB)
+
+  if (infoA.classRank !== infoB.classRank) {
+    return infoA.classRank < infoB.classRank ? sourceA : sourceB
+  }
+
+  if (infoA.levelRank !== infoB.levelRank) {
+    return infoA.levelRank < infoB.levelRank ? sourceA : sourceB
+  }
+
+  const dateA = getDecisionTimestamp(sourceA.metadata?.decisionDate)
+  const dateB = getDecisionTimestamp(sourceB.metadata?.decisionDate)
+  if (dateA && dateB) {
+    return dateA >= dateB ? sourceA : sourceB
+  }
+
+  return sourceA
+}
+
+function applyDeterministicHierarchy(
+  chain2: Omit<Chain2Output, 'durationMs'>,
+  sources: LegalSource[]
+): Omit<Chain2Output, 'durationMs'> {
+  const byId = new Map(sources.map(s => [s.id, s]))
+
+  const updatedResolutions = chain2.resolutions.map((resolution) => {
+    if (!resolution || resolution.resolutionMethod !== 'hierarchie') {
+      return resolution
+    }
+
+    const index = parseInt(resolution.contradictionId, 10)
+    const contradiction = Number.isFinite(index) ? chain2.contradictions[index] : undefined
+    if (!contradiction) return resolution
+
+    const sourceA = byId.get(contradiction.source1Id)
+    const sourceB = byId.get(contradiction.source2Id)
+    if (!sourceA || !sourceB) return resolution
+
+    const preferred = choosePreferredSource(sourceA, sourceB)
+    if (preferred.id !== resolution.preferredSourceId) {
+      return {
+        ...resolution,
+        preferredSourceId: preferred.id,
+        reason: 'Priorité hiérarchique déterministe (prétraitement)',
+      }
+    }
+
+    return resolution
+  })
+
+  return {
+    ...chain2,
+    resolutions: updatedResolutions,
+  }
 }
 
 // =============================================================================
@@ -393,9 +630,10 @@ async function executeChain2(
     )
 
     const parsed = parseChain2Response(response.answer)
+    const normalized = applyDeterministicHierarchy(parsed, input.sources)
 
     return {
-      ...parsed,
+      ...normalized,
       durationMs: Date.now() - startTime,
     }
   } catch (error) {
@@ -415,8 +653,9 @@ function getChain2SystemPrompt(language: 'fr' | 'ar'): string {
 
 قواعد الحل الهرمي:
 1. محكمة التعقيب > محكمة الاستئناف > المحاكم الابتدائية
-2. القانون > الفقه القانوني > النماذج
-3. إذا كان نفس المستوى: الأحدث > الأقدم
+2. هرمية القواعد القانونية: الدستور > الاتفاقيات والمعاهدات الدولية المصادق عليها > القوانين الأساسية > القوانين العادية > المراسيم > الأوامر الترتيبية > القرارات الوزارية
+3. القانون > الفقه القانوني > النماذج
+4. إذا كان نفس المستوى: الأحدث > الأقدم
 
 حدد التناقضات، اقترح حلولًا، وقدم موقفًا موحدًا.`
   }
@@ -425,8 +664,9 @@ function getChain2SystemPrompt(language: 'fr' | 'ar'): string {
 
 Règles de résolution hiérarchique :
 1. Cassation > Appel > Première Instance
-2. Loi > Doctrine > Modèles
-3. Si même niveau : Plus récent > Plus ancien
+2. Hiérarchie des normes : Constitution > Conventions internationales ratifiées > Lois organiques > Lois ordinaires > Décrets > Ordres réglementaires > Arrêtés ministériels
+3. Loi > Doctrine > Modèles
+4. Si même niveau : Plus récent > Plus ancien
 
 Identifie les contradictions, propose des résolutions, et fournis une position synthétisée.`
 }
@@ -440,12 +680,26 @@ function buildChain2Prompt(
   const sourcesWithContradictions = chain1Output.sourceAnalysis.filter(
     s => s.contradictions.length > 0
   )
+  const analysisById = new Map(chain1Output.sourceAnalysis.map(s => [s.sourceId, s]))
+  const sourceMeta = input.sources.map((source) => {
+    const analysis = analysisById.get(source.id)
+    const tribunal = analysis?.tribunal || source.metadata?.tribunalCode
+    const decisionTs = getDecisionTimestamp(source.metadata?.decisionDate)
+    const date = analysis?.date || (decisionTs ? new Date(decisionTs).toISOString().slice(0, 10) : null)
+    const hierarchy = getSourceHierarchyInfo(source)
+    const tribunalPart = tribunal ? `, tribunal: ${tribunal}` : ''
+    const datePart = date ? `, date: ${date}` : ''
+    return `- ${source.id}: catégorie=${source.category}, hiérarchie=${hierarchy.label} (rang=${hierarchy.classRank}.${hierarchy.levelRank})${tribunalPart}${datePart}`
+  })
 
   if (language === 'ar') {
     return `تحليل Chain 1 حدد ${chain1Output.detectedContradictions} تناقضات محتملة.
 
 المصادر المتناقضة:
 ${sourcesWithContradictions.map(s => `- ${s.sourceId}: ${s.contradictions.join(', ')}`).join('\n')}
+
+بيانات المصادر (للاستدلال الهرمي):
+${sourceMeta.join('\n')}
 
 حلل التناقضات وقدم بتنسيق JSON:
 
@@ -476,6 +730,9 @@ ${sourcesWithContradictions.map(s => `- ${s.sourceId}: ${s.contradictions.join('
 
 Sources contradictoires :
 ${sourcesWithContradictions.map(s => `- ${s.sourceId}: ${s.contradictions.join(', ')}`).join('\n')}
+
+Métadonnées sources (pour résolution hiérarchique) :
+${sourceMeta.join('\n')}
 
 Analyse les contradictions et fournis au format JSON :
 
