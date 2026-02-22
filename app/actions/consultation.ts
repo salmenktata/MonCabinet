@@ -16,6 +16,10 @@ import {
   getLangKey,
   formatDossierContext,
 } from '@/lib/ai/shared/bilingual-labels'
+import {
+  getSystemPromptForContext,
+  type LegalStance,
+} from '@/lib/ai/legal-reasoning-prompts'
 
 // Types
 export interface ConsultationSource {
@@ -40,6 +44,7 @@ interface ConsultationInput {
   question: string
   context?: string
   dossierId?: string
+  stance?: LegalStance
 }
 
 interface ActionResult {
@@ -139,11 +144,11 @@ export async function submitConsultation(input: ConsultationInput): Promise<Acti
     // Construire le contexte RAG
     const ragContext = formatRagContext(sources)
 
-    // Prompt système bilingue
+    // Prompt système via getSystemPromptForContext (inclut posture défense/attaque/neutre)
     const labels = PROMPT_LABELS[langKey]
-    const systemPrompt = `${SYSTEM_PROMPTS.qadhya}
-
-${CONSULTATION_PROMPTS[langKey]}
+    const supportedLang = questionLang === 'fr' ? 'fr' : 'ar'
+    const stance = input.stance ?? 'defense'
+    const systemPrompt = `${getSystemPromptForContext('consultation', supportedLang, stance)}
 
 ${dossierContext}
 
@@ -153,9 +158,7 @@ ${ragContext || labels.noSources}
 ${labels.questionHeader}
 ${input.question}
 
-${input.context ? `${labels.contextHeader}\n${input.context}` : ''}
-
-${RESPONSE_FORMAT[langKey]}`
+${input.context ? `${labels.contextHeader}\n${input.context}` : ''}`
 
     // Appeler le LLM avec fallback automatique (Groq → DeepSeek → Anthropic → OpenAI)
     const llmResponse = await callLLMWithFallback(

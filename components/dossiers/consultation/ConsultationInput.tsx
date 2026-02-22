@@ -17,6 +17,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { submitConsultation, type ConsultationResponse } from '@/app/actions/consultation'
 import { useDossierList } from '@/lib/hooks/useDossiers'
+import { StanceSelector } from '@/components/qadhya-ia/StanceSelector'
+import { useStance } from '@/contexts/StanceContext'
 
 interface ConsultationInputProps {
   onComplete: (response: ConsultationResponse) => void
@@ -34,6 +36,7 @@ export function ConsultationInput({
   initialContext = '',
 }: ConsultationInputProps) {
   const t = useTranslations('consultation')
+  const { stance, setStance } = useStance()
   const [question, setQuestion] = useState(initialQuestion)
   const [context, setContext] = useState(initialContext)
   const [selectedDossierId, setSelectedDossierId] = useState<string>('none')
@@ -60,6 +63,7 @@ export function ConsultationInput({
         question: question.trim(),
         context: context.trim() || undefined,
         dossierId: selectedDossierId !== 'none' ? selectedDossierId : undefined,
+        stance,
       })
 
       if (result.success && result.data) {
@@ -177,6 +181,14 @@ export function ConsultationInput({
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">{t('dossierHint')}</p>
+      </div>
+
+      {/* Posture stratégique */}
+      <div className="space-y-1">
+        <Label className="text-base font-medium">Posture stratégique</Label>
+        <div className="flex items-center rounded-md border border-border/60 bg-muted/30 w-fit">
+          <StanceSelector stance={stance} onChange={setStance} disabled={isLoading} />
+        </div>
       </div>
 
       {/* Bouton de soumission */}

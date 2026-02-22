@@ -1830,6 +1830,40 @@ export async function answerQuestion(
     contextWithWarning = `⚠️ تنبيه: المصادر المتوفرة محدودة النطاق. استخدم الرأي المشروط وقدّم افتراضات بديلة إن لزم الأمر.\n\n${contextWithWarning}`
   }
 
+  // 3b. Multi-Chain Reasoning (optionnel — activé via ENABLE_MULTI_CHAIN_CONSULTATION=true)
+  // Déclenché uniquement pour les consultations formelles avec suffisamment de sources
+  if (
+    process.env.ENABLE_MULTI_CHAIN_CONSULTATION === 'true' &&
+    options.operationName === 'dossiers-consultation' &&
+    sources.length >= 3
+  ) {
+    try {
+      const { multiChainReasoning } = await import('./multi-chain-legal-reasoning')
+      const multiChainSources = sources.map((s) => ({
+        id: s.documentId,
+        content: s.chunkContent,
+        category: (s.metadata?.category as string) || 'autre',
+        metadata: s.metadata as Parameters<typeof multiChainReasoning>[0]['sources'][0]['metadata'],
+      }))
+      const mcResult = await multiChainReasoning({
+        question,
+        sources: multiChainSources,
+        language: questionLang === 'fr' ? 'fr' : 'ar',
+        usePremiumModel: options.usePremiumModel ?? false,
+      })
+      // Préfixer le contexte RAG avec l'analyse multi-chain
+      contextWithWarning = `## Analyse Multi-Chain (Raisonnement juridique structuré)\n\n${mcResult.finalResponse}\n\n---\n\n${contextWithWarning}`
+      logger.info('search', '[MultiChain] Raisonnement multi-chain intégré', {
+        confidence: mcResult.overallConfidence,
+        durationMs: mcResult.totalDurationMs,
+        chains: mcResult.metadata.chainsExecuted,
+      })
+    } catch (mcError) {
+      // Non-bloquant : si le multi-chain échoue, on continue sans lui
+      console.error('[MultiChain] Erreur (non-bloquant):', mcError instanceof Error ? mcError.message : mcError)
+    }
+  }
+
   // 3. Récupérer l'historique avec résumé si conversation existante
   let conversationHistory: ConversationMessage[] = []
   let conversationSummary: string | null = null
