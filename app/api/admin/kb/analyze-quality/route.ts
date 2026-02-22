@@ -46,11 +46,10 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
 
     if (sourceUrl) {
       query += ` AND id IN (
-        SELECT ld.knowledge_base_id FROM legal_documents ld
-        JOIN web_pages_documents wpd ON wpd.legal_document_id = ld.id
-        JOIN web_pages wp ON wp.id = wpd.web_page_id
+        SELECT wp.knowledge_base_id FROM web_pages wp
         JOIN web_sources ws ON ws.id = wp.web_source_id
         WHERE ws.base_url ILIKE $${paramIndex}
+          AND wp.knowledge_base_id IS NOT NULL
       )`
       params.push(`%${sourceUrl}%`)
       paramIndex++
