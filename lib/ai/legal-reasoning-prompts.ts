@@ -230,9 +230,10 @@ export const CHAT_SYSTEM_PROMPT = `${LEGAL_BASE_RULES}
 Tu es dans une conversation avec un avocat ou juriste.
 
 Pour les questions simples → réponse directe et concise SANS structure formelle.
-Pour les questions juridiques substantielles → EXACTEMENT 4 sections, ni plus ni moins :
+Pour les questions juridiques substantielles → couvre ces points en adaptant
+la structure et l'ordre à la question posée :
 
-## FORMAT OBLIGATOIRE — 4 SECTIONS EXACTEMENT
+## CHECKLIST MENTALE — ÉLÉMENTS À COUVRIR
 
 ### ## أولاً: عرض الوقائع والإشكالية
 - Résume brièvement la situation
@@ -272,12 +273,12 @@ Termine TOUJOURS par :
 ### ## المصادر
 Liste des sources [KB-N] utilisées
 
-## RÈGLES STRICTES
+## BONNES PRATIQUES
 
-🚨 **EXACTEMENT 4 sections** : أولاً، ثانياً، ثالثاً، رابعاً — PAS 5, PAS 6, PAS 7
-🚨 **CHAQUE article de loi** dans الإطار القانوني DOIT avoir sa citation [KB-N] "extrait" entre guillemets
-🚨 **Articles en gras** : **الفصل XX من [مجلة]**
-🚨 **PAS de sections supplémentaires** comme التفسير السائد, الحجج, المخاطر, تقييم الاستقرار`
+💡 **Format adaptatif** : fusionne ou omets les sections non pertinentes à la question.
+💡 **Citations** : chaque article cité doit avoir sa source [KB-N] avec extrait.
+💡 **Articles en gras** : **الفصل XX من [مجلة]**
+💡 **Sections additionnelles** autorisées si la question les justifie.`
 
 /**
  * Prompt système pour structuration de dossiers
@@ -354,7 +355,7 @@ Si des informations sont manquantes, indique "Non précisé" ou laisse le champ 
 export function getSystemPromptForContext(
   contextType: 'chat' | 'consultation' | 'structuration',
   language: 'ar' | 'fr' = 'ar',
-  stance: LegalStance = 'neutral'
+  stance: LegalStance = 'defense'
 ): string {
   let basePrompt: string
 
@@ -376,7 +377,7 @@ export function getSystemPromptForContext(
   if (stance !== 'neutral' && contextType !== 'structuration') {
     // Fix 3 : overlay bilingue — AR ou FR selon la langue de l'utilisateur
     const stanceOverlay = language === 'fr' ? STANCE_GUIDANCE_FR[stance] : STANCE_GUIDANCE[stance]
-    const outputGuidance = STRATEGIC_OUTPUT_GUIDANCE
+    const outputGuidance = language === 'fr' ? STRATEGIC_OUTPUT_GUIDANCE_FR : STRATEGIC_OUTPUT_GUIDANCE_AR
     // Fix 1 : suspension de la règle "4 sections exactes" en mode stratégique
     const suspendRule = language === 'fr'
       ? `🚨 En mode stratégique, la règle des 4 sections exactes est **suspendue**.\nAnalyse librement selon les éléments pertinents du dossier.\n\n`
@@ -417,7 +418,7 @@ Explication basée sur cette citation...
 
   // Arabe par défaut — instruction adaptée selon le contexte
   const arabicSuffix = contextType === 'chat'
-    ? `**مهم: أجب باللغة العربية التونسية القانونية فقط. استخدم "فصل" لا "مادة"، و"مجلة" لا "قانون"، و"محكمة التعقيب" لا "محكمة النقض". استخدم بنية الأقسام الأربعة فقط (أولاً، ثانياً، ثالثاً، رابعاً) ثم المصادر.**`
+    ? `**مهم: أجب باللغة العربية التونسية القانونية فقط. استخدم "فصل" لا "مادة"، و"مجلة" لا "قانون"، و"محكمة التعقيب" لا "محكمة النقض". غطِّ العناصر الأساسية (الوقائع، الإطار القانوني، التحليل، الخلاصة) بحسب ما تقتضيه القضية.**`
     : `**مهم: أجب باللغة العربية التونسية القانونية فقط. استخدم "فصل" لا "مادة"، و"مجلة" لا "قانون"، و"محكمة التعقيب" لا "محكمة النقض". اكتب عناوين الأقسام الستة بالعربية (التكييف القانوني، الإطار المعياري، التفسير السائد، الحجج والمواقف المتباينة، تقييم الاستقرار والمخاطر، التوصية العملية).**`
   return `${promptWithCitationFirst}\n\n${arabicSuffix}`
 }
@@ -501,10 +502,10 @@ const STANCE_GUIDANCE: Record<LegalStance, string> = {
 }
 
 /**
- * Format de sortie structuré pour les modes défense/attaque
+ * Format de sortie structuré pour les modes défense/attaque — version arabe
  * Format souple : "يُستحسن" (recommandé) au lieu de "يجب" (obligatoire)
  */
-const STRATEGIC_OUTPUT_GUIDANCE = `
+const STRATEGIC_OUTPUT_GUIDANCE_AR = `
 ## توجيه الإجابة (Avocat Stratège)
 
 يُستحسن أن تشمل إجابتك هذه العناصر الأربعة، دون إلزام بترتيب معين أو عدد أقسام محدد:
@@ -515,6 +516,22 @@ const STRATEGIC_OUTPUT_GUIDANCE = `
 🚀 **الخطوات التالية** — ترتيب زمني (فوري / قصير / متوسط)
 
 يمكن دمج أقسام أو تغيير ترتيبها حسب طبيعة القضية.
+`
+
+/**
+ * Format de sortie structuré pour les modes défense/attaque — version française
+ */
+const STRATEGIC_OUTPUT_GUIDANCE_FR = `
+## Guide de réponse (Avocat Stratège)
+
+Couvre ces éléments selon leur pertinence, dans l'ordre adapté au dossier :
+
+🎯 **Diagnostic** — rapport de force (faible / équilibré / fort) avec justification
+💣 **Voies d'attaque** — comment gagner / faire pression
+🛡️ **Lignes de défense** — comment consolider la position
+🚀 **Prochaines étapes** — ordre chronologique (immédiat / court terme / moyen terme)
+
+Tu peux fusionner des sections ou changer leur ordre selon la nature du dossier.
 `
 
 /**

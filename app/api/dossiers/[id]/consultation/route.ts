@@ -33,6 +33,7 @@ import {
   answerQuestion,
   ChatSource,
 } from '@/lib/ai/rag-chat-service'
+import type { LegalStance } from '@/lib/ai/legal-reasoning-prompts'
 
 // =============================================================================
 // TYPES
@@ -42,6 +43,7 @@ interface ConsultationRequestBody {
   question: string
   facts?: string // Faits du cas (optionnel, sinon extrait du dossier)
   usePremiumModel?: boolean
+  stance?: LegalStance
 }
 
 interface ConsultationApiResponse {
@@ -81,6 +83,7 @@ export async function POST(
       question,
       facts,
       usePremiumModel = false,
+      stance = 'defense',
     } = body
 
     if (!question || question.trim().length < 10) {
@@ -144,6 +147,7 @@ export async function POST(
       usePremiumModel,
       operationName: 'dossiers-consultation', // ← Configuration IRAC formelle
       contextType: 'consultation', // Format consultation IRAC
+      stance,
     })
 
     // Enregistrer la consultation générée (optionnel)

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { GlobalKeyboardShortcuts } from '@/components/ui/KeyboardShortcuts'
 import { GlobalErrorBoundary } from '@/components/providers/GlobalErrorBoundary'
+import { StanceProviderWrapper } from '@/components/providers/StanceProviderWrapper'
 import { ToastManager, LoadingOverlay } from '@/components/feedback'
 
 export default async function DashboardLayout({
@@ -29,21 +30,23 @@ export default async function DashboardLayout({
 
   return (
     <GlobalErrorBoundary>
-      <div dir="ltr">
-      <AppLayout
-        user={{
-          email: session.user.email!,
-          nom: userRow?.nom || profile?.nom || '',
-          prenom: userRow?.prenom || profile?.prenom || '',
-          role: userRole,
-        }}
-      >
-        {children}
-      </AppLayout>
-      </div>
-      <GlobalKeyboardShortcuts />
-      <ToastManager />
-      <LoadingOverlay />
+      <StanceProviderWrapper>
+        <div dir="ltr">
+        <AppLayout
+          user={{
+            email: session.user.email!,
+            nom: userRow?.nom || profile?.nom || '',
+            prenom: userRow?.prenom || profile?.prenom || '',
+            role: userRole,
+          }}
+        >
+          {children}
+        </AppLayout>
+        </div>
+        <GlobalKeyboardShortcuts />
+        <ToastManager />
+        <LoadingOverlay />
+      </StanceProviderWrapper>
     </GlobalErrorBoundary>
   )
 }

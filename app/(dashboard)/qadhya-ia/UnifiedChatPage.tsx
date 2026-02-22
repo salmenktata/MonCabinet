@@ -42,7 +42,7 @@ import {
 } from '@/lib/hooks/useConversations'
 import { useStreamingChat } from '@/lib/hooks/useStreamingChat'
 import type { DocumentType } from '@/lib/categories/doc-types'
-import type { LegalStance } from '@/lib/ai/legal-reasoning-prompts'
+import { useStance } from '@/contexts/StanceContext'
 
 const STORAGE_KEY = 'qadhya_last_conversation'
 
@@ -69,7 +69,7 @@ export function UnifiedChatPage({
     return null
   })
   const [currentAction, setCurrentAction] = useState<ActionType>(initialAction)
-  const [stance, setStance] = useState<LegalStance>('defense')
+  const { stance, setStance } = useStance()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   // Message utilisateur en attente (affiché immédiatement avant réponse serveur)

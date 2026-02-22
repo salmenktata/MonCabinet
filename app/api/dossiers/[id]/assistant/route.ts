@@ -24,6 +24,7 @@ import {
   answerQuestion,
   ChatSource,
 } from '@/lib/ai/rag-chat-service'
+import type { LegalStance } from '@/lib/ai/legal-reasoning-prompts'
 
 // =============================================================================
 // TYPES
@@ -34,6 +35,7 @@ interface AssistantRequestBody {
   conversationId?: string
   includeJurisprudence?: boolean
   usePremiumModel?: boolean
+  stance?: LegalStance
 }
 
 interface AssistantApiResponse {
@@ -74,6 +76,7 @@ export async function POST(
       conversationId,
       includeJurisprudence = true, // Activé par défaut pour analyse dossier
       usePremiumModel = false,
+      stance = 'defense',
     } = body
 
     if (!question || question.trim().length < 3) {
@@ -110,6 +113,7 @@ export async function POST(
       usePremiumModel,
       operationName: 'dossiers-assistant', // ← Configuration analyse approfondie
       contextType: 'chat', // Format conversationnel
+      stance,
     })
 
     return NextResponse.json({
