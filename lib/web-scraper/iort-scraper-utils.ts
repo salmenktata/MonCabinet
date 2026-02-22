@@ -1096,6 +1096,27 @@ export async function crawlYearType(
                     contentType: 'application/pdf',
                   }]), pageId],
                 )
+
+                // Indexer le contenu du PDF dans la KB
+                try {
+                  const { indexFile } = await import('./file-indexer-service')
+                  const fileToIndex = {
+                    url: generateIortUrl(extracted.year, extracted.issueNumber, extracted.textType, extracted.title),
+                    type: 'pdf' as const,
+                    filename: downloadResult.filename || pdfInfo.minioPath.split('/').pop() || 'iort.pdf',
+                    size: pdfInfo.size,
+                    downloaded: true,
+                    minioPath: pdfInfo.minioPath,
+                  }
+                  const indexResult = await indexFile(fileToIndex, pageId, sourceId, 'IORT - Journal Officiel', 'jort')
+                  if (indexResult.success) {
+                    console.log(`[IORT] PDF indexé: ${indexResult.chunksCreated} chunks`)
+                  } else {
+                    console.warn(`[IORT] PDF non indexé: ${indexResult.error}`)
+                  }
+                } catch (indexErr) {
+                  console.warn('[IORT] Erreur indexation PDF (non-bloquant):', indexErr instanceof Error ? indexErr.message : indexErr)
+                }
               }
             }
             await sleep(2000)
