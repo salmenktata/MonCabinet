@@ -227,9 +227,16 @@ function SuperAdminSidebarComponent({
         {/* Header */}
         <div className="flex h-16 items-center border-b border-slate-700 px-3">
           {isCollapsed ? (
-            <Link href="/super-admin/dashboard" prefetch={true} className="mx-auto">
-              <LogoIcon size="sm" />
-            </Link>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href="/super-admin/dashboard" prefetch={true} className="mx-auto">
+                  <LogoIcon size="sm" />
+                </Link>
+              </TooltipTrigger>
+              {process.env.NEXT_PUBLIC_APP_VERSION && (
+                <TooltipContent side="right">v{process.env.NEXT_PUBLIC_APP_VERSION}</TooltipContent>
+              )}
+            </Tooltip>
           ) : (
             <div className="flex w-full items-center justify-between">
               <Link href="/super-admin/dashboard" prefetch={true}>
