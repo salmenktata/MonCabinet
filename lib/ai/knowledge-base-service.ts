@@ -671,9 +671,11 @@ export async function indexKnowledgeDocument(
     }
 
     // Mettre à jour le document avec son embedding, stratégie et marquer comme indexé
+    // Utiliser la bonne colonne selon le provider (OpenAI=1536-dim → embedding_openai, Ollama=1024-dim → embedding)
+    const docEmbeddingCol = docEmbeddingResult.provider === 'openai' ? 'embedding_openai' : 'embedding'
     await client.query(
       `UPDATE knowledge_base
-       SET embedding = $1::vector, is_indexed = true, chunk_count = $2, chunking_strategy = $3, updated_at = NOW()
+       SET ${docEmbeddingCol} = $1::vector, is_indexed = true, chunk_count = $2, chunking_strategy = $3, updated_at = NOW()
        WHERE id = $4`,
       [
         formatEmbeddingForPostgres(docEmbeddingResult.embedding),
