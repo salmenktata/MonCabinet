@@ -50,7 +50,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
         JOIN web_pages_documents wpd ON wpd.legal_document_id = ld.id
         JOIN web_pages wp ON wp.id = wpd.web_page_id
         JOIN web_sources ws ON ws.id = wp.web_source_id
-        WHERE ws.url ILIKE $${paramIndex}
+        WHERE ws.base_url ILIKE $${paramIndex}
       )`
       params.push(`%${sourceUrl}%`)
       paramIndex++

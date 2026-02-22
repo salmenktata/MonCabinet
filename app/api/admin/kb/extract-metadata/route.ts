@@ -35,13 +35,13 @@ export const POST = withAdminApiAuth(async (request: NextRequest, _ctx, _session
 
     // Sélectionner les docs sans métadonnées structurées (ou forcer tous)
     const sourceFilter = sourceUrl
-      ? `AND ws.url ILIKE $3`
+      ? `AND ws.base_url ILIKE $3`
       : ''
     const params: (string | number)[] = [category, batchSize]
     if (sourceUrl) params.push(`%${sourceUrl}%`)
 
     const query = `
-      SELECT DISTINCT kb.id, kb.title, kb.category, ws.url AS source_url
+      SELECT DISTINCT kb.id, kb.title, kb.category, ws.base_url AS source_url
       FROM knowledge_base kb
       LEFT JOIN kb_structured_metadata meta ON meta.knowledge_base_id = kb.id
       LEFT JOIN web_pages wp ON wp.knowledge_base_id = kb.id
@@ -169,7 +169,7 @@ export const GET = withAdminApiAuth(async (request: NextRequest, _ctx, _session)
       coverage_pct: string
     }>(
       `SELECT
-        ws.url AS source_url,
+        ws.base_url AS source_url,
         COUNT(DISTINCT kb.id)::text AS total_docs,
         COUNT(DISTINCT meta.knowledge_base_id)::text AS with_metadata,
         ROUND(
@@ -180,7 +180,7 @@ export const GET = withAdminApiAuth(async (request: NextRequest, _ctx, _session)
       JOIN web_sources ws ON ws.id = wp.web_source_id
       LEFT JOIN kb_structured_metadata meta ON meta.knowledge_base_id = kb.id
       WHERE kb.is_indexed = true AND kb.category = 'jurisprudence'
-      GROUP BY ws.url
+      GROUP BY ws.base_url
       ORDER BY total_docs DESC`
     )
 
