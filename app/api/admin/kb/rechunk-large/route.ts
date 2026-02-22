@@ -116,16 +116,21 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
         // 4. Générer embeddings et insérer
         let insertedCount = 0
         for (const [index, chunk] of newChunks.entries()) {
-          const embResult = await generateEmbedding(chunk.content)
+          // Générer les 2 embeddings principaux en parallèle
+          const [ollamaResult, openaiResult] = await Promise.all([
+            generateEmbedding(chunk.content, { forceOllama: true }),
+            generateEmbedding(chunk.content),
+          ])
           await db.query(`
             INSERT INTO knowledge_base_chunks (
-              knowledge_base_id, chunk_index, content, embedding
-            ) VALUES ($1, $2, $3, $4)
+              knowledge_base_id, chunk_index, content, embedding, embedding_openai
+            ) VALUES ($1, $2, $3, $4, $5)
           `, [
             doc.doc_id,
             index,
             chunk.content,
-            formatEmbeddingForPostgres(embResult.embedding),
+            formatEmbeddingForPostgres(ollamaResult.embedding),
+            formatEmbeddingForPostgres(openaiResult.embedding),
           ])
           insertedCount++
         }
