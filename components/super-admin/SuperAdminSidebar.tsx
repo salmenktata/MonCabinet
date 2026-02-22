@@ -235,9 +235,9 @@ function SuperAdminSidebarComponent({
               <Link href="/super-admin/dashboard" prefetch={true}>
                 <LogoHorizontal size="sm" variant="juridique" showTag={true} animate={false} />
               </Link>
-              {process.env.NEXT_PUBLIC_BUILD_SHA && (
-                <span className="ml-1 shrink-0 font-mono text-[10px] text-slate-600 select-none" title="Version de build">
-                  {process.env.NEXT_PUBLIC_BUILD_SHA.slice(0, 7)}
+              {process.env.NEXT_PUBLIC_APP_VERSION && (
+                <span className="ml-1 shrink-0 font-mono text-[10px] text-white select-none" title="Version de build">
+                  v{process.env.NEXT_PUBLIC_APP_VERSION}
                 </span>
               )}
             </div>

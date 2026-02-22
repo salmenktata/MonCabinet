@@ -276,10 +276,14 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.needs_docker == 'false' && github.ref == 'refs/heads/main'
     timeout-minutes: 15
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup SSH
         run: |
@@ -314,6 +318,15 @@ jobs:
           restore-keys: |
             nextjs-${{ hashFiles('package-lock.json') }}-
 
+      - name: Bump patch version
+        id: bump_version
+        run: |
+          npm version patch --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "NEXT_PUBLIC_APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Bumped to v$VERSION"
+
       - name: Build Next.js
         run: npx next build
         env:
@@ -325,6 +338,7 @@ jobs:
           OPENAI_API_KEY: "sk-build-placeholder"
           NEXT_TELEMETRY_DISABLED: "1"
           NEXT_PUBLIC_BUILD_SHA: ${{ github.sha }}
+          NEXT_PUBLIC_APP_VERSION: ${{ env.NEXT_PUBLIC_APP_VERSION }}
 
       - name: Prepare deploy bundle
         run: |
@@ -440,6 +454,14 @@ jobs:
           echo "================================================"
           exit 1
 
+      - name: Commit version bump
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git diff --staged --quiet || (git commit -m "chore: bump version to v${{ steps.bump_version.outputs.version }} [skip ci]" && git push origin main)
+
       - name: Rollback on failure
         if: failure()
         run: |
@@ -515,12 +537,23 @@ jobs:
     if: needs.detect-changes.outputs.needs_docker == 'true' && github.ref == 'refs/heads/main'
     timeout-minutes: 20
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump patch version
+        id: bump_version
+        run: |
+          npm version patch --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "NEXT_PUBLIC_APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Bumped to v$VERSION"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -550,6 +583,7 @@ jobs:
           build-args: |
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             GIT_SHA=${{ github.sha }}
+            NEXT_PUBLIC_APP_VERSION=${{ env.NEXT_PUBLIC_APP_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -654,6 +688,14 @@ jobs:
             echo "✗ Health check FAILED after 3 attempts"
             echo "================================================"
             exit 1
+
+      - name: Commit version bump
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git diff --staged --quiet || (git commit -m "chore: bump version to v${{ steps.bump_version.outputs.version }} [skip ci]" && git push origin main)
 
   # ===========================================================================
   # Job 3: Post-Deploy Validation - Phase 5
