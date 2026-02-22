@@ -131,10 +131,15 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
   return (
     <aside className="flex h-screen w-64 flex-col border-r bg-card" aria-label="Navigation principale">
       {/* Logo */}
-      <div className="flex h-16 items-center px-4 border-b">
+      <div className="flex h-16 items-center justify-between px-4 border-b">
         <Link href="/dashboard" prefetch={true} onClick={onClose}>
           <LogoHorizontal size="sm" variant="juridique" showTag={true} animate={false} />
         </Link>
+        {process.env.NEXT_PUBLIC_APP_VERSION && (
+          <span className="shrink-0 font-mono text-[10px] text-muted-foreground select-none" title="Version de build">
+            v{process.env.NEXT_PUBLIC_APP_VERSION}
+          </span>
+        )}
       </div>
 
       {/* Navigation */}
