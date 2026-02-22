@@ -19,7 +19,7 @@ import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
  */
 export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
-    const body = await request.json()
+    const body = await request.json().catch(() => ({}))
     const batchSize = parseInt(body.batchSize || '10', 10)
     const category = body.category || null
     const sourceUrl = body.sourceUrl || null
@@ -176,7 +176,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
       { status: 500 }
     )
   }
-})
+}, { allowCronSecret: true })
 
 /**
  * GET /api/admin/kb/analyze-quality
@@ -222,4 +222,4 @@ export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
       { status: 500 }
     )
   }
-})
+}, { allowCronSecret: true })
