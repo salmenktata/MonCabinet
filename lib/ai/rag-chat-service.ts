@@ -33,6 +33,7 @@ import {
   PROMPT_CONFIG,
   type PromptContextType,
   type SupportedLanguage,
+  type LegalStance,
 } from './legal-reasoning-prompts'
 import { searchKnowledgeBase, searchKnowledgeBaseHybrid } from './knowledge-base-service'
 import {
@@ -202,6 +203,8 @@ export interface ChatOptions {
   logger?: RAGLogger
   /** Filtrer la recherche KB par type de document */
   docType?: DocumentType
+  /** Posture stratégique : défense / attaque / neutre */
+  stance?: LegalStance
 }
 
 export interface ConversationMessage {
@@ -334,7 +337,8 @@ async function rerankSources(
   sources: ChatSource[],
   query?: string,
   boostFactors?: Record<string, number>,
-  branchOptions?: { forbiddenBranches?: string[]; allowedBranches?: string[] }
+  branchOptions?: { forbiddenBranches?: string[]; allowedBranches?: string[] },
+  stance?: LegalStance
 ): Promise<ChatSource[]> {
   if (sources.length === 0) return sources
 
@@ -374,6 +378,17 @@ async function rerankSources(
         boost *= 0.05
         console.log(`[RAG Branch] Pénalité 0.05× sur "${s.documentName}" (branch=${branch}, forbidden=[${branchOptions.forbiddenBranches.join(',')}])`)
       }
+    }
+
+    // Boost stance-aware : favoriser les types de documents pertinents à la posture
+    if (stance === 'defense') {
+      const docType = s.metadata?.doc_type as string | undefined
+      if (docType === 'JURIS') boost *= 1.3
+      if (docType === 'PROC') boost *= 1.2
+    } else if (stance === 'attack') {
+      const docType = s.metadata?.doc_type as string | undefined
+      if (docType === 'TEXTES') boost *= 1.3
+      if (docType === 'JURIS') boost *= 1.2
     }
 
     return {
@@ -542,6 +557,15 @@ export async function searchRelevantContext(
     }
   } catch (error) {
     // Non-bloquant : si enrichissement échoue, on continue avec la query existante
+  }
+
+  // Enrichissement stance-aware : ajout de termes spécifiques à la posture juridique
+  const stanceTerms: Record<string, string> = {
+    defense: 'بطلان دفع رفض عدم قبول تقادم عدم الاختصاص',
+    attack: 'مسؤولية تعويض إخلال التزام ضرر مطالبة',
+  }
+  if (options.stance && options.stance !== 'neutral' && stanceTerms[options.stance]) {
+    embeddingQuestion = `${embeddingQuestion} ${stanceTerms[options.stance]}`
   }
 
   // Générer l'embedding de la question transformée (expandée ou condensée)
@@ -774,7 +798,7 @@ export async function searchRelevantContext(
     : undefined
 
   // Appliquer re-ranking avec boost dynamique, cross-encoder et diversité
-  let rerankedSources = await rerankSources(aboveThreshold, question, undefined, branchOptions)
+  let rerankedSources = await rerankSources(aboveThreshold, question, undefined, branchOptions, options.stance)
 
   // Seuils adaptatifs: si moins de 3 résultats, baisser le seuil de 20% (une seule fois)
   // Plancher plus bas pour l'arabe (embeddings arabes produisent des scores plus faibles)
@@ -788,7 +812,7 @@ export async function searchRelevantContext(
       )
       if (adaptiveResults.length > rerankedSources.length) {
         console.log(`[RAG Search] Seuil adaptatif: ${rerankedSources.length} → ${adaptiveResults.length} résultats (seuil ${adaptiveThreshold.toFixed(2)}, plancher ${ADAPTIVE_FLOOR})`)
-        rerankedSources = await rerankSources(adaptiveResults, question, undefined, branchOptions)
+        rerankedSources = await rerankSources(adaptiveResults, question, undefined, branchOptions, options.stance)
       }
     }
   }
@@ -1707,7 +1731,8 @@ export async function answerQuestion(
   // Par défaut: 'chat' si conversation, 'consultation' sinon
   const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
   const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
-  const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang)
+  const stance = options.stance ?? 'neutral'
+  const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
 
   // 4. Construire les messages (format OpenAI-compatible pour Ollama/Groq)
   const messagesOpenAI: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = []
@@ -2187,7 +2212,8 @@ export async function* answerQuestionStream(
   // 4. Construire messages
   const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
   const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
-  const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang)
+  const stance = options.stance ?? 'neutral'
+  const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
   const systemPrompt = conversationSummary
     ? `${baseSystemPrompt}\n\n[Résumé de la conversation précédente]\n${conversationSummary}`
     : baseSystemPrompt

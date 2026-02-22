@@ -38,6 +38,7 @@ import { structurerDossier } from '@/lib/ai/dossier-structuring-service'
 // =============================================================================
 
 import type { DocumentType } from '@/lib/categories/doc-types'
+import type { LegalStance } from '@/lib/ai/legal-reasoning-prompts'
 
 interface ChatRequestBody {
   question: string
@@ -48,6 +49,7 @@ interface ChatRequestBody {
   usePremiumModel?: boolean // Mode Premium: cloud providers au lieu d'Ollama
   actionType?: 'chat' | 'structure' | 'consult' // Nouveau: type d'action pour interface unifiée
   docType?: DocumentType // Nouveau: filtrer recherche KB par type de document
+  stance?: LegalStance // Mode Avocat Stratège : défense / attaque / neutre
 }
 
 interface ChatApiResponse {
@@ -114,7 +116,8 @@ async function handleConsultAction(
   userId: string,
   conversationId: string,
   dossierId?: string,
-  docType?: DocumentType
+  docType?: DocumentType,
+  stance?: LegalStance
 ) {
   // Utiliser answerQuestion avec configuration optimisée pour consultation
   const response = await answerQuestion(question, userId, {
@@ -124,6 +127,7 @@ async function handleConsultAction(
     usePremiumModel: false,
     operationName: 'dossiers-consultation', // Configuration IRAC formelle
     docType,
+    stance,
   })
 
   return {
@@ -131,7 +135,7 @@ async function handleConsultAction(
     sources: response.sources,
     tokensUsed: response.tokensUsed,
     model: response.model,
-    metadata: { actionType: 'consult' },
+    metadata: { actionType: 'consult', stance },
     qualityIndicator: response.qualityIndicator,
     averageSimilarity: response.averageSimilarity,
     abstentionReason: response.abstentionReason,
@@ -148,7 +152,8 @@ async function handleChatAction(
   dossierId?: string,
   includeJurisprudence = true,
   usePremiumModel = false,
-  docType?: DocumentType
+  docType?: DocumentType,
+  stance?: LegalStance
 ) {
   const response = await answerQuestion(question, userId, {
     dossierId,
@@ -157,6 +162,7 @@ async function handleChatAction(
     usePremiumModel,
     operationName: 'assistant-ia',
     docType,
+    stance,
   })
 
   return {
@@ -164,7 +170,7 @@ async function handleChatAction(
     sources: response.sources,
     tokensUsed: response.tokensUsed,
     model: response.model,
-    metadata: { actionType: 'chat' },
+    metadata: { actionType: 'chat', stance },
     qualityIndicator: response.qualityIndicator,
     averageSimilarity: response.averageSimilarity,
     abstentionReason: response.abstentionReason,
@@ -207,7 +213,8 @@ export async function POST(
       stream = false,
       usePremiumModel = false,
       actionType = 'chat', // Par défaut: conversation normale
-      docType // Nouveau: filtrage par type de document
+      docType, // Nouveau: filtrage par type de document
+      stance, // Mode Avocat Stratège
     } = body
 
     if (!question || question.trim().length < 3) {
@@ -289,7 +296,8 @@ export async function POST(
         dossierId,
         includeJurisprudence,
         usePremiumModel,
-        docType
+        docType,
+        stance
       )
     }
 
@@ -319,14 +327,14 @@ export async function POST(
           break
         case 'consult':
           response = await withTimeout(
-            handleConsultAction(question, userId, activeConversationId, dossierId, docType),
+            handleConsultAction(question, userId, activeConversationId, dossierId, docType, stance),
             ACTION_TIMEOUT_MS,
             'consult'
           )
           break
         default:
           response = await withTimeout(
-            handleChatAction(question, userId, activeConversationId, dossierId, includeJurisprudence, usePremiumModel, docType),
+            handleChatAction(question, userId, activeConversationId, dossierId, includeJurisprudence, usePremiumModel, docType, stance),
             ACTION_TIMEOUT_MS,
             'chat'
           )
@@ -606,7 +614,8 @@ async function handleStreamingResponse(
   dossierId?: string,
   includeJurisprudence: boolean = true,
   usePremiumModel: boolean = false,
-  docType?: DocumentType
+  docType?: DocumentType,
+  stance?: LegalStance
 ): Promise<Response> {
   const encoder = new TextEncoder()
 
@@ -618,6 +627,7 @@ async function handleStreamingResponse(
     usePremiumModel,
     operationName: 'assistant-ia',
     docType,
+    stance,
   })
 
   let savedSources: ChatSource[] = []
@@ -637,6 +647,7 @@ async function handleStreamingResponse(
               conversationId,
               sources: event.sources,
               model: event.model,
+              stance,
             }
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(metadata)}\n\n`))
           } else if (event.type === 'chunk') {
@@ -656,7 +667,7 @@ async function handleStreamingResponse(
               savedSources,
               event.tokensUsed.total,
               savedModel,
-              { actionType: 'chat' } // Sauvegarder actionType pour le filtre historique
+              { actionType: 'chat', stance } // Sauvegarder actionType + stance pour le filtre historique
             )
 
             // B2: Suivi hallucination asynchrone (10% échantillonnage, fire-and-forget)

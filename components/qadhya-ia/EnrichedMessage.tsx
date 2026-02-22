@@ -34,10 +34,36 @@ export function EnrichedMessage({ message }: EnrichedMessageProps) {
   }
 }
 
+// Badge de posture stratégique (défense / attaque)
+function StanceBadge({ stance }: { stance: string | undefined }) {
+  if (!stance || stance === 'neutral') return null
+  if (stance === 'defense') {
+    return (
+      <Badge variant="outline" className="text-[10px] gap-1 text-blue-600 border-blue-200 dark:text-blue-300 dark:border-blue-700">
+        <Icons.shield className="h-2.5 w-2.5" /> Défense
+      </Badge>
+    )
+  }
+  if (stance === 'attack') {
+    return (
+      <Badge variant="outline" className="text-[10px] gap-1 text-red-600 border-red-200 dark:text-red-300 dark:border-red-700">
+        <Icons.target className="h-2.5 w-2.5" /> Attaque
+      </Badge>
+    )
+  }
+  return null
+}
+
 // Message de conversation normale - utilise MarkdownMessage pour le rendu
 function ChatMessageView({ message }: { message: ChatMessage }) {
+  const stance = (message as any).metadata?.stance as string | undefined
   return (
     <div>
+      {stance && stance !== 'neutral' && (
+        <div className="mb-2">
+          <StanceBadge stance={stance} />
+        </div>
+      )}
       <div className="text-base">
         <MarkdownMessage
           content={message.content}
@@ -205,6 +231,7 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
 // Message consultation juridique
 function ConsultationMessage({ message }: { message: ChatMessage }) {
   const t = useTranslations('qadhyaIA.enriched.consult')
+  const stance = (message as any).metadata?.stance as string | undefined
 
   // Parser le contenu (format IRAC ou texte simple)
   const consultation = useMemo(() => {
@@ -240,8 +267,11 @@ function ConsultationMessage({ message }: { message: ChatMessage }) {
         <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
           <Icons.scale className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
         </div>
-        <div>
-          <h3 className="text-base font-semibold text-foreground">{t('title')}</h3>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-base font-semibold text-foreground">{t('title')}</h3>
+            <StanceBadge stance={stance} />
+          </div>
           <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
         </div>
       </div>

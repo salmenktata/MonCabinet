@@ -20,6 +20,7 @@ import { toast } from 'sonner'
 import { FeatureErrorBoundary } from '@/components/providers/FeatureErrorBoundary'
 import { ActionButtons, type ActionType } from '@/components/qadhya-ia/ActionButtons'
 import { EnrichedMessage } from '@/components/qadhya-ia/EnrichedMessage'
+import { StanceSelector } from '@/components/qadhya-ia/StanceSelector'
 import { ChatActions } from '@/components/assistant-ia/ChatActions'
 import { MODE_CONFIGS } from './mode-config'
 import {
@@ -41,6 +42,7 @@ import {
 } from '@/lib/hooks/useConversations'
 import { useStreamingChat } from '@/lib/hooks/useStreamingChat'
 import type { DocumentType } from '@/lib/categories/doc-types'
+import type { LegalStance } from '@/lib/ai/legal-reasoning-prompts'
 
 const STORAGE_KEY = 'qadhya_last_conversation'
 
@@ -67,6 +69,7 @@ export function UnifiedChatPage({
     return null
   })
   const [currentAction, setCurrentAction] = useState<ActionType>(initialAction)
+  const [stance, setStance] = useState<LegalStance>('neutral')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   // Message utilisateur en attente (affiché immédiatement avant réponse serveur)
@@ -230,10 +233,11 @@ export function UnifiedChatPage({
       useStream,
       {
         actionType: currentAction,
+        stance,
         ...(options?.docType ? { docType: options.docType } : {}),
       }
     )
-  }, [selectedConversationId, currentAction, streamSend])
+  }, [selectedConversationId, currentAction, stance, streamSend])
 
   const handleActionSelect = useCallback((action: ActionType) => {
     setCurrentAction(action)
@@ -374,6 +378,15 @@ export function UnifiedChatPage({
                   disabled={isStreaming}
                 />
               </div>
+            )}
+
+            {/* Sélecteur de posture — visible pour chat et consult */}
+            {(currentAction === 'chat' || currentAction === 'consult') && (
+              <StanceSelector
+                stance={stance}
+                onChange={setStance}
+                disabled={isStreaming}
+              />
             )}
 
             {/* Input */}
