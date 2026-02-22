@@ -137,6 +137,11 @@ _"La jurisprudence tunisienne admet-elle le dommage moral en cas de rupture de f
 
 **Réponse attendue** : **Analyse contradictoire** (arguments pour/contre) + évolution jurisprudentielle + tendance actuelle.
 
+#### F) Questions Stratégiques (Nouveau 🚀)
+_"Quelle est la meilleure stratégie pour défendre un locataire menacé d'expulsion sans contrat écrit ?"_
+
+**Réponse attendue** : Plan d'attaque, anticipation des arguments adverses, scénarios futurs (gagnant/perdant).
+
 ### 3.3 Langues Supportées
 
 Qadhya supporte **français et arabe** avec détection automatique :

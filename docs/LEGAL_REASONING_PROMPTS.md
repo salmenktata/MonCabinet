@@ -44,6 +44,9 @@ export const CONSULTATION_SYSTEM_PROMPT
 // Prompt pour chat conversationnel
 export const CHAT_SYSTEM_PROMPT
 
+// Prompt pour stratégie contentieuse (Offensif/Défensif)
+export const STRATEGY_SYSTEM_PROMPT
+
 // Fonction de sélection
 export function getSystemPromptForContext(
   contextType: 'chat' | 'consultation' | 'structuration',
@@ -80,6 +83,11 @@ export const PROMPT_CONFIG = {
     temperature: 0.1,  // Très précis
     preferConcise: false,
   },
+  strategy: {
+    maxTokens: 6000,
+    temperature: 0.4,  // Créativité stratégique contrôlée
+    preferConcise: false,
+  }
 }
 ```
 
