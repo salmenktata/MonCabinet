@@ -54,9 +54,10 @@ interface ChatMessagesProps {
   renderEnriched?: (message: ChatMessage) => React.ReactNode
   onSendExample?: (text: string) => void
   canProvideFeedback?: boolean
+  onResendMessage?: (content: string) => void
 }
 
-export function ChatMessages({ messages, isLoading, streamingContent, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false }: ChatMessagesProps) {
+export function ChatMessages({ messages, isLoading, streamingContent, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false, onResendMessage }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
   const tMode = useTranslations('qadhyaIA.modes')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -185,7 +186,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, modeConfig
                 }}
                 className="pb-4"
               >
-                <MessageBubble message={message} renderEnriched={renderEnriched} canProvideFeedback={canProvideFeedback} />
+                <MessageBubble message={message} renderEnriched={renderEnriched} canProvideFeedback={canProvideFeedback} onResendMessage={onResendMessage} />
               </div>
             )
           })}
@@ -225,7 +226,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, modeConfig
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
           >
-            <MessageBubble message={message} renderEnriched={renderEnriched} canProvideFeedback={canProvideFeedback} />
+            <MessageBubble message={message} renderEnriched={renderEnriched} canProvideFeedback={canProvideFeedback} onResendMessage={onResendMessage} />
           </motion.div>
         ))}
       </AnimatePresence>
@@ -355,17 +356,27 @@ interface MessageBubbleProps {
   message: ChatMessage
   renderEnriched?: (message: ChatMessage) => React.ReactNode
   canProvideFeedback?: boolean
+  onResendMessage?: (content: string) => void
 }
 
-const MessageBubble = memo(function MessageBubble({ message, renderEnriched, canProvideFeedback = false }: MessageBubbleProps) {
+const MessageBubble = memo(function MessageBubble({ message, renderEnriched, canProvideFeedback = false, onResendMessage }: MessageBubbleProps) {
   const t = useTranslations('assistantIA')
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editContent, setEditContent] = useState(message.content)
 
   const handleCopyResponse = async () => {
     await navigator.clipboard.writeText(message.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleResend = () => {
+    if (editContent.trim() && onResendMessage) {
+      onResendMessage(editContent.trim())
+      setIsEditing(false)
+    }
   }
 
   // Message utilisateur
@@ -375,18 +386,82 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched, can
         <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
           <Icons.user className="h-4 w-4 text-primary-foreground" />
         </div>
-        <div className="max-w-[80%] flex flex-col items-end">
-          <div className="rounded-2xl rounded-tr-sm px-4 py-3 text-base bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-sm">
-            <div className="whitespace-pre-wrap break-words leading-relaxed">
-              {message.content}
+        <div className="max-w-[80%] flex flex-col items-end group">
+          {isEditing ? (
+            <div className="w-full min-w-[280px] rounded-2xl rounded-tr-sm border border-primary/30 bg-card shadow-sm overflow-hidden">
+              <textarea
+                className="w-full px-4 py-3 text-base bg-transparent resize-none outline-none leading-relaxed min-h-[80px]"
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleResend()
+                  if (e.key === 'Escape') setIsEditing(false)
+                }}
+                autoFocus
+              />
+              <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-border/30 bg-muted/30">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+                >
+                  <Icons.x className="h-3 w-3" />
+                  <span>Annuler</span>
+                </button>
+                <button
+                  onClick={handleResend}
+                  disabled={!editContent.trim()}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  <Icons.arrowUp className="h-3 w-3" />
+                  <span>Renvoyer</span>
+                </button>
+              </div>
             </div>
+          ) : (
+            <div className="rounded-2xl rounded-tr-sm px-4 py-3 text-base bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-sm">
+              <div className="whitespace-pre-wrap break-words leading-relaxed">
+                {message.content}
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-2 mt-1.5 me-1">
+            {/* Actions au hover (mode normal uniquement) */}
+            {!isEditing && (
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                <button
+                  onClick={handleCopyResponse}
+                  className={cn(
+                    'flex items-center gap-1 px-2 py-1 rounded-md text-[11px] transition-all duration-200',
+                    copied
+                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  )}
+                  title="Copier le message"
+                >
+                  {copied ? (
+                    <><Icons.check className="h-3 w-3" /> <span>Copié</span></>
+                  ) : (
+                    <Icons.copy className="h-3 w-3" />
+                  )}
+                </button>
+                {onResendMessage && (
+                  <button
+                    onClick={() => { setEditContent(message.content); setIsEditing(true) }}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+                    title="Modifier et renvoyer"
+                  >
+                    <Icons.edit className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            )}
+            <span className="text-[11px] text-muted-foreground/50">
+              {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
           </div>
-          <span className="text-[11px] text-muted-foreground/50 mt-1.5 me-1">
-            {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
         </div>
       </div>
     )
@@ -497,7 +572,8 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched, can
     prevProps.message.isStreaming === nextProps.message.isStreaming &&
     prevProps.message.sources?.length === nextProps.message.sources?.length &&
     prevProps.renderEnriched === nextProps.renderEnriched &&
-    prevProps.canProvideFeedback === nextProps.canProvideFeedback
+    prevProps.canProvideFeedback === nextProps.canProvideFeedback &&
+    prevProps.onResendMessage === nextProps.onResendMessage
   )
 })
 

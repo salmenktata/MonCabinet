@@ -353,6 +353,7 @@ export function UnifiedChatPage({
                 modeConfig={modeConfig}
                 renderEnriched={(message) => <EnrichedMessage message={message} />}
                 onSendExample={(text) => handleSendMessage(text)}
+                onResendMessage={(content) => handleSendMessage(content)}
               />
             </div>
           </div>
