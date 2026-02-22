@@ -26,6 +26,7 @@ import {
 import { CategoryBadge } from './CategorySelector'
 import { TagsList } from './TagsInput'
 import { QualityIndicator } from './QualityIndicator'
+import { AbrogationBadge } from './AbrogationBadge'
 
 interface Document {
   id: string
@@ -45,6 +46,9 @@ interface Document {
   created_at: Date
   quality_score?: number | null
   quality_requires_review?: boolean
+  is_abroge?: boolean | null
+  abroge_suspected?: boolean | null
+  abroge_confidence?: 'low' | 'medium' | 'high' | null
 }
 
 interface KnowledgeBaseListProps {
@@ -56,6 +60,7 @@ interface KnowledgeBaseListProps {
   indexed: string
   approved: string
   search: string
+  abroge?: string
 }
 
 export function KnowledgeBaseList({
@@ -66,7 +71,8 @@ export function KnowledgeBaseList({
   subcategory = '',
   indexed,
   approved,
-  search
+  search,
+  abroge = 'all',
 }: KnowledgeBaseListProps) {
   const router = useRouter()
 
@@ -133,6 +139,46 @@ export function KnowledgeBaseList({
     }
   }
 
+  // Actions abrogation bulk
+  const handleBulkAbrogation = async (confirm: boolean) => {
+    if (selectedIds.size === 0) return
+
+    setBulkLoading(true)
+    const ids = Array.from(selectedIds)
+    let succeeded = 0
+    let failed = 0
+
+    try {
+      await Promise.allSettled(
+        ids.map(async (id) => {
+          try {
+            const res = await fetch(`/api/admin/knowledge-base/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ is_abroge: confirm }),
+            })
+            if (res.ok) succeeded++
+            else failed++
+          } catch {
+            failed++
+          }
+        })
+      )
+
+      if (failed === 0) {
+        toast.success(`${confirm ? 'Abrogation confirmée' : 'Suspicion rejetée'} — ${succeeded} document(s)`)
+      } else {
+        toast.warning(`${succeeded} réussi(s), ${failed} échec(s)`)
+      }
+      setSelectedIds(new Set())
+      router.refresh()
+    } catch {
+      toast.error('Erreur lors de l\'action abrogation')
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds)
     if (newSelected.has(id)) {
@@ -168,6 +214,7 @@ export function KnowledgeBaseList({
     if (indexed) searchParams.set('indexed', indexed)
     if (approved) searchParams.set('approved', approved)
     if (search) searchParams.set('search', search)
+    if (abroge && abroge !== 'all') searchParams.set('abroge', abroge)
     Object.entries(params).forEach(([key, val]) => {
       if (val) searchParams.set(key, String(val))
     })
@@ -228,6 +275,26 @@ export function KnowledgeBaseList({
             >
               <Icons.trash className="h-4 w-4 mr-1" />
               Supprimer
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkAbrogation(true)}
+              disabled={bulkLoading}
+              className="border-red-500/30 text-red-400"
+              title="Marquer comme abrogés — retire du RAG"
+            >
+              Confirmer abrogation
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkAbrogation(false)}
+              disabled={bulkLoading}
+              className="border-slate-500/30 text-slate-400"
+              title="Rejeter la suspicion d'abrogation"
+            >
+              Rejeter suspicion
             </Button>
             <Button
               size="sm"
@@ -325,6 +392,11 @@ export function KnowledgeBaseList({
                   requiresReview={doc.quality_requires_review}
                   size="xs"
                   showTooltip={false}
+                />
+                <AbrogationBadge
+                  isAbroge={doc.is_abroge}
+                  abrogeSuspected={doc.abroge_suspected}
+                  abrogeConfidence={doc.abroge_confidence}
                 />
               </div>
 

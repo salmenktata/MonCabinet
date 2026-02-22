@@ -26,6 +26,19 @@ const ARTICLE_CATEGORIES = ['codes', 'legislation', 'constitution', 'jort']
 export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   const startTime = Date.now()
 
+  // Enregistrer démarrage dans cron_executions
+  let cronExecutionId: string | null = null
+  try {
+    const execResult = await db.query<{ id: string }>(`
+      INSERT INTO cron_executions (cron_name, status, started_at, triggered_by)
+      VALUES ('kb-article-rechunk', 'running', NOW(), 'manual')
+      RETURNING id
+    `)
+    cronExecutionId = execResult.rows[0]?.id || null
+  } catch {
+    // Table peut ne pas encore avoir cette entrée — non bloquant
+  }
+
   try {
     const body = await request.json().catch(() => ({}))
     const batchSize = Math.min(parseInt(body.batchSize || '3', 10), 10)
@@ -126,6 +139,19 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
       }
     }
 
+    const duration = Date.now() - startTime
+
+    // Mettre à jour cron_executions avec succès
+    if (cronExecutionId) {
+      await db.query(`
+        UPDATE cron_executions
+        SET status = 'success', completed_at = NOW(), duration_ms = $2,
+            output = $3
+        WHERE id = $1
+      `, [cronExecutionId, duration, JSON.stringify({ processed: docs.length, succeeded, failed, remaining })])
+        .catch(() => {})
+    }
+
     return NextResponse.json({
       success: true,
       message: `Réindexation articles terminée: ${succeeded}/${docs.length} réussis`,
@@ -133,11 +159,22 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
       succeeded,
       failed,
       remaining,
-      duration: Date.now() - startTime,
+      duration,
       results,
     })
   } catch (error) {
     console.error('[ReindexArticles] Erreur:', error)
+
+    // Mettre à jour cron_executions avec échec
+    if (cronExecutionId) {
+      await db.query(`
+        UPDATE cron_executions
+        SET status = 'error', completed_at = NOW(), duration_ms = $2, error_message = $3
+        WHERE id = $1
+      `, [cronExecutionId, Date.now() - startTime, getErrorMessage(error)])
+        .catch(() => {})
+    }
+
     return NextResponse.json(
       { success: false, error: getErrorMessage(error) },
       { status: 500 }

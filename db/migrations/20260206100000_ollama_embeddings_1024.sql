@@ -1,6 +1,10 @@
 -- Migration: Support Ollama embeddings (1024 dimensions)
 -- Changement de 1536 (OpenAI) vers 1024 (Ollama Qwen3)
 -- Note: Les embeddings existants devront être régénérés
+--
+-- NOTE: Cette migration a probablement échoué silencieusement car elle référence
+-- knowledge_base_documents (table inexistante) au lieu de knowledge_base_chunks.
+-- La colonne embedding_openai a été correctement ajoutée via 20260217000020_add_openai_embeddings.sql.
 
 -- =============================================================================
 -- 1. Modifier les colonnes embedding dans les tables

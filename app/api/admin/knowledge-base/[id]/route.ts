@@ -113,7 +113,7 @@ export async function PATCH(
     const { id } = await params
     const body = await request.json()
 
-    const { title, description, category, metadata } = body
+    const { title, description, category, metadata, is_abroge, abroge_suspected } = body
 
     // Validation catégorie si fournie
     if (category) {
@@ -127,6 +127,67 @@ export async function PATCH(
           { status: 400 }
         )
       }
+    }
+
+    // Gestion spécifique abrogation (direct DB pour éviter de surcharger updateKnowledgeDocument)
+    const hasAbrogationUpdate = is_abroge !== undefined || abroge_suspected !== undefined
+    if (hasAbrogationUpdate) {
+      const setClauses: string[] = ['updated_at = NOW()']
+      const abrogParams: (boolean | string)[] = []
+      let pIdx = 1
+
+      if (is_abroge !== undefined) {
+        setClauses.push(`is_abroge = $${pIdx++}`)
+        abrogParams.push(Boolean(is_abroge))
+
+        if (is_abroge === true) {
+          // Confirmer : marquer suspect=true, validated, et désactiver du RAG
+          setClauses.push(`abroge_suspected = $${pIdx++}`)
+          abrogParams.push(true)
+          setClauses.push(`is_active = $${pIdx++}`)
+          abrogParams.push(false)
+          setClauses.push(`abroge_validated_at = $${pIdx++}`)
+          abrogParams.push(new Date().toISOString())
+          if (session?.user?.id) {
+            setClauses.push(`abroge_validated_by = $${pIdx++}`)
+            abrogParams.push(session.user.id)
+          }
+        } else if (is_abroge === false) {
+          // Rejeter la suspicion
+          setClauses.push(`abroge_suspected = $${pIdx++}`)
+          abrogParams.push(false)
+          setClauses.push(`abroge_confidence = NULL`)
+          setClauses.push(`abroge_validated_at = $${pIdx++}`)
+          abrogParams.push(new Date().toISOString())
+          if (session?.user?.id) {
+            setClauses.push(`abroge_validated_by = $${pIdx++}`)
+            abrogParams.push(session.user.id)
+          }
+        }
+      } else if (abroge_suspected !== undefined) {
+        setClauses.push(`abroge_suspected = $${pIdx++}`)
+        abrogParams.push(Boolean(abroge_suspected))
+        if (!abroge_suspected) {
+          setClauses.push(`abroge_confidence = NULL`)
+        }
+      }
+
+      abrogParams.push(id)
+      await db.query(
+        `UPDATE knowledge_base SET ${setClauses.join(', ')} WHERE id = $${pIdx}`,
+        abrogParams
+      )
+
+      const updated = await db.query(
+        `SELECT id, title, is_abroge, abroge_suspected, abroge_confidence, abroge_validated_at, is_active
+         FROM knowledge_base WHERE id = $1`,
+        [id]
+      )
+
+      return NextResponse.json({
+        message: 'Statut abrogation mis à jour',
+        document: updated.rows[0] || null,
+      })
     }
 
     const document = await updateKnowledgeDocument(id, {

@@ -38,6 +38,7 @@ interface PageProps {
     subcategory?: string
     indexed?: string
     approved?: string
+    abroge?: string
     search?: string
     page?: string
     view?: string
@@ -145,6 +146,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
   const subcategory = params.subcategory || ''
   const indexed = params.indexed || 'all'
   const approved = params.approved || 'all'
+  const abroge = params.abroge || 'all'
   const search = params.search || ''
   const page = parseInt(params.page || '1', 10)
   const view = params.view || 'list'
@@ -189,6 +191,12 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
       paramIndex++
     }
 
+    if (abroge === 'suspected') {
+      whereClause += ` AND kb.abroge_suspected = TRUE AND COALESCE(kb.is_abroge, false) = FALSE`
+    } else if (abroge === 'confirmed') {
+      whereClause += ` AND kb.is_abroge = TRUE`
+    }
+
     if (search) {
       whereClause += ` AND (kb.title ILIKE $${paramIndex} OR kb.description ILIKE $${paramIndex})`
       queryParams.push(`%${search}%`)
@@ -206,6 +214,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
         kb.id, kb.title, kb.description, kb.category, kb.subcategory,
         kb.language, kb.tags, kb.version,
         kb.is_indexed, kb.is_approved,
+        kb.is_abroge, kb.abroge_suspected, kb.abroge_confidence,
         (SELECT COUNT(*) FROM knowledge_base_chunks WHERE knowledge_base_id = kb.id) as chunk_count,
         kb.source_file as file_name, kb.source_file as file_type,
         kb.created_at, kb.updated_at,
@@ -301,6 +310,17 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
                   <option value="false">En attente</option>
                 </select>
 
+                {/* Filtre abrogation */}
+                <select
+                  name="abroge"
+                  defaultValue={abroge}
+                  className="h-9 px-3 rounded-md bg-slate-700 border border-slate-600 text-white text-sm min-w-[130px]"
+                >
+                  <option value="all">Abrogation</option>
+                  <option value="suspected">Suspects</option>
+                  <option value="confirmed">Confirmés</option>
+                </select>
+
                 {/* Boutons */}
                 <Button type="submit" size="sm" className="bg-blue-600 hover:bg-blue-700 h-9">
                   <Icons.search className="h-4 w-4 mr-2" />
@@ -333,6 +353,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
                 subcategory={subcategory}
                 indexed={indexed}
                 approved={approved}
+                abroge={abroge}
                 search={search}
               />
             </CardContent>

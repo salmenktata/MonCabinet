@@ -38,6 +38,8 @@ import {
   RefreshCw,
   TrendingUp,
   Clock,
+  Sparkles,
+  FileText,
 } from 'lucide-react'
 
 interface MonitoringMetrics {
@@ -97,6 +99,53 @@ export function KBQualityTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [enrichLoading, setEnrichLoading] = useState(false)
+  const [rechunkArticlesLoading, setRechunkArticlesLoading] = useState(false)
+  const [actionResult, setActionResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const handleEnrichMetadata = async () => {
+    setEnrichLoading(true)
+    setActionResult(null)
+    try {
+      const res = await fetch('/api/admin/kb/enrich-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchSize: 10, reanalyzeAfter: true }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setActionResult({ type: 'success', message: data.message || `${data.enriched} docs enrichis` })
+      } else {
+        setActionResult({ type: 'error', message: data.error || 'Erreur enrichissement' })
+      }
+    } catch {
+      setActionResult({ type: 'error', message: 'Erreur réseau' })
+    } finally {
+      setEnrichLoading(false)
+    }
+  }
+
+  const handleRechunkArticles = async () => {
+    setRechunkArticlesLoading(true)
+    setActionResult(null)
+    try {
+      const res = await fetch('/api/admin/kb/reindex-articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchSize: 3 }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setActionResult({ type: 'success', message: data.message || `${data.processed} docs rechunkés par articles` })
+      } else {
+        setActionResult({ type: 'error', message: data.error || 'Erreur rechunk articles' })
+      }
+    } catch {
+      setActionResult({ type: 'error', message: 'Erreur réseau' })
+    } finally {
+      setRechunkArticlesLoading(false)
+    }
+  }
 
   const fetchMetrics = async () => {
     try {
@@ -162,12 +211,32 @@ export function KBQualityTab() {
             Suivi batch overnight, budget OpenAI et qualité des documents
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {lastUpdate && (
             <span className="text-sm text-muted-foreground">
-              Mise à jour : {lastUpdate.toLocaleTimeString('fr-FR')}
+              MAJ : {lastUpdate.toLocaleTimeString('fr-FR')}
             </span>
           )}
+          <Button
+            onClick={handleEnrichMetadata}
+            variant="outline"
+            size="sm"
+            disabled={enrichLoading}
+            title="Enrichir descriptions et tags des docs avec métadonnées pauvres (batch 10)"
+          >
+            <Sparkles className={`h-4 w-4 mr-1 ${enrichLoading ? 'animate-spin' : ''}`} />
+            {enrichLoading ? 'Enrichissement...' : 'Enrichir métadonnées'}
+          </Button>
+          <Button
+            onClick={handleRechunkArticles}
+            variant="outline"
+            size="sm"
+            disabled={rechunkArticlesLoading}
+            title="Re-chunker par articles les documents codes/legislation (batch 3)"
+          >
+            <FileText className={`h-4 w-4 mr-1 ${rechunkArticlesLoading ? 'animate-spin' : ''}`} />
+            {rechunkArticlesLoading ? 'Rechunk...' : 'Re-chunker articles'}
+          </Button>
           <Button
             onClick={fetchMetrics}
             variant="outline"
@@ -178,6 +247,14 @@ export function KBQualityTab() {
           </Button>
         </div>
       </div>
+
+      {/* Résultat action manuelle */}
+      {actionResult && (
+        <Alert variant={actionResult.type === 'error' ? 'destructive' : 'default'}>
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertDescription>{actionResult.message}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Alertes Critiques */}
       {(budgetAlertLevel !== 'ok' || metrics.failures.total > 0) && (
