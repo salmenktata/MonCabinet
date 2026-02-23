@@ -30,8 +30,12 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
     const batchSize = Math.min(parseInt(body.batchSize || '5', 10), 20)
     const maxChunkChars = parseInt(body.maxChunkChars || '2000', 10)
 
+    // Dériver la taille cible en mots depuis maxChunkChars
+    // Hypothèse : ~5 chars/mot (valable FR et AR). On prend 80% de la limite pour avoir une marge.
+    const targetChunkWords = Math.floor((maxChunkChars * 0.8) / 5)
+    const targetChunkOverlap = Math.floor(targetChunkWords * 0.15)
 
-    console.log('[RechunkLarge] Démarrage:', { batchSize, maxChunkChars })
+    console.log('[RechunkLarge] Démarrage:', { batchSize, maxChunkChars, targetChunkWords, targetChunkOverlap })
 
     // Trouver les documents avec des chunks trop grands
     const docsResult = await db.query<{
@@ -106,11 +110,14 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
           [doc.doc_id]
         )
 
-        // 3. Re-chunker
+        // 3. Re-chunker avec la taille cible dérivée de maxChunkChars
+        // (évite la boucle infinie : chunkSize par défaut = 1200 mots ≈ 6000 chars > maxChunkChars)
         const newChunks = chunkText(fullText, {
           category: doc.category.toLowerCase(),
           preserveParagraphs: true,
           preserveSentences: true,
+          chunkSize: targetChunkWords,
+          overlap: targetChunkOverlap,
         })
 
         // 4. Générer embeddings et insérer
