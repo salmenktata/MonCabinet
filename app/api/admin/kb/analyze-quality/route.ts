@@ -131,7 +131,17 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
         // Analyser avec LLM
         const analysis = await analyzeKBDocumentQuality(doc.id)
 
-        // Le service analyzeKBDocumentQuality stocke déjà le résultat
+        // Tenter auto-advance vers rag_active si quality_score suffisant
+        try {
+          const { autoAdvanceIfEligible } = await import('@/lib/pipeline/document-pipeline-service')
+          const advResult = await autoAdvanceIfEligible(doc.id, 'system-quality-cron')
+          if (advResult && advResult.advanced.length > 0) {
+            console.log(`   🚀 Auto-advance: ${advResult.advanced.join(' → ')} (arrêt: ${advResult.stoppedAt})`)
+          }
+        } catch {
+          // Non-bloquant
+        }
+
         results.push({
           documentId: doc.id,
           title: doc.title,

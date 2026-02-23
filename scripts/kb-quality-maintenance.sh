@@ -4,7 +4,7 @@
 # Cron: 30 6 * * * /opt/qadhya/scripts/kb-quality-maintenance.sh
 #
 # Phases:
-#   1. fill-quality-scores   — 10×50 docs/jour (was 5×50)
+#   1. fill-quality-scores   — 20×50 docs/jour (was 10×50)
 #   2. rechunk-large         — 3×5  docs/jour
 #   3. reindex-articles      — 2×3  docs/jour (code + jort)
 #   4. extract-metadata      — 2×10 docs/jour (jurisprudence cassation)
@@ -46,10 +46,10 @@ TOTAL_FAIL=0
 # ─── Phase 1 : Quality scores (10×50 = 500 docs max) ────────────────────────
 
 log ""
-log "── Phase 1 : Quality scores (10 batches × 50 docs) ──"
+log "── Phase 1 : Quality scores (20 batches × 50 docs) ──"
 
-for i in $(seq 1 10); do
-  log "  [P1] Batch $i/10..."
+for i in $(seq 1 20); do
+  log "  [P1] Batch $i/20..."
   RESP=$(curl -sf -m 300 \
     -X POST "$API_URL/api/admin/kb/analyze-quality" \
     -H "Authorization: Bearer $CRON_SECRET" \

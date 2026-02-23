@@ -28,6 +28,9 @@ const STAGE_COLORS: Record<string, string> = {
   rag_active: '#34d399',
 }
 
+// Étapes traversées automatiquement (auto-advance instantané, toujours à 0)
+const AUTO_ADVANCE_STAGES = new Set(['content_reviewed', 'classified'])
+
 export function PipelineFunnel({
   stages,
   total,
@@ -64,9 +67,14 @@ export function PipelineFunnel({
 
       {/* Funnel Chart */}
       <div className="rounded-lg border bg-card p-4">
-        <h3 className="mb-4 text-sm font-medium text-muted-foreground">Funnel Pipeline</h3>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted-foreground">Funnel Pipeline</h3>
+          <span className="text-xs text-muted-foreground">
+            2 étapes automatiques masquées (Contenu validé, Classifié — traversées instantanément)
+          </span>
+        </div>
         <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={stages} layout="horizontal">
+          <BarChart data={stages.filter(s => !AUTO_ADVANCE_STAGES.has(s.stage))} layout="horizontal">
             <XAxis
               dataKey="label"
               tick={{ fontSize: 11 }}

@@ -73,7 +73,8 @@ export function canAutoAdvance(
     case 'rag_active':
       if (!doc.is_indexed) return false
       if (chunksCount < thresholds.minChunks) return false
-      if (doc.quality_score === null) return false
+      // Si quality_score null → pas encore analysé, on laisse passer (checkQualityGate gère le seuil min 50)
+      if (doc.quality_score === null) return true
       return doc.quality_score >= thresholds.minQualityScore
 
     default:
