@@ -339,6 +339,49 @@ function getNormativeLevelBoost(value: string | null): number {
   return 1.01
 }
 
+// --- Boost temporel (récence) ---
+const CURRENT_YEAR = new Date().getFullYear()
+const TEMPORAL_BOOST_CONFIG = {
+  baseYear: 1956,
+  maxYearRange: 70,
+  maxBoost: 0.03,
+  enabledClasses: new Set<HierarchyClass>(['norme', 'jurisprudence']),
+} as const
+
+const TEMPORAL_BOOST_ENABLED = process.env.ENABLE_TEMPORAL_BOOST !== 'false'
+
+function extractDocumentYear(metadata: Record<string, unknown>): number | null {
+  const dateFields = [
+    'effective_date', 'jort_date', 'version_date',
+    'document_date', 'decision_date', 'publication_date',
+  ]
+  for (const field of dateFields) {
+    const val = metadata[field]
+    if (typeof val === 'string' && val.length >= 4) {
+      const year = parseInt(val.substring(0, 4), 10)
+      if (year >= TEMPORAL_BOOST_CONFIG.baseYear && year <= CURRENT_YEAR) {
+        return year
+      }
+    }
+  }
+  return null
+}
+
+function getTemporalRecencyBoost(
+  metadata: Record<string, unknown> | undefined,
+  hierarchyClass: HierarchyClass
+): number {
+  if (!TEMPORAL_BOOST_ENABLED) return 1.0
+  if (!metadata || !TEMPORAL_BOOST_CONFIG.enabledClasses.has(hierarchyClass)) return 1.0
+
+  const year = extractDocumentYear(metadata)
+  if (year === null) return 1.0
+
+  const { baseYear, maxYearRange, maxBoost } = TEMPORAL_BOOST_CONFIG
+  const ratio = Math.min(Math.max((year - baseYear) / maxYearRange, 0), 1)
+  return 1.0 + ratio * maxBoost
+}
+
 function getHierarchyBoost(metadata: Record<string, unknown> | undefined): number {
   if (!metadata) return 1.0
 
@@ -484,7 +527,20 @@ async function rerankSources(
     }
 
     // Boost hiérarchique (normes > jurisprudence > doctrine > modèles)
-    boost *= getHierarchyBoost(s.metadata as Record<string, unknown> | undefined)
+    const _meta = s.metadata as Record<string, unknown> | undefined
+    boost *= getHierarchyBoost(_meta)
+
+    // Boost temporel (récence) : +0% à +3% selon l'année du document (norme/jurisprudence uniquement)
+    const _hierarchyClass = classifyHierarchyType(
+      (_meta?.category as string | null) ?? null,
+      normalizeHierarchyValue(_meta?.doc_type),
+      normalizeHierarchyValue(
+        (_meta?.document_type as string | undefined) ||
+        (_meta?.documentType as string | undefined) ||
+        (_meta?.doc_type as string | undefined)
+      )
+    )
+    boost *= getTemporalRecencyBoost(_meta, _hierarchyClass)
 
     // Boost stance-aware : favoriser les types de documents pertinents à la posture
     // Fix 4 : fallback sur category si doc_type absent (évite boost nul silencieux)
