@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react'
 import { toast } from 'sonner'
-import { BookOpen, Scale, Calendar, Building2, Users, FileText, Link2, Copy, Download } from 'lucide-react'
+import { BookOpen, Scale, Calendar, Building2, Users, FileText, Link2, Copy, Download, Layers } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,12 @@ import { LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
 import type { SearchResultItem } from './DocumentExplorer'
 import { formatDateLong, getCategoryLabel } from './kb-browser-utils'
+import {
+  NORM_LEVELS_ORDERED,
+  getNormLevelLabel,
+  getNormLevelColor,
+  getNormLevelOrder,
+} from '@/lib/categories/norm-levels'
 
 // =============================================================================
 // TYPES
@@ -92,6 +98,12 @@ export function DocumentDetailModal({
             <Badge className={categoryColor || ''}>
               {getCategoryLabel(document.category)}
             </Badge>
+            {document.normLevel && (
+              <Badge className={`border ${getNormLevelColor(document.normLevel)}`}>
+                <Scale className="h-3 w-3 mr-1" />
+                {getNormLevelLabel(document.normLevel, 'fr')}
+              </Badge>
+            )}
             {document.similarity != null && document.similarity < 1 && (
               <Badge variant="outline">
                 Pertinence: {Math.round(document.similarity * 100)}%
@@ -202,6 +214,43 @@ export function DocumentDetailModal({
                     Numéro
                   </div>
                   <p className="text-sm pl-6">{metadata.decisionNumber}</p>
+                </div>
+              )}
+
+              {document.normLevel && (
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Layers className="h-4 w-4 text-muted-foreground" />
+                    Rang normatif
+                  </div>
+                  <div className="pl-6 space-y-2">
+                    <Badge className={`border ${getNormLevelColor(document.normLevel)}`}>
+                      {getNormLevelLabel(document.normLevel, 'fr')} — {getNormLevelLabel(document.normLevel, 'ar')}
+                    </Badge>
+                    {/* Pyramide visuelle */}
+                    <div className="flex items-center gap-1 mt-2">
+                      {NORM_LEVELS_ORDERED.map((level) => {
+                        const isActive = level.value === document.normLevel
+                        const isBefore = level.order < getNormLevelOrder(document.normLevel)
+                        return (
+                          <div
+                            key={level.value}
+                            title={level.labelFr}
+                            className={`h-3 rounded-sm transition-all ${
+                              isActive
+                                ? `flex-[2] ${level.badgeColor} border opacity-100`
+                                : isBefore
+                                  ? 'flex-1 bg-muted opacity-40'
+                                  : 'flex-1 bg-muted/20 opacity-20'
+                            }`}
+                          />
+                        )
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Niveau {getNormLevelOrder(document.normLevel)} sur 7 dans la hiérarchie des normes
+                    </p>
+                  </div>
                 </div>
               )}
 

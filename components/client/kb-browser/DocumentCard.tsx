@@ -9,6 +9,7 @@ import {
   getCategoryBorderColor,
   getSimilarityColor,
 } from './kb-browser-utils'
+import { getNormLevelLabel, getNormLevelColor } from '@/lib/categories/norm-levels'
 
 export type ViewMode = 'list' | 'grid'
 
@@ -44,6 +45,12 @@ export function DocumentCard({ document, viewMode, onClick }: DocumentCardProps)
             <Badge className={`text-xs ${categoryColor || ''}`}>
               {getCategoryLabel(document.category)}
             </Badge>
+
+            {document.normLevel && (
+              <Badge className={`text-xs border ${getNormLevelColor(document.normLevel)}`}>
+                {getNormLevelLabel(document.normLevel, 'fr')}
+              </Badge>
+            )}
 
             {document.metadata.tribunalLabelFr && (
               <Badge variant="outline" className="text-xs">

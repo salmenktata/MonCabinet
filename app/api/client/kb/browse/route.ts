@@ -8,6 +8,7 @@ interface BrowseRow {
   category: string
   created_at: string
   doc_type: string | null
+  norm_level: string | null
 }
 
 export async function GET(request: NextRequest) {
@@ -18,33 +19,47 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = request.nextUrl
   const category = searchParams.get('category')
+  const normLevel = searchParams.get('norm_level')
   const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
   const offset = parseInt(searchParams.get('offset') || '0', 10)
   const sort = searchParams.get('sort') || 'date'
 
-  if (!category) {
-    return NextResponse.json({ error: 'Le paramètre category est requis' }, { status: 400 })
+  if (!category && !normLevel) {
+    return NextResponse.json({ error: 'Le paramètre category ou norm_level est requis' }, { status: 400 })
   }
 
   const orderBy = sort === 'title' ? 'kb.title ASC' : 'kb.created_at DESC'
 
+  // Construire les filtres dynamiques
+  const whereParams: unknown[] = []
+  const whereClauses: string[] = ['kb.is_indexed = true', 'kb.is_active = true']
+
+  if (category) {
+    whereParams.push(category)
+    whereClauses.push(`kb.category = $${whereParams.length}`)
+  }
+  if (normLevel) {
+    whereParams.push(normLevel)
+    whereClauses.push(`kb.norm_level = $${whereParams.length}::norm_level`)
+  }
+
+  const whereSQL = whereClauses.join(' AND ')
+
   // Count total
   const countResult = await query<{ count: string }>(
-    `SELECT COUNT(*)::text as count
-     FROM knowledge_base kb
-     WHERE kb.is_indexed = true AND kb.is_active = true AND kb.category = $1`,
-    [category]
+    `SELECT COUNT(*)::text as count FROM knowledge_base kb WHERE ${whereSQL}`,
+    whereParams
   )
   const total = parseInt(countResult.rows[0]?.count || '0', 10)
 
   // Fetch documents
   const docsResult = await query<BrowseRow>(
-    `SELECT kb.id, kb.title, kb.category, kb.created_at, kb.doc_type
+    `SELECT kb.id, kb.title, kb.category, kb.created_at, kb.doc_type, kb.norm_level::text as norm_level
      FROM knowledge_base kb
-     WHERE kb.is_indexed = true AND kb.is_active = true AND kb.category = $1
+     WHERE ${whereSQL}
      ORDER BY ${orderBy}
-     LIMIT $2 OFFSET $3`,
-    [category, limit, offset]
+     LIMIT $${whereParams.length + 1} OFFSET $${whereParams.length + 2}`,
+    [...whereParams, limit, offset]
   )
 
   // Enrich with metadata (tribunal, citations, etc.)
@@ -110,6 +125,7 @@ export async function GET(request: NextRequest) {
     kbId: row.id,
     title: row.title,
     category: row.category,
+    normLevel: row.norm_level,
     similarity: null,
     metadata: metadataMap.get(row.id) || {},
   }))

@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { Search, Filter, Grid3x3, List, SortAsc, ChevronDown, ChevronRight, AlertCircle, Loader2, ArrowLeft, X, Lightbulb } from 'lucide-react'
+import { Search, Filter, Grid3x3, List, SortAsc, ChevronDown, ChevronRight, AlertCircle, Loader2, ArrowLeft, X, Lightbulb, Scale } from 'lucide-react'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
+import { NORM_LEVELS_ORDERED, getNormLevelLabel, type NormLevel } from '@/lib/categories/norm-levels'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -39,6 +40,7 @@ export interface SearchResultItem {
   kbId: string
   title: string
   category: string
+  normLevel?: string | null
   similarity: number | null
   chunkContent?: string
   metadata: {
@@ -67,6 +69,7 @@ export interface SearchResultItem {
 
 export interface DocumentFilters {
   category?: string
+  normLevel?: NormLevel
   domain?: string
   tribunal?: string
   chambre?: string
@@ -126,8 +129,8 @@ export function DocumentExplorer({
   const [displayedCount, setDisplayedCount] = useState(20)
   const [processingTimeMs, setProcessingTimeMs] = useState<number | null>(null)
 
-  // Browse mode: category selected but no search query
-  const isBrowseMode = !searchQuery.trim() && !!filters.category
+  // Browse mode: category OR norm_level selected but no search query
+  const isBrowseMode = !searchQuery.trim() && (!!filters.category || !!filters.normLevel)
   const browseSort = sortField === 'title' ? 'title' as const : 'date' as const
 
   const {
@@ -137,6 +140,7 @@ export function DocumentExplorer({
     error: browseError,
   } = useKBBrowse({
     category: filters.category,
+    normLevel: filters.normLevel,
     limit: 100,
     offset: 0,
     sort: browseSort,
@@ -150,6 +154,7 @@ export function DocumentExplorer({
         kbId: r.kbId,
         title: r.title,
         category: r.category,
+        normLevel: r.normLevel,
         similarity: null,
         metadata: r.metadata as SearchResultItem['metadata'],
       }))
@@ -184,12 +189,12 @@ export function DocumentExplorer({
 
   const handleSearch = useCallback(() => {
     const query = searchQuery.trim()
-    const hasCategory = !!filters.category
+    const hasFilter = !!filters.category || !!filters.normLevel
 
-    if (!query && !hasCategory) return
+    if (!query && !hasFilter) return
 
     // Browse mode is handled by useKBBrowse, no need to call search
-    if (!query && hasCategory) return
+    if (!query && hasFilter) return
 
     setError(null)
     search({
@@ -351,7 +356,7 @@ export function DocumentExplorer({
           {/* Filtres avancés */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Select
                   value={filters.category}
                   onValueChange={(value) => handleFilterChange('category', value)}
@@ -366,6 +371,29 @@ export function DocumentExplorer({
                   </SelectContent>
                 </Select>
 
+                <Select
+                  value={filters.normLevel}
+                  onValueChange={(value) => handleFilterChange('normLevel', value as NormLevel)}
+                >
+                  <SelectTrigger>
+                    <Scale className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Niveau normatif" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NORM_LEVELS_ORDERED.map(level => (
+                      <SelectItem key={level.value} value={level.value}>
+                        <span className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-4">{level.order}</span>
+                          {level.labelFr}
+                          <span className="text-xs text-muted-foreground">{level.labelAr}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Select
                   value={filters.tribunal}
                   onValueChange={(value) => handleFilterChange('tribunal', value)}
@@ -418,6 +446,13 @@ export function DocumentExplorer({
           {filters.category && (
             <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeFilter('category')}>
               {getCategoryLabel(filters.category)}
+              <X className="h-3 w-3" />
+            </Badge>
+          )}
+          {filters.normLevel && (
+            <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeFilter('normLevel')}>
+              <Scale className="h-3 w-3" />
+              {getNormLevelLabel(filters.normLevel, 'fr')}
               <X className="h-3 w-3" />
             </Badge>
           )}
