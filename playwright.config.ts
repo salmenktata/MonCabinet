@@ -140,6 +140,18 @@ export default defineConfig({
       dependencies: ['setup:user'],
       testIgnore: /setup\/.*\.auth\.ts/,
     },
+
+    // ─────────────────────────────────────────────────────────────────
+    // RAG API TESTS : Tests API directs, pas d'auth browser
+    // ─────────────────────────────────────────────────────────────────
+
+    // Tests RAG pipeline (API-first, auth via cookie, pas de storageState)
+    {
+      name: 'rag:api',
+      testMatch: /workflows\/rag-.*\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+      // Pas de dépendance sur setup:user (auth gérée par les tests eux-mêmes via POST /api/auth/login)
+    },
   ],
 
   /* Run your local dev server before starting the tests */

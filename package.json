@@ -50,7 +50,7 @@
     "test:legal-quality": "npx tsx scripts/test-legal-quality-metrics.ts",
     "test:query-expansion": "npx tsx scripts/test-query-expansion.ts",
     "test:context-compression": "npx tsx scripts/test-context-compression.ts",
-    "test:e2e:rag": "playwright test e2e/workflows/rag-*.spec.ts || echo 'E2E RAG tests not configured'",
+    "test:e2e:rag": "playwright test --project=rag:api",
     "test:9anoun-crawl": "npx tsx scripts/test-9anoun-ultra-fast-crawl.ts",
     "generate:9anoun-config": "npx tsx scripts/generate-9anoun-config.ts",
     "benchmark": "npx tsx scripts/run-benchmark.ts",
