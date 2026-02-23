@@ -17,6 +17,7 @@ export interface ChatSource {
   title: string
   content: string
   similarity: number
+  boostedSimilarity?: number
   type: string
 }
 

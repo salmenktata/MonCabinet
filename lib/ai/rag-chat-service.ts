@@ -164,6 +164,7 @@ export interface ChatSource {
   documentName: string
   chunkContent: string
   similarity: number
+  boostedSimilarity?: number
   metadata?: Record<string, unknown>
 }
 
@@ -630,9 +631,9 @@ async function rerankSources(
     const count = sourceCount.get(source.sourceId) || 0
     if (count < RAG_DIVERSITY.maxChunksPerSource) {
       sourceCount.set(source.sourceId, count + 1)
-      // Retourner ChatSource sans les champs ajoutés
+      // Retourner ChatSource sans les champs internes, mais exposer boostedSimilarity
       const { boostedScore, sourceType, sourceId, ...originalSource } = source
-      diversifiedSources.push(originalSource)
+      diversifiedSources.push({ ...originalSource, boostedSimilarity: boostedScore })
     }
   }
 
