@@ -19,6 +19,7 @@ export interface WebSourceListItem {
   language: string
   priority: number
   is_active: boolean
+  rag_enabled: boolean
   health_status: string
   consecutive_failures: number
   last_crawl_at: string | null

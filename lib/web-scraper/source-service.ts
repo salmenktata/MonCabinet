@@ -346,6 +346,11 @@ export async function updateWebSource(
     params.push(input.allowedPdfDomains as unknown as string)
   }
 
+  if (input.ragEnabled !== undefined) {
+    setClauses.push(`rag_enabled = $${paramIndex++}`)
+    params.push(input.ragEnabled)
+  }
+
   if (setClauses.length === 0) {
     return getWebSource(id)
   }
@@ -359,6 +364,30 @@ export async function updateWebSource(
   )
 
   if (result.rows.length === 0) return null
+
+  // Cascade RAG: activer/désactiver les docs KB selon ragEnabled
+  if (input.ragEnabled !== undefined) {
+    if (!input.ragEnabled) {
+      await db.query(
+        `UPDATE knowledge_base SET is_active = false
+         WHERE id IN (
+           SELECT wp.knowledge_base_id FROM web_pages wp
+           WHERE wp.web_source_id = $1 AND wp.knowledge_base_id IS NOT NULL
+         )`,
+        [id]
+      )
+    } else {
+      await db.query(
+        `UPDATE knowledge_base SET is_active = true
+         WHERE id IN (
+           SELECT wp.knowledge_base_id FROM web_pages wp
+           WHERE wp.web_source_id = $1 AND wp.knowledge_base_id IS NOT NULL
+         ) AND is_indexed = true`,
+        [id]
+      )
+    }
+  }
+
   return mapRowToWebSource(result.rows[0])
 }
 
@@ -745,6 +774,7 @@ export async function getWebSourcesListData(params: {
       ws.language,
       ws.priority,
       ws.is_active,
+      ws.rag_enabled,
       ws.health_status,
       ws.consecutive_failures,
       ws.last_crawl_at,
@@ -824,6 +854,7 @@ export async function getWebSourcesListData(params: {
     language: string
     priority: number
     is_active: boolean
+    rag_enabled: boolean
     health_status: string
     consecutive_failures: number
     last_crawl_at: string | null
@@ -846,6 +877,7 @@ export async function getWebSourcesListData(params: {
     language: source.language as string,
     priority: source.priority as number,
     is_active: source.is_active as boolean,
+    rag_enabled: (source.rag_enabled as boolean) ?? true,
     health_status: source.health_status as string,
     consecutive_failures: source.consecutive_failures as number,
     last_crawl_at: source.last_crawl_at ? (source.last_crawl_at as Date).toISOString() : null,
@@ -913,6 +945,7 @@ function mapRowToWebSource(row: Record<string, unknown>): WebSource {
     rssFeedUrl: row.rss_feed_url as string | null,
     useSitemap: row.use_sitemap as boolean,
     isActive: row.is_active as boolean,
+    ragEnabled: (row.rag_enabled as boolean) ?? true,
     healthStatus: row.health_status as HealthStatus,
     consecutiveFailures: row.consecutive_failures as number,
     lastCrawlAt: row.last_crawl_at ? new Date(row.last_crawl_at as string) : null,

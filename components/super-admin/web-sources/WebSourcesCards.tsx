@@ -114,6 +114,28 @@ export function WebSourcesCards({
     }
   }
 
+  const handleToggleRagEnabled = async (id: string, ragEnabled: boolean) => {
+    setLoading(id)
+    try {
+      const res = await fetch(`/api/admin/web-sources/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ragEnabled: !ragEnabled }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        toast.error(data.error || 'Erreur')
+      } else {
+        toast.success(ragEnabled ? 'Source exclue du RAG' : 'Source incluse dans le RAG')
+        router.refresh()
+      }
+    } catch {
+      toast.error('Erreur')
+    } finally {
+      setLoading(null)
+    }
+  }
+
   const handleDelete = async () => {
     if (!deleteId) return
     setLoading(deleteId)
@@ -197,6 +219,9 @@ export function WebSourcesCards({
                   </Badge>
                   {!source.is_active && (
                     <Badge variant="outline" className="border-slate-600 text-slate-400">Inactive</Badge>
+                  )}
+                  {!source.rag_enabled && (
+                    <Badge variant="outline" className="border-orange-600 text-orange-400 text-[10px] px-1 py-0">RAG OFF</Badge>
                   )}
                 </div>
 
@@ -297,6 +322,17 @@ export function WebSourcesCards({
                             <><Icons.pause className="h-4 w-4 mr-2" /> Desactiver</>
                           ) : (
                             <><Icons.play className="h-4 w-4 mr-2" /> Activer</>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-slate-700" />
+                        <DropdownMenuItem
+                          onClick={() => handleToggleRagEnabled(source.id, source.rag_enabled)}
+                          className={`cursor-pointer ${source.rag_enabled ? 'text-orange-400 hover:bg-slate-700' : 'text-green-400 hover:bg-slate-700'}`}
+                        >
+                          {source.rag_enabled ? (
+                            <><Icons.eyeOff className="h-4 w-4 mr-2" /> Exclure du RAG</>
+                          ) : (
+                            <><Icons.eye className="h-4 w-4 mr-2" /> Inclure dans RAG</>
                           )}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setDeleteId(source.id)} className="text-red-400 hover:bg-red-500/10 cursor-pointer">

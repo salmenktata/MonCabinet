@@ -235,6 +235,7 @@ export interface WebSource {
 
   // État
   isActive: boolean
+  ragEnabled: boolean
   healthStatus: HealthStatus
   consecutiveFailures: number
 
@@ -558,6 +559,7 @@ export interface UpdateWebSourceInput {
   dynamicConfig?: DynamicSiteConfig
   extractionConfig?: ExtractionConfig
   isActive?: boolean
+  ragEnabled?: boolean
   ignoreSSLErrors?: boolean
   seedUrls?: string[]
   formCrawlConfig?: FormCrawlConfig | null
