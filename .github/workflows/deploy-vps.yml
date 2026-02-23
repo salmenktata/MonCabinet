@@ -279,7 +279,7 @@ jobs:
     name: Lightning Deploy
     needs: detect-changes
     if: needs.detect-changes.outputs.needs_docker == 'false' && github.ref == 'refs/heads/main'
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: write
 
