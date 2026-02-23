@@ -250,7 +250,7 @@ export async function routeQuery(
 
     const cleanedAnswer = response.answer
       .trim()
-      .replace(/^```json\s*/, '')
+      .replace(/^```(?:json)?\s*/, '')
       .replace(/\s*```$/, '')
 
     const parsed = JSON.parse(cleanedAnswer)
