@@ -14,6 +14,7 @@ import OpenAI from 'openai'
 import { aiConfig, SYSTEM_PROMPTS } from './config'
 import { callGemini, callGeminiStream, GeminiResponse } from './gemini-client'
 import { getOperationConfig, getOperationProvider, getOperationModel, type OperationName } from './operations-config'
+import { logger } from '@/lib/logger'
 
 // =============================================================================
 // TYPES
@@ -102,7 +103,7 @@ function recordProviderFailure(provider: LLMProvider): void {
       CIRCUIT_BREAKER_MAX_COOLDOWN_MS
     )
     state.cooldownUntil = Date.now() + cooldownMs
-    console.warn(
+    logger.warn(
       `[CircuitBreaker] 🔴 ${provider} ouvert après ${state.failCount} échecs — cooldown ${cooldownMs / 1000}s`
     )
   }
@@ -132,13 +133,13 @@ function isProviderCircuitClosed(provider: LLMProvider): boolean {
 
   if (state.cooldownUntil > 0 && Date.now() < state.cooldownUntil) {
     const remainingSec = Math.ceil((state.cooldownUntil - Date.now()) / 1000)
-    console.warn(`[CircuitBreaker] ⛔ ${provider} en cooldown (${remainingSec}s restants)`)
+    logger.warn(`[CircuitBreaker] ⛔ ${provider} en cooldown (${remainingSec}s restants)`)
     return false
   }
 
   // Cooldown expiré → circuit en half-open (on laisse passer 1 tentative)
   if (state.cooldownUntil > 0 && Date.now() >= state.cooldownUntil) {
-    console.log(`[CircuitBreaker] 🟡 ${provider} half-open — tentative de rétablissement`)
+    logger.info(`[CircuitBreaker] 🟡 ${provider} half-open — tentative de rétablissement`)
   }
 
   return true
@@ -492,7 +493,7 @@ async function sendProviderFailureAlert(
   error: Error
 ): Promise<void> {
   // Log structuré détectable par le monitoring cron
-  console.error('LLM_PROVIDER_FAILURE', JSON.stringify({
+  logger.error('LLM_PROVIDER_FAILURE', JSON.stringify({
     provider,
     operation: operationName || 'default',
     error: error.message,
@@ -573,7 +574,7 @@ export async function callLLMWithFallback(
       const available = getAvailableProviders().filter(p => p !== provider && isProviderCircuitClosed(p))
       if (available.length > 0) {
         const fallbackProvider = available[0]
-        console.warn(
+        logger.warn(
           `[LLM] ⚡ Circuit ouvert pour ${provider}, redirection directe → ${fallbackProvider} (${options.operationName || 'default'})`
         )
         try {
@@ -592,7 +593,7 @@ export async function callLLMWithFallback(
       )
     }
 
-    console.log(
+    logger.info(
       `[LLM] ${options.operationName || 'default'} → ${provider} (no-fallback)`
     )
 
@@ -608,7 +609,7 @@ export async function callLLMWithFallback(
       if (isRecoverable) {
         recordProviderFailure(provider)
         const reason = isRateLimitError(error) ? 'rate-limité' : 'erreur serveur/timeout'
-        console.warn(
+        logger.warn(
           `[LLM] ⚠️ ${provider} ${reason} pour ${options.operationName || 'default'}, cascade fallback...`
         )
         // Trouver les providers alternatifs disponibles avec circuit fermé
@@ -617,7 +618,7 @@ export async function callLLMWithFallback(
           try {
             const response = await callProvider(fallbackProvider, messages, options)
             recordProviderSuccess(fallbackProvider)
-            console.log(`[LLM] ✓ Fallback réussi: ${provider} → ${fallbackProvider} (${reason})`)
+            logger.info(`[LLM] ✓ Fallback réussi: ${provider} → ${fallbackProvider} (${reason})`)
             return {
               ...response,
               fallbackUsed: true,
@@ -625,7 +626,7 @@ export async function callLLMWithFallback(
             }
           } catch (fallbackErr) {
             recordProviderFailure(fallbackProvider)
-            console.warn(`[LLM] ⚠ Fallback ${fallbackProvider} échoué:`, fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr))
+            logger.warn(`[LLM] ⚠ Fallback ${fallbackProvider} échoué:`, fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr))
           }
         }
         // Si tous les fallbacks échouent aussi
@@ -642,7 +643,7 @@ export async function callLLMWithFallback(
         sendProviderFailureAlert(provider, options.operationName, err).catch(() => {})
       }
 
-      console.error(
+      logger.error(
         `[LLM] ❌ ${provider} échoué pour ${options.operationName || 'default'}:`,
         err.message
       )
@@ -656,7 +657,7 @@ export async function callLLMWithFallback(
   // =========================================================================
   // MODE CASCADE LEGACY (kill switch: LLM_FALLBACK_ENABLED=true)
   // =========================================================================
-  console.warn('[LLM] ⚠️ Mode cascade legacy activé (LLM_FALLBACK_ENABLED=true)')
+  logger.warn('[LLM] ⚠️ Mode cascade legacy activé (LLM_FALLBACK_ENABLED=true)')
 
   // Déterminer l'ordre des providers
   let providers: LLMProvider[]
@@ -683,7 +684,7 @@ export async function callLLMWithFallback(
       const response = await callProvider(provider, messages, options)
 
       if (i > 0) {
-        console.log(`[LLM] ✓ Fallback réussi: ${activeProviders[0]} → ${provider}`)
+        logger.info(`[LLM] ✓ Fallback réussi: ${activeProviders[0]} → ${provider}`)
         return {
           ...response,
           fallbackUsed: true,
@@ -695,7 +696,7 @@ export async function callLLMWithFallback(
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       errors.push({ provider, error: errorMessage })
-      console.warn(`[LLM] ⚠ ${provider} erreur: ${errorMessage}, tentative suivante...`)
+      logger.warn(`[LLM] ⚠ ${provider} erreur: ${errorMessage}, tentative suivante...`)
     }
   }
 

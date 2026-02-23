@@ -15,6 +15,7 @@ import { aiConfig, EMBEDDING_TURBO_CONFIG } from './config'
 import { getCachedEmbedding, setCachedEmbedding } from '@/lib/cache/embedding-cache'
 import { countTokens } from './token-utils'
 import { getOperationConfig, type OperationName } from './operations-config'
+import { logger } from '@/lib/logger'
 
 // =============================================================================
 // TYPES
@@ -208,7 +209,7 @@ async function generateEmbeddingWithOpenAI(text: string): Promise<EmbeddingResul
       if (isTokenOverflow && attempt < 2) {
         // Réduire de 30% à chaque tentative
         input = input.substring(0, Math.floor(input.length * 0.7))
-        console.warn(`[Embeddings] Token overflow OpenAI, retry avec ${input.length} chars (tentative ${attempt + 2}/3)`)
+        logger.warn(`[Embeddings] Token overflow OpenAI, retry avec ${input.length} chars (tentative ${attempt + 2}/3)`)
         continue
       }
       throw error
@@ -253,7 +254,7 @@ async function generateEmbeddingsBatchWithOpenAI(
         if (isTokenOverflow && attempt < 2) {
           // Réduire chaque texte de 30%
           batch = batch.map(t => t.substring(0, Math.floor(t.length * 0.7)))
-          console.warn(`[Embeddings] Token overflow batch OpenAI, retry avec textes réduits (tentative ${attempt + 2}/3)`)
+          logger.warn(`[Embeddings] Token overflow batch OpenAI, retry avec textes réduits (tentative ${attempt + 2}/3)`)
           continue
         }
         throw error
@@ -422,7 +423,7 @@ export async function generateEmbeddingsBatch(
       try {
         return await generateEmbeddingsBatchWithOpenAI(texts)
       } catch (error) {
-        console.warn(`[Embeddings] OpenAI batch échoué, fallback Gemini: ${error instanceof Error ? error.message : error}`)
+        logger.warn(`[Embeddings] OpenAI batch échoué, fallback Gemini: ${error instanceof Error ? error.message : error}`)
       }
     }
 
@@ -431,7 +432,7 @@ export async function generateEmbeddingsBatch(
       try {
         return await generateEmbeddingsBatchWithGemini(texts)
       } catch (error) {
-        console.warn(`[Embeddings] Gemini batch échoué, fallback Ollama: ${error instanceof Error ? error.message : error}`)
+        logger.warn(`[Embeddings] Gemini batch échoué, fallback Ollama: ${error instanceof Error ? error.message : error}`)
       }
     }
   }
@@ -524,7 +525,7 @@ export function validateEmbedding(
   }
 
   if (norm > 100) {
-    console.warn(`[Embeddings] Norme inhabituellement élevée: ${norm.toFixed(4)}`)
+    logger.warn(`[Embeddings] Norme inhabituellement élevée: ${norm.toFixed(4)}`)
   }
 
   return { valid: true }
@@ -624,5 +625,5 @@ export function getCircuitBreakerState(): {
  * @deprecated Circuit breaker supprimé en mode no-fallback. No-op.
  */
 export function resetCircuitBreaker(): void {
-  console.log('[Embeddings] Circuit breaker désactivé (mode no-fallback)')
+  logger.info('[Embeddings] Circuit breaker désactivé (mode no-fallback)')
 }

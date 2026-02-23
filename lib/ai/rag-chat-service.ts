@@ -60,6 +60,9 @@ import {
   SUMMARY_CONFIG,
 } from './conversation-summary-service'
 import { RAGLogger } from '@/lib/logging/rag-logger'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('RAG')
 import { countTokens } from './token-utils'
 import { getDynamicBoostFactors } from './feedback-service'
 import {
@@ -506,7 +509,7 @@ async function rerankSources(
     try {
       boosts = (await getDynamicBoostFactors()).factors
     } catch (err) {
-      console.warn('[RAG] Erreur getDynamicBoostFactors, utilisation valeurs statiques:', err)
+      log.warn('[RAG] Erreur getDynamicBoostFactors, utilisation valeurs statiques:', err)
       boosts = SOURCE_BOOST
     }
   }
@@ -536,7 +539,7 @@ async function rerankSources(
         const branch = s.metadata?.branch as string | undefined
         if (branch && branch !== 'autre' && branchOptions.forbiddenBranches.includes(branch)) {
           boost *= 0.4
-          console.log(`[RAG Branch] Pénalité 0.4× sur "${s.documentName}" (branch=${branch}, confidence=${routerConfidence.toFixed(2)})`)
+          log.info(`[RAG Branch] Pénalité 0.4× sur "${s.documentName}" (branch=${branch}, confidence=${routerConfidence.toFixed(2)})`)
         }
       }
     }
@@ -610,7 +613,7 @@ async function rerankSources(
       // Re-trier par score combiné
       rankedSources.sort((a, b) => b.boostedScore - a.boostedScore)
     } catch (error) {
-      console.error('[RAG] Erreur cross-encoder, fallback boost simple:', error)
+      log.error('[RAG] Erreur cross-encoder, fallback boost simple:', error)
       // Continuer avec le tri par boost simple
       rankedSources.sort((a, b) => b.boostedScore - a.boostedScore)
     }
@@ -652,7 +655,7 @@ function countSourcesByType(sources: ChatSource[]): Record<string, number> {
  * Log les métriques de recherche RAG
  */
 function logSearchMetrics(metrics: SearchMetrics): void {
-  console.log('[RAG Search]', JSON.stringify({
+  log.info('[RAG Search]', JSON.stringify({
     totalFound: metrics.totalFound,
     aboveThreshold: metrics.aboveThreshold,
     scores: {
@@ -710,10 +713,10 @@ export async function searchRelevantContext(
       try {
         embeddingQuestion = await expandQuery(question)
         if (embeddingQuestion !== question) {
-          console.log(`[RAG Search] Query expandée: ${question} → ${embeddingQuestion.substring(0, 80)}...`)
+          log.info(`[RAG Search] Query expandée: ${question} → ${embeddingQuestion.substring(0, 80)}...`)
         }
       } catch (error) {
-        console.error('[RAG Search] Erreur expansion query:', error)
+        log.error('[RAG Search] Erreur expansion query:', error)
         embeddingQuestion = question
       }
     } else if (question.length > 200) {
@@ -724,10 +727,10 @@ export async function searchRelevantContext(
         embeddingQuestion = await withTimeout(condenseQuery(question), 5000, 'condenseQuery')
           .catch(() => question) // Fallback silencieux : question originale
         if (embeddingQuestion !== question) {
-          console.log(`[RAG Search] Query condensée: ${question.length} chars → "${embeddingQuestion}" (${embeddingQuestion.length} chars)`)
+          log.info(`[RAG Search] Query condensée: ${question.length} chars → "${embeddingQuestion}" (${embeddingQuestion.length} chars)`)
         }
       } catch (error) {
-        console.error('[RAG Search] Erreur condensation query:', error)
+        log.error('[RAG Search] Erreur condensation query:', error)
         embeddingQuestion = question
       }
     }
@@ -739,7 +742,7 @@ export async function searchRelevantContext(
     const { enrichQueryWithLegalSynonyms } = await import('./query-expansion-service')
     const enriched = enrichQueryWithLegalSynonyms(embeddingQuestion)
     if (enriched !== embeddingQuestion) {
-      console.log(`[RAG Search] Synonymes juridiques: ${embeddingQuestion.substring(0, 50)}... → +synonymes`)
+      log.info(`[RAG Search] Synonymes juridiques: ${embeddingQuestion.substring(0, 50)}... → +synonymes`)
       embeddingQuestion = enriched
     }
   } catch (error) {
@@ -769,7 +772,7 @@ export async function searchRelevantContext(
   const searchScope: SearchScope = { userId, dossierId }
   const cachedResults = await getCachedSearchResults(queryEmbedding.embedding, searchScope)
   if (cachedResults) {
-    console.log(`[RAG Search] Cache HIT - ${cachedResults.length} sources (${Date.now() - startTime}ms)`)
+    log.info(`[RAG Search] Cache HIT - ${cachedResults.length} sources (${Date.now() - startTime}ms)`)
     return { sources: cachedResults as ChatSource[], cacheHit: true }
   }
 
@@ -895,7 +898,7 @@ export async function searchRelevantContext(
         ? await _earlyRouterPromise
         : await (await import('./legal-router-service')).routeQuery(question, { maxTracks: 4 })
     } catch (routerError) {
-      console.warn('[RAG Search] Router échoué, fallback recherche KB sans classification:', routerError instanceof Error ? routerError.message : routerError)
+      log.warn('[RAG Search] Router échoué, fallback recherche KB sans classification:', routerError instanceof Error ? routerError.message : routerError)
     }
   }
   const classification = routerResult?.classification || null
@@ -922,7 +925,7 @@ export async function searchRelevantContext(
       // Phase 1: Multi-track retrieval si le router a généré plusieurs tracks ET classification disponible
       const tracks = routerResult?.tracks || []
       if (tracks.length > 1 && classification) {
-        console.log(
+        log.info(
           `[RAG Search] Multi-track: ${tracks.length} tracks, ${tracks.reduce((a, t) => a + t.searchQueries.length, 0)} queries (source: ${routerResult?.source}, confiance: ${(classification.confidence * 100).toFixed(1)}%)`
         )
         const { searchMultiTrack } = await import('./knowledge-base-service')
@@ -935,9 +938,9 @@ export async function searchRelevantContext(
       } else {
         // Fallback: recherche globale hybride classique (aussi utilisé si classification null)
         if (!classification) {
-          console.warn('[RAG Search] Classification null (routeQuery échoué?), fallback recherche KB globale')
+          log.warn('[RAG Search] Classification null (routeQuery échoué?), fallback recherche KB globale')
         } else {
-          console.log(
+          log.info(
             `[RAG Search] Recherche KB globale hybride (classifieur: ${classification.categories.join(', ')}, domaines: ${classification.domains.join(',') || 'aucun'}, confiance: ${(classification.confidence * 100).toFixed(1)}%, seuil: ${globalThreshold})`
           )
         }
@@ -957,7 +960,7 @@ export async function searchRelevantContext(
         )
         const excluded = before - kbResults.length
         if (excluded > 0) {
-          console.log(`[RAG Search] excludeCategories: ${excluded} chunks exclus (${options.excludeCategories.join(', ')})`)
+          log.info(`[RAG Search] excludeCategories: ${excluded} chunks exclus (${options.excludeCategories.join(', ')})`)
         }
       }
 
@@ -979,8 +982,8 @@ export async function searchRelevantContext(
       // CRITIQUE: Ne PAS avaler silencieusement les erreurs KB
       // Si la KB search échoue, le chat retournera "pas de documents" → mauvaise UX
       const errMsg = error instanceof Error ? error.message : String(error)
-      console.error('[RAG Search] ❌ ERREUR CRITIQUE recherche knowledge base:', errMsg)
-      console.error('[RAG Search] Stack:', error instanceof Error ? error.stack : 'N/A')
+      log.error('[RAG Search] ❌ ERREUR CRITIQUE recherche knowledge base:', errMsg)
+      log.error('[RAG Search] Stack:', error instanceof Error ? error.stack : 'N/A')
       // Propager l'erreur pour déclencher le mode dégradé au lieu de retourner 0 sources
       throw error
     }
@@ -1018,7 +1021,7 @@ export async function searchRelevantContext(
         (s) => s.similarity >= adaptiveThreshold
       )
       if (adaptiveResults.length > rerankedSources.length) {
-        console.log(`[RAG Search] Seuil adaptatif: ${rerankedSources.length} → ${adaptiveResults.length} résultats (seuil ${adaptiveThreshold.toFixed(2)}, plancher ${ADAPTIVE_FLOOR})`)
+        log.info(`[RAG Search] Seuil adaptatif: ${rerankedSources.length} → ${adaptiveResults.length} résultats (seuil ${adaptiveThreshold.toFixed(2)}, plancher ${ADAPTIVE_FLOOR})`)
         rerankedSources = await rerankSources(adaptiveResults, question, undefined, branchOptions, options.stance)
       }
     }
@@ -1030,11 +1033,11 @@ export async function searchRelevantContext(
       const { gateSourceRelevance } = await import('./relevance-gate-service')
       const gating = await gateSourceRelevance(question, rerankedSources, classification)
       if (gating.blocked.length > 0) {
-        console.log(`[RAG Gate] Bloqué ${gating.blocked.length} sources hors-domaine`)
+        log.info(`[RAG Gate] Bloqué ${gating.blocked.length} sources hors-domaine`)
         rerankedSources = gating.passed
       }
     } catch (error) {
-      console.error('[RAG Gate] Erreur gating, skip:', error instanceof Error ? error.message : error)
+      log.error('[RAG Gate] Erreur gating, skip:', error instanceof Error ? error.message : error)
     }
   }
 
@@ -1047,7 +1050,7 @@ export async function searchRelevantContext(
 
   // Si trop de sources filtrées, logger pour monitoring
   if (filteredResult.filteredCount > 0) {
-    console.log(`[RAG Filter] ⚠️  ${filteredResult.filteredCount} source(s) filtrée(s) (abrogées/suspendues)`)
+    log.info(`[RAG Filter] ⚠️  ${filteredResult.filteredCount} source(s) filtrée(s) (abrogées/suspendues)`)
   }
 
   // Limiter au nombre demandé (sur sources valides filtrées)
@@ -1063,7 +1066,7 @@ export async function searchRelevantContext(
   const effectiveGate = hasVectorResults ? HARD_QUALITY_GATE_VECTOR : HARD_QUALITY_GATE
   if (finalSources.length > 0 && finalSources.every(s => s.similarity < effectiveGate)) {
     const bestScore = Math.max(...finalSources.map(s => s.similarity))
-    console.warn(`[RAG Search] ⚠️ Hard quality gate (${effectiveGate}, lang=${queryLang}): toutes ${finalSources.length} sources < seuil, meilleur score=${bestScore.toFixed(3)}, retour 0 sources`)
+    log.warn(`[RAG Search] ⚠️ Hard quality gate (${effectiveGate}, lang=${queryLang}): toutes ${finalSources.length} sources < seuil, meilleur score=${bestScore.toFixed(3)}, retour 0 sources`)
     return { sources: [], cacheHit: false }
   }
 
@@ -1085,7 +1088,7 @@ export async function searchRelevantContext(
     }
     logSearchMetrics(metrics)
   } else {
-    console.log('[RAG Search]', JSON.stringify({
+    log.info('[RAG Search]', JSON.stringify({
       totalFound: 0,
       aboveThreshold: 0,
       timeMs: searchTimeMs,
@@ -1126,7 +1129,7 @@ async function searchRelevantContextBilingual(
 
   // Détecter la langue de la question
   const detectedLang = detectLanguage(question)
-  console.log(`[RAG Bilingual] Langue détectée: ${detectedLang}`)
+  log.info(`[RAG Bilingual] Langue détectée: ${detectedLang}`)
 
   // ========================================
   // PARALLÉLISATION Phase 2.1 : Recherche primaire + Traduction en parallèle
@@ -1156,11 +1159,11 @@ async function searchRelevantContextBilingual(
   // Vérifier résultat recherche primaire — fallback KB search simple si timeout
   if (primaryResult.status === 'rejected') {
     const errMsg = primaryResult.reason instanceof Error ? primaryResult.reason.message : String(primaryResult.reason)
-    console.error('[RAG Bilingual] Erreur recherche primaire:', errMsg)
+    log.error('[RAG Bilingual] Erreur recherche primaire:', errMsg)
 
     // Fallback : recherche KB simple (sans router/expansion) pour éviter 0 résultats
     try {
-      console.log('[RAG Bilingual] Fallback recherche KB simple...')
+      log.info('[RAG Bilingual] Fallback recherche KB simple...')
       const fallbackResults = await withTimeout(
         searchKnowledgeBaseHybrid(question, { limit: 10 }),
         15000,
@@ -1174,11 +1177,11 @@ async function searchRelevantContextBilingual(
           similarity: r.similarity || 0,
           metadata: r.metadata,
         }))
-        console.log(`[RAG Bilingual] Fallback: ${fallbackSources.length} sources récupérées`)
+        log.info(`[RAG Bilingual] Fallback: ${fallbackSources.length} sources récupérées`)
         return { sources: fallbackSources, cacheHit: false }
       }
     } catch (fallbackErr) {
-      console.error('[RAG Bilingual] Fallback KB search échoué:', fallbackErr instanceof Error ? fallbackErr.message : fallbackErr)
+      log.error('[RAG Bilingual] Fallback KB search échoué:', fallbackErr instanceof Error ? fallbackErr.message : fallbackErr)
     }
 
     return { sources: [], cacheHit: false }
@@ -1186,7 +1189,7 @@ async function searchRelevantContextBilingual(
 
   // Si traduction non disponible ou échouée, retourner résultats primaires seuls
   if (!canTranslate || translationResult.status === 'rejected') {
-    console.log(
+    log.info(
       `[RAG Bilingual] Traduction ${!canTranslate ? 'désactivée' : 'échouée'}, retour résultats primaires seuls`
     )
     return primaryResult.value
@@ -1198,7 +1201,7 @@ async function searchRelevantContextBilingual(
 
   // Si moins de 15s restantes, ne pas lancer la recherche secondaire
   if (remaining < 15000) {
-    console.log(
+    log.info(
       `[RAG Bilingual] Temps restant insuffisant (${remaining}ms < 15s), skip recherche secondaire`
     )
     return primaryResult.value
@@ -1207,11 +1210,11 @@ async function searchRelevantContextBilingual(
   // Vérifier validité traduction
   const translation = translationResult.value
   if (!translation.success || translation.translatedText === question) {
-    console.log('[RAG Bilingual] Traduction identique ou invalide, retour résultats primaires')
+    log.info('[RAG Bilingual] Traduction identique ou invalide, retour résultats primaires')
     return primaryResult.value
   }
 
-  console.log(`[RAG Bilingual] Question traduite: "${translation.translatedText.substring(0, 50)}..."`)
+  log.info(`[RAG Bilingual] Question traduite: "${translation.translatedText.substring(0, 50)}..."`)
 
   // ========================================
   // Recherche secondaire avec timeout adaptatif
@@ -1225,7 +1228,7 @@ async function searchRelevantContextBilingual(
       'recherche secondaire'
     )
   } catch (error) {
-    console.warn(
+    log.warn(
       '[RAG Bilingual] Timeout recherche secondaire, retour résultats primaires seuls:',
       error instanceof Error ? error.message : error
     )
@@ -1277,7 +1280,7 @@ async function searchRelevantContextBilingual(
   const finalSources = mergedSources.slice(0, maxResults)
 
   const totalTimeMs = Date.now() - startTime
-  console.log(
+  log.info(
     `[RAG Bilingual PARALLEL] Fusion: ${primarySources.length} primaires + ${secondarySources.length} secondaires → ${finalSources.length} finaux (${totalTimeMs}ms, -${Math.round((1 - totalTimeMs / BILINGUAL_SEARCH_TIMEOUT_MS) * 100)}% vs timeout)`
   )
 
@@ -1445,7 +1448,7 @@ async function enrichSourceWithStructuredMetadata(source: ChatSource): Promise<a
       }
     }
   } catch (error) {
-    console.error('[RAG Context] Erreur enrichissement métadonnées:', error)
+    log.error('[RAG Context] Erreur enrichissement métadonnées:', error)
   }
 
   return source.metadata
@@ -1632,7 +1635,7 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
 
     // Vérifier si on dépasse la limite
     if (totalTokens + partTokens + separatorTokens > RAG_MAX_CONTEXT_TOKENS) {
-      console.log(`[RAG Context] Limite atteinte: ${sourcesUsed}/${sources.length} sources, ~${totalTokens} tokens`)
+      log.info(`[RAG Context] Limite atteinte: ${sourcesUsed}/${sources.length} sources, ~${totalTokens} tokens`)
       break
     }
 
@@ -1641,7 +1644,7 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
     sourcesUsed++
   }
 
-  console.log(`[RAG Context] ${sourcesUsed}/${sources.length} sources, ~${totalTokens} tokens, métadonnées enrichies`)
+  log.info(`[RAG Context] ${sourcesUsed}/${sources.length} sources, ~${totalTokens} tokens, métadonnées enrichies`)
 
   // Grouper les sources par type pour faciliter le croisement par le LLM
   // On garde les index originaux pour préserver le numérotage [KB-N]
@@ -1823,7 +1826,7 @@ export async function answerQuestion(
   // retourner un message clair au lieu d'appeler le LLM (évite les hallucinations)
   if (!isDegradedMode && sources.length === 0) {
     const noSourcesLang = detectLanguage(question)
-    console.warn(`[RAG Diagnostic] 🔍 Aucune source trouvée pour requête:`, {
+    log.warn(`[RAG Diagnostic] 🔍 Aucune source trouvée pour requête:`, {
       queryLength: question.length,
       language: noSourcesLang,
       queryPreview: question.substring(0, 100) + (question.length > 100 ? '...' : ''),
@@ -1895,7 +1898,7 @@ export async function answerQuestion(
     const abstentionReason = isHardAbstention
       ? `Similarité ${Math.round(avg * 100)}% < 30% (sources non pertinentes)`
       : `Zone grise: similarité ${Math.round(avg * 100)}% (30-40%) avec seulement ${sources.length} source(s)`
-    console.log(`[RAG] Abstention: ${abstentionReason}`)
+    log.info(`[RAG] Abstention: ${abstentionReason}`)
     const abstentionMsg = questionLang === 'fr'
       ? 'Je n\'ai pas trouvé de sources suffisamment pertinentes dans la base de connaissances pour répondre à cette question de manière fiable. Je vous recommande de consulter directement les textes juridiques officiels ou un professionnel du droit.'
       : 'لم أجد مصادر كافية في قاعدة المعرفة للإجابة على هذا السؤال بشكل موثوق. أنصحك بالرجوع مباشرة إلى النصوص القانونية الرسمية أو استشارة مختص في القانون.'
@@ -1913,7 +1916,7 @@ export async function answerQuestion(
 
   // Zone grise acceptée (0.30-0.40 avec ≥2 sources) → log avertissement
   if (isGreyZone) {
-    console.log(`[RAG] Zone grise acceptée: similarité ${Math.round(avg * 100)}%, ${sources.length} sources — réponse avec avertissement`)
+    log.info(`[RAG] Zone grise acceptée: similarité ${Math.round(avg * 100)}%, ${sources.length} sources — réponse avec avertissement`)
   }
 
   let contextWithWarning = context
@@ -1966,7 +1969,7 @@ export async function answerQuestion(
       })
     } catch (mcError) {
       // Non-bloquant : si le multi-chain échoue, on continue sans lui
-      console.error('[MultiChain] Erreur (non-bloquant):', mcError instanceof Error ? mcError.message : mcError)
+      log.error('[MultiChain] Erreur (non-bloquant):', mcError instanceof Error ? mcError.message : mcError)
     }
   }
 
@@ -2040,7 +2043,7 @@ export async function answerQuestion(
 
   // Log si résumé utilisé
   if (conversationSummary) {
-    console.log(`[RAG] Conversation ${options.conversationId}: résumé injecté (${totalMessageCount} messages total)`)
+    log.info(`[RAG] Conversation ${options.conversationId}: résumé injecté (${totalMessageCount} messages total)`)
   }
 
   // Construire le système prompt avec résumé pour Anthropic
@@ -2048,7 +2051,7 @@ export async function answerQuestion(
     ? `${baseSystemPrompt}\n\n[Résumé de la conversation précédente]\n${conversationSummary}`
     : baseSystemPrompt
 
-  console.log(`[RAG] Utilisation du prompt structuré: contextType=${contextType}, langue=${supportedLang}`)
+  log.info(`[RAG] Utilisation du prompt structuré: contextType=${contextType}, langue=${supportedLang}`)
 
   let answer: string
   let tokensUsed: { input: number; output: number; total: number }
@@ -2120,7 +2123,7 @@ export async function answerQuestion(
         const citationValidation = validateCitationFirst(answer)
 
         if (!citationValidation.valid) {
-          console.warn(
+          log.warn(
             `[RAG] Citation-first violation detected: ${citationValidation.issue} ` +
             `(words before citation: ${citationValidation.metrics.wordsBeforeFirstCitation})`
           )
@@ -2140,13 +2143,13 @@ export async function answerQuestion(
           const correctedValidation = validateCitationFirst(correctedAnswer)
 
           if (correctedValidation.valid) {
-            console.log(
+            log.info(
               `[RAG] Citation-first enforced successfully ` +
               `(${citationValidation.issue} → valid)`
             )
             answer = correctedAnswer
           } else {
-            console.warn(
+            log.warn(
               `[RAG] Citation-first enforcement partial ` +
               `(issue: ${correctedValidation.issue})`
             )
@@ -2154,7 +2157,7 @@ export async function answerQuestion(
             answer = correctedAnswer
           }
         } else {
-          console.log(
+          log.info(
             `[RAG] Citation-first validation passed ` +
             `(${citationValidation.metrics.totalCitations} citations, ` +
             `${citationValidation.metrics.wordsBeforeFirstCitation} words before first)`
@@ -2164,7 +2167,7 @@ export async function answerQuestion(
 
       // Log si fallback utilisé
       if (fallbackUsed && llmResponse.originalProvider) {
-        console.log(
+        log.info(
           `[RAG] Fallback LLM activé: ${llmResponse.originalProvider} → ${llmResponse.provider}`
         )
       }
@@ -2216,7 +2219,7 @@ export async function answerQuestion(
     provider: modelUsed,
   })
 
-  console.log('RAG_METRICS', JSON.stringify({
+  log.info('RAG_METRICS', JSON.stringify({
     searchTimeMs,
     llmTimeMs,
     totalTimeMs,
@@ -2287,10 +2290,10 @@ export async function answerQuestion(
         if (ratio < 0.7) {
           answer += '\n\n⚠️ تنبيه: بعض الاستنتاجات قد لا تكون مدعومة بشكل كافٍ بالمصادر المتوفرة. يُرجى التحقق.'
         }
-        console.log(`[Claim Verify] ${claimResult.supportedClaims}/${claimResult.totalClaims} claims supportées`)
+        log.info(`[Claim Verify] ${claimResult.supportedClaims}/${claimResult.totalClaims} claims supportées`)
       }
     } catch (error) {
-      console.error('[Claim Verify] Erreur:', error instanceof Error ? error.message : error)
+      log.error('[Claim Verify] Erreur:', error instanceof Error ? error.message : error)
     }
   }
 
@@ -2309,7 +2312,7 @@ export async function answerQuestion(
         const branchCheck = verifyBranchAlignment(sources, allowedBranches)
 
         if (branchCheck.violatingCount > 0) {
-          console.warn(
+          log.warn(
             `[RAG Sprint3] ${branchCheck.violatingCount}/${branchCheck.totalSources} sources hors-domaine détectées:`,
             branchCheck.violatingSources.map(v => `${v.documentName} (branch=${v.branch})`).join(', ')
           )
@@ -2338,16 +2341,16 @@ export async function answerQuestion(
             sources = alignedSources
             wasRegenerated = true
             validationStatus = 'regenerated'
-            console.log('[RAG Sprint3] ✅ Réponse régénérée avec sources filtrées par domaine')
+            log.info('[RAG Sprint3] ✅ Réponse régénérée avec sources filtrées par domaine')
           } else {
             validationStatus = 'insufficient_sources'
-            console.warn('[RAG Sprint3] Sources filtrées insuffisantes (<2) — pas de régénération')
+            log.warn('[RAG Sprint3] Sources filtrées insuffisantes (<2) — pas de régénération')
           }
         }
       }
     } catch (error) {
       // Non-bloquant : si la régénération échoue, on garde la réponse originale
-      console.error('[RAG Sprint3] Erreur validation branche:', error instanceof Error ? error.message : error)
+      log.error('[RAG Sprint3] Erreur validation branche:', error instanceof Error ? error.message : error)
     }
   }
 
@@ -2427,7 +2430,7 @@ export async function* answerQuestionStream(
     sources = searchResult.sources
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Erreur recherche contexte'
-    console.error('[RAG Stream] Erreur recherche:', errMsg)
+    log.error('[RAG Stream] Erreur recherche:', errMsg)
     yield { type: 'error', message: errMsg }
     return
   }
@@ -2459,7 +2462,7 @@ export async function* answerQuestionStream(
     const abstentionReason = streamIsHardAbstention
       ? `Similarité ${Math.round(streamAvg * 100)}% < 30%`
       : `Zone grise: similarité ${Math.round(streamAvg * 100)}% avec ${sources.length} source(s)`
-    console.log(`[RAG Stream] Abstention: ${abstentionReason}`)
+    log.info(`[RAG Stream] Abstention: ${abstentionReason}`)
     const abstentionMsg = questionLang === 'fr'
       ? 'Je n\'ai pas trouvé de sources suffisamment pertinentes dans la base de connaissances pour répondre à cette question de manière fiable. Je vous recommande de consulter directement les textes juridiques officiels ou un professionnel du droit.'
       : 'لم أجد مصادر كافية في قاعدة المعرفة للإجابة على هذا السؤال بشكل موثوق. أنصحك بالرجوع مباشرة إلى النصوص القانونية الرسمية أو استشارة مختص في القانون.'
@@ -2470,7 +2473,7 @@ export async function* answerQuestionStream(
   }
 
   if (streamIsGreyZone) {
-    console.log(`[RAG Stream] Zone grise acceptée: similarité ${Math.round(streamAvg * 100)}%, ${sources.length} sources`)
+    log.info(`[RAG Stream] Zone grise acceptée: similarité ${Math.round(streamAvg * 100)}%, ${sources.length} sources`)
   }
 
   const contextWithWarning = qualityMetrics.warningMessage
@@ -2552,7 +2555,7 @@ export async function* answerQuestionStream(
     }
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Erreur streaming LLM'
-    console.error('[RAG Stream] Erreur streaming:', errMsg)
+    log.error('[RAG Stream] Erreur streaming:', errMsg)
     yield { type: 'error', message: errMsg }
     return
   }

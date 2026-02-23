@@ -26,6 +26,7 @@ import { buildPageMapFromText, getPageForPosition } from '@/lib/web-scraper/file
 import type { PageMapEntry } from '@/lib/web-scraper/file-parser-service'
 import { OCR_CONFIDENCE_WARN_THRESHOLD } from '@/lib/types/citation-locator'
 import type { CitationLocator } from '@/lib/types/citation-locator'
+import { logger } from '@/lib/logger'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse en RSC
 async function getDocumentParser() {
@@ -237,7 +238,7 @@ export async function uploadKnowledgeDocument(
       [doc.id, uploadedBy, 'Version initiale', 'create']
     )
   } catch (error) {
-    console.error(`Erreur création version initiale pour ${doc.id}:`, error)
+    logger.error(`Erreur création version initiale pour ${doc.id}:`, error)
   }
 
   // Auto-indexation async via queue si demandée et service disponible
@@ -246,9 +247,9 @@ export async function uploadKnowledgeDocument(
       // Utiliser la queue async au lieu d'indexer synchroniquement
       const { addToQueue } = await import('./indexing-queue-service')
       await addToQueue('knowledge_base', doc.id, 5, { title: doc.title })
-      console.log(`[KB] Document ${doc.id} ajouté à la queue d'indexation`)
+      logger.info(`[KB] Document ${doc.id} ajouté à la queue d'indexation`)
     } catch (error) {
-      console.error(`Erreur ajout queue indexation document ${doc.id}:`, error)
+      logger.error(`Erreur ajout queue indexation document ${doc.id}:`, error)
       // Continue sans échouer - le document est créé mais pas indexé
     }
   }
@@ -411,7 +412,7 @@ export async function indexKnowledgeDocument(
   // ✨ QUALITY GATE: Bloquer l'indexation des docs de très faible qualité
   // Seulement si quality_score a déjà été calculé (pas NULL) et est < 40
   if (doc.quality_score !== null && doc.quality_score < 40) {
-    console.warn(
+    logger.warn(
       `[KB Index] ⚠️ QUALITY GATE: Doc ${documentId} ("${doc.title?.substring(0, 40)}") ` +
       `bloqué pour indexation - quality_score=${doc.quality_score} < 40`
     )
@@ -432,7 +433,7 @@ export async function indexKnowledgeDocument(
   })
   if (!inclusionCheck.accepted) {
     const reason = inclusionCheck.blockers[0] || 'Règle d\'inclusion non satisfaite'
-    console.warn(`[KB Index] ⚠️ INCLUSION GATE: Doc ${documentId} bloqué — ${reason}`)
+    logger.warn(`[KB Index] ⚠️ INCLUSION GATE: Doc ${documentId} bloqué — ${reason}`)
     // Stocker la raison dans metadata pour monitoring
     await db.query(
       `UPDATE knowledge_base SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('exclusion_reason', $1) WHERE id = $2`,
@@ -441,13 +442,13 @@ export async function indexKnowledgeDocument(
     return { success: false, chunksCreated: 0, error: `Inclusion gate: ${reason}` }
   }
   if (inclusionCheck.warnings.length > 0) {
-    console.log(`[KB Index] ⚠️ Warnings pour ${documentId}: ${inclusionCheck.warnings.join(', ')}`)
+    logger.info(`[KB Index] ⚠️ Warnings pour ${documentId}: ${inclusionCheck.warnings.join(', ')}`)
   }
 
   // ✨ C1: Tracking version si re-indexation (Sprint 3)
   if (doc.is_indexed) {
     trackDocumentVersion(documentId, doc.full_text, 'system').catch(err =>
-      console.error(`[KB Index] Erreur version tracking pour ${documentId}:`, err)
+      logger.error(`[KB Index] Erreur version tracking pour ${documentId}:`, err)
     )
   }
 
@@ -497,16 +498,16 @@ export async function indexKnowledgeDocument(
           return results.embeddings
         }
       )
-      console.log(`[KB Index] Semantic chunking: ${chunks.length} chunks (catégorie=${category})`)
+      logger.info(`[KB Index] Semantic chunking: ${chunks.length} chunks (catégorie=${category})`)
     } catch (error) {
-      console.error('[KB Index] Semantic chunking failed, fallback classique:', error instanceof Error ? error.message : error)
+      logger.error('[KB Index] Semantic chunking failed, fallback classique:', error instanceof Error ? error.message : error)
       chunks = chunkText(textToChunk, chunkingOptions)
     }
   } else {
     chunks = chunkText(textToChunk, chunkingOptions)
   }
 
-  console.log(
+  logger.info(
     `[KB Index] Chunking adaptatif: catégorie=${category}, size=${chunkConfig.size}, overlap=${chunkConfig.overlap}, chunks=${chunks.length}`
   )
 
@@ -539,7 +540,7 @@ export async function indexKnowledgeDocument(
       const allChunksCovered = chunks.every((c) => geminiMap.has(c.content))
       if (allChunksCovered) {
         savedGeminiEmbeddings = chunks.map((c) => geminiMap.get(c.content)!)
-        console.log(`[KB Index] Embeddings Gemini réutilisés (${savedGeminiEmbeddings.length} chunks, skip API Gemini)`)
+        logger.info(`[KB Index] Embeddings Gemini réutilisés (${savedGeminiEmbeddings.length} chunks, skip API Gemini)`)
       }
     }
   }
@@ -560,22 +561,22 @@ export async function indexKnowledgeDocument(
 
   // Déterminer la colonne d'embedding selon le provider utilisé
   const embeddingColumn = primaryEmbeddings.provider === 'openai' ? 'embedding_openai' : 'embedding'
-  console.log(`[KB Index] Provider embeddings: ${primaryEmbeddings.provider} → colonne ${embeddingColumn}`)
+  logger.info(`[KB Index] Provider embeddings: ${primaryEmbeddings.provider} → colonne ${embeddingColumn}`)
 
   if (geminiEmbeddingsResult.status === 'rejected') {
-    console.warn(`[KB Index] Embeddings Gemini non disponibles: ${geminiEmbeddingsResult.reason?.message || 'erreur inconnue'}`)
+    logger.warn(`[KB Index] Embeddings Gemini non disponibles: ${geminiEmbeddingsResult.reason?.message || 'erreur inconnue'}`)
   }
   const hasGeminiEmbeddings = geminiEmbeddingsResult.status === 'fulfilled' && geminiEmbeddingsResult.value.embeddings.length > 0
   if (hasGeminiEmbeddings) {
-    console.log(`[KB Index] Embeddings Gemini générés (768-dim) pour ${geminiEmbeddingsResult.value.embeddings.length} chunks`)
+    logger.info(`[KB Index] Embeddings Gemini générés (768-dim) pour ${geminiEmbeddingsResult.value.embeddings.length} chunks`)
   }
 
   if (ollamaEmbeddingsResult.status === 'rejected') {
-    console.warn(`[KB Index] Embeddings Ollama non disponibles: ${ollamaEmbeddingsResult.reason?.message || 'erreur inconnue'}`)
+    logger.warn(`[KB Index] Embeddings Ollama non disponibles: ${ollamaEmbeddingsResult.reason?.message || 'erreur inconnue'}`)
   }
   const hasOllamaEmbeddings = ollamaEmbeddingsResult.status === 'fulfilled' && ollamaEmbeddingsResult.value.embeddings.length > 0
   if (hasOllamaEmbeddings) {
-    console.log(`[KB Index] Embeddings Ollama générés (1024-dim) pour ${ollamaEmbeddingsResult.value.embeddings.length} chunks`)
+    logger.info(`[KB Index] Embeddings Ollama générés (1024-dim) pour ${ollamaEmbeddingsResult.value.embeddings.length} chunks`)
   }
 
   // Générer un embedding pour le document entier (titre + description)
@@ -666,7 +667,7 @@ export async function indexKnowledgeDocument(
            WHERE kbc.knowledge_base_id = $3 AND kbc.chunk_index = batch.idx`,
           [indices, vectors, documentId]
         )
-        console.log(`[KB Index] Embeddings Ollama écrits pour ${indices.length} chunks (batch)`)
+        logger.info(`[KB Index] Embeddings Ollama écrits pour ${indices.length} chunks (batch)`)
       }
     }
 
@@ -701,7 +702,7 @@ export async function indexKnowledgeDocument(
       `UPDATE web_pages SET chunks_count = $2, updated_at = NOW()
        WHERE knowledge_base_id = $1 AND chunks_count IS DISTINCT FROM $2`,
       [documentId, chunks.length]
-    ).catch((err) => console.error('[KB Index] Erreur sync chunks_count web_pages:', err))
+    ).catch((err) => logger.error('[KB Index] Erreur sync chunks_count web_pages:', err))
 
     // Invalider le cache des documents similaires
     await onKnowledgeDocumentChange(documentId, 'index')
@@ -712,7 +713,7 @@ export async function indexKnowledgeDocument(
       await addToQueue('kb_quality_analysis', documentId, 3)
       await addToQueue('kb_duplicate_check', documentId, 2)
     } catch (queueError) {
-      console.error('[KnowledgeBase] Erreur ajout jobs qualité/doublons:', queueError)
+      logger.error('[KnowledgeBase] Erreur ajout jobs qualité/doublons:', queueError)
     }
 
     return { success: true, chunksCreated: chunks.length }
@@ -899,8 +900,8 @@ export async function searchKnowledgeBase(
   } = {}
 ): Promise<KnowledgeBaseSearchResult[]> {
   if (!isSemanticSearchEnabled()) {
-    console.log('[KB Search] ❌ Recherche sémantique DÉSACTIVÉE - isSemanticSearchEnabled()=false')
-    console.log('[KB Search] Debug config:', {
+    logger.info('[KB Search] ❌ Recherche sémantique DÉSACTIVÉE - isSemanticSearchEnabled()=false')
+    logger.info('[KB Search] Debug config:', {
       'RAG_ENABLED': process.env.RAG_ENABLED,
       'OLLAMA_ENABLED': process.env.OLLAMA_ENABLED,
       'OPENAI_API_KEY': process.env.OPENAI_API_KEY ? 'SET' : 'NOT SET'
@@ -930,7 +931,7 @@ export async function searchKnowledgeBase(
   const useOpenAI = queryEmbedding.provider === 'openai'
 
   // Log pour debug
-  console.log(`[KB Search] Provider: ${queryEmbedding.provider}, dimensions: ${queryEmbedding.embedding.length}`)
+  logger.info(`[KB Search] Provider: ${queryEmbedding.provider}, dimensions: ${queryEmbedding.embedding.length}`)
 
   // Recherche via la fonction SQL flexible
   const result = await db.query(
@@ -1022,7 +1023,7 @@ export async function searchKnowledgeBaseHybrid(
   } = {}
 ): Promise<KnowledgeBaseSearchResult[]> {
   if (!isSemanticSearchEnabled()) {
-    console.log('[KB Hybrid Search] ❌ Recherche sémantique DÉSACTIVÉE')
+    logger.info('[KB Hybrid Search] ❌ Recherche sémantique DÉSACTIVÉE')
     return []
   }
 
@@ -1079,10 +1080,10 @@ export async function searchKnowledgeBaseHybrid(
   const openaiStatus = openaiEmbResult.status === 'fulfilled' ? openaiEmbResult.value.provider : 'failed'
   const ollamaStatus = ollamaEmbResult.status === 'fulfilled' ? ollamaEmbResult.value.provider : 'failed'
   const geminiStatus = geminiEmbResult.status === 'fulfilled' ? geminiEmbResult.value.provider : 'failed'
-  console.log(
+  logger.info(
     `[KB Hybrid Search] Triple-embed: OpenAI=${openaiStatus}, Ollama=${ollamaStatus}, Gemini=${geminiStatus}, Type: ${queryAnalysis.type}, Weights: vector=${queryAnalysis.weights.vector} / bm25=${queryAnalysis.weights.bm25}, Query: "${queryText.substring(0, 50)}..."`
   )
-  console.log(`[KB Hybrid Search] Rationale: ${queryAnalysis.rationale}`)
+  logger.info(`[KB Hybrid Search] Rationale: ${queryAnalysis.rationale}`)
 
   // 2. Lancer les recherches disponibles en parallèle
   const searchPromises: Promise<KnowledgeBaseSearchResult[]>[] = []
@@ -1145,7 +1146,7 @@ export async function searchKnowledgeBaseHybrid(
   }
 
   if (searchPromises.length === 0) {
-    console.warn('[KB Hybrid Search] Aucun embedding disponible (OpenAI + Ollama + Gemini tous en échec)')
+    logger.warn('[KB Hybrid Search] Aucun embedding disponible (OpenAI + Ollama + Gemini tous en échec)')
     return []
   }
 
@@ -1179,7 +1180,7 @@ export async function searchKnowledgeBaseHybrid(
     .slice(0, sqlCandidatePool)
 
   const providerSummary = Object.entries(countByProvider).map(([p, c]) => `${c} ${p}`).join(' + ')
-  console.log(`[KB Hybrid Search] Triple-parallel: ${providerSummary} → ${results.length} total après dédup (pool=${sqlCandidatePool})`)
+  logger.info(`[KB Hybrid Search] Triple-parallel: ${providerSummary} → ${results.length} total après dédup (pool=${sqlCandidatePool})`)
 
   return results
 }
@@ -1243,7 +1244,7 @@ export async function searchMultiTrack(
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, limit)
 
-  console.log(`[Multi-Track] ${tracks.length} tracks, ${searchPromises.length} queries → ${merged.length} résultats après dédup`)
+  logger.info(`[Multi-Track] ${tracks.length} tracks, ${searchPromises.length} queries → ${merged.length} résultats après dédup`)
 
   return merged
 }
@@ -1488,7 +1489,7 @@ export async function deleteKnowledgeDocument(documentId: string): Promise<boole
     try {
       await deleteFile(sourceFile, KNOWLEDGE_BASE_BUCKET)
     } catch (error) {
-      console.error(`Erreur suppression fichier MinIO ${sourceFile}:`, error)
+      logger.error(`Erreur suppression fichier MinIO ${sourceFile}:`, error)
       // Continue sans échouer
     }
   }
@@ -1616,7 +1617,7 @@ export async function updateKnowledgeDocumentContent(
       try {
         await deleteFile(existingDoc.sourceFile, KNOWLEDGE_BASE_BUCKET)
       } catch (error) {
-        console.error(`Erreur suppression ancien fichier:`, error)
+        logger.error(`Erreur suppression ancien fichier:`, error)
       }
     }
 
@@ -1669,11 +1670,11 @@ export async function updateKnowledgeDocumentContent(
     try {
       const indexResult = await indexKnowledgeDocument(documentId)
       if (!indexResult.success) {
-        console.error(`Échec ré-indexation document ${documentId}: ${indexResult.error}`)
+        logger.error(`Échec ré-indexation document ${documentId}: ${indexResult.error}`)
         reindexFailed = true
       }
     } catch (error) {
-      console.error(`Erreur ré-indexation document ${documentId}:`, error)
+      logger.error(`Erreur ré-indexation document ${documentId}:`, error)
       reindexFailed = true
     }
   }
@@ -1739,7 +1740,7 @@ export async function restoreKnowledgeDocumentVersion(
     const doc = await getKnowledgeDocument(documentId)
     return { success: true, document: doc || undefined }
   } catch (error) {
-    console.error('Erreur restauration version:', error)
+    logger.error('Erreur restauration version:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erreur lors de la restauration',
