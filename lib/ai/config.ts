@@ -125,7 +125,7 @@ export const aiConfig: AIConfig = {
     enabled: process.env.RAG_ENABLED === 'true',
     chunkSize: parseInt(process.env.RAG_CHUNK_SIZE || '1200', 10), // Augmenté de 512 → 1200 pour meilleur contexte
     chunkOverlap: parseInt(process.env.RAG_CHUNK_OVERLAP || '200', 10), // Augmenté de 50 → 200 pour moins de perte
-    maxResults: parseInt(process.env.RAG_MAX_RESULTS || '5', 10),
+    maxResults: parseInt(process.env.RAG_MAX_RESULTS || '7', 10), // Augmenté 5→7 pour couvrir plus de key points (Judge Score)
     similarityThreshold: parseFloat(
       process.env.RAG_SIMILARITY_THRESHOLD || '0.55'  // Réduit de 0.7 à 0.55 pour Ollama CPU-only
     ),

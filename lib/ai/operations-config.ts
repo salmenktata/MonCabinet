@@ -308,7 +308,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     llmConfig: {
       temperature: 0.1,
-      maxTokens: 200,
+      maxTokens: 400, // Augmenté 200→400 pour reasoning plus détaillé + few-shot parsing
     },
 
     alerts: { onFailure: 'log', severity: 'info' },

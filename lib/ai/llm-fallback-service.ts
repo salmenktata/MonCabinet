@@ -72,6 +72,79 @@ const LLM_FALLBACK_ENABLED = process.env.LLM_FALLBACK_ENABLED === 'true'
 const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'openai', 'ollama']
 
 // =============================================================================
+// CIRCUIT BREAKER
+// =============================================================================
+
+interface CircuitBreakerState {
+  failCount: number
+  cooldownUntil: number // timestamp ms
+}
+
+/** État du circuit breaker par provider (en mémoire, reset à chaque démarrage) */
+const circuitBreakerMap = new Map<LLMProvider, CircuitBreakerState>()
+
+const CIRCUIT_BREAKER_FAIL_THRESHOLD = 5    // Nb d'échecs avant ouverture
+const CIRCUIT_BREAKER_INITIAL_COOLDOWN_MS = 60_000  // 60s de cooldown initial
+const CIRCUIT_BREAKER_MAX_COOLDOWN_MS = 300_000     // 5 min max
+
+/**
+ * Enregistre un échec pour un provider. Ouvre le circuit si seuil atteint.
+ */
+function recordProviderFailure(provider: LLMProvider): void {
+  const state = circuitBreakerMap.get(provider) ?? { failCount: 0, cooldownUntil: 0 }
+  state.failCount += 1
+
+  if (state.failCount >= CIRCUIT_BREAKER_FAIL_THRESHOLD) {
+    // Backoff exponentiel : 60s → 120s → 240s → 300s max
+    const exponent = Math.min(state.failCount - CIRCUIT_BREAKER_FAIL_THRESHOLD, 3)
+    const cooldownMs = Math.min(
+      CIRCUIT_BREAKER_INITIAL_COOLDOWN_MS * Math.pow(2, exponent),
+      CIRCUIT_BREAKER_MAX_COOLDOWN_MS
+    )
+    state.cooldownUntil = Date.now() + cooldownMs
+    console.warn(
+      `[CircuitBreaker] 🔴 ${provider} ouvert après ${state.failCount} échecs — cooldown ${cooldownMs / 1000}s`
+    )
+  }
+
+  circuitBreakerMap.set(provider, state)
+}
+
+/**
+ * Enregistre un succès pour un provider. Réinitialise le compteur d'échecs.
+ */
+function recordProviderSuccess(provider: LLMProvider): void {
+  const state = circuitBreakerMap.get(provider)
+  if (state && state.failCount > 0) {
+    state.failCount = 0
+    state.cooldownUntil = 0
+    circuitBreakerMap.set(provider, state)
+  }
+}
+
+/**
+ * Vérifie si un provider est disponible selon son état de circuit breaker.
+ * Retourne false si le circuit est ouvert (en cooldown).
+ */
+function isProviderCircuitClosed(provider: LLMProvider): boolean {
+  const state = circuitBreakerMap.get(provider)
+  if (!state) return true
+
+  if (state.cooldownUntil > 0 && Date.now() < state.cooldownUntil) {
+    const remainingSec = Math.ceil((state.cooldownUntil - Date.now()) / 1000)
+    console.warn(`[CircuitBreaker] ⛔ ${provider} en cooldown (${remainingSec}s restants)`)
+    return false
+  }
+
+  // Cooldown expiré → circuit en half-open (on laisse passer 1 tentative)
+  if (state.cooldownUntil > 0 && Date.now() >= state.cooldownUntil) {
+    console.log(`[CircuitBreaker] 🟡 ${provider} half-open — tentative de rétablissement`)
+  }
+
+  return true
+}
+
+// =============================================================================
 // CLIENTS LLM (singletons)
 // =============================================================================
 
@@ -494,27 +567,56 @@ export async function callLLMWithFallback(
       }
     }
 
+    // Vérifier le circuit breaker avant d'appeler le provider
+    if (!isProviderCircuitClosed(provider)) {
+      // Circuit ouvert → chercher un fallback disponible immédiatement
+      const available = getAvailableProviders().filter(p => p !== provider && isProviderCircuitClosed(p))
+      if (available.length > 0) {
+        const fallbackProvider = available[0]
+        console.warn(
+          `[LLM] ⚡ Circuit ouvert pour ${provider}, redirection directe → ${fallbackProvider} (${options.operationName || 'default'})`
+        )
+        try {
+          const response = await callProvider(fallbackProvider, messages, options)
+          recordProviderSuccess(fallbackProvider)
+          return { ...response, fallbackUsed: true, originalProvider: provider }
+        } catch (fallbackErr) {
+          recordProviderFailure(fallbackProvider)
+          throw new Error(
+            `Circuit ouvert pour ${provider} et fallback ${fallbackProvider} échoué: ${fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)}`
+          )
+        }
+      }
+      throw new Error(
+        `Circuit ouvert pour ${provider} (${options.operationName || 'default'}) et aucun provider alternatif disponible`
+      )
+    }
+
     console.log(
       `[LLM] ${options.operationName || 'default'} → ${provider} (no-fallback)`
     )
 
     try {
-      return await callProvider(provider, messages, options)
+      const response = await callProvider(provider, messages, options)
+      recordProviderSuccess(provider)
+      return response
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error))
 
-      // Sur erreur récupérable (429 rate-limit, 5xx serveur, timeout) → cascade Gemini→OpenAI→Ollama
+      // Sur erreur récupérable (429 rate-limit, 5xx serveur, timeout) → enregistrer + cascade fallback
       const isRecoverable = isRateLimitError(error) || isServerOrTimeoutError(error)
       if (isRecoverable) {
+        recordProviderFailure(provider)
         const reason = isRateLimitError(error) ? 'rate-limité' : 'erreur serveur/timeout'
         console.warn(
           `[LLM] ⚠️ ${provider} ${reason} pour ${options.operationName || 'default'}, cascade fallback...`
         )
-        // Trouver les providers alternatifs disponibles
-        const available = getAvailableProviders().filter(p => p !== provider)
+        // Trouver les providers alternatifs disponibles avec circuit fermé
+        const available = getAvailableProviders().filter(p => p !== provider && isProviderCircuitClosed(p))
         for (const fallbackProvider of available) {
           try {
             const response = await callProvider(fallbackProvider, messages, options)
+            recordProviderSuccess(fallbackProvider)
             console.log(`[LLM] ✓ Fallback réussi: ${provider} → ${fallbackProvider} (${reason})`)
             return {
               ...response,
@@ -522,6 +624,7 @@ export async function callLLMWithFallback(
               originalProvider: provider,
             }
           } catch (fallbackErr) {
+            recordProviderFailure(fallbackProvider)
             console.warn(`[LLM] ⚠ Fallback ${fallbackProvider} échoué:`, fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr))
           }
         }
@@ -530,6 +633,9 @@ export async function callLLMWithFallback(
           `Provider ${provider} indisponible (${reason}) et aucun fallback pour ${options.operationName || 'default'}: ${err.message}`
         )
       }
+
+      // Enregistrer l'échec non-récupérable dans le circuit breaker
+      recordProviderFailure(provider)
 
       // Envoyer alerte si opération critique
       if (operationConfig?.alerts?.onFailure === 'email') {

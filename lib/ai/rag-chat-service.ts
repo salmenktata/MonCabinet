@@ -1805,9 +1805,19 @@ export async function answerQuestion(
   // Calculer métriques qualité et injecter avertissement si nécessaire
   const qualityMetrics = computeSourceQualityMetrics(sources)
 
-  // B1: Abstention systématique — bypass complet du LLM si sources trop faibles
-  if (qualityMetrics.averageSimilarity < 0.40 && qualityMetrics.qualityLevel === 'low') {
-    const abstentionReason = `Similarité ${Math.round(qualityMetrics.averageSimilarity * 100)}% < 40%`
+  // B1: Abstention progressive — quality gate à 3 niveaux (zone grise 0.30-0.40)
+  // < 0.30 → abstention directe (sources non pertinentes)
+  // 0.30-0.40 → zone grise : accepté si ≥2 sources, sinon abstention
+  // ≥ 0.40 → accepté (comportement standard)
+  const avg = qualityMetrics.averageSimilarity
+  const isHardAbstention = avg < 0.30
+  const isGreyZone = avg >= 0.30 && avg < 0.40 && qualityMetrics.qualityLevel === 'low'
+  const isGreyZoneAbstention = isGreyZone && sources.length < 2
+
+  if (isHardAbstention || isGreyZoneAbstention) {
+    const abstentionReason = isHardAbstention
+      ? `Similarité ${Math.round(avg * 100)}% < 30% (sources non pertinentes)`
+      : `Zone grise: similarité ${Math.round(avg * 100)}% (30-40%) avec seulement ${sources.length} source(s)`
     console.log(`[RAG] Abstention: ${abstentionReason}`)
     const abstentionMsg = questionLang === 'fr'
       ? 'Je n\'ai pas trouvé de sources suffisamment pertinentes dans la base de connaissances pour répondre à cette question de manière fiable. Je vous recommande de consulter directement les textes juridiques officiels ou un professionnel du droit.'
@@ -1819,9 +1829,14 @@ export async function answerQuestion(
       model: 'abstained',
       conversationId: options.conversationId,
       qualityIndicator: 'low',
-      averageSimilarity: qualityMetrics.averageSimilarity,
+      averageSimilarity: avg,
       abstentionReason,
     }
+  }
+
+  // Zone grise acceptée (0.30-0.40 avec ≥2 sources) → log avertissement
+  if (isGreyZone) {
+    console.log(`[RAG] Zone grise acceptée: similarité ${Math.round(avg * 100)}%, ${sources.length} sources — réponse avec avertissement`)
   }
 
   let contextWithWarning = context
@@ -2346,17 +2361,28 @@ export async function* answerQuestionStream(
   const context = await buildContextFromSources(sources, questionLang)
   const qualityMetrics = computeSourceQualityMetrics(sources)
 
-  // B1: Abstention systématique en streaming — bypass LLM si sources trop faibles
-  if (qualityMetrics.averageSimilarity < 0.40 && qualityMetrics.qualityLevel === 'low') {
-    const abstentionReason = `Similarité ${Math.round(qualityMetrics.averageSimilarity * 100)}% < 40%`
+  // B1: Abstention progressive en streaming — quality gate à 3 niveaux (zone grise 0.30-0.40)
+  const streamAvg = qualityMetrics.averageSimilarity
+  const streamIsHardAbstention = streamAvg < 0.30
+  const streamIsGreyZone = streamAvg >= 0.30 && streamAvg < 0.40 && qualityMetrics.qualityLevel === 'low'
+  const streamIsGreyZoneAbstention = streamIsGreyZone && sources.length < 2
+
+  if (streamIsHardAbstention || streamIsGreyZoneAbstention) {
+    const abstentionReason = streamIsHardAbstention
+      ? `Similarité ${Math.round(streamAvg * 100)}% < 30%`
+      : `Zone grise: similarité ${Math.round(streamAvg * 100)}% avec ${sources.length} source(s)`
     console.log(`[RAG Stream] Abstention: ${abstentionReason}`)
     const abstentionMsg = questionLang === 'fr'
       ? 'Je n\'ai pas trouvé de sources suffisamment pertinentes dans la base de connaissances pour répondre à cette question de manière fiable. Je vous recommande de consulter directement les textes juridiques officiels ou un professionnel du droit.'
       : 'لم أجد مصادر كافية في قاعدة المعرفة للإجابة على هذا السؤال بشكل موثوق. أنصحك بالرجوع مباشرة إلى النصوص القانونية الرسمية أو استشارة مختص في القانون.'
-    yield { type: 'metadata', sources: [], model: 'abstained', qualityIndicator: 'low', averageSimilarity: qualityMetrics.averageSimilarity }
+    yield { type: 'metadata', sources: [], model: 'abstained', qualityIndicator: 'low', averageSimilarity: streamAvg }
     yield { type: 'chunk', text: abstentionMsg }
     yield { type: 'done', tokensUsed: { input: 0, output: 0, total: 0 } }
     return
+  }
+
+  if (streamIsGreyZone) {
+    console.log(`[RAG Stream] Zone grise acceptée: similarité ${Math.round(streamAvg * 100)}%, ${sources.length} sources`)
   }
 
   const contextWithWarning = qualityMetrics.warningMessage

@@ -29,6 +29,20 @@ const JUDGE_SYSTEM_PROMPT = `Tu es un juge expert en droit tunisien. Ta tâche e
 Pour chaque point clé, vérifie s'il est couvert dans la réponse (même reformulé ou exprimé différemment).
 Un point est "couvert" s'il est mentionné explicitement OU si son sens est clairement transmis.
 
+Sois GÉNÉREUX dans ton évaluation : un concept exprimé avec des synonymes ou une reformulation équivalente est couvert.
+Un point NOT couvert = absent de la réponse sans aucune allusion.
+
+Exemples few-shot :
+---
+Points clés: ["prescription 5 ans", "droit de recours", "notification obligatoire"]
+Réponse: "Le délai de prescription est de cinq années à compter de la date de connaissance. La partie lésée peut exercer un recours devant le tribunal compétent. La loi impose une mise en demeure préalable."
+→ {"covered": 3, "total": 3, "reasoning": "Prescription 5 ans ✓, recours ✓ (exercer un recours), notification ✓ (mise en demeure)"}
+---
+Points clés: ["accord écrit exigé", "nullité du contrat", "compétence exclusive tribunal commercial"]
+Réponse: "Le contrat verbal est insuffisant car la loi exige un écrit signé par les deux parties. Tout contrat non conforme est frappé de nullité absolue."
+→ {"covered": 2, "total": 3, "reasoning": "Accord écrit ✓, nullité ✓, compétence tribunal commercial ✗ (non mentionné)"}
+---
+
 Réponds UNIQUEMENT en JSON valide, sans markdown ni backticks :
 {"covered": <nombre de points couverts>, "total": <nombre total de points>, "reasoning": "<explication courte>"}`
 
@@ -68,7 +82,7 @@ Points clés attendus:
 ${keyPointsList}
 
 Réponse à évaluer:
-${generatedAnswer.substring(0, 3000)}
+${generatedAnswer.substring(0, 5000)}
 
 Évalue combien de points clés sont couverts dans la réponse. Réponds en JSON.`,
     },
@@ -77,7 +91,7 @@ ${generatedAnswer.substring(0, 3000)}
   try {
     const response = await callLLMWithFallback(messages, {
       temperature: 0.1,
-      maxTokens: 200,
+      maxTokens: 400, // Augmenté 200→400 pour reasoning plus détaillé
       operationName: 'rag-eval-judge',
     })
 
