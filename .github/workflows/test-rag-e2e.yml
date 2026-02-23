@@ -46,6 +46,17 @@ jobs:
         if: github.event_name == 'workflow_run'
         run: sleep 60  # Attendre 60s après déploiement
 
+      - name: Reset E2E test account quota
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+        run: |
+          sudo apt-get install -y -q sshpass
+          sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" \
+            "docker exec qadhya-postgres psql -U moncabinet -d qadhya -c \
+            \"UPDATE feature_flags SET monthly_ai_queries_used = 0 WHERE user_id = (SELECT id FROM users WHERE email = 'e2e-test@qadhya.tn');\""
+
       - name: Run E2E Tests - RAG Configuration
         env:
           PLAYWRIGHT_BASE_URL: https://qadhya.tn
