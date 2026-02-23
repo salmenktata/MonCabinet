@@ -213,13 +213,13 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     timeouts: {
       embedding: 5000,
-      chat: 50000, // Gemini pour consultation longue (4K tokens output)
-      total: 60000,
+      chat: 40000, // Gemini ~25 t/s → 2000 tokens ≈ 80s théorique mais stream → 40s suffisant
+      total: 55000, // Aligné sur Nginx 120s, marge suffisante sans dépasser
     },
 
     llmConfig: {
       temperature: 0.1,
-      maxTokens: 4000,
+      maxTokens: 2000, // Réduit 4000→2000 : évite timeout (4000 tokens ≈ 160s Gemini non-stream)
       systemPromptType: 'consultation',
     },
 
