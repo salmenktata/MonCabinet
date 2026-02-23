@@ -493,7 +493,7 @@ async function rerankSources(
   sources: ChatSource[],
   query?: string,
   boostFactors?: Record<string, number>,
-  branchOptions?: { forbiddenBranches?: string[]; allowedBranches?: string[] },
+  branchOptions?: { forbiddenBranches?: string[]; allowedBranches?: string[]; routerConfidence?: number },
   stance?: LegalStance
 ): Promise<ChatSource[]> {
   if (sources.length === 0) return sources
@@ -527,12 +527,17 @@ async function rerankSources(
       }
     }
 
-    // Sprint 1 RAG Audit-Proof: pénalité forte pour branches hors-scope (×0.05 ≈ élimination)
+    // Sprint 1 RAG Audit-Proof: pénalité douce pour branches hors-scope
+    // ×0.4 (était ×0.05 ≈ élimination — trop agressif, causait faux-négatifs sur LLM routing)
+    // Gate confiance : pas de pénalité si routeur peu confiant (<0.70)
     if (branchOptions?.forbiddenBranches && branchOptions.forbiddenBranches.length > 0) {
-      const branch = s.metadata?.branch as string | undefined
-      if (branch && branch !== 'autre' && branchOptions.forbiddenBranches.includes(branch)) {
-        boost *= 0.05
-        console.log(`[RAG Branch] Pénalité 0.05× sur "${s.documentName}" (branch=${branch}, forbidden=[${branchOptions.forbiddenBranches.join(',')}])`)
+      const routerConfidence = branchOptions.routerConfidence ?? 1.0
+      if (routerConfidence >= 0.70) {
+        const branch = s.metadata?.branch as string | undefined
+        if (branch && branch !== 'autre' && branchOptions.forbiddenBranches.includes(branch)) {
+          boost *= 0.4
+          console.log(`[RAG Branch] Pénalité 0.4× sur "${s.documentName}" (branch=${branch}, confidence=${routerConfidence.toFixed(2)})`)
+        }
       }
     }
 
@@ -992,7 +997,11 @@ export async function searchRelevantContext(
 
   // Sprint 1 RAG Audit-Proof: branches issues du routeur pour pénaliser sources hors-domaine
   const branchOptions = routerResult
-    ? { forbiddenBranches: routerResult.forbiddenBranches, allowedBranches: routerResult.allowedBranches }
+    ? {
+        forbiddenBranches: routerResult.forbiddenBranches,
+        allowedBranches: routerResult.allowedBranches,
+        routerConfidence: routerResult.classification.confidence,
+      }
     : undefined
 
   // Appliquer re-ranking avec boost dynamique, cross-encoder et diversité
