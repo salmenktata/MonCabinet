@@ -11,6 +11,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { db } from '@/lib/db/postgres'
+import { NORM_LEVEL_RAG_BOOSTS } from '@/lib/categories/norm-levels'
 import {
   generateEmbedding,
   formatEmbeddingForPostgres,
@@ -385,6 +386,15 @@ function getTemporalRecencyBoost(
 function getHierarchyBoost(metadata: Record<string, unknown> | undefined): number {
   if (!metadata) return 1.0
 
+  // Priorité 1 : norm_level explicite (champ DB synced dans JSONB après migration)
+  const normLevel = normalizeHierarchyValue(metadata.norm_level)
+  if (normLevel && NORM_LEVEL_RAG_BOOSTS[normLevel as keyof typeof NORM_LEVEL_RAG_BOOSTS]) {
+    const classBoost = HIERARCHY_CLASS_BOOST['norme']  // 1.08
+    return classBoost * NORM_LEVEL_RAG_BOOSTS[normLevel as keyof typeof NORM_LEVEL_RAG_BOOSTS]
+    // ex: Constitution = 1.08 × 1.25 = 1.35
+  }
+
+  // Fallback : logique existante basée sur category/doc_type + regex
   const category = normalizeHierarchyValue(metadata.category)
   const docTypeMeta = normalizeHierarchyValue(metadata.doc_type)
   const docTypeRaw = normalizeHierarchyValue(
@@ -1282,11 +1292,13 @@ const USER_MESSAGE_TEMPLATES = {
     prefix: 'وثائق مرجعية:',
     questionLabel: 'السؤال:',
     analysisHint: 'تعليمات: استخرج الشروط القانونية من كل فصل، حدّد الآجال والإجراءات العملية، واربط بين النصوص المختلفة.',
+    followUpHint: 'متابعة: لقد أجبت بالفعل على الأسئلة السابقة في هذه المحادثة. لا تكرر ما سبق ذكره. أجب فقط على الجانب الجديد أو المحدد في هذا السؤال بشكل مباشر ومختصر.',
   },
   fr: {
     prefix: 'Documents du dossier:',
     questionLabel: 'Question:',
     analysisHint: 'Instructions: extraire les conditions légales de chaque article, identifier les délais et procédures, relier les textes entre eux.',
+    followUpHint: 'SUIVI : Tu as déjà répondu aux questions précédentes dans cette conversation. NE PAS RÉPÉTER ce qui a déjà été expliqué. Répondre UNIQUEMENT à ce qui est nouveau ou spécifiquement demandé dans cette question, de façon directe et ciblée.',
   },
 }
 
@@ -1989,11 +2001,22 @@ export async function answerQuestion(
 
   // Ajouter la nouvelle question avec le contexte (template bilingue)
   const msgTemplate = USER_MESSAGE_TEMPLATES[supportedLang]
-  // Ajouter l'instruction d'analyse seulement pour le chat (pas consultation/structuration)
-  const analysisLine = contextType === 'chat' ? `\n${msgTemplate.analysisHint}\n` : ''
+  // Détecter si c'est un follow-up (au moins 1 échange Q+R précédent)
+  const isFollowUp = contextType === 'chat' && conversationHistory.length >= 2
+  const questionNumber = isFollowUp ? Math.floor(conversationHistory.length / 2) + 1 : null
+  // Pour les follow-ups : instruction anti-répétition. Pour Q1 : instruction d'analyse.
+  let analysisLine = ''
+  if (contextType === 'chat') {
+    if (isFollowUp) {
+      analysisLine = `\n${msgTemplate.followUpHint}\n`
+    } else {
+      analysisLine = `\n${msgTemplate.analysisHint}\n`
+    }
+  }
+  const questionPrefix = questionNumber ? `[Question ${questionNumber}]\n` : ''
   messagesOpenAI.push({
     role: 'user',
-    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n${analysisLine}\n---\n\n${msgTemplate.questionLabel} ${question}`,
+    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n${analysisLine}\n---\n\n${questionPrefix}${msgTemplate.questionLabel} ${question}`,
   })
 
   // Messages format Anthropic (sans 'system' dans les messages)
@@ -2471,11 +2494,22 @@ export async function* answerQuestionStream(
     messagesForLLM.push({ role: msg.role, content: msg.content })
   }
   const msgTemplate = USER_MESSAGE_TEMPLATES[supportedLang]
-  // Ajouter l'instruction d'analyse seulement pour le chat
-  const analysisLine = contextType === 'chat' ? `\n${msgTemplate.analysisHint}\n` : ''
+  // Détecter si c'est un follow-up (au moins 1 échange Q+R précédent)
+  const isFollowUp = contextType === 'chat' && conversationHistory.length >= 2
+  const questionNumber = isFollowUp ? Math.floor(conversationHistory.length / 2) + 1 : null
+  // Pour les follow-ups : instruction anti-répétition. Pour Q1 : instruction d'analyse.
+  let analysisLine = ''
+  if (contextType === 'chat') {
+    if (isFollowUp) {
+      analysisLine = `\n${msgTemplate.followUpHint}\n`
+    } else {
+      analysisLine = `\n${msgTemplate.analysisHint}\n`
+    }
+  }
+  const questionPrefix = questionNumber ? `[Question ${questionNumber}]\n` : ''
   messagesForLLM.push({
     role: 'user',
-    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n${analysisLine}\n---\n\n${msgTemplate.questionLabel} ${question}`,
+    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n${analysisLine}\n---\n\n${questionPrefix}${msgTemplate.questionLabel} ${question}`,
   })
 
   // 5. Yield metadata (sources disponibles avant le stream LLM)

@@ -694,7 +694,7 @@ Tu es un avocat de la demande stratégique avec 20 ans d'expérience. Ta mission
 export const PROMPT_CONFIG = {
   chat: {
     maxTokens: 8000,
-    temperature: 0.15, // Conservateur mais permet meilleure synthèse entre sources
+    temperature: 0.30, // Permet des réponses plus variées et interactives (multi-tours)
     preferConcise: false,
   },
   consultation: {
