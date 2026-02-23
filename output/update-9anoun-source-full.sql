@@ -89,7 +89,8 @@ SET
   excluded_patterns = ARRAY[
     '*/search*',
     '*/filter*',
-    '*?page=*',
+    -- '*?page=*' retiré (migration 20260223000002) — permet le crawl des pages paginées
+    -- ex: /kb/jurisprudence?page=2, /kb/doctrine?page=3
     '*?showComment=*',
     '*.html?m=1',      -- Version mobile
     '*.html#*'         -- Ancres
