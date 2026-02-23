@@ -7,6 +7,7 @@
 
 import type { LegalAbrogation, AbrogationSearchResult } from '@/types/legal-abrogations'
 import type { LegalReference, AbrogationAlert } from '@/types/abrogation-alerts'
+import { db } from '@/lib/db/postgres'
 
 // Re-export pour compatibilité
 export type { LegalReference, AbrogationAlert }
@@ -105,19 +106,35 @@ export async function searchAbrogationsForReferences(
 
   const allResults: AbrogationSearchResult[] = []
 
-  // Rechercher pour chaque référence
+  // Rechercher pour chaque référence — appel DB direct (pas de fetch relatif côté serveur)
   for (const ref of references) {
     try {
-      const query = ref.text
-      const res = await fetch(
-        `/api/legal/abrogations/search?q=${encodeURIComponent(query)}&threshold=${threshold}&limit=3`
+      const result = await db.query(
+        `SELECT * FROM find_abrogations($1, $2, $3)`,
+        [ref.text, threshold, 3]
       )
-
-      if (res.ok) {
-        const data = await res.json()
-        if (data.data && data.data.length > 0) {
-          allResults.push(...data.data)
-        }
+      if (result.rows.length > 0) {
+        const mapped: AbrogationSearchResult[] = result.rows.map((row) => ({
+          id: row.id,
+          abrogatedReference: row.abrogated_reference,
+          abrogatedReferenceAr: row.abrogated_reference_ar,
+          abrogatingReference: row.abrogating_reference,
+          abrogatingReferenceAr: row.abrogating_reference_ar,
+          abrogationDate: row.abrogation_date,
+          scope: row.scope as 'total' | 'partial' | 'implicit',
+          affectedArticles: row.affected_articles || [],
+          jortUrl: row.jort_url || '',
+          sourceUrl: row.source_url || '',
+          notes: row.notes || '',
+          domain: row.domain,
+          verified: row.verified,
+          confidence: row.confidence as 'high' | 'medium' | 'low',
+          verificationStatus: row.verification_status as 'verified' | 'pending' | 'disputed',
+          similarityScore: parseFloat(row.similarity_score),
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        }))
+        allResults.push(...mapped)
       }
     } catch (error) {
       console.error('[AbrogationDetector] Search error:', error)
