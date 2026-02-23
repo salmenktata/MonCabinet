@@ -205,6 +205,8 @@ export interface ChatOptions {
   docType?: DocumentType
   /** Posture stratégique : défense / attaque / neutre */
   stance?: LegalStance
+  /** Exclure des catégories de sources (filtre post-retrieval). Ex: ['google_drive'] */
+  excludeCategories?: string[]
 }
 
 export interface ConversationMessage {
@@ -874,6 +876,18 @@ export async function searchRelevantContext(
           operationName: options.operationName,
           docType: options.docType,
         })
+      }
+
+      // Filtrer les catégories exclues (post-retrieval)
+      if (options.excludeCategories && options.excludeCategories.length > 0) {
+        const before = kbResults.length
+        kbResults = kbResults.filter(
+          r => !options.excludeCategories!.includes(r.category as string)
+        )
+        const excluded = before - kbResults.length
+        if (excluded > 0) {
+          console.log(`[RAG Search] excludeCategories: ${excluded} chunks exclus (${options.excludeCategories.join(', ')})`)
+        }
       }
 
       // Ajouter résultats KB aux sources

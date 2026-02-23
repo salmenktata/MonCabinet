@@ -50,6 +50,7 @@ interface ChatRequestBody {
   actionType?: 'chat' | 'structure' | 'consult' // Nouveau: type d'action pour interface unifiée
   docType?: DocumentType // Nouveau: filtrer recherche KB par type de document
   stance?: LegalStance // Mode Avocat Stratège : défense / attaque / neutre
+  excludeCategories?: string[] // Exclure des catégories de sources (ex: ['google_drive'])
 }
 
 interface ChatApiResponse {
@@ -117,7 +118,8 @@ async function handleConsultAction(
   conversationId: string,
   dossierId?: string,
   docType?: DocumentType,
-  stance?: LegalStance
+  stance?: LegalStance,
+  excludeCategories?: string[]
 ) {
   // Utiliser answerQuestion avec configuration optimisée pour consultation
   const response = await answerQuestion(question, userId, {
@@ -128,6 +130,7 @@ async function handleConsultAction(
     operationName: 'dossiers-consultation', // Configuration IRAC formelle
     docType,
     stance,
+    excludeCategories,
   })
 
   return {
@@ -153,7 +156,8 @@ async function handleChatAction(
   includeJurisprudence = true,
   usePremiumModel = false,
   docType?: DocumentType,
-  stance?: LegalStance
+  stance?: LegalStance,
+  excludeCategories?: string[]
 ) {
   const response = await answerQuestion(question, userId, {
     dossierId,
@@ -163,6 +167,7 @@ async function handleChatAction(
     operationName: 'assistant-ia',
     docType,
     stance,
+    excludeCategories,
   })
 
   return {
@@ -215,6 +220,7 @@ export async function POST(
       actionType = 'chat', // Par défaut: conversation normale
       docType, // Nouveau: filtrage par type de document
       stance, // Mode Avocat Stratège
+      excludeCategories, // Exclure catégories (ex: ['google_drive'])
     } = body
 
     if (!question || question.trim().length < 3) {
@@ -297,7 +303,8 @@ export async function POST(
         includeJurisprudence,
         usePremiumModel,
         docType,
-        stance
+        stance,
+        excludeCategories
       )
     }
 
@@ -327,14 +334,14 @@ export async function POST(
           break
         case 'consult':
           response = await withTimeout(
-            handleConsultAction(question, userId, activeConversationId, dossierId, docType, stance),
+            handleConsultAction(question, userId, activeConversationId, dossierId, docType, stance, excludeCategories),
             ACTION_TIMEOUT_MS,
             'consult'
           )
           break
         default:
           response = await withTimeout(
-            handleChatAction(question, userId, activeConversationId, dossierId, includeJurisprudence, usePremiumModel, docType, stance),
+            handleChatAction(question, userId, activeConversationId, dossierId, includeJurisprudence, usePremiumModel, docType, stance, excludeCategories),
             ACTION_TIMEOUT_MS,
             'chat'
           )
@@ -615,7 +622,8 @@ async function handleStreamingResponse(
   includeJurisprudence: boolean = true,
   usePremiumModel: boolean = false,
   docType?: DocumentType,
-  stance?: LegalStance
+  stance?: LegalStance,
+  excludeCategories?: string[]
 ): Promise<Response> {
   const encoder = new TextEncoder()
 
@@ -628,6 +636,7 @@ async function handleStreamingResponse(
     operationName: 'assistant-ia',
     docType,
     stance,
+    excludeCategories,
   })
 
   let savedSources: ChatSource[] = []
