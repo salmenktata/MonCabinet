@@ -358,15 +358,34 @@ jobs:
           SIZE=$(du -sh deploy.tar.gz | cut -f1)
           echo "Deploy bundle: $SIZE"
 
+      - name: Cleanup stale deploy lock
+        continue-on-error: true
+        run: |
+          ssh vps '
+            LOCKFILE="/var/lock/qadhya-deploy.lock"
+            INFO_FILE="/var/lock/qadhya-deploy.info"
+            if [ -f "$INFO_FILE" ]; then
+              LOCK_TS=$(grep "Timestamp:" "$INFO_FILE" 2>/dev/null | awk "{print \$2}" || echo 0)
+              NOW=$(date +%s)
+              AGE=$((NOW - LOCK_TS))
+              if [ "$AGE" -gt 1800 ]; then
+                echo "Stale lock detected (${AGE}s old), cleaning up..."
+                rm -f "$INFO_FILE" "$LOCKFILE"
+              else
+                echo "Lock is recent (${AGE}s), leaving it."
+              fi
+            else
+              echo "No lock file found."
+            fi
+          '
+
       - name: Backup current code on VPS
-        timeout-minutes: 3
+        timeout-minutes: 5
         continue-on-error: true
         run: |
           ssh vps << 'BACKUP'
             mkdir -p /opt/moncabinet/rollback
             docker cp qadhya-nextjs:/app/server.js /opt/moncabinet/rollback/server.js 2>/dev/null || true
-            docker cp qadhya-nextjs:/app/.next /opt/moncabinet/rollback/.next 2>/dev/null || true
-            docker cp qadhya-nextjs:/app/public /opt/moncabinet/rollback/public 2>/dev/null || true
             echo "Backup completed at $(date)"
           BACKUP
 
