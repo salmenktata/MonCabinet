@@ -36,8 +36,8 @@ const TEST_EMAIL = process.env.TEST_USER_EMAIL || ''
 const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || ''
 const HAS_CREDENTIALS = !!TEST_EMAIL && !!TEST_PASSWORD
 
-/** Timeout LLM — 55s pour laisser de la marge (handler chat = 44s + Ollama AR ~10s) */
-const LLM_TIMEOUT_MS = 55_000
+/** Timeout LLM — 65s pour laisser de la marge (handler chat = 44s + latence réseau/Groq) */
+const LLM_TIMEOUT_MS = 65_000
 
 /** Timeout consultation — aligné sur notre fix P1 (55s total) */
 const CONSULTATION_TIMEOUT_MS = 60_000
@@ -510,6 +510,7 @@ test.describe('6 — Régression Implémentations RAG', () => {
   })
 
   test('P4 — judge: réponse suffisamment longue pour couvrir les key points', async ({ request }) => {
+    test.setTimeout(80_000) // maxResults=7 + Groq peut prendre jusqu'à 65s
     const response = await askRAG(
       request,
       authCookie,
