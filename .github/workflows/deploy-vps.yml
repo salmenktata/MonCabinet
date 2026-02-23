@@ -17,6 +17,10 @@ run-name: "Deploy #${{ github.run_number }} (${{ github.event.head_commit.messag
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'e2e/**'
+      - '.github/workflows/test-rag-e2e.yml'
+      - '**.md'
   workflow_dispatch:
     inputs:
       force_docker:
