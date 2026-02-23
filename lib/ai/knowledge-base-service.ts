@@ -670,20 +670,29 @@ export async function indexKnowledgeDocument(
       }
     }
 
-    // Mettre à jour le document avec son embedding, stratégie et marquer comme indexé
-    // Utiliser la bonne colonne selon le provider (OpenAI=1536-dim → embedding_openai, Ollama=1024-dim → embedding)
-    const docEmbeddingCol = docEmbeddingResult.provider === 'openai' ? 'embedding_openai' : 'embedding'
-    await client.query(
-      `UPDATE knowledge_base
-       SET ${docEmbeddingCol} = $1::vector, is_indexed = true, chunk_count = $2, chunking_strategy = $3, updated_at = NOW()
-       WHERE id = $4`,
-      [
-        formatEmbeddingForPostgres(docEmbeddingResult.embedding),
-        chunks.length,
-        strategy,
-        documentId
-      ]
-    )
+    // Mettre à jour le document — knowledge_base.embedding est vector(1024) (Ollama uniquement)
+    // Si embedding généré par OpenAI (1536-dim), on ne l'écrit pas dans cette colonne
+    const isOllamaEmbedding = docEmbeddingResult.embedding.length === 1024
+    if (isOllamaEmbedding) {
+      await client.query(
+        `UPDATE knowledge_base
+         SET embedding = $1::vector, is_indexed = true, chunk_count = $2, chunking_strategy = $3, updated_at = NOW()
+         WHERE id = $4`,
+        [
+          formatEmbeddingForPostgres(docEmbeddingResult.embedding),
+          chunks.length,
+          strategy,
+          documentId
+        ]
+      )
+    } else {
+      await client.query(
+        `UPDATE knowledge_base
+         SET is_indexed = true, chunk_count = $1, chunking_strategy = $2, updated_at = NOW()
+         WHERE id = $3`,
+        [chunks.length, strategy, documentId]
+      )
+    }
 
     await client.query('COMMIT')
 
