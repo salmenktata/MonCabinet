@@ -483,7 +483,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json
-          git diff --staged --quiet || (git commit -m "chore: bump version to v${{ steps.bump_version.outputs.version }} [skip ci]" && git pull --rebase origin main && git push origin main)
+          git diff --staged --quiet || (git stash && git pull --rebase origin main && git stash pop && git add package.json && git commit -m "chore: bump version to v${{ steps.bump_version.outputs.version }} [skip ci]" && git push origin main)
 
       - name: Rollback on failure
         if: failure()
@@ -718,7 +718,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json
-          git diff --staged --quiet || (git commit -m "chore: bump version to v${{ steps.bump_version.outputs.version }} [skip ci]" && git pull --rebase origin main && git push origin main)
+          git diff --staged --quiet || (git stash && git pull --rebase origin main && git stash pop && git add package.json && git commit -m "chore: bump version to v${{ steps.bump_version.outputs.version }} [skip ci]" && git push origin main)
 
   # ===========================================================================
   # Job 3: Post-Deploy Validation - Phase 5
