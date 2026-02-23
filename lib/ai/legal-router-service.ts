@@ -275,6 +275,20 @@ export async function routeQuery(
         }))
       : []
 
+    // Garantir que la query originale est présente dans au moins un track.
+    // Le LLM génère des queries courtes/arabes qui peuvent avoir moins d'affinité
+    // embedding avec les gold chunks que la query originale elle-même.
+    const queryAlreadyPresent = tracks.some(t => t.searchQueries.includes(query))
+    if (!queryAlreadyPresent) {
+      if (tracks.length > 0) {
+        // Ajouter en tête du track prioritaire (highest priority)
+        const topTrack = tracks.reduce((a, b) => (b.priority > a.priority ? b : a))
+        topTrack.searchQueries.unshift(query)
+      } else {
+        tracks.push({ label: 'Recherche directe', searchQueries: [query], priority: 1.0 })
+      }
+    }
+
     // Attacher tracks à la classification
     classification.legalTracks = tracks
 
