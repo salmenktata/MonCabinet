@@ -36,8 +36,8 @@ const TEST_EMAIL = process.env.TEST_USER_EMAIL || ''
 const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || ''
 const HAS_CREDENTIALS = !!TEST_EMAIL && !!TEST_PASSWORD
 
-/** Timeout LLM — aligné sur la valeur max du handler chat (44s) */
-const LLM_TIMEOUT_MS = 50_000
+/** Timeout LLM — 55s pour laisser de la marge (handler chat = 44s + Ollama AR ~10s) */
+const LLM_TIMEOUT_MS = 55_000
 
 /** Timeout consultation — aligné sur notre fix P1 (55s total) */
 const CONSULTATION_TIMEOUT_MS = 60_000
@@ -51,25 +51,38 @@ const CONSULTATION_TIMEOUT_MS = 60_000
  * Lance une erreur si l'authentification échoue.
  */
 async function getAuthCookie(request: APIRequestContext): Promise<string> {
-  const loginRes = await request.post(`${BASE_URL}/api/auth/login`, {
-    data: { email: TEST_EMAIL, password: TEST_PASSWORD },
-    headers: { 'Content-Type': 'application/json' },
-  })
+  // Retry jusqu'à 4 fois en cas de 502/503 (container en cours de redémarrage)
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    const loginRes = await request.post(`${BASE_URL}/api/auth/login`, {
+      data: { email: TEST_EMAIL, password: TEST_PASSWORD },
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30_000,
+    })
 
-  if (!loginRes.ok()) {
-    const body = await loginRes.text()
-    throw new Error(
-      `Login échoué (${loginRes.status()}): ${body.substring(0, 200)}`
-    )
-  }
+    if (loginRes.status() === 502 || loginRes.status() === 503) {
+      if (attempt < 4) {
+        // Serveur en cours de redémarrage — attendre 15s avant retry
+        await new Promise(resolve => setTimeout(resolve, 15_000))
+        continue
+      }
+    }
 
-  // Extraire auth_session depuis Set-Cookie
-  const setCookieHeader = loginRes.headers()['set-cookie'] || ''
-  const sessionMatch = setCookieHeader.match(/auth_session=[^;]+/)
-  if (!sessionMatch) {
-    throw new Error('Cookie auth_session absent de la réponse login')
+    if (!loginRes.ok()) {
+      const body = await loginRes.text()
+      throw new Error(
+        `Login échoué (${loginRes.status()}): ${body.substring(0, 200)}`
+      )
+    }
+
+    // Extraire auth_session depuis Set-Cookie
+    const setCookieHeader = loginRes.headers()['set-cookie'] || ''
+    const sessionMatch = setCookieHeader.match(/auth_session=[^;]+/)
+    if (!sessionMatch) {
+      throw new Error('Cookie auth_session absent de la réponse login')
+    }
+    return sessionMatch[0]
   }
-  return sessionMatch[0]
+  throw new Error('Login échoué après 4 tentatives (serveur instable ?)')
 }
 
 /**
@@ -257,6 +270,7 @@ test.describe('3 — Pipeline Chat AR', () => {
   })
 
   test('question légale AR → réponse en arabe ou bilingue', async ({ request }) => {
+    test.setTimeout(70_000) // Ollama embedding AR peut être plus lent
     const response = await askRAG(
       request,
       authCookie,
