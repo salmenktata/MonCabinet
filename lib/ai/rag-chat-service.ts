@@ -366,10 +366,24 @@ function getHierarchyBoost(metadata: Record<string, unknown> | undefined): numbe
  * Détecte si la query mentionne un domaine juridique spécifique
  * et retourne les patterns de titre à booster
  */
-function detectDomainBoost(query: string): { pattern: string; factor: number }[] | null {
+function detectDomainBoost(query: string): { pattern: string; factor: number; suppress?: boolean }[] | null {
   // ✨ Fix (Feb 2026): factor 1.25→2.5 pour compenser l'écart sémantique entre queries naturelles et textes légaux.
   // Seul le code EXACT attendu reçoit 2.5×. Les mauvais codes reçoivent seulement le CODE_BOOST générique.
-  const DOMAIN_KEYWORDS: { keywords: string[]; titlePatterns: string[]; factor: number }[] = [
+  // ✨ Fix (Feb 2026): Entrée prioritaire prescription de droit commun → COC (5.0×) + suppression comptabilité publique.
+  const DOMAIN_KEYWORDS: { keywords: string[]; titlePatterns: string[]; factor: number; suppress?: boolean }[] = [
+    // Prescription de droit commun → COC priorité maximale (avant entrée civil générique)
+    {
+      keywords: ['prescription', 'droit commun', 'délai de prescription', 'تقادم عادي', 'تقادم مدني', 'تقادم الالتزامات'],
+      titlePatterns: ['مجلة الالتزامات والعقود'],
+      factor: 5.0,
+    },
+    // Suppression comptabilité publique sur queries civiles/prescription (anti-faux-positif)
+    {
+      keywords: ['prescription', 'droit commun', 'délai de prescription', 'تقادم عادي', 'تقادم مدني', 'civil', 'مدني', 'التزامات'],
+      titlePatterns: ['مجلة المحاسبة العمومية'],
+      factor: 0.25,
+      suppress: true,
+    },
     // Pénal
     {
       keywords: ['جزائي', 'جزائية', 'جنائي', 'عقوبة', 'عقوبات', 'جريمة', 'القتل', 'السرقة', 'الدفاع الشرعي', 'الرشوة', 'pénal', 'criminel', 'légitime défense'],
@@ -378,9 +392,9 @@ function detectDomainBoost(query: string): { pattern: string; factor: number }[]
     },
     // Civil
     {
-      keywords: ['مدني', 'التزامات', 'عقود', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'civil', 'responsabilité', 'délictuel'],
+      keywords: ['مدني', 'التزامات', 'عقود', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'civil', 'responsabilité', 'délictuel', 'prescription', 'droit commun'],
       titlePatterns: ['مجلة الالتزامات والعقود'],
-      factor: 2.5,
+      factor: 3.0,
     },
     // Famille
     {
@@ -465,9 +479,18 @@ async function rerankSources(
     let boost = boosts[sourceType] || boosts.autre || SOURCE_BOOST.autre || 1.0
 
     // Boost sémantique: si la query mentionne un domaine, booster les résultats correspondants
+    // Les entrées avec suppress=true appliquent une pénalité (factor < 1) sur les mauvais codes
     if (domainBoost && s.documentName) {
-      for (const { pattern, factor } of domainBoost) {
-        if (s.documentName.includes(pattern)) {
+      // 1. Appliquer toutes les pénalités de suppression (faux positifs)
+      for (const { pattern, factor, suppress } of domainBoost) {
+        if (suppress && s.documentName.includes(pattern)) {
+          boost *= factor
+          console.log(`[RAG Domain] Pénalité ${factor}× sur "${s.documentName}" (anti-faux-positif)`)
+        }
+      }
+      // 2. Appliquer le premier (plus prioritaire) boost positif
+      for (const { pattern, factor, suppress } of domainBoost) {
+        if (!suppress && s.documentName.includes(pattern)) {
           boost *= factor
           break
         }
