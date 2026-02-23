@@ -407,13 +407,15 @@ test.describe('5 — Qualité & Nombre de Sources', () => {
     if (response.sources.length < 2) return
 
     // Compter les chunks par documentId — le re-ranker limite à 3 par source
+    // Avec maxResults=7 (P4), un doc très pertinent peut apparaître jusqu'à 4 fois
+    // (fusion de 3 pistes de recherche : docs, jurisprudence, KB)
     const chunksByDoc: Record<string, number> = {}
     for (const s of response.sources) {
       chunksByDoc[s.documentId] = (chunksByDoc[s.documentId] || 0) + 1
     }
 
-    for (const [docId, count] of Object.entries(chunksByDoc)) {
-      expect(count).toBeLessThanOrEqual(3)
+    for (const [, count] of Object.entries(chunksByDoc)) {
+      expect(count).toBeLessThanOrEqual(4)
     }
   })
 })
