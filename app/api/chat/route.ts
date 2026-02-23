@@ -320,8 +320,9 @@ export async function POST(
       abstentionReason?: string
     }
 
-    // Timeout global 44s (< timeout Nginx 60s) pour éviter les blocages Gemini
-    const ACTION_TIMEOUT_MS = 44000
+    // Timeout global adaptatif par type d'action (< timeout Nginx 300s)
+    // consult utilise 54s (aligné sur P1 fix: operations-config total=55s)
+    const ACTION_TIMEOUT_MS = actionType === 'consult' ? 54000 : 44000
 
     try {
       switch (actionType) {
