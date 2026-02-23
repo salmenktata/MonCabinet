@@ -144,8 +144,12 @@ export async function crawlSource(
     maxPages = sourceMaxPages,
     maxDepth = sourceMaxDepth,
     rateLimit = sourceRateLimit,
-    includePatterns = sourceUrlPatterns.map((p: string) => new RegExp(p)),
-    excludePatterns = sourceExcludedPatterns.map((p: string) => new RegExp(p)),
+    includePatterns = sourceUrlPatterns.flatMap((p: string) => {
+      try { return [new RegExp(p)] } catch { console.warn(`[Crawler] Pattern inclus invalide ignoré: "${p}"`); return [] }
+    }),
+    excludePatterns = sourceExcludedPatterns.flatMap((p: string) => {
+      try { return [new RegExp(p)] } catch { console.warn(`[Crawler] Pattern exclu invalide ignoré: "${p}"`); return [] }
+    }),
     downloadFiles = sourceDownloadFiles,
     incrementalMode = true,
   } = options

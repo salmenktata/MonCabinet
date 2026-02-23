@@ -88,9 +88,18 @@ export async function detectAndParseSitemap(
     }
   }
 
-  // 3. Si aucun sitemap trouvé
+  // 3. Si aucun sitemap trouvé → essayer le feed Atom Blogger comme fallback
   if (result.sitemapUrls.length === 0) {
-    console.log(`[SitemapDetector] Aucun sitemap détecté pour ${baseUrl}`)
+    console.log(`[SitemapDetector] Aucun sitemap détecté, tentative feed Atom Blogger...`)
+    const atomUrls = await fetchBloggerAtomFeed(normalizedBase)
+    if (atomUrls.length > 0) {
+      result.hasSitemap = true
+      result.pageUrls = atomUrls
+      result.totalPages = atomUrls.length
+      console.log(`[SitemapDetector] ✓ Feed Atom Blogger: ${atomUrls.length} URLs récupérées`)
+    } else {
+      console.log(`[SitemapDetector] Aucune source de découverte pour ${baseUrl}`)
+    }
     return result
   }
 
@@ -108,7 +117,67 @@ export async function detectAndParseSitemap(
 
   console.log(`[SitemapDetector] ✓ ${result.totalPages} URLs extraites du sitemap`)
 
+  // 5. Fallback Atom Blogger si le sitemap retourne peu d'URLs
+  //    Blogger sitemap.xml peut parfois être incomplet (certains blogs custom)
+  if (result.totalPages < 50) {
+    console.log(`[SitemapDetector] Sitemap incomplet (${result.totalPages} URLs), tentative feed Atom Blogger...`)
+    const atomUrls = await fetchBloggerAtomFeed(normalizedBase)
+    if (atomUrls.length > result.totalPages) {
+      atomUrls.forEach(url => allUrls.add(url))
+      result.pageUrls = Array.from(allUrls)
+      result.totalPages = result.pageUrls.length
+      console.log(`[SitemapDetector] ✓ Feed Atom Blogger: total porté à ${result.totalPages} URLs`)
+    }
+  }
+
   return result
+}
+
+/**
+ * Récupère les URLs des articles depuis le feed Atom Blogger
+ * Fallback quand le sitemap est absent ou incomplet
+ * Gère la pagination (max 500 résultats par appel)
+ */
+async function fetchBloggerAtomFeed(baseUrl: string): Promise<string[]> {
+  const urls: string[] = []
+  let startIndex = 1
+  const maxResults = 500
+
+  while (true) {
+    const feedUrl = `${baseUrl}/feeds/posts/default?start-index=${startIndex}&max-results=${maxResults}`
+    const response = await fetchText(feedUrl)
+
+    if (!response.success || !response.text) break
+    if (!response.text.includes('<feed') && !response.text.includes('<?xml')) break
+
+    try {
+      const parsed = await parseStringPromise(response.text, {
+        explicitArray: true,
+        ignoreAttrs: false,
+      })
+
+      const entries = parsed?.feed?.entry
+      if (!entries || entries.length === 0) break
+
+      for (const entry of entries) {
+        const links: Array<{ $: { rel?: string; href?: string } }> = entry.link || []
+        for (const link of links) {
+          if (link.$?.rel === 'alternate' && link.$?.href) {
+            urls.push(link.$.href)
+          }
+        }
+      }
+
+      // Arrêter si dernière page
+      if (entries.length < maxResults) break
+      startIndex += maxResults
+      if (startIndex > 5000) break // Sécurité : max 10 appels
+    } catch {
+      break
+    }
+  }
+
+  return urls
 }
 
 /**

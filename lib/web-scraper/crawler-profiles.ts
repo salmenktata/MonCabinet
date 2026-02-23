@@ -48,17 +48,18 @@ export const BLOGGER_PROFILE: CrawlerProfile = {
   useSitemap: true, // CRITIQUE: évite timeout sur homepage
   requiresJavascript: false, // HTML statique
   timeoutMs: 60000, // 60s pour pages avec beaucoup d'images
-  maxPages: 500,
+  maxPages: 2000, // Blogger peut avoir beaucoup d'articles (da5ira = 1367)
   followLinks: true,
   urlPatterns: [
-    '/2*/', // URLs avec années 2000-2999
-    '/p/*', // Pages statiques
+    '/20\\d{2}/', // URLs avec années 2000-2099
+    '/p/',        // Pages statiques
   ],
   excludedPatterns: [
-    '*.html?m=1', // Version mobile
-    '*.html#*', // Ancres
-    '*.html?showComment=*', // Formulaires de commentaires
-    '/search/label/*', // Pages catégories (souvent dupliquées)
+    // ⚠️ Ces patterns sont des regex (pas des globs) — traités via new RegExp(p)
+    '\\.html\\?m=1',           // URLs mobiles Blogger (?m=1)
+    '\\.html#',                // Ancres fragment (#)
+    '\\.html\\?showComment=',  // Formulaires de commentaires
+    '/search/label/',          // Pages de catégories (contenu dupliqué)
   ],
   concurrency: 3, // Blogger supporte bien la concurrence
   rateLimit: 500, // 500ms entre requêtes
