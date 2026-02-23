@@ -107,3 +107,4 @@ scripts/update-groq-deepseek-keys.ts
 scripts/decrypt-and-export-keys.ts
 scripts/export-api-keys.sh
 scripts/test-decrypted-keys.sh
+.claude/settings.local.json.backup
