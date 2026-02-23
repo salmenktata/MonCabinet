@@ -173,6 +173,10 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
         `, [doc.id])
         skipped++
       } else {
+        // Mettre à jour updated_at pour avancer dans la queue lors du prochain batch
+        await db.query(`
+          UPDATE knowledge_base SET updated_at = NOW() WHERE id = $1
+        `, [doc.id])
         skipped++
       }
     }
