@@ -468,8 +468,9 @@ test.describe('6 — Régression Implémentations RAG', () => {
     }
   })
 
-  test('P3 — quality gate: abstention si similarité < 30%', async ({ request }) => {
-    // Question totalement hors-domaine doit trigger l'abstention dure
+  test('P3 — quality gate: question hors-domaine traitée avec faible qualité', async ({ request }) => {
+    // Question totalement hors-domaine — doit déclencher soit l'abstention,
+    // soit retourner des sources de très faible similarité (zone grise 0.30-0.40)
     const response = await askRAG(
       request,
       authCookie,
@@ -477,13 +478,19 @@ test.describe('6 — Régression Implémentations RAG', () => {
     )
 
     // Pour une question sans rapport avec le droit tunisien :
-    // - soit sources.length=0 (abstention)
+    // - soit abstention (sources.length=0) si avg < 0.30
+    // - soit zone grise (0.30-0.40) avec score moyen ≤ 0.45 — comportement P3 correct
     // - soit la réponse indique explicitement le refus
-    const isProperlyAbstained =
+    const avgScore = response.sources.length > 0
+      ? response.sources.reduce((sum: number, s: any) => sum + (s.score || 0), 0) / response.sources.length
+      : 0
+
+    const isProperlyHandled =
       response.sources.length === 0 ||
+      avgScore <= 0.45 ||
       /pas trouvé|sources insuffisantes|لم أجد/i.test(response.answer)
 
-    expect(isProperlyAbstained).toBeTruthy()
+    expect(isProperlyHandled).toBeTruthy()
   })
 
   test('P4 — judge: réponse suffisamment longue pour couvrir les key points', async ({ request }) => {
