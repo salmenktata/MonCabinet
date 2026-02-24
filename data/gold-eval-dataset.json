@@ -11,7 +11,7 @@
         "Commence à courir du jour où le titulaire du droit a pu l'exercer"
       ],
       "mandatoryCitations": [
-        "Article 388 COC",
+        "Article 402 COC",
         "Code des Obligations et des Contrats"
       ]
     },
@@ -29,18 +29,16 @@
     },
     "intentType": "factual",
     "goldChunkIds": [
-      "c6a6029e-84f2-4f24-a529-1c1bd758246b",
-      "1327c368-373f-4e8f-8716-86529cf67b63",
-      "3f2948c4-149b-4133-90cf-8cdbb7b9cc48",
-      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
-      "60b9c0e4-4032-4306-a601-aa0bd9534b32"
+      "10a25764-1aff-419d-a633-5503a907d5d0",
+      "4467caf5-28e3-4b0c-b73f-a28336c988f1",
+      "18279a17-7ff4-4bed-88cc-388d53c7f504"
     ],
     "goldDocumentIds": [
-      "90318fed-11b9-4d23-9fb7-6366cf63b988",
-      "485f7370-2107-407a-b61c-d0a535847541",
-      "aac5ab3a-6735-43a5-8a84-0d9de60bcfbd",
-      "637a0376-ace3-40ef-a3dc-663ef4e8ce56"
-    ]
+      "f1f50202-f1a8-46cd-b6ae-a40f20c15241",
+      "bf174d97-a899-4a28-b714-dae3ee706ac9",
+      "27dd998c-c26c-4bdd-9996-e787bfe936f4"
+    ],
+    "_annotationFix": "Feb 24 2026: chunks corrigés vers art 402 COC (xav chunkIds pointaient vers مجلة المحاسبة العمومية/Comptable — prescriptions de 4 ans d'État, pas la prescription civile générale)"
   },
   {
     "id": "civil_easy_02",
@@ -388,19 +386,16 @@
       "consensus": 0
     },
     "goldChunkIds": [
-      "3f2948c4-149b-4133-90cf-8cdbb7b9cc48",
-      "c477b81e-1fe2-422a-9330-c1926213efaa",
-      "c6a6029e-84f2-4f24-a529-1c1bd758246b",
-      "2c384b0e-0645-4c0b-a220-dd4d68221d45",
-      "1327c368-373f-4e8f-8716-86529cf67b63"
+      "10a25764-1aff-419d-a633-5503a907d5d0",
+      "4467caf5-28e3-4b0c-b73f-a28336c988f1",
+      "18279a17-7ff4-4bed-88cc-388d53c7f504"
     ],
     "goldDocumentIds": [
-      "aac5ab3a-6735-43a5-8a84-0d9de60bcfbd",
-      "770439ea-1057-4698-97c9-14e1da12c41e",
-      "90318fed-11b9-4d23-9fb7-6366cf63b988",
-      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
-      "485f7370-2107-407a-b61c-d0a535847541"
-    ]
+      "f1f50202-f1a8-46cd-b6ae-a40f20c15241",
+      "bf174d97-a899-4a28-b714-dae3ee706ac9",
+      "27dd998c-c26c-4bdd-9996-e787bfe936f4"
+    ],
+    "_annotationFix": "Feb 24 2026: chunks corrigés vers art 402 م.ا.ع (anciens chunkIds pointaient vers مجلة المحاسبة العمومية — prescriptions comptables 4 ans, pas التقادم المدني العام)"
   },
   {
     "id": "ar_civil_03",
