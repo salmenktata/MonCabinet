@@ -57,20 +57,15 @@ function testProvidersConfig() {
     const fallbacks = getFallbackProviders(op)
 
     console.log(`\n📋 ${op}:`)
-    console.log(`  Context: ${config.context}`)
+    console.log(`  Description: ${config.description}`)
     if (primary) {
-      console.log(`  Primary: ${primary}`)
+      console.log(`  Provider: ${primary}`)
       console.log(`  Fallbacks: [${fallbacks.join(', ')}]`)
-    } else {
-      console.log(`  ⚠ Utilise stratégie par défaut du contexte "${config.context}"`)
     }
 
     // Vérifier embeddings
     if (config.embeddings) {
       console.log(`  Embeddings: ${config.embeddings.provider} (${config.embeddings.dimensions || 1024}-dim)`)
-      if (config.embeddings.fallbackProvider) {
-        console.log(`  Embeddings fallback: ${config.embeddings.fallbackProvider}`)
-      }
     }
 
     // Vérifier timeouts
@@ -102,36 +97,45 @@ function testCoherenceRules() {
   for (const op of operations) {
     const config = getOperationConfig(op)
 
-    // Règle 1: Indexation doit utiliser Ollama pour économie
+    // Règle 1: Indexation doit utiliser Ollama pour LLM (batch gratuit)
     if (op === 'indexation') {
-      if (config.embeddings?.provider !== 'ollama') {
-        console.log(`  ❌ ${op}: Devrait utiliser Ollama pour embeddings (0€)`)
-        errors++
-      } else {
-        console.log(`  ✓ ${op}: Utilise Ollama embeddings (0€)`)
-      }
-    }
-
-    // Règle 2: Assistant IA doit être rapide (chat < 10s)
-    if (op === 'assistant-ia') {
-      if (config.timeouts?.total && config.timeouts.total > 10000) {
-        console.log(`  ❌ ${op}: Timeout total trop élevé (${config.timeouts.total}ms > 10s)`)
-        errors++
-      } else {
-        console.log(`  ✓ ${op}: Timeout rapide (${config.timeouts?.total || 'N/A'}ms)`)
-      }
-
-      // Groq prioritaire pour vitesse
       const primary = getPrimaryProvider(op)
-      if (primary !== 'groq') {
-        console.log(`  ⚠ ${op}: Recommandation: utiliser Groq en priorité (ultra-rapide 292ms)`)
+      if (primary !== 'ollama') {
+        console.log(`  ❌ ${op}: LLM doit être Ollama (gratuit pour batch)`)
+        errors++
       } else {
-        console.log(`  ✓ ${op}: Utilise Groq (ultra-rapide)`)
+        console.log(`  ✓ ${op}: Utilise Ollama LLM (gratuit)`)
       }
     }
 
-    // Règle 3: Dossiers doivent utiliser OpenAI embeddings pour qualité
+    // Règle 2: Assistant IA doit utiliser Ollama (migration Groq→Ollama Feb 24)
+    if (op === 'assistant-ia') {
+      const primary = getPrimaryProvider(op)
+      if (primary !== 'ollama') {
+        console.log(`  ❌ ${op}: Doit utiliser Ollama (Groq supprimé Feb 24)`)
+        errors++
+      } else {
+        console.log(`  ✓ ${op}: Utilise Ollama (gratuit, streaming SSE)`)
+      }
+
+      // Timeout adapté à Ollama (60-75s acceptable avec streaming)
+      if (config.timeouts?.chat && config.timeouts.chat < 30000) {
+        console.log(`  ❌ ${op}: Timeout chat trop court pour Ollama (${config.timeouts.chat}ms < 30s)`)
+        errors++
+      } else {
+        console.log(`  ✓ ${op}: Timeout Ollama adapté (${config.timeouts?.chat || 'N/A'}ms)`)
+      }
+    }
+
+    // Règle 3: Dossiers doivent utiliser DeepSeek (qualité premium) + OpenAI embeddings
     if (op === 'dossiers-assistant' || op === 'dossiers-consultation') {
+      const primary = getPrimaryProvider(op)
+      if (primary !== 'deepseek') {
+        console.log(`  ⚠ ${op}: Recommandation: utiliser DeepSeek (~$0.10/Mtkn, 64K ctx)`)
+      } else {
+        console.log(`  ✓ ${op}: Utilise DeepSeek (premium, 64K ctx)`)
+      }
+
       if (config.embeddings?.provider !== 'openai') {
         console.log(`  ⚠ ${op}: Recommandation: utiliser OpenAI embeddings pour qualité (1536-dim)`)
       } else {
@@ -189,8 +193,12 @@ function testCostEstimation() {
 
     // Estimer coût LLM
     const primary = getPrimaryProvider(op)
-    if (primary === 'groq' || primary === 'gemini') {
-      llmCost = 'Gratuit'
+    if (primary === 'ollama') {
+      llmCost = 'Gratuit (self-hosted)'
+    } else if (primary === 'groq') {
+      llmCost = 'Gratuit (tier gratuit)'
+    } else if (primary === 'gemini') {
+      llmCost = '~5-10€/mois'
     } else if (primary === 'deepseek') {
       llmCost = '~0.5-1€/mois'
     } else if (primary === 'anthropic') {
@@ -202,7 +210,8 @@ function testCostEstimation() {
     console.log(`    LLM: ${llmCost}`)
   }
 
-  console.log('\n💡 Total estimé: ~4-6€/mois (vs ~100€/mois avant = -95% économies)')
+  console.log('\n💡 Total estimé: ~3-5€/mois (vs ~53€/mois avant = -94% économies)')
+  console.log('   Groq supprimé: -$9/mois | Gemini LLM supprimé: -€44/mois')
 }
 
 // =============================================================================
