@@ -7,8 +7,10 @@ interface BrowseRow {
   title: string
   category: string
   created_at: string
+  updated_at: string
   doc_type: string | null
   norm_level: string | null
+  metadata: Record<string, unknown> | null
 }
 
 export async function GET(request: NextRequest) {
@@ -20,12 +22,13 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
   const category = searchParams.get('category')
   const normLevel = searchParams.get('norm_level')
+  const docType = searchParams.get('doc_type')
   const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
   const offset = parseInt(searchParams.get('offset') || '0', 10)
   const sort = searchParams.get('sort') || 'date'
 
-  if (!category && !normLevel) {
-    return NextResponse.json({ error: 'Le paramètre category ou norm_level est requis' }, { status: 400 })
+  if (!category && !normLevel && !docType) {
+    return NextResponse.json({ error: 'Le paramètre category, norm_level ou doc_type est requis' }, { status: 400 })
   }
 
   const orderBy = sort === 'title' ? 'kb.title ASC' : 'kb.created_at DESC'
@@ -42,6 +45,10 @@ export async function GET(request: NextRequest) {
     whereParams.push(normLevel)
     whereClauses.push(`kb.norm_level = $${whereParams.length}::norm_level`)
   }
+  if (docType) {
+    whereParams.push(docType)
+    whereClauses.push(`kb.doc_type = $${whereParams.length}::doc_type_enum`)
+  }
 
   const whereSQL = whereClauses.join(' AND ')
 
@@ -54,7 +61,7 @@ export async function GET(request: NextRequest) {
 
   // Fetch documents
   const docsResult = await query<BrowseRow>(
-    `SELECT kb.id, kb.title, kb.category, kb.created_at, kb.doc_type, kb.norm_level::text as norm_level
+    `SELECT kb.id, kb.title, kb.category, kb.created_at, kb.updated_at, kb.doc_type, kb.norm_level::text as norm_level, kb.metadata
      FROM knowledge_base kb
      WHERE ${whereSQL}
      ORDER BY ${orderBy}
@@ -126,8 +133,13 @@ export async function GET(request: NextRequest) {
     title: row.title,
     category: row.category,
     normLevel: row.norm_level,
+    docType: row.doc_type,
+    updatedAt: row.updated_at,
     similarity: null,
-    metadata: metadataMap.get(row.id) || {},
+    metadata: {
+      ...(metadataMap.get(row.id) || {}),
+      ...(row.metadata || {}),
+    },
   }))
 
   return NextResponse.json(
