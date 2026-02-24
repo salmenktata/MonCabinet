@@ -7,7 +7,7 @@ import fs from 'fs/promises'
 
 const execAsync = promisify(exec)
 
-const BACKUP_DIR = process.env.BACKUP_DIR || '/opt/backups/moncabinet'
+const BACKUP_DIR = process.env.BACKUP_DIR || '/opt/backups/qadhya'
 
 /**
  * GET /api/admin/backup

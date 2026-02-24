@@ -244,7 +244,7 @@ services:
       PLAYWRIGHT_BROWSERS_PATH: /app/.playwright
     volumes:
       - ./logs:/app/logs
-      - ${BACKUP_DIR:-/opt/backups/qadhya}:${BACKUP_DIR:-/opt/backups/qadhya}:ro
+      - ${BACKUP_DIR:-/opt/backups/qadhya}:${BACKUP_DIR:-/opt/backups/qadhya}
     ports:
       - "127.0.0.1:3000:3000"
     networks:

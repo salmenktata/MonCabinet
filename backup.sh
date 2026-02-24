@@ -16,7 +16,7 @@
 # - Notification Brevo en cas d'échec
 #
 # À planifier dans crontab:
-# 0 3 * * * /opt/moncabinet/backup.sh --notify >> /var/log/moncabinet-backup.log 2>&1
+# 0 3 * * * /opt/qadhya/backup.sh --notify >> /var/log/qadhya-backup.log 2>&1
 #
 
 set -e
@@ -29,7 +29,7 @@ NC='\033[0m'
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKUP_DIR="/opt/backups/moncabinet"
+BACKUP_DIR="${BACKUP_DIR:-/opt/backups/qadhya}"
 DATE=$(date +%Y%m%d_%H%M%S)
 NOTIFY=false
 ERRORS=""
@@ -47,8 +47,8 @@ done
 # Charger variables d'environnement
 if [ -f "$SCRIPT_DIR/.env" ]; then
   export $(grep -v '^#' "$SCRIPT_DIR/.env" | xargs)
-elif [ -f "/opt/moncabinet/.env" ]; then
-  export $(grep -v '^#' "/opt/moncabinet/.env" | xargs)
+elif [ -f "/opt/qadhya/.env" ]; then
+  export $(grep -v '^#' "/opt/qadhya/.env" | xargs)
 fi
 
 # Fonction pour envoyer notification Brevo en cas d'échec
@@ -169,7 +169,7 @@ tar -czf "$BACKUP_DIR/code_$DATE.tar.gz" \
   --exclude='.git' \
   --exclude='logs' \
   --exclude='*.log' \
-  -C /opt moncabinet > /dev/null 2>&1
+  -C /opt qadhya > /dev/null 2>&1
 
 if [ $? -eq 0 ]; then
   SIZE=$(du -h "$BACKUP_DIR/code_$DATE.tar.gz" | cut -f1)

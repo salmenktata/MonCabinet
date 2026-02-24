@@ -6,8 +6,8 @@ Requires=docker.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/moncabinet
-ExecStart=/usr/bin/python3 /opt/moncabinet/backup-server.py
+WorkingDirectory=/opt/qadhya
+ExecStart=/usr/bin/python3 /opt/qadhya/backup-server.py
 Restart=always
 RestartSec=10
 StandardOutput=append:/var/log/backup-server.log

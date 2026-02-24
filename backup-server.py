@@ -13,7 +13,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 PORT = 9999
-BACKUP_SCRIPT = "/opt/moncabinet/backup.sh"
+BACKUP_SCRIPT = "/opt/qadhya/backup.sh"
 
 
 class BackupHandler(BaseHTTPRequestHandler):
