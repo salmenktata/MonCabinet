@@ -82,18 +82,20 @@ const isDev = process.env.NODE_ENV === 'development'
 /**
  * Configuration centralisée - 1 modèle fixe par opération, 0 fallback
  *
- * | Opération              | Provider | Modèle                    | Coût       | Contexte |
- * |------------------------|----------|---------------------------|------------|----------|
- * | Assistant IA (chat)    | Groq     | llama-3.3-70b-versatile   | 0€         | 128K     |
- * | Dossiers Assistant     | Gemini   | gemini-2.5-flash          | 0€ (free)  | 1M       |
- * | Consultations IRAC     | Gemini   | gemini-2.5-flash          | 0€ (free)  | 1M       |
- * | KB Quality Analysis    | Ollama   | qwen3:8b                  | 0€         | 128K     |
- * | Query Classification   | Groq     | llama-3.3-70b-versatile   | 0€         | 128K     |
- * | Query Expansion        | Groq     | llama-3.3-70b-versatile   | 0€         | 128K     |
- * | Consolidation docs     | Gemini   | gemini-2.5-flash          | 0€ (free)  | 1M       |
- * | Embeddings (tout)      | OpenAI   | text-embedding-3-small    | ~$2-5/mois | —        |
- * | Re-ranking             | Local    | ms-marco-MiniLM-L-6-v2    | 0€         | —        |
- * | Dev local              | Ollama   | qwen3:8b                  | 0€         | —        |
+ * Migration coûts Feb 24, 2026 : Groq ($9/m) + Gemini (€44/m) → Ollama (gratuit) + DeepSeek (~$1-3/m)
+ *
+ * | Opération              | Provider  | Modèle                    | Coût        | Contexte |
+ * |------------------------|-----------|---------------------------|-------------|----------|
+ * | Assistant IA (chat)    | Ollama    | qwen3:8b                  | 0€          | 128K     |
+ * | Dossiers Assistant     | DeepSeek  | deepseek-chat             | ~$0.10/Mtkn | 64K      |
+ * | Consultations IRAC     | DeepSeek  | deepseek-chat             | ~$0.10/Mtkn | 64K      |
+ * | KB Quality Analysis    | Ollama    | qwen3:8b                  | 0€          | 128K     |
+ * | Query Classification   | Ollama    | qwen3:8b                  | 0€          | 128K     |
+ * | Query Expansion        | Ollama    | qwen3:8b                  | 0€          | 128K     |
+ * | Consolidation docs     | DeepSeek  | deepseek-chat             | ~$0.10/Mtkn | 64K      |
+ * | RAG Eval Judge         | Ollama    | qwen3:8b                  | 0€          | 128K     |
+ * | Embeddings (tout)      | OpenAI    | text-embedding-3-small    | ~$2-5/mois  | —        |
+ * | Re-ranking             | Local     | ms-marco-MiniLM-L-6-v2    | 0€          | —        |
  */
 export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
@@ -127,9 +129,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 2. ASSISTANT IA (chat temps réel utilisateur)
   // ---------------------------------------------------------------------------
   'assistant-ia': {
-    model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
+    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama gratuit (latence 5-15s acceptable phase dev)
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
@@ -137,18 +137,18 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     timeouts: {
       embedding: 3000,
-      chat: 30000,
-      total: 45000,
+      chat: 60000,  // Ollama plus lent que Groq → 60s
+      total: 75000,
     },
 
     llmConfig: {
       temperature: 0.1,
-      maxTokens: 8000,
+      maxTokens: 2048, // Réduit 8000→2048 pour limiter latence Ollama
       systemPromptType: 'chat',
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Chat utilisateur temps réel - Groq llama-3.3-70b (gratuit)',
+    description: 'Chat utilisateur temps réel - Ollama qwen3:8b (gratuit, latence ~5-15s)',
   },
 
   // ---------------------------------------------------------------------------
@@ -157,7 +157,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'dossiers-assistant': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'gemini', name: 'gemini-2.5-flash' }, // Gemini : 1M ctx + meilleur arabe AR/FR
+      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : ~$0.10/Mtkn, 64K ctx
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
@@ -165,8 +165,8 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     timeouts: {
       embedding: 5000,
-      chat: 40000, // Gemini ~25 t/s → marge suffisante pour 8K tokens
-      total: 55000,
+      chat: 90000,  // DeepSeek plus lent que Gemini sur longs contextes
+      total: 105000,
     },
 
     llmConfig: {
@@ -176,7 +176,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Analyse approfondie dossier - Gemini 2.5 Flash (1M ctx, meilleur arabe juridique)',
+    description: 'Analyse approfondie dossier - DeepSeek deepseek-chat (~$1-3/mois, 64K ctx)',
   },
 
   // ---------------------------------------------------------------------------
@@ -205,7 +205,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'dossiers-consultation': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'gemini', name: 'gemini-2.5-flash' }, // Gemini : 1M ctx + qualité arabe supérieure
+      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : ~$0.10/Mtkn, 64K ctx
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
@@ -213,31 +213,29 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     timeouts: {
       embedding: 5000,
-      chat: 40000, // Gemini ~25 t/s → 2000 tokens ≈ 80s théorique mais stream → 40s suffisant
-      total: 55000, // Aligné sur Nginx 120s, marge suffisante sans dépasser
+      chat: 90000,  // DeepSeek sur longues consultations
+      total: 105000,
     },
 
     llmConfig: {
       temperature: 0.1,
-      maxTokens: 2000, // Réduit 4000→2000 : évite timeout (4000 tokens ≈ 160s Gemini non-stream)
+      maxTokens: 2000,
       systemPromptType: 'consultation',
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Consultation juridique formelle IRAC - Gemini 2.5 Flash (1M ctx, qualité formelle supérieure)',
+    description: 'Consultation juridique formelle IRAC - DeepSeek deepseek-chat (~$1-3/mois, 64K ctx)',
   },
 
   // ---------------------------------------------------------------------------
   // 6. QUERY CLASSIFICATION (pré-filtrage KB)
   // ---------------------------------------------------------------------------
   'query-classification': {
-    model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
+    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama gratuit (Groq supprimé)
 
     timeouts: {
-      chat: 5000,
-      total: 10000,
+      chat: 20000,  // Ollama plus lent → 20s (était 5s Groq)
+      total: 30000,
     },
 
     llmConfig: {
@@ -246,20 +244,18 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'Classification query pour filtrage catégories KB - Groq',
+    description: 'Classification query pour filtrage catégories KB - Ollama qwen3:8b',
   },
 
   // ---------------------------------------------------------------------------
   // 7. QUERY EXPANSION (reformulation requêtes courtes)
   // ---------------------------------------------------------------------------
   'query-expansion': {
-    model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
+    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama gratuit (Groq supprimé)
 
     timeouts: {
-      chat: 5000,
-      total: 10000,
+      chat: 20000,  // Ollama plus lent → 20s (était 5s Groq)
+      total: 30000,
     },
 
     llmConfig: {
@@ -268,7 +264,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'Expansion queries courtes <50 chars - Groq',
+    description: 'Expansion queries courtes <50 chars - Ollama qwen3:8b',
   },
 
   // ---------------------------------------------------------------------------
@@ -277,42 +273,40 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'document-consolidation': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'gemini', name: 'gemini-2.5-flash' }, // Gemini : 1M ctx critique pour merger multi-pages
+      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : 64K ctx (Gemini 1M supprimé — coût)
 
     timeouts: {
-      chat: 90000, // Gemini pour 16K tokens output
+      chat: 90000,
       total: 120000,
     },
 
     llmConfig: {
       temperature: 0.1,
-      maxTokens: 16000,
+      maxTokens: 8000, // Réduit 16000→8000 (très longs dossiers >50p tronqués — risque accepté)
     },
 
     alerts: { onFailure: 'log', severity: 'warning' },
-    description: 'Consolidation documents multi-pages - Gemini 2.5 Flash (1M ctx, idéal multi-pages)',
+    description: 'Consolidation documents multi-pages - DeepSeek deepseek-chat (64K ctx, ~$1-3/mois)',
   },
 
   // ---------------------------------------------------------------------------
   // 9. RAG EVAL JUDGE (évaluation fidélité réponses)
   // ---------------------------------------------------------------------------
   'rag-eval-judge': {
-    model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
+    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama gratuit (Groq supprimé)
 
     timeouts: {
-      chat: 15000,
-      total: 20000,
+      chat: 30000,  // Ollama plus lent → 30s (était 15s Groq)
+      total: 45000,
     },
 
     llmConfig: {
       temperature: 0.1,
-      maxTokens: 400, // Augmenté 200→400 pour reasoning plus détaillé + few-shot parsing
+      maxTokens: 400,
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'LLM judge fidélité réponse RAG',
+    description: 'LLM judge fidélité réponse RAG - Ollama qwen3:8b',
   },
 }
 

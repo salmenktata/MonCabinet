@@ -18,6 +18,7 @@ import { getChunkConfig } from './adaptive-chunking-config'
 import type { DocumentType } from '@/lib/categories/doc-types'
 import { getDocumentType } from '@/lib/categories/doc-types'
 import { normalizeArabicText } from '@/lib/web-scraper/arabic-text-utils'
+import { detectLanguage } from '@/lib/ai/language-utils'
 import { normalizeArticleNumbers, removeDocumentBoilerplate } from '@/lib/ai/text-normalization-service'
 import { checkDocumentInclusion } from '@/lib/kb/inclusion-rules'
 import { trackDocumentVersion } from '@/lib/kb/document-version-tracker'
@@ -528,29 +529,9 @@ export async function indexKnowledgeDocument(
     }
   }
 
-  // Skip embeddings Gemini si déjà générés (évite re-génération lors mise à jour de métadonnées)
-  let savedGeminiEmbeddings: number[][] | null = null
-  if (options.skipExistingGeminiEmbeddings) {
-    const existingGemini = await db.query(
-      'SELECT content, embedding_gemini FROM knowledge_base_chunks WHERE knowledge_base_id = $1 AND embedding_gemini IS NOT NULL ORDER BY chunk_index',
-      [documentId]
-    )
-    if (existingGemini.rows.length > 0) {
-      const geminiMap = new Map<string, number[]>(existingGemini.rows.map((r: {content: string; embedding_gemini: number[]}) => [r.content, r.embedding_gemini]))
-      const allChunksCovered = chunks.every((c) => geminiMap.has(c.content))
-      if (allChunksCovered) {
-        savedGeminiEmbeddings = chunks.map((c) => geminiMap.get(c.content)!)
-        logger.info(`[KB Index] Embeddings Gemini réutilisés (${savedGeminiEmbeddings.length} chunks, skip API Gemini)`)
-      }
-    }
-  }
-
-  // Générer les embeddings en parallèle pour les 3 providers
-  const [embeddingsResult, geminiEmbeddingsResult, ollamaEmbeddingsResult] = await Promise.allSettled([
+  // Générer les embeddings en parallèle pour OpenAI + Ollama (Gemini supprimé — coût €44/mois)
+  const [embeddingsResult, ollamaEmbeddingsResult] = await Promise.allSettled([
     generateEmbeddingsBatch(chunks.map((c) => c.content)),
-    savedGeminiEmbeddings
-      ? Promise.resolve({ embeddings: savedGeminiEmbeddings, totalTokens: 0, provider: 'gemini' as const })
-      : generateEmbeddingsBatch(chunks.map((c) => c.content), { forceGemini: true }),
     generateEmbeddingsBatch(chunks.map((c) => c.content), { forceOllama: true }),
   ])
 
@@ -562,14 +543,6 @@ export async function indexKnowledgeDocument(
   // Déterminer la colonne d'embedding selon le provider utilisé
   const embeddingColumn = primaryEmbeddings.provider === 'openai' ? 'embedding_openai' : 'embedding'
   logger.info(`[KB Index] Provider embeddings: ${primaryEmbeddings.provider} → colonne ${embeddingColumn}`)
-
-  if (geminiEmbeddingsResult.status === 'rejected') {
-    logger.warn(`[KB Index] Embeddings Gemini non disponibles: ${geminiEmbeddingsResult.reason?.message || 'erreur inconnue'}`)
-  }
-  const hasGeminiEmbeddings = geminiEmbeddingsResult.status === 'fulfilled' && geminiEmbeddingsResult.value.embeddings.length > 0
-  if (hasGeminiEmbeddings) {
-    logger.info(`[KB Index] Embeddings Gemini générés (768-dim) pour ${geminiEmbeddingsResult.value.embeddings.length} chunks`)
-  }
 
   if (ollamaEmbeddingsResult.status === 'rejected') {
     logger.warn(`[KB Index] Embeddings Ollama non disponibles: ${ollamaEmbeddingsResult.reason?.message || 'erreur inconnue'}`)
@@ -609,42 +582,21 @@ export async function indexKnowledgeDocument(
 
         const chunkMeta = JSON.stringify(buildChunkMetadata(batchChunks[i], doc, pageMap))
 
-        if (hasGeminiEmbeddings) {
-          // Insérer embedding primaire + Gemini ensemble
-          const offset = i * 6
-          placeholders.push(
-            `($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}::vector, $${offset+5}::vector, $${offset+6})`
-          )
-          values.push(
-            documentId,
-            batchChunks[i].index,
-            batchChunks[i].content,
-            formatEmbeddingForPostgres(primaryEmbeddings.embeddings[chunkIndex]),
-            formatEmbeddingForPostgres(geminiEmbeddingsResult.value.embeddings[chunkIndex]),
-            chunkMeta
-          )
-        } else {
-          // Insérer uniquement embedding primaire
-          const offset = i * 5
-          placeholders.push(
-            `($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}::vector, $${offset+5})`
-          )
-          values.push(
-            documentId,
-            batchChunks[i].index,
-            batchChunks[i].content,
-            formatEmbeddingForPostgres(primaryEmbeddings.embeddings[chunkIndex]),
-            chunkMeta
-          )
-        }
+        const offset = i * 5
+        placeholders.push(
+          `($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}::vector, $${offset+5})`
+        )
+        values.push(
+          documentId,
+          batchChunks[i].index,
+          batchChunks[i].content,
+          formatEmbeddingForPostgres(primaryEmbeddings.embeddings[chunkIndex]),
+          chunkMeta
+        )
       }
 
-      const insertColumns = hasGeminiEmbeddings
-        ? `(knowledge_base_id, chunk_index, content, ${embeddingColumn}, embedding_gemini, metadata)`
-        : `(knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata)`
-
       await client.query(
-        `INSERT INTO knowledge_base_chunks ${insertColumns} VALUES ${placeholders.join(', ')}`,
+        `INSERT INTO knowledge_base_chunks (knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata) VALUES ${placeholders.join(', ')}`,
         values
       )
     }
@@ -963,10 +915,11 @@ async function searchHybridSingle(
   limit: number,
   threshold: number,
   provider: 'openai' | 'ollama' | 'gemini',
+  language: 'ar' | 'fr' | 'simple' = 'simple',
 ): Promise<KnowledgeBaseSearchResult[]> {
   const result = await db.query(
-    `SELECT * FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::text, $5::integer, $6::double precision, $7::text)`,
-    [queryText, embeddingStr, category, docType, limit, threshold, provider]
+    `SELECT * FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::text, $5::integer, $6::double precision, $7::text, $8::text)`,
+    [queryText, embeddingStr, category, docType, limit, threshold, provider, language]
   )
 
   return result.rows.map((row) => {
@@ -1055,6 +1008,11 @@ export async function searchKnowledgeBaseHybrid(
     .replace(/[^\w\s\u0600-\u06FF\u00C0-\u017F]/g, ' ') // Garde lettres latines étendues (à-ÿ, accents FR)
     .trim()
 
+  // P0 fix (Feb 24, 2026) — BM25 bilingue : détecter la langue pour construire
+  // une tsquery language-aware (stop-words AR/FR supprimés, meilleure précision BM25)
+  const detectedLang = detectLanguage(query)
+  const bm25Language: 'ar' | 'fr' | 'simple' = detectedLang === 'ar' ? 'ar' : detectedLang === 'fr' ? 'fr' : 'simple'
+
   // ✨ OPTIMISATION Phase 2.4 : Détection auto type de query + poids adaptatifs
   const queryAnalysis = detectQueryType(query)
 
@@ -1092,7 +1050,7 @@ export async function searchKnowledgeBaseHybrid(
   if (openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
     const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
     searchPromises.push(
-      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'openai')
+      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'openai', bm25Language)
     )
     providerLabels.push('openai')
   }
@@ -1102,7 +1060,7 @@ export async function searchKnowledgeBaseHybrid(
     // Sinon dimension mismatch PostgreSQL (1536 vs 1024) → crash → 0% hit@5
     const embStr = formatEmbeddingForPostgres(ollamaEmbResult.value.embedding)
     searchPromises.push(
-      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'ollama')
+      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'ollama', bm25Language)
     )
     providerLabels.push('ollama')
   }
@@ -1111,7 +1069,7 @@ export async function searchKnowledgeBaseHybrid(
     // Guard critique : ne lancer la recherche Gemini QUE si l'embedding est vraiment 768-dim
     const embStr = formatEmbeddingForPostgres(geminiEmbResult.value.embedding)
     searchPromises.push(
-      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'gemini')
+      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'gemini', bm25Language)
     )
     providerLabels.push('gemini')
   }
@@ -1131,7 +1089,7 @@ export async function searchKnowledgeBaseHybrid(
     searchPromises.push(
       // Fix (Feb 17, 2026) : threshold 0.15 (était 0.20) pour capturer مجلة الالتزامات والعقود
       // et المجلة التجارية qui ont vecSim 0.15-0.20 pour certaines queries juridiques spécifiques.
-      searchHybridSingle(queryText, embStr, 'codes', null, Math.ceil(limit / 2), 0.15, 'openai')
+      searchHybridSingle(queryText, embStr, 'codes', null, Math.ceil(limit / 2), 0.15, 'openai', bm25Language)
     )
     providerLabels.push('codes-forced')
   }
@@ -1140,7 +1098,7 @@ export async function searchKnowledgeBaseHybrid(
   if (shouldForceCodes && geminiEmbResult.status === 'fulfilled' && geminiEmbResult.value.provider === 'gemini') {
     const embStr = formatEmbeddingForPostgres(geminiEmbResult.value.embedding)
     searchPromises.push(
-      searchHybridSingle(queryText, embStr, 'codes', null, Math.ceil(limit / 2), 0.12, 'gemini')
+      searchHybridSingle(queryText, embStr, 'codes', null, Math.ceil(limit / 2), 0.12, 'gemini', bm25Language)
     )
     providerLabels.push('codes-forced-gemini')
   }
