@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
   }
   if (docType) {
     whereParams.push(docType)
-    whereClauses.push(`kb.doc_type = $${whereParams.length}::doc_type_enum`)
+    whereClauses.push(`kb.doc_type = $${whereParams.length}::document_type`)
   }
 
   const whereSQL = whereClauses.join(' AND ')
