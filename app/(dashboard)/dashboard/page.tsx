@@ -15,6 +15,7 @@ import {
   ChartWidgetSkeleton,
   ActivitySkeleton,
   TimeTrackingSkeleton,
+  CalendarWidgetSkeleton,
 } from '@/components/dashboard/DashboardSkeletons'
 
 // Dynamic imports pour les widgets lourds (chargés après le contenu principal)
@@ -33,6 +34,10 @@ const TimeTrackingWidget = dynamic(
 const UnclassifiedDocumentsWidget = dynamic(
   () => import('@/components/dashboard/UnclassifiedDocumentsWidget'),
   { loading: () => <WidgetSkeleton /> }
+)
+const CalendarWidget = dynamic(
+  () => import('@/components/dashboard/CalendarWidget'),
+  { loading: () => <CalendarWidgetSkeleton /> }
 )
 
 // Fonction de récupération des stats cachée (60 secondes)
@@ -227,6 +232,21 @@ async function DashboardTimeTracking({ userId }: { userId: string }) {
   return <TimeTrackingWidget timeEntries={result.rows} />
 }
 
+// Composant pour le calendrier des échéances
+async function DashboardCalendar({ userId }: { userId: string }) {
+  const result = await query(
+    `SELECT e.id, e.titre, e.type_echeance, e.date_echeance, e.statut, e.description,
+      json_build_object('numero', d.numero, 'objet', d.objet) as dossier
+    FROM echeances e
+    LEFT JOIN dossiers d ON e.dossier_id = d.id
+    WHERE e.user_id = $1 AND e.statut = 'actif'
+    ORDER BY e.date_echeance ASC
+    LIMIT 300`,
+    [userId]
+  )
+  return <CalendarWidget echeances={result.rows} />
+}
+
 // Composant pour les documents widgets
 async function DashboardDocumentsWidgets({ userId }: { userId: string }) {
   const result = await query(
@@ -272,6 +292,11 @@ export default async function DashboardPage() {
       {/* Stats principales - priorité haute */}
       <Suspense fallback={<StatsGridSkeleton />}>
         <DashboardStats userId={userId} />
+      </Suspense>
+
+      {/* Calendrier des échéances - priorité haute */}
+      <Suspense fallback={<CalendarWidgetSkeleton />}>
+        <DashboardCalendar userId={userId} />
       </Suspense>
 
       {/* Documents widgets - priorité moyenne */}

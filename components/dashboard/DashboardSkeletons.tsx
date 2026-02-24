@@ -74,6 +74,49 @@ export function ActivitySkeleton() {
   )
 }
 
+export function CalendarWidgetSkeleton() {
+  return (
+    <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-20 rounded-full" />
+        </div>
+        <div className="flex items-center gap-1">
+          <Skeleton className="h-6 w-20 rounded" />
+          <Skeleton className="h-7 w-7 rounded" />
+          <Skeleton className="h-7 w-7 rounded" />
+        </div>
+      </div>
+      {/* Grille */}
+      <div className="p-3">
+        <div className="grid grid-cols-7 mb-1">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="flex justify-center py-1">
+              <Skeleton className="h-3 w-5" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-0.5">
+          {Array.from({ length: 35 }).map((_, i) => (
+            <Skeleton key={i} className="h-[52px] rounded-md" />
+          ))}
+        </div>
+      </div>
+      {/* Légende */}
+      <div className="border-t px-4 py-2 flex items-center gap-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-1">
+            <Skeleton className="h-2 w-2 rounded-full" />
+            <Skeleton className="h-3 w-10" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function TimeTrackingSkeleton() {
   return (
     <div className="rounded-lg border bg-card p-6 shadow-sm">
