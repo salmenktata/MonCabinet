@@ -146,28 +146,34 @@ export async function expandQuery(query: string): Promise<string> {
 // CONDENSATION (requêtes longues > 200 chars)
 // =============================================================================
 
-const CONDENSATION_PROMPT = `Tu es un expert juridique tunisien. Ta tâche: extraire les 3-5 concepts juridiques clés d'une question longue et les reformuler en une requête de recherche concise.
+const CONDENSATION_PROMPT = `Tu es un expert juridique tunisien. Ta tâche: reformuler une question ou narration juridique en une requête de recherche concise et pertinente.
 
 RÈGLES:
-- Extraire UNIQUEMENT les concepts juridiques principaux
-- Séparer par " - "
-- Max 100 caractères
-- Garder la même langue que la question
-- Pas de phrase complète, juste les concepts clés
+- Si c'est une NARRATION DE CAS (faits exposés, parties mentionnées, chronologie d'événements) → formuler la QUESTION JURIDIQUE principale sous-jacente
+- Si c'est déjà une question directe → extraire les 3-5 concepts juridiques clés
+- Max 150 caractères
+- Garder la même langue que l'entrée
+- Pas de phrase complète, juste les concepts ou la question juridique condensée
 
 EXEMPLES:
 
-Question: أريد أن أعرف ما هي الشروط القانونية للدفاع الشرعي في القانون التونسي وهل يمكن الاحتجاج بالدفاع الشرعي إذا كان الرد غير متناسب مع الاعتداء وما هي العقوبات المترتبة
-Condensation: الدفاع الشرعي - تناسب الرد - المجلة الجزائية - شروط الدفاع
+Narration: وقع شجار ليلي أمام نادٍ، انتهى بإصابة خطيرة للمعتدي. المتهم يؤكد أنه كان يدافع عن نفسه ضد اعتداء بالسلاح الأبيض
+Reformulation: شروط الدفاع الشرعي وتناسب الرد في القانون الجزائي التونسي - مدى تجاوز حدود الدفاع
 
-Question: Je voudrais savoir quelles sont les conditions de validité d'un contrat de bail commercial en Tunisie, notamment la durée minimale, les obligations du bailleur et du locataire, et les cas de résiliation anticipée
-Condensation: bail commercial - validité contrat - obligations bailleur locataire - résiliation
+Question directe: أريد أن أعرف ما هي الشروط القانونية للدفاع الشرعي في القانون التونسي وهل يمكن الاحتجاج بالدفاع الشرعي إذا كان الرد غير متناسب
+Reformulation: الدفاع الشرعي - تناسب الرد - المجلة الجزائية - شروط الدفاع
 
-MAINTENANT, condense cette question:
+Narration: Un employé a été licencié sans préavis après 12 ans d'ancienneté. Son employeur invoque une faute grave mais n'a pas suivi la procédure disciplinaire. Il veut contester
+Reformulation: licenciement abusif - faute grave - procédure disciplinaire - indemnités ancienneté - Tunisie
 
-Question: {query}
+Question directe: Je voudrais savoir quelles sont les conditions de validité d'un contrat de bail commercial en Tunisie, notamment la durée minimale et les cas de résiliation anticipée
+Reformulation: bail commercial - validité contrat - obligations bailleur locataire - résiliation
 
-Condensation (concepts clés séparés par " - ", max 100 caractères):`
+MAINTENANT, reformule:
+
+Entrée: {query}
+
+Reformulation concise (max 150 caractères):`
 
 /**
  * Condense une requête longue en extrayant les concepts juridiques clés
@@ -197,7 +203,7 @@ export async function condenseQuery(query: string): Promise<string> {
       ],
       {
         temperature: 0.1, // Très déterministe pour extraction
-        maxTokens: 100, // ~100 caractères max
+        maxTokens: 150, // ~150 caractères max (narrations arabes longues)
         operationName: 'assistant-ia',
       }
     )

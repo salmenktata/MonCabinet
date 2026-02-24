@@ -716,8 +716,10 @@ function computeAdaptiveQualityGate(
   if (queryWords <= 5) {
     // Query courte → baisser le seuil (moins de contexte disponible)
     base *= 0.85
-  } else if (queryWords >= 20) {
-    // Query longue et précise → seuil légèrement plus strict
+  } else if (queryWords >= 20 && lang !== 'ar') {
+    // Query longue FR → seuil légèrement plus strict (exiger pertinence)
+    // NB: Pas de pénalité pour l'arabe — déjà à base 0.20 (vs 0.35 FR),
+    // les narrations arabes longues avec scores 0.18-0.21 doivent passer
     base *= 1.05
   }
 
@@ -740,6 +742,8 @@ interface SearchResult {
   cacheHit: boolean
   /** Raison d'un retour vide (P1 fix Feb 24, 2026 — observabilité quality gate) */
   reason?: 'quality_gate' | 'no_results' | 'error' | 'cache_hit'
+  /** Query réellement utilisée pour l'embedding (peut différer de la question originale si condensation/expansion) */
+  embeddingQuestion?: string
 }
 
 /**
@@ -1132,8 +1136,16 @@ export async function searchRelevantContext(
   log.info(`[RAG QGate] seuil adaptatif=${effectiveGate.toFixed(3)} lang=${queryLang} queryWords=${queryWords} sources=${finalSources.length} hasVector=${hasVectorResults}`)
   if (finalSources.length > 0 && finalSources.every(s => s.similarity < effectiveGate)) {
     const bestScore = Math.max(...finalSources.map(s => s.similarity))
-    log.warn(`[RAG Search] ⚠️ Hard quality gate (${effectiveGate}, lang=${queryLang}): toutes ${finalSources.length} sources < seuil, meilleur score=${bestScore.toFixed(3)}, retour 0 sources`)
-    return { sources: [], cacheHit: false, reason: 'quality_gate' }
+    log.warn(`[RAG Search] ⚠️ Hard quality gate`, {
+      effectiveGate,
+      lang: queryLang,
+      bestScore: bestScore.toFixed(3),
+      sourcesCount: finalSources.length,
+      condensationOccurred: embeddingQuestion !== question,
+      embeddingQueryLength: embeddingQuestion.length,
+      queryWords,
+    })
+    return { sources: [], cacheHit: false, reason: 'quality_gate', embeddingQuestion }
   }
 
   // Calculer et logger les métriques
@@ -1166,7 +1178,7 @@ export async function searchRelevantContext(
     await setCachedSearchResults(queryEmbedding.embedding, finalSources, searchScope)
   }
 
-  return { sources: finalSources, cacheHit: false }
+  return { sources: finalSources, cacheHit: false, embeddingQuestion }
 }
 
 /**
@@ -1871,13 +1883,14 @@ export async function answerQuestion(
   let sources: ChatSource[] = []
   let isDegradedMode = false
 
+  let lastSearchResult: SearchResult | null = null
   const startSearch = Date.now()
   try {
-    const searchResult = ENABLE_QUERY_EXPANSION
+    lastSearchResult = ENABLE_QUERY_EXPANSION
       ? await searchRelevantContextBilingual(question, userId, options)
       : await searchRelevantContext(question, userId, options)
-    sources = searchResult.sources
-    cacheHit = searchResult.cacheHit
+    sources = lastSearchResult.sources
+    cacheHit = lastSearchResult.cacheHit
     searchTimeMs = Date.now() - startSearch
   } catch (error) {
     // Mode dégradé: retourner une erreur claire au lieu de continuer sans contexte
@@ -1894,14 +1907,18 @@ export async function answerQuestion(
     const noSourcesLang = detectLanguage(question)
     log.warn(`[RAG Diagnostic] 🔍 Aucune source trouvée pour requête:`, {
       queryLength: question.length,
+      queryWords: question.trim().split(/\s+/).length,
       language: noSourcesLang,
+      condensationOccurred: lastSearchResult?.embeddingQuestion !== undefined && lastSearchResult.embeddingQuestion !== question,
+      condensedQuery: lastSearchResult?.embeddingQuestion?.substring(0, 100),
+      failureReason: lastSearchResult?.reason || 'unknown',
       queryPreview: question.substring(0, 100) + (question.length > 100 ? '...' : ''),
       searchTimeMs,
       enableExpansion: ENABLE_QUERY_EXPANSION,
     })
     const noSourcesMessage = noSourcesLang === 'fr'
-      ? 'Je n\'ai trouvé aucun document pertinent pour votre question. Veuillez reformuler ou vérifier que les documents nécessaires ont été téléversés.'
-      : 'لم أجد وثائق ذات صلة بسؤالك في قاعدة البيانات. يرجى إعادة صياغة السؤال أو التأكد من رفع المستندات المتعلقة بالموضوع.'
+      ? 'Ma base de connaissances ne contient pas de références directement applicables à cette question. Je vous oriente vers les textes officiels publiés au JORT ou vers un confrère spécialisé dans ce domaine.'
+      : 'لا تتوفر لديّ في قاعدة المعرفة نصوص أو مراجع مرتبطة مباشرةً بهذه المسألة. أنصحك بمراجعة التشريعات الرسمية الصادرة في الرائد الرسمي، أو التواصل مع محامٍ متخصص في هذا المجال.'
 
     return {
       answer: noSourcesMessage,
@@ -1966,8 +1983,8 @@ export async function answerQuestion(
       : `Zone grise: similarité ${Math.round(avg * 100)}% (30-40%) avec seulement ${sources.length} source(s)`
     log.info(`[RAG] Abstention: ${abstentionReason}`)
     const abstentionMsg = questionLang === 'fr'
-      ? 'Je n\'ai pas trouvé de sources suffisamment pertinentes dans la base de connaissances pour répondre à cette question de manière fiable. Je vous recommande de consulter directement les textes juridiques officiels ou un professionnel du droit.'
-      : 'لم أجد مصادر كافية في قاعدة المعرفة للإجابة على هذا السؤال بشكل موثوق. أنصحك بالرجوع مباشرة إلى النصوص القانونية الرسمية أو استشارة مختص في القانون.'
+      ? 'Les documents disponibles ne traitent pas cette problématique avec suffisamment de précision pour formuler un avis juridique fiable. Je vous recommande de consulter directement les textes législatifs applicables ou un confrère spécialisé dans ce domaine.'
+      : 'المصادر المتوفرة لا تعالج هذه المسألة بشكل كافٍ لإبداء رأي قانوني موثوق. أنصحك بالرجوع مباشرةً إلى النصوص التشريعية ذات الصلة، أو استشارة محامٍ متخصص للتعمق في هذه المسألة.'
     return {
       answer: abstentionMsg,
       sources: [],
@@ -2507,11 +2524,12 @@ export async function* answerQuestionStream(
 
   // 1. Phase RAG (non-streaming)
   let sources: ChatSource[] = []
+  let streamSearchResult: SearchResult | null = null
   try {
-    const searchResult = ENABLE_QUERY_EXPANSION
+    streamSearchResult = ENABLE_QUERY_EXPANSION
       ? await searchRelevantContextBilingual(question, userId, options)
       : await searchRelevantContext(question, userId, options)
-    sources = searchResult.sources
+    sources = streamSearchResult.sources
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Erreur recherche contexte'
     log.error('[RAG Stream] Erreur recherche:', errMsg)
@@ -2523,9 +2541,18 @@ export async function* answerQuestionStream(
 
   // Aucune source → réponse rapide sans appel LLM
   if (sources.length === 0) {
+    log.warn(`[RAG Diagnostic Stream] 🔍 Aucune source trouvée pour requête:`, {
+      queryLength: question.length,
+      queryWords: question.trim().split(/\s+/).length,
+      language: questionLang,
+      condensationOccurred: streamSearchResult?.embeddingQuestion !== undefined && streamSearchResult.embeddingQuestion !== question,
+      condensedQuery: streamSearchResult?.embeddingQuestion?.substring(0, 100),
+      failureReason: streamSearchResult?.reason || 'unknown',
+      queryPreview: question.substring(0, 100) + (question.length > 100 ? '...' : ''),
+    })
     const noSourcesMsg = questionLang === 'fr'
-      ? 'Je n\'ai trouvé aucun document pertinent pour votre question. Veuillez reformuler.'
-      : 'لم أجد وثائق ذات صلة بسؤالك. يرجى إعادة صياغة السؤال.'
+      ? 'Ma base de connaissances ne contient pas de références directement applicables à cette question. Je vous oriente vers les textes officiels publiés au JORT ou vers un confrère spécialisé dans ce domaine.'
+      : 'لا تتوفر لديّ في قاعدة المعرفة نصوص أو مراجع مرتبطة مباشرةً بهذه المسألة. أنصحك بمراجعة التشريعات الرسمية الصادرة في الرائد الرسمي، أو التواصل مع محامٍ متخصص في هذا المجال.'
     yield { type: 'metadata', sources: [], model: 'groq/llama-3.3-70b-versatile', qualityIndicator: 'low', averageSimilarity: 0 }
     yield { type: 'chunk', text: noSourcesMsg }
     yield { type: 'done', tokensUsed: { input: 0, output: 0, total: 0 } }
@@ -2548,8 +2575,8 @@ export async function* answerQuestionStream(
       : `Zone grise: similarité ${Math.round(streamAvg * 100)}% avec ${sources.length} source(s)`
     log.info(`[RAG Stream] Abstention: ${abstentionReason}`)
     const abstentionMsg = questionLang === 'fr'
-      ? 'Je n\'ai pas trouvé de sources suffisamment pertinentes dans la base de connaissances pour répondre à cette question de manière fiable. Je vous recommande de consulter directement les textes juridiques officiels ou un professionnel du droit.'
-      : 'لم أجد مصادر كافية في قاعدة المعرفة للإجابة على هذا السؤال بشكل موثوق. أنصحك بالرجوع مباشرة إلى النصوص القانونية الرسمية أو استشارة مختص في القانون.'
+      ? 'Les documents disponibles ne traitent pas cette problématique avec suffisamment de précision pour formuler un avis juridique fiable. Je vous recommande de consulter directement les textes législatifs applicables ou un confrère spécialisé dans ce domaine.'
+      : 'المصادر المتوفرة لا تعالج هذه المسألة بشكل كافٍ لإبداء رأي قانوني موثوق. أنصحك بالرجوع مباشرةً إلى النصوص التشريعية ذات الصلة، أو استشارة محامٍ متخصص للتعمق في هذه المسألة.'
     yield { type: 'metadata', sources: [], model: 'abstained', qualityIndicator: 'low', averageSimilarity: streamAvg }
     yield { type: 'chunk', text: abstentionMsg }
     yield { type: 'done', tokensUsed: { input: 0, output: 0, total: 0 } }
