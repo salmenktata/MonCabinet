@@ -706,34 +706,33 @@ function computeAdaptiveQualityGate(
   sourcesFound: number,
   hasVectorResults: boolean
 ): number {
-  // Seuils de base selon langue et type
+  // IMPORTANT: ce seuil doit être STRICTEMENT INFÉRIEUR au seuil SQL (p_threshold=0.35 par défaut).
+  // Si gate >= threshold SQL, les sources qui passent juste le SQL threshold seront toutes rejetées.
+  // Comportement attendu (gate progressif Feb 23):
+  //   - Abstention dure seulement si TOUTES les sources < 0.25 (FR) ou < 0.18 (AR)
+  //   - Sources dans la zone 0.25-0.40 = acceptées (borderline mais utiles)
+  //   - Sources ≥ 0.40 = normales
   let base = lang === 'ar'
-    ? (hasVectorResults ? 0.20 : 0.30)
-    : (hasVectorResults ? 0.35 : 0.50)
+    ? (hasVectorResults ? 0.18 : 0.22)  // AR: seuils bas (embeddings arabes scoring plus faible)
+    : (hasVectorResults ? 0.25 : 0.30)  // FR: base 0.25 << seuil SQL 0.35 (marge de sécurité)
 
   // Ajustement selon complexité query (proxy : longueur en mots)
   const queryWords = query.trim().split(/\s+/).length
-  if (queryWords <= 5) {
-    // Query courte → baisser le seuil (moins de contexte disponible)
+  if (queryWords <= 3) {
+    // Query très courte (ex: "droits ?") → baisser le seuil
     base *= 0.85
-  } else if (queryWords >= 20 && lang !== 'ar') {
-    // Query longue FR → seuil légèrement plus strict (exiger pertinence)
-    // NB: Pas de pénalité pour l'arabe — déjà à base 0.20 (vs 0.35 FR),
-    // les narrations arabes longues avec scores 0.18-0.21 doivent passer
-    base *= 1.05
   }
+  // NB: Pas de hausse du gate selon nb de sources ni longueur query.
+  //     Ces ajustements à la hausse causaient des abstentions injustifiées
+  //     pour des sources légales avec scores 0.35-0.40 (Feb 24 regression).
 
-  // Ajustement selon nombre de sources trouvées
+  // Peu de résultats → assouplir légèrement
   if (sourcesFound <= 2) {
-    // Peu de résultats → assouplir pour éviter abstention
     base *= 0.90
-  } else if (sourcesFound >= 5) {
-    // Beaucoup de résultats → on peut se permettre d'être plus sélectif
-    base *= 1.05
   }
 
-  // Borner entre valeurs raisonnables
-  return Math.max(0.15, Math.min(base, 0.60))
+  // Borner entre valeurs raisonnables (jamais > 0.30 pour ne pas dépasser le SQL threshold)
+  return Math.max(0.12, Math.min(base, 0.30))
 }
 
 // Type de retour pour les recherches avec info de cache
