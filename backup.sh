@@ -126,9 +126,12 @@ if ! docker ps | grep -q qadhya-minio; then
   exit 1
 fi
 
+# Détecter le réseau Docker automatiquement
+DOCKER_NETWORK=$(docker inspect qadhya-minio --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' 2>/dev/null || echo "moncabinet_qadhya-network")
+
 # Vérifier si le bucket documents existe
 BUCKET_EXISTS=$(docker run --rm \
-  --network qadhya_default \
+  --network "$DOCKER_NETWORK" \
   -e MC_HOST_myminio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
   minio/mc:latest \
   ls myminio/documents 2>&1 || true)
@@ -139,7 +142,7 @@ if echo "$BUCKET_EXISTS" | grep -q "does not exist"; then
 else
   # Mirror bucket documents via MinIO client
   docker run --rm \
-    --network qadhya_default \
+    --network "$DOCKER_NETWORK" \
     -v "$MINIO_BACKUP_DIR:/backup" \
     -e MC_HOST_myminio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
     minio/mc:latest \
