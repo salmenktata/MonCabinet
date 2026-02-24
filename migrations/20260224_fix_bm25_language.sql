@@ -33,7 +33,8 @@ RETURNS TABLE (
   metadata jsonb
 ) AS $$
 DECLARE
-  v_ts_config text;
+  -- IMPORTANT: regconfig (pas text) — PostgreSQL ne caste pas text→regconfig implicitement en PL/pgSQL
+  v_ts_config regconfig;
 BEGIN
   -- Auto-détection langue : arabe si contient des caractères arabes (U+0621–U+064A)
   -- Évite BM25 = 0 pour requêtes françaises (bug critique)
@@ -42,7 +43,8 @@ BEGIN
   -- 'simple' = tokenisation basique sans stemming → match OK sur les tokens français dans tsvector Arabic.
   -- Vérifié: plainto_tsquery('arabic', 'obligations bail') = 0 résultats
   --          plainto_tsquery('simple', 'obligations bail') = 9 résultats (correct)
-  v_ts_config := CASE WHEN p_query_text ~ '[ء-ي]' THEN 'arabic' ELSE 'simple' END;
+  -- Bug fix: v_ts_config doit être regconfig (pas text) sinon erreur silencieuse PL/pgSQL
+  v_ts_config := CASE WHEN p_query_text ~ '[ء-ي]' THEN 'arabic'::regconfig ELSE 'simple'::regconfig END;
 
   IF p_embedding_provider = 'openai' THEN
     RETURN QUERY
@@ -230,6 +232,7 @@ $$ LANGUAGE plpgsql STABLE;
 
 COMMENT ON FUNCTION search_knowledge_base_hybrid IS
 'Recherche hybride vectorielle + BM25 avec auto-détection langue (arabe/français).
-Fix v2: v_ts_config = arabic pour AR, simple pour FR (pas french — incompatible avec tsvectors Arabic).
+Fix v3: v_ts_config déclaré regconfig (pas text) — text→regconfig ne se caste pas implicitement en PL/pgSQL.
+Config: arabic pour AR, simple pour FR (pas french — incompatible avec tsvectors Arabic).
 BM25 résultats: arabic=9, french=0, simple=9 pour "obligations locataire bail" (validé Feb 24).
 Supports: openai (1536-dim), gemini (768-dim), ollama (1024-dim).';
