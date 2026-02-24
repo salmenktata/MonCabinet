@@ -39,6 +39,7 @@ export async function createEcheanceAction(formData: EcheanceFormData) {
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${validatedData.dossier_id}`)
+    revalidatePath('/echeances')
     return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur création échéance:', error)
@@ -81,6 +82,7 @@ export async function updateEcheanceAction(id: string, formData: Partial<Echeanc
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${echeance.dossier_id}`)
+    revalidatePath('/echeances')
     return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur mise à jour échéance:', error)
@@ -114,6 +116,7 @@ export async function deleteEcheanceAction(id: string) {
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${echeance.dossier_id}`)
+    revalidatePath('/echeances')
 
     return { success: true }
   } catch (error) {
@@ -151,6 +154,7 @@ export async function marquerEcheanceRespecte(id: string) {
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${echeance.dossier_id}`)
+    revalidatePath('/echeances')
     return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur marquage échéance:', error)

@@ -6,6 +6,8 @@ import WorkflowVisualizer from '../workflows/WorkflowVisualizer'
 import ActionsList from './ActionsList'
 import AddActionForm from './AddActionForm'
 import DossierForm from './DossierForm'
+import EcheanceCard from '@/components/echeances/EcheanceCard'
+import { EcheanceFormAdvanced } from '@/components/echeances/EcheanceFormAdvanced'
 import { updateDossierEtapeAction } from '@/app/actions/dossiers'
 
 interface DossierDetailContentProps {
@@ -26,6 +28,7 @@ export default function DossierDetailContent({
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(initialTab)
   const [showAddAction, setShowAddAction] = useState(false)
+  const [showAddEcheance, setShowAddEcheance] = useState(false)
   const [updatingEtape, setUpdatingEtape] = useState(false)
 
   const handleEtapeChange = useCallback(async (etapeId: string) => {
@@ -87,7 +90,7 @@ export default function DossierDetailContent({
             <h2 className="text-lg font-semibold text-foreground mb-4">
               Modifier les informations
             </h2>
-            <DossierForm initialData={dossier} isEditing clients={[dossier.clients]} />
+            <DossierForm initialData={dossier} isEditing clients={dossier.client ? [dossier.client] : []} />
           </div>
         )}
 
@@ -129,37 +132,37 @@ export default function DossierDetailContent({
               <h2 className="text-lg font-semibold text-foreground">
                 Échéances ({echeances.length})
               </h2>
-              <button className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
-                + Ajouter échéance
-              </button>
+              {!showAddEcheance && (
+                <button
+                  onClick={() => setShowAddEcheance(true)}
+                  className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  + Ajouter échéance
+                </button>
+              )}
             </div>
+
+            {showAddEcheance && (
+              <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-foreground">
+                    Nouvelle échéance
+                  </h3>
+                  <button
+                    onClick={() => setShowAddEcheance(false)}
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    ✕ Annuler
+                  </button>
+                </div>
+                <EcheanceFormAdvanced dossierId={dossier.id} />
+              </div>
+            )}
 
             {echeances.length > 0 ? (
               <div className="space-y-3">
                 {echeances.map((echeance) => (
-                  <div
-                    key={echeance.id}
-                    className="rounded-lg border p-4 hover:border-blue-300"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-medium text-foreground">
-                          {echeance.titre}
-                        </h4>
-                        {echeance.description && (
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {echeance.description}
-                          </p>
-                        )}
-                        <p className="mt-2 text-sm text-blue-600">
-                          📅{' '}
-                          {new Date(echeance.date_evenement).toLocaleDateString(
-                            'fr-FR'
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <EcheanceCard key={echeance.id} echeance={echeance} />
                 ))}
               </div>
             ) : (
