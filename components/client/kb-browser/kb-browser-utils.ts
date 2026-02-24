@@ -1,5 +1,6 @@
 import { LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
+import type { SearchResultItem } from './DocumentExplorer'
 
 /**
  * Formatte une date en format FR (court)
@@ -94,4 +95,47 @@ const DEFAULT_CARD_STYLE = { borderClass: 'border-slate-500', iconColor: 'text-s
 
 export function getCategoryCardStyles(category: string): { borderClass: string; iconColor: string; hoverBg: string } {
   return CATEGORY_CARD_STYLES[category] || DEFAULT_CARD_STYLE
+}
+
+/**
+ * Formate une citation juridique selon le type de document
+ */
+export function formatCitation(doc: SearchResultItem): string {
+  const meta = doc.metadata
+  const cat = doc.category
+
+  // Jurisprudence
+  if (cat === 'jurisprudence') {
+    const parts: string[] = []
+    if (meta.tribunalLabelFr) parts.push(String(meta.tribunalLabelFr))
+    if (meta.chambreLabelFr) parts.push(String(meta.chambreLabelFr))
+    if (meta.decisionNumber) parts.push(`n° ${meta.decisionNumber}`)
+    if (meta.decisionDate) {
+      try {
+        const date = new Date(String(meta.decisionDate))
+        parts.push(date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }))
+      } catch {
+        // ignore
+      }
+    }
+    if (parts.length > 0) return parts.join(', ')
+    return doc.title
+  }
+
+  // Textes normatifs (codes, legislation, constitution, conventions...)
+  const normCats = ['codes', 'legislation', 'constitution', 'conventions', 'jort']
+  if (normCats.includes(cat)) {
+    if (meta.decisionDate) {
+      try {
+        const date = new Date(String(meta.decisionDate))
+        return `${doc.title} (${date.getFullYear()})`
+      } catch {
+        // ignore
+      }
+    }
+    return doc.title
+  }
+
+  // Fallback
+  return doc.title
 }

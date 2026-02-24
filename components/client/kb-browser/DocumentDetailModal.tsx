@@ -1,8 +1,12 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { BookOpen, Scale, Calendar, Building2, Users, FileText, Link2, Copy, Download, Layers, AlignLeft, Search as SearchIcon, X, Loader2 } from 'lucide-react'
+import {
+  BookOpen, Scale, Calendar, Building2, Users, FileText, Link2, Copy, Download,
+  Layers, AlignLeft, Search as SearchIcon, X, Loader2, ExternalLink,
+} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -14,10 +18,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import Link from 'next/link'
 import { LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
 import type { SearchResultItem } from './DocumentExplorer'
-import { formatDateLong, getCategoryLabel } from './kb-browser-utils'
+import { formatDateLong, getCategoryLabel, formatCitation } from './kb-browser-utils'
 import {
   NORM_LEVELS_ORDERED,
   getNormLevelLabel,
@@ -105,7 +110,6 @@ const HEADING_FONT: Record<TocEntry['level'], string> = {
   article: 'text-xs text-muted-foreground',
 }
 
-// Highlight du texte de recherche dans le contenu
 function highlightText(text: string, query: string): React.ReactNode {
   if (!query.trim()) return text
   const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'))
@@ -119,10 +123,10 @@ function highlightText(text: string, query: string): React.ReactNode {
 }
 
 // =============================================================================
-// ONGLET TEXTE COMPLET
+// ONGLET TEXTE COMPLET (exporté pour DocumentDetailPage)
 // =============================================================================
 
-function FullTextTab({ documentId, title }: { documentId: string; title: string }) {
+export function FullTextTabContent({ documentId, title }: { documentId: string; title: string }) {
   const [chunks, setChunks] = useState<FullTextChunk[] | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -213,7 +217,6 @@ function FullTextTab({ documentId, title }: { documentId: string; title: string 
 
       {/* Contenu principal */}
       <div className="flex-1 min-w-0 space-y-3">
-        {/* Barre recherche dans le texte */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -243,7 +246,6 @@ function FullTextTab({ documentId, title }: { documentId: string; title: string 
           </Button>
         </div>
 
-        {/* Chunks */}
         <div className="space-y-1 max-h-[55vh] overflow-y-auto pr-1">
           {chunks.map((chunk) => {
             const headingLevel = detectHeading(chunk.content)
@@ -290,6 +292,7 @@ export function DocumentDetailModal({
   onExport,
   onAddToDossier,
 }: DocumentDetailModalProps) {
+  const router = useRouter()
   const { metadata, relations } = document
   const categoryColor = LEGAL_CATEGORY_COLORS[document.category as LegalCategory]
   const formattedDate = formatDateLong(metadata.decisionDate as string | null)
@@ -304,6 +307,12 @@ export function DocumentDetailModal({
       toast.success('Contenu copié dans le presse-papiers')
     }
   }, [onCopy, document])
+
+  const handleCite = useCallback(() => {
+    const citation = formatCitation(document)
+    navigator.clipboard.writeText(citation)
+    toast.success('Citation copiée dans le presse-papiers')
+  }, [document])
 
   const handleExport = useCallback(() => {
     if (onExport) {
@@ -333,7 +342,10 @@ export function DocumentDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        aria-describedby="document-detail-tabs"
+      >
         <DialogHeader>
           <DialogTitle className="text-xl pr-8">{document.title}</DialogTitle>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -360,11 +372,19 @@ export function DocumentDetailModal({
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="content">Contenu</TabsTrigger>
-            <TabsTrigger value="metadata">Métadonnées</TabsTrigger>
-            <TabsTrigger value="relations">
+        <Tabs
+          id="document-detail-tabs"
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="mt-4"
+        >
+          <TabsList
+            className="grid w-full grid-cols-4"
+            aria-label="Sections du document"
+          >
+            <TabsTrigger value="content" aria-controls="modal-tab-content">Contenu</TabsTrigger>
+            <TabsTrigger value="metadata" aria-controls="modal-tab-metadata">Métadonnées</TabsTrigger>
+            <TabsTrigger value="relations" aria-controls="modal-tab-relations">
               Relations
               {relations && (
                 <Badge variant="secondary" className="ml-2">
@@ -372,14 +392,14 @@ export function DocumentDetailModal({
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="fulltext">
+            <TabsTrigger value="fulltext" aria-controls="modal-tab-fulltext">
               <AlignLeft className="h-3.5 w-3.5 mr-1" />
               Texte complet
             </TabsTrigger>
           </TabsList>
 
           {/* Onglet Contenu */}
-          <TabsContent value="content" className="space-y-4">
+          <TabsContent id="modal-tab-content" value="content" className="space-y-4">
             {document.chunkContent && (
               <div className="bg-muted/30 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -418,7 +438,7 @@ export function DocumentDetailModal({
           </TabsContent>
 
           {/* Onglet Métadonnées */}
-          <TabsContent value="metadata" className="space-y-4">
+          <TabsContent id="modal-tab-metadata" value="metadata" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {metadata.tribunalLabelFr && (
                 <div className="space-y-2">
@@ -476,11 +496,10 @@ export function DocumentDetailModal({
                     <Badge className={`border ${getNormLevelColor(document.normLevel)}`}>
                       {getNormLevelLabel(document.normLevel, 'fr')} — {getNormLevelLabel(document.normLevel, 'ar')}
                     </Badge>
-                    {/* Pyramide visuelle */}
                     <div className="flex items-center gap-1 mt-2">
                       {NORM_LEVELS_ORDERED.map((level) => {
                         const isActive = level.value === document.normLevel
-                        const isBefore = level.order < getNormLevelOrder(document.normLevel)
+                        const isBefore = level.order < getNormLevelOrder(document.normLevel!)
                         return (
                           <div
                             key={level.value}
@@ -528,7 +547,7 @@ export function DocumentDetailModal({
           </TabsContent>
 
           {/* Onglet Relations */}
-          <TabsContent value="relations" className="space-y-4">
+          <TabsContent id="modal-tab-relations" value="relations" className="space-y-4">
             {!relations || (
               !relations.cites?.length &&
               !relations.citedBy?.length &&
@@ -548,7 +567,18 @@ export function DocumentDetailModal({
                     </h4>
                     <div className="space-y-2">
                       {relations.cites.map((rel, index) => (
-                        <RelationCard key={index} relation={rel} />
+                        <RelationCard
+                          key={index}
+                          relation={rel}
+                          onNavigate={(id, title) => {
+                            onOpenChange(false)
+                            if (id) {
+                              router.push(`/client/knowledge-base/${id}`)
+                            } else {
+                              router.push(`/client/knowledge-base?mode=general&q=${encodeURIComponent(title)}`)
+                            }
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
@@ -561,7 +591,18 @@ export function DocumentDetailModal({
                     </h4>
                     <div className="space-y-2">
                       {relations.citedBy.map((rel, index) => (
-                        <RelationCard key={index} relation={rel} />
+                        <RelationCard
+                          key={index}
+                          relation={rel}
+                          onNavigate={(id, title) => {
+                            onOpenChange(false)
+                            if (id) {
+                              router.push(`/client/knowledge-base/${id}`)
+                            } else {
+                              router.push(`/client/knowledge-base?mode=general&q=${encodeURIComponent(title)}`)
+                            }
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
@@ -574,7 +615,19 @@ export function DocumentDetailModal({
                     </h4>
                     <div className="space-y-2">
                       {relations.supersedes.map((rel, index) => (
-                        <RelationCard key={index} relation={rel} type="supersedes" />
+                        <RelationCard
+                          key={index}
+                          relation={rel}
+                          type="supersedes"
+                          onNavigate={(id, title) => {
+                            onOpenChange(false)
+                            if (id) {
+                              router.push(`/client/knowledge-base/${id}`)
+                            } else {
+                              router.push(`/client/knowledge-base?mode=general&q=${encodeURIComponent(title)}`)
+                            }
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
@@ -587,26 +640,57 @@ export function DocumentDetailModal({
                     </h4>
                     <div className="space-y-2">
                       {relations.relatedCases.map((rel, index) => (
-                        <RelationCard key={index} relation={rel} />
+                        <RelationCard
+                          key={index}
+                          relation={rel}
+                          onNavigate={(id, title) => {
+                            onOpenChange(false)
+                            if (id) {
+                              router.push(`/client/knowledge-base/${id}`)
+                            } else {
+                              router.push(`/client/knowledge-base?mode=general&q=${encodeURIComponent(title)}`)
+                            }
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
                 )}
+
+                {/* Recherche globale */}
+                <div className="pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground"
+                    onClick={() => {
+                      onOpenChange(false)
+                      router.push(`/client/knowledge-base?mode=general&q=${encodeURIComponent(document.title)}`)
+                    }}
+                  >
+                    <SearchIcon className="h-3.5 w-3.5 mr-1.5" />
+                    Rechercher tous les documents citant ce texte
+                  </Button>
+                </div>
               </>
             )}
           </TabsContent>
 
           {/* Onglet Texte complet */}
-          <TabsContent value="fulltext" className="mt-4">
+          <TabsContent id="modal-tab-fulltext" value="fulltext" className="mt-4">
             {activeTab === 'fulltext' && (
-              <FullTextTab documentId={document.kbId} title={document.title} />
+              <FullTextTabContent documentId={document.kbId} title={document.title} />
             )}
           </TabsContent>
         </Tabs>
 
         <DialogFooter className="mt-6">
-          <div className="flex gap-2 w-full justify-between">
-            <div className="flex gap-2">
+          <div className="flex gap-2 w-full justify-between flex-wrap">
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={handleCite}>
+                <Link2 className="h-4 w-4 mr-2" />
+                Citer
+              </Button>
               <Button variant="outline" size="sm" onClick={handleCopy}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copier
@@ -614,6 +698,12 @@ export function DocumentDetailModal({
               <Button variant="outline" size="sm" onClick={handleExport}>
                 <Download className="h-4 w-4 mr-2" />
                 Exporter
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={`/client/knowledge-base/${document.kbId}`} target="_blank">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Page complète
+                </Link>
               </Button>
             </div>
 
@@ -635,6 +725,7 @@ export function DocumentDetailModal({
 
 interface RelationCardProps {
   relation: {
+    relatedKbId?: string
     relationType: string
     relatedTitle: string
     relatedCategory: string
@@ -642,11 +733,29 @@ interface RelationCardProps {
     confidence: number | null
   }
   type?: 'supersedes' | 'default'
+  onNavigate?: (relatedKbId: string | undefined, relatedTitle: string) => void
 }
 
-function RelationCard({ relation, type = 'default' }: RelationCardProps) {
+function RelationCard({ relation, type = 'default', onNavigate }: RelationCardProps) {
+  const isClickable = !!onNavigate
+
   return (
-    <div className={`p-3 rounded-lg border ${type === 'supersedes' ? 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950' : 'bg-muted/30'}`}>
+    <div
+      className={`p-3 rounded-lg border transition-all ${
+        type === 'supersedes'
+          ? 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950'
+          : 'bg-muted/30'
+      } ${isClickable ? 'cursor-pointer hover:shadow-sm hover:border-primary/40' : ''}`}
+      onClick={() => onNavigate?.(relation.relatedKbId, relation.relatedTitle)}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (isClickable && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault()
+          onNavigate?.(relation.relatedKbId, relation.relatedTitle)
+        }
+      }}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -666,6 +775,9 @@ function RelationCard({ relation, type = 'default' }: RelationCardProps) {
             </p>
           )}
         </div>
+        {isClickable && (
+          <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+        )}
       </div>
     </div>
   )
