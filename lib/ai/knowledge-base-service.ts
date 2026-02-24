@@ -1016,30 +1016,27 @@ export async function searchKnowledgeBaseHybrid(
   // ✨ OPTIMISATION Phase 2.4 : Détection auto type de query + poids adaptatifs
   const queryAnalysis = detectQueryType(query)
 
-  // ✨ TRIPLE EMBEDDING PARALLÈLE (Feb 18, 2026) - OpenAI + Ollama + Gemini
-  // Génère les 3 embeddings en parallèle, lance les 3 recherches en parallèle,
-  // fusionne par chunk_id (meilleur score gagne) → coverage maximale garantie.
+  // ✨ DUAL EMBEDDING PARALLÈLE - OpenAI + Ollama (Gemini supprimé — coût €44/mois)
+  // Génère 2 embeddings en parallèle, lance les recherches en parallèle,
+  // fusionne par chunk_id (meilleur score gagne).
   const sqlCandidatePool = Math.min(limit * 3, 100)
 
-  // 1. Générer les 3 embeddings en parallèle
+  // 1. Générer les 2 embeddings en parallèle
   // ✨ FIX C (TTFT): Timeout 3s sur Ollama — CPU-bound, peut prendre 8-10s pour 0 résultats en prod
-  // OpenAI (1536-dim) + Gemini (768-dim) couvrent ~100% des chunks KB prod → Ollama optionnel
   const ollamaWithTimeout = Promise.race([
     generateEmbedding(query, { forceOllama: true }),
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Ollama embedding timeout (3s)')), 3000)),
   ])
-  const [openaiEmbResult, ollamaEmbResult, geminiEmbResult] = await Promise.allSettled([
+  const [openaiEmbResult, ollamaEmbResult] = await Promise.allSettled([
     generateEmbedding(query, { operationName: operationName as any }),       // OpenAI (1536-dim)
     ollamaWithTimeout,                                                        // Ollama (1024-dim, chunks legacy, timeout 3s)
-    generateEmbedding(query, { forceGemini: true }),                         // Gemini (768-dim, multilingue AR)
   ])
 
   // Log providers disponibles
   const openaiStatus = openaiEmbResult.status === 'fulfilled' ? openaiEmbResult.value.provider : 'failed'
   const ollamaStatus = ollamaEmbResult.status === 'fulfilled' ? ollamaEmbResult.value.provider : 'failed'
-  const geminiStatus = geminiEmbResult.status === 'fulfilled' ? geminiEmbResult.value.provider : 'failed'
   logger.info(
-    `[KB Hybrid Search] Triple-embed: OpenAI=${openaiStatus}, Ollama=${ollamaStatus}, Gemini=${geminiStatus}, Type: ${queryAnalysis.type}, Weights: vector=${queryAnalysis.weights.vector} / bm25=${queryAnalysis.weights.bm25}, Query: "${queryText.substring(0, 50)}..."`
+    `[KB Hybrid Search] Dual-embed: OpenAI=${openaiStatus}, Ollama=${ollamaStatus}, Type: ${queryAnalysis.type}, Weights: vector=${queryAnalysis.weights.vector} / bm25=${queryAnalysis.weights.bm25}, Query: "${queryText.substring(0, 50)}..."`
   )
   logger.info(`[KB Hybrid Search] Rationale: ${queryAnalysis.rationale}`)
 
@@ -1065,15 +1062,6 @@ export async function searchKnowledgeBaseHybrid(
     providerLabels.push('ollama')
   }
 
-  if (geminiEmbResult.status === 'fulfilled' && geminiEmbResult.value.provider === 'gemini') {
-    // Guard critique : ne lancer la recherche Gemini QUE si l'embedding est vraiment 768-dim
-    const embStr = formatEmbeddingForPostgres(geminiEmbResult.value.embedding)
-    searchPromises.push(
-      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'gemini', bm25Language)
-    )
-    providerLabels.push('gemini')
-  }
-
   // ✨ RECHERCHE FORCÉE CODES JURIDIQUES (Feb 17, 2026)
   // Problème fondamental : les articles de codes légaux (المجلة الجزائية, مجلة الشغل...)
   // ont une similarité vectorielle intrinsèquement basse (~0.35-0.45) avec les queries
@@ -1093,18 +1081,9 @@ export async function searchKnowledgeBaseHybrid(
     )
     providerLabels.push('codes-forced')
   }
-  // ✨ FORCED CODES - Gemini (multilingue) : couvre les requêtes françaises qui ont
-  // faible cross-lingual similarity avec OpenAI pour les codes en arabe.
-  if (shouldForceCodes && geminiEmbResult.status === 'fulfilled' && geminiEmbResult.value.provider === 'gemini') {
-    const embStr = formatEmbeddingForPostgres(geminiEmbResult.value.embedding)
-    searchPromises.push(
-      searchHybridSingle(queryText, embStr, 'codes', null, Math.ceil(limit / 2), 0.12, 'gemini', bm25Language)
-    )
-    providerLabels.push('codes-forced-gemini')
-  }
 
   if (searchPromises.length === 0) {
-    logger.warn('[KB Hybrid Search] Aucun embedding disponible (OpenAI + Ollama + Gemini tous en échec)')
+    logger.warn('[KB Hybrid Search] Aucun embedding disponible (OpenAI + Ollama tous en échec)')
     return []
   }
 
@@ -1121,7 +1100,7 @@ export async function searchKnowledgeBaseHybrid(
 
     for (const r of resultSet) {
       // Appliquer boost aux codes forcés pour compenser l'écart sémantique
-      if (label === 'codes-forced' || label === 'codes-forced-gemini') {
+      if (label === 'codes-forced') {
         r.similarity = Math.min(1.0, r.similarity * CODE_PRIORITY_BOOST)
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
@@ -1138,7 +1117,7 @@ export async function searchKnowledgeBaseHybrid(
     .slice(0, sqlCandidatePool)
 
   const providerSummary = Object.entries(countByProvider).map(([p, c]) => `${c} ${p}`).join(' + ')
-  logger.info(`[KB Hybrid Search] Triple-parallel: ${providerSummary} → ${results.length} total après dédup (pool=${sqlCandidatePool})`)
+  logger.info(`[KB Hybrid Search] Dual-parallel: ${providerSummary} → ${results.length} total après dédup (pool=${sqlCandidatePool})`)
 
   return results
 }
