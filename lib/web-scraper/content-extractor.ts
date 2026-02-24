@@ -1125,6 +1125,9 @@ function extractLinkedFiles(
     const href = $(el).attr('href')
     if (!href) return
 
+    // Ignorer les références locales (file://, mailto:, javascript:, etc.)
+    if (/^(file|mailto|javascript|data):/i.test(href)) return
+
     try {
       const fileUrl = new URL(href, baseUrl.origin)
       const ext = getFileExtension(fileUrl.pathname)

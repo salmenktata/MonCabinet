@@ -672,6 +672,11 @@ async function downloadLinkedFiles(
   const result: LinkedFile[] = []
 
   for (const file of files) {
+    // Ignorer les références locales file:// (Word copié-collé, inatteignables)
+    if (file.url.startsWith('file://')) {
+      continue
+    }
+
     // Ne pas re-télécharger si déjà fait
     if (file.downloaded) {
       result.push(file)
