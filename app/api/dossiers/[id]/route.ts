@@ -64,6 +64,7 @@ function mapClientFromDB(client: any): any {
     email: client.email,
     telephone: client.telephone,
     type: client.type_client,
+    typeClient: client.type_client,
     adresse: client.adresse,
     cin: client.cin,
   }
@@ -72,6 +73,7 @@ function mapClientFromDB(client: any): any {
 function mapStatus(statut: string): string {
   const statusMap: Record<string, string> = {
     'ouvert': 'open',
+    'actif': 'in_progress',
     'en_cours': 'in_progress',
     'en_attente': 'pending',
     'clos': 'closed',
@@ -148,7 +150,7 @@ export async function GET(
         ) as actions,
         (
           SELECT COALESCE(json_agg(
-            ech.* ORDER BY ech.date_evenement ASC
+            ech.* ORDER BY ech.date_echeance ASC
           ), '[]'::json)
           FROM echeances ech
           WHERE ech.dossier_id = d.id

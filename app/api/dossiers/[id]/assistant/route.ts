@@ -105,8 +105,29 @@ export async function POST(
       `[Assistant Dossier] Analyse dossier #${dossier.numero} - "${question.substring(0, 50)}..."`
     )
 
+    // Récupérer les échéances actives du dossier pour enrichir le contexte
+    const echeancesResult = await db.query(
+      `SELECT titre, type_echeance, date_echeance, statut, description
+       FROM echeances
+       WHERE dossier_id = $1 AND statut = 'actif'
+       ORDER BY date_echeance ASC
+       LIMIT 10`,
+      [dossierId]
+    )
+
+    let enrichedQuestion = question
+    if (echeancesResult.rows.length > 0) {
+      const echeancesContext = echeancesResult.rows
+        .map((e: any) => {
+          const date = new Date(e.date_echeance).toLocaleDateString('fr-FR')
+          return `- ${e.titre} (${e.type_echeance}) : ${date}${e.description ? ` — ${e.description}` : ''}`
+        })
+        .join('\n')
+      enrichedQuestion = `${question}\n\n[Contexte dossier #${dossier.numero} — Échéances actives :\n${echeancesContext}]`
+    }
+
     // Appeler le service RAG avec configuration dossiers-assistant
-    const response = await answerQuestion(question, userId, {
+    const response = await answerQuestion(enrichedQuestion, userId, {
       dossierId,
       conversationId,
       includeJurisprudence,
