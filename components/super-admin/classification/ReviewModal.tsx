@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/accordion'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import { Loader2, ThumbsUp, ThumbsDown, ExternalLink } from 'lucide-react'
+import { Loader2, ThumbsUp, ThumbsDown, ExternalLink, ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { LEGAL_CATEGORY_TRANSLATIONS, type LegalCategory } from '@/lib/categories/legal-categories'
 import { LEGAL_DOMAIN_TRANSLATIONS, DOCUMENT_NATURE_TRANSLATIONS, type LegalDomain, type DocumentNature } from '@/lib/web-scraper/types'
 
@@ -38,6 +38,10 @@ interface ReviewModalProps {
   isOpen: boolean
   onClose: () => void
   onComplete: () => void
+  // Navigation props (optionnels)
+  items?: { web_page_id: string }[]
+  currentIndex?: number
+  onNavigate?: (index: number) => void
 }
 
 // Catégories depuis le système centralisé (bilingue AR — FR)
@@ -65,8 +69,24 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: 'bg-green-100 text-green-800',
 }
 
-export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModalProps) {
+export function ReviewModal({
+  pageId,
+  isOpen,
+  onClose,
+  onComplete,
+  items,
+  currentIndex = 0,
+  onNavigate,
+}: ReviewModalProps) {
   const queryClient = useQueryClient()
+
+  // Index local pour la navigation
+  const [localIndex, setLocalIndex] = useState(currentIndex)
+
+  // Dériver le pageId actif
+  const activePageId = items && items.length > 0 && localIndex < items.length
+    ? items[localIndex].web_page_id
+    : pageId
 
   const [correctedCategory, setCorrectedCategory] = useState<string>('')
   const [correctedDomain, setCorrectedDomain] = useState<string>('')
@@ -74,14 +94,28 @@ export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModal
   const [feedbackUseful, setFeedbackUseful] = useState<boolean | null>(null)
   const [feedbackNotes, setFeedbackNotes] = useState<string>('')
 
+  // Sync localIndex quand le parent change currentIndex
+  useEffect(() => {
+    setLocalIndex(currentIndex)
+  }, [currentIndex])
+
+  // Reset form lors de la navigation
+  useEffect(() => {
+    setCorrectedCategory('')
+    setCorrectedDomain('')
+    setCorrectedDocumentType('')
+    setFeedbackUseful(null)
+    setFeedbackNotes('')
+  }, [localIndex])
+
   const { data, isLoading } = useQuery({
-    queryKey: ['page-classification', pageId],
+    queryKey: ['page-classification', activePageId],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/web-pages/${pageId}/classification`)
+      const response = await fetch(`/api/admin/web-pages/${activePageId}/classification`)
       if (!response.ok) throw new Error('Failed to fetch classification')
       return response.json()
     },
-    enabled: isOpen && !!pageId,
+    enabled: isOpen && !!activePageId,
   })
 
   useEffect(() => {
@@ -107,13 +141,44 @@ export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModal
           ? 'Correction enregistrée — Une règle de classification a été générée automatiquement !'
           : 'Correction enregistrée — La correction a été enregistrée avec succès')
       queryClient.invalidateQueries({ queryKey: ['classification-queue'] })
-      onComplete()
-      onClose()
+      navigateOrClose()
     },
     onError: (error: Error) => {
       toast.error(error.message)
     },
   })
+
+  const quickValidateMutation = useMutation({
+    mutationFn: async (pid: string) => {
+      const response = await fetch('/api/super-admin/classification/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pageId: pid, action: 'approve' }),
+      })
+      if (!response.ok) throw new Error('Failed to validate')
+      return response.json()
+    },
+    onSuccess: () => {
+      toast.success('Page validée telle quelle')
+      queryClient.invalidateQueries({ queryKey: ['classification-queue'] })
+      navigateOrClose()
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+
+  /** Passe à l'item suivant ou ferme le modal si c'est le dernier */
+  const navigateOrClose = () => {
+    if (items && localIndex < items.length - 1) {
+      const nextIndex = localIndex + 1
+      setLocalIndex(nextIndex)
+      onNavigate?.(nextIndex)
+    } else {
+      onComplete()
+      onClose()
+    }
+  }
 
   const handleSave = () => {
     if (!correctedCategory) {
@@ -122,7 +187,7 @@ export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModal
     }
 
     saveMutation.mutate({
-      pageId,
+      pageId: activePageId,
       correctedCategory,
       correctedDomain,
       correctedDocumentType,
@@ -133,16 +198,115 @@ export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModal
     })
   }
 
+  const handleQuickValidate = () => {
+    if (quickValidateMutation.isPending) return
+    quickValidateMutation.mutate(activePageId)
+  }
+
+  const handleNavigate = (direction: 'prev' | 'next') => {
+    if (!items) return
+    const newIndex = direction === 'next'
+      ? Math.min(localIndex + 1, items.length - 1)
+      : Math.max(localIndex - 1, 0)
+    setLocalIndex(newIndex)
+    onNavigate?.(newIndex)
+  }
+
+  // Raccourcis clavier
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleKey = (e: KeyboardEvent) => {
+      // Ne pas déclencher lors de la saisie dans un champ
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target instanceof HTMLElement && e.target.getAttribute('role') === 'combobox')
+      ) return
+
+      const isPending = saveMutation.isPending || quickValidateMutation.isPending
+
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'n':
+          if (items && localIndex < items.length - 1) {
+            e.preventDefault()
+            handleNavigate('next')
+          }
+          break
+        case 'ArrowLeft':
+        case 'p':
+          if (items && localIndex > 0) {
+            e.preventDefault()
+            handleNavigate('prev')
+          }
+          break
+        case 'v':
+          if (!isPending) {
+            e.preventDefault()
+            handleQuickValidate()
+          }
+          break
+        case 'Enter':
+          if (correctedCategory && !isPending) {
+            e.preventDefault()
+            handleSave()
+          }
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, localIndex, items, correctedCategory, saveMutation.isPending, quickValidateMutation.isPending])
+
+  const hasNavigation = items && items.length > 1
+  const isPending = saveMutation.isPending || quickValidateMutation.isPending
+
   if (!isOpen) return null
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Révision de Classification</DialogTitle>
-          <DialogDescription>
-            Corrigez la classification automatique si nécessaire
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle>Révision de Classification</DialogTitle>
+              <DialogDescription>
+                Corrigez la classification automatique si nécessaire
+                {hasNavigation && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    ({localIndex + 1} / {items.length})
+                  </span>
+                )}
+              </DialogDescription>
+            </div>
+            {hasNavigation && (
+              <div className="flex items-center gap-1 mr-8">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleNavigate('prev')}
+                  disabled={localIndex === 0 || isPending}
+                  title="Précédent (← ou p)"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleNavigate('next')}
+                  disabled={localIndex === items.length - 1 || isPending}
+                  title="Suivant (→ ou n)"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
         {isLoading && (
@@ -363,11 +527,24 @@ export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModal
           </div>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saveMutation.isPending}>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} disabled={isPending}>
             Annuler
           </Button>
-          <Button onClick={handleSave} disabled={saveMutation.isPending || !data}>
+          <Button
+            variant="outline"
+            onClick={handleQuickValidate}
+            disabled={isPending || !data}
+            className="text-green-700 border-green-300 hover:bg-green-50"
+            title="Valider tel quel sans correction (v)"
+          >
+            {quickValidateMutation.isPending
+              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              : <Check className="mr-2 h-4 w-4" />
+            }
+            Valider tel quel
+          </Button>
+          <Button onClick={handleSave} disabled={isPending || !data}>
             {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Enregistrer
           </Button>

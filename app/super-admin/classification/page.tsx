@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ReviewQueue } from '@/components/super-admin/classification/ReviewQueue'
 import { CorrectionsHistory } from '@/components/super-admin/classification/CorrectionsHistory'
@@ -9,6 +10,15 @@ import { ClassifyBatchButton } from '@/components/super-admin/classification/Cla
 import { FileCheck, History, Sparkles, BarChart3, Zap } from 'lucide-react'
 
 export default function ClassificationPage() {
+  const [urgentCount, setUrgentCount] = useState(0)
+
+  useEffect(() => {
+    fetch('/api/super-admin/classification/queue?limit=1')
+      .then((r) => r.json())
+      .then((data) => setUrgentCount(data?.stats?.urgent || 0))
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div>
@@ -27,6 +37,11 @@ export default function ClassificationPage() {
           <TabsTrigger value="queue" className="gap-2">
             <FileCheck className="w-4 h-4" />
             À Revoir
+            {urgentCount > 0 && (
+              <span className="ml-1 bg-red-500 text-white text-xs font-semibold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center leading-none">
+                {urgentCount}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2">
             <History className="w-4 h-4" />

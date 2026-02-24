@@ -11,7 +11,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Loader2, AlertCircle, TrendingUp } from 'lucide-react'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from '@/components/charts/LazyCharts'
 
 export function ClassificationAnalytics() {
   const [groupBy, setGroupBy] = useState<'domain' | 'source' | 'reason'>('domain')
@@ -25,6 +35,16 @@ export function ClassificationAnalytics() {
       if (!response.ok) throw new Error('Failed to fetch analytics')
       return response.json()
     },
+  })
+
+  const { data: trendsData, isLoading: trendsLoading } = useQuery({
+    queryKey: ['classification-analytics-trends'],
+    queryFn: async () => {
+      const response = await fetch('/api/super-admin/classification/analytics/trends?days=30')
+      if (!response.ok) throw new Error('Failed to fetch trends')
+      return response.json()
+    },
+    staleTime: 5 * 60 * 1000,
   })
 
   if (isLoading) {
@@ -53,6 +73,12 @@ export function ClassificationAnalytics() {
   const topSources = Object.entries(data.bySource as Record<string, number>)
     .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 5)
+
+  // Format date labels (YYYY-MM-DD → DD/MM)
+  const trendPoints = (trendsData?.trends || []).map((p: { date: string; count: number }) => ({
+    ...p,
+    label: p.date.slice(5).replace('-', '/'),
+  }))
 
   return (
     <div className="space-y-6">
@@ -120,6 +146,53 @@ export function ClassificationAnalytics() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Trend Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-muted-foreground" />
+            Corrections par jour (30 derniers jours)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {trendsLoading ? (
+            <Skeleton className="h-56 w-full" />
+          ) : trendPoints.length === 0 ? (
+            <div className="flex items-center justify-center h-56 text-muted-foreground text-sm">
+              Aucune correction sur les 30 derniers jours
+            </div>
+          ) : (
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendPoints} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 11 }}
+                    width={32}
+                  />
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  <Tooltip formatter={(v: any) => [v, 'Corrections']} />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Distribution by Priority */}
       <Card>
