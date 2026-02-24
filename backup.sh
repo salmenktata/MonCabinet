@@ -119,7 +119,7 @@ else
 fi
 
 # ============================================================================
-# ÉTAPE 2: Backup MinIO (Documents)
+# ÉTAPE 2: Backup MinIO (Documents + Web-Files)
 # ============================================================================
 
 echo -e "${YELLOW}💾 Backup MinIO...${NC}"
@@ -137,34 +137,42 @@ fi
 # Détecter le réseau Docker automatiquement
 DOCKER_NETWORK=$(docker inspect qadhya-minio --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' 2>/dev/null || echo "moncabinet_qadhya-network")
 
-# Vérifier si le bucket documents existe
-BUCKET_EXISTS=$(docker run --rm \
-  --network "$DOCKER_NETWORK" \
-  -e MC_HOST_myminio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
-  minio/mc:latest \
-  ls myminio/documents 2>&1 || true)
+# Mirror tous les buckets utiles : documents + web-files
+for BUCKET in documents web-files; do
+  BUCKET_CHECK=$(docker run --rm \
+    --network "$DOCKER_NETWORK" \
+    -e MC_HOST_myminio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
+    minio/mc:latest \
+    du --recursive myminio/$BUCKET 2>&1 || true)
 
-if echo "$BUCKET_EXISTS" | grep -q "does not exist"; then
-  echo -e "${YELLOW}⚠️  Bucket 'documents' n'existe pas encore (aucun fichier uploadé)${NC}"
-  rmdir "$MINIO_BACKUP_DIR" 2>/dev/null || true
-else
-  # Mirror bucket documents via MinIO client
+  if echo "$BUCKET_CHECK" | grep -q "does not exist"; then
+    echo -e "${YELLOW}⚠️  Bucket '$BUCKET' inexistant, ignoré${NC}"
+    continue
+  fi
+
+  OBJ_COUNT=$(echo "$BUCKET_CHECK" | grep -oP '\d+ objects' | head -1 | grep -oP '\d+' || echo "0")
+  if [ "$OBJ_COUNT" = "0" ]; then
+    echo -e "${YELLOW}⚠️  Bucket '$BUCKET' vide, ignoré${NC}"
+    continue
+  fi
+
+  echo -e "${YELLOW}   Mirror bucket '$BUCKET' ($OBJ_COUNT objets)...${NC}"
   docker run --rm \
     --network "$DOCKER_NETWORK" \
     -v "$MINIO_BACKUP_DIR:/backup" \
     -e MC_HOST_myminio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
     minio/mc:latest \
-    mirror myminio/documents /backup/documents > /dev/null 2>&1 || true
+    mirror myminio/$BUCKET /backup/$BUCKET > /dev/null 2>&1 || true
+done
 
-  # Compter fichiers et taille totale
-  FILE_COUNT=$(find "$MINIO_BACKUP_DIR" -type f 2>/dev/null | wc -l)
-  if [ "$FILE_COUNT" -gt 0 ]; then
-    TOTAL_SIZE=$(du -sh "$MINIO_BACKUP_DIR" | cut -f1)
-    echo -e "${GREEN}✅ MinIO backup: minio_$DATE ($FILE_COUNT fichiers, $TOTAL_SIZE)${NC}"
-  else
-    echo -e "${YELLOW}⚠️  MinIO: aucun fichier à sauvegarder${NC}"
-    rmdir "$MINIO_BACKUP_DIR" 2>/dev/null || true
-  fi
+# Compter fichiers et taille totale
+FILE_COUNT=$(find "$MINIO_BACKUP_DIR" -type f 2>/dev/null | wc -l)
+if [ "$FILE_COUNT" -gt 0 ]; then
+  TOTAL_SIZE=$(du -sh "$MINIO_BACKUP_DIR" | cut -f1)
+  echo -e "${GREEN}✅ MinIO backup: minio_$DATE ($FILE_COUNT fichiers, $TOTAL_SIZE)${NC}"
+else
+  echo -e "${YELLOW}⚠️  MinIO: aucun fichier à sauvegarder${NC}"
+  rmdir "$MINIO_BACKUP_DIR" 2>/dev/null || true
 fi
 
 # ============================================================================
