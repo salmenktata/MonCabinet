@@ -29,11 +29,13 @@
     },
     "intentType": "factual",
     "goldChunkIds": [
+      "78d20225-5839-4624-859b-9ddd3e7dc3cd",
       "10a25764-1aff-419d-a633-5503a907d5d0",
       "4467caf5-28e3-4b0c-b73f-a28336c988f1",
       "18279a17-7ff4-4bed-88cc-388d53c7f504"
     ],
     "goldDocumentIds": [
+      "f0d28e55-0507-41dd-b782-483cf28c39df",
       "f1f50202-f1a8-46cd-b6ae-a40f20c15241",
       "bf174d97-a899-4a28-b714-dae3ee706ac9",
       "27dd998c-c26c-4bdd-9996-e787bfe936f4"
@@ -386,11 +388,13 @@
       "consensus": 0
     },
     "goldChunkIds": [
+      "78d20225-5839-4624-859b-9ddd3e7dc3cd",
       "10a25764-1aff-419d-a633-5503a907d5d0",
       "4467caf5-28e3-4b0c-b73f-a28336c988f1",
       "18279a17-7ff4-4bed-88cc-388d53c7f504"
     ],
     "goldDocumentIds": [
+      "f0d28e55-0507-41dd-b782-483cf28c39df",
       "f1f50202-f1a8-46cd-b6ae-a40f20c15241",
       "bf174d97-a899-4a28-b714-dae3ee706ac9",
       "27dd998c-c26c-4bdd-9996-e787bfe936f4"
