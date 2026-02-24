@@ -230,6 +230,15 @@ export function WebSourcesFilters({ category, status, search, language, sortBy, 
         >
           <Icons.grid className="h-4 w-4" />
         </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => handleViewChange('pipeline')}
+          className={`rounded-none h-9 w-9 ${view === 'pipeline' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+          title="Vue pipeline"
+        >
+          <Icons.gitBranch className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   )

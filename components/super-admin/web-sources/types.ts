@@ -60,4 +60,4 @@ export type SortDirection = 'asc' | 'desc'
 /**
  * Vues disponibles
  */
-export type ViewMode = 'table' | 'cards'
+export type ViewMode = 'table' | 'cards' | 'pipeline'

@@ -14,6 +14,7 @@ import { WebSourcesStats } from '@/components/super-admin/web-sources/WebSources
 import { WebSourcesFilters } from '@/components/super-admin/web-sources/WebSourcesFilters'
 import { WebSourcesTable } from '@/components/super-admin/web-sources/WebSourcesTable'
 import { WebSourcesCards } from '@/components/super-admin/web-sources/WebSourcesCards'
+import { WebSourcePipelineView } from '@/components/super-admin/web-sources/WebSourcePipelineView'
 import type { ViewMode, SortField, SortDirection } from '@/components/super-admin/web-sources/types'
 
 export const dynamic = 'force-dynamic'
@@ -112,14 +113,22 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
         view={viewMode}
       />
 
-      {/* Content - Table (default) or Cards */}
-      <Suspense fallback={<div className="h-64 bg-slate-800 animate-pulse rounded-lg" />}>
-        {viewMode === 'cards' ? (
-          <WebSourcesCards {...sharedListProps} />
-        ) : (
-          <WebSourcesTable {...sharedListProps} />
-        )}
-      </Suspense>
+      {/* Content - Table (default), Cards or Pipeline */}
+      {viewMode === 'pipeline' ? (
+        <WebSourcePipelineView
+          category={params.category}
+          search={params.search}
+          isActive={params.status === 'active' ? true : params.status === 'inactive' ? false : undefined}
+        />
+      ) : (
+        <Suspense fallback={<div className="h-64 bg-slate-800 animate-pulse rounded-lg" />}>
+          {viewMode === 'cards' ? (
+            <WebSourcesCards {...sharedListProps} />
+          ) : (
+            <WebSourcesTable {...sharedListProps} />
+          )}
+        </Suspense>
+      )}
     </div>
   )
 }
