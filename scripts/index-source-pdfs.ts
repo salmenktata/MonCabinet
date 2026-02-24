@@ -96,7 +96,7 @@ async function main() {
         AND wp.linked_files::text != '[]'
         AND EXISTS (
           SELECT 1 FROM jsonb_array_elements(wp.linked_files) f
-          WHERE (f->>'type') = 'pdf'
+          WHERE (f->>'type') IN ('pdf', 'docx', 'doc', 'txt')
             AND f->>'minioPath' IS NOT NULL
         )
       ORDER BY wp.created_at ASC
@@ -109,7 +109,7 @@ async function main() {
         AND wp.linked_files::text != '[]'
         AND EXISTS (
           SELECT 1 FROM jsonb_array_elements(wp.linked_files) f
-          WHERE (f->>'type') = 'pdf'
+          WHERE (f->>'type') IN ('pdf', 'docx', 'doc', 'txt')
             AND f->>'minioPath' IS NOT NULL
         )
         AND NOT EXISTS (
@@ -158,14 +158,15 @@ async function main() {
 
     for (const row of batch) {
       const files: LinkedFile[] = row.linked_files || []
-      const pdfs = files.filter(f => f.type === 'pdf' && f.minioPath)
+      const SUPPORTED_TYPES = ['pdf', 'docx', 'doc', 'txt']
+      const pdfs = files.filter(f => SUPPORTED_TYPES.includes((f.type || '').toLowerCase()) && f.minioPath)
 
       if (pdfs.length === 0) {
         skipped++
         continue
       }
 
-      // Indexer tous les PDFs ou seulement le premier
+      // Indexer tous les fichiers ou seulement le premier
       const toIndex = allPdfs ? pdfs : [pdfs[0]]
 
       for (const file of toIndex) {
