@@ -104,7 +104,7 @@ class BackupHandler(BaseHTTPRequestHandler):
 
 def run_server():
     """Démarrer le serveur HTTP"""
-    server_address = ("localhost", PORT)
+    server_address = ("0.0.0.0", PORT)
     httpd = HTTPServer(server_address, BackupHandler)
 
     print(f"🚀 Backup API Server démarré sur port {PORT}")
