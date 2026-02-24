@@ -60,7 +60,13 @@ export function WebSourcesFilters({ category, status, search, language, sortBy, 
   const updateUrl = useCallback((params: Record<string, string>) => {
     const searchParams = new URLSearchParams()
     Object.entries(params).forEach(([key, value]) => {
-      if (value && value !== 'all') searchParams.set(key, value)
+      if (key === 'status') {
+        // 'all' explicite dans l'URL pour outrepasser le défaut 'active'
+        if (value && value !== 'active') searchParams.set(key, value)
+        else if (value === 'active') searchParams.set(key, 'active')
+      } else if (value && value !== 'all') {
+        searchParams.set(key, value)
+      }
     })
     router.push(`/super-admin/web-sources?${searchParams.toString()}`)
   }, [router])

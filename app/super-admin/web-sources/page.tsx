@@ -49,9 +49,11 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
   const isSuperAdmin = userRole === 'super_admin'
 
   // Data
+  const effectiveStatus = params.status ?? 'active'
+
   const data = await getWebSourcesListData({
     category: params.category,
-    status: params.status,
+    status: effectiveStatus,
     search: params.search,
     language: params.language,
     sortBy,
@@ -65,7 +67,7 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
     totalPages: data.totalPages,
     totalCount: data.total,
     category: params.category || '',
-    status: params.status || '',
+    status: effectiveStatus,
     search: params.search || '',
     language: params.language || '',
     sortBy: params.sortBy || '',
@@ -105,7 +107,7 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
       {/* Filters */}
       <WebSourcesFilters
         category={params.category || ''}
-        status={params.status || ''}
+        status={effectiveStatus}
         search={params.search || ''}
         language={params.language || ''}
         sortBy={sortBy}
@@ -118,7 +120,7 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
         <WebSourcePipelineView
           category={params.category}
           search={params.search}
-          isActive={params.status === 'active' ? true : params.status === 'inactive' ? false : undefined}
+          isActive={effectiveStatus === 'active' ? true : effectiveStatus === 'inactive' ? false : undefined}
         />
       ) : (
         <Suspense fallback={<div className="h-64 bg-slate-800 animate-pulse rounded-lg" />}>
