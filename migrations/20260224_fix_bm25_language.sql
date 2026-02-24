@@ -1,8 +1,11 @@
--- Fix BM25 multilingue : auto-détection langue (arabe / français)
+-- Fix BM25 multilingue : config 'simple' universelle (arabe ET français)
 -- Problème : 'arabic' hardcodé → score BM25 = 0 pour requêtes françaises
 -- Fix v1 (cassé) : 'french' pour requêtes FR → incompatible avec tsvectors indexés en 'arabic'
--- Fix v2 (correct) : 'arabic' pour AR, 'simple' pour FR — 'simple' fonctionne avec tsvectors Arabic
---   car il ne fait pas de stemming (juste tokenisation), match OK sur les tokens français stockés
+-- Fix v2 (cassé) : 'arabic' pour AR, 'simple' pour FR — tsvectors réellement en 'simple', pas 'arabic'
+--   → ts_rank('arabic', ar_query) = 1e-20 ≈ 0 (tokenisation 'arabic' ≠ tokens stockés en 'simple')
+-- Fix v3 (correct, appliqué Feb 24 prod) : 'simple' pour TOUS (AR + FR)
+--   Validé : ts_rank('simple', 'الدفاع الشرعي') = 0.97 | ts_rank('arabic', même) = 1e-20
+--   Validé : ts_rank('simple', 'obligations bail') = 0.09+ (9 résultats)
 
 -- Supprimer toutes les versions précédentes
 DROP FUNCTION IF EXISTS search_knowledge_base_hybrid(text, vector, text, text, integer, double precision, boolean) CASCADE;
@@ -44,7 +47,9 @@ BEGIN
   -- Vérifié: plainto_tsquery('arabic', 'obligations bail') = 0 résultats
   --          plainto_tsquery('simple', 'obligations bail') = 9 résultats (correct)
   -- Bug fix: v_ts_config doit être regconfig (pas text) sinon erreur silencieuse PL/pgSQL
-  v_ts_config := CASE WHEN p_query_text ~ '[ء-ي]' THEN 'arabic'::regconfig ELSE 'simple'::regconfig END;
+  -- Fix v3 : 'simple' pour TOUS (AR + FR) — les tsvectors sont indexés avec 'simple', pas 'arabic'
+  -- ts_rank('arabic', ar_query) = 1e-20 | ts_rank('simple', ar_query) = 0.97 (validé Feb 24)
+  v_ts_config := 'simple'::regconfig;
 
   IF p_embedding_provider = 'openai' THEN
     RETURN QUERY
