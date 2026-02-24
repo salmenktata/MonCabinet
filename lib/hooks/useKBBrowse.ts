@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 export interface KBBrowseParams {
   category?: string
   normLevel?: string
+  docType?: string
   limit?: number
   offset?: number
   sort?: 'date' | 'title'
@@ -18,6 +19,8 @@ export interface KBBrowseResult {
     title: string
     category: string
     normLevel: string | null
+    docType: string | null
+    updatedAt: string | null
     similarity: null
     metadata: Record<string, unknown>
   }>
@@ -32,6 +35,7 @@ export interface KBBrowseResult {
 async function fetchKBBrowse(params: {
   category?: string
   normLevel?: string
+  docType?: string
   limit: number
   offset: number
   sort: string
@@ -43,6 +47,7 @@ async function fetchKBBrowse(params: {
   })
   if (params.category) qs.set('category', params.category)
   if (params.normLevel) qs.set('norm_level', params.normLevel)
+  if (params.docType) qs.set('doc_type', params.docType)
 
   const response = await fetch(`/api/client/kb/browse?${qs}`)
 
@@ -57,22 +62,24 @@ async function fetchKBBrowse(params: {
 export function useKBBrowse({
   category,
   normLevel,
+  docType,
   limit = 50,
   offset = 0,
   sort = 'date',
   enabled = true,
 }: KBBrowseParams = {}) {
   return useQuery({
-    queryKey: ['kb-browse', category, normLevel, offset, sort],
+    queryKey: ['kb-browse', category, normLevel, docType, offset, sort],
     queryFn: () =>
       fetchKBBrowse({
         category,
         normLevel,
+        docType,
         limit,
         offset,
         sort,
       }),
-    enabled: enabled && (!!category || !!normLevel),
+    enabled: enabled && (!!category || !!normLevel || !!docType),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnMount: false,

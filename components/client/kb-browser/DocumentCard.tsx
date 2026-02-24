@@ -1,3 +1,4 @@
+import { Clock } from 'lucide-react'
 import { LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,9 +20,38 @@ export interface DocumentCardProps {
   onClick: () => void
 }
 
+function formatUpdatedAt(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null
+  try {
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  } catch {
+    return null
+  }
+}
+
+function getSourceLabel(meta: SearchResultItem['metadata']): string | null {
+  const url = meta.source_url as string | null | undefined
+  if (url) {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '')
+    } catch {
+      // fallback
+    }
+  }
+  const source = meta.source as string | null | undefined
+  return source || null
+}
+
 export function DocumentCard({ document, viewMode, onClick }: DocumentCardProps) {
   const categoryColor = LEGAL_CATEGORY_COLORS[document.category as LegalCategory]
   const formattedDate = formatDate(document.metadata.decisionDate as string | null)
+  const updatedAtLabel = formatUpdatedAt(document.updatedAt)
+  const sourceLabel = getSourceLabel(document.metadata)
+  const isAbroge = document.metadata.statut_vigueur === 'abroge'
 
   return (
     <Card
@@ -34,11 +64,18 @@ export function DocumentCard({ document, viewMode, onClick }: DocumentCardProps)
             <h3 className="font-semibold text-sm line-clamp-2 flex-1">
               {document.title}
             </h3>
-            {document.similarity != null && document.similarity < 1 && (
-              <Badge variant="outline" className={`shrink-0 ${getSimilarityColor(document.similarity)}`}>
-                {Math.round(document.similarity * 100)}%
-              </Badge>
-            )}
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              {isAbroge && (
+                <Badge variant="destructive" className="text-xs">
+                  Abrogé
+                </Badge>
+              )}
+              {document.similarity != null && document.similarity < 1 && (
+                <Badge variant="outline" className={`${getSimilarityColor(document.similarity)}`}>
+                  {Math.round(document.similarity * 100)}%
+                </Badge>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-1">
@@ -75,6 +112,22 @@ export function DocumentCard({ document, viewMode, onClick }: DocumentCardProps)
             <p className={`text-sm text-muted-foreground ${viewMode === 'list' ? 'line-clamp-2' : 'line-clamp-1'}`}>
               {document.chunkContent}
             </p>
+          )}
+
+          {(updatedAtLabel || sourceLabel) && (
+            <div className="flex items-center gap-3 pt-1 text-xs text-muted-foreground border-t border-muted/40">
+              {updatedAtLabel && (
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Mis à jour le {updatedAtLabel}
+                </span>
+              )}
+              {sourceLabel && (
+                <span className="truncate">
+                  Source : {sourceLabel}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </CardContent>

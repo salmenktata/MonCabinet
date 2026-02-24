@@ -2,45 +2,36 @@
 
 import { useState, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Search, X, BookOpen, Gavel, Scale, ClipboardCheck, Briefcase, FileText } from 'lucide-react'
+import {
+  Search, X, Shield, Scale, Briefcase, Gavel, Calculator, Users, Globe, FileText,
+  BookOpen, ArrowRight,
+} from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useKBStats } from '@/lib/hooks/useKBStats'
-import {
-  LEGAL_CATEGORY_TRANSLATIONS,
-  LEGAL_CATEGORY_DESCRIPTIONS,
-  getCategoriesForContext,
-} from '@/lib/categories/legal-categories'
-import type { LegalCategory } from '@/lib/categories/legal-categories'
+import { LEGAL_DOMAINS } from '@/lib/categories/legal-domains'
 import { DocumentExplorer } from './DocumentExplorer'
-import { getCategoryCardStyles } from './kb-browser-utils'
 
 // =============================================================================
-// ICON MAP (catégorie → composant lucide-react)
+// ICON MAP (legal-domain icon id → composant lucide-react)
 // =============================================================================
 
-const CATEGORY_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  codes: BookOpen,
-  jurisprudence: Gavel,
-  doctrine: BookOpen,
-  legislation: Scale,
-  procedures: ClipboardCheck,
-  conventions: Briefcase,
-  constitution: FileText,
-  jort: FileText,
+const DOMAIN_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Shield,
+  Scale,
+  Briefcase,
+  Gavel,
+  Calculator,
+  Users,
+  Globe,
+  FileText,
+  BookOpen,
 }
 
-// Catégories principales à afficher sur la landing
-const MAIN_CATEGORIES: LegalCategory[] = [
-  'codes',
-  'jurisprudence',
-  'doctrine',
-  'legislation',
-  'procedures',
-  'conventions',
-]
+// Regex détection "Article X" / "art. X" / "الفصل X"
+const ARTICLE_REGEX = /\b(article|art\.?|الفصل|فصل)\s+(\d+)/i
 
 const fadeSlide = {
   initial: { opacity: 0, y: 12 },
@@ -54,36 +45,60 @@ const fadeSlide = {
 // =============================================================================
 
 export function KnowledgeBaseBrowser() {
-  const [mode, setMode] = useState<'landing' | 'results'>('landing')
+  const [mode, setMode] = useState<'landing' | 'textes' | 'general'>('landing')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchError, setSearchError] = useState('')
+  const [selectedDomain, setSelectedDomain] = useState<string | undefined>()
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>()
+  const [articleHint, setArticleHint] = useState<string | undefined>()
 
   const { data: stats, isLoading: statsLoading } = useKBStats()
 
-  const handleSearch = useCallback(() => {
+  // Nombre total de textes normatifs (TEXTES doc_type approximé via catégories connues)
+  const textesCategories = ['codes', 'constitution', 'legislation', 'conventions', 'jort']
+  const textesCount = stats
+    ? textesCategories.reduce((acc, cat) => acc + (stats.byCategory[cat] || 0), 0)
+    : 0
+
+  const handleSearchTextes = useCallback(() => {
     const q = searchQuery.trim()
     if (!q) {
       setSearchError('Veuillez saisir un terme de recherche')
       return
     }
     setSearchError('')
+    const match = ARTICLE_REGEX.exec(q)
+    setArticleHint(match ? `article_${match[2]}` : undefined)
+    setSelectedDomain(undefined)
     setSelectedCategory(undefined)
-    setMode('results')
+    setMode('textes')
   }, [searchQuery])
 
-  const handleCategoryClick = useCallback((category: string) => {
-    setSelectedCategory(category)
+  const handleDomainClick = useCallback((domainId: string) => {
+    setSelectedDomain(domainId)
+    setSelectedCategory(undefined)
     setSearchQuery('')
     setSearchError('')
-    setMode('results')
+    setArticleHint(undefined)
+    setMode('textes')
+  }, [])
+
+  const handleGoGeneral = useCallback(() => {
+    setSelectedDomain(undefined)
+    setSelectedCategory(undefined)
+    setSearchQuery('')
+    setSearchError('')
+    setArticleHint(undefined)
+    setMode('general')
   }, [])
 
   const handleBack = useCallback(() => {
     setMode('landing')
     setSearchQuery('')
     setSearchError('')
+    setSelectedDomain(undefined)
     setSelectedCategory(undefined)
+    setArticleHint(undefined)
   }, [])
 
   const handleClearSearch = useCallback(() => {
@@ -91,35 +106,51 @@ export function KnowledgeBaseBrowser() {
     setSearchError('')
   }, [])
 
-  const handleCardKeyDown = useCallback((e: React.KeyboardEvent, category: string) => {
+  const handleCardKeyDown = useCallback((e: React.KeyboardEvent, domainId: string) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      handleCategoryClick(category)
+      handleDomainClick(domainId)
     }
-  }, [handleCategoryClick])
+  }, [handleDomainClick])
 
   return (
     <AnimatePresence mode="wait">
-      {mode === 'results' ? (
+      {mode === 'textes' || mode === 'general' ? (
         <motion.div key="results" {...fadeSlide} className="container mx-auto">
-          <DocumentExplorer
-            initialCategory={selectedCategory}
-            initialQuery={searchQuery || undefined}
-            onBack={handleBack}
-          />
+          {mode === 'textes' ? (
+            <DocumentExplorer
+              initialCategory={selectedDomain
+                ? LEGAL_DOMAINS.find((d) => d.id === selectedDomain)?.categories[0]
+                : undefined}
+              initialDomain={selectedDomain}
+              initialDocType="TEXTES"
+              initialQuery={searchQuery || undefined}
+              onBack={handleBack}
+            />
+          ) : (
+            <DocumentExplorer
+              initialCategory={selectedCategory}
+              initialQuery={searchQuery || undefined}
+              onBack={handleBack}
+            />
+          )}
         </motion.div>
       ) : (
         <motion.div key="landing" {...fadeSlide} className="container mx-auto space-y-10">
-          {/* Hero Search */}
+          {/* Hero — Textes Juridiques */}
           <div className="text-center space-y-4 py-8">
+            <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground bg-muted px-3 py-1 rounded-full">
+              <FileText className="h-3.5 w-3.5" />
+              Textes normatifs tunisiens
+            </div>
             <h1 className="text-3xl font-bold tracking-tight">
-              Base de Connaissances Juridique
+              Textes Juridiques Tunisiens
             </h1>
             <div className="text-muted-foreground text-lg">
               {statsLoading ? (
-                <Skeleton className="h-5 w-48 mx-auto" />
+                <Skeleton className="h-5 w-64 mx-auto" />
               ) : (
-                `${(stats?.totalDocuments || 0).toLocaleString('fr-FR')}+ documents juridiques tunisiens`
+                `${textesCount.toLocaleString('fr-FR')} textes normatifs — Constitution, Codes, Lois, Conventions`
               )}
             </div>
 
@@ -129,10 +160,10 @@ export function KnowledgeBaseBrowser() {
                 <div className="relative flex-1">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
-                    placeholder="Rechercher un texte de loi, un arrêt, une doctrine..."
+                    placeholder="Rechercher un texte ou un article… (ex: article 47 code pénal)"
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setSearchError('') }}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearchTextes()}
                     className={`pl-12 ${searchQuery ? 'pr-10' : ''} h-12 text-base`}
                   />
                   {searchQuery && (
@@ -146,56 +177,58 @@ export function KnowledgeBaseBrowser() {
                     </button>
                   )}
                 </div>
-                <Button onClick={handleSearch} size="lg" className="h-12 px-6">
+                <Button onClick={handleSearchTextes} size="lg" className="h-12 px-6">
                   Rechercher
                 </Button>
               </div>
               {searchError && (
                 <p className="text-sm text-destructive mt-2">{searchError}</p>
               )}
+              {articleHint && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recherche par article détectée — les résultats seront filtrés sur cet article
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                Recherche dans les textes normatifs uniquement
+              </p>
             </div>
           </div>
 
-          {/* Grille de catégories */}
+          {/* Grille des 8 domaines */}
           <div>
-            <h2 className="text-lg font-semibold mb-4">Explorer par catégorie</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {MAIN_CATEGORIES.map((cat) => {
-                const Icon = CATEGORY_ICON_MAP[cat] || BookOpen
-                const label = LEGAL_CATEGORY_TRANSLATIONS[cat]?.fr || cat
-                const description = LEGAL_CATEGORY_DESCRIPTIONS[cat]?.fr || ''
-                const count = stats?.byCategory[cat] || 0
-                const styles = getCategoryCardStyles(cat)
+            <h2 className="text-lg font-semibold mb-4">Explorer par domaine juridique</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {LEGAL_DOMAINS.map((domain) => {
+                const Icon = DOMAIN_ICON_MAP[domain.icon] || FileText
 
                 return (
                   <Card
-                    key={cat}
-                    className={`cursor-pointer border-l-4 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none ${styles.borderClass} ${styles.hoverBg}`}
-                    onClick={() => handleCategoryClick(cat)}
-                    onKeyDown={(e) => handleCardKeyDown(e, cat)}
+                    key={domain.id}
+                    className="cursor-pointer border hover:border-primary/50 hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none"
+                    onClick={() => handleDomainClick(domain.id)}
+                    onKeyDown={(e) => handleCardKeyDown(e, domain.id)}
                     role="button"
                     tabIndex={0}
-                    aria-label={`${label} — ${count} documents`}
+                    aria-label={`${domain.labelFr} — ${domain.labelAr}`}
                   >
-                    <CardContent className="p-5">
-                      <div className="flex items-start gap-4">
-                        <div className={`shrink-0 ${styles.iconColor}`}>
-                          <Icon className="h-8 w-8" />
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="shrink-0 text-primary/70 mt-0.5">
+                          <Icon className="h-6 w-6" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-semibold">{label}</h3>
-                            {statsLoading ? (
-                              <Skeleton className="h-5 w-10 rounded-full" />
-                            ) : (
-                              <span className="text-sm text-muted-foreground shrink-0">
-                                {count.toLocaleString('fr-FR')}
-                              </span>
-                            )}
+                          <div className="font-semibold text-sm leading-tight">
+                            {domain.labelFr}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                            {description}
-                          </p>
+                          <div className="text-xs text-muted-foreground mt-0.5 font-medium" dir="rtl">
+                            {domain.labelAr}
+                          </div>
+                          {domain.description && (
+                            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
+                              {domain.description}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -205,34 +238,29 @@ export function KnowledgeBaseBrowser() {
             </div>
           </div>
 
-          {/* Autres catégories (si elles ont des docs) */}
-          {stats && (() => {
-            const kbCategories = getCategoriesForContext('knowledge_base', 'fr')
-            const otherCats = kbCategories.filter(
-              c => !MAIN_CATEGORIES.includes(c.value as LegalCategory) && (stats.byCategory[c.value] || 0) > 0
-            )
-            if (otherCats.length === 0) return null
-            return (
+          {/* Section secondaire — Toute la base */}
+          <div className="border-t pt-6">
+            <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold mb-3">Autres catégories</h2>
-                <div className="flex flex-wrap gap-2">
-                  {otherCats.map((cat) => (
-                    <Button
-                      key={cat.value}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCategoryClick(cat.value)}
-                    >
-                      {LEGAL_CATEGORY_TRANSLATIONS[cat.value as LegalCategory]?.fr || cat.label}
-                      <span className="ml-2 text-muted-foreground">
-                        ({(stats.byCategory[cat.value] || 0).toLocaleString('fr-FR')})
-                      </span>
-                    </Button>
-                  ))}
-                </div>
+                <h2 className="text-base font-semibold">Jurisprudence &amp; Doctrine</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {statsLoading ? (
+                    <Skeleton className="h-4 w-48 inline-block" />
+                  ) : (
+                    `${(stats?.totalDocuments || 0).toLocaleString('fr-FR')} documents au total — arrêts, doctrine, procédures…`
+                  )}
+                </p>
               </div>
-            )
-          })()}
+              <Button
+                variant="outline"
+                onClick={handleGoGeneral}
+                className="gap-2 shrink-0"
+              >
+                Explorer toute la base
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

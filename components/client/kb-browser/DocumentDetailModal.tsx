@@ -1,8 +1,8 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { BookOpen, Scale, Calendar, Building2, Users, FileText, Link2, Copy, Download, Layers } from 'lucide-react'
+import { BookOpen, Scale, Calendar, Building2, Users, FileText, Link2, Copy, Download, Layers, AlignLeft, Search as SearchIcon, X, Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
@@ -37,8 +38,248 @@ interface DocumentDetailModalProps {
   onAddToDossier?: () => void
 }
 
+interface FullTextChunk {
+  index: number
+  content: string
+  metadata: Record<string, unknown>
+}
+
+interface TocEntry {
+  label: string
+  chunkIndex: number
+  level: 'livre' | 'titre' | 'chapitre' | 'section' | 'article'
+}
+
 // =============================================================================
-// COMPOSANT
+// HELPERS
+// =============================================================================
+
+const HEADING_PATTERNS: Array<{ regex: RegExp; level: TocEntry['level'] }> = [
+  { regex: /^(LIVRE\s+\w+|كتاب\s+\w+)/i, level: 'livre' },
+  { regex: /^(TITRE\s+\w+|عنوان\s+\w+|الباب\s+\w+)/i, level: 'titre' },
+  { regex: /^(CHAPITRE\s+\w+|CHAPTER\s+\w+|الفصل\s+(?!ال?\d)|الفرع\s+\w+)/i, level: 'chapitre' },
+  { regex: /^(SECTION\s+\w+|القسم\s+\w+)/i, level: 'section' },
+  { regex: /^(Article\s+\d+|Art\.\s*\d+|الفصل\s+\d+|فصل\s+\d+)/i, level: 'article' },
+]
+
+function detectHeading(content: string): TocEntry['level'] | null {
+  const firstLine = content.trim().split('\n')[0].trim()
+  for (const { regex, level } of HEADING_PATTERNS) {
+    if (regex.test(firstLine)) return level
+  }
+  return null
+}
+
+function getHeadingLabel(content: string): string {
+  return content.trim().split('\n')[0].trim().slice(0, 80)
+}
+
+function buildToc(chunks: FullTextChunk[]): TocEntry[] {
+  const toc: TocEntry[] = []
+  for (const chunk of chunks) {
+    const level = detectHeading(chunk.content)
+    if (level) {
+      toc.push({
+        label: getHeadingLabel(chunk.content),
+        chunkIndex: chunk.index,
+        level,
+      })
+    }
+  }
+  return toc
+}
+
+const HEADING_INDENT: Record<TocEntry['level'], string> = {
+  livre: '',
+  titre: 'pl-2',
+  chapitre: 'pl-4',
+  section: 'pl-6',
+  article: 'pl-8',
+}
+
+const HEADING_FONT: Record<TocEntry['level'], string> = {
+  livre: 'font-bold text-sm',
+  titre: 'font-semibold text-sm',
+  chapitre: 'font-medium text-sm',
+  section: 'text-sm',
+  article: 'text-xs text-muted-foreground',
+}
+
+// Highlight du texte de recherche dans le contenu
+function highlightText(text: string, query: string): React.ReactNode {
+  if (!query.trim()) return text
+  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'))
+  return parts.map((part, i) =>
+    part.toLowerCase() === query.toLowerCase() ? (
+      <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 rounded-sm px-0.5">
+        {part}
+      </mark>
+    ) : part
+  )
+}
+
+// =============================================================================
+// ONGLET TEXTE COMPLET
+// =============================================================================
+
+function FullTextTab({ documentId, title }: { documentId: string; title: string }) {
+  const [chunks, setChunks] = useState<FullTextChunk[] | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [toc, setToc] = useState<TocEntry[]>([])
+  const chunkRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const hasLoaded = useRef(false)
+
+  useEffect(() => {
+    if (hasLoaded.current) return
+    hasLoaded.current = true
+    setIsLoading(true)
+    fetch(`/api/client/kb/${documentId}/full-text`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then((data) => {
+        const c: FullTextChunk[] = data.chunks || []
+        setChunks(c)
+        setToc(buildToc(c))
+      })
+      .catch((err) => setError(err.message || 'Erreur de chargement'))
+      .finally(() => setIsLoading(false))
+  }, [documentId])
+
+  const scrollToChunk = (chunkIndex: number) => {
+    chunkRefs.current[chunkIndex]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const handleDownload = useCallback(() => {
+    if (!chunks) return
+    const text = chunks.map((c) => c.content).join('\n\n---\n\n')
+    const blob = new Blob([title + '\n\n' + text], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = globalThis.document.createElement('a')
+    a.href = url
+    a.download = `${title.slice(0, 60).replace(/[^a-zA-Z0-9\u0600-\u06FF ]/g, '_')}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Texte téléchargé')
+  }, [chunks, title])
+
+  const matchCount = chunks
+    ? chunks.reduce((acc, c) => {
+        if (!searchQuery.trim()) return acc
+        const re = new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+        return acc + (c.content.match(re)?.length || 0)
+      }, 0)
+    : 0
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">Chargement du texte…</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="py-8 text-center text-sm text-destructive">
+        Erreur : {error}
+      </div>
+    )
+  }
+
+  if (!chunks) return null
+
+  return (
+    <div className="flex gap-4 min-h-0">
+      {/* Table des matières latérale */}
+      {toc.length > 0 && (
+        <div className="w-56 shrink-0 border rounded-lg p-3 max-h-[60vh] overflow-y-auto sticky top-0 space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Table des matières</p>
+          {toc.map((entry, i) => (
+            <button
+              key={i}
+              onClick={() => scrollToChunk(entry.chunkIndex)}
+              className={`block w-full text-left hover:text-primary transition-colors line-clamp-2 ${HEADING_INDENT[entry.level]} ${HEADING_FONT[entry.level]}`}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Contenu principal */}
+      <div className="flex-1 min-w-0 space-y-3">
+        {/* Barre recherche dans le texte */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher dans le texte…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-8 text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+              >
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <span className="text-xs text-muted-foreground shrink-0">
+              {matchCount} occurrence{matchCount !== 1 ? 's' : ''}
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={handleDownload} className="h-8 shrink-0">
+            <Download className="h-3.5 w-3.5 mr-1" />
+            TXT
+          </Button>
+        </div>
+
+        {/* Chunks */}
+        <div className="space-y-1 max-h-[55vh] overflow-y-auto pr-1">
+          {chunks.map((chunk) => {
+            const headingLevel = detectHeading(chunk.content)
+            const isHeading = headingLevel !== null
+            const isArticle = headingLevel === 'article'
+            const hasMatch = searchQuery.trim()
+              ? chunk.content.toLowerCase().includes(searchQuery.toLowerCase())
+              : true
+
+            return (
+              <div
+                key={chunk.index}
+                ref={(el) => { chunkRefs.current[chunk.index] = el }}
+                id={`chunk-${chunk.index}`}
+                className={`text-sm leading-relaxed whitespace-pre-wrap rounded p-2 scroll-mt-4 ${
+                  isHeading && !isArticle
+                    ? 'font-semibold bg-muted/40 border-l-2 border-primary/40'
+                    : isArticle
+                    ? 'font-medium text-primary/90'
+                    : 'text-foreground/80'
+                } ${!hasMatch && searchQuery ? 'opacity-30' : ''}`}
+              >
+                {highlightText(chunk.content, searchQuery)}
+              </div>
+            )
+          })}
+        </div>
+
+        <p className="text-xs text-muted-foreground text-right">{chunks.length} fragments</p>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// COMPOSANT PRINCIPAL
 // =============================================================================
 
 export function DocumentDetailModal({
@@ -52,6 +293,7 @@ export function DocumentDetailModal({
   const { metadata, relations } = document
   const categoryColor = LEGAL_CATEGORY_COLORS[document.category as LegalCategory]
   const formattedDate = formatDateLong(metadata.decisionDate as string | null)
+  const [activeTab, setActiveTab] = useState('content')
 
   const handleCopy = useCallback(() => {
     if (onCopy) {
@@ -112,11 +354,14 @@ export function DocumentDetailModal({
             {metadata.decisionNumber && (
               <Badge variant="outline">N° {metadata.decisionNumber}</Badge>
             )}
+            {metadata.statut_vigueur === 'abroge' && (
+              <Badge variant="destructive">Abrogé</Badge>
+            )}
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="content" className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="content">Contenu</TabsTrigger>
             <TabsTrigger value="metadata">Métadonnées</TabsTrigger>
             <TabsTrigger value="relations">
@@ -126,6 +371,10 @@ export function DocumentDetailModal({
                   {(relations.cites?.length || 0) + (relations.citedBy?.length || 0)}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="fulltext">
+              <AlignLeft className="h-3.5 w-3.5 mr-1" />
+              Texte complet
             </TabsTrigger>
           </TabsList>
 
@@ -346,6 +595,13 @@ export function DocumentDetailModal({
               </>
             )}
           </TabsContent>
+
+          {/* Onglet Texte complet */}
+          <TabsContent value="fulltext" className="mt-4">
+            {activeTab === 'fulltext' && (
+              <FullTextTab documentId={document.kbId} title={document.title} />
+            )}
+          </TabsContent>
         </Tabs>
 
         <DialogFooter className="mt-6">
@@ -414,4 +670,3 @@ function RelationCard({ relation, type = 'default' }: RelationCardProps) {
     </div>
   )
 }
-

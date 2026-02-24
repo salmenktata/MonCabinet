@@ -31,6 +31,7 @@ import { getCategoryLabel } from './kb-browser-utils'
 import { useRAGSearchMutation } from '@/lib/hooks/useRAGSearch'
 import type { RAGSearchResult as APISearchResult } from '@/lib/hooks/useRAGSearch'
 import { useKBBrowse } from '@/lib/hooks/useKBBrowse'
+import { LEGAL_DOMAIN_MAP } from '@/lib/categories/legal-domains'
 
 // =============================================================================
 // TYPES
@@ -41,6 +42,8 @@ export interface SearchResultItem {
   title: string
   category: string
   normLevel?: string | null
+  docType?: string | null
+  updatedAt?: string | null
   similarity: number | null
   chunkContent?: string
   metadata: {
@@ -56,6 +59,9 @@ export interface SearchResultItem {
     extractionConfidence?: number | null
     citesCount?: number
     citedByCount?: number
+    statut_vigueur?: string | null
+    source?: string | null
+    source_url?: string | null
     [key: string]: unknown
   }
   relations?: {
@@ -79,6 +85,8 @@ export interface DocumentFilters {
 export interface DocumentExplorerProps {
   initialCategory?: string
   initialQuery?: string
+  initialDocType?: string
+  initialDomain?: string
   onBack?: () => void
   className?: string
 }
@@ -111,13 +119,18 @@ const LANGUAGE_LABELS: Record<string, string> = {
 export function DocumentExplorer({
   initialCategory,
   initialQuery,
+  initialDocType,
+  initialDomain,
   onBack,
   className = '',
 }: DocumentExplorerProps) {
+  const activeDomain = initialDomain ? LEGAL_DOMAIN_MAP[initialDomain] : undefined
+
   const [searchQuery, setSearchQuery] = useState(initialQuery || '')
   const [filters, setFilters] = useState<DocumentFilters>(
     initialCategory ? { category: initialCategory } : {}
   )
+  const [activeDocType] = useState<string | undefined>(initialDocType)
   const [results, setResults] = useState<SearchResultItem[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [sortField, setSortField] = useState<SortField>('relevance')
@@ -129,8 +142,8 @@ export function DocumentExplorer({
   const [displayedCount, setDisplayedCount] = useState(20)
   const [processingTimeMs, setProcessingTimeMs] = useState<number | null>(null)
 
-  // Browse mode: category OR norm_level selected but no search query
-  const isBrowseMode = !searchQuery.trim() && (!!filters.category || !!filters.normLevel)
+  // Browse mode: category OR norm_level OR docType selected but no search query
+  const isBrowseMode = !searchQuery.trim() && (!!filters.category || !!filters.normLevel || !!activeDocType)
   const browseSort = sortField === 'title' ? 'title' as const : 'date' as const
 
   const {
@@ -141,6 +154,7 @@ export function DocumentExplorer({
   } = useKBBrowse({
     category: filters.category,
     normLevel: filters.normLevel,
+    docType: activeDocType,
     limit: 100,
     offset: 0,
     sort: browseSort,
@@ -155,6 +169,8 @@ export function DocumentExplorer({
         title: r.title,
         category: r.category,
         normLevel: r.normLevel,
+        docType: r.docType,
+        updatedAt: r.updatedAt,
         similarity: null,
         metadata: r.metadata as SearchResultItem['metadata'],
       }))
@@ -280,15 +296,21 @@ export function DocumentExplorer({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Breadcrumb */}
-      {(hasSearched || filters.category) && (
+      {(hasSearched || filters.category || activeDomain) && (
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
           <button
             onClick={onBack}
             className="hover:text-foreground transition-colors"
           >
-            Base de Connaissances
+            {activeDocType === 'TEXTES' ? 'Textes Juridiques' : 'Base de Connaissances'}
           </button>
-          {filters.category && (
+          {activeDomain && (
+            <>
+              <ChevronRight className="h-3 w-3" />
+              <span className="text-foreground">{activeDomain.labelFr}</span>
+            </>
+          )}
+          {filters.category && !activeDomain && (
             <>
               <ChevronRight className="h-3 w-3" />
               <button
@@ -393,39 +415,41 @@ export function DocumentExplorer({
                 </Select>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Select
-                  value={filters.tribunal}
-                  onValueChange={(value) => handleFilterChange('tribunal', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tribunal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="TRIBUNAL_CASSATION">Cour de Cassation</SelectItem>
-                    <SelectItem value="COUR_APPEL">Cour d&apos;appel</SelectItem>
-                    <SelectItem value="TRIBUNAL_PREMIERE_INSTANCE">Tribunal de première instance</SelectItem>
-                    <SelectItem value="TRIBUNAL_ADMINISTRATIF">Tribunal administratif</SelectItem>
-                    <SelectItem value="TRIBUNAL_IMMOBILIER">Tribunal immobilier</SelectItem>
-                    <SelectItem value="TRIBUNAL_MILITAIRE">Tribunal militaire</SelectItem>
-                    <SelectItem value="TRIBUNAL_CANTONAL">Justice cantonale</SelectItem>
-                  </SelectContent>
-                </Select>
+              {activeDocType !== 'TEXTES' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Select
+                    value={filters.tribunal}
+                    onValueChange={(value) => handleFilterChange('tribunal', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tribunal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TRIBUNAL_CASSATION">Cour de Cassation</SelectItem>
+                      <SelectItem value="COUR_APPEL">Cour d&apos;appel</SelectItem>
+                      <SelectItem value="TRIBUNAL_PREMIERE_INSTANCE">Tribunal de première instance</SelectItem>
+                      <SelectItem value="TRIBUNAL_ADMINISTRATIF">Tribunal administratif</SelectItem>
+                      <SelectItem value="TRIBUNAL_IMMOBILIER">Tribunal immobilier</SelectItem>
+                      <SelectItem value="TRIBUNAL_MILITAIRE">Tribunal militaire</SelectItem>
+                      <SelectItem value="TRIBUNAL_CANTONAL">Justice cantonale</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                <Select
-                  value={filters.language}
-                  onValueChange={(value) => handleFilterChange('language', value as 'fr' | 'ar' | 'bi')}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Langue" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fr">Français</SelectItem>
-                    <SelectItem value="ar">Arabe</SelectItem>
-                    <SelectItem value="bi">Bilingue</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <Select
+                    value={filters.language}
+                    onValueChange={(value) => handleFilterChange('language', value as 'fr' | 'ar' | 'bi')}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Langue" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fr">Français</SelectItem>
+                      <SelectItem value="ar">Arabe</SelectItem>
+                      <SelectItem value="bi">Bilingue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
