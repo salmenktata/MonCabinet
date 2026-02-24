@@ -1052,11 +1052,7 @@ export async function crawlYearType(
             await session.recover()
             page = session.getPage()
             await searchByYearAndType(page, year, textType)
-            // Naviguer vers la page courante
-            for (let p = 1; p < pageNum; p++) {
-              const ok = await goToNextPage(page)
-              if (!ok) break
-            }
+            pageNum = 1 // Repart depuis page 1 (évite re-navigation O(n²))
             break // Sortir de la boucle des résultats, recommencer cette page
           }
 
@@ -1097,26 +1093,9 @@ export async function crawlYearType(
                   }]), pageId],
                 )
 
-                // Indexer le contenu du PDF dans la KB
-                try {
-                  const { indexFile } = await import('./file-indexer-service')
-                  const fileToIndex = {
-                    url: generateIortUrl(extracted.year, extracted.issueNumber, extracted.textType, extracted.title),
-                    type: 'pdf' as const,
-                    filename: downloadResult.filename || pdfInfo.minioPath.split('/').pop() || 'iort.pdf',
-                    size: pdfInfo.size,
-                    downloaded: true,
-                    minioPath: pdfInfo.minioPath,
-                  }
-                  const indexResult = await indexFile(fileToIndex, pageId, sourceId, 'IORT - Journal Officiel', 'jort')
-                  if (indexResult.success) {
-                    console.log(`[IORT] PDF indexé: ${indexResult.chunksCreated} chunks`)
-                  } else {
-                    console.warn(`[IORT] PDF non indexé: ${indexResult.error}`)
-                  }
-                } catch (indexErr) {
-                  console.warn('[IORT] Erreur indexation PDF (non-bloquant):', indexErr instanceof Error ? indexErr.message : indexErr)
-                }
+                // L'indexation PDF est déléguée à scripts/index-iort-pdfs.ts (non-bloquant)
+                // Cela évite de bloquer le crawl texte avec les embeddings Ollama (~1.5s/chunk)
+                console.log(`[IORT] PDF stocké dans MinIO (${pdfInfo.minioPath}) — indexation différée`)
               }
             }
             await sleep(2000)
@@ -1139,28 +1118,19 @@ export async function crawlYearType(
           page = session.getPage()
           const stillOnResults = await page.$('div[id^="A4_"]')
           if (!stillOnResults) {
-            console.log('[IORT] Page résultats perdue après PDFs, re-navigation...')
+            console.log('[IORT] Page résultats perdue après PDFs, re-navigation page 1...')
             await session.recover()
             page = session.getPage()
             await searchByYearAndType(page, year, textType)
-            // Naviguer vers la page suivante
-            for (let p = 1; p <= pageNum; p++) {
-              const ok = await goToNextPage(page)
-              if (!ok) { hasNextPage = false; break }
-            }
-            pageNum++
+            pageNum = 1 // Repart depuis page 1 (doublons skippés par saveIortPage)
             continue
           }
         } catch {
-          console.log('[IORT] Erreur vérification page, recovery...')
+          console.log('[IORT] Erreur vérification page, recovery page 1...')
           await session.recover()
           page = session.getPage()
           await searchByYearAndType(page, year, textType)
-          for (let p = 1; p <= pageNum; p++) {
-            const ok = await goToNextPage(page)
-            if (!ok) { hasNextPage = false; break }
-          }
-          pageNum++
+          pageNum = 1 // Repart depuis page 1 (doublons skippés par saveIortPage)
           continue
         }
       }
@@ -1173,21 +1143,18 @@ export async function crawlYearType(
       console.error(`[IORT] Erreur page ${pageNum}:`, errMsg)
       consecutiveErrors++
 
-      if (consecutiveErrors >= 3) {
+      if (consecutiveErrors >= 8) {
         console.error(`[IORT] ${consecutiveErrors} erreurs consécutives, abandon du combo`)
         break
       }
 
-      // Recovery
+      // Recovery : retour page 1, les doublons seront skippés par saveIortPage
       try {
         await session.recover()
         page = session.getPage()
         await searchByYearAndType(page, year, textType)
-        // Re-naviguer vers la page courante
-        for (let p = 1; p < pageNum; p++) {
-          const ok = await goToNextPage(page)
-          if (!ok) { hasNextPage = false; break }
-        }
+        pageNum = 1 // Repart depuis page 1 (évite re-navigation O(n²))
+        console.log('[IORT] Recovery OK — reprise depuis page 1 (doublons skippés)')
       } catch (recoverErr) {
         console.error('[IORT] Échec recovery:', recoverErr instanceof Error ? recoverErr.message : recoverErr)
         break

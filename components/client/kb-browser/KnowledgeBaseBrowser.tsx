@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Search, X, Shield, Scale, Briefcase, Gavel, Calculator, Users, Globe, FileText,
-  BookOpen, ArrowRight,
+  BookOpen, ArrowRight, ClipboardList,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useKBStats } from '@/lib/hooks/useKBStats'
 import { LEGAL_DOMAINS } from '@/lib/categories/legal-domains'
@@ -41,24 +43,70 @@ const fadeSlide = {
 }
 
 // =============================================================================
+// DONNÉES STATIQUES
+// =============================================================================
+
+const POPULAR_SEARCHES = [
+  { label: 'Article 47 code pénal', query: 'article 47 code pénal' },
+  { label: 'Code des sociétés', query: 'code des sociétés commerciales' },
+  { label: 'Contrat de travail', query: 'contrat de travail' },
+  { label: 'Procédure civile', query: 'procédure civile' },
+  { label: 'Droit de la famille', query: 'statut personnel famille' },
+]
+
+const QUICK_ACCESS = [
+  { Icon: Scale, labelFr: 'Jurisprudence', labelAr: 'قضاء', category: 'jurisprudence' },
+  { Icon: BookOpen, labelFr: 'Doctrine', labelAr: 'فقه', category: 'doctrine' },
+  { Icon: FileText, labelFr: 'Formulaires', labelAr: 'نماذج', category: 'modeles' },
+  { Icon: ClipboardList, labelFr: 'Procédures', labelAr: 'إجراءات', category: 'procedures' },
+]
+
+// =============================================================================
 // COMPOSANT PRINCIPAL
 // =============================================================================
 
 export function KnowledgeBaseBrowser() {
-  const [mode, setMode] = useState<'landing' | 'textes' | 'general'>('landing')
-  const [searchQuery, setSearchQuery] = useState('')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  // Mode et sélection viennent de l'URL
+  const urlMode = searchParams.get('mode') as 'textes' | 'general' | null
+  const urlDomain = searchParams.get('domain') || undefined
+  const urlCat = searchParams.get('cat') || undefined
+  const urlQ = searchParams.get('q') || ''
+
+  const mode = urlMode || 'landing'
+
+  // État local temporaire (non persisté tant que non soumis)
+  const [searchQuery, setSearchQuery] = useState(urlQ)
   const [searchError, setSearchError] = useState('')
-  const [selectedDomain, setSelectedDomain] = useState<string | undefined>()
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>()
-  const [articleHint, setArticleHint] = useState<string | undefined>()
+
+  // Sync la query locale quand l'URL change (ex: navigation retour)
+  useEffect(() => {
+    setSearchQuery(urlQ)
+  }, [urlQ])
 
   const { data: stats, isLoading: statsLoading } = useKBStats()
 
-  // Nombre total de textes normatifs (TEXTES doc_type approximé via catégories connues)
+  // Statistiques par section
   const textesCategories = ['codes', 'constitution', 'legislation', 'conventions', 'jort']
   const textesCount = stats
     ? textesCategories.reduce((acc, cat) => acc + (stats.byCategory[cat] || 0), 0)
     : 0
+  const jurisCount = stats?.byCategory?.jurisprudence || 0
+  const doctrineCount = stats?.byCategory?.doctrine || 0
+  const totalCount = stats?.totalDocuments || 0
+
+  // Comptage par domaine (estimé via catégories)
+  const getDomainCount = useCallback((domain: typeof LEGAL_DOMAINS[0]) => {
+    if (!stats) return null
+    return domain.categories.reduce((acc, cat) => acc + (stats.byCategory[cat] || 0), 0)
+  }, [stats])
+
+  // Comptage par catégorie pour Quick Access
+  const getQACategoryCount = useCallback((category: string) => {
+    return stats?.byCategory?.[category] || null
+  }, [stats])
 
   const handleSearchTextes = useCallback(() => {
     const q = searchQuery.trim()
@@ -67,39 +115,38 @@ export function KnowledgeBaseBrowser() {
       return
     }
     setSearchError('')
-    const match = ARTICLE_REGEX.exec(q)
-    setArticleHint(match ? `article_${match[2]}` : undefined)
-    setSelectedDomain(undefined)
-    setSelectedCategory(undefined)
-    setMode('textes')
-  }, [searchQuery])
+    router.push(`/client/knowledge-base?mode=textes&q=${encodeURIComponent(q)}`)
+  }, [searchQuery, router])
+
+  const handlePopularSearch = useCallback((query: string) => {
+    setSearchQuery(query)
+    setSearchError('')
+    router.push(`/client/knowledge-base?mode=textes&q=${encodeURIComponent(query)}`)
+  }, [router])
 
   const handleDomainClick = useCallback((domainId: string) => {
-    setSelectedDomain(domainId)
-    setSelectedCategory(undefined)
     setSearchQuery('')
     setSearchError('')
-    setArticleHint(undefined)
-    setMode('textes')
-  }, [])
+    router.push(`/client/knowledge-base?mode=textes&domain=${encodeURIComponent(domainId)}`)
+  }, [router])
+
+  const handleQuickAccess = useCallback((category: string) => {
+    setSearchQuery('')
+    setSearchError('')
+    router.push(`/client/knowledge-base?mode=general&cat=${encodeURIComponent(category)}`)
+  }, [router])
 
   const handleGoGeneral = useCallback(() => {
-    setSelectedDomain(undefined)
-    setSelectedCategory(undefined)
     setSearchQuery('')
     setSearchError('')
-    setArticleHint(undefined)
-    setMode('general')
-  }, [])
+    router.push('/client/knowledge-base?mode=general')
+  }, [router])
 
   const handleBack = useCallback(() => {
-    setMode('landing')
     setSearchQuery('')
     setSearchError('')
-    setSelectedDomain(undefined)
-    setSelectedCategory(undefined)
-    setArticleHint(undefined)
-  }, [])
+    router.push('/client/knowledge-base')
+  }, [router])
 
   const handleClearSearch = useCallback(() => {
     setSearchQuery('')
@@ -119,42 +166,35 @@ export function KnowledgeBaseBrowser() {
         <motion.div key="results" {...fadeSlide} className="container mx-auto">
           {mode === 'textes' ? (
             <DocumentExplorer
-              initialCategory={selectedDomain
-                ? LEGAL_DOMAINS.find((d) => d.id === selectedDomain)?.categories[0]
+              initialCategory={urlDomain
+                ? LEGAL_DOMAINS.find((d) => d.id === urlDomain)?.categories[0]
                 : undefined}
-              initialDomain={selectedDomain}
+              initialDomain={urlDomain}
               initialDocType="TEXTES"
-              initialQuery={searchQuery || undefined}
+              initialQuery={urlQ || undefined}
               onBack={handleBack}
             />
           ) : (
             <DocumentExplorer
-              initialCategory={selectedCategory}
-              initialQuery={searchQuery || undefined}
+              initialCategory={urlCat}
+              initialQuery={urlQ || undefined}
               onBack={handleBack}
             />
           )}
         </motion.div>
       ) : (
         <motion.div key="landing" {...fadeSlide} className="container mx-auto space-y-10">
-          {/* Hero — Textes Juridiques */}
+          {/* Hero */}
           <div className="text-center space-y-4 py-8">
             <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground bg-muted px-3 py-1 rounded-full">
               <FileText className="h-3.5 w-3.5" />
-              Textes normatifs tunisiens
+              Base de Connaissances Juridique Tunisienne
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Textes Juridiques Tunisiens
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+              Explorez le droit tunisien
             </h1>
-            <div className="text-muted-foreground text-lg">
-              {statsLoading ? (
-                <Skeleton className="h-5 w-64 mx-auto" />
-              ) : (
-                `${textesCount.toLocaleString('fr-FR')} textes normatifs — Constitution, Codes, Lois, Conventions`
-              )}
-            </div>
 
-            {/* Grande barre de recherche */}
+            {/* Barre de recherche */}
             <div className="max-w-2xl mx-auto pt-2">
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -184,28 +224,66 @@ export function KnowledgeBaseBrowser() {
               {searchError && (
                 <p className="text-sm text-destructive mt-2">{searchError}</p>
               )}
-              {articleHint && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Recherche par article détectée — les résultats seront filtrés sur cet article
-                </p>
+
+              {/* Suggestions populaires */}
+              <div className="flex flex-wrap gap-2 mt-3 justify-center">
+                {POPULAR_SEARCHES.map((item) => (
+                  <Button
+                    key={item.query}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => handlePopularSearch(item.query)}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats tiles */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto pt-4">
+              {statsLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-20 rounded-lg" />
+                ))
+              ) : (
+                <>
+                  <StatTile
+                    value={totalCount}
+                    label="Total documents"
+                  />
+                  <StatTile
+                    value={textesCount}
+                    label="Textes normatifs"
+                  />
+                  <StatTile
+                    value={jurisCount}
+                    label="Jurisprudence"
+                  />
+                  <StatTile
+                    value={doctrineCount}
+                    label="Doctrine"
+                  />
+                </>
               )}
-              <p className="text-xs text-muted-foreground mt-2">
-                Recherche dans les textes normatifs uniquement
-              </p>
             </div>
           </div>
 
           {/* Grille des 8 domaines */}
           <div>
-            <h2 className="text-lg font-semibold mb-4">Explorer par domaine juridique</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+              Explorer par domaine juridique
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {LEGAL_DOMAINS.map((domain) => {
                 const Icon = DOMAIN_ICON_MAP[domain.icon] || FileText
+                const domainCount = getDomainCount(domain)
 
                 return (
                   <Card
                     key={domain.id}
-                    className="cursor-pointer border hover:border-primary/50 hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none"
+                    className="cursor-pointer border hover:border-primary/50 hover:bg-primary/5 hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none"
                     onClick={() => handleDomainClick(domain.id)}
                     onKeyDown={(e) => handleCardKeyDown(e, domain.id)}
                     role="button"
@@ -215,7 +293,7 @@ export function KnowledgeBaseBrowser() {
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <div className="shrink-0 text-primary/70 mt-0.5">
-                          <Icon className="h-6 w-6" />
+                          <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-sm leading-tight">
@@ -229,6 +307,11 @@ export function KnowledgeBaseBrowser() {
                               {domain.description}
                             </p>
                           )}
+                          {domainCount != null && domainCount > 0 && (
+                            <Badge variant="secondary" className="text-xs mt-2">
+                              {domainCount.toLocaleString('fr-FR')} docs
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -238,25 +321,51 @@ export function KnowledgeBaseBrowser() {
             </div>
           </div>
 
-          {/* Section secondaire — Toute la base */}
+          {/* Accès direct */}
           <div className="border-t pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold">Jurisprudence &amp; Doctrine</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {statsLoading ? (
-                    <Skeleton className="h-4 w-48 inline-block" />
-                  ) : (
-                    `${(stats?.totalDocuments || 0).toLocaleString('fr-FR')} documents au total — arrêts, doctrine, procédures…`
-                  )}
-                </p>
-              </div>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+              Accès direct
+            </h2>
+            <div className="flex flex-wrap gap-3">
+              {QUICK_ACCESS.map((item) => {
+                const count = getQACategoryCount(item.category)
+                return (
+                  <Card
+                    key={item.category}
+                    className="cursor-pointer border hover:border-primary/50 hover:bg-primary/5 hover:shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary outline-none"
+                    onClick={() => handleQuickAccess(item.category)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${item.labelFr} — ${item.labelAr}`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleQuickAccess(item.category)
+                      }
+                    }}
+                  >
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <item.Icon className="h-5 w-5 text-primary/70 shrink-0" />
+                      <div>
+                        <div className="font-medium text-sm">{item.labelFr}</div>
+                        <div className="text-xs text-muted-foreground" dir="rtl">{item.labelAr}</div>
+                      </div>
+                      {count != null && count > 0 && (
+                        <Badge variant="secondary" className="text-xs ml-auto">
+                          {count.toLocaleString('fr-FR')}
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+
               <Button
                 variant="outline"
                 onClick={handleGoGeneral}
-                className="gap-2 shrink-0"
+                className="gap-2 h-auto py-3 px-4"
               >
-                Explorer toute la base
+                Toute la base
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -264,5 +373,20 @@ export function KnowledgeBaseBrowser() {
         </motion.div>
       )}
     </AnimatePresence>
+  )
+}
+
+// =============================================================================
+// STAT TILE
+// =============================================================================
+
+function StatTile({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="border rounded-lg p-3 text-center bg-card">
+      <div className="text-2xl font-bold tabular-nums">
+        {value.toLocaleString('fr-FR')}
+      </div>
+      <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
+    </div>
   )
 }
