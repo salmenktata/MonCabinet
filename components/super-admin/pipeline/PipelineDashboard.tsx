@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { RefreshCw } from 'lucide-react'
 import { PipelineFunnel } from './PipelineFunnel'
 import { PipelineStageTab } from './PipelineStageTab'
@@ -159,6 +159,8 @@ export function PipelineDashboard() {
   useEffect(() => {
     fetchFunnel()
     fetchSources()
+    const interval = setInterval(fetchFunnel, 30000)
+    return () => clearInterval(interval)
   }, [fetchFunnel, fetchSources])
 
   useEffect(() => {
@@ -397,7 +399,49 @@ export function PipelineDashboard() {
               </TabsTrigger>
             )
           })}
+          <TabsTrigger value="bottlenecks" className="gap-1.5">
+            Bottlenecks
+            {funnelData?.bottlenecks && funnelData.bottlenecks.length > 0 && (
+              <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                {funnelData.bottlenecks.length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="bottlenecks">
+          <Card>
+            <CardHeader>
+              <CardTitle>Bottlenecks Détectés</CardTitle>
+              <CardDescription>
+                Étapes avec le plus de documents en attente
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {funnelData?.bottlenecks && funnelData.bottlenecks.length > 0 ? (
+                <div className="space-y-3">
+                  {funnelData.bottlenecks.map(bottleneck => (
+                    <div
+                      key={bottleneck.stage}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium">{bottleneck.label}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {bottleneck.count} documents • Moyenne {bottleneck.avgDaysInStage.toFixed(1)} jours
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  Aucun bottleneck détecté
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {STAGES.map(s => (
           <TabsContent key={s.value} value={s.value}>
