@@ -1,6 +1,8 @@
 -- Fix BM25 multilingue : auto-détection langue (arabe / français)
 -- Problème : 'arabic' hardcodé → score BM25 = 0 pour requêtes françaises
--- Fix : variable v_ts_config calculée depuis le texte de la requête
+-- Fix v1 (cassé) : 'french' pour requêtes FR → incompatible avec tsvectors indexés en 'arabic'
+-- Fix v2 (correct) : 'arabic' pour AR, 'simple' pour FR — 'simple' fonctionne avec tsvectors Arabic
+--   car il ne fait pas de stemming (juste tokenisation), match OK sur les tokens français stockés
 
 -- Supprimer toutes les versions précédentes
 DROP FUNCTION IF EXISTS search_knowledge_base_hybrid(text, vector, text, text, integer, double precision, boolean) CASCADE;
@@ -35,7 +37,12 @@ DECLARE
 BEGIN
   -- Auto-détection langue : arabe si contient des caractères arabes (U+0621–U+064A)
   -- Évite BM25 = 0 pour requêtes françaises (bug critique)
-  v_ts_config := CASE WHEN p_query_text ~ '[ء-ي]' THEN 'arabic' ELSE 'french' END;
+  -- IMPORTANT: utiliser 'simple' (pas 'french') pour les requêtes non-arabes
+  -- car content_tsvector est indexé avec la config 'arabic' qui ne stem pas les mots français.
+  -- 'simple' = tokenisation basique sans stemming → match OK sur les tokens français dans tsvector Arabic.
+  -- Vérifié: plainto_tsquery('arabic', 'obligations bail') = 0 résultats
+  --          plainto_tsquery('simple', 'obligations bail') = 9 résultats (correct)
+  v_ts_config := CASE WHEN p_query_text ~ '[ء-ي]' THEN 'arabic' ELSE 'simple' END;
 
   IF p_embedding_provider = 'openai' THEN
     RETURN QUERY
@@ -223,5 +230,6 @@ $$ LANGUAGE plpgsql STABLE;
 
 COMMENT ON FUNCTION search_knowledge_base_hybrid IS
 'Recherche hybride vectorielle + BM25 avec auto-détection langue (arabe/français).
-Fix: v_ts_config calculé depuis p_query_text → BM25 non nul pour requêtes françaises.
+Fix v2: v_ts_config = arabic pour AR, simple pour FR (pas french — incompatible avec tsvectors Arabic).
+BM25 résultats: arabic=9, french=0, simple=9 pour "obligations locataire bail" (validé Feb 24).
 Supports: openai (1536-dim), gemini (768-dim), ollama (1024-dim).';
