@@ -216,7 +216,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
 
   const row = pageResult.rows[0]
 
-  if (!row.extracted_text || row.extracted_text.length < 100) {
+  if (!row.extracted_text || row.extracted_text.length < 50) {
     return { success: false, chunksCreated: 0, error: 'Contenu insuffisant pour indexation' }
   }
 
@@ -577,7 +577,7 @@ export async function indexSourcePages(
     SELECT id FROM web_pages
     WHERE web_source_id = $1
     AND status IN ('crawled', 'unchanged')
-    AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100
+    AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 50
   `
 
   if (KB_ARABIC_ONLY) {
@@ -656,7 +656,7 @@ export async function indexWebPages(
     SELECT id FROM web_pages
     WHERE status IN ('crawled', 'unchanged', 'indexed')
     AND is_indexed = false
-    AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100
+    AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 50
     ${KB_ARABIC_ONLY ? `AND (language_detected = 'ar' OR language_detected IS NULL)` : ''}
     ${sourceFilter}
     ORDER BY last_crawled_at DESC
@@ -721,7 +721,7 @@ export async function queueSourcePagesForIndexing(
      WHERE web_source_id = $1
      AND status IN ('crawled', 'unchanged')
      AND is_indexed = false
-     AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100
+     AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 50
      ORDER BY last_crawled_at DESC
      LIMIT $2`,
     [sourceId, limit]
