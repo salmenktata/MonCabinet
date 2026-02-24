@@ -49,6 +49,14 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
   export $(grep -v '^#' "$SCRIPT_DIR/.env" | xargs)
 elif [ -f "/opt/qadhya/.env" ]; then
   export $(grep -v '^#' "/opt/qadhya/.env" | xargs)
+elif [ -f "/opt/moncabinet/.env.production.local" ]; then
+  export $(grep -v '^#' "/opt/moncabinet/.env.production.local" | xargs)
+fi
+
+# Si credentials MinIO absents, les récupérer depuis le container
+if [ -z "$MINIO_ROOT_USER" ]; then
+  MINIO_ROOT_USER=$(docker exec qadhya-minio env 2>/dev/null | grep '^MINIO_ROOT_USER=' | cut -d= -f2)
+  MINIO_ROOT_PASSWORD=$(docker exec qadhya-minio env 2>/dev/null | grep '^MINIO_ROOT_PASSWORD=' | cut -d= -f2)
 fi
 
 # Fonction pour envoyer notification Brevo en cas d'échec
