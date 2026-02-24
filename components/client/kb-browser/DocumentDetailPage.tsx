@@ -15,7 +15,7 @@ import { LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
 import { NORM_LEVELS_ORDERED, getNormLevelLabel, getNormLevelColor, getNormLevelOrder } from '@/lib/categories/norm-levels'
 import type { SearchResultItem } from './DocumentExplorer'
-import { formatDateLong, getCategoryLabel, formatCitation } from './kb-browser-utils'
+import { formatDateLong, getCategoryLabel, formatCitation, getCategoryBorderColor } from './kb-browser-utils'
 import { FullTextTabContent } from './DocumentDetailModal'
 
 interface DocumentDetailPageProps {
@@ -31,13 +31,18 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
 
   useEffect(() => {
     setIsLoading(true)
-    fetch(`/api/client/kb/${documentId}`)
-      .then((res) => {
+    // Fetch document + relations en parallèle
+    Promise.all([
+      fetch(`/api/client/kb/${documentId}`).then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
-      })
-      .then((data) => {
-        setDocument(data)
+      }),
+      fetch(`/api/client/kb/${documentId}/relations`).then((res) =>
+        res.ok ? res.json() : { cites: [], citedBy: [], supersedes: [], supersededBy: [], relatedCases: [] }
+      ).catch(() => ({ cites: [], citedBy: [], supersedes: [], supersededBy: [], relatedCases: [] })),
+    ])
+      .then(([docData, relationsData]) => {
+        setDocument({ ...docData, relations: relationsData })
       })
       .catch((err) => setError(err.message || 'Erreur de chargement'))
       .finally(() => setIsLoading(false))
@@ -150,7 +155,7 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
       </div>
 
       {/* Titre + badges */}
-      <div className="space-y-3">
+      <div className={`border-l-4 pl-4 space-y-3 ${getCategoryBorderColor(document.category)}`}>
         <h1 className="text-2xl font-bold leading-tight">{document.title}</h1>
         <div className="flex flex-wrap gap-2">
           <Badge className={categoryColor || ''}>
