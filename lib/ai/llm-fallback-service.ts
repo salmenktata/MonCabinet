@@ -15,6 +15,7 @@ import { aiConfig, SYSTEM_PROMPTS } from './config'
 import { callGemini, callGeminiStream, GeminiResponse } from './gemini-client'
 import { getOperationConfig, getOperationProvider, getOperationModel, type OperationName } from './operations-config'
 import { logger } from '@/lib/logger'
+import { getRedisClient } from '@/lib/cache/redis'
 
 // =============================================================================
 // TYPES
@@ -81,51 +82,97 @@ interface CircuitBreakerState {
   cooldownUntil: number // timestamp ms
 }
 
-/** État du circuit breaker par provider (en mémoire, reset à chaque démarrage) */
-const circuitBreakerMap = new Map<LLMProvider, CircuitBreakerState>()
+/**
+ * Circuit breaker persisté dans Redis (P1 fix Feb 24, 2026).
+ * Fallback in-memory si Redis indisponible (restart ne remet plus à zéro).
+ * Clé Redis : circuit:state:{provider} → JSON CircuitBreakerState, TTL = cooldown
+ */
+const circuitBreakerMap = new Map<LLMProvider, CircuitBreakerState>() // fallback in-memory
 
-const CIRCUIT_BREAKER_FAIL_THRESHOLD = 5    // Nb d'échecs avant ouverture
-const CIRCUIT_BREAKER_INITIAL_COOLDOWN_MS = 60_000  // 60s de cooldown initial
-const CIRCUIT_BREAKER_MAX_COOLDOWN_MS = 300_000     // 5 min max
+const CIRCUIT_BREAKER_FAIL_THRESHOLD = 5
+const CIRCUIT_BREAKER_INITIAL_COOLDOWN_MS = 60_000
+const CIRCUIT_BREAKER_MAX_COOLDOWN_MS = 300_000
+
+function _redisKey(provider: LLMProvider): string {
+  return `circuit:state:${provider}`
+}
+
+/** Lit l'état du circuit breaker depuis Redis (ou fallback in-memory) */
+async function _getCircuitState(provider: LLMProvider): Promise<CircuitBreakerState> {
+  try {
+    const redis = await getRedisClient()
+    if (redis) {
+      const raw = await redis.get(_redisKey(provider))
+      if (raw) return JSON.parse(raw) as CircuitBreakerState
+    }
+  } catch { /* Ignore Redis errors, use in-memory fallback */ }
+  return circuitBreakerMap.get(provider) ?? { failCount: 0, cooldownUntil: 0 }
+}
+
+/** Écrit l'état du circuit breaker dans Redis ET in-memory */
+async function _setCircuitState(provider: LLMProvider, state: CircuitBreakerState): Promise<void> {
+  circuitBreakerMap.set(provider, state)
+  try {
+    const redis = await getRedisClient()
+    if (redis) {
+      const ttlSec = state.cooldownUntil > 0
+        ? Math.ceil((state.cooldownUntil - Date.now()) / 1000) + 10
+        : CIRCUIT_BREAKER_MAX_COOLDOWN_MS / 1000
+      await redis.set(_redisKey(provider), JSON.stringify(state), { EX: Math.max(ttlSec, 60) })
+    }
+  } catch { /* Ignore Redis errors */ }
+}
 
 /**
  * Enregistre un échec pour un provider. Ouvre le circuit si seuil atteint.
  */
 function recordProviderFailure(provider: LLMProvider): void {
-  const state = circuitBreakerMap.get(provider) ?? { failCount: 0, cooldownUntil: 0 }
-  state.failCount += 1
+  _getCircuitState(provider).then(state => {
+    state.failCount += 1
 
-  if (state.failCount >= CIRCUIT_BREAKER_FAIL_THRESHOLD) {
-    // Backoff exponentiel : 60s → 120s → 240s → 300s max
-    const exponent = Math.min(state.failCount - CIRCUIT_BREAKER_FAIL_THRESHOLD, 3)
-    const cooldownMs = Math.min(
-      CIRCUIT_BREAKER_INITIAL_COOLDOWN_MS * Math.pow(2, exponent),
-      CIRCUIT_BREAKER_MAX_COOLDOWN_MS
-    )
-    state.cooldownUntil = Date.now() + cooldownMs
-    logger.warn(
-      `[CircuitBreaker] 🔴 ${provider} ouvert après ${state.failCount} échecs — cooldown ${cooldownMs / 1000}s`
-    )
-  }
+    if (state.failCount >= CIRCUIT_BREAKER_FAIL_THRESHOLD) {
+      // Backoff exponentiel : 60s → 120s → 240s → 300s max
+      const exponent = Math.min(state.failCount - CIRCUIT_BREAKER_FAIL_THRESHOLD, 3)
+      const cooldownMs = Math.min(
+        CIRCUIT_BREAKER_INITIAL_COOLDOWN_MS * Math.pow(2, exponent),
+        CIRCUIT_BREAKER_MAX_COOLDOWN_MS
+      )
+      state.cooldownUntil = Date.now() + cooldownMs
+      logger.warn(
+        `[CircuitBreaker] 🔴 ${provider} ouvert après ${state.failCount} échecs — cooldown ${cooldownMs / 1000}s (persisté Redis)`
+      )
+    }
 
-  circuitBreakerMap.set(provider, state)
+    _setCircuitState(provider, state).catch(() => {})
+  }).catch(() => {
+    // Fallback synchrone in-memory si _getCircuitState échoue
+    const state = circuitBreakerMap.get(provider) ?? { failCount: 0, cooldownUntil: 0 }
+    state.failCount += 1
+    circuitBreakerMap.set(provider, state)
+  })
 }
 
 /**
  * Enregistre un succès pour un provider. Réinitialise le compteur d'échecs.
  */
 function recordProviderSuccess(provider: LLMProvider): void {
-  const state = circuitBreakerMap.get(provider)
-  if (state && state.failCount > 0) {
-    state.failCount = 0
-    state.cooldownUntil = 0
-    circuitBreakerMap.set(provider, state)
-  }
+  _getCircuitState(provider).then(state => {
+    if (state.failCount > 0) {
+      _setCircuitState(provider, { failCount: 0, cooldownUntil: 0 }).catch(() => {})
+    }
+  }).catch(() => {
+    const state = circuitBreakerMap.get(provider)
+    if (state && state.failCount > 0) {
+      circuitBreakerMap.set(provider, { failCount: 0, cooldownUntil: 0 })
+    }
+  })
 }
 
 /**
  * Vérifie si un provider est disponible selon son état de circuit breaker.
  * Retourne false si le circuit est ouvert (en cooldown).
+ * NOTE: version synchrone (lit le cache in-memory) pour ne pas bloquer le hot path.
+ * La persistance Redis est async en arrière-plan.
  */
 function isProviderCircuitClosed(provider: LLMProvider): boolean {
   const state = circuitBreakerMap.get(provider)
@@ -144,6 +191,33 @@ function isProviderCircuitClosed(provider: LLMProvider): boolean {
 
   return true
 }
+
+/**
+ * Initialise le circuit breaker depuis Redis au démarrage.
+ * Appelé une fois à l'import (fire-and-forget).
+ */
+async function _restoreCircuitStateFromRedis(): Promise<void> {
+  try {
+    const redis = await getRedisClient()
+    if (!redis) return
+    const providers: LLMProvider[] = ['gemini', 'groq', 'deepseek', 'anthropic', 'openai', 'ollama']
+    await Promise.all(providers.map(async (p) => {
+      const raw = await redis.get(_redisKey(p))
+      if (raw) {
+        const state = JSON.parse(raw) as CircuitBreakerState
+        // Ne restaurer que si le cooldown est encore actif
+        if (state.cooldownUntil > Date.now()) {
+          circuitBreakerMap.set(p, state)
+          const remainingSec = Math.ceil((state.cooldownUntil - Date.now()) / 1000)
+          logger.info(`[CircuitBreaker] 🔄 ${p} restauré depuis Redis — cooldown ${remainingSec}s restants`)
+        }
+      }
+    }))
+  } catch { /* Redis indisponible au démarrage — dégradation gracieuse */ }
+}
+
+// Restaurer l'état au démarrage (fire-and-forget)
+_restoreCircuitStateFromRedis().catch(() => {})
 
 // =============================================================================
 // CLIENTS LLM (singletons)
@@ -302,6 +376,7 @@ export function isServerOrTimeoutError(error: unknown): boolean {
 
 /**
  * Retourne la liste des providers disponibles (avec clé API configurée)
+ * Note: vérifie uniquement la présence de clé — utiliser checkProviderHealth() pour un ping réel
  */
 export function getAvailableProviders(): LLMProvider[] {
   return FALLBACK_ORDER.filter((provider) => {
@@ -322,6 +397,101 @@ export function getAvailableProviders(): LLMProvider[] {
         return false
     }
   })
+}
+
+// =============================================================================
+// HEALTH CHECK PROVIDERS (Fix P2 Feb 24, 2026)
+// =============================================================================
+
+/** Cache en mémoire des résultats health check (TTL 5 min) */
+const _healthCheckCache = new Map<LLMProvider, { ok: boolean; ts: number }>()
+const HEALTH_CHECK_TTL_MS = 5 * 60 * 1000 // 5 min
+
+/**
+ * Vérifie si un provider est réellement opérationnel via un ping léger.
+ * Résultat mis en cache 5 min. Utilisé pour détecter clés expirées / quotas.
+ * Appelé de manière proactive (pas dans le hot path).
+ */
+export async function checkProviderHealth(provider: LLMProvider): Promise<boolean> {
+  const cached = _healthCheckCache.get(provider)
+  if (cached && Date.now() - cached.ts < HEALTH_CHECK_TTL_MS) {
+    return cached.ok
+  }
+
+  let ok = false
+  try {
+    switch (provider) {
+      case 'groq': {
+        const client = getGroqClient()
+        await client.chat.completions.create({
+          model: aiConfig.groq.model,
+          messages: [{ role: 'user', content: 'ping' }],
+          max_tokens: 1,
+          temperature: 0,
+        })
+        ok = true
+        break
+      }
+      case 'gemini': {
+        const resp = await callGemini(
+          [{ role: 'user', content: 'ping' }],
+          { temperature: 0, maxTokens: 1 }
+        )
+        ok = resp.answer !== undefined
+        break
+      }
+      case 'openai': {
+        const client = getOpenAIClient()
+        await client.chat.completions.create({
+          model: aiConfig.openai?.chatModel || 'gpt-4o-mini',
+          messages: [{ role: 'user', content: 'ping' }],
+          max_tokens: 1,
+          temperature: 0,
+        })
+        ok = true
+        break
+      }
+      case 'ollama': {
+        const resp = await fetch(`${aiConfig.ollama.baseUrl}/api/tags`, { signal: AbortSignal.timeout(3000) })
+        ok = resp.ok
+        break
+      }
+      default:
+        ok = getAvailableProviders().includes(provider)
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    const isQuotaOrAuth = msg.includes('401') || msg.includes('403') || msg.includes('quota') || msg.includes('billing')
+    if (isQuotaOrAuth) {
+      logger.error(`[HealthCheck] 🔑 ${provider} clé invalide/quota dépassé: ${msg.substring(0, 80)}`)
+      // Ouvrir le circuit breaker immédiatement
+      _setCircuitState(provider, {
+        failCount: CIRCUIT_BREAKER_FAIL_THRESHOLD,
+        cooldownUntil: Date.now() + CIRCUIT_BREAKER_MAX_COOLDOWN_MS,
+      }).catch(() => {})
+    } else {
+      logger.warn(`[HealthCheck] ${provider} ping échoué: ${msg.substring(0, 80)}`)
+    }
+    ok = false
+  }
+
+  _healthCheckCache.set(provider, { ok, ts: Date.now() })
+  logger.info(`[HealthCheck] ${provider}: ${ok ? '✅ OK' : '❌ KO'}`)
+  return ok
+}
+
+/**
+ * Vérifie tous les providers configurés et retourne un résumé.
+ * À appeler depuis un endpoint de monitoring ou un cron léger.
+ */
+export async function checkAllProvidersHealth(): Promise<Record<LLMProvider, boolean>> {
+  const providers = getAvailableProviders()
+  const results = await Promise.allSettled(providers.map(p => checkProviderHealth(p)))
+  const summary: Partial<Record<LLMProvider, boolean>> = {}
+  providers.forEach((p, i) => {
+    summary[p] = results[i].status === 'fulfilled' ? results[i].value : false
+  })
+  return summary as Record<LLMProvider, boolean>
 }
 
 // =============================================================================

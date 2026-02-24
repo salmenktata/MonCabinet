@@ -95,9 +95,10 @@ import {
 // Configuration Query Expansion
 const ENABLE_QUERY_EXPANSION = process.env.ENABLE_QUERY_EXPANSION !== 'false'
 
-// Timeout global pour la recherche bilingue (60 secondes par défaut)
-// Réduit de 90s à 60s grâce à parallélisation recherche primaire + traduction (Phase 2.1)
-const BILINGUAL_SEARCH_TIMEOUT_MS = parseInt(process.env.BILINGUAL_SEARCH_TIMEOUT_MS || '60000', 10)
+// Timeout global pour la recherche bilingue (30 secondes par défaut)
+// Réduit de 60s à 30s : si le search bilingue dure > 30s, il ne reste plus assez de budget
+// pour l'appel LLM (timeout action = 44-54s). P1 fix Feb 24, 2026.
+const BILINGUAL_SEARCH_TIMEOUT_MS = parseInt(process.env.BILINGUAL_SEARCH_TIMEOUT_MS || '30000', 10)
 
 // =============================================================================
 // CLIENTS LLM (Ollama prioritaire, puis Groq, puis Anthropic)
@@ -582,9 +583,21 @@ async function rerankSources(
       }
     }
 
+    // Malus OCR low-confidence : chunks issus d'OCR dégradé pénalisés 0.85×
+    // Fix Feb 24, 2026 — flag stocké en metadata mais non utilisé dans le scoring
+    if (_meta?.ocr_low_confidence === true) {
+      boost *= 0.85
+      log.info(`[RAG Rerank] Malus OCR 0.85× sur "${s.documentName}" (conf=${(_meta.ocr_page_confidence as number | undefined)?.toFixed(0) ?? '?'}%)`)
+    }
+
+    // P0 fix Feb 24, 2026 : plafonner le boost cumulatif à 2.0×
+    // Sans cap : domain(2.5×) × hierarchy(1.35×) × temporal × stance(1.3×) → ~5.5×
+    // Un chunk médiocre avec tous les boosts peut dépasser un chunk très pertinent
+    const cappedBoost = Math.min(boost, 2.0)
+
     return {
       ...s,
-      boostedScore: s.similarity * boost,
+      boostedScore: s.similarity * cappedBoost,
       sourceType,
       sourceId: getSourceId(s),
     }
@@ -673,10 +686,60 @@ function logSearchMetrics(metrics: SearchMetrics): void {
 // RECHERCHE CONTEXTUELLE
 // =============================================================================
 
+// =============================================================================
+// QUALITY GATE ADAPTATIF (P3 fix Feb 24, 2026)
+// =============================================================================
+
+/**
+ * Calcule un seuil de quality gate dynamique selon le contexte.
+ * Remplace les seuils statiques (0.30/0.50) par une fonction adaptative.
+ *
+ * Axes d'ajustement :
+ * - Langue : arabe (scores embedding plus bas) → seuil plus bas
+ * - Complexité query : query courte → plus souple (chercher coûte que coûte)
+ * - Nb sources : peu de sources → plus souple (éviter abstention injustifiée)
+ * - Type résultat : vecteur réel vs BM25-only → seuil différent
+ */
+function computeAdaptiveQualityGate(
+  lang: string,
+  query: string,
+  sourcesFound: number,
+  hasVectorResults: boolean
+): number {
+  // Seuils de base selon langue et type
+  let base = lang === 'ar'
+    ? (hasVectorResults ? 0.20 : 0.30)
+    : (hasVectorResults ? 0.35 : 0.50)
+
+  // Ajustement selon complexité query (proxy : longueur en mots)
+  const queryWords = query.trim().split(/\s+/).length
+  if (queryWords <= 5) {
+    // Query courte → baisser le seuil (moins de contexte disponible)
+    base *= 0.85
+  } else if (queryWords >= 20) {
+    // Query longue et précise → seuil légèrement plus strict
+    base *= 1.05
+  }
+
+  // Ajustement selon nombre de sources trouvées
+  if (sourcesFound <= 2) {
+    // Peu de résultats → assouplir pour éviter abstention
+    base *= 0.90
+  } else if (sourcesFound >= 5) {
+    // Beaucoup de résultats → on peut se permettre d'être plus sélectif
+    base *= 1.05
+  }
+
+  // Borner entre valeurs raisonnables
+  return Math.max(0.15, Math.min(base, 0.60))
+}
+
 // Type de retour pour les recherches avec info de cache
 interface SearchResult {
   sources: ChatSource[]
   cacheHit: boolean
+  /** Raison d'un retour vide (P1 fix Feb 24, 2026 — observabilité quality gate) */
+  reason?: 'quality_gate' | 'no_results' | 'error' | 'cache_hit'
 }
 
 /**
@@ -900,6 +963,8 @@ export async function searchRelevantContext(
         : await (await import('./legal-router-service')).routeQuery(question, { maxTracks: 4 })
     } catch (routerError) {
       log.warn('[RAG Search] Router échoué, fallback recherche KB sans classification:', routerError instanceof Error ? routerError.message : routerError)
+      // P2 fix Feb 24, 2026 : log structuré pour observabilité (détectable par monitoring)
+      log.warn('[RAG Metrics] router_failed=true reason=' + (routerError instanceof Error ? routerError.message.substring(0, 80) : String(routerError)).replace(/\s+/g, '_'))
     }
   }
   const classification = routerResult?.classification || null
@@ -1057,18 +1122,18 @@ export async function searchRelevantContext(
   // Limiter au nombre demandé (sur sources valides filtrées)
   let finalSources = filteredResult.validSources.slice(0, maxContextChunks)
 
-  // Hard quality gate: si TOUTES les sources sont en dessous du seuil, ne pas les envoyer au LLM
-  // Seuil différencié : résultats vectoriels (similarity = vecSim réel) sont plus fiables que BM25-only
-  // Seuils plus bas pour l'arabe : embeddings OpenAI donnent des scores 0.35-0.65 pour contenu pertinent
-  // BM25-only: synthetic similarity = max(0.35, bm25Rank*10) → plancher 0.35, donc gate < 0.35 = jamais filtré
-  const HARD_QUALITY_GATE = queryLang === 'ar' ? 0.30 : 0.50
-  const HARD_QUALITY_GATE_VECTOR = queryLang === 'ar' ? 0.20 : 0.35
+  // Hard quality gate adaptatif (P3 fix Feb 24, 2026)
+  // Seuil dynamique f(langue, complexité_query, nb_sources_trouvées) remplace les seuils statiques
+  // Logique : query courte + peu de sources = seuil plus bas (chercher coûte que coûte)
+  //            query longue + plusieurs sources = seuil plus haut (exiger la pertinence)
   const hasVectorResults = finalSources.some(s => s.metadata?.searchType === 'vector' || s.metadata?.searchType === 'hybrid')
-  const effectiveGate = hasVectorResults ? HARD_QUALITY_GATE_VECTOR : HARD_QUALITY_GATE
+  const effectiveGate = computeAdaptiveQualityGate(queryLang, question, finalSources.length, hasVectorResults)
+  const queryWords = question.trim().split(/\s+/).length
+  log.info(`[RAG QGate] seuil adaptatif=${effectiveGate.toFixed(3)} lang=${queryLang} queryWords=${queryWords} sources=${finalSources.length} hasVector=${hasVectorResults}`)
   if (finalSources.length > 0 && finalSources.every(s => s.similarity < effectiveGate)) {
     const bestScore = Math.max(...finalSources.map(s => s.similarity))
     log.warn(`[RAG Search] ⚠️ Hard quality gate (${effectiveGate}, lang=${queryLang}): toutes ${finalSources.length} sources < seuil, meilleur score=${bestScore.toFixed(3)}, retour 0 sources`)
-    return { sources: [], cacheHit: false }
+    return { sources: [], cacheHit: false, reason: 'quality_gate' }
   }
 
   // Calculer et logger les métriques
@@ -2262,6 +2327,24 @@ export async function answerQuestion(
       warnings: formatValidationWarnings(citationResult),
     })
     citationWarnings = citationResult.warnings.map(w => w.citation)
+  }
+
+  // Fix Feb 24, 2026 : disclaimer si citation_accuracy < 0.5 (citations invalides > 50%)
+  // Jusque-là la validation était informative seulement — maintenant visible côté utilisateur
+  if (citationResult && citationResult.totalCitations > 0) {
+    const invalidCount = citationResult.invalidCitations.length
+    const citationAccuracy = (citationResult.totalCitations - invalidCount) / citationResult.totalCitations
+    if (citationAccuracy < 0.5) {
+      const langForDisclaimer = detectLanguage(answer)
+      const disclaimer = langForDisclaimer === 'ar'
+        ? '\n\n⚠️ تنبيه: تعذّر التحقق من صحة بعض المراجع القانونية المذكورة في هذه الإجابة. يُرجى مراجعة النصوص الأصلية للتأكد من دقتها.'
+        : '\n\n⚠️ Avertissement : certaines références juridiques citées dans cette réponse n\'ont pas pu être vérifiées. Veuillez consulter les textes originaux pour confirmation.'
+      answer += disclaimer
+      logger.warn('filter', `Citation accuracy faible (${(citationAccuracy * 100).toFixed(0)}%) — disclaimer ajouté`, {
+        totalCitations: citationResult.totalCitations,
+        invalidCitations: invalidCount,
+      })
+    }
   }
 
   // Sprint 4: logger les sources sans citation_locator (non auditables)

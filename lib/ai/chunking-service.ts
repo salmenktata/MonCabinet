@@ -301,20 +301,20 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
     },
   }))
 
-  // Filtrer les chunks trop petits (< 100 mots) SAUF le dernier chunk
-  // pour éviter la perte de contenu en fin de document
-  const MIN_CHUNK_WORDS = 100
+  // Filtrer les chunks trop petits SAUF le dernier chunk (pour éviter perte de contenu en fin de doc)
+  // Fix Feb 24, 2026 : seuil réduit de 100 → 40 mots pour préserver les dispositions légales courtes
+  // (articles, définitions, alinéas) qui étaient silencieusement perdus
+  const MIN_CHUNK_WORDS = 40
   const filteredChunks = chunks.filter((chunk, idx) => {
     const wordCount = chunk.metadata.wordCount
 
-    // Garder le dernier chunk même s'il est petit (pour éviter perte de contenu)
+    // Garder le dernier chunk même s'il est petit
     if (idx === chunks.length - 1) {
       return true
     }
 
-    // Filtrer les chunks trop petits (< 100 mots)
     if (wordCount < MIN_CHUNK_WORDS) {
-      console.log(`[Chunking] Chunk ${idx} trop petit (${wordCount} mots < ${MIN_CHUNK_WORDS}) - filtré`)
+      console.log(`[Chunking] Chunk ${idx} filtré (${wordCount} mots < ${MIN_CHUNK_WORDS} min) — contenu: "${chunk.content.substring(0, 60).replace(/\n/g, ' ')}..."`)
       return false
     }
 

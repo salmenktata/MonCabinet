@@ -20,6 +20,13 @@ import { getRedisClient } from '@/lib/cache/redis'
 // TYPES
 // =============================================================================
 
+export interface DriftMetricsByDomain {
+  domain: string
+  avgSimilarity: number | null
+  abstentionRate: number | null
+  totalQuestions: number
+}
+
 export interface DriftMetrics {
   period: { from: string; to: string }
   metrics: {
@@ -29,6 +36,8 @@ export interface DriftMetrics {
     avgFeedbackRating: number | null
     satisfactionRate: number | null
     totalConversations: number
+    /** Ventilation par domaine juridique (P2 fix Feb 24, 2026) */
+    byDomain?: DriftMetricsByDomain[]
   }
 }
 
@@ -155,6 +164,37 @@ async function collectMetrics(fromDate: string, toDate: string): Promise<DriftMe
     // pas critique
   }
 
+  // 5. Ventilation par domaine (P2 fix Feb 24, 2026 — drift invisible par domaine)
+  let byDomain: DriftMetricsByDomain[] | undefined
+  try {
+    const domainResult = await db.query(
+      `SELECT
+         domain,
+         ROUND(AVG(avg_similarity)::numeric, 4) as avg_sim,
+         ROUND(
+           (COUNT(*) FILTER (WHERE abstention_reason IS NOT NULL))::numeric /
+           NULLIF(COUNT(*), 0) * 100, 2
+         ) as abstention_pct,
+         COUNT(*) as total_questions
+       FROM rag_eval_results
+       WHERE created_at >= $1::date AND created_at < $2::date
+         AND domain IS NOT NULL
+       GROUP BY domain
+       ORDER BY total_questions DESC`,
+      [fromDate, toDate]
+    )
+    if (domainResult.rows.length > 0) {
+      byDomain = domainResult.rows.map(row => ({
+        domain: row.domain as string,
+        avgSimilarity: row.avg_sim ? parseFloat(row.avg_sim) : null,
+        abstentionRate: row.abstention_pct ? parseFloat(row.abstention_pct) : null,
+        totalQuestions: parseInt(row.total_questions) || 0,
+      }))
+    }
+  } catch {
+    // Colonne domain peut ne pas exister dans les anciennes données
+  }
+
   return {
     avgSimilarity,
     abstentionRate,
@@ -162,6 +202,7 @@ async function collectMetrics(fromDate: string, toDate: string): Promise<DriftMe
     avgFeedbackRating,
     satisfactionRate,
     totalConversations,
+    byDomain,
   }
 }
 
@@ -356,6 +397,14 @@ async function sendDriftAlertEmail(report: DriftReport): Promise<void> {
           <tr><td style="padding:4px 8px;border-bottom:1px solid #e5e7eb">Satisfaction</td><td style="text-align:right">${report.currentPeriod.metrics.satisfactionRate?.toFixed(1) ?? '—'}%</td></tr>
           <tr><td style="padding:4px 8px">Conversations</td><td style="text-align:right">${report.currentPeriod.metrics.totalConversations}</td></tr>
         </table>
+        ${report.currentPeriod.metrics.byDomain && report.currentPeriod.metrics.byDomain.length > 0 ? `
+        <h3>Ventilation par domaine</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <tr style="background:#e5e7eb"><th style="padding:4px 8px;text-align:left">Domaine</th><th style="text-align:right;padding:4px 8px">Similarité</th><th style="text-align:right;padding:4px 8px">Abstention</th><th style="text-align:right;padding:4px 8px">Questions</th></tr>
+          ${report.currentPeriod.metrics.byDomain.map(d =>
+            `<tr><td style="padding:4px 8px;border-bottom:1px solid #e5e7eb">${d.domain}</td><td style="text-align:right;padding:4px 8px">${d.avgSimilarity?.toFixed(3) ?? '—'}</td><td style="text-align:right;padding:4px 8px">${d.abstentionRate?.toFixed(1) ?? '—'}%</td><td style="text-align:right;padding:4px 8px">${d.totalQuestions}</td></tr>`
+          ).join('')}
+        </table>` : ''}
         <p style="margin-top:20px;font-size:12px;color:#6b7280">
           Qadhya Monitoring — ${report.generatedAt}
         </p>

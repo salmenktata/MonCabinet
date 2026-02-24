@@ -1,10 +1,12 @@
 /**
- * Service de Re-ranking avec TF-IDF local
+ * Service de Re-ranking
  *
- * Implémente un re-ranking léger basé sur TF-IDF pour améliorer
- * la pertinence des résultats au-delà de la similarité cosinus.
+ * Stratégie par ordre de priorité :
+ * 1. Jina Reranker v2 via API HTTP (si JINA_API_KEY configuré) — sémantique, multilingue
+ * 2. TF-IDF local (fallback léger, pas de dépendance externe)
  *
- * Remplace le cross-encoder @xenova/transformers (incompatible avec Next.js build).
+ * Jina Reranker v2 supporte arabe + français nativement (meilleure précision que TF-IDF).
+ * Fix Feb 24, 2026 : cross-encoder @xenova/transformers incompatible Next.js → Jina HTTP.
  */
 
 // =============================================================================
@@ -28,8 +30,78 @@ export interface DocumentToRerank {
 // CONFIGURATION
 // =============================================================================
 
-// Re-ranking TF-IDF activé par défaut (léger, pas de dépendance externe)
+// Re-ranking activé par défaut
 const RERANKER_ENABLED = process.env.RERANKER_ENABLED !== 'false'
+
+// Jina Reranker API (prioritaire si JINA_API_KEY configuré)
+const JINA_API_KEY = process.env.JINA_API_KEY
+const JINA_RERANK_URL = 'https://api.jina.ai/v1/rerank'
+const JINA_RERANK_MODEL = process.env.JINA_RERANK_MODEL || 'jina-reranker-v2-base-multilingual'
+// =============================================================================
+// JINA RERANKER (sémantique multilingue via HTTP — pas de build step)
+// =============================================================================
+
+/**
+ * Re-rank via Jina Reranker v2 (multilingue : arabe + français natifs)
+ * Retourne null si Jina non configuré ou en erreur → fallback TF-IDF
+ */
+async function rerankWithJina(
+  query: string,
+  documents: DocumentToRerank[],
+  topK?: number
+): Promise<RerankerResult[] | null> {
+  if (!JINA_API_KEY) return null
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 8000) // 8s timeout
+
+  try {
+    const response = await fetch(JINA_RERANK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${JINA_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: JINA_RERANK_MODEL,
+        query,
+        documents: documents.map(d => d.content),
+        top_n: topK || documents.length,
+        return_documents: false,
+      }),
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      console.warn(`[Reranker Jina] HTTP ${response.status} — fallback TF-IDF`)
+      return null
+    }
+
+    const data = await response.json() as {
+      results: Array<{ index: number; relevance_score: number }>
+    }
+
+    // Combiner score Jina (70%) + score vectoriel original (30%)
+    const results: RerankerResult[] = data.results.map(r => ({
+      index: r.index,
+      score: r.relevance_score * 0.7 + (documents[r.index]?.originalScore ?? 0) * 0.3,
+      originalScore: documents[r.index]?.originalScore ?? 0,
+    }))
+
+    results.sort((a, b) => b.score - a.score)
+    console.log(`[Reranker] ✓ Jina v2 multilingue: ${results.length} résultats (top=${results[0]?.score.toFixed(3)})`)
+    return results
+  } catch (error) {
+    if (error instanceof Error && error.name !== 'AbortError') {
+      console.warn('[Reranker Jina] Erreur:', error.message, '— fallback TF-IDF')
+    } else {
+      console.warn('[Reranker Jina] Timeout — fallback TF-IDF')
+    }
+    return null
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
 
 // =============================================================================
 // TF-IDF RE-RANKING
@@ -143,29 +215,26 @@ export async function rerankDocuments(
     return topK ? results.slice(0, topK) : results
   }
 
-  // ✨ OPTIMISATION RAG - Sprint 3 (Feb 2026)
-  // Utiliser Cross-Encoder Neural si activé (meilleure précision)
-  // TEMPORAIREMENT DÉSACTIVÉ pour permettre build production (Phase 1 déploiement)
-  const useCrossEncoder = options.useCrossEncoder !== false // Activé par défaut
+  // Priorité 1 : Jina Reranker v2 multilingue via HTTP (arabe + français natifs)
+  // Activé si JINA_API_KEY configuré — pas de build step, simple HTTP
+  if (JINA_API_KEY) {
+    const jinaResults = await rerankWithJina(query, documents, topK)
+    if (jinaResults) {
+      return topK ? jinaResults.slice(0, topK) : jinaResults
+    }
+    // Si Jina échoue → continuer vers TF-IDF fallback
+  }
+
+  // Priorité 2 (legacy): Cross-Encoder neural si activé
+  // TEMPORAIREMENT DÉSACTIVÉ pour build production (incompatible Next.js)
+  const useCrossEncoder = options.useCrossEncoder !== false && !JINA_API_KEY
 
   if (useCrossEncoder) {
     try {
       console.log('[Reranker] Utilisation cross-encoder neural...')
-
-      // Import dynamique du service cross-encoder
       const { rerankWithCrossEncoder } = await import('./cross-encoder-service')
-
-      // Extraire contenus
       const contents = documents.map((doc) => doc.content)
-
-      // Re-ranking neural
-      const crossEncoderResults = await rerankWithCrossEncoder(
-        query,
-        contents,
-        topK
-      )
-
-      // Combiner scores cross-encoder (70%) + scores originaux (30%)
+      const crossEncoderResults = await rerankWithCrossEncoder(query, contents, topK)
       const results: RerankerResult[] = crossEncoderResults.map((ce) => {
         const originalDoc = documents[ce.index]
         return {
@@ -174,22 +243,14 @@ export async function rerankDocuments(
           originalScore: originalDoc.originalScore,
         }
       })
-
-      console.log(
-        `[Reranker] ✓ Cross-encoder: ${results.length} résultats (top score: ${(results[0]?.score * 100).toFixed(1)}%)`
-      )
-
+      console.log(`[Reranker] ✓ Cross-encoder: ${results.length} résultats (top score: ${(results[0]?.score * 100).toFixed(1)}%)`)
       return results
     } catch (error) {
-      console.error(
-        '[Reranker] Cross-encoder échoué, fallback TF-IDF:',
-        error instanceof Error ? error.message : error
-      )
-      // Continuer avec TF-IDF fallback
+      console.error('[Reranker] Cross-encoder échoué, fallback TF-IDF:', error instanceof Error ? error.message : error)
     }
   }
 
-  // ===== FALLBACK TF-IDF (classique) =====
+  // Priorité 3 : TF-IDF local (fallback universel, pas de dépendance externe)
   console.log('[Reranker] Utilisation TF-IDF (fallback)...')
 
   // Tokenizer la query et les documents
@@ -270,7 +331,7 @@ export function getRerankerInfo(): {
 } {
   return {
     enabled: RERANKER_ENABLED,
-    model: 'tfidf-local',
+    model: JINA_API_KEY ? JINA_RERANK_MODEL : 'tfidf-local',
     loaded: RERANKER_ENABLED,
   }
 }

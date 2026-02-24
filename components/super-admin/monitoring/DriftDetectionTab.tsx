@@ -22,6 +22,13 @@ interface DriftAlert {
   message: string
 }
 
+interface DriftMetricsByDomain {
+  domain: string
+  avgSimilarity: number | null
+  abstentionRate: number | null
+  totalQuestions: number
+}
+
 interface DriftMetrics {
   period: { from: string; to: string }
   metrics: {
@@ -31,6 +38,7 @@ interface DriftMetrics {
     avgFeedbackRating: number | null
     satisfactionRate: number | null
     totalConversations: number
+    byDomain?: DriftMetricsByDomain[]
   }
 }
 
@@ -209,6 +217,67 @@ export function DriftDetectionTab() {
               </Card>
             ))}
           </div>
+
+          {/* Ventilation par domaine (période courante) */}
+          {report.currentPeriod.metrics.byDomain && report.currentPeriod.metrics.byDomain.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Activity className="h-4 w-4" /> Ventilation par domaine juridique
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Période courante — permet de détecter un drift localisé à un domaine
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-2 pr-4 font-medium">Domaine</th>
+                        <th className="text-right py-2 px-4 font-medium">Similarité</th>
+                        <th className="text-right py-2 px-4 font-medium">Abstention</th>
+                        <th className="text-right py-2 pl-4 font-medium">Questions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.currentPeriod.metrics.byDomain.map((d) => {
+                        const prevDomain = report.previousPeriod.metrics.byDomain?.find(pd => pd.domain === d.domain)
+                        const simDelta = (d.avgSimilarity != null && prevDomain?.avgSimilarity != null)
+                          ? d.avgSimilarity - prevDomain.avgSimilarity
+                          : null
+                        return (
+                          <tr key={d.domain} className="border-b hover:bg-muted/30">
+                            <td className="py-2 pr-4 font-medium capitalize">{d.domain}</td>
+                            <td className="text-right py-2 px-4">
+                              {d.avgSimilarity != null ? (
+                                <span className="flex items-center justify-end gap-1">
+                                  {d.avgSimilarity.toFixed(3)}
+                                  {simDelta != null && (
+                                    <span className={`text-xs ${simDelta < -0.05 ? 'text-red-600' : simDelta > 0.01 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                      ({simDelta > 0 ? '+' : ''}{simDelta.toFixed(3)})
+                                    </span>
+                                  )}
+                                </span>
+                              ) : '—'}
+                            </td>
+                            <td className="text-right py-2 px-4">
+                              {d.abstentionRate != null ? (
+                                <span className={d.abstentionRate > 15 ? 'text-red-600 font-medium' : ''}>
+                                  {d.abstentionRate.toFixed(1)}%
+                                </span>
+                              ) : '—'}
+                            </td>
+                            <td className="text-right py-2 pl-4 text-muted-foreground">{d.totalQuestions}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>

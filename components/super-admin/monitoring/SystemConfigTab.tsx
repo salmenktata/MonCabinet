@@ -57,12 +57,29 @@ interface HealthCheckResponse {
   version: string
 }
 
+interface ProviderHealthResult {
+  provider: string
+  configured: boolean
+  healthy: boolean
+  status: 'ok' | 'error'
+}
+
+interface ProvidersHealthResponse {
+  success: boolean
+  summary: { healthy: number; total: number; allHealthy: boolean }
+  providers: ProviderHealthResult[]
+  durationMs: number
+  timestamp: string
+}
+
 export default function SystemConfigTab() {
   const [healthData, setHealthData] = useState<HealthCheckResponse | null>(null)
   const [envVarData, setEnvVarData] = useState<EnvVarConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [providersHealth, setProvidersHealth] = useState<ProvidersHealthResponse | null>(null)
+  const [providersLoading, setProvidersLoading] = useState(false)
 
   // Ollama control state
   const [ollamaStatus, setOllamaStatus] = useState<{
@@ -86,6 +103,21 @@ export default function SystemConfigTab() {
       setError(err instanceof Error ? err.message : 'Health check failed')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Fetch LLM providers health (ping réel, cache 5 min côté serveur)
+  const fetchProvidersHealth = async () => {
+    setProvidersLoading(true)
+    try {
+      const res = await fetch('/api/admin/monitoring/providers-health')
+      if (!res.ok) return
+      const data = await res.json()
+      setProvidersHealth(data)
+    } catch {
+      // Silencieux
+    } finally {
+      setProvidersLoading(false)
     }
   }
 
@@ -155,6 +187,7 @@ export default function SystemConfigTab() {
   useEffect(() => {
     fetchHealthCheck()
     fetchEnvVarConfig()
+    fetchProvidersHealth()
     fetchOllamaStatus()
     const healthInterval = setInterval(fetchHealthCheck, 30000)
     const envInterval = setInterval(fetchEnvVarConfig, 60000)
@@ -397,6 +430,67 @@ export default function SystemConfigTab() {
           </div>
         </div>
       )}
+
+      {/* Section Providers LLM Health */}
+      <div className="bg-card rounded-lg border border-border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Cpu className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <h3 className="text-base font-bold text-foreground">Providers LLM</h3>
+              <p className="text-xs text-muted-foreground">Health check réel (ping — cache 5 min)</p>
+            </div>
+          </div>
+          <button
+            onClick={fetchProvidersHealth}
+            disabled={providersLoading}
+            className="text-xs px-3 py-1.5 rounded border border-border hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            {providersLoading ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : null}
+            Tester
+          </button>
+        </div>
+        {!providersHealth && !providersLoading && (
+          <p className="text-sm text-muted-foreground">Cliquez sur Tester pour lancer le health check.</p>
+        )}
+        {providersLoading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Ping des providers en cours...
+          </div>
+        )}
+        {providersHealth && !providersLoading && (
+          <div className="space-y-3">
+            <div className={`text-xs font-medium px-2 py-1 rounded w-fit ${
+              providersHealth.summary.allHealthy
+                ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300'
+                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300'
+            }`}>
+              {providersHealth.summary.healthy}/{providersHealth.summary.total} providers opérationnels
+              {' '}· {providersHealth.durationMs}ms
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {providersHealth.providers.filter(p => p.configured).map(p => (
+                <div key={p.provider} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${
+                  p.healthy
+                    ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20'
+                    : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/20'
+                }`}>
+                  {p.healthy
+                    ? <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                    : <XCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" />
+                  }
+                  <span className={`font-mono font-medium ${p.healthy ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
+                    {p.provider}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Testé le {new Date(providersHealth.timestamp).toLocaleTimeString('fr-FR')}
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Section Variables d'Environnement */}
       {envVarData && (

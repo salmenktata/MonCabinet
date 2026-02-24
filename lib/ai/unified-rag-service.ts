@@ -459,7 +459,7 @@ export async function search(
   const embeddingStr = formatEmbeddingForPostgres(embeddingResult.embedding)
 
   // 3a. Recherche hybride BM25 + vectorielle (si ENABLE_HYBRID_SEARCH=true)
-  // Utilise search_knowledge_base_hybrid() avec signature 8 params (Gemini migration).
+  // Utilise search_knowledge_base_hybrid() — 7 params, BM25 auto-détecte la langue (Feb 24, 2026).
   // Supporte OpenAI (1536-dim), Ollama (1024-dim) et Gemini (768-dim).
   // Pagination (offset > 0) → fallback dense. Échec SQL → fallback dense automatique.
   if (process.env.ENABLE_HYBRID_SEARCH === 'true' && offset === 0) {
