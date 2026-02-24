@@ -909,6 +909,136 @@ export interface StreamTokenUsage {
 }
 
 /**
+ * Stream Ollama via fetch NDJSON.
+ * Ollama retourne des lignes JSON newline-delimited avec message.content + flag done.
+ * Le timeout utilise le timeout de l'opération (ex: 60s pour assistant-ia).
+ */
+async function* callOllamaStream(
+  messages: Array<{ role: string; content: string }>,
+  options: {
+    maxTokens?: number
+    temperature?: number
+    systemInstruction?: string
+    timeout?: number
+  },
+  usageOut?: StreamTokenUsage
+): AsyncGenerator<string> {
+  const model = aiConfig.ollama.chatModelDefault
+  const timeout = options.timeout ?? 60000 // 60s par défaut pour streaming (pas le chatTimeoutDefault=15s)
+
+  const allMessages: Array<{ role: string; content: string }> = []
+  if (options.systemInstruction) {
+    allMessages.push({ role: 'system', content: options.systemInstruction })
+  }
+  for (const m of messages) {
+    allMessages.push(m)
+  }
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+  try {
+    const response = await fetch(`${aiConfig.ollama.baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: allMessages,
+        stream: true,
+        think: false,
+        options: {
+          temperature: options.temperature ?? 0.1,
+          num_predict: options.maxTokens ?? 2048,
+        },
+      }),
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      throw new Error(`Erreur Ollama streaming: ${response.status}`)
+    }
+
+    const reader = response.body?.getReader()
+    if (!reader) throw new Error('Ollama: pas de body dans la réponse streaming')
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+
+      for (const line of lines) {
+        if (!line.trim()) continue
+        try {
+          const data = JSON.parse(line)
+          const text = data.message?.content || ''
+          if (text) yield text
+          if (data.done && usageOut) {
+            usageOut.input = data.prompt_eval_count || 0
+            usageOut.output = data.eval_count || 0
+            usageOut.total = (data.prompt_eval_count || 0) + (data.eval_count || 0)
+          }
+        } catch {
+          // Ignorer les lignes NDJSON mal formées
+        }
+      }
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Ollama streaming timeout après ${timeout / 1000}s (modèle: ${model})`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+/**
+ * Stream DeepSeek via OpenAI SDK compatible (même API que Groq).
+ * Le paramètre `usageOut` permet de capturer les stats de tokens depuis le dernier chunk.
+ */
+async function* callDeepSeekStream(
+  messages: Array<{ role: string; content: string }>,
+  options: { maxTokens?: number; temperature?: number; systemInstruction?: string },
+  usageOut?: StreamTokenUsage
+): AsyncGenerator<string> {
+  const client = getDeepSeekClient()
+  const model = aiConfig.deepseek.model
+
+  const allMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = []
+  if (options.systemInstruction) {
+    allMessages.push({ role: 'system', content: options.systemInstruction })
+  }
+  for (const m of messages) {
+    allMessages.push({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })
+  }
+
+  const stream = await client.chat.completions.create({
+    model,
+    messages: allMessages,
+    stream: true,
+    stream_options: { include_usage: true },
+    max_tokens: options.maxTokens ?? 8000,
+    temperature: options.temperature ?? 0.1,
+  })
+
+  for await (const chunk of stream) {
+    const text = chunk.choices[0]?.delta?.content || ''
+    if (text) yield text
+    if (chunk.usage && usageOut) {
+      usageOut.input = chunk.usage.prompt_tokens || 0
+      usageOut.output = chunk.usage.completion_tokens || 0
+      usageOut.total = chunk.usage.total_tokens || 0
+    }
+  }
+}
+
+/**
  * Stream Groq via OpenAI SDK compatible.
  * Le paramètre `usageOut` permet de capturer les stats de tokens depuis le dernier chunk.
  */
@@ -951,8 +1081,8 @@ export async function* callGroqStream(
 
 /**
  * Dispatcher streaming générique selon le provider configuré pour l'opération.
- * Supporte Groq (gratuit) et Gemini (payant) - sélection automatique via operations-config.
- * Le paramètre `usageOut` capture les stats de tokens (Groq uniquement pour l'instant).
+ * Supporte Ollama, DeepSeek, Groq et Gemini — sélection automatique via operations-config.
+ * Le paramètre `usageOut` capture les stats de tokens.
  */
 export async function* callLLMStream(
   messages: Array<{ role: string; content: string }>,
@@ -966,12 +1096,19 @@ export async function* callLLMStream(
 ): AsyncGenerator<string> {
   const provider = options.operationName
     ? getOperationProvider(options.operationName)
-    : 'groq'
+    : 'ollama'
 
-  if (provider === 'groq') {
+  if (provider === 'ollama') {
+    const opConfig = options.operationName ? getOperationConfig(options.operationName) : null
+    const timeout = opConfig?.timeouts?.chat ?? 60000
+    yield* callOllamaStream(messages, { ...options, timeout }, usageOut)
+  } else if (provider === 'deepseek') {
+    yield* callDeepSeekStream(messages, options, usageOut)
+  } else if (provider === 'groq') {
     const model = options.operationName ? getOperationModel(options.operationName) : undefined
     yield* callGroqStream(messages, { ...options, model }, usageOut)
   } else {
+    // Fallback Gemini pour tout autre provider (gemini, openai, anthropic)
     yield* callGeminiStream(messages, {
       temperature: options.temperature,
       maxTokens: options.maxTokens,
