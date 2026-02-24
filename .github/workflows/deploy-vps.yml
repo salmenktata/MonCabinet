@@ -479,11 +479,49 @@ jobs:
 
       - name: Commit version bump
         if: success()
+        continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Reset propre sur le HEAD remote le plus récent (évite conflits)
+          git fetch origin main
+          git reset --hard origin/main
+
+          # Re-bump depuis la base la plus récente
+          npm version patch --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
           git add package.json
-          git diff --staged --quiet || (git stash && git pull --rebase origin main && git stash pop && git add package.json && git commit -m "chore: bump version to v${{ steps.bump_version.outputs.version }} [skip ci]" && git push origin main)
+
+          # Si déjà à jour (ex: deux déploiements parallèles), sortir proprement
+          if git diff --staged --quiet; then
+            echo "✅ Version déjà à jour sur origin/main"
+            exit 0
+          fi
+
+          git commit -m "chore: bump version to v${NEW_VERSION} [skip ci]"
+
+          # Push avec retry (3 tentatives sur conflit de concurrence)
+          for i in 1 2 3; do
+            if git push origin main; then
+              echo "✅ Version bumped to v${NEW_VERSION}"
+              exit 0
+            fi
+            echo "⚠ Push rejeté (tentative $i/3), resync..."
+            git fetch origin main
+            git reset --hard origin/main
+            npm version patch --no-git-tag-version
+            NEW_VERSION=$(node -p "require('./package.json').version")
+            git add package.json
+            if git diff --staged --quiet; then
+              echo "✅ Version déjà committée par un autre job"
+              exit 0
+            fi
+            git commit -m "chore: bump version to v${NEW_VERSION} [skip ci]"
+          done
+
+          echo "⚠ Version bump ignoré après 3 tentatives (non-bloquant)"
+          exit 0
 
       - name: Rollback on failure
         if: failure()
@@ -714,11 +752,49 @@ jobs:
 
       - name: Commit version bump
         if: success()
+        continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Reset propre sur le HEAD remote le plus récent (évite conflits)
+          git fetch origin main
+          git reset --hard origin/main
+
+          # Re-bump depuis la base la plus récente
+          npm version patch --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
           git add package.json
-          git diff --staged --quiet || (git stash && git pull --rebase origin main && git stash pop && git add package.json && git commit -m "chore: bump version to v${{ steps.bump_version.outputs.version }} [skip ci]" && git push origin main)
+
+          # Si déjà à jour (ex: deux déploiements parallèles), sortir proprement
+          if git diff --staged --quiet; then
+            echo "✅ Version déjà à jour sur origin/main"
+            exit 0
+          fi
+
+          git commit -m "chore: bump version to v${NEW_VERSION} [skip ci]"
+
+          # Push avec retry (3 tentatives sur conflit de concurrence)
+          for i in 1 2 3; do
+            if git push origin main; then
+              echo "✅ Version bumped to v${NEW_VERSION}"
+              exit 0
+            fi
+            echo "⚠ Push rejeté (tentative $i/3), resync..."
+            git fetch origin main
+            git reset --hard origin/main
+            npm version patch --no-git-tag-version
+            NEW_VERSION=$(node -p "require('./package.json').version")
+            git add package.json
+            if git diff --staged --quiet; then
+              echo "✅ Version déjà committée par un autre job"
+              exit 0
+            fi
+            git commit -m "chore: bump version to v${NEW_VERSION} [skip ci]"
+          done
+
+          echo "⚠ Version bump ignoré après 3 tentatives (non-bloquant)"
+          exit 0
 
   # ===========================================================================
   # Job 3: Post-Deploy Validation - Phase 5
