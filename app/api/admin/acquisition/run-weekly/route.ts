@@ -36,13 +36,14 @@ export const POST = withAdminApiAuth(async (_request: NextRequest, _ctx, _sessio
     // 2. Lancer l'acquisition pour chaque source
     for (const source of sources.rows) {
       try {
-        // Appeler l'API de crawl existante
+        // Appeler l'API de crawl existante (avec CRON_SECRET pour l'auth interne)
         const crawlResponse = await fetch(
           `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/web-sources/${source.id}/crawl`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.CRON_SECRET || ''}`,
             },
             body: JSON.stringify({
               forceRecrawl: false, // Crawl incrémental
