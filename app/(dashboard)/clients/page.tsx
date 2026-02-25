@@ -1,21 +1,55 @@
 'use client'
 
+import { useState, useDeferredValue } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { Search, Users, User, Building2 } from 'lucide-react'
 import { useClientList } from '@/lib/hooks/useClients'
 import ClientCard from '@/components/clients/ClientCard'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+
+type TypeFilter = 'all' | 'physical' | 'legal'
 
 export default function ClientsPage() {
   const t = useTranslations('clients')
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const deferredSearch = useDeferredValue(search)
 
   const { data, isLoading, error } = useClientList({
     sortBy: 'createdAt',
     sortOrder: 'desc',
+    search: deferredSearch || undefined,
   })
 
-  const clients = data?.clients || []
+  const allClients = data?.clients || []
 
-  // Gestion erreur
+  const isPhysical = (c: any) =>
+    c.typeClient === 'particulier' ||
+    c.typeClient === 'PERSONNE_PHYSIQUE' ||
+    c.type_client === 'personne_physique'
+
+  const isLegal = (c: any) =>
+    c.typeClient === 'entreprise' ||
+    c.typeClient === 'PERSONNE_MORALE' ||
+    c.type_client === 'personne_morale'
+
+  const clients = allClients.filter((c) => {
+    if (typeFilter === 'physical') return isPhysical(c)
+    if (typeFilter === 'legal') return isLegal(c)
+    return true
+  })
+
+  const physicalCount = allClients.filter(isPhysical).length
+  const legalCount = allClients.filter(isLegal).length
+
+  const filterButtons: { key: TypeFilter; label: string; icon: React.ReactNode; count: number }[] = [
+    { key: 'all', label: t('filterAll'), icon: <Users className="h-3.5 w-3.5" />, count: allClients.length },
+    { key: 'physical', label: t('filterPhysical'), icon: <User className="h-3.5 w-3.5" />, count: physicalCount },
+    { key: 'legal', label: t('filterLegal'), icon: <Building2 className="h-3.5 w-3.5" />, count: legalCount },
+  ]
+
   if (error) {
     return (
       <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
@@ -28,105 +62,142 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
-          <p className="mt-2 text-muted-foreground">
-            {t('subtitle')}
-          </p>
+          <p className="mt-1 text-muted-foreground">{t('subtitle')}</p>
         </div>
 
         <Link
           href="/clients/new"
-          className="rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           + {t('newClient')}
         </Link>
       </div>
 
       {/* Statistiques */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
-          <div className="text-sm font-medium text-muted-foreground">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Users className="h-4 w-4 text-blue-500" />
             {t('totalClients')}
           </div>
           <div className="mt-2 text-3xl font-bold text-blue-600">
-            {isLoading ? '...' : clients.length}
+            {isLoading ? <Skeleton className="h-8 w-12" /> : allClients.length}
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
-          <div className="text-sm font-medium text-muted-foreground">
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <User className="h-4 w-4 text-blue-500" />
             {t('naturalPersons')}
           </div>
           <div className="mt-2 text-3xl font-bold text-blue-600">
-            {isLoading
-              ? '...'
-              : clients.filter((c) =>
-                  c.typeClient === 'particulier' ||
-                  c.typeClient === 'PERSONNE_PHYSIQUE'
-                ).length
-            }
+            {isLoading ? <Skeleton className="h-8 w-12" /> : physicalCount}
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
-          <div className="text-sm font-medium text-muted-foreground">
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Building2 className="h-4 w-4 text-purple-500" />
             {t('legalPersons')}
           </div>
-          <div className="mt-2 text-3xl font-bold text-blue-600">
-            {isLoading
-              ? '...'
-              : clients.filter((c) =>
-                  c.typeClient === 'entreprise' ||
-                  c.typeClient === 'PERSONNE_MORALE'
-                ).length
-            }
+          <div className="mt-2 text-3xl font-bold text-purple-600">
+            {isLoading ? <Skeleton className="h-8 w-12" /> : legalCount}
           </div>
+        </div>
+      </div>
+
+      {/* Recherche + Filtres */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder={t('searchPlaceholder')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {filterButtons.map((btn) => (
+            <button
+              key={btn.key}
+              onClick={() => setTypeFilter(btn.key)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                typeFilter === btn.key
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {btn.icon}
+              {btn.label}
+              <span
+                className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-xs font-semibold ${
+                  typeFilter === btn.key
+                    ? 'bg-white/20 text-white'
+                    : 'bg-background text-foreground'
+                }`}
+              >
+                {isLoading ? '–' : btn.count}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Liste des clients */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            <span>Chargement des clients...</span>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-xl border bg-card p-5 shadow-sm space-y-3">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                <div className="space-y-1 flex-1">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-16 rounded-full" />
+                </div>
+              </div>
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-3/4" />
+              <Skeleton className="h-3.5 w-1/2" />
+              <div className="flex gap-2 pt-1">
+                <Skeleton className="h-8 flex-1 rounded-md" />
+                <Skeleton className="h-8 w-20 rounded-md" />
+              </div>
+            </div>
+          ))}
         </div>
-      ) : clients && clients.length > 0 ? (
+      ) : clients.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {clients.map((client) => (
             <ClientCard key={client.id} client={client} />
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border bg-card p-12 text-center">
-          <svg
-            className="mx-auto h-12 w-12 text-muted-foreground"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-            />
-          </svg>
-          <p className="mt-2 text-sm font-medium text-foreground">{t('noClients')}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('createFirstClient')}
-          </p>
-          <div className="mt-6">
-            <Link
-              href="/clients/new"
-              className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              + {t('newClient')}
-            </Link>
+        <div className="rounded-xl border border-dashed bg-card p-12 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+            <Users className="h-7 w-7 text-muted-foreground" />
           </div>
+          <p className="mt-4 text-sm font-semibold text-foreground">
+            {search ? `Aucun résultat pour "${search}"` : t('noClients')}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {!search && t('createFirstClient')}
+          </p>
+          {!search && (
+            <div className="mt-6">
+              <Link
+                href="/clients/new"
+                className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                + {t('newClient')}
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>
