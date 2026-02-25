@@ -18,6 +18,7 @@ import crypto from 'crypto'
 import { registerLimiter, getClientIP, getRateLimitHeaders } from '@/lib/rate-limiter'
 import { createLogger } from '@/lib/logger'
 import { sendVerificationEmail } from '@/lib/email/templates/verification-email'
+import { seedUserData } from '@/lib/db/seed-user-data'
 
 const log = createLogger('Auth:Register')
 
@@ -130,6 +131,11 @@ export async function POST(request: NextRequest) {
     )
 
     log.info('Nouvel utilisateur créé', { email: user.email, id: user.id })
+
+    // 6b. Insérer données démo pour onboarding (non-bloquant)
+    seedUserData(user.id).catch((err) =>
+      log.warn('Seed données démo échoué (non-bloquant)', { userId: user.id, err })
+    )
 
     // 7. Envoyer email de vérification
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-email?token=${emailVerificationToken}`
