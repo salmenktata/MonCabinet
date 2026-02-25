@@ -7,13 +7,14 @@
     "expectedAnswer": {
       "keyPoints": [
         "Le délai de prescription de droit commun est de 15 ans",
-        "Prévu par le Code des Obligations et des Contrats",
-        "Commence à courir du jour où le titulaire du droit a pu l'exercer"
+        "Prévu par le Code des Obligations et des Contrats (COC)",
+        "Article 402 COC (الفصل 402 م.ا.ع)"
       ],
       "mandatoryCitations": [
         "Article 402 COC",
         "Code des Obligations et des Contrats"
-      ]
+      ],
+      "legalBasis": "Article 402 COC"
     },
     "evaluationCriteria": {
       "completeness": 100,
@@ -29,11 +30,7 @@
     },
     "intentType": "factual",
     "goldChunkIds": [
-      "78d20225-5839-4624-859b-9ddd3e7dc3cd",
-      "a2a22028-0eaa-4c90-98dc-804147e7d5c2",
-      "8f35dbee-2153-4b10-905f-b878263402a4",
-      "4bf172b1-e43b-47c3-80b4-7705481bd219",
-      "12c801d7-5411-4c1a-8250-3c09d9470a71"
+      "78d20225-5839-4624-859b-9ddd3e7dc3cd"
     ],
     "goldDocumentIds": [
       "790f4102-5b61-445c-9a62-6df71fbd62c1",
@@ -95,14 +92,17 @@
     "question": "Quelle est la durée de prescription de l'action publique en matière de délit en Tunisie ?",
     "expectedAnswer": {
       "keyPoints": [
-        "La prescription est de 3 ans pour les délits",
-        "Commence à courir du jour de la commission de l'infraction",
-        "Peut être suspendue ou interrompue"
+        "La prescription de l'action publique en matière de délit (جنحة) est de 3 ans (ثلاثة أعوام)",
+        "En matière de crime (جناية) : 10 ans",
+        "En matière de contravention (مخالفة) : 1 an",
+        "Prévu par l'article 5 du Code de Procédure Pénale tunisien",
+        "La prescription peut être interrompue par des actes d'instruction (article 6 CPP)"
       ],
       "mandatoryCitations": [
         "Article 5 Code de Procédure Pénale",
         "CPP"
-      ]
+      ],
+      "legalBasis": "Article 5 et 6 du Code de Procédure Pénale (مجلة الإجراءات الجزائية)"
     },
     "evaluationCriteria": {
       "completeness": 100,
@@ -118,11 +118,8 @@
     },
     "intentType": "factual",
     "goldChunkIds": [
-      "edc572e5-2ddc-4b50-abe4-1c55038982d3",
-      "d80f3acf-3e14-4e7d-93a1-2de8e34dee6a",
-      "5fb42c53-f494-4c01-83a2-408b07be94ee",
-      "913adc50-40b5-4761-b0ea-ad3a2015fbda",
-      "8f35dbee-2153-4b10-905f-b878263402a4"
+      "a2eeba05-03f2-471c-9bb1-3b42c2327b92",
+      "385b11ff-dd34-4abe-b9f6-d7cd238d189d"
     ],
     "goldDocumentIds": [
       "b34479c3-b164-4c6e-8f83-5d98423a57f5",
@@ -139,11 +136,10 @@
     "question": "Quelle est la procédure de divorce pour cause de préjudice en Tunisie ?",
     "expectedAnswer": {
       "keyPoints": [
-        "Requête devant le juge aux affaires familiales",
-        "Tentative de réconciliation obligatoire",
-        "Preuve du préjudice par tout moyen",
-        "Juge peut prononcer divorce si préjudice établi",
-        "Délai entre requête et jugement minimum 30 jours"
+        "Le divorce peut être prononcé à la demande d'un époux en cas de préjudice subi (الفصل 31 م.أ.ش)",
+        "Le juge des affaires de famille tente la conciliation avant toute décision (الفصل 32 م.أ.ش)",
+        "L'époux lésé peut obtenir réparation du préjudice",
+        "La procédure passe par le tribunal de la famille"
       ],
       "mandatoryCitations": [
         "Article 31 Code du Statut Personnel",
@@ -151,7 +147,8 @@
       ],
       "forbiddenCitations": [
         "Article 29 CSP (divorce par consentement mutuel, pas préjudice)"
-      ]
+      ],
+      "legalBasis": "الفصل 31 و 32 من مجلة الأحوال الشخصية"
     },
     "evaluationCriteria": {
       "completeness": 90,
@@ -167,11 +164,8 @@
     },
     "intentType": "procedural",
     "goldChunkIds": [
-      "8f35dbee-2153-4b10-905f-b878263402a4",
-      "c9dfcb5e-dab0-4aec-87ae-2cb1bd833a4c",
-      "36604224-67e3-44d9-9968-6bc768963cd7",
-      "5327058c-5116-48df-b257-172a0e078154",
-      "7f484069-3239-4e60-be37-b5d8ffe09c89"
+      "b77cb158-c6ea-409b-adec-9aa497ec0751",
+      "00b70828-6557-440e-858e-a361d26f1cf9"
     ],
     "goldDocumentIds": [
       "de6e88da-a701-4006-98df-21165904347c",
@@ -188,11 +182,11 @@
     "question": "Comment calculer l'indemnité de licenciement abusif en Tunisie ?",
     "expectedAnswer": {
       "keyPoints": [
-        "Indemnité = salaire mensuel × ancienneté (mois)",
-        "Minimum 2 mois de salaire",
-        "Maximum 3 ans de salaire",
-        "Salaire = dernier salaire brut mensuel",
-        "Ancienneté = durée totale du contrat"
+        "L'indemnité de licenciement abusif est calculée selon l'article 23-2 du Code du Travail",
+        "Montant : entre 1 et 2 mois de salaire par année d'ancienneté",
+        "Plafond absolu : 3 ans de salaire",
+        "Le juge apprécie selon : ancienneté, situation économique entreprise, âge du salarié, comportement",
+        "Si violation de la procédure en plus du fond : indemnité complémentaire 1 à 4 mois"
       ],
       "mandatoryCitations": [
         "Article 23 Code du Travail",
@@ -203,7 +197,8 @@
           "Barème jurisprudentiel",
           "Jurisprudence constante"
         ]
-      ]
+      ],
+      "legalBasis": "Articles 23, 23-2 et 14-3 مجلة الشغل (Code du Travail)"
     },
     "evaluationCriteria": {
       "completeness": 85,
@@ -219,11 +214,9 @@
     },
     "intentType": "procedural",
     "goldChunkIds": [
-      "411bf818-d0cf-4dd8-9fd8-ff53c6ae8642",
-      "cc871e86-0cba-464d-ab50-ad26f64e53d0",
-      "d98a38d6-f94f-42bc-8a8c-84f39e759dc0",
-      "df75d7b9-017b-4752-aafc-80802fff3335",
-      "951aa3e2-7ce7-4aec-93e0-8903a3516b24"
+      "546bd247-1328-4476-9659-861f6b7f04b4",
+      "136f668b-aa15-4289-9bd1-7fa19b769ce3",
+      "c4730c3d-d2e9-4ccf-b468-767a7c3cd7a4"
     ],
     "goldDocumentIds": [
       "2fd48ceb-77e0-47e9-aa70-95bcffc00859",
@@ -234,48 +227,46 @@
     ]
   },
   {
-    "id": "immobilier_hard_01",
-    "domain": "droit_immobilier",
-    "difficulty": "hard",
-    "question": "Quelles sont les conditions d'expulsion d'un locataire en fin de bail en Tunisie et quels sont les recours du locataire ?",
+    "id": "ar_penal_01",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي عقوبة السرقة في القانون الجزائي التونسي؟",
     "expectedAnswer": {
       "keyPoints": [
-        "Notification congé 3 mois avant fin bail (bail usage habitation)",
-        "Commandement de quitter les lieux si refus",
-        "Requête en référé ou au fond devant juge",
-        "Locataire peut contester validité congé",
-        "Délais légaux doivent être respectés",
-        "Expulsion forcée via huissier après décision judiciaire"
+        "السجن",
+        "خمس سنوات"
       ],
       "mandatoryCitations": [
-        "Loi n° 76-35 du 18 février 1976 (baux)",
-        "Article 562 COC (louage)"
+        "الفصل 264 من المجلة الجزائية"
       ]
     },
+    "expectedArticles": [
+      "الفصل 264"
+    ],
     "evaluationCriteria": {
       "completeness": 80,
-      "accuracy": 90,
-      "citations": 85,
-      "reasoning": 90
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
     },
     "expertValidation": {
-      "validatorId": "expert_005",
-      "credentials": "Avocat immobilier, 20 ans",
-      "validatedAt": "2026-02-02T00:00:00.000Z",
-      "consensus": 2
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
     },
-    "intentType": "factual",
     "goldChunkIds": [
-      "5a8f4421-a48f-4d15-afc3-6f3f17a5d657",
-      "387b490f-57e5-4ddd-9f35-722d72955e77",
-      "05591ec8-a116-4f26-8f0c-d8add2fd9cd3",
-      "b93fb859-a4eb-4084-8ac3-f8df5a6c5819",
-      "ea1e09f3-2867-44b0-be0c-253391a90dac"
+      "944a7133-746d-4438-8fe5-22efa47d658b",
+      "09f3500d-154c-4015-9bfb-4fe1b29f6a7b",
+      "b8c258a1-8fe6-4fb2-af97-db2cb38588ef",
+      "c9734f6b-acaa-447d-aa9e-882495ffdc15",
+      "a06b683f-b4f6-4d0b-956b-4ca3b58cbed0"
     ],
     "goldDocumentIds": [
-      "ef3b0574-33b2-4fee-a2ab-03f55ffae3cf",
-      "a43099df-a006-44a6-8161-b3a7d99dd5ba",
-      "cf4c1fa5-7c6f-4ac5-9612-6a05c3981af6"
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
     ]
   },
   {
@@ -425,12 +416,15 @@
     "question": "ماذا ينص الفصل 82 من مجلة الالتزامات والعقود؟",
     "expectedAnswer": {
       "keyPoints": [
-        "المسؤولية التقصيرية",
-        "التعويض"
+        "الفصل 82 من مجلة الالتزامات والعقود",
+        "من تسبب في ضرر غيره عمدا بلا وجه قانوني فهو مسؤول",
+        "المسؤولية التقصيرية العمدية"
       ],
       "mandatoryCitations": [
         "الفصل 82 من مجلة الالتزامات والعقود"
-      ]
+      ],
+      "legalBasis": "الفصل 82 مجلة الالتزامات والعقود",
+      "language": "ar"
     },
     "expectedArticles": [
       "الفصل 82"
@@ -448,11 +442,7 @@
       "consensus": 0
     },
     "goldChunkIds": [
-      "76f7e6d5-f472-4aea-be74-b6b85afce392",
-      "3a1bee2c-586d-4adf-8571-1fc96d1ee85a",
-      "fd67226d-6caa-44f4-909f-99c2a533ea4d",
-      "62ea6a71-7d82-4ad2-9285-28b9eb9e8b16",
-      "83fe4c3a-64b6-4db4-a17f-85cb3bef0655"
+      "e5e668a4-3832-48e8-828d-5014fbbd3438"
     ],
     "goldDocumentIds": [
       "764fb3c5-f671-4c52-8183-8897d5b23c25",
@@ -751,14 +741,16 @@
     "question": "Quelles sont les conditions de la responsabilité du fait des choses en droit tunisien ?",
     "expectedAnswer": {
       "keyPoints": [
-        "garde de la chose",
-        "fait de la chose",
-        "dommage",
-        "lien de causalité"
+        "La responsabilité du fait des choses est régie par les articles 83 et 96-98 du COC",
+        "L'article 96 COC : tout gardien d'une chose est responsable des dommages causés par elle",
+        "L'article 83 COC : responsabilité pour faute délictuelle",
+        "L'article 97 COC : responsabilité du propriétaire d'un immeuble",
+        "Conditions : dommage, fait de la chose, lien de causalité, garde de la chose"
       ],
       "mandatoryCitations": [
         "Article 96 COC"
-      ]
+      ],
+      "legalBasis": "Articles 83, 96, 97, 98 COC"
     },
     "expectedArticles": [
       "Article 96"
@@ -776,10 +768,10 @@
       "consensus": 0
     },
     "goldChunkIds": [
-      "8f35dbee-2153-4b10-905f-b878263402a4",
-      "3aaba560-4c2d-48f9-b08c-bde368b61ef9",
-      "2dc6f296-8e9b-48b2-a972-66b64a5e5cda",
-      "aa6f4114-ff7f-4557-b3da-f5ea13f5ee05"
+      "f4ab4881-8319-4c3b-8198-a33133a33b90",
+      "70cd6864-486a-4bf2-aba1-0999ebc009e3",
+      "5d8f757e-7fdd-4482-b917-ca55cad5bcf3",
+      "54f80c6f-52fd-4f57-a44c-f942af08443e"
     ],
     "goldDocumentIds": [
       "de6e88da-a701-4006-98df-21165904347c",
@@ -789,21 +781,23 @@
     ]
   },
   {
-    "id": "fr_civil_03",
-    "domain": "droit_civil",
-    "difficulty": "medium",
-    "intentType": "factual",
-    "question": "Quelles sont les règles de la mise en demeure en droit tunisien ?",
+    "id": "ar_penal_02",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "intentType": "citation_lookup",
+    "question": "ماذا ينص الفصل 217 من المجلة الجزائية؟",
     "expectedAnswer": {
       "keyPoints": [
-        "interpellation",
-        "forme écrite",
-        "délai raisonnable"
+        "التحيل",
+        "العقوبة"
       ],
       "mandatoryCitations": [
-        "COC"
+        "الفصل 217 من المجلة الجزائية"
       ]
     },
+    "expectedArticles": [
+      "الفصل 217"
+    ],
     "evaluationCriteria": {
       "completeness": 80,
       "accuracy": 85,
@@ -817,18 +811,14 @@
       "consensus": 0
     },
     "goldChunkIds": [
-      "8f35dbee-2153-4b10-905f-b878263402a4",
-      "ee4bbe55-dd3c-47fa-8023-babbf02394e3",
-      "6900599f-0951-4c0f-8928-532d6320dc20",
-      "3e5a4877-7331-4785-8c92-06c857311d3b",
-      "1fd131da-0aaa-48d4-a8fb-0287ed18bcc9"
+      "6655a305-bd18-4f6e-af50-d9969b33e2fb",
+      "9453d0ad-f878-4312-875b-9fd388cb7638",
+      "799bf4ba-9831-40ac-a92f-82fe639a1123",
+      "77b650bd-e934-4346-bcc1-1d5591353a81",
+      "3535bcdb-150f-48dc-9a29-0033e549d381"
     ],
     "goldDocumentIds": [
-      "de6e88da-a701-4006-98df-21165904347c",
-      "5e836658-4c24-44a3-8af3-72f6bf6036d2",
-      "d6650d89-d2df-4225-b19a-e9b702de1baf",
-      "3ca7eaa9-394b-4274-a19d-ecdfc4fe39a1",
-      "b60f512d-1c8f-4e16-b231-be852c83c3ee"
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
     ]
   },
   {
@@ -876,6 +866,94 @@
     ]
   },
   {
+    "id": "immobilier_hard_01",
+    "domain": "droit_immobilier",
+    "difficulty": "hard",
+    "question": "Quelles sont les conditions d'expulsion d'un locataire en fin de bail en Tunisie et quels sont les recours du locataire ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "Notification congé 3 mois avant fin bail (bail usage habitation)",
+        "Commandement de quitter les lieux si refus",
+        "Requête en référé ou au fond devant juge",
+        "Locataire peut contester validité congé",
+        "Délais légaux doivent être respectés",
+        "Expulsion forcée via huissier après décision judiciaire"
+      ],
+      "mandatoryCitations": [
+        "Loi n° 76-35 du 18 février 1976 (baux)",
+        "Article 562 COC (louage)"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 90,
+      "citations": 85,
+      "reasoning": 90
+    },
+    "expertValidation": {
+      "validatorId": "expert_005",
+      "credentials": "Avocat immobilier, 20 ans",
+      "validatedAt": "2026-02-02T00:00:00.000Z",
+      "consensus": 2
+    },
+    "intentType": "factual",
+    "goldChunkIds": [
+      "5a8f4421-a48f-4d15-afc3-6f3f17a5d657",
+      "387b490f-57e5-4ddd-9f35-722d72955e77",
+      "05591ec8-a116-4f26-8f0c-d8add2fd9cd3",
+      "b93fb859-a4eb-4084-8ac3-f8df5a6c5819",
+      "ea1e09f3-2867-44b0-be0c-253391a90dac"
+    ],
+    "goldDocumentIds": [
+      "ef3b0574-33b2-4fee-a2ab-03f55ffae3cf",
+      "a43099df-a006-44a6-8161-b3a7d99dd5ba",
+      "cf4c1fa5-7c6f-4ac5-9612-6a05c3981af6"
+    ]
+  },
+  {
+    "id": "fr_civil_03",
+    "domain": "droit_civil",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les règles de la mise en demeure en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "interpellation",
+        "forme écrite",
+        "délai raisonnable"
+      ],
+      "mandatoryCitations": [
+        "COC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "8f35dbee-2153-4b10-905f-b878263402a4",
+      "ee4bbe55-dd3c-47fa-8023-babbf02394e3",
+      "6900599f-0951-4c0f-8928-532d6320dc20",
+      "3e5a4877-7331-4785-8c92-06c857311d3b",
+      "1fd131da-0aaa-48d4-a8fb-0287ed18bcc9"
+    ],
+    "goldDocumentIds": [
+      "de6e88da-a701-4006-98df-21165904347c",
+      "5e836658-4c24-44a3-8af3-72f6bf6036d2",
+      "d6650d89-d2df-4225-b19a-e9b702de1baf",
+      "3ca7eaa9-394b-4274-a19d-ecdfc4fe39a1",
+      "b60f512d-1c8f-4e16-b231-be852c83c3ee"
+    ]
+  },
+  {
     "id": "fr_civil_05",
     "domain": "droit_civil",
     "difficulty": "expert",
@@ -917,90 +995,6 @@
       "8259e7a2-c035-4f98-a447-bada8a23ebbc",
       "1d7e59b7-7b9a-4d25-8fee-810750b5d5b5",
       "5e312e19-5e3e-4076-8933-c30af9038ee5"
-    ]
-  },
-  {
-    "id": "ar_penal_01",
-    "domain": "droit_penal",
-    "difficulty": "easy",
-    "intentType": "factual",
-    "question": "ما هي عقوبة السرقة في القانون الجزائي التونسي؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "السجن",
-        "خمس سنوات"
-      ],
-      "mandatoryCitations": [
-        "الفصل 264 من المجلة الجزائية"
-      ]
-    },
-    "expectedArticles": [
-      "الفصل 264"
-    ],
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:32:54.162Z",
-      "consensus": 0
-    },
-    "goldChunkIds": [
-      "944a7133-746d-4438-8fe5-22efa47d658b",
-      "09f3500d-154c-4015-9bfb-4fe1b29f6a7b",
-      "b8c258a1-8fe6-4fb2-af97-db2cb38588ef",
-      "c9734f6b-acaa-447d-aa9e-882495ffdc15",
-      "a06b683f-b4f6-4d0b-956b-4ca3b58cbed0"
-    ],
-    "goldDocumentIds": [
-      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
-      "47dc7fd1-2c26-4847-901c-01abe05540ed",
-      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
-    ]
-  },
-  {
-    "id": "ar_penal_02",
-    "domain": "droit_penal",
-    "difficulty": "easy",
-    "intentType": "citation_lookup",
-    "question": "ماذا ينص الفصل 217 من المجلة الجزائية؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "التحيل",
-        "العقوبة"
-      ],
-      "mandatoryCitations": [
-        "الفصل 217 من المجلة الجزائية"
-      ]
-    },
-    "expectedArticles": [
-      "الفصل 217"
-    ],
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:32:54.162Z",
-      "consensus": 0
-    },
-    "goldChunkIds": [
-      "6655a305-bd18-4f6e-af50-d9969b33e2fb",
-      "9453d0ad-f878-4312-875b-9fd388cb7638",
-      "799bf4ba-9831-40ac-a92f-82fe639a1123",
-      "77b650bd-e934-4346-bcc1-1d5591353a81",
-      "3535bcdb-150f-48dc-9a29-0033e549d381"
-    ],
-    "goldDocumentIds": [
-      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
     ]
   },
   {
