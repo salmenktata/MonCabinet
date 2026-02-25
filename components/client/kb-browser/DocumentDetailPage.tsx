@@ -1,52 +1,220 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  ArrowLeft, ExternalLink, Share2, Printer, Scale,
-  BookOpen, Calendar, Building2, Users, FileText, Link2, Layers, AlignLeft, Copy, Download,
+  ArrowLeft, Share2, Printer, Scale, FileText, Link2, Copy, Download,
+  AlignLeft, Loader2, ExternalLink, PanelLeftClose, PanelLeftOpen,
+  BookOpen, Building2, Calendar, Users, Layers, ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
 import { NORM_LEVELS_ORDERED, getNormLevelLabel, getNormLevelColor, getNormLevelOrder } from '@/lib/categories/norm-levels'
 import type { SearchResultItem } from './DocumentExplorer'
 import { formatDateLong, getCategoryLabel, formatCitation, getCategoryBorderColor } from './kb-browser-utils'
-import { FullTextTabContent } from './DocumentDetailModal'
+import { CodeTableOfContents, parseChunksToToc } from './CodeTableOfContents'
+import type { TocEntry } from './CodeTableOfContents'
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+interface FullTextChunk {
+  index: number
+  content: string
+  metadata: Record<string, unknown>
+}
 
 interface DocumentDetailPageProps {
   documentId: string
 }
 
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+const ARABIC_REGEX = /[\u0600-\u06FF]/
+
+function isArabic(text: string): boolean {
+  const sample = text.slice(0, 200)
+  const arabicChars = (sample.match(/[\u0600-\u06FF]/g) || []).length
+  return arabicChars / sample.length > 0.3
+}
+
+const HEADING_PATTERNS_DISPLAY = [
+  { regex: /^(LIVRE\s+\w+|كتاب\s+\w+)/i, tag: 'h2' as const },
+  { regex: /^(TITRE\s+\w+|عنوان\s+\w+|الباب\s+\w+)/i, tag: 'h3' as const },
+  { regex: /^(CHAPITRE\s+\w+|CHAPTER\s+\w+|الفصل\s+(?!ال?\d)|الفرع\s+\w+)/i, tag: 'h4' as const },
+  { regex: /^(SECTION\s+\w+|القسم\s+\w+)/i, tag: 'h5' as const },
+  { regex: /^(Article\s+\d+|Art\.\s*\d+|الفصل\s+\d+|فصل\s+\d+)/i, tag: 'article' as const },
+]
+
+function getHeadingTag(content: string): typeof HEADING_PATTERNS_DISPLAY[0] | null {
+  const firstLine = content.trim().split('\n')[0].trim()
+  for (const p of HEADING_PATTERNS_DISPLAY) {
+    if (p.regex.test(firstLine)) return p
+  }
+  return null
+}
+
+// =============================================================================
+// CHUNK RENDERER
+// =============================================================================
+
+function ChunkBlock({
+  chunk,
+  isActive,
+  chunkRef,
+}: {
+  chunk: FullTextChunk
+  isActive: boolean
+  chunkRef: (el: HTMLDivElement | null) => void
+}) {
+  const lines = chunk.content.trim().split('\n')
+  const firstLine = lines[0].trim()
+  const restLines = lines.slice(1).join('\n').trim()
+  const heading = getHeadingTag(chunk.content)
+  const dir = ARABIC_REGEX.test(firstLine) ? 'rtl' : 'ltr'
+
+  return (
+    <div
+      ref={chunkRef}
+      id={`chunk-${chunk.index}`}
+      className={`transition-colors scroll-mt-6 ${isActive ? 'bg-primary/5 rounded-lg' : ''}`}
+    >
+      {heading ? (
+        <div className={`py-3 ${heading.tag === 'h2' ? 'pt-6' : ''}`} dir={dir}>
+          {heading.tag === 'h2' && (
+            <h2 className="text-xl font-bold text-foreground border-b pb-2 mb-1">{firstLine}</h2>
+          )}
+          {heading.tag === 'h3' && (
+            <h3 className="text-lg font-semibold text-foreground mt-4">{firstLine}</h3>
+          )}
+          {heading.tag === 'h4' && (
+            <h4 className="text-base font-semibold text-foreground/80 mt-3">{firstLine}</h4>
+          )}
+          {heading.tag === 'h5' && (
+            <h5 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mt-2">{firstLine}</h5>
+          )}
+          {heading.tag === 'article' && (
+            <div className="flex items-baseline gap-3 mt-3">
+              <span className="shrink-0 inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                {firstLine}
+              </span>
+            </div>
+          )}
+          {restLines && (
+            <p className="text-sm leading-relaxed mt-1 text-foreground/90 whitespace-pre-wrap" dir={dir}>
+              {restLines}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="py-2 text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap" dir={dir}>
+          {chunk.content}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
+// COMPOSANT PRINCIPAL
+// =============================================================================
+
 export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
   const router = useRouter()
+
   const [document, setDocument] = useState<SearchResultItem | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState('content')
 
+  const [chunks, setChunks] = useState<FullTextChunk[] | null>(null)
+  const [chunksLoading, setChunksLoading] = useState(false)
+  const [chunksError, setChunksError] = useState<string | null>(null)
+  const [toc, setToc] = useState<TocEntry[]>([])
+  const [activeChunkIndex, setActiveChunkIndex] = useState<number | undefined>()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  const chunkRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const observerRef = useRef<IntersectionObserver | null>(null)
+
+  // Fetch document + relations en parallèle
   useEffect(() => {
     setIsLoading(true)
-    // Fetch document + relations en parallèle
     Promise.all([
       fetch(`/api/client/kb/${documentId}`).then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
       }),
-      fetch(`/api/client/kb/${documentId}/relations`).then((res) =>
-        res.ok ? res.json() : { cites: [], citedBy: [], supersedes: [], supersededBy: [], relatedCases: [] }
-      ).catch(() => ({ cites: [], citedBy: [], supersedes: [], supersededBy: [], relatedCases: [] })),
+      fetch(`/api/client/kb/${documentId}/relations`)
+        .then((res) => res.ok ? res.json() : null)
+        .catch(() => null),
     ])
       .then(([docData, relationsData]) => {
-        setDocument({ ...docData, relations: relationsData })
+        setDocument({
+          ...docData,
+          relations: relationsData || undefined,
+        })
       })
       .catch((err) => setError(err.message || 'Erreur de chargement'))
       .finally(() => setIsLoading(false))
   }, [documentId])
+
+  // Fetch full text chunks
+  useEffect(() => {
+    setChunksLoading(true)
+    fetch(`/api/client/kb/${documentId}/full-text`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then((data) => {
+        const c: FullTextChunk[] = data.chunks || []
+        setChunks(c)
+        setToc(parseChunksToToc(c))
+      })
+      .catch((err) => setChunksError(err.message))
+      .finally(() => setChunksLoading(false))
+  }, [documentId])
+
+  // IntersectionObserver pour suivre la section active
+  useEffect(() => {
+    if (!chunks || chunks.length === 0) return
+
+    observerRef.current?.disconnect()
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const idx = parseInt(entry.target.id.replace('chunk-', ''))
+            if (!isNaN(idx)) setActiveChunkIndex(idx)
+          }
+        }
+      },
+      { rootMargin: '-20% 0px -70% 0px', threshold: 0 }
+    )
+
+    const currentRefs = chunkRefs.current
+    Object.values(currentRefs).forEach((el) => {
+      if (el) observerRef.current?.observe(el)
+    })
+
+    return () => observerRef.current?.disconnect()
+  }, [chunks])
+
+  const scrollToChunk = useCallback((chunkIndex: number) => {
+    const el = chunkRefs.current[chunkIndex]
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setActiveChunkIndex(chunkIndex)
+    }
+  }, [])
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href)
@@ -55,33 +223,23 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
 
   const handleCite = () => {
     if (!document) return
-    const citation = formatCitation(document)
-    navigator.clipboard.writeText(citation)
+    navigator.clipboard.writeText(formatCitation(document))
     toast.success('Citation copiée dans le presse-papiers')
   }
 
   const handleCopy = () => {
     if (!document) return
-    const text = document.chunkContent || document.title
+    const text = chunks ? chunks.map((c) => c.content).join('\n\n') : document.chunkContent || document.title
     navigator.clipboard.writeText(text)
     toast.success('Contenu copié dans le presse-papiers')
   }
 
   const handleExport = () => {
     if (!document) return
-    const text = [
-      document.title,
-      '',
-      `Catégorie: ${getCategoryLabel(document.category)}`,
-      document.metadata.tribunalLabelFr ? `Tribunal: ${document.metadata.tribunalLabelFr}` : null,
-      formatDateLong(document.metadata.decisionDate as string | null)
-        ? `Date: ${formatDateLong(document.metadata.decisionDate as string | null)}`
-        : null,
-      document.metadata.decisionNumber ? `N° ${document.metadata.decisionNumber}` : null,
-      '',
-      document.chunkContent || '',
-    ].filter(Boolean).join('\n')
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+    const content = chunks
+      ? [document.title, '', ...chunks.map((c) => c.content)].join('\n\n')
+      : document.chunkContent || document.title
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = globalThis.document.createElement('a')
     a.href = url
@@ -91,20 +249,29 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
     toast.success('Document exporté')
   }
 
+  // ─── LOADING ──────────────────────────────────────────────────────────────
+
   if (isLoading) {
     return (
-      <div className="container mx-auto max-w-4xl space-y-6 py-6">
+      <div className="container mx-auto max-w-5xl space-y-6 py-6">
         <div className="flex items-center gap-2">
           <Skeleton className="h-8 w-8 rounded" />
-          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-4 w-64" />
         </div>
         <Skeleton className="h-8 w-3/4" />
         <div className="flex gap-2">
           <Skeleton className="h-6 w-20 rounded-full" />
           <Skeleton className="h-6 w-24 rounded-full" />
         </div>
-        <Skeleton className="h-10 w-full rounded-lg" />
-        <Skeleton className="h-64 w-full rounded-lg" />
+        <div className="flex gap-6">
+          <Skeleton className="h-96 w-56 rounded-xl" />
+          <div className="flex-1 space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-full" />
+          </div>
+        </div>
       </div>
     )
   }
@@ -112,9 +279,7 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
   if (error || !document) {
     return (
       <div className="container mx-auto max-w-4xl py-16 text-center space-y-4">
-        <p className="text-destructive text-lg">
-          {error || 'Document introuvable'}
-        </p>
+        <p className="text-destructive text-lg">{error || 'Document introuvable'}</p>
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Retour
@@ -126,41 +291,65 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
   const { metadata, relations } = document
   const categoryColor = LEGAL_CATEGORY_COLORS[document.category as LegalCategory]
   const formattedDate = formatDateLong(metadata.decisionDate as string | null)
+  const isAbroge = metadata.statut_vigueur === 'abroge'
+  const contentIsArabic = document.chunkContent ? isArabic(document.chunkContent) : false
+
+  const relationsCount =
+    (relations?.cites?.length || 0) +
+    (relations?.citedBy?.length || 0) +
+    (relations?.supersedes?.length || 0) +
+    (relations?.relatedCases?.length || 0)
+
+  // ─── RENDER ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="container mx-auto max-w-4xl space-y-6 py-6">
-      {/* Header avec breadcrumb */}
+    <div className="container mx-auto max-w-6xl py-6 space-y-4 print:max-w-full">
+
+      {/* Header */}
       <div className="flex items-start justify-between gap-4 print:hidden">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1.5 h-8">
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground flex-wrap">
+          <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1.5 h-8 -ml-2">
             <ArrowLeft className="h-4 w-4" />
             Retour
           </Button>
-          <span>/</span>
-          <span>Base de Connaissances</span>
-          <span>/</span>
-          <span className="text-foreground line-clamp-1 max-w-48">{document.title}</span>
+          <ChevronRight className="h-3 w-3" />
+          <button
+            onClick={() => router.push('/client/knowledge-base')}
+            className="hover:text-foreground transition-colors"
+          >
+            Bibliothèque
+          </button>
+          <ChevronRight className="h-3 w-3" />
+          <span
+            className="text-foreground line-clamp-1 max-w-xs"
+            title={document.title}
+          >
+            {document.title}
+          </span>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5">
             <Share2 className="h-4 w-4" />
-            Partager
+            <span className="hidden sm:inline">Partager</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5">
             <Printer className="h-4 w-4" />
-            Imprimer
+            <span className="hidden sm:inline">Imprimer</span>
           </Button>
         </div>
       </div>
 
       {/* Titre + badges */}
-      <div className={`border-l-4 pl-4 space-y-3 ${getCategoryBorderColor(document.category)}`}>
-        <h1 className="text-2xl font-bold leading-tight">{document.title}</h1>
+      <div className={`border-l-4 pl-4 space-y-2 ${getCategoryBorderColor(document.category)}`}>
+        <h1
+          className={`text-2xl font-bold leading-tight ${contentIsArabic ? 'text-right' : ''}`}
+          dir={contentIsArabic ? 'rtl' : 'ltr'}
+        >
+          {document.title}
+        </h1>
         <div className="flex flex-wrap gap-2">
-          <Badge className={categoryColor || ''}>
-            {getCategoryLabel(document.category)}
-          </Badge>
+          <Badge className={categoryColor || ''}>{getCategoryLabel(document.category)}</Badge>
           {document.normLevel && (
             <Badge className={`border ${getNormLevelColor(document.normLevel)}`}>
               <Scale className="h-3 w-3 mr-1" />
@@ -168,16 +357,14 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
             </Badge>
           )}
           {metadata.decisionNumber && (
-            <Badge variant="outline">N° {metadata.decisionNumber}</Badge>
+            <Badge variant="outline">N° {metadata.decisionNumber as string}</Badge>
           )}
-          {metadata.statut_vigueur === 'abroge' && (
-            <Badge variant="destructive">Abrogé</Badge>
-          )}
+          {isAbroge && <Badge variant="destructive">Abrogé</Badge>}
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 print:hidden">
+      <div className="flex items-center gap-2 print:hidden flex-wrap">
         <Button variant="outline" size="sm" onClick={handleCite} className="gap-1.5">
           <Link2 className="h-4 w-4" />
           Citer
@@ -190,195 +377,224 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
           <Download className="h-4 w-4" />
           Exporter
         </Button>
+        {toc.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="gap-1.5 ml-auto"
+          >
+            {sidebarOpen ? (
+              <><PanelLeftClose className="h-4 w-4" /><span className="hidden sm:inline">Masquer TOC</span></>
+            ) : (
+              <><PanelLeftOpen className="h-4 w-4" /><span className="hidden sm:inline">Afficher TOC</span></>
+            )}
+          </Button>
+        )}
       </div>
 
-      {/* Onglets */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 print:hidden" aria-label="Sections du document">
-          <TabsTrigger value="content" aria-controls="tab-content">Contenu</TabsTrigger>
-          <TabsTrigger value="metadata" aria-controls="tab-metadata">Métadonnées</TabsTrigger>
-          <TabsTrigger value="relations" aria-controls="tab-relations">
-            Relations
-            {relations && (
-              <Badge variant="secondary" className="ml-2">
-                {(relations.cites?.length || 0) + (relations.citedBy?.length || 0)}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="fulltext" aria-controls="tab-fulltext">
-            <AlignLeft className="h-3.5 w-3.5 mr-1" />
-            Texte complet
-          </TabsTrigger>
-        </TabsList>
+      {/* ─── LAYOUT 2 COLONNES ────────────────────────────────────────────── */}
+      <div className="flex gap-6 min-h-0">
 
-        {/* Contenu */}
-        <TabsContent id="tab-content" value="content" className="space-y-4">
-          {document.chunkContent && (
-            <div className="bg-muted/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="font-semibold text-sm">Extrait</span>
-              </div>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{document.chunkContent}</p>
+        {/* Sidebar TOC (sticky) */}
+        {toc.length > 0 && sidebarOpen && (
+          <aside className="hidden md:flex w-64 shrink-0 print:hidden">
+            <div className="sticky top-4 self-start w-full border rounded-xl overflow-hidden bg-card max-h-[calc(100vh-120px)] flex flex-col">
+              <CodeTableOfContents
+                entries={toc}
+                activeChunkIndex={activeChunkIndex}
+                onNavigate={scrollToChunk}
+              />
+            </div>
+          </aside>
+        )}
+
+        {/* Contenu principal */}
+        <div className="flex-1 min-w-0 space-y-6">
+
+          {/* Métadonnées condensées */}
+          {(formattedDate || metadata.tribunalLabelFr || metadata.chambreLabelFr || relationsCount > 0) && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-muted/30 rounded-xl border text-sm">
+              {formattedDate && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Date</div>
+                    <div className="font-medium">{formattedDate}</div>
+                  </div>
+                </div>
+              )}
+              {metadata.tribunalLabelFr && (
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Tribunal</div>
+                    <div className="font-medium line-clamp-1">{metadata.tribunalLabelFr as string}</div>
+                  </div>
+                </div>
+              )}
+              {metadata.chambreLabelFr && (
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Chambre</div>
+                    <div className="font-medium line-clamp-1">{metadata.chambreLabelFr as string}</div>
+                  </div>
+                </div>
+              )}
+              {relationsCount > 0 && (
+                <div className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Relations</div>
+                    <div className="font-medium">{relationsCount} liées</div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {metadata.legalBasis && (metadata.legalBasis as string[]).length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-2">
+          {/* Hiérarchie normative */}
+          {document.normLevel && (
+            <div className="p-4 bg-muted/20 rounded-xl border space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Scale className="h-4 w-4 text-muted-foreground" />
+                Rang normatif — {getNormLevelLabel(document.normLevel, 'fr')}
+                <span className="text-muted-foreground font-normal" dir="rtl">
+                  {getNormLevelLabel(document.normLevel, 'ar')}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                {NORM_LEVELS_ORDERED.map((level) => {
+                  const isActive = level.value === document.normLevel
+                  const isBefore = level.order < getNormLevelOrder(document.normLevel!)
+                  return (
+                    <div
+                      key={level.value}
+                      title={level.labelFr}
+                      className={`h-2 rounded-sm transition-all ${
+                        isActive
+                          ? `flex-[2] ${level.badgeColor} border opacity-100`
+                          : isBefore
+                            ? 'flex-1 bg-muted opacity-50'
+                            : 'flex-1 bg-muted/20 opacity-20'
+                      }`}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Texte complet */}
+          <div className="border rounded-xl p-6 bg-card">
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b">
+              <AlignLeft className="h-4 w-4 text-muted-foreground" />
+              <span className="font-semibold text-sm">Texte complet</span>
+              {chunks && (
+                <Badge variant="secondary" className="text-xs ml-auto">
+                  {chunks.length} fragments
+                </Badge>
+              )}
+            </div>
+
+            {chunksLoading && (
+              <div className="flex items-center gap-2 py-8 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm">Chargement du texte…</span>
+              </div>
+            )}
+
+            {chunksError && !chunks && (
+              <div className="py-4">
+                {/* Fallback : afficher le chunkContent de base */}
+                {document.chunkContent ? (
+                  <p
+                    className="text-sm leading-relaxed whitespace-pre-wrap"
+                    dir={contentIsArabic ? 'rtl' : 'ltr'}
+                  >
+                    {document.chunkContent}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Texte complet non disponible.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {!chunksLoading && chunks && chunks.length > 0 && (
+              <div className="space-y-1 divide-y divide-border/40">
+                {chunks.map((chunk) => (
+                  <ChunkBlock
+                    key={chunk.index}
+                    chunk={chunk}
+                    isActive={chunk.index === activeChunkIndex}
+                    chunkRef={(el) => { chunkRefs.current[chunk.index] = el }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {!chunksLoading && !chunksError && chunks && chunks.length === 0 && document.chunkContent && (
+              <p
+                className="text-sm leading-relaxed whitespace-pre-wrap"
+                dir={contentIsArabic ? 'rtl' : 'ltr'}
+              >
+                {document.chunkContent}
+              </p>
+            )}
+          </div>
+
+          {/* Relations */}
+          {relations && relationsCount > 0 && (
+            <div className="border rounded-xl p-5 bg-card">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b">
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
+                <span className="font-semibold text-sm">Relations juridiques</span>
+                <Badge variant="secondary" className="ml-auto text-xs">{relationsCount}</Badge>
+              </div>
+
+              <div className="space-y-4">
+                {relations.cites && relations.cites.length > 0 && (
+                  <RelationsList title={`Cite (${relations.cites.length})`} items={relations.cites} />
+                )}
+                {relations.citedBy && relations.citedBy.length > 0 && (
+                  <RelationsList title={`Cité par (${relations.citedBy.length})`} items={relations.citedBy} />
+                )}
+                {relations.supersedes && relations.supersedes.length > 0 && (
+                  <RelationsList title={`Renverse (${relations.supersedes.length})`} items={relations.supersedes} variant="supersedes" />
+                )}
+                {relations.relatedCases && relations.relatedCases.length > 0 && (
+                  <RelationsList title={`Cas similaires (${relations.relatedCases.length})`} items={relations.relatedCases} />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Base légale */}
+          {metadata.legalBasis && (metadata.legalBasis as string[]).length > 0 && (
+            <div className="border rounded-xl p-5 bg-card">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-4 w-4 text-muted-foreground" />
                 <span className="font-semibold text-sm">Base légale</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {(metadata.legalBasis as string[]).map((basis, index) => (
-                  <Badge key={index} variant="outline">{basis}</Badge>
+                {(metadata.legalBasis as string[]).map((basis, i) => (
+                  <Badge key={i} variant="outline">{basis}</Badge>
                 ))}
               </div>
             </div>
           )}
-        </TabsContent>
 
-        {/* Métadonnées */}
-        <TabsContent id="tab-metadata" value="metadata" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {metadata.tribunalLabelFr && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  Tribunal
-                </div>
-                <p className="text-sm pl-6">
-                  {metadata.tribunalLabelFr as string}
-                  {metadata.tribunalLabelAr && ` (${metadata.tribunalLabelAr})`}
-                </p>
-              </div>
-            )}
-
-            {metadata.chambreLabelFr && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  Chambre
-                </div>
-                <p className="text-sm pl-6">
-                  {metadata.chambreLabelFr as string}
-                  {metadata.chambreLabelAr && ` (${metadata.chambreLabelAr})`}
-                </p>
-              </div>
-            )}
-
-            {formattedDate && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  Date de décision
-                </div>
-                <p className="text-sm pl-6">{formattedDate}</p>
-              </div>
-            )}
-
-            {metadata.decisionNumber && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  Numéro
-                </div>
-                <p className="text-sm pl-6">{metadata.decisionNumber as string}</p>
-              </div>
-            )}
-
-            {document.normLevel && (
-              <div className="space-y-2 md:col-span-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Layers className="h-4 w-4 text-muted-foreground" />
-                  Rang normatif
-                </div>
-                <div className="pl-6 space-y-2">
-                  <Badge className={`border ${getNormLevelColor(document.normLevel)}`}>
-                    {getNormLevelLabel(document.normLevel, 'fr')} — {getNormLevelLabel(document.normLevel, 'ar')}
-                  </Badge>
-                  <div className="flex items-center gap-1 mt-2">
-                    {NORM_LEVELS_ORDERED.map((level) => {
-                      const isActive = level.value === document.normLevel
-                      const isBefore = level.order < getNormLevelOrder(document.normLevel!)
-                      return (
-                        <div
-                          key={level.value}
-                          title={level.labelFr}
-                          className={`h-3 rounded-sm transition-all ${
-                            isActive
-                              ? `flex-[2] ${level.badgeColor} border opacity-100`
-                              : isBefore
-                                ? 'flex-1 bg-muted opacity-40'
-                                : 'flex-1 bg-muted/20 opacity-20'
-                          }`}
-                        />
-                      )
-                    })}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Niveau {getNormLevelOrder(document.normLevel)} sur 7 dans la hiérarchie des normes
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Link2 className="h-4 w-4 text-muted-foreground" />
-                Citations
-              </div>
-              <div className="text-sm pl-6 space-y-1">
-                <div>Cite : {metadata.citesCount || 0} documents</div>
-                <div>Cité par : {metadata.citedByCount || 0} documents</div>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Relations */}
-        <TabsContent id="tab-relations" value="relations" className="space-y-4">
-          {!relations || (
-            !relations.cites?.length &&
-            !relations.citedBy?.length &&
-            !relations.supersedes?.length &&
-            !relations.supersededBy?.length &&
-            !relations.relatedCases?.length
-          ) ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Aucune relation juridique identifiée
-            </p>
-          ) : (
-            <>
-              {relations.cites && relations.cites.length > 0 && (
-                <RelationSection title={`Cite (${relations.cites.length})`} items={relations.cites} />
-              )}
-              {relations.citedBy && relations.citedBy.length > 0 && (
-                <RelationSection title={`Cité par (${relations.citedBy.length})`} items={relations.citedBy} />
-              )}
-              {relations.supersedes && relations.supersedes.length > 0 && (
-                <RelationSection title={`Renverse (${relations.supersedes.length})`} items={relations.supersedes} type="supersedes" />
-              )}
-              {relations.relatedCases && relations.relatedCases.length > 0 && (
-                <RelationSection title={`Cas similaires (${relations.relatedCases.length})`} items={relations.relatedCases} />
-              )}
-            </>
-          )}
-        </TabsContent>
-
-        {/* Texte complet */}
-        <TabsContent id="tab-fulltext" value="fulltext" className="mt-4">
-          {activeTab === 'fulltext' && (
-            <FullTextTabContent documentId={document.kbId} title={document.title} />
-          )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   )
 }
 
 // =============================================================================
-// SECTION RELATIONS
+// RELATIONS LIST
 // =============================================================================
 
 interface RelationItem {
@@ -390,28 +606,30 @@ interface RelationItem {
   confidence: number | null
 }
 
-function RelationSection({
+function RelationsList({
   title,
   items,
-  type = 'default',
+  variant = 'default',
 }: {
   title: string
   items: RelationItem[]
-  type?: 'supersedes' | 'default'
+  variant?: 'supersedes' | 'default'
 }) {
   const router = useRouter()
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? items : items.slice(0, 3)
 
   return (
     <div>
-      <h4 className="font-semibold text-sm mb-3">{title}</h4>
+      <h4 className="font-semibold text-sm mb-2 text-muted-foreground">{title}</h4>
       <div className="space-y-2">
-        {items.map((rel, index) => (
+        {visible.map((rel, index) => (
           <div
             key={index}
-            className={`p-3 rounded-lg border cursor-pointer hover:shadow-sm transition-all ${
-              type === 'supersedes'
-                ? 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950 hover:border-amber-400'
-                : 'bg-muted/30 hover:border-primary/40'
+            className={`p-3 rounded-lg border cursor-pointer hover:shadow-sm transition-all flex items-start gap-2 ${
+              variant === 'supersedes'
+                ? 'border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30'
+                : 'bg-muted/20 hover:border-primary/30'
             }`}
             onClick={() => {
               if (rel.relatedKbId) {
@@ -425,36 +643,35 @@ function RelationSection({
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
-                if (rel.relatedKbId) {
-                  router.push(`/client/knowledge-base/${rel.relatedKbId}`)
-                } else {
-                  router.push(`/client/knowledge-base?mode=general&q=${encodeURIComponent(rel.relatedTitle)}`)
-                }
+                if (rel.relatedKbId) router.push(`/client/knowledge-base/${rel.relatedKbId}`)
               }
             }}
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge className={`text-xs ${LEGAL_CATEGORY_COLORS[rel.relatedCategory as LegalCategory] || ''}`}>
-                    {getCategoryLabel(rel.relatedCategory)}
-                  </Badge>
-                  {rel.confidence != null && (
-                    <Badge variant="secondary" className="text-xs">
-                      {Math.round(rel.confidence * 100)}%
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm font-medium mb-1">{rel.relatedTitle}</p>
-                {rel.context && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">{rel.context}</p>
-                )}
-              </div>
-              <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium line-clamp-1">{rel.relatedTitle}</p>
+              {rel.context && (
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{rel.context}</p>
+              )}
             </div>
+            {rel.confidence != null && (
+              <Badge variant="secondary" className="text-xs shrink-0">
+                {Math.round(rel.confidence * 100)}%
+              </Badge>
+            )}
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
           </div>
         ))}
       </div>
+      {items.length > 3 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-2 text-xs h-7"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? 'Voir moins' : `Voir ${items.length - 3} de plus`}
+        </Button>
+      )}
     </div>
   )
 }

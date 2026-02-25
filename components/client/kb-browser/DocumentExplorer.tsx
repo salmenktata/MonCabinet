@@ -192,7 +192,7 @@ export function DocumentExplorer({
   const [sortField, setSortField] = useState<SortField>(initSort)
   const [sortOrder, setSortOrder] = useState<SortOrder>(initOrder)
   const [selectedDocument, setSelectedDocument] = useState<SearchResultItem | null>(null)
-  const [showFilters, setShowFilters] = useState(false)
+
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
   const [displayedCount, setDisplayedCount] = useState(20)
@@ -412,13 +412,11 @@ export function DocumentExplorer({
 
   return (
     <div className={`space-y-4 ${className}`}>
+
       {/* Breadcrumb */}
       {(hasSearched || filters.category || activeDomain) && (
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-          <button
-            onClick={onBack}
-            className="hover:text-foreground transition-colors"
-          >
+          <button onClick={onBack} className="hover:text-foreground transition-colors">
             {activeDocType === 'TEXTES' ? 'Textes Juridiques' : 'Base de Connaissances'}
           </button>
           {activeDomain && (
@@ -430,10 +428,7 @@ export function DocumentExplorer({
           {filters.category && !activeDomain && (
             <>
               <ChevronRight className="h-3 w-3" />
-              <button
-                onClick={handleBreadcrumbCategory}
-                className="hover:text-foreground transition-colors"
-              >
+              <button onClick={handleBreadcrumbCategory} className="hover:text-foreground transition-colors">
                 {getCategoryLabel(filters.category)}
               </button>
             </>
@@ -447,7 +442,7 @@ export function DocumentExplorer({
         </nav>
       )}
 
-      {/* Barre de recherche */}
+      {/* ─── Barre de recherche ─────────────────────────────────────────── */}
       <Card>
         <CardContent className="p-4">
           <div className="flex gap-2">
@@ -467,51 +462,27 @@ export function DocumentExplorer({
               />
             </div>
 
-            {/* Historique récent */}
             <RecentSearchesDropdown
-              onSelect={(q) => {
-                setSearchQuery(q)
-                setTimeout(() => handleSearch(), 0)
-              }}
+              onSelect={(q) => { setSearchQuery(q); setTimeout(() => handleSearch(), 0) }}
               registerSave={(fn) => { saveRecentRef.current = fn }}
             />
 
             <Button onClick={handleSearch} disabled={isLoading}>
               {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Recherche...
-                </>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Recherche...</>
               ) : (
                 'Rechercher'
               )}
             </Button>
 
-            {/* Filtres — desktop toggle */}
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="hidden md:flex"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filtres
-              {activeFiltersCount > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {activeFiltersCount}
-                </Badge>
-              )}
-            </Button>
-
-            {/* Filtres — mobile Sheet */}
+            {/* Filtres — mobile uniquement (Sheet bottom) */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" className="md:hidden">
                   <Filter className="h-4 w-4 mr-2" />
                   Filtres
                   {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {activeFiltersCount}
-                    </Badge>
+                    <Badge variant="secondary" className="ml-2">{activeFiltersCount}</Badge>
                   )}
                 </Button>
               </SheetTrigger>
@@ -534,10 +505,39 @@ export function DocumentExplorer({
               </SheetContent>
             </Sheet>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Filtres avancés — desktop uniquement */}
-          {showFilters && (
-            <div className="hidden md:block mt-4 pt-4 border-t">
+      {/* Erreur */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* ─── Layout 2 colonnes ──────────────────────────────────────────── */}
+      <div className="flex gap-6">
+
+        {/* Sidebar filtres — desktop uniquement (sticky) */}
+        <aside className="hidden md:block w-56 shrink-0">
+          <div className="sticky top-4 border rounded-xl overflow-hidden bg-card">
+            <div className="px-4 py-3 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                Filtres
+              </div>
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                  <X className="h-3 w-3" />
+                  Effacer
+                </button>
+              )}
+            </div>
+            <div className="p-4">
               <FilterPanelContent
                 filters={filters}
                 activeDocType={activeDocType}
@@ -549,248 +549,175 @@ export function DocumentExplorer({
                 buildDateISO={buildDateISO}
               />
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Barre de filtres actifs (quand panel fermé) */}
-      {!showFilters && activeFiltersCount > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {filters.category && (
-            <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeFilter('category')}>
-              {getCategoryLabel(filters.category)}
-              <X className="h-3 w-3" />
-            </Badge>
-          )}
-          {filters.normLevel && (
-            <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeFilter('normLevel')}>
-              <Scale className="h-3 w-3" />
-              {getNormLevelLabel(filters.normLevel, 'fr')}
-              <X className="h-3 w-3" />
-            </Badge>
-          )}
-          {filters.domain && (
-            <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeFilter('domain')}>
-              {LEGAL_DOMAINS.find(d => d.id === filters.domain)?.labelFr || filters.domain}
-              <X className="h-3 w-3" />
-            </Badge>
-          )}
-          {filters.tribunal && (
-            <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeFilter('tribunal')}>
-              {TRIBUNAL_LABELS[filters.tribunal] || filters.tribunal}
-              <X className="h-3 w-3" />
-            </Badge>
-          )}
-          {filters.language && (
-            <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeFilter('language')}>
-              {LANGUAGE_LABELS[filters.language]}
-              <X className="h-3 w-3" />
-            </Badge>
-          )}
-          {filters.dateFrom && (
-            <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeFilter('dateFrom')}>
-              Depuis {new Date(filters.dateFrom).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-              <X className="h-3 w-3" />
-            </Badge>
-          )}
-          {filters.dateTo && (
-            <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeFilter('dateTo')}>
-              Jusqu&apos;à {new Date(filters.dateTo).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-              <X className="h-3 w-3" />
-            </Badge>
-          )}
-          <button
-            onClick={clearFilters}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Effacer tout
-          </button>
-        </div>
-      )}
-
-      {/* Erreur */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Toolbar */}
-      {hasSearched && !isLoading && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {isBrowseMode && browseData?.pagination
-              ? `${browseData.pagination.total} documents`
-              : `${results.length} ${results.length === 1 ? 'résultat' : 'résultats'}`}
-            {processingTimeMs != null && (
-              <span className="ml-1">({(processingTimeMs / 1000).toFixed(1)}s)</span>
-            )}
           </div>
+        </aside>
 
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <SortAsc className="h-4 w-4 mr-2" />
-                  Trier
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Trier par</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem
-                  checked={sortField === 'relevance'}
-                  onCheckedChange={() => setSortField('relevance')}
-                >
-                  Pertinence
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={sortField === 'date'}
-                  onCheckedChange={() => setSortField('date')}
-                >
-                  Date
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={sortField === 'title'}
-                  onCheckedChange={() => setSortField('title')}
-                >
-                  Titre
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={sortField === 'citations'}
-                  onCheckedChange={() => setSortField('citations')}
-                >
-                  Citations
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem
-                  checked={sortOrder === 'desc'}
-                  onCheckedChange={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                >
-                  Ordre décroissant
-                </DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        {/* Contenu principal */}
+        <div className="flex-1 min-w-0 space-y-4">
 
-            <div className="flex gap-1 border rounded-md">
-              <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="rounded-r-none"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className="rounded-l-none"
-              >
-                <Grid3x3 className="h-4 w-4" />
-              </Button>
+          {/* Toolbar : résultats + tri + vue */}
+          {hasSearched && !isLoading && (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground font-medium">
+                {isBrowseMode && browseData?.pagination
+                  ? `${browseData.pagination.total.toLocaleString('fr-FR')} documents`
+                  : `${results.length.toLocaleString('fr-FR')} ${results.length === 1 ? 'résultat' : 'résultats'}`}
+                {processingTimeMs != null && (
+                  <span className="ml-1 font-normal opacity-70">({(processingTimeMs / 1000).toFixed(1)}s)</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <SortAsc className="h-4 w-4 mr-2" />
+                      Trier
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>Trier par</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem checked={sortField === 'relevance'} onCheckedChange={() => setSortField('relevance')}>
+                      Pertinence
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem checked={sortField === 'date'} onCheckedChange={() => setSortField('date')}>
+                      Date
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem checked={sortField === 'title'} onCheckedChange={() => setSortField('title')}>
+                      Titre
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem checked={sortField === 'citations'} onCheckedChange={() => setSortField('citations')}>
+                      Citations
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={sortOrder === 'desc'}
+                      onCheckedChange={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    >
+                      Ordre décroissant
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <div className="flex gap-1 border rounded-md">
+                  <Button
+                    variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className="rounded-r-none"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                    className="rounded-l-none"
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Skeleton loading */}
-      {isLoading && (
-        viewMode === 'list' ? (
-          <div className="space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-5 w-14 rounded-full" />
-                  </div>
-                  <div className="flex gap-2">
-                    <Skeleton className="h-5 w-20 rounded-full" />
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                  </div>
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-4 space-y-3">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-5 w-20 rounded-full" />
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                  </div>
-                  <Skeleton className="h-3 w-full" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )
-      )}
+          {/* Skeleton */}
+          {isLoading && (
+            viewMode === 'list' ? (
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-5 w-14 rounded-full" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4 space-y-3">
+                      <Skeleton className="h-4 w-3/4" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                      <Skeleton className="h-3 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )
+          )}
 
-      {/* État vide */}
-      {!isLoading && hasSearched && results.length === 0 && (
-        <Card>
-          <CardContent className="p-12 text-center space-y-4">
-            <Search className="h-12 w-12 text-muted-foreground mx-auto" />
-            <p className="text-muted-foreground">Aucun résultat trouvé.</p>
-            <div className="flex flex-col items-center gap-2">
-              {filters.category && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    removeFilter('category')
-                    setTimeout(handleSearch, 0)
-                  }}
-                >
-                  Rechercher dans toutes les catégories
-                </Button>
-              )}
-              {searchQuery.trim().length > 30 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Lightbulb className="h-4 w-4" />
-                  <span>Essayez des termes plus généraux</span>
+          {/* État vide */}
+          {!isLoading && hasSearched && results.length === 0 && (
+            <Card>
+              <CardContent className="p-12 text-center space-y-4">
+                <Search className="h-12 w-12 text-muted-foreground mx-auto" />
+                <p className="text-muted-foreground">Aucun résultat trouvé.</p>
+                <div className="flex flex-col items-center gap-2">
+                  {filters.category && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { removeFilter('category'); setTimeout(handleSearch, 0) }}
+                    >
+                      Rechercher dans toutes les catégories
+                    </Button>
+                  )}
+                  {searchQuery.trim().length > 30 && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Lightbulb className="h-4 w-4" />
+                      <span>Essayez des termes plus généraux</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Résultats */}
+          {!isLoading && displayedResults.length > 0 && (
+            <>
+              <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-3'}>
+                {displayedResults.map((doc) => (
+                  <DocumentCard
+                    key={doc.kbId}
+                    document={doc}
+                    viewMode={viewMode}
+                    onClick={() => setSelectedDocument(doc)}
+                  />
+                ))}
+              </div>
+
+              {hasMore && (
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDisplayedCount(prev => prev + 20)}
+                  >
+                    Charger plus ({sortedResults.length - displayedCount} restants)
+                  </Button>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!isLoading && displayedResults.length > 0 && (
-        <>
-          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
-            {displayedResults.map((document) => (
-              <DocumentCard
-                key={document.kbId}
-                document={document}
-                viewMode={viewMode}
-                onClick={() => setSelectedDocument(document)}
-              />
-            ))}
-          </div>
-
-          {hasMore && (
-            <div className="flex justify-center pt-2">
-              <Button
-                variant="outline"
-                onClick={() => setDisplayedCount(prev => prev + 20)}
-              >
-                Charger plus ({sortedResults.length - displayedCount} restants)
-              </Button>
-            </div>
+            </>
           )}
-        </>
-      )}
+
+        </div>
+      </div>
 
       {/* Modal détail document */}
       {selectedDocument && (
