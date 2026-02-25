@@ -298,11 +298,11 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 9. RAG EVAL JUDGE (évaluation fidélité réponses)
   // ---------------------------------------------------------------------------
   'rag-eval-judge': {
-    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama gratuit (batch hebdo, pas time-critical)
+    model: { provider: 'groq', name: 'llama-3.1-8b-instant' }, // Groq rapide + fiable (Ollama timeout 20q back-to-back)
 
     timeouts: {
-      chat: 60000,
-      total: 75000,
+      chat: 15000,
+      total: 20000,
     },
 
     llmConfig: {
@@ -311,7 +311,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'LLM judge fidélité réponse RAG - Ollama qwen3:8b (batch hebdo, gratuit)',
+    description: 'LLM judge fidélité réponse RAG - Groq llama-3.1-8b-instant (rapide, fiable pour batch)',
   },
 }
 

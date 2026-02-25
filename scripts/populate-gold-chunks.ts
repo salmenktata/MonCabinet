@@ -101,7 +101,7 @@ async function main() {
     try {
       const results = await searchKnowledgeBaseHybrid(evalCase.question, {
         limit: 10,
-        operationName: 'populate-gold-chunks',
+        operationName: 'assistant-ia',
       })
 
       if (results.length === 0) {

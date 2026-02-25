@@ -1090,7 +1090,8 @@ export async function searchKnowledgeBaseHybrid(
     searchPromises.push(
       // Fix (Feb 17, 2026) : threshold 0.15 (était 0.20) pour capturer مجلة الالتزامات والعقود
       // et المجلة التجارية qui ont vecSim 0.15-0.20 pour certaines queries juridiques spécifiques.
-      searchHybridSingle(queryText, embStr, 'codes', null, Math.ceil(limit / 2), 0.15, 'openai', bm25Language)
+      // Fix (Feb 25, 2026) : limit 5→15 — KB a 14K+ codes chunks, top 5 insuffisant pour atteindre articles spécifiques
+      searchHybridSingle(queryText, embStr, 'codes', null, Math.max(Math.ceil(limit / 2), 15), 0.15, 'openai', bm25Language)
     )
     providerLabels.push('codes-forced')
   }
