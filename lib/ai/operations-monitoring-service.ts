@@ -199,6 +199,7 @@ function estimateCost(tokens: number, operationName: OperationName): number {
     'indexation': 0, // Ollama uniquement (gratuit)
     'assistant-ia': 0, // Groq gratuit
     'dossiers-assistant': 0.00000002, // OpenAI embeddings seulement (~$0.02/1M tokens)
+    'dossiers-structuration': 0, // Groq gratuit
     'dossiers-consultation': 0.00000002, // OpenAI embeddings seulement
     'kb-quality-analysis': 0, // Gemini gratuit
     'query-classification': 0, // Groq gratuit

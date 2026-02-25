@@ -20,6 +20,7 @@ export type OperationName =
   | 'indexation'
   | 'assistant-ia'
   | 'dossiers-assistant'
+  | 'dossiers-structuration'
   | 'dossiers-consultation'
   | 'kb-quality-analysis'
   | 'query-classification'
@@ -182,6 +183,29 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     alerts: { onFailure: 'email', severity: 'critical' },
     description: 'Analyse approfondie dossier - DeepSeek deepseek-chat (cache hit $0.028/M in, 128K ctx)',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 3b. STRUCTURATION DOSSIER (narratif → JSON structuré, temps réel)
+  // ---------------------------------------------------------------------------
+  'dossiers-structuration': {
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'groq', name: 'llama-3.3-70b-versatile' }, // Groq : ~3-5s vs DeepSeek 15-30s
+
+    timeouts: {
+      chat: 30000,  // Groq très rapide, marge 30s
+      total: 45000,
+    },
+
+    llmConfig: {
+      temperature: 0.3,
+      maxTokens: 4000, // Réduit 8000→4000 (structures standard < 4000 tokens)
+      systemPromptType: 'chat',
+    },
+
+    alerts: { onFailure: 'email', severity: 'critical' },
+    description: 'Structuration narratif → JSON - Groq llama-3.3-70b (rapide ~3-5s, temps réel)',
   },
 
   // ---------------------------------------------------------------------------

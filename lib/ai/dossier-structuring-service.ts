@@ -1305,9 +1305,9 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, sans texte avant ou après.`
       { role: 'user', content: userPrompt },
     ],
     {
-      operationName: 'dossiers-assistant', // ✅ Utilise config Gemini primaire (skip Ollama)
+      operationName: 'dossiers-structuration', // Groq llama-3.3-70b : ~3-5s vs DeepSeek 15-30s
       temperature: 0.3,
-      maxTokens: 8000, // Augmenté de 4000 → 8000 pour structures complexes multi-phases
+      maxTokens: 4000, // Structures standard < 4000 tokens (réduit de 8000)
     }
   )
 

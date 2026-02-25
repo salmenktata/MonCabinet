@@ -130,7 +130,7 @@ export function StructurePage({ clients }: StructurePageProps) {
         setAnalysisSteps((prev) => [...prev, steps[stepIndex]])
         stepIndex++
       }
-    }, 800)
+    }, 2000)
 
     try {
       const response = await structurerDossierAction(textToAnalyze)
@@ -231,7 +231,7 @@ export function StructurePage({ clients }: StructurePageProps) {
           </p>
           <div className={`flex flex-wrap gap-2 ${isAr ? 'justify-end' : ''}`}>
             <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 text-xs text-purple-800 dark:text-purple-200">
-              🤖 DeepSeek deepseek-chat
+              🤖 Groq llama-3.3-70b
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
               {isAr ? '📄 مخرج: JSON منظّم' : '📄 Output: JSON structuré'}

@@ -101,6 +101,10 @@ export const OPERATION_LABELS: Record<OperationName, { fr: string; ar: string }>
     fr: 'Assistant Dossiers',
     ar: 'مساعد الملفات',
   },
+  'dossiers-structuration': {
+    fr: 'Structuration Dossier',
+    ar: 'هيكلة الملف',
+  },
   'dossiers-consultation': {
     fr: 'Consultation Juridique',
     ar: 'الاستشارة القانونية',
@@ -134,6 +138,7 @@ export const OPERATION_DESCRIPTIONS: Record<OperationName, string> = {
   'assistant-ia': 'Chat utilisateur en temps réel avec recherche RAG (performance critique)',
   'indexation': 'Indexation documents KB en batch (background processing)',
   'dossiers-assistant': 'Analyse approfondie de dossiers juridiques (qualité prioritaire)',
+  'dossiers-structuration': 'Structuration narratif → JSON structuré (Groq, temps réel)',
   'dossiers-consultation': 'Génération de consultation juridique formelle IRAC',
   'kb-quality-analysis': 'Analyse qualité documents KB (OpenAI gpt-4o-mini)',
   'query-classification': 'Classification automatique de la requête utilisateur',
