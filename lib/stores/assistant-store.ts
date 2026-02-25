@@ -76,7 +76,11 @@ export const useAssistantStore = create<AssistantState>()(
     }),
     {
       name: 'assistant-store',
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined'
+          ? sessionStorage
+          : { getItem: () => null, setItem: () => {}, removeItem: () => {} }
+      ),
       partialize: (state) => {
         let lightResult = null
         if (state.result) {

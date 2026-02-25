@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 interface ChatState {
   // Mode LLM : false = rapide (Ollama), true = premium (cloud providers)
@@ -34,7 +34,12 @@ export const useChatStore = create<ChatState>()(
       setIsStreaming: (streaming) => set({ isStreaming: streaming }),
     }),
     {
-      name: 'chat-preferences', // localStorage key
+      name: 'chat-preferences',
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined'
+          ? localStorage
+          : { getItem: () => null, setItem: () => {}, removeItem: () => {} }
+      ),
       partialize: (state) => ({
         // Persister uniquement la préférence du modèle
         usePremiumModel: state.usePremiumModel,
