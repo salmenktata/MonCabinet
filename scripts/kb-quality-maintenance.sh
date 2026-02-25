@@ -134,7 +134,7 @@ for i in $(seq 1 3); do
     -X POST "$API_URL/api/admin/kb/rechunk-large" \
     -H "Authorization: Bearer $CRON_SECRET" \
     -H "Content-Type: application/json" \
-    -d '{"batchSize":5}')
+    -d '{"batchSize":5,"maxChunkChars":6000}')
 
   if ! echo "$RESP" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
     log "  [P2] Réponse non-JSON — skip"
