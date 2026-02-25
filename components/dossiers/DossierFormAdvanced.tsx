@@ -43,6 +43,10 @@ const dossierFormSchema = z.object({
     'divorce',
     'commercial',
     'refere',
+    'penal',
+    'administratif',
+    'faillite',
+    'execution_forcee',
     'autre'
   ], {
     required_error: 'Le type de procédure est requis',
