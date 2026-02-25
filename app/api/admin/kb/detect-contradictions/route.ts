@@ -21,6 +21,21 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
+// Pages déjà vérifiées = celles ayant un job contradiction_check 'completed' dans indexing_jobs
+// OU celles déjà présentes comme source dans content_contradictions
+const ALREADY_CHECKED_SUBQUERY = `
+  NOT EXISTS (
+    SELECT 1 FROM indexing_jobs ij
+    WHERE ij.target_id = wp.id
+      AND ij.job_type = 'contradiction_check'
+      AND ij.status = 'completed'
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM content_contradictions cc
+    WHERE cc.source_page_id = wp.id
+  )
+`
+
 export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
   const startTime = Date.now()
 
@@ -34,10 +49,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
     let whereClause = `
       wp.is_indexed = true
       AND wp.knowledge_base_id IS NOT NULL
-      AND NOT EXISTS (
-        SELECT 1 FROM content_contradictions cc
-        WHERE cc.source_page_id = wp.id
-      )
+      AND ${ALREADY_CHECKED_SUBQUERY}
     `
 
     if (sourceUrlFilter) {
@@ -69,10 +81,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
     let remainingWhere = `
       wp.is_indexed = true
       AND wp.knowledge_base_id IS NOT NULL
-      AND NOT EXISTS (
-        SELECT 1 FROM content_contradictions cc
-        WHERE cc.source_page_id = wp.id
-      )
+      AND ${ALREADY_CHECKED_SUBQUERY}
     `
     if (sourceUrlFilter) {
       remainingParams.push(`%${sourceUrlFilter}%`)
@@ -122,6 +131,16 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
       try {
         const result = await detectContradictions(page.page_id)
         const found = result.contradictions.length
+
+        // Marquer la page comme vérifiée dans indexing_jobs (même si 0 contradiction trouvée)
+        // Cela évite de re-sélectionner les mêmes pages au prochain appel
+        await db.query(`
+          INSERT INTO indexing_jobs (job_type, target_id, priority, status, completed_at)
+          VALUES ('contradiction_check', $1, 3, 'completed', NOW())
+          ON CONFLICT DO NOTHING
+        `, [page.page_id]).catch(() => {
+          // Ignore si le INSERT échoue (ex: contrainte) — le tracking n'est pas critique
+        })
 
         succeeded++
         totalFound += found
