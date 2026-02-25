@@ -494,6 +494,67 @@ function detectDomainBoost(query: string): { pattern: string; factor: number }[]
  * 2. Cross-encoder pour re-scorer les paires (query, document)
  * 3. Diversité pour limiter les chunks par source
  */
+/**
+ * Infère la branche juridique d'un document à partir de son titre,
+ * utilisé comme fallback quand metadata.branch est null.
+ *
+ * Ciblé sur les patterns haute-précision pour éviter les faux positifs.
+ * Note: 14 339 chunks category='codes' ont branch=null en prod (Feb 25, 2026).
+ */
+function inferBranchFromTitle(docName: string): string | undefined {
+  if (!docName) return undefined
+  const n = docName.toLowerCase()
+
+  // Fiscal — patterns très distinctifs
+  if (
+    n.includes('note-commune') || n.includes('note commune') ||
+    n.includes('enregistrement') || n.includes('تسجيل الديون') ||
+    /\btva\b/.test(n) || n.includes('أداء على القيمة') ||
+    /\birpp\b/.test(n) || /\bdgi\b/.test(n) ||
+    n.includes('impôt sur le') || n.includes('جبائي') || n.includes('جباية') ||
+    n.includes('fiscal') || n.includes('ضريبي') ||
+    n.includes('droits de douane') || n.includes('مجلة الديوانة') ||
+    n.includes('timbre fiscal') || n.includes('recouvrement de l') ||
+    n.includes('code de la tva') || n.includes('code de l\'irpp')
+  ) {
+    return 'fiscal'
+  }
+
+  // Civil — COC
+  if (
+    n.includes('الالتزامات والعقود') || n.includes('م.ا.ع') ||
+    n.includes(' coc') || n.includes('(coc)') ||
+    n.includes('code des obligations et des contrats')
+  ) {
+    return 'civil'
+  }
+
+  // Pénal
+  if (
+    n.includes('مجلة الإجراءات الجزائية') || n.includes('مجلة الجزائية') ||
+    n.includes('code pénal') || n.includes('code de procédures pénales')
+  ) {
+    return 'pénal'
+  }
+
+  // Travail
+  if (n.includes('code du travail') || n.includes('مجلة الشغل')) {
+    return 'travail'
+  }
+
+  // Famille
+  if (n.includes('statuts personnels') || n.includes('أحوال شخصية') || n.includes('م.أ.ش')) {
+    return 'famille'
+  }
+
+  // Commercial
+  if (n.includes('code de commerce') || n.includes('مجلة التجارة')) {
+    return 'commercial'
+  }
+
+  return undefined
+}
+
 async function rerankSources(
   sources: ChatSource[],
   query?: string,
@@ -535,13 +596,15 @@ async function rerankSources(
     // Sprint 1 RAG Audit-Proof: pénalité douce pour branches hors-scope
     // ×0.4 (était ×0.05 ≈ élimination — trop agressif, causait faux-négatifs sur LLM routing)
     // Gate confiance : pas de pénalité si routeur peu confiant (<0.70)
+    // Fix Feb 25, 2026 : fallback inferBranchFromTitle() quand metadata.branch=null
+    // (14 339 chunks category='codes' n'ont pas de branch en DB)
     if (branchOptions?.forbiddenBranches && branchOptions.forbiddenBranches.length > 0) {
       const routerConfidence = branchOptions.routerConfidence ?? 1.0
       if (routerConfidence >= 0.70) {
-        const branch = s.metadata?.branch as string | undefined
+        const branch = (s.metadata?.branch as string | undefined) || inferBranchFromTitle(s.documentName || '')
         if (branch && branch !== 'autre' && branchOptions.forbiddenBranches.includes(branch)) {
           boost *= 0.4
-          log.info(`[RAG Branch] Pénalité 0.4× sur "${s.documentName}" (branch=${branch}, confidence=${routerConfidence.toFixed(2)})`)
+          log.info(`[RAG Branch] Pénalité 0.4× sur "${s.documentName}" (branch=${branch}, inferred=${!s.metadata?.branch}, confidence=${routerConfidence.toFixed(2)})`)
         }
       }
     }
