@@ -10,6 +10,18 @@ import type {
   CreateDossierOptions,
   NewClientData,
 } from '@/lib/ai/dossier-structuring-service'
+import { getWorkflowById } from '@/lib/workflows/workflows-config'
+
+export interface WorkflowHistoryEntry {
+  id: string
+  dossierId: string
+  etapeFrom: string | null
+  etapeTo: string
+  typeTransition: 'initial' | 'normal' | 'bypass' | 'revert'
+  note: string | null
+  createdAt: string
+  userId: string
+}
 
 export async function createDossierAction(formData: DossierFormData) {
   try {
@@ -89,7 +101,7 @@ export async function updateDossierAction(id: string, formData: DossierFormData)
   }
 }
 
-export async function updateDossierEtapeAction(id: string, etapeId: string) {
+export async function updateDossierEtapeAction(id: string, etapeId: string, note?: string) {
   try {
     const session = await getSession()
     if (!session?.user?.id) {
@@ -98,6 +110,43 @@ export async function updateDossierEtapeAction(id: string, etapeId: string) {
 
     const userId = session.user.id
 
+    // Récupérer l'étape actuelle + le type_procedure pour déterminer le type de transition
+    const dossierResult = await query(
+      'SELECT workflow_etape_actuelle, type_procedure FROM dossiers WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    )
+
+    if (dossierResult.rows.length === 0) {
+      return { error: 'Dossier introuvable' }
+    }
+
+    const dossier = dossierResult.rows[0]
+    const etapeFrom: string | null = dossier.workflow_etape_actuelle ?? null
+    const workflowId: string = dossier.type_procedure || 'civil_premiere_instance'
+
+    // Déterminer le type de transition
+    let typeTransition: 'initial' | 'normal' | 'bypass' | 'revert' = 'normal'
+    if (!etapeFrom) {
+      typeTransition = 'initial'
+    } else {
+      const workflow = getWorkflowById(workflowId)
+      if (workflow) {
+        const fromEtape = workflow.etapes.find((e) => e.id === etapeFrom)
+        const toEtape = workflow.etapes.find((e) => e.id === etapeId)
+        if (fromEtape && toEtape) {
+          const diff = toEtape.ordre - fromEtape.ordre
+          if (diff < 0) {
+            typeTransition = 'revert'
+          } else if (diff > 1) {
+            typeTransition = 'bypass'
+          } else {
+            typeTransition = 'normal'
+          }
+        }
+      }
+    }
+
+    // Mettre à jour le dossier
     const result = await query(
       'UPDATE dossiers SET workflow_etape_actuelle = $1 WHERE id = $2 AND user_id = $3 RETURNING *',
       [etapeId, id, userId]
@@ -107,11 +156,66 @@ export async function updateDossierEtapeAction(id: string, etapeId: string) {
       return { error: 'Dossier introuvable' }
     }
 
+    // Logger dans l'historique
+    await query(
+      `INSERT INTO dossier_workflow_history (dossier_id, etape_from, etape_to, type_transition, note, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, etapeFrom, etapeId, typeTransition, note || null, userId]
+    )
+
     revalidatePath(`/dossiers/${id}`)
-    return { success: true, data: result.rows[0] }
+    return { success: true, data: result.rows[0], typeTransition }
   } catch (error) {
     console.error('Erreur mise à jour:', error)
     return { error: 'Erreur lors de la mise à jour' }
+  }
+}
+
+export async function getWorkflowHistoryAction(dossierId: string): Promise<{
+  success?: boolean
+  data?: WorkflowHistoryEntry[]
+  error?: string
+}> {
+  try {
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return { error: 'Non authentifié' }
+    }
+
+    const userId = session.user.id
+
+    // Vérifier que le dossier appartient à l'utilisateur
+    const check = await query(
+      'SELECT id FROM dossiers WHERE id = $1 AND user_id = $2',
+      [dossierId, userId]
+    )
+    if (check.rows.length === 0) {
+      return { error: 'Dossier introuvable' }
+    }
+
+    const result = await query(
+      `SELECT id, dossier_id, etape_from, etape_to, type_transition, note, created_at, user_id
+       FROM dossier_workflow_history
+       WHERE dossier_id = $1
+       ORDER BY created_at DESC`,
+      [dossierId]
+    )
+
+    const data: WorkflowHistoryEntry[] = result.rows.map((row) => ({
+      id: row.id,
+      dossierId: row.dossier_id,
+      etapeFrom: row.etape_from,
+      etapeTo: row.etape_to,
+      typeTransition: row.type_transition,
+      note: row.note,
+      createdAt: row.created_at,
+      userId: row.user_id,
+    }))
+
+    return { success: true, data }
+  } catch (error) {
+    console.error('Erreur récupération historique workflow:', error)
+    return { error: 'Erreur lors de la récupération de l\'historique' }
   }
 }
 

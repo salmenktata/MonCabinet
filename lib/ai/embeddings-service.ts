@@ -2,7 +2,7 @@
  * Service de génération d'embeddings - Mode No-Fallback
  *
  * Production: OpenAI text-embedding-3-small (1536-dim) uniquement
- * Développement: Ollama qwen3-embedding:0.6b (1024-dim) uniquement
+ * Développement: Ollama nomic-embed-text (768-dim, context 8192 tokens) — migré Feb 25, 2026
  *
  * Pas de fallback ni circuit breaker. Si le provider échoue → throw.
  * Avec cache Redis pour éviter les régénérations inutiles.
@@ -39,7 +39,7 @@ export interface EmbeddingOptions {
   operationName?: OperationName
   /** Force Ollama même en production (pour dual-provider search sur chunks legacy 1024-dim) */
   forceOllama?: boolean
-  /** Force Gemini (text-embedding-004, 768-dim) pour triple-provider search */
+  /** Force Gemini (gemini-embedding-001, 768-dim) pour triple-provider search */
   forceGemini?: boolean
 }
 
@@ -60,8 +60,11 @@ function resolveEmbeddingProvider(options?: EmbeddingOptions): 'ollama' | 'opena
   // Force Gemini explicitement (triple-provider search : chunks 768-dim)
   if (options?.forceGemini && aiConfig.gemini.apiKey) return 'gemini'
 
-  // Force Ollama explicitement (dual-provider search : chunks legacy 1024-dim)
+  // Force Ollama explicitement (dual-provider search : chunks nomic 768-dim)
   if (options?.forceOllama && aiConfig.ollama.enabled) return 'ollama'
+
+  // Force OpenAI même en dev (FORCE_OPENAI_EMBEDDINGS=true dans .env.local → alignement prod)
+  if (process.env.FORCE_OPENAI_EMBEDDINGS === 'true' && aiConfig.openai.apiKey) return 'openai'
 
   // Si opération spécifiée, utiliser sa config
   if (options?.operationName) {
@@ -97,7 +100,7 @@ async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResul
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: aiConfig.ollama.embeddingModel,
-        prompt: text.substring(0, 2000),
+        prompt: text,
         keep_alive: '60m',
       }),
       signal: controller.signal,
@@ -352,23 +355,29 @@ async function generateEmbeddingWithGemini(text: string): Promise<EmbeddingResul
  * Provider déterminé par l'opération : OpenAI (prod) ou Ollama (dev).
  * Pas de fallback. Avec cache Redis.
  */
+// Limites de contexte par provider (chars) pour cohérence cache key ↔ contenu embedé
+// La résolution du provider doit précéder la troncature pour que le hash Redis soit exact.
+const MAX_EMBEDDING_CHARS_BY_PROVIDER: Record<'ollama' | 'openai' | 'gemini', number> = {
+  ollama: 8000,   // nomic-embed-text : 8192 tokens (~32K chars) — conservatif 8000
+  openai: 6000,   // text-embedding-3-small : 8191 tokens (~32K chars) — conservatif 6000
+  gemini: 6000,   // gemini-embedding-001 : 8000 chars — conservatif 6000
+}
+
 export async function generateEmbedding(
   text: string,
   options?: EmbeddingOptions
 ): Promise<EmbeddingResult> {
-  // Tronquer si le texte dépasse la limite du modèle d'embedding.
-  // text-embedding-3-small : 8191 tokens max (~24 000 chars arabe, ~32 000 chars français)
-  // Ollama qwen3-embedding : 2000 chars max (fenêtre contextuelle limitée du modèle)
-  // Gemini embedding-001 : 8000 chars (cf. generateEmbeddingWithGemini)
-  // On utilise 6000 comme dénominateur commun conservateur pour tous les providers.
-  const MAX_EMBEDDING_CHARS = 6000
-  if (text.length > MAX_EMBEDDING_CHARS) {
-    text = text.substring(0, MAX_EMBEDDING_CHARS)
-  }
-
-  // Résoudre le provider AVANT la vérification cache
-  // (sinon forceOllama/forceGemini ignorés : cache retourne embedding du mauvais provider)
+  // Résoudre le provider EN PREMIER pour calculer la bonne limite de troncature.
+  // Critique : la clé cache Redis est basée sur le texte tronqué → doit correspondre
+  // exactement au texte réellement embedé (sinon hit cache sur hash 6000 chars mais
+  // embedding généré sur 2000 chars → vecteur incohérent).
   const provider = resolveEmbeddingProvider(options)
+
+  // Tronquer selon la limite du provider (avant cache lookup)
+  const maxChars = MAX_EMBEDDING_CHARS_BY_PROVIDER[provider]
+  if (text.length > maxChars) {
+    text = text.substring(0, maxChars)
+  }
 
   // Vérifier le cache avec le provider résolu (clé = emb:{provider}:{hash})
   const cached = await getCachedEmbedding(text, provider)

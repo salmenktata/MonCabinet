@@ -112,7 +112,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
       : { provider: 'ollama', name: 'qwen3:8b' }, // Ollama pour classification (gratuit)
 
     embeddings: isDev
-      ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
+      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
       : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
 
     timeouts: {
@@ -137,7 +137,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     model: { provider: 'groq', name: 'llama-3.3-70b-versatile' }, // Groq : 292ms, gratuit 14K req/jour
 
     embeddings: isDev
-      ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
+      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
       : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
 
     timeouts: {
@@ -165,7 +165,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
     embeddings: isDev
-      ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
+      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
       : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
 
     timeouts: {
@@ -213,7 +213,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
     embeddings: isDev
-      ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
+      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
       : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
 
     timeouts: {

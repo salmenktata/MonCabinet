@@ -95,8 +95,8 @@ export const aiConfig: AIConfig = {
   ollama: {
     baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
     chatModelDefault: process.env.OLLAMA_CHAT_MODEL || 'qwen3:8b',
-    embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL || 'qwen3-embedding:0.6b',
-    embeddingDimensions: 1024, // Qwen3 embedding default dimension
+    embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text',
+    embeddingDimensions: 768, // nomic-embed-text output dimension (migré Feb 25, 2026 depuis qwen3-embedding:0.6b 1024-dim)
     enabled: process.env.OLLAMA_ENABLED === 'true',
     chatTimeoutDefault: parseInt(process.env.OLLAMA_CHAT_TIMEOUT_DEFAULT || '15000', 10), // 15s (fail rapide si container absent)
   },
