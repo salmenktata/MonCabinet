@@ -35,7 +35,12 @@ export interface Dossier {
   dateOuverture?: Date
   dateCloture?: Date
   montant?: number
+  montantLitige?: number
   devise?: string
+  partieAdverse?: string
+  avocatAdverse?: string
+  numeroRg?: string
+  workflowEtape?: string
   documents?: DossierDocument[]
   events?: DossierEvent[]
   actions?: any[] // Table actions

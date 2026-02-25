@@ -265,7 +265,42 @@
       "ACTIF": "نشط",
       "CLOTURE": "مغلق",
       "SUSPENDU": "معلق"
-    }
+    },
+    "types": {
+      "civil_premiere_instance": "مدني - درجة أولى",
+      "divorce": "طلاق",
+      "commercial": "تجاري",
+      "refere": "استعجالي",
+      "penal": "جزائي",
+      "administratif": "إداري",
+      "faillite": "إفلاس",
+      "execution_forcee": "تنفيذ إجباري",
+      "cassation": "تعقيب",
+      "social": "اجتماعي",
+      "autre": "أخرى"
+    },
+    "statusLabels": {
+      "open": "مفتوح",
+      "in_progress": "جارٍ",
+      "pending": "في الانتظار",
+      "closed": "مغلق",
+      "archived": "مؤرشف"
+    },
+    "priorityLabels": {
+      "low": "منخفضة",
+      "medium": "متوسطة",
+      "high": "عالية",
+      "urgent": "عاجل"
+    },
+    "partieAdverse": "الطرف الخصم",
+    "dateOuverture": "فُتح في",
+    "montantLitige": "قيمة النزاع",
+    "workflowStep": "المرحلة",
+    "searchPlaceholder": "ابحث عن ملف...",
+    "filterAll": "الكل",
+    "filterActive": "النشطة",
+    "filterClosed": "المغلقة",
+    "filterArchived": "المؤرشفة"
   },
   "factures": {
     "title": "الفواتير",

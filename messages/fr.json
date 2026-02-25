@@ -265,7 +265,42 @@
       "ACTIF": "Actif",
       "CLOTURE": "Clôturé",
       "SUSPENDU": "Suspendu"
-    }
+    },
+    "types": {
+      "civil_premiere_instance": "Civil 1ère instance",
+      "divorce": "Divorce",
+      "commercial": "Commercial",
+      "refere": "Référé",
+      "penal": "Pénal",
+      "administratif": "Administratif",
+      "faillite": "Faillite",
+      "execution_forcee": "Exécution forcée",
+      "cassation": "Cassation",
+      "social": "Social",
+      "autre": "Autre"
+    },
+    "statusLabels": {
+      "open": "Ouvert",
+      "in_progress": "En cours",
+      "pending": "En attente",
+      "closed": "Clôturé",
+      "archived": "Archivé"
+    },
+    "priorityLabels": {
+      "low": "Basse",
+      "medium": "Moyenne",
+      "high": "Haute",
+      "urgent": "Urgent"
+    },
+    "partieAdverse": "Partie adverse",
+    "dateOuverture": "Ouvert le",
+    "montantLitige": "Litige",
+    "workflowStep": "Étape",
+    "searchPlaceholder": "Rechercher un dossier...",
+    "filterAll": "Tous",
+    "filterActive": "Actifs",
+    "filterClosed": "Clôturés",
+    "filterArchived": "Archivés"
   },
   "factures": {
     "title": "Factures",
