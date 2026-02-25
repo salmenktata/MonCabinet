@@ -56,7 +56,7 @@ export function Logo({
           />
         )}
 
-        {/* SVG Logo */}
+        {/* SVG Logo — bouclier amber + balance marine réseau */}
         <svg
           viewBox="0 0 64 64"
           fill="none"
@@ -66,125 +66,78 @@ export function Logo({
             animate && 'transition-transform duration-300'
           )}
         >
-          {/* Defs for gradients */}
-          <defs>
-            {/* Bouclier gradient */}
-            <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f59e0b" />
-              <stop offset="50%" stopColor="#d97706" />
-              <stop offset="100%" stopColor="#b45309" />
-            </linearGradient>
-
-            {/* Bordure dorée */}
-            <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#fcd34d" />
-              <stop offset="50%" stopColor="#f59e0b" />
-              <stop offset="100%" stopColor="#d97706" />
-            </linearGradient>
-
-            {/* Balance gradient */}
-            <linearGradient id="balanceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#fef3c7" />
-              <stop offset="100%" stopColor="#fcd34d" />
-            </linearGradient>
-
-            {/* Inner shadow */}
-            <filter id="innerShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur" />
-              <feOffset in="blur" dx="1" dy="2" result="offsetBlur" />
-              <feComposite in="SourceGraphic" in2="offsetBlur" operator="over" />
-            </filter>
-          </defs>
-
-          {/* Bouclier - forme principale */}
+          {/* Bouclier amber plat */}
           <path
-            d="M32 4C32 4 8 12 8 24C8 36 8 44 32 60C56 44 56 36 56 24C56 12 32 4 32 4Z"
-            fill="url(#shieldGradient)"
-            stroke="url(#borderGradient)"
-            strokeWidth="2.5"
-            filter="url(#innerShadow)"
+            d="M32 3C32 3 7 11 7 24C7 37 7 45 32 61C57 45 57 37 57 24C57 11 32 3 32 3Z"
+            fill="#E8951A"
           />
-
-          {/* Highlight intérieur */}
+          {/* Ombre portée droite (flat shadow) */}
           <path
-            d="M32 8C32 8 12 15 12 25C12 35 12 42 32 56"
+            d="M32 3C32 3 57 11 57 24C57 37 57 45 32 61L32 3Z"
+            fill="#C47A10"
+            opacity="0.4"
+          />
+          {/* Bordure interne */}
+          <path
+            d="M32 6C32 6 10 13 10 24C10 36 10 44 32 59C54 44 54 36 54 24C54 13 32 6 32 6Z"
             fill="none"
-            stroke="rgba(254, 243, 199, 0.3)"
+            stroke="#C47A10"
             strokeWidth="1"
-            strokeLinecap="round"
+            opacity="0.6"
           />
 
-          {/* Balance de justice */}
-          <g className="origin-center">
-            {/* Pilier central */}
-            <rect
-              x="30"
-              y="18"
-              width="4"
-              height="26"
-              rx="1"
-              fill="url(#balanceGradient)"
-            />
+          {/* Balance marine avec nœuds réseau */}
+          <g fill="#1E3464" stroke="#1E3464">
+            {/* Diamant au sommet */}
+            <path d="M32 11 L30 14.5 L32 16.5 L34 14.5 Z" />
 
-            {/* Base du pilier */}
-            <rect
-              x="26"
-              y="42"
-              width="12"
-              height="3"
-              rx="1.5"
-              fill="url(#balanceGradient)"
-            />
+            {/* Pilier central vertical */}
+            <rect x="31" y="16" width="2" height="26" rx="1" />
 
-            {/* Barre horizontale */}
-            <rect
-              x="14"
-              y="20"
-              width="36"
-              height="3"
-              rx="1.5"
-              fill="url(#balanceGradient)"
-            />
+            {/* Nœud central haut */}
+            <circle cx="32" cy="20" r="2" />
+
+            {/* Bras gauche haut (vers nœud ext gauche) */}
+            <line x1="32" y1="20" x2="19" y2="20" strokeWidth="1.8" />
+            {/* Bras droit haut (vers nœud ext droit) */}
+            <line x1="32" y1="20" x2="45" y2="20" strokeWidth="1.8" />
+
+            {/* Nœud extérieur gauche */}
+            <circle cx="19" cy="20" r="2" />
+            {/* Nœud extérieur droit */}
+            <circle cx="45" cy="20" r="2" />
+
+            {/* Diagonale gauche (nœud ext → nœud mid) */}
+            <line x1="19" y1="20" x2="24" y2="26" strokeWidth="1.8" />
+            {/* Diagonale droite (nœud ext → nœud mid) */}
+            <line x1="45" y1="20" x2="40" y2="26" strokeWidth="1.8" />
+
+            {/* Nœud milieu gauche */}
+            <circle cx="24" cy="26" r="2" />
+            {/* Nœud milieu droit */}
+            <circle cx="40" cy="26" r="2" />
+
+            {/* Converge vers nœud central bas */}
+            <line x1="24" y1="26" x2="32" y2="30" strokeWidth="1.8" />
+            <line x1="40" y1="26" x2="32" y2="30" strokeWidth="1.8" />
+
+            {/* Nœud central bas */}
+            <circle cx="32" cy="30" r="2.5" />
+
+            {/* Chaînes vers plateaux */}
+            <line x1="19" y1="22" x2="19" y2="31" strokeWidth="1.5" />
+            <line x1="45" y1="22" x2="45" y2="31" strokeWidth="1.5" />
 
             {/* Plateau gauche */}
-            <path
-              d="M14 22L18 32H10L14 22Z"
-              fill="none"
-              stroke="url(#balanceGradient)"
-              strokeWidth="1.5"
-              strokeLinejoin="round"
-            />
-            <ellipse
-              cx="14"
-              cy="32"
-              rx="5"
-              ry="2"
-              fill="url(#balanceGradient)"
-            />
-
+            <path d="M13 31 L25 31 L23 37 L15 37 Z" />
             {/* Plateau droit */}
-            <path
-              d="M50 22L54 32H46L50 22Z"
-              fill="none"
-              stroke="url(#balanceGradient)"
-              strokeWidth="1.5"
-              strokeLinejoin="round"
-            />
-            <ellipse
-              cx="50"
-              cy="32"
-              rx="5"
-              ry="2"
-              fill="url(#balanceGradient)"
-            />
+            <path d="M39 31 L51 31 L49 37 L41 37 Z" />
 
-            {/* Chaînes stylisées */}
-            <line x1="14" y1="22" x2="14" y2="30" stroke="url(#balanceGradient)" strokeWidth="1" />
-            <line x1="50" y1="22" x2="50" y2="30" stroke="url(#balanceGradient)" strokeWidth="1" />
+            {/* Base du pilier — socle */}
+            <rect x="29" y="42" width="6" height="2" rx="1" />
+            <rect x="27" y="43.5" width="10" height="2" rx="1" />
+            <rect x="24" y="45" width="16" height="3" rx="1.5" />
           </g>
-
-          {/* Étoile décorative au sommet */}
-          <circle cx="32" cy="13" r="2" fill="#fef3c7" />
         </svg>
       </div>
 
@@ -276,38 +229,32 @@ export function LogoHorizontal({
           xmlns="http://www.w3.org/2000/svg"
           className="w-full h-full relative z-10 drop-shadow-lg"
         >
-          <defs>
-            <linearGradient id="shieldGradientH" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f59e0b" />
-              <stop offset="50%" stopColor="#d97706" />
-              <stop offset="100%" stopColor="#b45309" />
-            </linearGradient>
-            <linearGradient id="borderGradientH" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#fcd34d" />
-              <stop offset="50%" stopColor="#f59e0b" />
-              <stop offset="100%" stopColor="#d97706" />
-            </linearGradient>
-            <linearGradient id="balanceGradientH" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#fef3c7" />
-              <stop offset="100%" stopColor="#fcd34d" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M32 4C32 4 8 12 8 24C8 36 8 44 32 60C56 44 56 36 56 24C56 12 32 4 32 4Z"
-            fill="url(#shieldGradientH)"
-            stroke="url(#borderGradientH)"
-            strokeWidth="2.5"
-          />
-          <g>
-            <rect x="30" y="18" width="4" height="26" rx="1" fill="url(#balanceGradientH)" />
-            <rect x="26" y="42" width="12" height="3" rx="1.5" fill="url(#balanceGradientH)" />
-            <rect x="14" y="20" width="36" height="3" rx="1.5" fill="url(#balanceGradientH)" />
-            <ellipse cx="14" cy="32" rx="5" ry="2" fill="url(#balanceGradientH)" />
-            <ellipse cx="50" cy="32" rx="5" ry="2" fill="url(#balanceGradientH)" />
-            <line x1="14" y1="22" x2="14" y2="30" stroke="url(#balanceGradientH)" strokeWidth="1" />
-            <line x1="50" y1="22" x2="50" y2="30" stroke="url(#balanceGradientH)" strokeWidth="1" />
+          <path d="M32 3C32 3 7 11 7 24C7 37 7 45 32 61C57 45 57 37 57 24C57 11 32 3 32 3Z" fill="#E8951A" />
+          <path d="M32 3C32 3 57 11 57 24C57 37 57 45 32 61L32 3Z" fill="#C47A10" opacity="0.4" />
+          <path d="M32 6C32 6 10 13 10 24C10 36 10 44 32 59C54 44 54 36 54 24C54 13 32 6 32 6Z" fill="none" stroke="#C47A10" strokeWidth="1" opacity="0.6" />
+          <g fill="#1E3464" stroke="#1E3464">
+            <path d="M32 11 L30 14.5 L32 16.5 L34 14.5 Z" />
+            <rect x="31" y="16" width="2" height="26" rx="1" />
+            <circle cx="32" cy="20" r="2" />
+            <line x1="32" y1="20" x2="19" y2="20" strokeWidth="1.8" />
+            <line x1="32" y1="20" x2="45" y2="20" strokeWidth="1.8" />
+            <circle cx="19" cy="20" r="2" />
+            <circle cx="45" cy="20" r="2" />
+            <line x1="19" y1="20" x2="24" y2="26" strokeWidth="1.8" />
+            <line x1="45" y1="20" x2="40" y2="26" strokeWidth="1.8" />
+            <circle cx="24" cy="26" r="2" />
+            <circle cx="40" cy="26" r="2" />
+            <line x1="24" y1="26" x2="32" y2="30" strokeWidth="1.8" />
+            <line x1="40" y1="26" x2="32" y2="30" strokeWidth="1.8" />
+            <circle cx="32" cy="30" r="2.5" />
+            <line x1="19" y1="22" x2="19" y2="31" strokeWidth="1.5" />
+            <line x1="45" y1="22" x2="45" y2="31" strokeWidth="1.5" />
+            <path d="M13 31 L25 31 L23 37 L15 37 Z" />
+            <path d="M39 31 L51 31 L49 37 L41 37 Z" />
+            <rect x="29" y="42" width="6" height="2" rx="1" />
+            <rect x="27" y="43.5" width="10" height="2" rx="1" />
+            <rect x="24" y="45" width="16" height="3" rx="1.5" />
           </g>
-          <circle cx="32" cy="13" r="2" fill="#fef3c7" />
         </svg>
       </div>
 
