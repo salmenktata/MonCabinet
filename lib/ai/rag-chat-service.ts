@@ -594,17 +594,22 @@ async function rerankSources(
     }
 
     // Sprint 1 RAG Audit-Proof: pénalité douce pour branches hors-scope
-    // ×0.4 (était ×0.05 ≈ élimination — trop agressif, causait faux-négatifs sur LLM routing)
+    // ×0.4 pour branches DB (explicit), ×0.15 pour branches inférées depuis titre
+    // (chunks sans branch en DB ont souvent une similarité BM25/vectorielle très haute
+    //  ex: Note-commune sim=0.97 vs COC art 402 sim=0.20 → ×0.4 insuffisant, ×0.15 requis)
     // Gate confiance : pas de pénalité si routeur peu confiant (<0.70)
-    // Fix Feb 25, 2026 : fallback inferBranchFromTitle() quand metadata.branch=null
-    // (14 339 chunks category='codes' n'ont pas de branch en DB)
     if (branchOptions?.forbiddenBranches && branchOptions.forbiddenBranches.length > 0) {
       const routerConfidence = branchOptions.routerConfidence ?? 1.0
       if (routerConfidence >= 0.70) {
-        const branch = (s.metadata?.branch as string | undefined) || inferBranchFromTitle(s.documentName || '')
+        const explicitBranch = s.metadata?.branch as string | undefined
+        const inferredBranch = explicitBranch ? undefined : inferBranchFromTitle(s.documentName || '')
+        const branch = explicitBranch || inferredBranch
         if (branch && branch !== 'autre' && branchOptions.forbiddenBranches.includes(branch)) {
-          boost *= 0.4
-          log.info(`[RAG Branch] Pénalité 0.4× sur "${s.documentName}" (branch=${branch}, inferred=${!s.metadata?.branch}, confidence=${routerConfidence.toFixed(2)})`)
+          // Pénalité plus forte pour branches inférées : ces docs ont sim intrinsèquement haute
+          // ex: Note-commune(0.97×0.15=0.145) < COC art 402(0.20×1.49=0.298) ✓
+          const penaltyFactor = inferredBranch ? 0.15 : 0.4
+          boost *= penaltyFactor
+          log.info(`[RAG Branch] Pénalité ${penaltyFactor}× sur "${s.documentName}" (branch=${branch}, inferred=${!!inferredBranch}, confidence=${routerConfidence.toFixed(2)})`)
         }
       }
     }
