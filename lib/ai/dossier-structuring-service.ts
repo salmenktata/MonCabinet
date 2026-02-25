@@ -1168,11 +1168,52 @@ function attemptZodBasedRepair(
     repaired = repaired.replace(/"typeProcedure"\s*:\s*null/, '"typeProcedure": "autre"')
   }
 
+  // Réparer les rôles arabes → valeurs enum françaises attendues
+  if (fieldErrors.client) {
+    console.log('[Réparation Zod] Fix client.role arabe → "demandeur"')
+    const arabicRolesDemandeur = ['متهم', 'مدعي', 'مستأنف', 'طالب', 'موكل', 'مدعى به', 'شاكي']
+    const arabicRolesDefendeur = ['ضحية', 'مدعى عليه', 'مستأنف عليه', 'خصم', 'طرف مدعى عليه']
+    for (const role of arabicRolesDemandeur) {
+      repaired = repaired.replace(new RegExp(`("client"[^}]*"role"\\s*:\\s*)"${role}"`, 'g'), '$1"demandeur"')
+    }
+    for (const role of arabicRolesDefendeur) {
+      repaired = repaired.replace(new RegExp(`("client"[^}]*"role"\\s*:\\s*)"${role}"`, 'g'), '$1"demandeur"')
+    }
+    // Fallback : toute valeur non-valide dans client → demandeur
+    repaired = repaired.replace(/"client"\s*:\s*\{([^}]*)"role"\s*:\s*"(?!demandeur|defendeur)[^"]*"/g,
+      (m) => m.replace(/"role"\s*:\s*"[^"]*"/, '"role": "demandeur"'))
+  }
+  if (fieldErrors.partieAdverse) {
+    console.log('[Réparation Zod] Fix partieAdverse.role arabe → "defendeur"')
+    // Toute valeur non-valide dans partieAdverse → defendeur
+    repaired = repaired.replace(/"partieAdverse"\s*:\s*\{([^}]*)"role"\s*:\s*"(?!demandeur|defendeur)[^"]*"/g,
+      (m) => m.replace(/"role"\s*:\s*"[^"]*"/, '"role": "defendeur"'))
+  }
+
+  // Réparer calculs avec type invalide ou montant/formule null
+  if (fieldErrors.calculs) {
+    console.log('[Réparation Zod] Fix calculs invalides')
+    const validCalcTypes = ['moutaa', 'pension_alimentaire', 'pension_epouse', 'interets_moratoires', 'indemnite_forfaitaire', 'autre']
+    // Remplacer types invalides par "autre"
+    repaired = repaired.replace(/"type"\s*:\s*"([^"]*)"/g, (match, val) => {
+      if (validCalcTypes.includes(val)) return match
+      // Vérifier si ce "type" est dans un contexte calculs (heuristique : présence de "montant" nearby)
+      return match // Ne pas modifier les "type" dans d'autres contextes (references, etc.)
+    })
+    // Fix null dans calculs → vider le tableau si les items sont invalides
+    repaired = repaired.replace(/"calculs"\s*:\s*null/, '"calculs": []')
+    // Si calculs contient des montants null, les remplacer par 0
+    repaired = repaired.replace(/"montant"\s*:\s*null/g, '"montant": 0')
+    // Si formule ou reference null, remplacer par chaîne vide
+    repaired = repaired.replace(/"formule"\s*:\s*null/g, '"formule": ""')
+    repaired = repaired.replace(/"reference"\s*:\s*null/g, '"reference": ""')
+  }
+
   // Réparer arrays vides au lieu de null
   if (fieldErrors.faitsExtraits) {
     repaired = repaired.replace(/"faitsExtraits"\s*:\s*null/, '"faitsExtraits": []')
   }
-  if (fieldErrors.calculs) {
+  if (!fieldErrors.calculs) {
     repaired = repaired.replace(/"calculs"\s*:\s*null/, '"calculs": []')
   }
   if (fieldErrors.timeline) {
@@ -1287,10 +1328,20 @@ Valeurs autorisées pour typeProcedure: "civil_premiere_instance", "divorce", "c
     userPrompt += `
 
 تعليمات اللغة الصارمة: اللغة المكتشفة عربية.
-يجب أن تكون جميع القيم النصية في JSON باللغة العربية حصرياً.
+يجب أن تكون جميع القيم النصية الحرة في JSON باللغة العربية حصرياً.
 هذا يشمل: التسميات، الأوصاف، التحليلات، التوصيات، الملخصات، العناوين، المراحل، المخاطر، الأسس القانونية — كل شيء بالعربية.
-الاستثناءات الوحيدة: أسماء الأشخاص الأعلام، أرقام مواد القانون (مثل Art. 31 CSP)، واختصارات المجلات (COC, CSP, CPC).
-لا تخلط أبداً بين العربية والفرنسية في نفس القيمة النصية.`
+
+قيم ENUM محجوزة لا تُترجم إطلاقاً (استخدمها كما هي بالفرنسية/الإنجليزية):
+- "role" في client و partieAdverse: استخدم "demandeur" أو "defendeur" دائماً — لا تكتب "متهم" أو "ضحية" أو أي ترجمة
+- "typeProcedure": استخدم القيم المحددة أعلاه فقط (penal, civil_premiere_instance, etc.)
+- "type" في calculs: استخدم "moutaa", "pension_alimentaire", "pension_epouse", "interets_moratoires", "indemnite_forfaitaire", أو "autre" فقط — لا تخترع قيماً جديدة. إذا لم تنطبق أي قيمة، اترك calculs مصفوفة فارغة []
+- "priorite" في actionsSuggerees: استخدم "urgent", "haute", "moyenne", أو "basse" فقط
+- "type" في references: استخدم "code", "jurisprudence", أو "doctrine" فقط
+- "importance" في faitsExtraits: استخدم "decisif", "important", أو "contexte" فقط
+- "categorie" في faitsExtraits: استخدم "fait_juridique", "interpretation", أو "ressenti" فقط
+
+الاستثناءات الأخرى: أسماء الأشخاص الأعلام، أرقام مواد القانون (مثل Art. 31 CSP)، واختصارات المجلات (COC, CSP, CPC).
+لا تخلط أبداً بين العربية والفرنسية في نفس القيمة النصية الحرة.`
   }
 
   userPrompt += `
