@@ -145,7 +145,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
     if (cronExecutionId) {
       await db.query(`
         UPDATE cron_executions
-        SET status = 'success', completed_at = NOW(), duration_ms = $2,
+        SET status = 'completed', completed_at = NOW(), duration_ms = $2,
             output = $3
         WHERE id = $1
       `, [cronExecutionId, duration, JSON.stringify({ processed: docs.length, succeeded, failed, remaining })])
