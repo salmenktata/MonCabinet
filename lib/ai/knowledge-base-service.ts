@@ -384,7 +384,11 @@ function buildCitationLocator(
  */
 export async function indexKnowledgeDocument(
   documentId: string,
-  options: { strategy?: 'adaptive' | 'article' | 'semantic'; skipExistingGeminiEmbeddings?: boolean } = {}
+  options: {
+    strategy?: 'adaptive' | 'article' | 'semantic'
+    skipExistingGeminiEmbeddings?: boolean
+    skipQualityGate?: boolean
+  } = {}
 ): Promise<{
   success: boolean
   chunksCreated: number
@@ -411,16 +415,17 @@ export async function indexKnowledgeDocument(
   }
 
   // ✨ QUALITY GATE: Bloquer l'indexation des docs de très faible qualité
-  // Seulement si quality_score a déjà été calculé (pas NULL) et est < 40
-  if (doc.quality_score !== null && doc.quality_score < 40) {
+  // Seulement si quality_score a déjà été calculé (pas NULL) et est < seuil
+  const qualityThreshold = parseInt(process.env.MIN_QUALITY_SCORE_FOR_INDEXING || '40')
+  if (!options.skipQualityGate && doc.quality_score !== null && doc.quality_score < qualityThreshold) {
     logger.warn(
       `[KB Index] ⚠️ QUALITY GATE: Doc ${documentId} ("${doc.title?.substring(0, 40)}") ` +
-      `bloqué pour indexation - quality_score=${doc.quality_score} < 40`
+      `bloqué pour indexation - quality_score=${doc.quality_score} < ${qualityThreshold}`
     )
     return {
       success: false,
       chunksCreated: 0,
-      error: `Quality gate: score ${doc.quality_score}/100 < 40 (document de très faible qualité)`,
+      error: `Quality gate: score ${doc.quality_score}/100 < ${qualityThreshold} (document de très faible qualité)`,
     }
   }
 
