@@ -100,7 +100,7 @@ export const useAssistantStore = create<AssistantState>()(
               : state.step,
           narratif: state.narratif.slice(0, 2000),
           result: lightResult,
-          error: state.error,
+          error: '', // Ne pas persister l'erreur entre sessions
           clarifyingQuestions: [],
           clarifyingAnswers: {},
           enrichedNarratif: '',
