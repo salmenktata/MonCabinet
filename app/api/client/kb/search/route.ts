@@ -13,6 +13,7 @@ import { search } from '@/lib/ai/unified-rag-service'
 import type { RAGSearchFilters, RAGSearchResult } from '@/lib/ai/unified-rag-service'
 import { RAG_THRESHOLDS } from '@/lib/ai/config'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { recordPipelineMetric } from '@/lib/metrics/rag-metrics'
 
 // =============================================================================
 // TYPES
@@ -156,6 +157,19 @@ export async function POST(req: NextRequest): Promise<NextResponse<KBSearchRespo
     // Cache hit heuristique: Si offset=0, pas de filtres complexes et latence <50ms
     // Note: Pour info exacte, il faudrait modifier unified-rag-service pour retourner cacheHit
     const cacheHit = offset === 0 && processingTimeMs < 50
+
+    // Instrumentation métriques comparatives pipeline
+    const avgSim = sortedResults.length > 0
+      ? sortedResults.reduce((s, r) => s + r.similarity, 0) / sortedResults.length
+      : 0
+    recordPipelineMetric({
+      pipeline: 'kb_search',
+      abstention: sortedResults.length === 0,
+      cacheHit,
+      sourcesCount: sortedResults.length,
+      avgSimilarity: avgSim,
+      latencyMs: processingTimeMs,
+    })
 
     return NextResponse.json({
       success: true,

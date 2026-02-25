@@ -590,6 +590,15 @@ async function rerankSources(
       log.info(`[RAG Rerank] Malus OCR 0.85× sur "${s.documentName}" (conf=${(_meta.ocr_page_confidence as number | undefined)?.toFixed(0) ?? '?'}%)`)
     }
 
+    // Malus qualité faible document : sources avec quality_score bas pénalisées 0.5×
+    // Le quality_score (0-100) est stocké dans metadata et reflète la fiabilité du contenu.
+    // Seuil 40 = cohérent avec MIN_QUALITY_SCORE_FOR_INDEXING. Soft (×0.5) plutôt que hard exclusion.
+    const qualityScore = _meta?.quality_score as number | undefined
+    if (qualityScore !== undefined && qualityScore < 40) {
+      boost *= 0.5
+      log.info(`[RAG Rerank] Malus qualité 0.5× sur "${s.documentName}" (quality_score=${qualityScore})`)
+    }
+
     // P0 fix Feb 24, 2026 : plafonner le boost cumulatif à 2.0×
     // Sans cap : domain(2.5×) × hierarchy(1.35×) × temporal × stance(1.3×) → ~5.5×
     // Un chunk médiocre avec tous les boosts peut dépasser un chunk très pertinent

@@ -7,7 +7,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Activity, PieChart, DollarSign, Gauge, Heart, Database, Clock, Settings, Eye, FileType, Radar } from 'lucide-react'
+import { Activity, PieChart, DollarSign, Gauge, Heart, Database, Clock, Settings, Eye, FileType, Radar, GitCompare } from 'lucide-react'
 import { ProductionMonitoringTab } from '@/components/super-admin/monitoring/ProductionMonitoringTab'
 import { ProviderUsageTab } from '@/components/super-admin/monitoring/ProviderUsageTab'
 import { AICostsTab } from '@/components/super-admin/monitoring/AICostsTab'
@@ -19,6 +19,7 @@ import SystemConfigTab from '@/components/super-admin/monitoring/SystemConfigTab
 import { DocTypeStatsPanel } from '@/components/super-admin/monitoring/DocTypeStatsPanel'
 import { RAGHealthTab } from '@/components/super-admin/monitoring/RAGHealthTab'
 import { DriftDetectionTab } from '@/components/super-admin/monitoring/DriftDetectionTab'
+import { PipelineComparisonTab } from '@/components/super-admin/monitoring/PipelineComparisonTab'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -57,7 +58,7 @@ export function MonitoringClient() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <div className="overflow-x-auto">
-        <TabsList className="grid w-max min-w-full grid-cols-10">
+        <TabsList className="grid w-max min-w-full grid-cols-11">
           <TabsTrigger value="system-config" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -97,6 +98,10 @@ export function MonitoringClient() {
           <TabsTrigger value="drift" className="flex items-center gap-2">
             <Radar className="h-4 w-4" />
             <span className="hidden sm:inline">Drift</span>
+          </TabsTrigger>
+          <TabsTrigger value="pipeline-comparison" className="flex items-center gap-2">
+            <GitCompare className="h-4 w-4" />
+            <span className="hidden sm:inline">Pipelines</span>
           </TabsTrigger>
           <TabsTrigger value="impersonations" className="flex items-center gap-2">
             <Eye className="h-4 w-4" />
@@ -155,7 +160,12 @@ export function MonitoringClient() {
           <DriftDetectionTab />
         </TabsContent>
 
-        {/* Tab 9: Impersonations */}
+        {/* Tab 9: Comparaison Pipelines RAG */}
+        <TabsContent value="pipeline-comparison" className="space-y-6">
+          <PipelineComparisonTab />
+        </TabsContent>
+
+        {/* Tab 10: Impersonations */}
         <TabsContent value="impersonations" className="space-y-6">
           <ImpersonationsTab />
         </TabsContent>

@@ -7,6 +7,8 @@
  * Body:
  *   batchSize      (default: 5)    — nombre de docs à traiter
  *   maxChunkChars  (default: 2000) — seuil de détection "trop grand"
+ *   category       (optional)      — filtrer par catégorie KB (jurisprudence, codes, doctrine...)
+ *   docType        (optional)      — filtrer par doc_type ENUM (JURIS, TEXTES, DOCTRINE...)
  *
  * Réponse:
  *   processed, succeeded, failed, remaining
@@ -29,15 +31,28 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
     const body = await request.json().catch(() => ({}))
     const batchSize = Math.min(parseInt(body.batchSize || '5', 10), 20)
     const maxChunkChars = parseInt(body.maxChunkChars || '2000', 10)
+    const categoryFilter: string | null = body.category || null
+    const docTypeFilter: string | null = body.docType || null
 
     // Dériver la taille cible en mots depuis maxChunkChars
     // Hypothèse : ~5 chars/mot (valable FR et AR). On prend 80% de la limite pour avoir une marge.
     const targetChunkWords = Math.floor((maxChunkChars * 0.8) / 5)
     const targetChunkOverlap = Math.floor(targetChunkWords * 0.15)
 
-    console.log('[RechunkLarge] Démarrage:', { batchSize, maxChunkChars, targetChunkWords, targetChunkOverlap })
+    console.log('[RechunkLarge] Démarrage:', { batchSize, maxChunkChars, targetChunkWords, targetChunkOverlap, categoryFilter, docTypeFilter })
 
-    // Trouver les documents avec des chunks trop grands
+    // Trouver les documents avec des chunks trop grands (avec filtres optionnels par category/docType)
+    const queryParams: unknown[] = [maxChunkChars, batchSize]
+    let filterClauses = 'kb.is_active = true'
+    if (categoryFilter) {
+      queryParams.push(categoryFilter)
+      filterClauses += ` AND kb.category = $${queryParams.length}`
+    }
+    if (docTypeFilter) {
+      queryParams.push(docTypeFilter)
+      filterClauses += ` AND kb.doc_type::text = $${queryParams.length}`
+    }
+
     const docsResult = await db.query<{
       doc_id: string
       title: string
@@ -53,23 +68,34 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
         MAX(LENGTH(kbc.content)) as max_chars
       FROM knowledge_base kb
       JOIN knowledge_base_chunks kbc ON kb.id = kbc.knowledge_base_id
-      WHERE kb.is_active = true
+      WHERE ${filterClauses}
       GROUP BY kb.id, kb.title, kb.category
       HAVING COUNT(*) FILTER (WHERE LENGTH(kbc.content) > $1) > 0
       ORDER BY large_chunks DESC, max_chars DESC
       LIMIT $2
-    `, [maxChunkChars, batchSize])
+    `, queryParams)
 
     const docs = docsResult.rows
 
     // Compter le total restant (pour le monitoring)
+    const remainingParams: unknown[] = [maxChunkChars]
+    let remainingFilter = 'kb.is_active = true'
+    if (categoryFilter) {
+      remainingParams.push(categoryFilter)
+      remainingFilter += ` AND kb.category = $${remainingParams.length}`
+    }
+    if (docTypeFilter) {
+      remainingParams.push(docTypeFilter)
+      remainingFilter += ` AND kb.doc_type::text = $${remainingParams.length}`
+    }
+
     const remainingResult = await db.query<{ count: string }>(`
       SELECT COUNT(DISTINCT kb.id) as count
       FROM knowledge_base kb
       JOIN knowledge_base_chunks kbc ON kb.id = kbc.knowledge_base_id
-      WHERE kb.is_active = true
+      WHERE ${remainingFilter}
         AND LENGTH(kbc.content) > $1
-    `, [maxChunkChars])
+    `, remainingParams)
     const remaining = parseInt(remainingResult.rows[0]?.count || '0', 10)
 
     if (docs.length === 0) {

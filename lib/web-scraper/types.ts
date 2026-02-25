@@ -915,6 +915,15 @@ export interface LegalContext {
   book?: string
   /** Titre/عنوان (si applicable) */
   title?: string
+  // --- Métadonnées judiciaires (cassation.tn) ---
+  /** Numéro de décision/arrêt. Ex: "قرار عدد 12345" ou "Arrêt n° 12345" */
+  courtDecisionNumber?: string
+  /** Date de la décision en ISO 8601 (YYYY-MM-DD). Ex: "2023-03-15" */
+  courtDecisionDate?: string
+  /** Chambre/دائرة. Ex: "الدائرة المدنية" ou "Chambre civile" */
+  courtChamber?: string
+  /** Référence article de code cité dans le titre. Ex: "الفصل 402 م.إ.ع" */
+  codeArticleRef?: string
 }
 
 /**

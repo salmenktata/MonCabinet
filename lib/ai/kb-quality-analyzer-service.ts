@@ -441,3 +441,101 @@ export function parseKBQualityResponse(content: string): LLMKBQualityResponse {
     }
   }
 }
+
+// =============================================================================
+// ENRICHISSEMENT MÉTADONNÉES JUDICIAIRES
+// =============================================================================
+
+export interface CourtMetadataEnrichmentResult {
+  processed: number
+  enriched: number
+  skipped: number
+  errors: number
+}
+
+/**
+ * Enrichit les métadonnées judiciaires (numéro arrêt, date, chambre) en batch
+ * via extraction regex sur le full_text. Cible les docs JURIS sans courtDecisionNumber.
+ *
+ * @param batchSize   Nombre de docs à traiter (défaut: 20)
+ * @param sourceUrl   Filtrer par URL source (ex: 'cassation.tn')
+ */
+export async function enrichCourtMetadataBatch(
+  batchSize = 20,
+  sourceUrl?: string,
+): Promise<CourtMetadataEnrichmentResult> {
+  const result: CourtMetadataEnrichmentResult = { processed: 0, enriched: 0, skipped: 0, errors: 0 }
+
+  // Sélectionner les docs JURIS sans courtDecisionNumber dans metadata
+  const sourceFilter = sourceUrl
+    ? `AND (kb.metadata->>'source_url' ILIKE $3 OR kb.metadata->>'sourceUrl' ILIKE $3)`
+    : ''
+  const queryParams: unknown[] = ['jurisprudence', batchSize]
+  if (sourceUrl) queryParams.push(`%${sourceUrl}%`)
+
+  const docsResult = await db.query<{
+    id: string
+    title: string
+    full_text: string
+    metadata: Record<string, unknown>
+  }>(`
+    SELECT id, title, full_text, metadata
+    FROM knowledge_base
+    WHERE category = $1
+      AND is_active = true
+      AND is_indexed = true
+      AND (metadata->>'courtDecisionNumber' IS NULL OR metadata->>'courtDecisionNumber' = '')
+      ${sourceFilter}
+    ORDER BY created_at DESC
+    LIMIT $2
+  `, queryParams)
+
+  for (const doc of docsResult.rows) {
+    result.processed++
+    try {
+      const textToSearch = `${doc.title || ''} ${(doc.full_text || '').substring(0, 800)}`
+      const extracted: Record<string, string> = {}
+
+      // Numéro d'arrêt
+      const numAr = textToSearch.match(/قرار(?:\s*تعقيبي)?\s*(?:عدد\s*)?(?:رقم\s*)?:?\s*([\d/\-]+)/i)
+      const numFr = textToSearch.match(/[Aa]rr[êe]t\s*n[°o]?\s*\.?\s*([\d/\-]+)/i)
+      if (numAr) extracted.courtDecisionNumber = numAr[1].trim()
+      else if (numFr) extracted.courtDecisionNumber = numFr[1].trim()
+
+      // Date
+      const dateAr = textToSearch.match(/(?:بتاريخ|صادر في|في تاريخ)\s*(\d{1,2})[\/\-\s](\d{1,2})[\/\-\s](\d{4})/i)
+      const dateFr = textToSearch.match(/(?:du|en date du|le)\s*(\d{1,2})[\/\s](\d{1,2})[\/\s](\d{4})/i)
+      if (dateAr) {
+        const [, day, month, year] = dateAr
+        extracted.courtDecisionDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      } else if (dateFr) {
+        const [, day, month, year] = dateFr
+        extracted.courtDecisionDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      }
+
+      // Chambre
+      const chamberAr = textToSearch.match(/الدائرة\s+(المدنية|الجنائية|التجارية|الاجتماعية|العقارية|الإدارية|الجزائية)/i)
+      const chamberFr = textToSearch.match(/[Cc]hambre\s+(civile|pénale|commerciale|sociale|administrative|correctionnelle)/i)
+      if (chamberAr) extracted.courtChamber = `الدائرة ${chamberAr[1]}`
+      else if (chamberFr) extracted.courtChamber = `Chambre ${chamberFr[1]}`
+
+      if (Object.keys(extracted).length === 0) {
+        result.skipped++
+        continue
+      }
+
+      // Fusionner avec metadata existante
+      await db.query(
+        `UPDATE knowledge_base SET metadata = COALESCE(metadata, '{}'::jsonb) || $1::jsonb, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(extracted), doc.id]
+      )
+      result.enriched++
+    } catch (err) {
+      console.error(`[CourtMeta] Erreur doc ${doc.id}:`, err)
+      result.errors++
+    }
+  }
+
+  console.log(`[CourtMeta] Batch terminé: ${result.enriched}/${result.processed} enrichis, ${result.skipped} skippés, ${result.errors} erreurs`)
+  return result
+}

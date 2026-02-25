@@ -19,6 +19,9 @@ import {
   generateEmbedding,
   formatEmbeddingForPostgres,
 } from './embeddings-service'
+import { searchKnowledgeBaseHybrid } from './knowledge-base-service'
+import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
+import type { DocumentType } from '@/lib/categories/doc-types'
 import { getCachedEmbedding } from '@/lib/cache/embedding-cache'
 import { aiConfig, RAG_THRESHOLDS, getEmbeddingProvider } from './config'
 import {
@@ -459,39 +462,33 @@ export async function search(
   const embeddingStr = formatEmbeddingForPostgres(embeddingResult.embedding)
 
   // 3a. Recherche hybride BM25 + vectorielle (si ENABLE_HYBRID_SEARCH=true)
-  // Utilise search_knowledge_base_hybrid() — 7 params, BM25 auto-détecte la langue (Feb 24, 2026).
-  // Supporte OpenAI (1536-dim), Ollama nomic (768-dim) et Gemini (768-dim).
-  // Pagination (offset > 0) → fallback dense. Échec SQL → fallback dense automatique.
+  // Utilise searchKnowledgeBaseHybrid() depuis knowledge-base-service — dual embedding (OpenAI+Ollama),
+  // forced codes search, détection langue, boosts adaptatifs. Aligné avec rag-chat-service.ts.
+  // Pagination (offset > 0) → fallback dense. Échec → fallback dense automatique.
   if (process.env.ENABLE_HYBRID_SEARCH === 'true' && offset === 0) {
     try {
-      const provider = embeddingResult.provider || 'ollama'
-      const hybridResult = await db.query(
-        `SELECT
-          knowledge_base_id AS kb_id,
-          title,
-          category,
-          similarity,
-          chunk_content,
-          chunk_index
-         FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::text, $5::integer, $6::double precision, $7::text)`,
-        [query, embeddingStr, filters.category || null, null, limit, threshold, provider]
-      )
+      const kbResults = await searchKnowledgeBaseHybrid(query, {
+        category: filters.category as KnowledgeCategory | undefined,
+        docType: filters.documentType as DocumentType | undefined,
+        limit,
+        threshold,
+      })
 
-      const hKbIds = hybridResult.rows.map((r) => r.kb_id as string)
+      const hKbIds = kbResults.map((r) => r.knowledgeBaseId)
       const [hEnriched, hRelations] = await Promise.all([
         batchEnrichSourcesWithMetadata(hKbIds.map((id) => ({ documentId: id }))),
         batchGetDocumentRelations(hKbIds, includeRelations),
       ])
 
-      const hybridResults: RAGSearchResult[] = hybridResult.rows.map((row, i) => ({
-        kbId: row.kb_id,
-        title: row.title,
-        category: row.category,
-        similarity: parseFloat(row.similarity),
-        chunkContent: row.chunk_content,
-        chunkIndex: row.chunk_index,
+      const hybridResults: RAGSearchResult[] = kbResults.map((r, i) => ({
+        kbId: r.knowledgeBaseId,
+        title: r.title,
+        category: r.category,
+        similarity: r.similarity,
+        chunkContent: r.chunkContent,
+        chunkIndex: r.chunkIndex,
         metadata: hEnriched[i]?.metadata || NULL_METADATA,
-        relations: hRelations.get(row.kb_id),
+        relations: hRelations.get(r.knowledgeBaseId),
       }))
 
       const searchTimeMs = Date.now() - startTime
@@ -516,7 +513,7 @@ export async function search(
       })
 
       console.log(
-        `[UnifiedRAG] ✓ Hybrid search (${provider}): ${hybridResults.length} résultats`
+        `[UnifiedRAG] ✓ Hybrid search (dual-embed): ${hybridResults.length} résultats (docType=${filters.documentType || 'all'})`
       )
       return hybridResults
     } catch (error) {
@@ -539,6 +536,12 @@ export async function search(
   if (filters.category) {
     whereClauses.push(`kb.category = $${paramIndex}`)
     queryParams.push(filters.category)
+    paramIndex++
+  }
+
+  if (filters.documentType) {
+    whereClauses.push(`kb.doc_type::text = $${paramIndex}`)
+    queryParams.push(filters.documentType)
     paramIndex++
   }
 

@@ -1610,6 +1610,59 @@ export function extractLegalContext(url: string, title: string, content: string)
       }
     }
 
+    // --- Extraction métadonnées judiciaires (cassation.tn et sources jurisprudentielles) ---
+    // Extraire numéro d'arrêt, date de décision, chambre depuis le titre ou le contenu
+    const textToSearch = `${title || ''} ${content?.substring(0, 500) || ''}`
+
+    // Numéro de décision/arrêt
+    // Patterns : "قرار عدد 12345", "Arrêt n° 12345", "قرار تعقيبي عدد 12345"
+    const decisionNumAr = textToSearch.match(/قرار(?:\s*تعقيبي)?\s*(?:عدد\s*)?(?:رقم\s*)?:?\s*([\d/\-]+)/i)
+    const decisionNumFr = textToSearch.match(/[Aa]rr[êe]t\s*n[°o]?\s*\.?\s*([\d/\-]+)/i)
+    if (decisionNumAr) {
+      context.courtDecisionNumber = decisionNumAr[1].trim()
+    } else if (decisionNumFr) {
+      context.courtDecisionNumber = decisionNumFr[1].trim()
+    }
+
+    // Date de décision
+    // Patterns AR : "بتاريخ 15/03/2023" ou "صادر في 15 مارس 2023"
+    // Patterns FR : "du 15/03/2023" ou "en date du 15 mars 2023"
+    const dateAr = textToSearch.match(/(?:بتاريخ|صادر في|في تاريخ)\s*(\d{1,2})[\/\-\s](\d{1,2})[\/\-\s](\d{4})/i)
+    const dateFr = textToSearch.match(/(?:du|en date du|le)\s*(\d{1,2})[\/\s](\d{1,2})[\/\s](\d{4})/i)
+    if (dateAr) {
+      const [, day, month, year] = dateAr
+      context.courtDecisionDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    } else if (dateFr) {
+      const [, day, month, year] = dateFr
+      context.courtDecisionDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    }
+
+    // Chambre
+    // Patterns AR : "الدائرة المدنية", "الدائرة الجنائية", "الدائرة التجارية"
+    // Patterns FR : "Chambre civile", "Chambre pénale", "Chambre commerciale"
+    const chamberAr = textToSearch.match(/الدائرة\s+(المدنية|الجنائية|التجارية|الاجتماعية|العقارية|الإدارية|الجزائية)/i)
+    const chamberFr = textToSearch.match(/[Cc]hambre\s+(civile|pénale|commerciale|sociale|administrative|correctionnelle)/i)
+    if (chamberAr) {
+      context.courtChamber = `الدائرة ${chamberAr[1]}`
+    } else if (chamberFr) {
+      context.courtChamber = `Chambre ${chamberFr[1]}`
+    }
+
+    // Référence article de code dans le titre
+    // Patterns : "الفصل 402 م.إ.ع", "art. 402 COC"
+    const codeRefAr = title?.match(/(الفصل\s*\d+(?:\s*مكرر)?\s*(?:م\.إ\.ع|م\.ج|م\.ش|م\.ت|م\.أ\.ش)?)/i)
+    const codeRefFr = title?.match(/(art(?:icle)?\.?\s*\d+\s*(?:COC|CP|CPP|CSP)?)/i)
+    if (codeRefAr) {
+      context.codeArticleRef = codeRefAr[1].trim()
+    } else if (codeRefFr) {
+      context.codeArticleRef = codeRefFr[1].trim()
+    }
+
+    // Si on a un numéro d'arrêt ou une chambre → c'est de la jurisprudence
+    if ((context.courtDecisionNumber || context.courtChamber) && context.documentType === 'unknown') {
+      context.documentType = 'jurisprudence'
+    }
+
   } catch (e) {
     // En cas d'erreur, retourner unknown
     console.warn('[ContentExtractor] Erreur extraction contexte juridique:', e)

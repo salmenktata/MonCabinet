@@ -16,6 +16,7 @@ export const dynamic = 'force-dynamic'
 
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
+import { recordPipelineMetric } from '@/lib/metrics/rag-metrics'
 import {
   answerQuestion,
   answerQuestionStream,
@@ -123,6 +124,7 @@ async function handleChatAction(
   stance?: LegalStance,
   excludeCategories?: string[]
 ) {
+  const startTime = Date.now()
   const response = await answerQuestion(question, userId, {
     dossierId,
     conversationId,
@@ -132,6 +134,18 @@ async function handleChatAction(
     docType,
     stance,
     excludeCategories,
+  })
+
+  // Instrumentation métriques comparatives pipeline
+  recordPipelineMetric({
+    pipeline: 'chat',
+    abstention: !!response.abstentionReason,
+    cacheHit: false, // Pas de cache pour la génération LLM
+    sourcesCount: response.sources?.length ?? 0,
+    avgSimilarity: response.averageSimilarity ?? 0,
+    latencyMs: Date.now() - startTime,
+    qualityGateTriggered: response.abstentionReason === 'quality_gate',
+    routerFailed: false,
   })
 
   return {

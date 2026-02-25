@@ -456,6 +456,134 @@ export function checkRAGHealth(): {
 }
 
 // =============================================================================
+// MÉTRIQUES COMPARATIVES PAR PIPELINE
+// =============================================================================
+
+/** Pipelines instrumentés */
+export type RAGPipeline = 'chat' | 'kb_search'
+
+export interface PipelineMetricEvent {
+  pipeline: RAGPipeline
+  /** true si la requête n'a retourné aucune réponse (abstention/no_results) */
+  abstention?: boolean
+  /** true si le cache Redis était chaud pour cette requête */
+  cacheHit?: boolean
+  /** Nombre de sources retournées dans la réponse */
+  sourcesCount?: number
+  /** Score de similarité moyen des sources retournées (0-1) */
+  avgSimilarity?: number
+  /** Latence totale en ms */
+  latencyMs?: number
+  /** true si le quality gate a bloqué la réponse */
+  qualityGateTriggered?: boolean
+  /** true si le routeur juridique a échoué */
+  routerFailed?: boolean
+}
+
+const PIPELINE_REDIS_PREFIX = 'metrics:pipeline'
+const PIPELINE_REDIS_TTL_S = 86400 * 7 // 7 jours
+
+/**
+ * Enregistre un événement de pipeline dans Redis (hash journalier).
+ * Non-bloquant — fire-and-forget.
+ *
+ * Clé Redis : `metrics:pipeline:{pipeline}:{YYYY-MM-DD}`
+ * Champs : total_requests, abstentions, cache_hits, total_sources, total_similarity,
+ *          quality_gate_triggered, router_failed, total_latency_ms, request_count_latency
+ */
+export function recordPipelineMetric(event: PipelineMetricEvent): void {
+  if (!isRedisAvailable()) return
+
+  const dateKey = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  const redisKey = `${PIPELINE_REDIS_PREFIX}:${event.pipeline}:${dateKey}`
+
+  getRedisClient()
+    .then(async (client) => {
+      if (!client) return
+      const pipe = client.multi()
+      pipe.hIncrBy(redisKey, 'total_requests', 1)
+      if (event.abstention) pipe.hIncrBy(redisKey, 'abstentions', 1)
+      if (event.cacheHit) pipe.hIncrBy(redisKey, 'cache_hits', 1)
+      if (event.sourcesCount !== undefined) pipe.hIncrByFloat(redisKey, 'total_sources', event.sourcesCount)
+      if (event.avgSimilarity !== undefined) pipe.hIncrByFloat(redisKey, 'total_similarity', event.avgSimilarity)
+      if (event.qualityGateTriggered) pipe.hIncrBy(redisKey, 'quality_gate_triggered', 1)
+      if (event.routerFailed) pipe.hIncrBy(redisKey, 'router_failed', 1)
+      if (event.latencyMs !== undefined) {
+        pipe.hIncrByFloat(redisKey, 'total_latency_ms', event.latencyMs)
+        pipe.hIncrBy(redisKey, 'request_count_latency', 1)
+      }
+      pipe.expire(redisKey, PIPELINE_REDIS_TTL_S)
+      await pipe.exec()
+    })
+    .catch(() => {
+      // Silent fail
+    })
+}
+
+/** Résumé d'une journée pour un pipeline */
+export interface PipelineDaySummary {
+  date: string
+  pipeline: RAGPipeline
+  totalRequests: number
+  abstentionRate: number
+  cacheHitRate: number
+  avgSourcesCount: number
+  avgSimilarity: number
+  avgLatencyMs: number
+  qualityGateRate: number
+  routerFailedRate: number
+}
+
+/**
+ * Lit les métriques de pipeline pour les N derniers jours depuis Redis.
+ */
+export async function getPipelineMetrics(
+  pipeline: RAGPipeline,
+  days = 7
+): Promise<PipelineDaySummary[]> {
+  if (!isRedisAvailable()) return []
+
+  try {
+    const client = await getRedisClient()
+    if (!client) return []
+
+    const summaries: PipelineDaySummary[] = []
+    const now = new Date()
+
+    for (let i = 0; i < days; i++) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      const dateKey = d.toISOString().slice(0, 10)
+      const redisKey = `${PIPELINE_REDIS_PREFIX}:${pipeline}:${dateKey}`
+
+      const raw = await client.hGetAll(redisKey)
+      if (!raw || Object.keys(raw).length === 0) continue
+
+      const parse = (k: string) => parseFloat(raw[k] || '0')
+      const total = Math.max(parse('total_requests'), 1)
+      const latencyCount = Math.max(parse('request_count_latency'), 1)
+
+      summaries.push({
+        date: dateKey,
+        pipeline,
+        totalRequests: parse('total_requests'),
+        abstentionRate: parse('abstentions') / total,
+        cacheHitRate: parse('cache_hits') / total,
+        avgSourcesCount: parse('total_sources') / total,
+        avgSimilarity: parse('total_similarity') / total,
+        avgLatencyMs: parse('total_latency_ms') / latencyCount,
+        qualityGateRate: parse('quality_gate_triggered') / total,
+        routerFailedRate: parse('router_failed') / total,
+      })
+    }
+
+    return summaries.sort((a, b) => a.date.localeCompare(b.date))
+  } catch {
+    return []
+  }
+}
+
+// =============================================================================
 // EXPORT FORMAT PROMETHEUS (optionnel)
 // =============================================================================
 
