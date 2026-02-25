@@ -18,9 +18,9 @@ export const dossierSchema = z.object({
   tribunal: z.string().optional(),
   numero_rg: z.string().optional(), // Numéro de Rôle Général
   date_ouverture: z.string().optional(),
-  statut: z.enum(['ACTIF', 'CLOS', 'ARCHIVE'], {
+  statut: z.enum(['actif', 'en_cours', 'clos', 'archive'], {
     required_error: 'Le statut est requis',
-  }),
+  }).transform(v => v === 'actif' ? 'en_cours' : v),
   montant_litige: z.number().optional(),
   montant_demande: z.number().optional(),
   montant_obtenu: z.number().optional(),

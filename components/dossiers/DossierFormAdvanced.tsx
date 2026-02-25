@@ -54,7 +54,7 @@ const dossierFormSchema = z.object({
   numero_rg: z.string().optional(),
   date_ouverture: z.string().optional(),
   montant_litige: z.number().optional(),
-  statut: z.enum(['ACTIF', 'CLOS', 'ARCHIVE']),
+  statut: z.enum(['en_cours', 'clos', 'archive']),
   workflow_etape_actuelle: z.string().optional(),
   notes: z.string().optional(),
 })
@@ -100,7 +100,7 @@ export function DossierFormAdvanced({
       numero_rg: '',
       date_ouverture: '',
       montant_litige: undefined,
-      statut: 'ACTIF',
+      statut: 'en_cours',
       workflow_etape_actuelle: 'ASSIGNATION',
       notes: '',
       ...initialData,
@@ -439,7 +439,7 @@ export function DossierFormAdvanced({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="actif">
+                    <SelectItem value="en_cours">
                       <div className="flex items-center gap-2">
                         <Icons.checkCircle className="h-4 w-4 text-green-500" />
                         <span>Actif</span>

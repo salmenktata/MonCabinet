@@ -261,8 +261,6 @@ export function UnifiedChatPage({
         return t('placeholders.chat')
       case 'structure':
         return t('placeholders.structure')
-      case 'consult':
-        return t('placeholders.consult')
     }
   }
 
@@ -428,8 +426,8 @@ export function UnifiedChatPage({
               </div>
             )}
 
-            {/* Sélecteur de posture — visible pour chat et consult */}
-            {(currentAction === 'chat' || currentAction === 'consult') && (
+            {/* Sélecteur de posture — visible pour chat */}
+            {currentAction === 'chat' && (
               <StanceSelector
                 stance={stance}
                 onChange={setStance}

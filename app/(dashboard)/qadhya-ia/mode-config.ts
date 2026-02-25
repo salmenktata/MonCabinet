@@ -1,14 +1,14 @@
 import type { ActionType } from '@/components/qadhya-ia/ActionButtons'
 
 export interface ModeConfig {
-  icon: 'messageSquare' | 'edit' | 'scale'
-  accentColor: 'blue' | 'amber' | 'emerald'
+  icon: 'messageSquare' | 'edit'
+  accentColor: 'blue' | 'amber'
   iconBgClass: string
   iconTextClass: string
   badgeClass: string
   gradientClass: string
   ringClass: string
-  translationKey: 'chat' | 'structure' | 'consult'
+  translationKey: 'chat' | 'structure'
 }
 
 export const MODE_CONFIGS: Record<ActionType, ModeConfig> = {
@@ -31,15 +31,5 @@ export const MODE_CONFIGS: Record<ActionType, ModeConfig> = {
     gradientClass: 'from-background via-background to-amber-50/30 dark:to-amber-950/20',
     ringClass: 'focus-visible:ring-amber-500',
     translationKey: 'structure',
-  },
-  consult: {
-    icon: 'scale',
-    accentColor: 'emerald',
-    iconBgClass: 'bg-emerald-100 dark:bg-emerald-900/30',
-    iconTextClass: 'text-emerald-600 dark:text-emerald-400',
-    badgeClass: 'border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300',
-    gradientClass: 'from-background via-background to-emerald-50/30 dark:to-emerald-950/20',
-    ringClass: 'focus-visible:ring-emerald-500',
-    translationKey: 'consult',
   },
 }

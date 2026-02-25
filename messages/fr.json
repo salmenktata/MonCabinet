@@ -48,7 +48,6 @@
     "qadhyaIA": "Qadhya IA",
     "qadhyaIAChat": "Assistant IA",
     "qadhyaIAStructure": "Structuration",
-    "qadhyaIAConsult": "Consultation",
     "assistantIA": "Qadhya Chat",
     "modeRapide": "Mode Rapide",
     "consultation": "Consultation",
@@ -867,8 +866,7 @@
     "newConversation": "Nouvelle conversation",
     "placeholders": {
       "chat": "Posez votre question juridique...",
-      "structure": "Décrivez les faits du dossier : parties, dates, événements clés...",
-      "consult": "Décrivez votre situation pour obtenir un conseil juridique..."
+      "structure": "Décrivez les faits du dossier : parties, dates, événements clés..."
     },
     "actions": {
       "chat": {
@@ -878,10 +876,6 @@
       "structure": {
         "label": "Structurer un dossier",
         "description": "Analyser un narratif et créer un dossier"
-      },
-      "consult": {
-        "label": "Conseil juridique",
-        "description": "Obtenir une consultation formelle"
       }
     },
     "enriched": {
@@ -902,15 +896,6 @@
         "error": "Erreur",
         "dossierCreated": "Dossier créé avec succès",
         "createError": "Impossible de créer le dossier"
-      },
-      "consult": {
-        "title": "Conseil Juridique",
-        "subtitle": "Analyse IRAC",
-        "problematique": "Problématique",
-        "regles": "Règles applicables",
-        "analyse": "Analyse",
-        "conclusion": "Conclusion",
-        "actions": "Actions recommandées"
       }
     },
     "modes": {
@@ -927,13 +912,6 @@
         "welcomeMessage": "Décrivez les faits d'une affaire et l'IA structurera automatiquement un dossier juridique complet.",
         "exampleQuestions": "Exemples de descriptions :",
         "examples": { "ex1": "Litige bail commercial", "ex2": "Accident de circulation", "ex3": "Conflit de travail" }
-      },
-      "consult": {
-        "label": "Consultation",
-        "welcomeTitle": "Consultation juridique",
-        "welcomeMessage": "Obtenez une analyse juridique formelle suivant la méthode IRAC avec références légales.",
-        "exampleQuestions": "Exemples de consultations :",
-        "examples": { "ex1": "Responsabilité contractuelle", "ex2": "Droit de propriété", "ex3": "Procédure d'appel" }
       }
     },
     "errors": {

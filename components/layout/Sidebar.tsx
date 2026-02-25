@@ -37,7 +37,6 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
       { href: '/clients', label: 'clients', icon: 'clients' },
       { href: '/dossiers', label: 'dossiers', icon: 'dossiers' },
       { href: '/echeances', label: 'deadlines', icon: 'deadlines' },
-      { href: '/client/knowledge-base', label: 'knowledgeBaseExplorer', icon: 'bookOpen' },
     ],
   },
   {
@@ -46,8 +45,8 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     groupIcon: 'sparkles',
     items: [
       { href: '/qadhya-ia/structure', label: 'qadhyaIAStructure', icon: 'edit' },
-      { href: '/qadhya-ia/consult', label: 'qadhyaIAConsult', icon: 'scale' },
       { href: '/qadhya-ia/chat', label: 'qadhyaIAChat', icon: 'messageSquare' },
+      { href: '/client/knowledge-base', label: 'knowledgeBaseExplorer', icon: 'bookOpen' },
     ],
   },
   {

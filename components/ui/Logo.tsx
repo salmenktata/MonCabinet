@@ -160,13 +160,9 @@ export function LogoHorizontal({
 
       {/* Texte et tag */}
       <div className="flex flex-col">
-        <span
-          className={cn(
-            'font-bold tracking-tight text-foreground',
-            text
-          )}
-        >
-          Qadhya
+        <span className={cn('font-bold tracking-tight', text)}>
+          <span style={{ color: '#C9A84C' }}>Qadh</span>
+          <span className="text-sky-400 dark:text-sky-300">ya</span>
         </span>
         {showTag && (
           <span

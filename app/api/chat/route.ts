@@ -47,7 +47,7 @@ interface ChatRequestBody {
   includeJurisprudence?: boolean
   stream?: boolean // Activer le streaming
   usePremiumModel?: boolean // Mode Premium: cloud providers au lieu d'Ollama
-  actionType?: 'chat' | 'structure' | 'consult' // Nouveau: type d'action pour interface unifiée
+  actionType?: 'chat' | 'structure' // Nouveau: type d'action pour interface unifiée
   docType?: DocumentType // Nouveau: filtrer recherche KB par type de document
   stance?: LegalStance // Mode Avocat Stratège : défense / attaque / neutre
   excludeCategories?: string[] // Exclure des catégories de sources (ex: ['google_drive'])
@@ -106,42 +106,6 @@ async function handleStructureAction(
     tokensUsed: { input: 0, output: 0, total: 0 },
     model: 'structuration',
     metadata: { actionType: 'structure' },
-  }
-}
-
-/**
- * Handler pour action 'consult' - Consultation juridique
- */
-async function handleConsultAction(
-  question: string,
-  userId: string,
-  conversationId: string,
-  dossierId?: string,
-  docType?: DocumentType,
-  stance?: LegalStance,
-  excludeCategories?: string[]
-) {
-  // Utiliser answerQuestion avec configuration optimisée pour consultation
-  const response = await answerQuestion(question, userId, {
-    dossierId,
-    conversationId,
-    includeJurisprudence: true,
-    usePremiumModel: false,
-    operationName: 'dossiers-consultation', // Configuration IRAC formelle
-    docType,
-    stance,
-    excludeCategories,
-  })
-
-  return {
-    answer: response.answer,
-    sources: response.sources,
-    tokensUsed: response.tokensUsed,
-    model: response.model,
-    metadata: { actionType: 'consult', stance },
-    qualityIndicator: response.qualityIndicator,
-    averageSimilarity: response.averageSimilarity,
-    abstentionReason: response.abstentionReason,
   }
 }
 
@@ -293,7 +257,7 @@ export async function POST(
     }
 
     // Si streaming activé, retourner un ReadableStream
-    // Note: streaming temporairement désactivé pour structure/consult
+    // Note: streaming désactivé pour structure
     if (stream && actionType === 'chat') {
       return handleStreamingResponse(
         question,
@@ -320,9 +284,7 @@ export async function POST(
       abstentionReason?: string
     }
 
-    // Timeout global adaptatif par type d'action (< timeout Nginx 300s)
-    // consult utilise 54s (aligné sur P1 fix: operations-config total=55s)
-    const ACTION_TIMEOUT_MS = actionType === 'consult' ? 54000 : 44000
+    const ACTION_TIMEOUT_MS = 44000
 
     try {
       switch (actionType) {
@@ -331,13 +293,6 @@ export async function POST(
             handleStructureAction(question, userId, activeConversationId),
             ACTION_TIMEOUT_MS,
             'structure'
-          )
-          break
-        case 'consult':
-          response = await withTimeout(
-            handleConsultAction(question, userId, activeConversationId, dossierId, docType, stance, excludeCategories),
-            ACTION_TIMEOUT_MS,
-            'consult'
           )
           break
         default:
@@ -454,7 +409,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const searchParams = request.nextUrl.searchParams
     const dossierId = searchParams.get('dossierId')
     const conversationId = searchParams.get('conversationId')
-    const actionType = searchParams.get('actionType') as 'chat' | 'structure' | 'consult' | null
+    const actionType = searchParams.get('actionType') as 'chat' | 'structure' | null
 
     // Si conversationId fourni, retourner les messages de cette conversation
     if (conversationId) {
