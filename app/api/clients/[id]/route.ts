@@ -69,7 +69,7 @@ export async function GET(
             json_build_object(
               'id', d.id,
               'numero', d.numero,
-              'titre', d.titre,
+              'titre', d.objet,
               'statut', d.statut,
               'type_procedure', d.type_procedure,
               'date_ouverture', d.date_ouverture,

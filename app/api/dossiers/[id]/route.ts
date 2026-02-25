@@ -119,8 +119,8 @@ export async function GET(
               'id', doc.id,
               'nom', doc.nom,
               'type', doc.type,
-              'url', doc.url,
-              'taille', doc.taille,
+              'url', doc.chemin_fichier,
+              'taille', doc.taille_fichier,
               'created_at', doc.created_at
             ) ORDER BY doc.created_at DESC
           ), '[]'::json)
