@@ -39,25 +39,25 @@ function DossiersParWorkflowWidgetComponent({ dossiers }: DossiersParWorkflowWid
   }, [dossiers])
 
   return (
-    <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-card-foreground mb-4">{t('title')}</h2>
+    <div className="rounded-xl border bg-card/50 backdrop-blur-sm p-4 sm:p-5">
+      <h2 className="text-sm font-semibold text-foreground mb-4">{t('title')}</h2>
 
       {workflows.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">{t('noActiveDossiers')}</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {workflows.map((w) => {
             const pourcentage = total > 0 ? (w.count / total) * 100 : 0
 
             return (
               <div key={w.id}>
-                <div className="flex items-center justify-between text-sm mb-2">
+                <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="font-medium text-foreground truncate">{w.nom}</span>
-                  <span className="font-semibold text-foreground">
-                    {w.count} ({pourcentage.toFixed(0)}%)
+                  <span className="font-semibold text-muted-foreground shrink-0 ml-2">
+                    {w.count} <span className="text-muted-foreground/60">({pourcentage.toFixed(0)}%)</span>
                   </span>
                 </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
                   <div
                     className={`h-full ${w.couleur} transition-all duration-300`}
                     style={{ width: `${pourcentage}%` }}
@@ -68,9 +68,9 @@ function DossiersParWorkflowWidgetComponent({ dossiers }: DossiersParWorkflowWid
           })}
 
           {/* Total */}
-          <div className="mt-6 pt-4 border-t">
+          <div className="mt-4 pt-3 border-t border-border/50">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-foreground">{t('totalActiveDossiers')}</span>
+              <span className="text-xs font-medium text-muted-foreground">{t('totalActiveDossiers')}</span>
               <span className="text-2xl font-bold text-primary">{total}</span>
             </div>
           </div>

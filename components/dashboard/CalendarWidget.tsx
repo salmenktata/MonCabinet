@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useLocale } from 'next-intl'
 import { niveauUrgence } from '@/lib/utils/delais-tunisie'
 
 export interface CalendarEcheance {
@@ -74,7 +75,7 @@ function dotColor(dateStr: string): string {
     case 'critique': return 'bg-orange-500'
     case 'urgent': return 'bg-yellow-500'
     case 'proche': return 'bg-blue-500'
-    default: return 'bg-gray-400'
+    default: return 'bg-muted-foreground/50'
   }
 }
 
@@ -94,11 +95,11 @@ function urgenceBadgeClass(dateStr: string): string {
   const date = new Date(dateStr + 'T12:00:00')
   const niveau = niveauUrgence(date)
   switch (niveau) {
-    case 'depasse': return 'bg-red-100 text-red-700 border border-red-200'
-    case 'critique': return 'bg-orange-100 text-orange-700 border border-orange-200'
-    case 'urgent': return 'bg-yellow-100 text-yellow-700 border border-yellow-200'
-    case 'proche': return 'bg-blue-100 text-blue-700 border border-blue-200'
-    default: return 'bg-gray-100 text-gray-600 border border-gray-200'
+    case 'depasse': return 'bg-red-500/10 text-red-400 border border-red-500/20'
+    case 'critique': return 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
+    case 'urgent': return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+    case 'proche': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+    default: return 'bg-muted/50 text-muted-foreground border border-border/50'
   }
 }
 
@@ -118,12 +119,13 @@ const LEGENDE = [
   { niveau: 'Critique', color: 'bg-orange-500' },
   { niveau: 'Urgent', color: 'bg-yellow-500' },
   { niveau: 'Proche', color: 'bg-blue-500' },
-  { niveau: 'Normal', color: 'bg-gray-400' },
+  { niveau: 'Normal', color: 'bg-muted-foreground/50' },
 ]
 
 // --- Composant principal ---
 
 export default function CalendarWidget({ echeances }: CalendarWidgetProps) {
+  const locale = useLocale()
   const today = new Date()
   const todayKey = toDateKey(today)
 
@@ -142,7 +144,7 @@ export default function CalendarWidget({ echeances }: CalendarWidgetProps) {
     return d === `${year}-${String(month + 1).padStart(2, '0')}`
   })
 
-  const monthLabel = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  const monthLabel = currentDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 
   function prevMonth() {
     setCurrentDate(new Date(year, month - 1, 1))
@@ -170,9 +172,9 @@ export default function CalendarWidget({ echeances }: CalendarWidgetProps) {
   const selectedEcheances = selectedDay ? (byDate.get(selectedDay) ?? []) : []
 
   return (
-    <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border bg-card/50 backdrop-blur-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
         <div className="flex items-center gap-3">
           <h2 className="text-base font-semibold capitalize">{monthLabel}</h2>
           {moisEcheances.length > 0 && (
@@ -243,7 +245,7 @@ export default function CalendarWidget({ echeances }: CalendarWidgetProps) {
                   !isCurrentMonth ? 'opacity-30' : '',
                   hasEcheances ? 'cursor-pointer hover:bg-accent' : 'cursor-default',
                   isSelected ? 'bg-accent' : '',
-                  isToday && !isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/30' : '',
+                  isToday && !isSelected ? 'ring-2 ring-inset ring-blue-500/60 bg-blue-500/10' : '',
                 ].join(' ')}
               >
                 <span
@@ -278,9 +280,9 @@ export default function CalendarWidget({ echeances }: CalendarWidgetProps) {
 
       {/* Panneau détail jour */}
       {selectedDay && selectedEcheances.length > 0 && (
-        <div className="border-t px-4 py-3">
+        <div className="border-t border-border/50 px-4 py-3">
           <p className="text-xs font-medium text-muted-foreground mb-2">
-            {new Date(selectedDay + 'T12:00:00').toLocaleDateString('fr-FR', {
+            {new Date(selectedDay + 'T12:00:00').toLocaleDateString(locale, {
               weekday: 'long',
               day: 'numeric',
               month: 'long',
@@ -317,7 +319,7 @@ export default function CalendarWidget({ echeances }: CalendarWidgetProps) {
       )}
 
       {/* Légende + lien bas */}
-      <div className="border-t px-4 py-2 flex items-center justify-between gap-4 flex-wrap">
+      <div className="border-t border-border/50 px-4 py-2 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
           {LEGENDE.map(({ niveau, color }) => (
             <div key={niveau} className="flex items-center gap-1">

@@ -811,7 +811,8 @@
     "documentAdded": "Document ajouté",
     "deadlineOn": "Échéance le {date}",
     "newClient": "Nouveau client",
-    "otherDocument": "Document autre"
+    "otherDocument": "Document autre",
+    "viewAll": "Voir tout"
   },
   "urgentActions": {
     "title": "Actions urgentes",

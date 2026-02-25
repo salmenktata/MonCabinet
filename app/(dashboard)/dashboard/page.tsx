@@ -16,6 +16,7 @@ import {
   ActivitySkeleton,
   TimeTrackingSkeleton,
   CalendarWidgetSkeleton,
+  UrgentActionsSkeleton,
 } from '@/components/dashboard/DashboardSkeletons'
 
 // Dynamic imports pour les widgets lourds (chargés après le contenu principal)
@@ -71,10 +72,8 @@ async function DashboardStats({ userId }: { userId: string }) {
   const tStats = await getTranslations('stats')
   const tCurrency = await getTranslations('currency')
 
-  // Requêtes optimisées avec cache de 60 secondes
   const { clients, dossiers, factures, echeances } = await getCachedDashboardStats(userId)
 
-  // Calculs
   const debutMois = new Date()
   debutMois.setDate(1)
   debutMois.setHours(0, 0, 0, 0)
@@ -94,7 +93,7 @@ async function DashboardStats({ userId }: { userId: string }) {
   const nouveauxDossiersCeMois = dossiers.filter((d) => new Date(d.created_at) >= debutMois).length
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
       <StatCard
         title={t('clients')}
         value={clients.length}
@@ -137,27 +136,79 @@ async function DashboardStats({ userId }: { userId: string }) {
   )
 }
 
-// Composant pour les actions urgentes et activités récentes
+// Composant calendrier + échéances urgentes côte à côte
+async function DashboardCalendarRow({ userId }: { userId: string }) {
+  const tUrgent = await getTranslations('urgentActions')
+
+  const [calendarResult, echeancesResult] = await Promise.all([
+    query(
+      `SELECT e.id, e.titre, e.type_echeance, TO_CHAR(e.date_echeance, 'YYYY-MM-DD') as date_echeance, e.statut, e.description,
+        json_build_object('numero', d.numero, 'objet', d.objet) as dossier
+      FROM echeances e
+      LEFT JOIN dossiers d ON e.dossier_id = d.id
+      WHERE e.user_id = $1 AND e.statut = 'actif'
+      ORDER BY e.date_echeance ASC
+      LIMIT 300`,
+      [userId]
+    ),
+    query(
+      `SELECT e.id, e.titre, e.description, e.date_echeance, e.type, e.terminee,
+        json_build_object('numero', d.numero, 'objet', d.objet) as dossier
+      FROM echeances e
+      LEFT JOIN dossiers d ON e.dossier_id = d.id
+      WHERE e.user_id = $1 AND e.statut = 'actif'
+      ORDER BY e.date_echeance ASC LIMIT 20`,
+      [userId]
+    ),
+  ])
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-12">
+      <div className="lg:col-span-7">
+        <CalendarWidget echeances={calendarResult.rows} />
+      </div>
+      <div className="lg:col-span-5">
+        <UrgentActions echeances={echeancesResult.rows} />
+      </div>
+    </div>
+  )
+}
+
+// Composant pour les graphiques
+async function DashboardCharts({ userId }: { userId: string }) {
+  const [facturesResult, dossiersResult] = await Promise.all([
+    query('SELECT id, statut, montant_ttc, date_emission FROM factures WHERE user_id = $1', [userId]),
+    query('SELECT id, statut, type_procedure FROM dossiers WHERE user_id = $1', [userId]),
+  ])
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <RevenusWidget factures={facturesResult.rows} />
+      <DossiersParWorkflowWidget dossiers={dossiersResult.rows} />
+    </div>
+  )
+}
+
+// Composant pour le time tracking
+async function DashboardTimeTracking({ userId }: { userId: string }) {
+  const result = await query(
+    'SELECT id, duree_minutes, date, description FROM time_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 100',
+    [userId]
+  )
+  return <TimeTrackingWidget timeEntries={result.rows} />
+}
+
+// Composant activité récente
 async function DashboardActivity({ userId }: { userId: string }) {
   const tActivity = await getTranslations('activity')
   const tCurrency = await getTranslations('currency')
 
-  const [clientsResult, dossiersResult, facturesResult, documentsResult, echeancesResult] =
-    await Promise.all([
-      query('SELECT id, nom, prenom, created_at FROM clients WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3', [userId]),
-      query('SELECT id, numero, objet, created_at FROM dossiers WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3', [userId]),
-      query('SELECT id, numero, statut, montant_ttc, created_at FROM factures WHERE user_id = $1 ORDER BY created_at DESC LIMIT 2', [userId]),
-      query('SELECT id, nom, created_at FROM documents WHERE user_id = $1 ORDER BY created_at DESC LIMIT 2', [userId]),
-      query(
-        `SELECT e.id, e.titre, e.description, e.date_echeance, e.type, e.terminee,
-          json_build_object('numero', d.numero, 'objet', d.objet) as dossier
-        FROM echeances e
-        LEFT JOIN dossiers d ON e.dossier_id = d.id
-        WHERE e.user_id = $1 AND e.statut = 'actif'
-        ORDER BY e.date_echeance ASC LIMIT 20`,
-        [userId]
-      ),
-    ])
+  const [clientsResult, dossiersResult, facturesResult, documentsResult] = await Promise.all([
+    query('SELECT id, nom, prenom, created_at FROM clients WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3', [userId]),
+    query('SELECT id, numero, objet, created_at FROM dossiers WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3', [userId]),
+    query('SELECT id, numero, statut, montant_ttc, created_at FROM factures WHERE user_id = $1 ORDER BY created_at DESC LIMIT 2', [userId]),
+    query('SELECT id, nom, created_at FROM documents WHERE user_id = $1 ORDER BY created_at DESC LIMIT 2', [userId]),
+  ])
 
   const activities = [
     ...clientsResult.rows.map((c) => ({
@@ -198,56 +249,12 @@ async function DashboardActivity({ userId }: { userId: string }) {
     })),
   ]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 10)
+    .slice(0, 6)
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <UrgentActions echeances={echeancesResult.rows} />
-      <RecentActivity activities={activities} />
-    </div>
-  )
+  return <RecentActivity activities={activities} />
 }
 
-// Composant pour les widgets graphiques
-async function DashboardCharts({ userId }: { userId: string }) {
-  const [facturesResult, dossiersResult] = await Promise.all([
-    query('SELECT id, statut, montant_ttc, date_emission FROM factures WHERE user_id = $1', [userId]),
-    query('SELECT id, statut, type_procedure FROM dossiers WHERE user_id = $1', [userId]),
-  ])
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <RevenusWidget factures={facturesResult.rows} />
-      <DossiersParWorkflowWidget dossiers={dossiersResult.rows} />
-    </div>
-  )
-}
-
-// Composant pour le time tracking
-async function DashboardTimeTracking({ userId }: { userId: string }) {
-  const result = await query(
-    'SELECT id, duree_minutes, date, description FROM time_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 100',
-    [userId]
-  )
-  return <TimeTrackingWidget timeEntries={result.rows} />
-}
-
-// Composant pour le calendrier des échéances
-async function DashboardCalendar({ userId }: { userId: string }) {
-  const result = await query(
-    `SELECT e.id, e.titre, e.type_echeance, TO_CHAR(e.date_echeance, 'YYYY-MM-DD') as date_echeance, e.statut, e.description,
-      json_build_object('numero', d.numero, 'objet', d.objet) as dossier
-    FROM echeances e
-    LEFT JOIN dossiers d ON e.dossier_id = d.id
-    WHERE e.user_id = $1 AND e.statut = 'actif'
-    ORDER BY e.date_echeance ASC
-    LIMIT 300`,
-    [userId]
-  )
-  return <CalendarWidget echeances={result.rows} />
-}
-
-// Composant pour les documents widgets
+// Composant pour les documents non classés
 async function DashboardDocumentsWidgets({ userId }: { userId: string }) {
   const result = await query(
     'SELECT id, numero, objet, client_id FROM dossiers WHERE user_id = $1',
@@ -272,7 +279,6 @@ export default async function DashboardPage() {
 
   const userId = session.user.id
 
-  // Date formatée (rendu immédiat)
   const today = new Date()
   const dateFormatted = today.toLocaleDateString(locale, {
     weekday: 'long',
@@ -282,45 +288,59 @@ export default async function DashboardPage() {
   })
 
   return (
-    <div className="space-y-6">
-      {/* Header - rendu immédiat */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">{tStats('hello')}</h1>
-        <p className="text-sm sm:text-base text-muted-foreground mt-1">{dateFormatted}</p>
+    <div className="space-y-5">
+      {/* Row 1 : Header + Quick Actions inline */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">{tStats('hello')}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{dateFormatted}</p>
+        </div>
+        <QuickActions />
       </div>
 
-      {/* Stats principales - priorité haute */}
+      {/* Row 2 : KPI Cards */}
       <Suspense fallback={<StatsGridSkeleton />}>
         <DashboardStats userId={userId} />
       </Suspense>
 
-      {/* Calendrier des échéances - priorité haute */}
-      <Suspense fallback={<CalendarWidgetSkeleton />}>
-        <DashboardCalendar userId={userId} />
+      {/* Row 3 : Calendrier (col-7) + Échéances urgentes (col-5) */}
+      <Suspense
+        fallback={
+          <div className="grid gap-4 lg:grid-cols-12">
+            <div className="lg:col-span-7"><CalendarWidgetSkeleton /></div>
+            <div className="lg:col-span-5"><UrgentActionsSkeleton /></div>
+          </div>
+        }
+      >
+        <DashboardCalendarRow userId={userId} />
       </Suspense>
 
-      {/* Documents widgets - priorité moyenne */}
-      <Suspense fallback={<WidgetSkeleton />}>
-        <DashboardDocumentsWidgets userId={userId} />
-      </Suspense>
-
-      {/* Actions et activités - priorité moyenne */}
-      <Suspense fallback={<div className="grid gap-6 lg:grid-cols-2"><ActivitySkeleton /><ActivitySkeleton /></div>}>
-        <DashboardActivity userId={userId} />
-      </Suspense>
-
-      {/* Graphiques - priorité basse */}
-      <Suspense fallback={<div className="grid gap-6 lg:grid-cols-2"><ChartWidgetSkeleton /><ChartWidgetSkeleton /></div>}>
+      {/* Row 4 : Graphiques revenus + dossiers */}
+      <Suspense
+        fallback={
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ChartWidgetSkeleton />
+            <ChartWidgetSkeleton />
+          </div>
+        }
+      >
         <DashboardCharts userId={userId} />
       </Suspense>
 
-      {/* Time tracking - priorité basse */}
+      {/* Row 5 : Time Tracking pleine largeur */}
       <Suspense fallback={<TimeTrackingSkeleton />}>
         <DashboardTimeTracking userId={userId} />
       </Suspense>
 
-      {/* Actions rapides - rendu immédiat (pas de données) */}
-      <QuickActions />
+      {/* Row 6 : Activité récente slim */}
+      <Suspense fallback={<ActivitySkeleton />}>
+        <DashboardActivity userId={userId} />
+      </Suspense>
+
+      {/* Row 7 : Documents non classés (conditionnel) */}
+      <Suspense fallback={<WidgetSkeleton />}>
+        <DashboardDocumentsWidgets userId={userId} />
+      </Suspense>
     </div>
   )
 }

@@ -64,49 +64,49 @@ function RevenusWidgetComponent({ factures }: RevenusWidgetProps) {
   }, [factures, locale])
 
   return (
-    <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-card-foreground mb-4">{t('title')}</h2>
+    <div className="rounded-xl border bg-card/50 backdrop-blur-sm p-4 sm:p-5">
+      <h2 className="text-sm font-semibold text-foreground mb-4">{t('title')}</h2>
 
       {/* Statistiques principales */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div className="rounded-lg bg-green-100 dark:bg-green-900/20 p-4">
-          <p className="text-xs font-medium text-green-600 dark:text-green-400">{t('paid')}</p>
-          <p className="mt-1 text-xl sm:text-2xl font-bold text-green-700 dark:text-green-400">
-            {revenusPayes.toFixed(3)} <span className="text-sm">TND</span>
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
+          <p className="text-xs font-medium text-muted-foreground">{t('paid')}</p>
+          <p className="mt-1 text-lg font-bold text-green-400 leading-none">
+            {revenusPayes.toFixed(3)} <span className="text-xs font-normal">TND</span>
           </p>
         </div>
 
-        <div className="rounded-lg bg-orange-100 dark:bg-orange-900/20 p-4">
-          <p className="text-xs font-medium text-orange-600 dark:text-orange-400">{t('pending')}</p>
-          <p className="mt-1 text-xl sm:text-2xl font-bold text-orange-700 dark:text-orange-400">
-            {revenusEnAttente.toFixed(3)} <span className="text-sm">TND</span>
+        <div className="rounded-lg bg-orange-500/10 border border-orange-500/20 p-3">
+          <p className="text-xs font-medium text-muted-foreground">{t('pending')}</p>
+          <p className="mt-1 text-lg font-bold text-orange-400 leading-none">
+            {revenusEnAttente.toFixed(3)} <span className="text-xs font-normal">TND</span>
           </p>
         </div>
 
-        <div className="rounded-lg bg-red-100 dark:bg-red-900/20 p-4">
-          <p className="text-xs font-medium text-red-600 dark:text-red-400">{t('unpaid')}</p>
-          <p className="mt-1 text-xl sm:text-2xl font-bold text-red-700 dark:text-red-400">
-            {revenusImpayes.toFixed(3)} <span className="text-sm">TND</span>
+        <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+          <p className="text-xs font-medium text-muted-foreground">{t('unpaid')}</p>
+          <p className="mt-1 text-lg font-bold text-red-400 leading-none">
+            {revenusImpayes.toFixed(3)} <span className="text-xs font-normal">TND</span>
           </p>
         </div>
 
-        <div className="rounded-lg bg-blue-100 dark:bg-blue-900/20 p-4">
-          <p className="text-xs font-medium text-blue-600 dark:text-blue-400">{t('total')}</p>
-          <p className="mt-1 text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-400">
-            {revenusTotal.toFixed(3)} <span className="text-sm">TND</span>
+        <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
+          <p className="text-xs font-medium text-muted-foreground">{t('total')}</p>
+          <p className="mt-1 text-lg font-bold text-blue-400 leading-none">
+            {revenusTotal.toFixed(3)} <span className="text-xs font-normal">TND</span>
           </p>
         </div>
       </div>
 
       {/* Taux de paiement */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between text-sm mb-2">
-          <span className="font-medium text-foreground">{t('paymentRate')}</span>
-          <span className="font-semibold text-green-600 dark:text-green-400">{tauxPaiement.toFixed(1)}%</span>
+      <div className="mb-4">
+        <div className="flex items-center justify-between text-xs mb-1.5">
+          <span className="font-medium text-muted-foreground">{t('paymentRate')}</span>
+          <span className="font-semibold text-green-400">{tauxPaiement.toFixed(1)}%</span>
         </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
           <div
-            className="h-full bg-green-500 dark:bg-green-600 transition-all duration-300"
+            className="h-full bg-green-500 transition-all duration-300"
             style={{ width: `${tauxPaiement}%` }}
           />
         </div>
@@ -114,18 +114,18 @@ function RevenusWidgetComponent({ factures }: RevenusWidgetProps) {
 
       {/* Graphique simple des 3 derniers mois */}
       <div>
-        <p className="text-sm font-medium text-foreground mb-3">{t('evolution3Months')}</p>
-        <div className="flex items-end justify-between gap-2" style={{ height: '100px' }}>
+        <p className="text-xs font-medium text-muted-foreground mb-3">{t('evolution3Months')}</p>
+        <div className="flex items-end justify-between gap-2" style={{ height: '80px' }}>
           {derniersMois.map((mois) => (
             <div key={mois.mois} className="flex-1 flex flex-col items-center">
-              <div className="w-full flex flex-col justify-end" style={{ height: '80px' }}>
+              <div className="w-full flex flex-col justify-end" style={{ height: '60px' }}>
                 <div
-                  className="w-full bg-blue-500 dark:bg-blue-600 rounded-t transition-all duration-300 hover:bg-blue-600 dark:hover:bg-blue-500"
-                  style={{ height: `${(mois.montant / maxMontant) * 100}%` }}
+                  className="w-full bg-blue-500/70 hover:bg-blue-500 rounded-t transition-all duration-200"
+                  style={{ height: `${(mois.montant / maxMontant) * 100}%`, minHeight: mois.montant > 0 ? '4px' : '0' }}
                   title={`${mois.montant.toFixed(2)} TND`}
                 />
               </div>
-              <p className="mt-2 text-xs text-muted-foreground text-center">{mois.mois}</p>
+              <p className="mt-1.5 text-[10px] text-muted-foreground text-center leading-tight">{mois.mois}</p>
             </div>
           ))}
         </div>

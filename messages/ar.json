@@ -811,7 +811,8 @@
     "documentAdded": "تمت إضافة وثيقة",
     "deadlineOn": "موعد في {date}",
     "newClient": "عميل جديد",
-    "otherDocument": "وثيقة أخرى"
+    "otherDocument": "وثيقة أخرى",
+    "viewAll": "عرض الكل"
   },
   "urgentActions": {
     "title": "إجراءات عاجلة",
