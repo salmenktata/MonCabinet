@@ -46,7 +46,7 @@ function mapDossierFromDB(row: any): any {
     updatedAt: row.updated_at,
     client: row.clients ? mapClientFromDB(row.clients) : undefined,
     documents: row.documents || [],
-    events: row.evenements || [],
+    events: [],
     actions: row.actions || [],
     echeances: row.echeances || [],
     // Champs supplémentaires pour compatibilité
@@ -130,20 +130,6 @@ export async function GET(
           FROM documents doc
           WHERE doc.dossier_id = d.id
         ) as documents,
-        (
-          SELECT COALESCE(json_agg(
-            json_build_object(
-              'id', evt.id,
-              'type', evt.type,
-              'titre', evt.titre,
-              'description', evt.description,
-              'date', evt.date,
-              'created_at', evt.created_at
-            ) ORDER BY evt.date DESC
-          ), '[]'::json)
-          FROM evenements evt
-          WHERE evt.dossier_id = d.id
-        ) as evenements,
         (
           SELECT COALESCE(json_agg(
             act.* ORDER BY act.created_at DESC
