@@ -40,12 +40,12 @@ export default function ExamplesCarousel({ onSelect }: ExamplesCarouselProps) {
     <div className="space-y-3">
       <p className="text-sm font-medium text-muted-foreground">{t('examples.title')}</p>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2">
         {EXAMPLES.map((example) => (
           <button
             key={example.id}
             onClick={() => onSelect(t(example.textKey))}
-            className="flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            className="flex items-center gap-1.5 rounded-full border bg-card px-3.5 py-1.5 text-sm font-medium text-foreground hover:bg-muted hover:border-amber-300 dark:hover:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors"
           >
             <span dangerouslySetInnerHTML={{ __html: example.icon }} />
             {t(example.labelKey)}

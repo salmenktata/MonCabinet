@@ -122,75 +122,66 @@ export default function StructuredResult({
   return (
     <div className="space-y-6">
       {/* Header avec confiance */}
-      <div className="flex items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
-        <div className="flex items-center gap-4">
-          <span className="text-2xl">&#128203;</span>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">
-              {result.titrePropose || t('result.title')}
-            </h2>
-            <p className="text-sm text-muted-foreground">{result.resumeCourt}</p>
+      <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+              <span className="text-lg">&#128203;</span>
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-foreground leading-tight">
+                {result.titrePropose || t('result.title')}
+              </h2>
+              {result.resumeCourt && (
+                <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{result.resumeCourt}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-muted-foreground">{t('result.confidence')}</span>
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-20 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${confidenceColor} transition-all`}
+                  style={{ width: `${result.confidence}%` }}
+                />
+              </div>
+              <span className="text-sm font-semibold tabular-nums">{result.confidence}%</span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">
-            {t('result.confidence')}:
-          </span>
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-24 rounded-full bg-muted">
-              <div
-                className={`h-2 rounded-full ${confidenceColor} transition-all`}
-                style={{ width: `${result.confidence}%` }}
-              />
-            </div>
-            <span className="text-sm font-semibold">{result.confidence}%</span>
-          </div>
+        {/* Type de procédure inline */}
+        <div className="mt-3 pt-3 border-t">
+          <ProcedureTypeBadge
+            type={result.typeProcedure}
+            sousType={result.sousType}
+          />
         </div>
       </div>
 
-      {/* Type de procédure */}
-      <ProcedureTypeBadge
-        type={result.typeProcedure}
-        sousType={result.sousType}
-      />
-
       {/* Onglets */}
       <div className="border-b">
-        <nav className="flex gap-4">
-          <button
-            onClick={() => setActiveTab('analysis')}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'analysis'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <span className="mr-2">&#128269;</span>
-            {t('tabs.analysis')}
-          </button>
-          <button
-            onClick={() => setActiveTab('structure')}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'structure'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <span className="mr-2">&#128209;</span>
-            {t('tabs.structure')}
-          </button>
-          <button
-            onClick={() => setActiveTab('documents')}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'documents'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <span className="mr-2">&#128196;</span>
-            {t('tabs.documents')}
-          </button>
+        <nav className="flex gap-1">
+          {[
+            { key: 'analysis', icon: '&#128269;', label: t('tabs.analysis') },
+            { key: 'structure', icon: '&#128209;', label: t('tabs.structure') },
+            { key: 'documents', icon: '&#128196;', label: t('tabs.documents') },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as typeof activeTab)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? 'border-amber-600 text-amber-700 dark:text-amber-400'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+              }`}
+            >
+              <span dangerouslySetInnerHTML={{ __html: tab.icon }} />
+              {tab.label}
+            </button>
+          ))}
         </nav>
       </div>
 
@@ -303,65 +294,67 @@ export default function StructuredResult({
       )}
 
       {/* Actions principales */}
-      <div className="rounded-lg border bg-card p-4 space-y-3">
-        {/* Barre secondaire : copy / export / reset */}
-        <div className="flex flex-wrap gap-2 pb-3 border-b">
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
-          >
-            <Copy className="h-3.5 w-3.5" />
-            Copier
-          </button>
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Exporter (.md)
-          </button>
-          {onReset && (
+      <div className="rounded-xl border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Secondaires */}
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={onReset}
+              onClick={handleCopy}
               className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Recommencer
+              <Copy className="h-3.5 w-3.5" />
+              Copier
             </button>
-          )}
-        </div>
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Exporter
+            </button>
+            {onReset && (
+              <button
+                onClick={onReset}
+                className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Recommencer
+              </button>
+            )}
+          </div>
 
-        {/* Barre principale */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <button
-            onClick={onReanalyze}
-            className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-foreground font-medium hover:bg-muted transition-colors"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            {t('actions.reanalyze')}
-          </button>
+          {/* Principales */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onReanalyze}
+              className="flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm text-foreground font-medium hover:bg-muted transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {t('actions.reanalyze')}
+            </button>
 
-          <button
-            onClick={handleQuickAdvice}
-            className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-foreground font-medium hover:bg-muted transition-colors"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            {t('actions.quickAdvice')}
-          </button>
+            <button
+              onClick={handleQuickAdvice}
+              className="flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm text-foreground font-medium hover:bg-muted transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {t('actions.quickAdvice')}
+            </button>
 
-          <button
-            onClick={onCreateDossier}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-white font-semibold hover:bg-blue-700 transition-colors"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            {t('actions.createDossier')}
-          </button>
+            <button
+              onClick={onCreateDossier}
+              className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-5 py-2 text-sm text-white font-semibold hover:bg-amber-700 transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {t('actions.createDossier')}
+            </button>
+          </div>
         </div>
       </div>
     </div>

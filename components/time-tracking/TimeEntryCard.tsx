@@ -2,8 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import { deleteTimeEntryAction } from '@/app/actions/time-entries'
+import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Icons } from '@/lib/icons'
 import type { TimeEntry } from '@/types/time-tracking'
 
 interface TimeEntryCardProps {
@@ -11,47 +22,51 @@ interface TimeEntryCardProps {
   showDossierInfo?: boolean
 }
 
+function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  if (hours === 0) return `${mins} min`
+  if (mins === 0) return `${hours}h`
+  return `${hours}h ${mins}min`
+}
+
 export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEntryCardProps) {
   const router = useRouter()
-  const t = useTranslations('timeTracking')
-  const tConfirm = useTranslations('confirmations')
-  const tCards = useTranslations('cards')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [showActions, setShowActions] = useState(false)
-
-  const handleDelete = async () => {
-    if (!confirm(tConfirm('deleteTimeEntry'))) return
-
-    setLoading(true)
-    const result = await deleteTimeEntryAction(entry.id)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
-
-    router.refresh()
-  }
-
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-
-    if (hours === 0) return `${mins}min`
-    if (mins === 0) return `${hours}h`
-    return `${hours}h${mins}min`
-  }
 
   const isFacturee = !!entry.facture_id
 
+  const borderColor = isFacturee
+    ? 'border-l-green-500'
+    : entry.facturable
+    ? 'border-l-blue-500'
+    : 'border-l-border'
+
+  const handleDelete = async () => {
+    if (!confirm('Supprimer cette entrée de temps ?')) return
+    setLoading(true)
+    const result = await deleteTimeEntryAction(entry.id)
+    if (result.error) {
+      toast.error(result.error)
+      setLoading(false)
+      return
+    }
+    toast.success('Entrée supprimée')
+    router.refresh()
+  }
+
   return (
-    <div className="rounded-lg border bg-card p-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-medium text-muted-foreground">
+    <div
+      className={cn(
+        'rounded-xl border bg-card shadow-sm hover:shadow-md transition-all duration-200 border-l-4 p-4',
+        borderColor
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          {/* Badges + date */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-2">
+            <span className="text-xs text-muted-foreground">
               {new Date(entry.date).toLocaleDateString('fr-FR', {
                 weekday: 'short',
                 day: 'numeric',
@@ -62,106 +77,113 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
             {entry.heure_debut && (
               <span className="text-xs text-muted-foreground">
                 {entry.heure_debut}
-                {entry.heure_fin && ` - ${entry.heure_fin}`}
+                {entry.heure_fin && ` → ${entry.heure_fin}`}
               </span>
             )}
 
-            {!entry.facturable && (
-              <span className="inline-flex items-center rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-                {t('notBillable')}
-              </span>
-            )}
-
-            {isFacturee && (
-              <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
-                {t('billed')}
-              </span>
+            {isFacturee ? (
+              <Badge
+                variant="outline"
+                className="text-xs bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400"
+              >
+                <Icons.check className="h-3 w-3 mr-1" />
+                Facturé
+              </Badge>
+            ) : entry.facturable ? (
+              <Badge
+                variant="outline"
+                className="text-xs bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400"
+              >
+                Facturable
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-xs">
+                Non facturable
+              </Badge>
             )}
           </div>
 
-          <h3 className="font-medium text-foreground">{entry.description}</h3>
+          {/* Description */}
+          <h3 className="text-sm font-semibold text-foreground leading-snug">
+            {entry.description}
+          </h3>
 
+          {/* Dossier */}
           {showDossierInfo && entry.dossiers && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              📁 {entry.dossiers.numero}
-            </p>
-          )}
-
-          {entry.notes && (
-            <p className="mt-1 text-sm text-muted-foreground">{entry.notes}</p>
-          )}
-
-          <div className="mt-3 flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1">
-              <svg
-                className="h-4 w-4 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span className="font-semibold text-foreground">
-                {formatDuration(entry.duree_minutes)}
+            <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+              <Icons.dossiers className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                {entry.dossiers.numero}
+                {entry.dossiers.objet ? ` — ${entry.dossiers.objet}` : ''}
               </span>
+            </div>
+          )}
+
+          {/* Notes */}
+          {entry.notes && (
+            <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{entry.notes}</p>
+          )}
+
+          {/* Durée + montant */}
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
+            <div className="flex items-center gap-1 text-foreground font-medium">
+              <Icons.clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span>{formatDuration(entry.duree_minutes)}</span>
             </div>
 
             {entry.taux_horaire && entry.taux_horaire > 0 && (
               <>
-                <div className="text-muted-foreground">•</div>
-                <div className="text-muted-foreground">
-                  {entry.taux_horaire.toFixed(0)} TND/h
-                </div>
-                <div className="text-muted-foreground">•</div>
-                <div className="font-semibold text-blue-600">
+                <span className="text-muted-foreground">·</span>
+                <span className="text-muted-foreground">
+                  {Number(entry.taux_horaire).toFixed(0)} TND/h
+                </span>
+                <span className="text-muted-foreground">·</span>
+                <span className="font-semibold text-blue-600">
                   {parseFloat(entry.montant_calcule || '0').toFixed(3)} TND
-                </div>
+                </span>
               </>
             )}
           </div>
         </div>
 
+        {/* Actions dropdown — masqué si facturé */}
         {!isFacturee && (
-          <button
-            onClick={() => setShowActions(!showActions)}
-            disabled={loading}
-            className="rounded-md border border bg-card px-3 py-1 text-sm font-medium text-foreground hover:bg-muted"
-          >
-            {showActions ? 'Fermer' : 'Actions'}
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                disabled={loading}
+              >
+                {loading ? (
+                  <Icons.loader className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Icons.moreHorizontal className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={() => router.push(`/time-tracking/${entry.id}/edit`)}
+                disabled={loading}
+              >
+                <Icons.edit className="mr-2 h-4 w-4" />
+                Modifier
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleDelete}
+                disabled={loading}
+                className="text-destructive focus:text-destructive"
+              >
+                <Icons.delete className="mr-2 h-4 w-4" />
+                Supprimer
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
-
-      {error && (
-        <div className="mt-3 rounded-md bg-red-50 p-2 text-sm text-red-800">
-          {error}
-        </div>
-      )}
-
-      {showActions && !isFacturee && (
-        <div className="mt-3 space-y-2 rounded-md bg-muted p-3">
-          <button
-            onClick={() => router.push(`/time-tracking/${entry.id}/edit`)}
-            disabled={loading}
-            className="w-full rounded-md border border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
-          >
-            ✏️ Modifier
-          </button>
-
-          <button
-            onClick={handleDelete}
-            disabled={loading}
-            className="w-full rounded-md border border-red-300 bg-card px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-          >
-            🗑️ Supprimer
-          </button>
-        </div>
-      )}
     </div>
   )
 }

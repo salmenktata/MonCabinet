@@ -5,12 +5,11 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   ArrowLeft, Share2, Printer, Scale, FileText, Link2, Copy, Download,
-  AlignLeft, Loader2, ExternalLink, PanelLeftClose, PanelLeftOpen,
-  BookOpen, Building2, Calendar, Users, Layers, ChevronRight,
+  AlignLeft, PanelLeftClose, PanelLeftOpen,
+  BookOpen, Building2, Calendar, Users, Layers, ChevronRight, ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
 import { NORM_LEVELS_ORDERED, getNormLevelLabel, getNormLevelColor, getNormLevelOrder } from '@/lib/categories/norm-levels'
@@ -31,6 +30,9 @@ interface FullTextChunk {
 
 interface DocumentDetailPageProps {
   documentId: string
+  initialDocument: SearchResultItem
+  initialChunks: FullTextChunk[]
+  initialRelations: SearchResultItem['relations'] | null
 }
 
 // =============================================================================
@@ -126,63 +128,27 @@ function ChunkBlock({
 // COMPOSANT PRINCIPAL
 // =============================================================================
 
-export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
+export function DocumentDetailPage({
+  documentId,
+  initialDocument,
+  initialChunks,
+  initialRelations,
+}: DocumentDetailPageProps) {
   const router = useRouter()
 
-  const [document, setDocument] = useState<SearchResultItem | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Data comes pre-fetched from the server — no client-side loading needed
+  const document = initialDocument
+  const chunks = initialChunks
+  const relations = initialRelations ?? initialDocument.relations ?? null
 
-  const [chunks, setChunks] = useState<FullTextChunk[] | null>(null)
-  const [chunksLoading, setChunksLoading] = useState(false)
-  const [chunksError, setChunksError] = useState<string | null>(null)
-  const [toc, setToc] = useState<TocEntry[]>([])
+  const [toc] = useState<TocEntry[]>(() => parseChunksToToc(chunks))
   const [activeChunkIndex, setActiveChunkIndex] = useState<number | undefined>()
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const chunkRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const observerRef = useRef<IntersectionObserver | null>(null)
 
-  // Fetch document + relations en parallèle
-  useEffect(() => {
-    setIsLoading(true)
-    Promise.all([
-      fetch(`/api/client/kb/${documentId}`).then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      }),
-      fetch(`/api/client/kb/${documentId}/relations`)
-        .then((res) => res.ok ? res.json() : null)
-        .catch(() => null),
-    ])
-      .then(([docData, relationsData]) => {
-        setDocument({
-          ...docData,
-          relations: relationsData || undefined,
-        })
-      })
-      .catch((err) => setError(err.message || 'Erreur de chargement'))
-      .finally(() => setIsLoading(false))
-  }, [documentId])
-
-  // Fetch full text chunks
-  useEffect(() => {
-    setChunksLoading(true)
-    fetch(`/api/client/kb/${documentId}/full-text`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
-      .then((data) => {
-        const c: FullTextChunk[] = data.chunks || []
-        setChunks(c)
-        setToc(parseChunksToToc(c))
-      })
-      .catch((err) => setChunksError(err.message))
-      .finally(() => setChunksLoading(false))
-  }, [documentId])
-
-  // IntersectionObserver pour suivre la section active
+  // IntersectionObserver to track active TOC section
   useEffect(() => {
     if (!chunks || chunks.length === 0) return
 
@@ -222,21 +188,20 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
   }
 
   const handleCite = () => {
-    if (!document) return
     navigator.clipboard.writeText(formatCitation(document))
     toast.success('Citation copiée dans le presse-papiers')
   }
 
   const handleCopy = () => {
-    if (!document) return
-    const text = chunks ? chunks.map((c) => c.content).join('\n\n') : document.chunkContent || document.title
+    const text = chunks.length > 0
+      ? chunks.map((c) => c.content).join('\n\n')
+      : document.chunkContent || document.title
     navigator.clipboard.writeText(text)
     toast.success('Contenu copié dans le presse-papiers')
   }
 
   const handleExport = () => {
-    if (!document) return
-    const content = chunks
+    const content = chunks.length > 0
       ? [document.title, '', ...chunks.map((c) => c.content)].join('\n\n')
       : document.chunkContent || document.title
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
@@ -249,50 +214,13 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
     toast.success('Document exporté')
   }
 
-  // ─── LOADING ──────────────────────────────────────────────────────────────
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto max-w-5xl space-y-6 py-6">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-8 w-8 rounded" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-        <Skeleton className="h-8 w-3/4" />
-        <div className="flex gap-2">
-          <Skeleton className="h-6 w-20 rounded-full" />
-          <Skeleton className="h-6 w-24 rounded-full" />
-        </div>
-        <div className="flex gap-6">
-          <Skeleton className="h-96 w-56 rounded-xl" />
-          <div className="flex-1 space-y-3">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-4/5" />
-            <Skeleton className="h-4 w-full" />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !document) {
-    return (
-      <div className="container mx-auto max-w-4xl py-16 text-center space-y-4">
-        <p className="text-destructive text-lg">{error || 'Document introuvable'}</p>
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Retour
-        </Button>
-      </div>
-    )
-  }
-
-  const { metadata, relations } = document
+  const { metadata } = document
   const categoryColor = LEGAL_CATEGORY_COLORS[document.category as LegalCategory]
   const formattedDate = formatDateLong(metadata.decisionDate as string | null)
   const isAbroge = metadata.statut_vigueur === 'abroge'
-  const contentIsArabic = document.chunkContent ? isArabic(document.chunkContent) : false
+  const contentIsArabic = chunks.length > 0
+    ? isArabic(chunks[0].content)
+    : (document.chunkContent ? isArabic(document.chunkContent) : false)
 
   const relationsCount =
     (relations?.cites?.length || 0) +
@@ -486,44 +414,19 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
             </div>
           )}
 
-          {/* Texte complet */}
+          {/* Texte complet — SSR: contenu disponible dès le chargement de la page */}
           <div className="border rounded-xl p-6 bg-card">
             <div className="flex items-center gap-2 mb-4 pb-3 border-b">
               <AlignLeft className="h-4 w-4 text-muted-foreground" />
               <span className="font-semibold text-sm">Texte complet</span>
-              {chunks && (
+              {chunks.length > 0 && (
                 <Badge variant="secondary" className="text-xs ml-auto">
                   {chunks.length} fragments
                 </Badge>
               )}
             </div>
 
-            {chunksLoading && (
-              <div className="flex items-center gap-2 py-8 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="text-sm">Chargement du texte…</span>
-              </div>
-            )}
-
-            {chunksError && !chunks && (
-              <div className="py-4">
-                {/* Fallback : afficher le chunkContent de base */}
-                {document.chunkContent ? (
-                  <p
-                    className="text-sm leading-relaxed whitespace-pre-wrap"
-                    dir={contentIsArabic ? 'rtl' : 'ltr'}
-                  >
-                    {document.chunkContent}
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Texte complet non disponible.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {!chunksLoading && chunks && chunks.length > 0 && (
+            {chunks.length > 0 ? (
               <div className="space-y-1 divide-y divide-border/40">
                 {chunks.map((chunk) => (
                   <ChunkBlock
@@ -534,14 +437,16 @@ export function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
                   />
                 ))}
               </div>
-            )}
-
-            {!chunksLoading && !chunksError && chunks && chunks.length === 0 && document.chunkContent && (
+            ) : document.chunkContent ? (
               <p
                 className="text-sm leading-relaxed whitespace-pre-wrap"
                 dir={contentIsArabic ? 'rtl' : 'ltr'}
               >
                 {document.chunkContent}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Texte complet non disponible.
               </p>
             )}
           </div>

@@ -1,251 +1,179 @@
 'use client'
 
-import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { deleteFactureAction, changerStatutFactureAction } from '@/app/actions/factures'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { useConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Icons } from '@/lib/icons'
+import {
+  deleteFactureAction,
+  changerStatutFactureAction,
+  envoyerFactureEmailAction,
+} from '@/app/actions/factures'
 
 interface FactureDetailClientProps {
-  facture: any
-  profile: any
+  facture: {
+    id: string
+    numero: string
+    statut: string
+    type_honoraires?: string
+    clients?: {
+      email?: string
+    }
+  }
 }
 
-export default function FactureDetailClient({
-  facture,
-  profile,
-}: FactureDetailClientProps) {
+export default function FactureDetailClient({ facture }: FactureDetailClientProps) {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const { confirm, dialog } = useConfirmDialog()
 
   const handleDelete = async () => {
-    if (!confirm('Supprimer cette facture ? Cette action est irréversible.')) return
-
-    setLoading(true)
-    const result = await deleteFactureAction(facture.id)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
-
-    router.push('/factures')
-    router.refresh()
+    await confirm({
+      title: 'Supprimer cette facture ?',
+      description: 'Cette action est irréversible. La facture sera définitivement supprimée.',
+      confirmLabel: 'Supprimer définitivement',
+      variant: 'destructive',
+      icon: 'danger',
+      onConfirm: async () => {
+        const result = await deleteFactureAction(facture.id)
+        if (result.error) {
+          toast.error(result.error)
+          return
+        }
+        toast.success('Facture supprimée')
+        router.push('/factures')
+      },
+    })
   }
 
-  const handleChangeStatut = async (newStatut: string) => {
-    setLoading(true)
-    setError('')
-
+  const handleChangeStatut = async (newStatut: string, label: string) => {
     const result = await changerStatutFactureAction(facture.id, newStatut)
-
     if (result.error) {
-      setError(result.error)
-      setLoading(false)
+      toast.error(result.error)
       return
     }
-
+    toast.success(label)
     router.refresh()
-    setLoading(false)
   }
 
-  const handleGeneratePDF = () => {
-    // Générer le PDF
-    const clientName = facture.clients
-      ? facture.clients.type_client === 'personne_physique'
-        ? `${facture.clients.nom} ${facture.clients.prenom || ''}`.trim()
-        : facture.clients.nom
-      : 'Client supprimé'
-
-    // Créer le contenu HTML pour le PDF
-    const pdfContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Facture ${facture.numero}</title>
-  <style>
-    @page { size: A4; margin: 2cm; }
-    body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.6; color: #333; }
-    .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #2563eb; padding-bottom: 20px; }
-    .header h1 { color: #2563eb; margin: 0; font-size: 24pt; }
-    .info-section { display: flex; justify-content: space-between; margin-bottom: 30px; }
-    .info-box { width: 48%; }
-    .info-box h3 { font-size: 12pt; color: #2563eb; margin-bottom: 10px; }
-    .info-box p { margin: 5px 0; }
-    .details { margin: 30px 0; }
-    .details table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    .details th, .details td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-    .details th { background-color: #f3f4f6; font-weight: 600; }
-    .totals { margin-top: 30px; text-align: right; }
-    .totals table { width: 40%; margin-left: auto; border-collapse: collapse; }
-    .totals td { padding: 8px; }
-    .totals .total-row { font-size: 14pt; font-weight: bold; color: #2563eb; border-top: 2px solid #2563eb; }
-    .footer { margin-top: 50px; text-align: center; font-size: 9pt; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 20px; }
-    .label { color: #6b7280; font-size: 10pt; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>FACTURE</h1>
-    <p style="font-size: 18pt; margin: 10px 0;">${facture.numero}</p>
-  </div>
-
-  <div class="info-section">
-    <div class="info-box">
-      <h3>De :</h3>
-      <p><strong>${profile?.nom || ''} ${profile?.prenom || ''}</strong></p>
-      ${profile?.cabinet ? `<p>${profile.cabinet}</p>` : ''}
-      ${profile?.adresse ? `<p>${profile.adresse}</p>` : ''}
-      ${profile?.code_postal || profile?.ville ? `<p>${profile.code_postal || ''} ${profile.ville || ''}</p>` : ''}
-      ${profile?.email ? `<p>Email: ${profile.email}</p>` : ''}
-      ${profile?.telephone ? `<p>Tél: ${profile.telephone}</p>` : ''}
-    </div>
-
-    <div class="info-box">
-      <h3>À :</h3>
-      <p><strong>${clientName}</strong></p>
-      ${facture.clients?.adresse ? `<p>${facture.clients.adresse}</p>` : ''}
-      ${facture.clients?.code_postal || facture.clients?.ville ? `<p>${facture.clients.code_postal || ''} ${facture.clients.ville || ''}</p>` : ''}
-      ${facture.clients?.email ? `<p>Email: ${facture.clients.email}</p>` : ''}
-      ${facture.clients?.telephone ? `<p>Tél: ${facture.clients.telephone}</p>` : ''}
-    </div>
-  </div>
-
-  <div class="details">
-    <table>
-      <tr>
-        <td><span class="label">Date d'émission:</span></td>
-        <td><strong>${new Date(facture.date_emission).toLocaleDateString('fr-FR')}</strong></td>
-      </tr>
-      ${facture.date_echeance ? `
-      <tr>
-        <td><span class="label">Date d'échéance:</span></td>
-        <td><strong>${new Date(facture.date_echeance).toLocaleDateString('fr-FR')}</strong></td>
-      </tr>
-      ` : ''}
-      ${facture.dossiers ? `
-      <tr>
-        <td><span class="label">Dossier:</span></td>
-        <td><strong>${facture.dossiers.numero}</strong> - ${facture.dossiers.objet}</td>
-      </tr>
-      ` : ''}
-    </table>
-
-    <h3 style="color: #2563eb; margin-top: 30px;">Objet</h3>
-    <p>${facture.objet}</p>
-
-    ${facture.notes ? `
-    <h3 style="color: #2563eb; margin-top: 20px;">Notes</h3>
-    <p style="white-space: pre-wrap;">${facture.notes}</p>
-    ` : ''}
-  </div>
-
-  <div class="totals">
-    <table>
-      <tr>
-        <td>Montant HT</td>
-        <td style="text-align: right;"><strong>${parseFloat(facture.montant_ht).toFixed(3)} TND</strong></td>
-      </tr>
-      <tr>
-        <td>TVA (${facture.taux_tva}%)</td>
-        <td style="text-align: right;"><strong>${parseFloat(facture.montant_tva).toFixed(3)} TND</strong></td>
-      </tr>
-      <tr class="total-row">
-        <td>Total TTC</td>
-        <td style="text-align: right;"><strong>${parseFloat(facture.montant_ttc).toFixed(3)} TND</strong></td>
-      </tr>
-    </table>
-  </div>
-
-  <div class="footer">
-    <p>Facture générée le ${new Date().toLocaleDateString('fr-FR')}</p>
-    ${profile?.siret ? `<p>SIRET: ${profile.siret}</p>` : ''}
-  </div>
-</body>
-</html>
-    `
-
-    // Ouvrir dans une nouvelle fenêtre pour impression
-    const printWindow = window.open('', '_blank')
-    if (printWindow) {
-      printWindow.document.write(pdfContent)
-      printWindow.document.close()
-      printWindow.onload = () => {
-        printWindow.print()
-      }
+  const handleSendEmail = async () => {
+    if (!facture.clients?.email) {
+      toast.error("Le client n'a pas d'adresse email")
+      return
     }
+    await confirm({
+      title: 'Envoyer par email ?',
+      description: `La facture sera envoyée à ${facture.clients.email}.`,
+      confirmLabel: 'Envoyer',
+      variant: 'default',
+      icon: 'question',
+      onConfirm: async () => {
+        const result = await envoyerFactureEmailAction(facture.id)
+        if (result.error) {
+          toast.error(result.error)
+          return
+        }
+        toast.success(result.message || 'Facture envoyée par email')
+        router.refresh()
+      },
+    })
   }
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-foreground mb-4">Actions</h2>
+    <>
+      {dialog}
+      <div className="rounded-lg border bg-card p-6 shadow-sm">
+        <h2 className="text-xs font-semibold text-muted-foreground mb-4 uppercase tracking-wide">
+          Actions
+        </h2>
 
-      {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-800">
-          {error}
+        <div className="space-y-2">
+          {/* PDF */}
+          <Button variant="default" className="w-full justify-start" asChild>
+            <a href={`/api/factures/${facture.id}/pdf`} target="_blank" rel="noopener noreferrer">
+              <Icons.download className="mr-2 h-4 w-4" />
+              Télécharger PDF
+            </a>
+          </Button>
+
+          {/* Note d'honoraires */}
+          {facture.type_honoraires && (
+            <Button variant="outline" className="w-full justify-start" asChild>
+              <a
+                href={`/api/factures/${facture.id}/note-honoraires`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Icons.fileText className="mr-2 h-4 w-4" />
+                Note d&apos;honoraires
+              </a>
+            </Button>
+          )}
+
+          {/* Envoyer par email */}
+          {facture.clients?.email && (
+            <Button variant="outline" className="w-full justify-start" onClick={handleSendEmail}>
+              <Icons.mail className="mr-2 h-4 w-4 text-purple-600" />
+              Envoyer par email
+            </Button>
+          )}
+
+          {/* Marquer comme envoyée */}
+          {facture.statut === 'brouillon' && (
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => handleChangeStatut('envoyee', 'Facture marquée comme envoyée')}
+            >
+              <Icons.invoices className="mr-2 h-4 w-4 text-blue-600" />
+              Marquer comme envoyée
+            </Button>
+          )}
+
+          {/* Marquer comme payée */}
+          {facture.statut !== 'payee' && (
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => handleChangeStatut('payee', 'Facture marquée comme payée')}
+            >
+              <Icons.checkCircle className="mr-2 h-4 w-4 text-green-600" />
+              Marquer comme payée
+            </Button>
+          )}
+
+          {/* Marquer comme impayée */}
+          {facture.statut === 'envoyee' && (
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => handleChangeStatut('impayee', 'Facture marquée comme impayée')}
+            >
+              <Icons.alertCircle className="mr-2 h-4 w-4 text-orange-600" />
+              Marquer comme impayée
+            </Button>
+          )}
+
+          {/* Modifier */}
+          <Button variant="outline" className="w-full justify-start" asChild>
+            <Link href={`/factures/${facture.id}/edit`}>
+              <Icons.edit className="mr-2 h-4 w-4" />
+              Modifier
+            </Link>
+          </Button>
+
+          {/* Supprimer */}
+          <Button
+            variant="outline"
+            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+            onClick={handleDelete}
+          >
+            <Icons.delete className="mr-2 h-4 w-4" />
+            Supprimer
+          </Button>
         </div>
-      )}
-
-      <div className="space-y-3">
-        {/* Générer PDF */}
-        <button
-          onClick={handleGeneratePDF}
-          disabled={loading}
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          📄 Générer PDF
-        </button>
-
-        {/* Changer statut */}
-        {facture.statut !== 'payee' && (
-          <button
-            onClick={() => handleChangeStatut('payee')}
-            disabled={loading}
-            className="w-full rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-          >
-            ✓ Marquer comme payée
-          </button>
-        )}
-
-        {facture.statut === 'brouillon' && (
-          <button
-            onClick={() => handleChangeStatut('envoyee')}
-            disabled={loading}
-            className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-          >
-            📧 Marquer comme envoyée
-          </button>
-        )}
-
-        {facture.statut !== 'impayee' && facture.statut !== 'payee' && (
-          <button
-            onClick={() => handleChangeStatut('impayee')}
-            disabled={loading}
-            className="w-full rounded-md border border-red-300 bg-card px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-          >
-            ⚠️ Marquer comme impayée
-          </button>
-        )}
-
-        {/* Modifier */}
-        <button
-          onClick={() => router.push(`/factures/${facture.id}/edit`)}
-          disabled={loading}
-          className="w-full rounded-md border border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
-        >
-          ✏️ Modifier
-        </button>
-
-        {/* Supprimer */}
-        <button
-          onClick={handleDelete}
-          disabled={loading}
-          className="w-full rounded-md border border-red-300 bg-card px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-        >
-          🗑️ Supprimer
-        </button>
       </div>
-    </div>
+    </>
   )
 }

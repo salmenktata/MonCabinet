@@ -49,13 +49,9 @@ export default function NarrativeInput({
 
   return (
     <div className="space-y-4">
-      <label className="block text-lg font-semibold text-foreground">
-        {t('input.label')}
-      </label>
-
       <div className="grid md:grid-cols-2 gap-4">
         {/* Colonne 1 : Saisie du narratif */}
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
+        <div className="rounded-xl border bg-card p-5 shadow-sm flex flex-col gap-3">
           <textarea
             ref={textareaRef}
             value={value}
@@ -63,41 +59,39 @@ export default function NarrativeInput({
             onKeyDown={handleKeyDown}
             disabled={disabled}
             placeholder={t('input.placeholder')}
-            className="w-full min-h-[300px] resize-none rounded-lg border border bg-background p-4 text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full min-h-[300px] resize-none rounded-lg border bg-background p-4 text-foreground placeholder:text-muted-foreground focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             dir="auto"
           />
 
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span
-                className={`text-sm ${
-                  charCount < minChars
-                    ? 'text-amber-600'
-                    : charCount > maxChars
-                      ? 'text-red-600'
-                      : 'text-muted-foreground'
-                }`}
-              >
-                {charCount.toLocaleString()} / {maxChars.toLocaleString()} {t('input.characters')}
-              </span>
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={`text-xs tabular-nums ${
+                charCount < minChars
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : charCount > maxChars
+                    ? 'text-red-600'
+                    : 'text-muted-foreground'
+              }`}
+            >
+              {charCount.toLocaleString()} / {maxChars.toLocaleString()}
               {charCount < minChars && (
-                <span className="text-sm text-amber-600">
+                <span className="ml-1 opacity-70">
                   ({t('input.minimum', { min: minChars })})
                 </span>
               )}
-            </div>
+            </span>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
               <span className="text-xs text-muted-foreground hidden sm:inline">
                 {t('input.shortcut')}
               </span>
               <button
                 onClick={onSubmit}
                 disabled={disabled || !isValid}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 rounded-lg bg-amber-600 px-5 py-2 text-sm text-white font-semibold hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <svg
-                  className="h-5 w-5"
+                  className="h-4 w-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

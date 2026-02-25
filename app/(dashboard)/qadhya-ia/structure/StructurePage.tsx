@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { X } from 'lucide-react'
 import { useTranslations, useLocale } from 'next-intl'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -19,7 +18,6 @@ import {
 } from '@/app/actions/dossiers'
 import { useAssistantStore } from '@/lib/stores/assistant-store'
 import { useStance } from '@/contexts/StanceContext'
-import { MODE_CONFIGS } from '../mode-config'
 import type {
   StructuredDossier,
   NewClientData,
@@ -41,6 +39,12 @@ interface StructurePageProps {
   clients: Client[]
 }
 
+const WORKFLOW_STEPS = [
+  { labelFr: 'Structuration', labelAr: 'هيكلة', step: 1 },
+  { labelFr: 'Consultation', labelAr: 'استشارة', step: 2 },
+  { labelFr: 'Dossier', labelAr: 'ملف', step: 3 },
+]
+
 export function StructurePage({ clients }: StructurePageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -61,18 +65,9 @@ export function StructurePage({ clients }: StructurePageProps) {
   } = useAssistantStore()
 
   const { stance, setStance } = useStance()
-  const config = MODE_CONFIGS['structure']
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [showNotice, setShowNotice] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('qadhya_notice_structure') !== 'dismissed'
-  })
-  const dismissNotice = () => {
-    localStorage.setItem('qadhya_notice_structure', 'dismissed')
-    setShowNotice(false)
-  }
   const [analysisSteps, setAnalysisSteps] = useState<string[]>([])
 
   // Hydratation SSR
@@ -100,7 +95,6 @@ export function StructurePage({ clients }: StructurePageProps) {
     }
   }, [hydrated, searchParams, setNarratif, t])
 
-  // Soumettre → analyser directement (plus de questions clarificatrices)
   const handleSubmitNarrative = () => {
     if (!narratif || narratif.length < 20) {
       setError(t('errors.narratifTooShort'))
@@ -110,7 +104,6 @@ export function StructurePage({ clients }: StructurePageProps) {
     startAnalysis(narratif)
   }
 
-  // Lancer l'analyse
   const startAnalysis = async (textToAnalyze: string) => {
     setStep('analyzing')
     setAnalysisSteps([])
@@ -188,84 +181,75 @@ export function StructurePage({ clients }: StructurePageProps) {
     return (
       <div className="space-y-6 pb-12">
         <div className="flex items-center gap-3">
-          <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', config.iconBgClass)}>
-            <Icons.edit className={cn('h-5 w-5', config.iconTextClass)} />
+          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+            <Icons.edit className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+          <div>
+            <div className="h-7 w-48 rounded-md bg-muted animate-pulse" />
+            <div className="mt-1 h-4 w-72 rounded-md bg-muted animate-pulse" />
+          </div>
         </div>
-        <div className="h-64 animate-pulse rounded-lg bg-muted" />
+        <div className="h-64 animate-pulse rounded-xl bg-muted" />
       </div>
     )
   }
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', config.iconBgClass)}>
-          <Icons.edit className={cn('h-5 w-5', config.iconTextClass)} />
+      {/* En-tête */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+            <Icons.edit className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">{t('subtitle')}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+
+        {/* Workflow indicator */}
+        <div className="hidden sm:flex items-center gap-1.5 shrink-0 pt-0.5">
+          {WORKFLOW_STEPS.map((s, i) => (
+            <div key={s.step} className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors',
+                  s.step === 1
+                    ? 'bg-amber-100 border-amber-300 text-amber-800 dark:bg-amber-900/40 dark:border-amber-600 dark:text-amber-300'
+                    : 'bg-muted/60 border-border text-muted-foreground'
+                )}
+              >
+                {isAr ? s.labelAr : s.labelFr}
+              </span>
+              {i < WORKFLOW_STEPS.length - 1 && (
+                <Icons.chevronRight className="h-3 w-3 text-muted-foreground/50" />
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Notice contextuelle — flux recommandé */}
-      {showNotice && step === 'input' && (
-        <div className={`relative rounded-lg border-l-4 border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/30 px-4 py-3 pr-10 ${isAr ? 'text-right' : ''}`}>
-          <button
-            onClick={dismissNotice}
-            className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
-            aria-label="Fermer"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200 mb-1">
-            {isAr ? 'الخطوة 1/3 — هيكلة الملف' : 'Étape 1/3 — Structuration du dossier'}
-          </p>
-          <p className="text-xs text-indigo-700 dark:text-indigo-300 mb-2">
-            {isAr
-              ? 'صِف قضيتك بلغة طبيعية (عربية أو فرنسية). تستخرج الذكاء الاصطناعي الوقائع، تُحدد الأطراف، تبني الجدول الزمني وتُكيّف المسائل قانونياً. يمكن تحويل النتيجة إلى ملف دوسييه أو إرسالها إلى الاستشارة.'
-              : 'Décrivez votre affaire en langage naturel. L\'IA extrait les faits, identifie les parties, construit la chronologie et qualifie juridiquement les enjeux. Le résultat peut être transformé en dossier ou transmis en Consultation.'}
-          </p>
-          <div className={`flex flex-wrap gap-2 ${isAr ? 'justify-end' : ''}`}>
-            <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 text-xs text-purple-800 dark:text-purple-200">
-              🤖 Groq llama-3.3-70b
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
-              {isAr ? '📄 مخرج: JSON منظّم' : '📄 Output: JSON structuré'}
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 text-xs text-indigo-800 dark:text-indigo-200">
-              {isAr ? '← الخطوة التالية: الاستشارة' : '→ Étape suivante: Consultation'}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Erreur globale */}
       {error && (
-        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-red-800 dark:text-red-300">
-          {error}
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-300 flex items-start gap-2">
+          <Icons.alertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
       {/* Saisie */}
       {step === 'input' && (
         <>
-          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-xl">&#128161;</span>
-              <div>
-                <p className="font-medium text-blue-900 dark:text-blue-200">{t('tip.title')}</p>
-                <p className="text-sm text-blue-700 dark:text-blue-300">{t('tip.description')}</p>
-              </div>
+          {/* Barre posture + conseil */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+            <div className="flex items-center gap-2">
+              <StanceSelector stance={stance} onChange={setStance} />
             </div>
-          </div>
-
-          {/* Sélecteur de posture */}
-          <div className="flex items-center gap-2">
-            <StanceSelector stance={stance} onChange={setStance} />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Icons.info className="h-3.5 w-3.5 shrink-0" />
+              <span>{t('tip.description')}</span>
+            </div>
           </div>
 
           <NarrativeInput

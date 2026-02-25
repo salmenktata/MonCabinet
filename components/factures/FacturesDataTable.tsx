@@ -3,7 +3,6 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import { DataTable, DataTableColumn } from '@/components/ui/data-table'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +17,11 @@ import { ConfirmDialog, useConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Icons } from '@/lib/icons'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import {
+  deleteFactureAction,
+  changerStatutFactureAction,
+  envoyerFactureEmailAction,
+} from '@/app/actions/factures'
 
 interface Facture {
   id: string
@@ -28,79 +32,54 @@ interface Facture {
   montant_ttc: number
   date_emission: string
   date_echeance?: string
-  client?: {
+  date_paiement?: string
+  type_honoraires?: string
+  clients?: {
+    id?: string
     nom: string
     prenom?: string
     type_client: string
+    email?: string
+  }
+  dossiers?: {
+    id?: string
+    numero?: string
+    objet?: string
   }
 }
 
-interface FacturesDataTableProps {
-  factures: Facture[]
-  onDelete?: (facture: Facture) => Promise<void>
-  onCancel?: (facture: Facture) => Promise<void>
-  onMarkAsPaid?: (facture: Facture) => Promise<void>
-}
-
-export function FacturesDataTable({
-  factures,
-  onDelete,
-  onCancel,
-  onMarkAsPaid,
-}: FacturesDataTableProps) {
+export function FacturesDataTable({ factures }: { factures: Facture[] }) {
   const router = useRouter()
-  const t = useTranslations('factures')
   const { confirm, dialog } = useConfirmDialog()
 
-  // Fonction pour formater la date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('fr-FR', {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
     })
-  }
 
-  // Fonction pour formater le montant
-  const formatMontant = (montant: number) => {
-    return `${montant.toFixed(3)} TND`
-  }
+  const formatMontant = (montant: number) => `${montant.toFixed(3)} TND`
 
-  // Vérifier si la facture est en retard
   const isOverdue = (facture: Facture) => {
     if (!facture.date_echeance || facture.statut === 'payee') return false
-    const echeance = new Date(facture.date_echeance)
-    return echeance < new Date()
+    return new Date(facture.date_echeance) < new Date()
   }
 
-  // Obtenir le badge de statut
   const getStatusBadge = (facture: Facture) => {
     const overdue = isOverdue(facture)
-
     const variants = {
-      brouillon: {
-        className: 'bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400',
-        label: 'Brouillon',
-      },
+      brouillon: { className: 'bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400', label: 'Brouillon' },
       envoyee: {
         className: overdue
           ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
           : 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
         label: overdue ? 'En retard' : 'Envoyée',
       },
-      payee: {
-        className: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400',
-        label: 'Payée',
-      },
-      impayee: {
-        className: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400',
-        label: 'Impayée',
-      },
+      payee: { className: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400', label: 'Payée' },
+      impayee: { className: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400', label: 'Impayée' },
     }
-
     const variant = variants[facture.statut]
-
     return (
       <Badge variant="secondary" className={cn(variant.className)}>
         {variant.label}
@@ -108,16 +87,29 @@ export function FacturesDataTable({
     )
   }
 
-  // Obtenir le nom du client
-  const getClientName = (client?: Facture['client']) => {
-    if (!client) return 'Non assigné'
-    if (client.type_client === 'personne_physique') {
-      return `${client.prenom || ''} ${client.nom}`.trim()
-    }
-    return client.nom
+  const getClientName = (client?: Facture['clients']) => {
+    if (!client) return '—'
+    return client.type_client === 'personne_physique'
+      ? `${client.prenom || ''} ${client.nom}`.trim()
+      : client.nom
   }
 
-  // Gérer le marquage comme payée
+  const handleMarkAsSent = async (facture: Facture) => {
+    await confirm({
+      title: 'Marquer comme envoyée ?',
+      description: `La facture "${facture.numero}" passera en statut "Envoyée".`,
+      confirmLabel: 'Marquer comme envoyée',
+      variant: 'default',
+      icon: 'question',
+      onConfirm: async () => {
+        const result = await changerStatutFactureAction(facture.id, 'envoyee')
+        if (result.error) { toast.error(result.error); return }
+        toast.success('Facture marquée comme envoyée')
+        router.refresh()
+      },
+    })
+  }
+
   const handleMarkAsPaid = async (facture: Facture) => {
     await confirm({
       title: 'Marquer comme payée ?',
@@ -126,38 +118,34 @@ export function FacturesDataTable({
       variant: 'default',
       icon: 'question',
       onConfirm: async () => {
-        if (onMarkAsPaid) {
-          await onMarkAsPaid(facture)
-        } else {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-        }
+        const result = await changerStatutFactureAction(facture.id, 'payee')
+        if (result.error) { toast.error(result.error); return }
         toast.success('Facture marquée comme payée')
         router.refresh()
       },
     })
   }
 
-  // Gérer l'annulation
-  const handleCancel = async (facture: Facture) => {
+  const handleSendEmail = async (facture: Facture) => {
+    if (!facture.clients?.email) {
+      toast.error("Le client n'a pas d'adresse email")
+      return
+    }
     await confirm({
-      title: 'Annuler la facture ?',
-      description: `La facture "${facture.numero}" sera marquée comme annulée. Cette action ne peut pas être annulée.`,
-      confirmLabel: 'Annuler la facture',
-      variant: 'destructive',
-      icon: 'danger',
+      title: 'Envoyer par email ?',
+      description: `La facture "${facture.numero}" sera envoyée à ${facture.clients.email}.`,
+      confirmLabel: 'Envoyer',
+      variant: 'default',
+      icon: 'question',
       onConfirm: async () => {
-        if (onCancel) {
-          await onCancel(facture)
-        } else {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-        }
-        toast.success('Facture annulée')
+        const result = await envoyerFactureEmailAction(facture.id)
+        if (result.error) { toast.error(result.error); return }
+        toast.success(result.message || 'Facture envoyée par email')
         router.refresh()
       },
     })
   }
 
-  // Gérer la suppression
   const handleDelete = async (facture: Facture) => {
     await confirm({
       title: 'Supprimer la facture ?',
@@ -166,18 +154,14 @@ export function FacturesDataTable({
       variant: 'destructive',
       icon: 'danger',
       onConfirm: async () => {
-        if (onDelete) {
-          await onDelete(facture)
-        } else {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-        }
-        toast.success('Facture supprimée avec succès')
+        const result = await deleteFactureAction(facture.id)
+        if (result.error) { toast.error(result.error); return }
+        toast.success('Facture supprimée')
         router.refresh()
       },
     })
   }
 
-  // Définition des colonnes
   const columns: DataTableColumn<Facture>[] = [
     {
       id: 'numero',
@@ -189,9 +173,7 @@ export function FacturesDataTable({
           </div>
           <div>
             <div className="font-medium">{facture.numero}</div>
-            <div className="text-xs text-muted-foreground">
-              {formatDate(facture.date_emission)}
-            </div>
+            <div className="text-xs text-muted-foreground">{formatDate(facture.date_emission)}</div>
           </div>
         </div>
       ),
@@ -202,12 +184,12 @@ export function FacturesDataTable({
       id: 'objet',
       header: 'Objet',
       accessor: (facture) => (
-        <div className="max-w-[300px]">
+        <div className="max-w-[280px]">
           <div className="font-medium line-clamp-1">{facture.objet}</div>
           {facture.date_echeance && (
-            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <Icons.calendar className="h-3 w-3" />
-              Échéance : {formatDate(facture.date_echeance)}
+            <div className={cn('text-xs flex items-center gap-1 mt-0.5', isOverdue(facture) ? 'text-red-500' : 'text-muted-foreground')}>
+              <Icons.clock className="h-3 w-3" />
+              Éch. {formatDate(facture.date_echeance)}
             </div>
           )}
         </div>
@@ -219,25 +201,32 @@ export function FacturesDataTable({
       header: 'Client',
       accessor: (facture) => (
         <div className="flex items-center gap-2">
-          {facture.client?.type_client === 'personne_physique' ? (
-            <Icons.user className="h-4 w-4 text-muted-foreground" />
+          {facture.clients?.type_client === 'personne_physique' ? (
+            <Icons.user className="h-4 w-4 text-muted-foreground shrink-0" />
           ) : (
-            <Icons.building className="h-4 w-4 text-muted-foreground" />
+            <Icons.building className="h-4 w-4 text-muted-foreground shrink-0" />
           )}
-          <span className="text-sm">{getClientName(facture.client)}</span>
+          <span className="text-sm truncate max-w-[150px]">{getClientName(facture.clients)}</span>
         </div>
       ),
       sortable: true,
     },
     {
       id: 'montant',
-      header: 'Montant',
+      header: 'Montant TTC',
       accessor: (facture) => (
         <div className="text-right">
-          <div className="font-semibold">{formatMontant(facture.montant_ttc)}</div>
-          <div className="text-xs text-muted-foreground">
-            HT : {formatMontant(facture.montant_ht)}
-          </div>
+          <div className="font-semibold tabular-nums">{formatMontant(facture.montant_ttc)}</div>
+          {facture.date_paiement ? (
+            <div className="text-xs text-green-600 flex items-center gap-1 justify-end mt-0.5">
+              <Icons.checkCircle className="h-3 w-3" />
+              {formatDate(facture.date_paiement)}
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground mt-0.5">
+              HT : {formatMontant(facture.montant_ht)}
+            </div>
+          )}
         </div>
       ),
       sortable: true,
@@ -272,40 +261,43 @@ export function FacturesDataTable({
                 Modifier
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Icons.download className="mr-2 h-4 w-4" />
-              Télécharger PDF
+            <DropdownMenuItem asChild>
+              <a href={`/api/factures/${facture.id}/pdf`} target="_blank" rel="noopener noreferrer">
+                <Icons.download className="mr-2 h-4 w-4" />
+                Télécharger PDF
+              </a>
             </DropdownMenuItem>
+            {facture.type_honoraires && (
+              <DropdownMenuItem asChild>
+                <a href={`/api/factures/${facture.id}/note-honoraires`} target="_blank" rel="noopener noreferrer">
+                  <Icons.fileText className="mr-2 h-4 w-4" />
+                  Note d&apos;honoraires
+                </a>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
+            {facture.statut === 'brouillon' && (
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleMarkAsSent(facture) }}>
+                <Icons.invoices className="mr-2 h-4 w-4 text-blue-600" />
+                Marquer comme envoyée
+              </DropdownMenuItem>
+            )}
             {facture.statut !== 'payee' && (
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleMarkAsPaid(facture)
-                }}
-              >
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleMarkAsPaid(facture) }}>
                 <Icons.checkCircle className="mr-2 h-4 w-4 text-green-600" />
                 Marquer comme payée
               </DropdownMenuItem>
             )}
-            {facture.statut === 'brouillon' && (
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleCancel(facture)
-                }}
-              >
-                <Icons.xCircle className="mr-2 h-4 w-4" />
-                Annuler la facture
+            {facture.clients?.email && (
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSendEmail(facture) }}>
+                <Icons.mail className="mr-2 h-4 w-4 text-purple-600" />
+                Envoyer par email
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleDelete(facture)
-              }}
+              onClick={(e) => { e.stopPropagation(); handleDelete(facture) }}
             >
               <Icons.delete className="mr-2 h-4 w-4" />
               Supprimer
@@ -323,18 +315,12 @@ export function FacturesDataTable({
       <DataTable
         data={factures}
         columns={columns}
-        searchable
-        searchPlaceholder="Rechercher une facture (numéro, objet)..."
         selectable
-        onSelectionChange={(selected) => {
-          console.log('Factures sélectionnées:', selected)
-        }}
+        onSelectionChange={() => {}}
         pageSize={25}
         pageSizeOptions={[10, 25, 50, 100]}
         emptyMessage="Aucune facture trouvée"
-        onRowClick={(facture) => {
-          router.push(`/factures/${facture.id}`)
-        }}
+        onRowClick={(facture) => router.push(`/factures/${facture.id}`)}
         getRowId={(facture) => facture.id}
       />
     </>

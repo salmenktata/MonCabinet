@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Search, X, Scale, BookOpen, FileText, ClipboardList, Globe, Newspaper,
-  Sparkles, Database, TrendingUp, ArrowRight,
+  Sparkles, Database, TrendingUp, ArrowRight, ChevronRight,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -21,9 +21,9 @@ import { CodeShowcase } from './CodeShowcase'
 // =============================================================================
 
 const POPULAR_SEARCHES = [
-  { label: 'Article 47 CP', query: 'article 47 code pénal' },
+  { label: 'Art. 47 CP', query: 'article 47 code pénal' },
   { label: 'COC obligations', query: 'code obligations contrats' },
-  { label: 'Contrat de travail', query: 'contrat de travail licenciement' },
+  { label: 'Licenciement', query: 'contrat de travail licenciement' },
   { label: 'Procédure civile', query: 'procédure civile appel' },
   { label: 'Statut personnel', query: 'code statut personnel mariage divorce' },
 ]
@@ -36,8 +36,8 @@ const PORTALS = [
     titleAr: 'المجلات والتشريعات',
     description: 'COC, Code Pénal, Code du Travail, Code de Commerce et tous les textes normatifs',
     categories: ['codes', 'legislation', 'constitution', 'conventions'],
-    colorClass: 'bg-indigo-50 border-indigo-200 text-indigo-900 hover:bg-indigo-100/80 dark:bg-indigo-950 dark:border-indigo-800 dark:text-indigo-100',
-    iconBgClass: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
+    colorClass: 'bg-card border hover:border-indigo-300 hover:shadow-md dark:hover:border-indigo-700',
+    iconBgClass: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400',
     mode: 'textes' as const,
     cat: 'codes',
   },
@@ -48,8 +48,8 @@ const PORTALS = [
     titleAr: 'الاجتهاد القضائي',
     description: 'Décisions de la Cour de Cassation, Cours d\'appel et Tribunaux de 1ère instance',
     categories: ['jurisprudence'],
-    colorClass: 'bg-purple-50 border-purple-200 text-purple-900 hover:bg-purple-100/80 dark:bg-purple-950 dark:border-purple-800 dark:text-purple-100',
-    iconBgClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+    colorClass: 'bg-card border hover:border-purple-300 hover:shadow-md dark:hover:border-purple-700',
+    iconBgClass: 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400',
     mode: 'general' as const,
     cat: 'jurisprudence',
   },
@@ -60,8 +60,8 @@ const PORTALS = [
     titleAr: 'الرائد الرسمي',
     description: 'Publications officielles du Journal Officiel de la République Tunisienne',
     categories: ['jort'],
-    colorClass: 'bg-red-50 border-red-200 text-red-900 hover:bg-red-100/80 dark:bg-red-950 dark:border-red-800 dark:text-red-100',
-    iconBgClass: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+    colorClass: 'bg-card border hover:border-red-300 hover:shadow-md dark:hover:border-red-700',
+    iconBgClass: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400',
     mode: 'general' as const,
     cat: 'jort',
   },
@@ -72,8 +72,8 @@ const PORTALS = [
     titleAr: 'الفقه والتعليقات',
     description: 'Articles juridiques, commentaires d\'arrêts et analyses doctrinales',
     categories: ['doctrine'],
-    colorClass: 'bg-green-50 border-green-200 text-green-900 hover:bg-green-100/80 dark:bg-green-950 dark:border-green-800 dark:text-green-100',
-    iconBgClass: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+    colorClass: 'bg-card border hover:border-green-300 hover:shadow-md dark:hover:border-green-700',
+    iconBgClass: 'bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400',
     mode: 'general' as const,
     cat: 'doctrine',
   },
@@ -84,8 +84,8 @@ const PORTALS = [
     titleAr: 'النماذج والوثائق',
     description: 'Modèles de contrats, lettres type et actes notariés',
     categories: ['modeles', 'formulaires'],
-    colorClass: 'bg-orange-50 border-orange-200 text-orange-900 hover:bg-orange-100/80 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-100',
-    iconBgClass: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
+    colorClass: 'bg-card border hover:border-orange-300 hover:shadow-md dark:hover:border-orange-700',
+    iconBgClass: 'bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400',
     mode: 'general' as const,
     cat: 'modeles',
   },
@@ -96,8 +96,8 @@ const PORTALS = [
     titleAr: 'الاتفاقيات الدولية',
     description: 'Traités bilatéraux, conventions multilatérales ratifiées par la Tunisie',
     categories: ['conventions'],
-    colorClass: 'bg-teal-50 border-teal-200 text-teal-900 hover:bg-teal-100/80 dark:bg-teal-950 dark:border-teal-800 dark:text-teal-100',
-    iconBgClass: 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300',
+    colorClass: 'bg-card border hover:border-teal-300 hover:shadow-md dark:hover:border-teal-700',
+    iconBgClass: 'bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400',
     mode: 'general' as const,
     cat: 'conventions',
   },
@@ -108,8 +108,8 @@ const PORTALS = [
     titleAr: 'الإجراءات',
     description: 'Guides de procédures administratives et judiciaires',
     categories: ['procedures'],
-    colorClass: 'bg-cyan-50 border-cyan-200 text-cyan-900 hover:bg-cyan-100/80 dark:bg-cyan-950 dark:border-cyan-800 dark:text-cyan-100',
-    iconBgClass: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300',
+    colorClass: 'bg-card border hover:border-cyan-300 hover:shadow-md dark:hover:border-cyan-700',
+    iconBgClass: 'bg-cyan-50 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400',
     mode: 'general' as const,
     cat: 'procedures',
   },
@@ -120,8 +120,8 @@ const PORTALS = [
     titleAr: 'كامل القاعدة',
     description: 'Recherche libre dans l\'ensemble de la bibliothèque juridique tunisienne',
     categories: [],
-    colorClass: 'bg-slate-50 border-slate-200 text-slate-900 hover:bg-slate-100/80 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100',
-    iconBgClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    colorClass: 'bg-card border hover:border-foreground/30 hover:shadow-md',
+    iconBgClass: 'bg-muted text-muted-foreground',
     mode: 'general' as const,
     cat: '',
   },
@@ -217,36 +217,39 @@ export function KnowledgeBaseBrowser() {
           )}
         </motion.div>
       ) : (
-        <motion.div key="landing" {...fadeSlide} className="container mx-auto space-y-10 pb-12">
+        <motion.div key="landing" {...fadeSlide} className="container mx-auto space-y-12 pb-16">
 
           {/* ─── HERO ─────────────────────────────────────────────────────── */}
-          <div className="relative text-center space-y-5 py-10 px-4 rounded-2xl bg-gradient-to-b from-slate-50 to-white dark:from-slate-900/50 dark:to-background border border-slate-100 dark:border-slate-800/50">
-            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 dark:bg-indigo-950 dark:text-indigo-400 px-3 py-1.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+          <div className="pt-10 pb-4 text-center space-y-6 px-4">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground border rounded-full px-3 py-1.5">
               <Sparkles className="h-3.5 w-3.5" />
               Bibliothèque Juridique Tunisienne
             </div>
 
-            <div className="space-y-2">
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+            <div className="space-y-3">
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
                 La référence du droit tunisien
               </h1>
-              <p className="text-muted-foreground max-w-xl mx-auto text-sm leading-relaxed">
+              <p className="text-muted-foreground max-w-lg mx-auto text-base leading-relaxed">
                 Codes, jurisprudence, doctrine et textes officiels — recherche sémantique IA sur{' '}
-                {statsLoading ? '…' : totalCount.toLocaleString('fr-FR')} documents juridiques
+                <span className="font-semibold text-foreground">
+                  {statsLoading ? '…' : totalCount.toLocaleString('fr-FR')}
+                </span>{' '}
+                documents juridiques
               </p>
             </div>
 
             {/* Barre de recherche */}
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-2xl mx-auto space-y-3">
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground" />
                   <Input
-                    placeholder="Rechercher un article, un texte de loi, une décision… (ex: article 47 CP)"
+                    placeholder="Rechercher un article, texte de loi, décision… (ex: article 47 CP)"
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setSearchError('') }}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="pl-12 h-12 text-base"
+                    className="pl-11 h-12 text-sm bg-background border-border/80 focus:border-foreground/30"
                   />
                   {searchQuery && (
                     <button
@@ -255,31 +258,30 @@ export function KnowledgeBaseBrowser() {
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
                       aria-label="Effacer"
                     >
-                      <X className="h-4 w-4 text-muted-foreground" />
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
                     </button>
                   )}
                 </div>
-                <Button onClick={handleSearch} size="lg" className="h-12 px-6 shrink-0">
-                  <Search className="h-4 w-4 mr-2" />
+                <Button onClick={handleSearch} size="lg" className="h-12 px-6 shrink-0 gap-2">
+                  <Search className="h-4 w-4" />
                   Rechercher
                 </Button>
               </div>
               {searchError && (
-                <p className="text-sm text-destructive mt-2">{searchError}</p>
+                <p className="text-sm text-destructive">{searchError}</p>
               )}
 
-              <div className="flex flex-wrap gap-2 mt-3 justify-center">
-                <span className="text-xs text-muted-foreground self-center">Suggestions :</span>
+              {/* Suggestions */}
+              <div className="flex flex-wrap gap-1.5 justify-center">
+                <span className="text-xs text-muted-foreground self-center mr-1">Ex :</span>
                 {POPULAR_SEARCHES.map((item) => (
-                  <Button
+                  <button
                     key={item.query}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-7 rounded-full"
                     onClick={() => handlePopularSearch(item.query)}
+                    className="text-xs px-3 py-1 rounded-full border bg-background hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                   >
                     {item.label}
-                  </Button>
+                  </button>
                 ))}
               </div>
             </div>
@@ -293,20 +295,28 @@ export function KnowledgeBaseBrowser() {
               ))
             ) : (
               <>
-                <StatTile value={totalCount} label="Documents indexés" icon={<Database className="h-4 w-4" />} />
-                <StatTile value={textesCount} label="Textes normatifs" icon={<FileText className="h-4 w-4" />} />
-                <StatTile value={jurisCount} label="Décisions" icon={<Scale className="h-4 w-4" />} />
-                <StatTile value={doctrineCount} label="Articles doctrine" icon={<TrendingUp className="h-4 w-4" />} />
+                <StatTile value={totalCount} label="Documents indexés" icon={<Database className="h-5 w-5" />} accent="border-t-slate-400" />
+                <StatTile value={textesCount} label="Textes normatifs" icon={<FileText className="h-5 w-5" />} accent="border-t-indigo-400" />
+                <StatTile value={jurisCount} label="Décisions" icon={<Scale className="h-5 w-5" />} accent="border-t-purple-400" />
+                <StatTile value={doctrineCount} label="Articles doctrine" icon={<TrendingUp className="h-5 w-5" />} accent="border-t-green-400" />
               </>
             )}
           </div>
 
-          {/* ─── PORTAILS PRINCIPAUX ──────────────────────────────────────── */}
+          {/* ─── PORTAILS THÉMATIQUES ─────────────────────────────────────── */}
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-              Portails thématiques
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                Portails thématiques
+              </h2>
+              <button
+                onClick={() => router.push('/client/knowledge-base?mode=general')}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              >
+                Explorer tout <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {PORTALS.map((portal) => {
                 const count = getCategorySum(portal.categories)
                 return (
@@ -327,7 +337,7 @@ export function KnowledgeBaseBrowser() {
           </div>
 
           {/* ─── CODES PRINCIPAUX ─────────────────────────────────────────── */}
-          <div className="border-t pt-8">
+          <div className="border-t pt-10">
             <CodeShowcase />
           </div>
 
@@ -353,18 +363,18 @@ export function KnowledgeBaseBrowser() {
 }
 
 // =============================================================================
-// STAT TILE
+// STAT TILE — bordure top colorée (pattern Linear)
 // =============================================================================
 
-function StatTile({ value, label, icon }: { value: number; label: string; icon: React.ReactNode }) {
+function StatTile({ value, label, icon, accent }: { value: number; label: string; icon: React.ReactNode; accent: string }) {
   return (
-    <div className="border rounded-xl p-4 bg-card flex items-center gap-3">
-      <div className="text-muted-foreground">{icon}</div>
+    <div className={`border rounded-xl p-4 bg-card flex items-center gap-3 border-t-2 ${accent}`}>
+      <div className="text-muted-foreground shrink-0">{icon}</div>
       <div>
-        <div className="text-xl font-bold tabular-nums leading-none">
+        <div className="text-2xl font-bold tabular-nums leading-none">
           {value.toLocaleString('fr-FR')}
         </div>
-        <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
+        <div className="text-xs text-muted-foreground mt-1">{label}</div>
       </div>
     </div>
   )
