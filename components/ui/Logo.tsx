@@ -61,8 +61,10 @@ export function Logo({
         <img
           src="/logo.png"
           alt="Qadhya"
+          draggable={false}
+          onContextMenu={(e) => e.preventDefault()}
           className={cn(
-            'w-full h-full relative z-10 object-contain drop-shadow-lg',
+            'w-full h-full relative z-10 object-contain drop-shadow-lg select-none',
             animate && 'transition-transform duration-300'
           )}
         />
@@ -70,13 +72,9 @@ export function Logo({
 
       {/* Texte du logo */}
       {showText && (
-        <span
-          className={cn(
-            'font-bold tracking-tight bg-gradient-to-r from-slate-700 to-slate-900 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent',
-            text
-          )}
-        >
-          Qadhya
+        <span className={cn('font-bold tracking-tight', text)}>
+          <span className="text-sky-400 dark:text-sky-300">Qadh</span>
+          <span style={{ color: '#C9A84C' }}>ya</span>
         </span>
       )}
 
@@ -154,7 +152,9 @@ export function LogoHorizontal({
         <img
           src="/logo.png"
           alt="Qadhya"
-          className="w-full h-full relative z-10 object-contain drop-shadow-lg"
+          draggable={false}
+          onContextMenu={(e) => e.preventDefault()}
+          className="w-full h-full relative z-10 object-contain drop-shadow-lg select-none"
         />
       </div>
 
