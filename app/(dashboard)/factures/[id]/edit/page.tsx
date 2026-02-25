@@ -4,6 +4,8 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import FactureForm from '@/components/factures/FactureForm'
 import { getTranslations } from 'next-intl/server'
+import { Button } from '@/components/ui/button'
+import { Icons } from '@/lib/icons'
 
 export default async function EditFacturePage({
   params,
@@ -18,7 +20,6 @@ export default async function EditFacturePage({
     redirect('/login')
   }
 
-  // Récupérer la facture
   const factureResult = await query(
     'SELECT * FROM factures WHERE id = $1 AND user_id = $2',
     [id, session.user.id]
@@ -29,21 +30,18 @@ export default async function EditFacturePage({
     notFound()
   }
 
-  // Récupérer tous les clients
   const clientsResult = await query(
     'SELECT id, type_client, nom, prenom FROM clients WHERE user_id = $1 ORDER BY nom ASC',
     [session.user.id]
   )
   const clients = clientsResult.rows
 
-  // Récupérer tous les dossiers
   const dossiersResult = await query(
     'SELECT id, numero, objet, client_id FROM dossiers WHERE user_id = $1 ORDER BY created_at DESC',
     [session.user.id]
   )
   const dossiers = dossiersResult.rows
 
-  // Préparer les données pour le formulaire
   const initialData = {
     client_id: facture.client_id,
     dossier_id: facture.dossier_id || '',
@@ -60,22 +58,20 @@ export default async function EditFacturePage({
     <div className="mx-auto max-w-4xl space-y-6">
       {/* En-tête */}
       <div>
-        <Link
-          href={`/factures/${id}`}
-          className="text-sm text-blue-600 hover:text-blue-700"
-        >
-          ← {t('backToInvoice')}
-        </Link>
-        <h1 className="mt-2 text-3xl font-bold text-foreground">
+        <Button variant="ghost" size="sm" className="-ml-2 h-8 text-muted-foreground mb-2" asChild>
+          <Link href={`/factures/${id}`}>
+            <Icons.chevronLeft className="mr-1 h-4 w-4" />
+            {t('backToInvoice')}
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-bold text-foreground">
           {t('editInvoice')} {facture.numero}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('editInvoiceInfo')}
-        </p>
+        <p className="mt-0.5 text-sm text-muted-foreground">{t('editInvoiceInfo')}</p>
       </div>
 
       {/* Formulaire */}
-      <div className="rounded-lg border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border bg-card p-6 shadow-sm">
         <FactureForm
           factureId={id}
           initialData={initialData}

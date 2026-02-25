@@ -15,7 +15,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -443,70 +442,68 @@ export function DocumentExplorer({
       )}
 
       {/* ─── Barre de recherche ─────────────────────────────────────────── */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex gap-2">
-            {onBack && (
-              <Button variant="ghost" size="icon" onClick={onBack}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            )}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher dans la base de connaissances..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSearch()}
-                className="pl-10"
-              />
-            </div>
-
-            <RecentSearchesDropdown
-              onSelect={(q) => { setSearchQuery(q); setTimeout(() => handleSearch(), 0) }}
-              registerSave={(fn) => { saveRecentRef.current = fn }}
-            />
-
-            <Button onClick={handleSearch} disabled={isLoading}>
-              {isLoading ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Recherche...</>
-              ) : (
-                'Rechercher'
-              )}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm -mx-4 px-4 pt-3 pb-3 border-b">
+        <div className="flex gap-2">
+          {onBack && (
+            <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-
-            {/* Filtres — mobile uniquement (Sheet bottom) */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="md:hidden">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filtres
-                  {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="ml-2">{activeFiltersCount}</Badge>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>Filtres avancés</SheetTitle>
-                </SheetHeader>
-                <div className="mt-4">
-                  <FilterPanelContent
-                    filters={filters}
-                    activeDocType={activeDocType}
-                    onFilterChange={handleFilterChange}
-                    onClearFilters={clearFilters}
-                    onApply={handleSearch}
-                    dateFromParsed={dateFromParsed}
-                    dateToParsed={dateToParsed}
-                    buildDateISO={buildDateISO}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
+          )}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher dans la base de connaissances..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSearch()}
+              className="pl-10 bg-background"
+            />
           </div>
-        </CardContent>
-      </Card>
+
+          <RecentSearchesDropdown
+            onSelect={(q) => { setSearchQuery(q); setTimeout(() => handleSearch(), 0) }}
+            registerSave={(fn) => { saveRecentRef.current = fn }}
+          />
+
+          <Button onClick={handleSearch} disabled={isLoading} className="shrink-0">
+            {isLoading ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Recherche...</>
+            ) : (
+              'Rechercher'
+            )}
+          </Button>
+
+          {/* Filtres — mobile uniquement (Sheet bottom) */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="md:hidden shrink-0">
+                <Filter className="h-4 w-4 mr-2" />
+                Filtres
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary" className="ml-2">{activeFiltersCount}</Badge>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Filtres avancés</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4">
+                <FilterPanelContent
+                  filters={filters}
+                  activeDocType={activeDocType}
+                  onFilterChange={handleFilterChange}
+                  onClearFilters={clearFilters}
+                  onApply={handleSearch}
+                  dateFromParsed={dateFromParsed}
+                  dateToParsed={dateToParsed}
+                  buildDateISO={buildDateISO}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
 
       {/* Erreur */}
       {error && (
@@ -521,12 +518,12 @@ export function DocumentExplorer({
 
         {/* Sidebar filtres — desktop uniquement (sticky) */}
         <aside className="hidden md:block w-56 shrink-0">
-          <div className="sticky top-4 border rounded-xl overflow-hidden bg-card">
-            <div className="px-4 py-3 border-b flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+          <div className="sticky top-[68px] max-h-[calc(100vh-80px)] overflow-y-auto pr-1">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <Filter className="h-3 w-3" />
                 Filtres
-              </div>
+              </span>
               {activeFiltersCount > 0 && (
                 <button
                   onClick={clearFilters}
@@ -537,18 +534,16 @@ export function DocumentExplorer({
                 </button>
               )}
             </div>
-            <div className="p-4">
-              <FilterPanelContent
-                filters={filters}
-                activeDocType={activeDocType}
-                onFilterChange={handleFilterChange}
-                onClearFilters={clearFilters}
-                onApply={handleSearch}
-                dateFromParsed={dateFromParsed}
-                dateToParsed={dateToParsed}
-                buildDateISO={buildDateISO}
-              />
-            </div>
+            <FilterPanelContent
+              filters={filters}
+              activeDocType={activeDocType}
+              onFilterChange={handleFilterChange}
+              onClearFilters={clearFilters}
+              onApply={handleSearch}
+              dateFromParsed={dateFromParsed}
+              dateToParsed={dateToParsed}
+              buildDateISO={buildDateISO}
+            />
           </div>
         </aside>
 
@@ -557,13 +552,19 @@ export function DocumentExplorer({
 
           {/* Toolbar : résultats + tri + vue */}
           {hasSearched && !isLoading && (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground font-medium">
+            <div className="flex items-center justify-between py-1">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">
+                  {isBrowseMode && browseData?.pagination
+                    ? browseData.pagination.total.toLocaleString('fr-FR')
+                    : results.length.toLocaleString('fr-FR')}
+                </span>
+                {' '}
                 {isBrowseMode && browseData?.pagination
-                  ? `${browseData.pagination.total.toLocaleString('fr-FR')} documents`
-                  : `${results.length.toLocaleString('fr-FR')} ${results.length === 1 ? 'résultat' : 'résultats'}`}
+                  ? 'documents'
+                  : results.length === 1 ? 'résultat' : 'résultats'}
                 {processingTimeMs != null && (
-                  <span className="ml-1 font-normal opacity-70">({(processingTimeMs / 1000).toFixed(1)}s)</span>
+                  <span className="ml-1.5 opacity-60">· {(processingTimeMs / 1000).toFixed(1)}s</span>
                 )}
               </div>
 
@@ -628,35 +629,28 @@ export function DocumentExplorer({
             viewMode === 'list' ? (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Card key={i}>
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-start justify-between">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-5 w-14 rounded-full" />
-                      </div>
-                      <div className="flex gap-2">
-                        <Skeleton className="h-5 w-20 rounded-full" />
-                        <Skeleton className="h-5 w-16 rounded-full" />
-                      </div>
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-2/3" />
-                    </CardContent>
-                  </Card>
+                  <div key={i} className="border rounded-xl p-4 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-2 w-2 rounded-full" />
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </div>
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-2/3" />
+                  </div>
                 ))}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i}>
-                    <CardContent className="p-4 space-y-3">
-                      <Skeleton className="h-4 w-3/4" />
-                      <div className="flex gap-2">
-                        <Skeleton className="h-5 w-20 rounded-full" />
-                        <Skeleton className="h-5 w-16 rounded-full" />
-                      </div>
-                      <Skeleton className="h-3 w-full" />
-                    </CardContent>
-                  </Card>
+                  <div key={i} className="border rounded-xl p-4 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-2 w-2 rounded-full" />
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </div>
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full" />
+                  </div>
                 ))}
               </div>
             )
@@ -664,29 +658,32 @@ export function DocumentExplorer({
 
           {/* État vide */}
           {!isLoading && hasSearched && results.length === 0 && (
-            <Card>
-              <CardContent className="p-12 text-center space-y-4">
-                <Search className="h-12 w-12 text-muted-foreground mx-auto" />
-                <p className="text-muted-foreground">Aucun résultat trouvé.</p>
-                <div className="flex flex-col items-center gap-2">
-                  {filters.category && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { removeFilter('category'); setTimeout(handleSearch, 0) }}
-                    >
-                      Rechercher dans toutes les catégories
-                    </Button>
-                  )}
-                  {searchQuery.trim().length > 30 && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Lightbulb className="h-4 w-4" />
-                      <span>Essayez des termes plus généraux</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="border rounded-xl p-12 text-center space-y-4 bg-card">
+              <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                <Search className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-semibold text-sm">Aucun résultat trouvé</p>
+                <p className="text-xs text-muted-foreground">Essayez d&apos;élargir votre recherche ou de modifier les filtres</p>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                {filters.category && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { removeFilter('category'); setTimeout(handleSearch, 0) }}
+                  >
+                    Rechercher dans toutes les catégories
+                  </Button>
+                )}
+                {searchQuery.trim().length > 30 && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    <span>Essayez des termes plus généraux</span>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Résultats */}
@@ -704,12 +701,15 @@ export function DocumentExplorer({
               </div>
 
               {hasMore && (
-                <div className="flex justify-center pt-2">
+                <div className="flex justify-center pt-4">
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => setDisplayedCount(prev => prev + 20)}
+                    className="gap-2"
                   >
-                    Charger plus ({sortedResults.length - displayedCount} restants)
+                    Charger {Math.min(20, sortedResults.length - displayedCount)} de plus
+                    <span className="text-muted-foreground">({sortedResults.length - displayedCount} restants)</span>
                   </Button>
                 </div>
               )}
@@ -757,15 +757,16 @@ function FilterPanelContent({
   buildDateISO,
 }: FilterPanelContentProps) {
   return (
-    <div className="space-y-3">
-      {/* Rangée 1 : Catégorie + Niveau normatif */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="space-y-4">
+      {/* Section : Type */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Catégorie</p>
         <Select
           value={filters.category}
           onValueChange={(value) => onFilterChange('category', value)}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Catégorie" />
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue placeholder="Toutes" />
           </SelectTrigger>
           <SelectContent>
             {getCategoriesForContext('knowledge_base', 'fr').map(cat => (
@@ -773,22 +774,25 @@ function FilterPanelContent({
             ))}
           </SelectContent>
         </Select>
+      </div>
 
+      {/* Section : Niveau normatif */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Hiérarchie</p>
         <Select
           value={filters.normLevel}
           onValueChange={(value) => onFilterChange('normLevel', value as NormLevel)}
         >
-          <SelectTrigger>
-            <Scale className="h-4 w-4 mr-2 text-muted-foreground" />
-            <SelectValue placeholder="Niveau normatif" />
+          <SelectTrigger className="h-8 text-xs">
+            <Scale className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue placeholder="Tous niveaux" />
           </SelectTrigger>
           <SelectContent>
             {NORM_LEVELS_ORDERED.map(level => (
               <SelectItem key={level.value} value={level.value}>
                 <span className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-4">{level.order}</span>
+                  <span className="text-xs text-muted-foreground w-3">{level.order}</span>
                   {level.labelFr}
-                  <span className="text-xs text-muted-foreground">{level.labelAr}</span>
                 </span>
               </SelectItem>
             ))}
@@ -796,14 +800,15 @@ function FilterPanelContent({
         </Select>
       </div>
 
-      {/* Rangée 2 : Domaine + Langue */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* Section : Domaine */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Domaine</p>
         <Select
           value={filters.domain}
           onValueChange={(value) => onFilterChange('domain', value)}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Domaine juridique" />
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue placeholder="Tous domaines" />
           </SelectTrigger>
           <SelectContent>
             {LEGAL_DOMAINS.map(d => (
@@ -811,13 +816,17 @@ function FilterPanelContent({
             ))}
           </SelectContent>
         </Select>
+      </div>
 
+      {/* Section : Langue */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Langue</p>
         <Select
           value={filters.language}
           onValueChange={(value) => onFilterChange('language', value as 'fr' | 'ar' | 'bi')}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Langue" />
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue placeholder="Toutes" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="fr">Français</SelectItem>
@@ -827,14 +836,15 @@ function FilterPanelContent({
         </Select>
       </div>
 
-      {/* Rangée 3 : Tribunal + Chambre (caché si TEXTES) */}
+      {/* Section : Tribunal + Chambre (caché si TEXTES) */}
       {activeDocType !== 'TEXTES' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Juridiction</p>
           <Select
             value={filters.tribunal}
             onValueChange={(value) => onFilterChange('tribunal', value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-8 text-xs">
               <SelectValue placeholder="Tribunal" />
             </SelectTrigger>
             <SelectContent>
@@ -847,12 +857,11 @@ function FilterPanelContent({
               <SelectItem value="TRIBUNAL_CANTONAL">Justice cantonale</SelectItem>
             </SelectContent>
           </Select>
-
           <Select
             value={filters.chambre}
             onValueChange={(value) => onFilterChange('chambre', value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-8 text-xs">
               <SelectValue placeholder="Chambre" />
             </SelectTrigger>
             <SelectContent>
@@ -866,9 +875,9 @@ function FilterPanelContent({
         </div>
       )}
 
-      {/* Rangée 4 : Date range */}
+      {/* Section : Date range */}
       <div className="space-y-1.5">
-        <p className="text-xs text-muted-foreground font-medium">Période</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Période</p>
         <div className="grid grid-cols-2 gap-3">
           {/* De */}
           <div className="flex items-center gap-1.5">
@@ -948,11 +957,11 @@ function FilterPanelContent({
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 pt-1">
-        <Button variant="ghost" size="sm" onClick={onClearFilters}>
-          Effacer filtres
+      <div className="flex justify-end gap-2 pt-2 border-t">
+        <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-7">
+          Effacer
         </Button>
-        <Button size="sm" onClick={onApply}>
+        <Button size="sm" onClick={onApply} className="text-xs h-7">
           Appliquer
         </Button>
       </div>
