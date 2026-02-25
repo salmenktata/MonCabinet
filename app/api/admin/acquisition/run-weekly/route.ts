@@ -14,7 +14,7 @@ export const POST = withAdminApiAuth(async (_request: NextRequest, _ctx, _sessio
     // 1. Récupérer toutes les sources actives configurées pour acquisition
     const sources = await db.query(
       `
-      SELECT id, url, name, category
+      SELECT id, base_url AS url, name, category
       FROM web_sources
       WHERE is_active = true
         AND auto_crawl = true

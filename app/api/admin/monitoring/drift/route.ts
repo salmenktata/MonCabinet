@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { generateDriftReport, checkDrift } from '@/lib/ai/drift-detection-service'
+import { verifyCronSecret } from '@/lib/auth/verify-cron-secret'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,17 +45,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth par CRON_SECRET
-    const cronSecret = process.env.CRON_SECRET
+    // Auth par CRON_SECRET (header X-Cron-Secret ou Authorization: Bearer)
+    const xCronSecret = request.headers.get('x-cron-secret')
     const authHeader = request.headers.get('authorization')
-    const body = await request.json().catch(() => ({}))
-    const bodySecret = (body as Record<string, unknown>)?.secret
+    const bearerSecret = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
 
-    if (!cronSecret || (authHeader !== `Bearer ${cronSecret}` && bodySecret !== cronSecret)) {
+    const providedSecret = xCronSecret || bearerSecret
+    if (!providedSecret || !verifyCronSecret(providedSecret)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const days = parseInt((body as Record<string, unknown>)?.days as string || '7', 10)
+    const body = await request.json().catch(() => ({}))
+
+    const days = parseInt(((body as Record<string, unknown>)?.days as string) || '7', 10)
     const result = await checkDrift(days)
 
     return NextResponse.json({
