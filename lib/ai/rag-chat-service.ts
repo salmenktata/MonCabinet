@@ -555,25 +555,6 @@ function inferBranchFromTitle(docName: string): string | undefined {
   return undefined
 }
 
-/**
- * Détecte si un document est manifestement fiscal sur la base de son titre.
- * Patterns "hard fiscal" à haute certitude : Note-Commune DGI, codes TVA/IRPP, جباية.
- * NB : 'enregistrement' et 'timbre' retirés — trop génériques (faux positifs civil/contrats).
- *
- * Ces documents obtiennent une pénalité plus forte (×0.15) quand ils apparaissent
- * pour des requêtes non-fiscales, car leur similarité intrinsèque est anormalement haute
- * (BM25 sur termes génériques "prescription", "délai"...) malgré l'absence de pertinence.
- */
-function isHardFiscalDocument(docName: string): boolean {
-  if (!docName) return false
-  const n = docName.toLowerCase()
-  return (
-    n.includes('note-commune') || n.includes('note commune') ||
-    /\bdgi\b/.test(n) || /\birpp\b/.test(n) || /\btva\b/.test(n) ||
-    n.includes('جباية') || n.includes('جبائي') ||
-    n.includes('code de la tva') || n.includes('code de l\'irpp')
-  )
-}
 
 async function rerankSources(
   sources: ChatSource[],
@@ -614,9 +595,7 @@ async function rerankSources(
     }
 
     // Sprint 1 RAG Audit-Proof: pénalité douce pour branches hors-scope
-    // ×0.4 pour branches DB (explicit), ×0.15 pour branches inférées depuis titre
-    // (chunks sans branch en DB ont souvent une similarité BM25/vectorielle très haute
-    //  ex: Note-commune sim=0.97 vs COC art 402 sim=0.20 → ×0.4 insuffisant, ×0.15 requis)
+    // ×0.4 uniforme : inférence titre ou branche DB explicite
     // Gate confiance : pas de pénalité si routeur peu confiant (<0.70)
     if (branchOptions?.forbiddenBranches && branchOptions.forbiddenBranches.length > 0) {
       const routerConfidence = branchOptions.routerConfidence ?? 1.0
@@ -625,15 +604,8 @@ async function rerankSources(
         const inferredBranch = explicitBranch ? undefined : inferBranchFromTitle(s.documentName || '')
         const branch = explicitBranch || inferredBranch
         if (branch && branch !== 'autre' && branchOptions.forbiddenBranches.includes(branch)) {
-          // Pénalité ciblée selon certitude de la classification :
-          // ×0.15 : documents "hard fiscal" (Note-Commune, code enregistrement, TVA, IRPP, DGI)
-          //         dont la sim intrinsèque est anormalement haute (~0.97) sur termes génériques
-          //         ex: Note-commune(0.97×0.15=0.145) < COC(0.20×1.49=0.298) ✓
-          // ×0.4  : branches DB explicites ou autres inférences moins certaines
-          const isHardFiscal = !explicitBranch && branch === 'fiscal' && isHardFiscalDocument(s.documentName || '')
-          const penaltyFactor = isHardFiscal ? 0.15 : 0.4
-          boost *= penaltyFactor
-          log.info(`[RAG Branch] Pénalité ${penaltyFactor}× sur "${s.documentName}" (branch=${branch}, hardFiscal=${isHardFiscal}, confidence=${routerConfidence.toFixed(2)})`)
+          boost *= 0.4
+          log.info(`[RAG Branch] Pénalité 0.4× sur "${s.documentName}" (branch=${branch}, inferred=${!explicitBranch}, confidence=${routerConfidence.toFixed(2)})`)
         }
       }
     }
