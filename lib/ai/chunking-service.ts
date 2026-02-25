@@ -15,10 +15,49 @@ import { aiConfig } from './config'
  */
 export const OVERLAP_BY_CATEGORY: Record<string, number> = {
   code: 100,           // Codes juridiques: contexte légal important entre articles
+  codes: 100,          // Alias catégorie "codes" → même overlap que "code"
+  constitution: 80,    // Texte constitutionnel: articles liés entre eux
+  legislation: 80,     // Législation: articles et alinéas liés
+  jort: 80,            // JORT: textes officiels avec renvois
   jurisprudence: 80,   // Jurisprudence: attendus liés entre paragraphes
   doctrine: 60,        // Doctrine: argumentation continue
   modele: 40,          // Modèles: sections plus indépendantes
+  autre: 50,           // Autre: valeur par défaut explicite
+  lexique: 30,         // Lexique: définitions indépendantes
+  google_drive: 60,    // Google Drive: documents variés (comme doctrine)
   default: 50,         // Valeur par défaut
+}
+
+// =============================================================================
+// MAX TOKENS PAR CATÉGORIE - Taille de chunk optimale par type de document
+// =============================================================================
+
+/**
+ * Taille maximale de chunk (en mots) par catégorie de document
+ * Valeurs ajustées sur la base des tailles moyennes observées en production
+ * (analyse qualité KB - fév 2026)
+ * Global default: 1200 mots (aiConfig.rag.chunkSize)
+ */
+export const MAX_TOKENS_BY_CATEGORY: Record<string, number> = {
+  jort: 500,           // JORT: notices courtes (~504 mots observés) → focus sur texte
+  codes: 600,          // Codes: articles courts (~579 mots) → 1 article = 1 chunk
+  code: 600,           // Alias
+  jurisprudence: 650,  // Jurisprudence: décisions (~673 mots) → holding + raisonnement
+  doctrine: 700,       // Doctrine: argumentation (~689 mots) → contexte argumentatif
+  legislation: 700,    // Législation: articles (~751 mots) → article + alinéas
+  constitution: 700,   // Constitution: articles (similaire législation)
+  autre: 800,          // Autre: contenu varié (~794 mots) → conserver flexibilité
+  google_drive: 800,   // Google Drive: documents variés
+  lexique: 400,        // Lexique: définitions courtes → max 400 mots
+  modele: 900,         // Modèles: sections plus longues (formulaires)
+}
+
+/**
+ * Retourne le maxTokens approprié pour une catégorie de document
+ */
+export function getMaxTokensForCategory(category?: string): number | undefined {
+  if (!category) return undefined
+  return MAX_TOKENS_BY_CATEGORY[category.toLowerCase()]
 }
 
 /**
@@ -184,8 +223,9 @@ function createTableChunk(segment: TextSegment, index: number): Chunk {
  * @returns Liste de chunks avec métadonnées
  */
 export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] {
+  const categoryMaxTokens = options.category ? getMaxTokensForCategory(options.category) : undefined
   const {
-    chunkSize = aiConfig.rag.chunkSize,
+    chunkSize = categoryMaxTokens ?? aiConfig.rag.chunkSize,
     overlap = options.category ? getOverlapForCategory(options.category) : aiConfig.rag.chunkOverlap,
     preserveParagraphs = true,
     preserveSentences = true,
@@ -194,9 +234,12 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
     language,
   } = options
 
-  // Log si overlap adaptatif utilisé
+  // Log si overlap ou maxTokens adaptatif utilisé
   if (category && overlap !== aiConfig.rag.chunkOverlap) {
     console.log(`[Chunking] Overlap adaptatif pour catégorie "${category}": ${overlap} mots`)
+  }
+  if (category && categoryMaxTokens) {
+    console.log(`[Chunking] MaxTokens adaptatif pour catégorie "${category}": ${categoryMaxTokens} mots`)
   }
 
   if (!text || text.trim().length === 0) {
