@@ -7,6 +7,7 @@ const STORAGE_KEY = 'super-admin-sidebar-collapsed'
 export function useSidebarCollapse() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
@@ -24,5 +25,8 @@ export function useSidebarCollapse() {
     })
   }, [])
 
-  return { isCollapsed, toggle, isHydrated }
+  const toggleMobile = useCallback(() => setIsMobileOpen(prev => !prev), [])
+  const closeMobile = useCallback(() => setIsMobileOpen(false), [])
+
+  return { isCollapsed, toggle, isHydrated, isMobileOpen, toggleMobile, closeMobile }
 }

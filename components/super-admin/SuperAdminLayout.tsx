@@ -22,16 +22,27 @@ export function SuperAdminLayout({
   pendingCount = 0,
   pendingTaxonomySuggestions = 0
 }: SuperAdminLayoutProps) {
-  const { isCollapsed, toggle } = useSidebarCollapse()
+  const { isCollapsed, toggle, isMobileOpen, toggleMobile, closeMobile } = useSidebarCollapse()
 
   return (
     <div className="flex h-screen bg-slate-950">
+      {/* Backdrop mobile */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={closeMobile}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
       <SuperAdminSidebar
         pendingCount={pendingCount}
         pendingTaxonomySuggestions={pendingTaxonomySuggestions}
         isCollapsed={isCollapsed}
         onToggleCollapse={toggle}
+        isMobileOpen={isMobileOpen}
+        onCloseMobile={closeMobile}
       />
 
       {/* Main content */}
@@ -40,6 +51,7 @@ export function SuperAdminLayout({
         <SuperAdminTopbar
           user={user}
           pendingCount={pendingCount}
+          onToggleMobileMenu={toggleMobile}
         />
 
         {/* Page content */}

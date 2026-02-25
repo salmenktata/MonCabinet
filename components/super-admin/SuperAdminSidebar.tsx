@@ -34,6 +34,8 @@ interface SuperAdminSidebarProps {
   pendingTaxonomySuggestions?: number
   isCollapsed?: boolean
   onToggleCollapse?: () => void
+  isMobileOpen?: boolean
+  onCloseMobile?: () => void
 }
 
 // Navigation Super Admin - 5 groupes, 21 items
@@ -114,9 +116,10 @@ interface NavLinkProps {
   item: NavItem
   isActive: boolean
   isCollapsed: boolean
+  onCloseMobile?: () => void
 }
 
-const NavLink = memo(function NavLink({ item, isActive, isCollapsed }: NavLinkProps) {
+const NavLink = memo(function NavLink({ item, isActive, isCollapsed, onCloseMobile }: NavLinkProps) {
   const Icon = Icons[item.icon]
   const hasBadge = !!item.badge
 
@@ -124,7 +127,7 @@ const NavLink = memo(function NavLink({ item, isActive, isCollapsed }: NavLinkPr
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Link href={item.href} prefetch={true}>
+          <Link href={item.href} prefetch={true} onClick={onCloseMobile}>
             <div
               className={cn(
                 'relative flex items-center justify-center rounded-lg p-2 transition-colors',
@@ -157,7 +160,7 @@ const NavLink = memo(function NavLink({ item, isActive, isCollapsed }: NavLinkPr
   }
 
   return (
-    <Link href={item.href} prefetch={true}>
+    <Link href={item.href} prefetch={true} onClick={onCloseMobile}>
       <div
         className={cn(
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
@@ -183,6 +186,8 @@ function SuperAdminSidebarComponent({
   pendingTaxonomySuggestions = 0,
   isCollapsed = false,
   onToggleCollapse,
+  isMobileOpen = false,
+  onCloseMobile,
 }: SuperAdminSidebarProps) {
   const pathname = usePathname()
 
@@ -215,94 +220,131 @@ function SuperAdminSidebarComponent({
 
   const ToggleIcon = isCollapsed ? Icons.panelLeftOpen : Icons.panelLeftClose
 
-  return (
-    <TooltipProvider delayDuration={150}>
-      <aside
-        className={cn(
-          'flex h-screen flex-col border-r border-slate-700 bg-slate-900 text-slate-300 transition-all duration-300 ease-in-out',
-          isCollapsed ? 'w-16' : 'w-64'
-        )}
-      >
-        {/* Header */}
-        <div className="flex h-16 items-center border-b border-slate-700 px-3">
-          {isCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link href="/super-admin/dashboard" prefetch={true} className="mx-auto">
-                  <LogoIcon size="sm" />
-                </Link>
-              </TooltipTrigger>
-              {process.env.NEXT_PUBLIC_APP_VERSION && (
-                <TooltipContent side="right">v{process.env.NEXT_PUBLIC_APP_VERSION}</TooltipContent>
-              )}
-            </Tooltip>
-          ) : (
-            <div className="flex w-full items-center justify-between">
-              <Link href="/super-admin/dashboard" prefetch={true}>
-                <LogoHorizontal size="sm" variant="juridique" showTag={true} animate={false} />
+  // Contenu partagé entre desktop et mobile
+  const sidebarContent = (collapsed: boolean, showCloseBtn: boolean) => (
+    <>
+      {/* Header */}
+      <div className="flex h-16 items-center border-b border-slate-700 px-3">
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/super-admin/dashboard" prefetch={true} className="mx-auto" onClick={onCloseMobile}>
+                <LogoIcon size="sm" />
               </Link>
+            </TooltipTrigger>
+            {process.env.NEXT_PUBLIC_APP_VERSION && (
+              <TooltipContent side="right">v{process.env.NEXT_PUBLIC_APP_VERSION}</TooltipContent>
+            )}
+          </Tooltip>
+        ) : (
+          <div className="flex w-full items-center justify-between">
+            <Link href="/super-admin/dashboard" prefetch={true} onClick={onCloseMobile}>
+              <LogoHorizontal size="sm" variant="juridique" showTag={true} animate={false} />
+            </Link>
+            <div className="flex items-center gap-1">
               {process.env.NEXT_PUBLIC_APP_VERSION && (
                 <span className="ml-1 shrink-0 font-mono text-[10px] text-white select-none" title="Version de build">
                   v{process.env.NEXT_PUBLIC_APP_VERSION}
                 </span>
               )}
+              {showCloseBtn && (
+                <button
+                  onClick={onCloseMobile}
+                  className="ml-2 flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+                  aria-label="Fermer le menu"
+                >
+                  <Icons.close className="h-4 w-4" />
+                </button>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Toggle button */}
-        {onToggleCollapse && (
-          <button
-            onClick={onToggleCollapse}
-            className="mx-auto my-2 flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
-            title={isCollapsed ? 'Étendre le menu' : 'Réduire le menu'}
-          >
-            <ToggleIcon className="h-4 w-4" />
-          </button>
+          </div>
         )}
+      </div>
 
-        {/* Navigation */}
-        <nav className={cn('flex-1 space-y-4 overflow-y-auto', isCollapsed ? 'px-2 py-2' : 'p-4')}>
-          {groupsWithState.map((group, groupIndex) => (
-            <div key={group.group} className="space-y-1">
-              {!isCollapsed && (
-                <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  {group.group}
-                </h3>
-              )}
-              {isCollapsed && groupIndex > 0 && <Separator className="my-2 bg-slate-700" />}
-              {group.items.map((item) => (
-                <NavLink key={item.href} item={item} isActive={item.isActive} isCollapsed={isCollapsed} />
-              ))}
-              {!isCollapsed && groupIndex < groupsWithState.length - 1 && (
-                <Separator className="my-4 bg-slate-700" />
-              )}
+      {/* Toggle button (desktop only) */}
+      {onToggleCollapse && !showCloseBtn && (
+        <button
+          onClick={onToggleCollapse}
+          className="mx-auto my-2 flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          title={collapsed ? 'Étendre le menu' : 'Réduire le menu'}
+        >
+          <ToggleIcon className="h-4 w-4" />
+        </button>
+      )}
+
+      {/* Navigation */}
+      <nav className={cn('flex-1 space-y-4 overflow-y-auto', collapsed ? 'px-2 py-2' : 'p-4')}>
+        {groupsWithState.map((group, groupIndex) => (
+          <div key={group.group} className="space-y-1">
+            {!collapsed && (
+              <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {group.group}
+              </h3>
+            )}
+            {collapsed && groupIndex > 0 && <Separator className="my-2 bg-slate-700" />}
+            {group.items.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                isActive={item.isActive}
+                isCollapsed={collapsed}
+                onCloseMobile={onCloseMobile}
+              />
+            ))}
+            {!collapsed && groupIndex < groupsWithState.length - 1 && (
+              <Separator className="my-4 bg-slate-700" />
+            )}
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer */}
+      <div className="border-t border-slate-700 p-2">
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/dashboard" prefetch={true} onClick={onCloseMobile}>
+                <div className="flex items-center justify-center rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+                  <Icons.arrowLeft className="h-5 w-5 shrink-0" />
+                </div>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Retour au Dashboard</TooltipContent>
+          </Tooltip>
+        ) : (
+          <Link href="/dashboard" prefetch={true} onClick={onCloseMobile}>
+            <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+              <Icons.arrowLeft className="h-5 w-5 shrink-0" />
+              <span>Retour au Dashboard</span>
             </div>
-          ))}
-        </nav>
+          </Link>
+        )}
+      </div>
+    </>
+  )
 
-        {/* Footer */}
-        <div className="border-t border-slate-700 p-2">
-          {isCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link href="/dashboard" prefetch={true}>
-                  <div className="flex items-center justify-center rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
-                    <Icons.arrowLeft className="h-5 w-5 shrink-0" />
-                  </div>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right">Retour au Dashboard</TooltipContent>
-            </Tooltip>
-          ) : (
-            <Link href="/dashboard" prefetch={true}>
-              <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
-                <Icons.arrowLeft className="h-5 w-5 shrink-0" />
-                <span>Retour au Dashboard</span>
-              </div>
-            </Link>
-          )}
-        </div>
+  return (
+    <TooltipProvider delayDuration={150}>
+      {/* Sidebar desktop – comportement inchangé */}
+      <aside
+        className={cn(
+          'hidden md:flex h-screen flex-col border-r border-slate-700 bg-slate-900 text-slate-300 transition-all duration-300 ease-in-out',
+          isCollapsed ? 'w-16' : 'w-64'
+        )}
+      >
+        {sidebarContent(isCollapsed, false)}
+      </aside>
+
+      {/* Sidebar mobile – drawer */}
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex h-screen w-72 flex-col md:hidden',
+          'border-r border-slate-700 bg-slate-900 text-slate-300',
+          'transition-transform duration-300 ease-in-out',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        {sidebarContent(false, true)}
       </aside>
     </TooltipProvider>
   )

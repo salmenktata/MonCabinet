@@ -3,6 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
@@ -41,6 +42,13 @@ interface TopbarProps {
 
 export function Topbar({ user, onMenuClick, showMenuButton = false }: TopbarProps) {
   const t = useTranslations('common')
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/signout', { method: 'POST' })
+    router.push('/login')
+    router.refresh()
+  }
 
   // Générer les initiales pour l'avatar
   const initials = React.useMemo(() => {
@@ -131,13 +139,9 @@ export function Topbar({ user, onMenuClick, showMenuButton = false }: TopbarProp
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <form action="/api/auth/signout" method="post" className="w-full">
-                  <button type="submit" className="flex w-full items-center">
-                    <Icons.logout className="mr-2 h-4 w-4" />
-                    <span>{t('logout')}</span>
-                  </button>
-                </form>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <Icons.logout className="mr-2 h-4 w-4" />
+                <span>{t('logout')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -30,11 +30,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const url = new URL('/login', request.url)
-    const response = NextResponse.redirect(url)
+    const response = NextResponse.redirect(url, { status: 303 }) // 303 = follow with GET
     clearSessionCookie(response)
     return response
   } catch (error) {
     console.error('[API Signout] Erreur:', error)
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/login', request.url), { status: 303 })
   }
 }

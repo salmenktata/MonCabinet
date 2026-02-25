@@ -23,11 +23,13 @@ interface SuperAdminTopbarProps {
     prenom?: string
   }
   pendingCount?: number
+  onToggleMobileMenu?: () => void
 }
 
 export function SuperAdminTopbar({
   user,
-  pendingCount = 0
+  pendingCount = 0,
+  onToggleMobileMenu,
 }: SuperAdminTopbarProps) {
   const router = useRouter()
   const displayName = user.prenom && user.nom
@@ -48,6 +50,14 @@ export function SuperAdminTopbar({
     <header className="flex h-16 items-center justify-between border-b border-slate-700 bg-slate-900 px-6">
       {/* Titre de la section */}
       <div className="flex items-center gap-4">
+        {/* Bouton burger – mobile uniquement */}
+        <button
+          onClick={onToggleMobileMenu}
+          className="md:hidden flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          aria-label="Ouvrir le menu"
+        >
+          <Icons.menu className="h-5 w-5" />
+        </button>
         <h1 className="text-lg font-semibold text-white">Administration</h1>
         {pendingCount > 0 && (
           <Badge variant="destructive" className="animate-pulse">
