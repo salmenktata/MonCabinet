@@ -213,8 +213,8 @@ export async function uploadKnowledgeDocument(
   // Insertion en base
   const result = await db.query(
     `INSERT INTO knowledge_base
-     (category, subcategory, language, title, description, metadata, tags, source_file, full_text, uploaded_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     (category, subcategory, language, title, description, metadata, tags, source_file, full_text, uploaded_by, doc_type)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::document_type)
      RETURNING *`,
     [
       category,
@@ -227,6 +227,7 @@ export async function uploadKnowledgeDocument(
       sourceFile,
       fullText,
       uploadedBy,
+      getDocumentType(category),
     ]
   )
 
