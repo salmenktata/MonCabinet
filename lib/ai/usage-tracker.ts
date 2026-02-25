@@ -56,7 +56,8 @@ export interface UsageStats {
 export function calculateCost(
   provider: Provider,
   inputTokens: number,
-  outputTokens: number = 0
+  outputTokens: number = 0,
+  model: string = ''
 ): number {
   if (provider === 'openai') {
     // text-embedding-3-small: $0.02 / 1M tokens
@@ -75,7 +76,18 @@ export function calculateCost(
       (outputTokens / 1_000_000) * AI_COSTS.claudeOutputCostPer1MTokens
     )
   }
-  // Groq, Ollama, Gemini (LLM) : gratuit
+  // Groq : payant si hors free tier (14 400 req/jour pour 70b)
+  if (provider === 'groq') {
+    const isSmall = model.includes('8b') || model.includes('instant')
+    return isSmall
+      ? (inputTokens / 1_000_000) * 0.05  + (outputTokens / 1_000_000) * 0.08
+      : (inputTokens / 1_000_000) * 0.59  + (outputTokens / 1_000_000) * 0.79
+  }
+  // Gemini LLM (embeddings gérés séparément dans gemini-client.ts)
+  if (provider === 'gemini') {
+    return (inputTokens / 1_000_000) * 0.075 + (outputTokens / 1_000_000) * 0.30
+  }
+  // Ollama : gratuit (local)
   return 0
 }
 

@@ -33,6 +33,11 @@ import { scheduleHallucinationCheck } from '@/lib/ai/hallucination-monitor-servi
 import { trackConversationCost } from '@/lib/ai/conversation-cost-service'
 import { detectAbrogations, type AbrogationAlert } from '@/lib/legal/abrogation-detector-service'
 import { structurerDossier } from '@/lib/ai/dossier-structuring-service'
+import { RateLimiter } from '@/lib/rate-limiter'
+import { acquireChatSemaphore, releaseChatSemaphore } from '@/lib/ai/chat-semaphore'
+
+// Rate limiter par utilisateur : 20 req/min (module-level → singleton)
+const chatRateLimiter = new RateLimiter({ windowMs: 60_000, maxRequests: 20, name: 'chat' })
 
 // =============================================================================
 // TYPES
@@ -176,6 +181,21 @@ export async function POST(
 
     const userId = session.user.id
 
+    // Rate limiting par utilisateur (20 req/min)
+    const rateLimitResult = chatRateLimiter.check(`chat:${userId}`)
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Veuillez patienter quelques secondes.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.ceil((rateLimitResult.retryAfter ?? 10))),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      )
+    }
+
     // Vérifier que le chat est activé
     if (!isChatEnabled()) {
       return NextResponse.json(
@@ -300,6 +320,15 @@ export async function POST(
 
     const ACTION_TIMEOUT_MS = 44000
 
+    // Sémaphore concurrence — protège le VPS contre les bursts (max CHAT_MAX_CONCURRENT simultanés)
+    const semAcquired = await acquireChatSemaphore()
+    if (!semAcquired) {
+      return NextResponse.json(
+        { error: 'Serveur occupé. Veuillez réessayer dans quelques secondes.' },
+        { status: 503, headers: { 'Retry-After': '5' } }
+      )
+    }
+
     try {
       switch (actionType) {
         case 'structure':
@@ -326,6 +355,8 @@ export async function POST(
         )
       }
       throw timeoutError
+    } finally {
+      await releaseChatSemaphore()
     }
 
     // Sauvegarder la réponse assistant avec metadata

@@ -773,6 +773,12 @@ export async function callLLMWithFallback(
     try {
       const response = await callProvider(provider, messages, options)
       recordProviderSuccess(provider)
+      // Tracking daily Groq (fire-and-forget — ne bloque pas la réponse)
+      if (provider === 'groq' && response.tokensUsed) {
+        import('./groq-usage-tracker').then(({ trackGroqUsage }) =>
+          trackGroqUsage(response.modelUsed || 'unknown', response.tokensUsed.input, response.tokensUsed.output)
+        ).catch(() => {/* silencieux */})
+      }
       return response
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error))
