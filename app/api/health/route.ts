@@ -86,7 +86,7 @@ export async function GET() {
               api: 'healthy',
             },
             message: 'Container initializing, services starting...',
-            version: process.env.npm_package_version || '1.0.0',
+            version: process.env.NEXT_PUBLIC_APP_VERSION || process.env.npm_package_version || '1.0.0',
           },
           { status: 200 } // 200 pour éviter rollback prématuré
         )
@@ -139,7 +139,7 @@ export async function GET() {
             // Alerte si RAG enabled mais semantic search disabled
             status: ragEnabled && !semanticSearchEnabled ? 'misconfigured' : 'ok'
           },
-          version: process.env.npm_package_version || '1.0.0',
+          version: process.env.NEXT_PUBLIC_APP_VERSION || process.env.npm_package_version || '1.0.0',
         },
         { status: 200 }
       )
@@ -158,7 +158,7 @@ export async function GET() {
           redis: redisHealthy ? 'healthy' : 'unhealthy',
           api: 'healthy',
         },
-        version: process.env.npm_package_version || '1.0.0',
+        version: process.env.NEXT_PUBLIC_APP_VERSION || process.env.npm_package_version || '1.0.0',
       },
       { status: 503 }
     )
@@ -173,7 +173,7 @@ export async function GET() {
         uptime: Math.floor(process.uptime()),
         responseTime: `${duration}ms`,
         error: error instanceof Error ? error.message : 'Unknown error',
-        version: process.env.npm_package_version || '1.0.0',
+        version: process.env.NEXT_PUBLIC_APP_VERSION || process.env.npm_package_version || '1.0.0',
       },
       { status: 503 }
     )
