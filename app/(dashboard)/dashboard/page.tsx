@@ -235,7 +235,7 @@ async function DashboardTimeTracking({ userId }: { userId: string }) {
 // Composant pour le calendrier des échéances
 async function DashboardCalendar({ userId }: { userId: string }) {
   const result = await query(
-    `SELECT e.id, e.titre, e.type_echeance, e.date_echeance, e.statut, e.description,
+    `SELECT e.id, e.titre, e.type_echeance, TO_CHAR(e.date_echeance, 'YYYY-MM-DD') as date_echeance, e.statut, e.description,
       json_build_object('numero', d.numero, 'objet', d.objet) as dossier
     FROM echeances e
     LEFT JOIN dossiers d ON e.dossier_id = d.id
