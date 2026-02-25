@@ -487,7 +487,7 @@ async function classifyWithLLM(
 
     // Log usage
     await logUsage({
-      userId: 'system',
+      userId: null,
       operationType: 'classification',
       provider: response.provider,
       model: response.modelUsed,

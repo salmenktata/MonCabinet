@@ -641,7 +641,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts: number = 2, delay
 /**
  * Exécute les actions automatiques spécifiques à une étape
  */
-async function executeStageAction(doc: PipelineDocument, targetStage: PipelineStage, userId: string): Promise<void> {
+async function executeStageAction(doc: PipelineDocument, targetStage: PipelineStage, userId: string | null): Promise<void> {
   switch (targetStage) {
     case 'indexed':
       // Skip si déjà indexé avec chunks (ex: crawl a déjà fait le travail)
@@ -901,7 +901,7 @@ export async function autoAdvanceIfEligible(
 
     // Exécuter les actions de l'étape
     try {
-      await executeStageAction(current, nextStage, userId || 'system')
+      await executeStageAction(current, nextStage, userId || null)
     } catch {
       break // Arrêter si l'action échoue
     }
