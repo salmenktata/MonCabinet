@@ -475,6 +475,14 @@ export interface CreateDossierOptions {
   actionsSelectionnees?: string[]
 }
 
+export interface NewClientData {
+  nom: string
+  prenom?: string
+  type_client: 'PERSONNE_PHYSIQUE' | 'PERSONNE_MORALE'
+  telephone?: string
+  email?: string
+}
+
 export interface CreateDossierResult {
   dossierId: string
   actionsCreees: number
@@ -1616,6 +1624,7 @@ function mapCategoryToRefType(
  * Crée un dossier complet à partir d'une structure analysée
  *
  * Utilise une transaction pour garantir l'atomicité:
+ * - Création du client si newClientData fourni
  * - Création du dossier
  * - Création des actions
  * - Création des échéances
@@ -1624,16 +1633,36 @@ function mapCategoryToRefType(
 export async function creerDossierDepuisStructure(
   structure: StructuredDossier,
   userId: string,
-  clientId: string,
+  clientId: string | null,
+  newClientData: NewClientData | null,
   options: CreateDossierOptions
 ): Promise<CreateDossierResult> {
   log.info('Création dossier depuis structure', {
     userId,
-    clientId,
+    clientId: clientId ?? 'nouveau',
     type: structure.typeProcedure,
   })
 
   return await transaction(async (client) => {
+    // Créer le nouveau client si nécessaire (atomique dans la transaction)
+    let resolvedClientId: string = clientId!
+    if (newClientData) {
+      const clientResult = await client.query(
+        `INSERT INTO clients (user_id, type_client, nom, prenom, telephone, email)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        [
+          userId,
+          newClientData.type_client,
+          newClientData.nom.trim(),
+          newClientData.prenom?.trim() || null,
+          newClientData.telephone?.trim() || null,
+          newClientData.email?.trim() || null,
+        ]
+      )
+      resolvedClientId = clientResult.rows[0].id
+      log.info('Nouveau client créé dans transaction', { clientId: resolvedClientId })
+    }
+
     // Générer un numéro de dossier
     const year = new Date().getFullYear()
     const countResult = await client.query(
@@ -1653,7 +1682,7 @@ export async function creerDossierDepuisStructure(
       RETURNING id`,
       [
         userId,
-        clientId,
+        resolvedClientId,
         numero,
         structure.typeProcedure,
         structure.titrePropose,
@@ -1722,7 +1751,7 @@ export async function creerDossierDepuisStructure(
               userId,
               step.etape,
               step.description,
-              step.dateEstimee.toISOString().split('T')[0],
+              new Date(step.dateEstimee).toISOString().split('T')[0],
               'calendaire',
               true,
               true,

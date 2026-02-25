@@ -2,8 +2,12 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import Link from 'next/link'
-import type { StructuredDossier } from '@/lib/ai/dossier-structuring-service'
+import type {
+  StructuredDossier,
+  NewClientData,
+} from '@/lib/ai/dossier-structuring-service'
+
+export type { NewClientData }
 
 interface Client {
   id: string
@@ -17,7 +21,8 @@ interface CreateDossierModalProps {
   result: StructuredDossier
   onClose: () => void
   onConfirm: (
-    clientId: string,
+    clientId: string | null,
+    newClientData: NewClientData | null,
     options: {
       creerActions: boolean
       creerEcheances: boolean
@@ -37,24 +42,43 @@ export default function CreateDossierModal({
   const t = useTranslations('assistant')
   const tCommon = useTranslations('common')
 
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>(
+    clients.length > 0 ? 'existing' : 'new'
+  )
   const [selectedClientId, setSelectedClientId] = useState('')
+  const [newClientData, setNewClientData] = useState<NewClientData>({
+    nom: result.client?.nom || '',
+    prenom: result.client?.prenom || '',
+    type_client: 'PERSONNE_PHYSIQUE',
+    telephone: '',
+    email: '',
+  })
   const [creerActions, setCreerActions] = useState(true)
   const [creerEcheances, setCreerEcheances] = useState(true)
 
   const checkedActions = result.actionsSuggerees.filter((a) => a.checked)
   const obligatorySteps = result.timeline.filter((s) => s.obligatoire)
 
-  const handleConfirm = () => {
-    if (!selectedClientId) return
-
-    onConfirm(selectedClientId, {
-      creerActions,
-      creerEcheances,
-      actionsSelectionnees: checkedActions.map((_, i) => i.toString()),
-    })
+  const options = {
+    creerActions,
+    creerEcheances,
+    actionsSelectionnees: checkedActions.map((_, i) => i.toString()),
   }
 
-  const selectedClient = clients.find((c) => c.id === selectedClientId)
+  const handleConfirm = () => {
+    if (clientMode === 'existing') {
+      if (!selectedClientId) return
+      onConfirm(selectedClientId, null, options)
+    } else {
+      if (!newClientData.nom.trim()) return
+      onConfirm(null, newClientData, options)
+    }
+  }
+
+  const isConfirmDisabled =
+    loading ||
+    (clientMode === 'existing' && !selectedClientId) ||
+    (clientMode === 'new' && !newClientData.nom.trim())
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -113,7 +137,36 @@ export default function CreateDossierModal({
               {t('createModal.selectClient')} *
             </label>
 
-            {clients.length > 0 ? (
+            {/* Tabs existant / nouveau */}
+            <div className="flex rounded-lg border bg-muted/30 p-1 gap-1 mb-3">
+              {clients.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setClientMode('existing')}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    clientMode === 'existing'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Client existant
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setClientMode('new')}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  clientMode === 'new'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Nouveau client
+              </button>
+            </div>
+
+            {/* Mode client existant */}
+            {clientMode === 'existing' && (
               <select
                 value={selectedClientId}
                 onChange={(e) => setSelectedClientId(e.target.value)}
@@ -122,6 +175,7 @@ export default function CreateDossierModal({
                 <option value="">{t('createModal.chooseClient')}</option>
                 {clients.map((client) => {
                   const displayName =
+                    client.type_client === 'PERSONNE_PHYSIQUE' ||
                     client.type_client === 'personne_physique'
                       ? `${client.nom} ${client.prenom || ''}`.trim()
                       : client.nom
@@ -132,29 +186,127 @@ export default function CreateDossierModal({
                   )
                 })}
               </select>
-            ) : (
-              <div className="rounded-lg border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-4 text-center">
-                <p className="text-sm text-amber-800 dark:text-amber-300 mb-2">
-                  {t('createModal.noClients')}
-                </p>
-                <Link
-                  href="/clients/new"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
-                >
-                  {t('createModal.createClient')} &rarr;
-                </Link>
-              </div>
             )}
 
-            {/* Info client suggéré */}
-            {result.client.nom && !selectedClientId && (
-              <p className="mt-2 text-sm text-muted-foreground">
-                <span>&#128161;</span> {t('createModal.suggestedClient')}:{' '}
-                <strong>
-                  {result.client.nom}
-                  {result.client.prenom && ` ${result.client.prenom}`}
-                </strong>
-              </p>
+            {/* Mode nouveau client */}
+            {clientMode === 'new' && (
+              <div className="space-y-3">
+                {/* Type client */}
+                <div className="flex rounded-lg border bg-muted/30 p-1 gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewClientData((d) => ({
+                        ...d,
+                        type_client: 'PERSONNE_PHYSIQUE',
+                      }))
+                    }
+                    className={`flex-1 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                      newClientData.type_client === 'PERSONNE_PHYSIQUE'
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Personne physique
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewClientData((d) => ({
+                        ...d,
+                        type_client: 'PERSONNE_MORALE',
+                      }))
+                    }
+                    className={`flex-1 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                      newClientData.type_client === 'PERSONNE_MORALE'
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Personne morale
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      {newClientData.type_client === 'PERSONNE_MORALE'
+                        ? 'Dénomination *'
+                        : 'Nom *'}
+                    </label>
+                    <input
+                      type="text"
+                      value={newClientData.nom}
+                      onChange={(e) =>
+                        setNewClientData((d) => ({ ...d, nom: e.target.value }))
+                      }
+                      placeholder={
+                        newClientData.type_client === 'PERSONNE_MORALE'
+                          ? 'Raison sociale'
+                          : 'Nom de famille'
+                      }
+                      className="w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+
+                  {newClientData.type_client === 'PERSONNE_PHYSIQUE' && (
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">
+                        Prénom
+                      </label>
+                      <input
+                        type="text"
+                        value={newClientData.prenom || ''}
+                        onChange={(e) =>
+                          setNewClientData((d) => ({
+                            ...d,
+                            prenom: e.target.value,
+                          }))
+                        }
+                        placeholder="Prénom"
+                        className="w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      Téléphone
+                    </label>
+                    <input
+                      type="tel"
+                      value={newClientData.telephone || ''}
+                      onChange={(e) =>
+                        setNewClientData((d) => ({
+                          ...d,
+                          telephone: e.target.value,
+                        }))
+                      }
+                      placeholder="+216 XX XXX XXX"
+                      className="w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={newClientData.email || ''}
+                      onChange={(e) =>
+                        setNewClientData((d) => ({
+                          ...d,
+                          email: e.target.value,
+                        }))
+                      }
+                      placeholder="email@exemple.com"
+                      className="w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -200,7 +352,7 @@ export default function CreateDossierModal({
 
           <button
             onClick={handleConfirm}
-            disabled={!selectedClientId || loading}
+            disabled={isConfirmDisabled}
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (

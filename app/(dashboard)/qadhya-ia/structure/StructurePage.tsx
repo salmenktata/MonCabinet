@@ -20,7 +20,10 @@ import {
 import { useAssistantStore } from '@/lib/stores/assistant-store'
 import { useStance } from '@/contexts/StanceContext'
 import { MODE_CONFIGS } from '../mode-config'
-import type { StructuredDossier } from '@/lib/ai/dossier-structuring-service'
+import type {
+  StructuredDossier,
+  NewClientData,
+} from '@/lib/ai/dossier-structuring-service'
 
 const CreateDossierModal = dynamic(
   () => import('@/components/dossiers/assistant/CreateDossierModal'),
@@ -155,7 +158,8 @@ export function StructurePage({ clients }: StructurePageProps) {
   }
 
   const handleCreateDossier = async (
-    clientId: string,
+    clientId: string | null,
+    newClientData: NewClientData | null,
     options: { creerActions: boolean; creerEcheances: boolean; actionsSelectionnees?: string[] }
   ) => {
     if (!result) return
@@ -163,7 +167,7 @@ export function StructurePage({ clients }: StructurePageProps) {
     setError('')
 
     try {
-      const response = await creerDossierDepuisStructureAction(result, clientId, options)
+      const response = await creerDossierDepuisStructureAction(result, clientId, newClientData, options)
       if (response.error) {
         setError(response.error)
         setCreating(false)

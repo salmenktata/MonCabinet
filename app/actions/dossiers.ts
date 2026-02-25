@@ -8,6 +8,7 @@ import type {
   StructuredDossier,
   StructuringOptions,
   CreateDossierOptions,
+  NewClientData,
 } from '@/lib/ai/dossier-structuring-service'
 
 export async function createDossierAction(formData: DossierFormData) {
@@ -251,7 +252,8 @@ export async function structurerDossierAction(
  */
 export async function creerDossierDepuisStructureAction(
   structure: StructuredDossier,
-  clientId: string,
+  clientId: string | null,
+  newClientData: NewClientData | null,
   options: CreateDossierOptions
 ): Promise<{
   success?: boolean
@@ -264,19 +266,21 @@ export async function creerDossierDepuisStructureAction(
       return { error: 'Non authentifié' }
     }
 
-    // Valider le clientId
-    if (!clientId) {
+    if (clientId) {
+      // Vérifier que le client existe et appartient à l'utilisateur
+      const clientCheck = await query(
+        'SELECT id FROM clients WHERE id = $1 AND user_id = $2',
+        [clientId, session.user.id]
+      )
+      if (clientCheck.rows.length === 0) {
+        return { error: 'Client non trouvé' }
+      }
+    } else if (newClientData) {
+      if (!newClientData.nom?.trim()) {
+        return { error: 'Le nom du client est requis' }
+      }
+    } else {
       return { error: 'Client non sélectionné' }
-    }
-
-    // Vérifier que le client existe et appartient à l'utilisateur
-    const clientCheck = await query(
-      'SELECT id FROM clients WHERE id = $1 AND user_id = $2',
-      [clientId, session.user.id]
-    )
-
-    if (clientCheck.rows.length === 0) {
-      return { error: 'Client non trouvé' }
     }
 
     // Import dynamique pour éviter les problèmes de chargement
@@ -288,11 +292,15 @@ export async function creerDossierDepuisStructureAction(
       structure,
       session.user.id,
       clientId,
+      newClientData,
       options
     )
 
     revalidatePath('/dossiers')
     revalidatePath('/echeances')
+    if (newClientData) {
+      revalidatePath('/clients')
+    }
 
     return { success: true, data: result }
   } catch (error) {

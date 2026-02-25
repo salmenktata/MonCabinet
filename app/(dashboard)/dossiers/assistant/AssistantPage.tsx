@@ -15,7 +15,10 @@ import {
   creerDossierDepuisStructureAction,
 } from '@/app/actions/dossiers'
 import { useAssistantStore } from '@/lib/stores/assistant-store'
-import type { StructuredDossier } from '@/lib/ai/dossier-structuring-service'
+import type {
+  StructuredDossier,
+  NewClientData,
+} from '@/lib/ai/dossier-structuring-service'
 
 // Lazy load du modal (234 lignes) car il n'est affiché que sur action utilisateur
 const CreateDossierModal = dynamic(
@@ -143,7 +146,8 @@ export default function AssistantPage({ clients }: AssistantPageProps) {
   }
 
   const handleCreateDossier = async (
-    clientId: string,
+    clientId: string | null,
+    newClientData: NewClientData | null,
     options: { creerActions: boolean; creerEcheances: boolean; actionsSelectionnees?: string[] }
   ) => {
     if (!result) return
@@ -152,7 +156,7 @@ export default function AssistantPage({ clients }: AssistantPageProps) {
     setError('')
 
     try {
-      const response = await creerDossierDepuisStructureAction(result, clientId, options)
+      const response = await creerDossierDepuisStructureAction(result, clientId, newClientData, options)
 
       if (response.error) {
         setError(response.error)
