@@ -8,7 +8,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { Icons } from '@/lib/icons'
@@ -70,8 +70,19 @@ export function UnifiedChatPage({
   })
   const [currentAction, setCurrentAction] = useState<ActionType>(initialAction)
   const { stance, setStance } = useStance()
+  const locale = useLocale()
+  const isAr = locale === 'ar'
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [showChatNotice, setShowChatNotice] = useState(() => {
+    if (!hideActionButtons) return false // Notice uniquement sur la page dédiée /chat
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('qadhya_notice_chat') !== 'dismissed'
+  })
+  const dismissChatNotice = () => {
+    localStorage.setItem('qadhya_notice_chat', 'dismissed')
+    setShowChatNotice(false)
+  }
   // Message utilisateur en attente (affiché immédiatement avant réponse serveur)
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null)
   // Clé pour déclencher l'auto-focus du textarea
@@ -327,7 +338,7 @@ export function UnifiedChatPage({
             <div className="w-9" />
           </div>
 
-          {/* Header Desktop - bouton toggle sidebar */}
+          {/* Header Desktop - bouton toggle sidebar + badge mode */}
           <div className="hidden lg:flex items-center gap-2 px-3 py-2 border-b bg-background/80 backdrop-blur-sm">
             <Button
               variant="ghost"
@@ -341,7 +352,43 @@ export function UnifiedChatPage({
                 sidebarCollapsed && 'rotate-180'
               )} />
             </Button>
+            <Badge variant="outline" className={cn('gap-1.5 text-xs', modeConfig.badgeClass)}>
+              <ModeIcon className="h-3 w-3" />
+              {t(`actions.${modeConfig.translationKey}.label`)}
+            </Badge>
           </div>
+
+          {/* Notice contextuelle — mode Assistant IA conversationnel */}
+          {showChatNotice && (
+            <div className={`relative border-b border-l-4 border-l-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30 px-4 py-2.5 pr-10 ${isAr ? 'text-right' : ''}`}>
+              <button
+                onClick={dismissChatNotice}
+                className="absolute top-2.5 right-3 text-muted-foreground hover:text-foreground"
+                aria-label="Fermer"
+              >
+                <Icons.x className="h-3.5 w-3.5" />
+              </button>
+              <p className="text-xs font-semibold text-emerald-900 dark:text-emerald-200 mb-0.5">
+                {isAr ? 'الخطوة 3/3 — المساعد الذكي التحاوري' : 'Étape 3/3 — Assistant IA conversationnel'}
+              </p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-1.5">
+                {isAr
+                  ? 'اطرح أسئلة متابعة، استكشف زوايا محددة، أو دقّق التحليل. على عكس الاستشارة، يحتفظ السياق بين الرسائل (ذاكرة المحادثة). مثالي لاستكشاف فرضيات متعددة أو الاستفسار عن تفاصيل دقيقة.'
+                  : 'Posez des questions de suivi, explorez un angle précis, affinez une analyse. Contrairement à la Consultation, le contexte persiste entre les messages. Idéal pour les hypothèses successives et les précisions.'}
+              </p>
+              <div className={`flex flex-wrap gap-1.5 ${isAr ? 'justify-end' : ''}`}>
+                <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-2 py-0.5 text-xs text-yellow-800 dark:text-yellow-200">
+                  🤖 Groq llama-3.3-70b
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
+                  {isAr ? '💬 محادثة متعددة الأدوار' : '💬 Chat multi-tours'}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-200">
+                  {isAr ? '← من: الاستشارة' : '← Depuis: Consultation'}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-auto">

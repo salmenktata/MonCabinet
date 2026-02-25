@@ -3,23 +3,23 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { X } from 'lucide-react'
+import { useTranslations, useLocale } from 'next-intl'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { Icons } from '@/lib/icons'
 import NarrativeInput from '@/components/dossiers/assistant/NarrativeInput'
 import ExamplesCarousel from '@/components/dossiers/assistant/ExamplesCarousel'
 import AnalysisLoader from '@/components/dossiers/assistant/AnalysisLoader'
 import StructuredResult from '@/components/dossiers/assistant/StructuredResult'
-import StepIndicator from '@/components/qadhya-ia/structure/StepIndicator'
-import ClarifyingQuestions from '@/components/qadhya-ia/structure/ClarifyingQuestions'
+import { StanceSelector } from '@/components/qadhya-ia/StanceSelector'
 import {
   structurerDossierAction,
   creerDossierDepuisStructureAction,
 } from '@/app/actions/dossiers'
-import {
-  generateClarifyingQuestions,
-  enrichNarrativeWithAnswers,
-} from '@/app/actions/clarifying-questions'
 import { useAssistantStore } from '@/lib/stores/assistant-store'
+import { useStance } from '@/contexts/StanceContext'
+import { MODE_CONFIGS } from '../mode-config'
 import type { StructuredDossier } from '@/lib/ai/dossier-structuring-service'
 
 const CreateDossierModal = dynamic(
@@ -42,7 +42,8 @@ export function StructurePage({ clients }: StructurePageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const t = useTranslations('assistant')
-  const tCommon = useTranslations('common')
+  const locale = useLocale()
+  const isAr = locale === 'ar'
 
   const {
     step,
@@ -53,18 +54,23 @@ export function StructurePage({ clients }: StructurePageProps) {
     setResult,
     error,
     setError,
-    clarifyingQuestions,
-    setClarifyingQuestions,
-    clarifyingAnswers,
-    setClarifyingAnswer,
-    setEnrichedNarratif,
     reset,
   } = useAssistantStore()
 
+  const { stance, setStance } = useStance()
+  const config = MODE_CONFIGS['structure']
+
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [showNotice, setShowNotice] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('qadhya_notice_structure') !== 'dismissed'
+  })
+  const dismissNotice = () => {
+    localStorage.setItem('qadhya_notice_structure', 'dismissed')
+    setShowNotice(false)
+  }
   const [analysisSteps, setAnalysisSteps] = useState<string[]>([])
-  const [generatingQuestions, setGeneratingQuestions] = useState(false)
 
   // Hydratation SSR
   const [hydrated, setHydrated] = useState(false)
@@ -91,49 +97,17 @@ export function StructurePage({ clients }: StructurePageProps) {
     }
   }, [hydrated, searchParams, setNarratif, t])
 
-  // Step 1 → Step 2 : Générer questions clarificatrices
-  const handleSubmitNarrative = async () => {
+  // Soumettre → analyser directement (plus de questions clarificatrices)
+  const handleSubmitNarrative = () => {
     if (!narratif || narratif.length < 20) {
       setError(t('errors.narratifTooShort'))
       return
     }
     setError('')
-    setGeneratingQuestions(true)
-
-    try {
-      const response = await generateClarifyingQuestions(narratif)
-      if (response.success && response.data && response.data.length > 0) {
-        setClarifyingQuestions(response.data)
-        setStep('clarifying')
-      } else {
-        // Pas de questions → aller directement à l'analyse
-        startAnalysis(narratif)
-      }
-    } catch {
-      // Fallback : analyser directement si questions échouent
-      startAnalysis(narratif)
-    } finally {
-      setGeneratingQuestions(false)
-    }
-  }
-
-  // Step 2 → Step 3 : Enrichir + analyser
-  const handleClarifyingSubmit = async () => {
-    const enriched = await enrichNarrativeWithAnswers(
-      narratif,
-      clarifyingAnswers,
-      clarifyingQuestions
-    )
-    setEnrichedNarratif(enriched)
-    startAnalysis(enriched)
-  }
-
-  // Step 2 skip → Step 3 : Analyser directement
-  const handleClarifyingSkip = () => {
     startAnalysis(narratif)
   }
 
-  // Lancer l'analyse (Step 3)
+  // Lancer l'analyse
   const startAnalysis = async (textToAnalyze: string) => {
     setStep('analyzing')
     setAnalysisSteps([])
@@ -206,20 +180,14 @@ export function StructurePage({ clients }: StructurePageProps) {
     }
   }
 
-  const handleStepClick = (clickedStep: 'input' | 'clarifying' | 'analyzing' | 'result') => {
-    if (clickedStep === 'input') {
-      setStep('input')
-    } else if (clickedStep === 'clarifying' && clarifyingQuestions.length > 0) {
-      setStep('clarifying')
-    }
-  }
-
   if (!hydrated) {
     return (
       <div className="space-y-6 pb-12">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">&#129302;</span>
-          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', config.iconBgClass)}>
+            <Icons.edit className={cn('h-5 w-5', config.iconTextClass)} />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
         </div>
         <div className="h-64 animate-pulse rounded-lg bg-muted" />
       </div>
@@ -228,17 +196,48 @@ export function StructurePage({ clients }: StructurePageProps) {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header + Step Indicator */}
-      <div className="space-y-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">&#129302;</span>
-            <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
-          </div>
-          <p className="mt-2 text-muted-foreground">{t('subtitle')}</p>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', config.iconBgClass)}>
+          <Icons.edit className={cn('h-5 w-5', config.iconTextClass)} />
         </div>
-        <StepIndicator currentStep={step} onStepClick={handleStepClick} />
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+        </div>
       </div>
+
+      {/* Notice contextuelle — flux recommandé */}
+      {showNotice && step === 'input' && (
+        <div className={`relative rounded-lg border-l-4 border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/30 px-4 py-3 pr-10 ${isAr ? 'text-right' : ''}`}>
+          <button
+            onClick={dismissNotice}
+            className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+            aria-label="Fermer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200 mb-1">
+            {isAr ? 'الخطوة 1/3 — هيكلة الملف' : 'Étape 1/3 — Structuration du dossier'}
+          </p>
+          <p className="text-xs text-indigo-700 dark:text-indigo-300 mb-2">
+            {isAr
+              ? 'صِف قضيتك بلغة طبيعية (عربية أو فرنسية). تستخرج الذكاء الاصطناعي الوقائع، تُحدد الأطراف، تبني الجدول الزمني وتُكيّف المسائل قانونياً. يمكن تحويل النتيجة إلى ملف دوسييه أو إرسالها إلى الاستشارة.'
+              : 'Décrivez votre affaire en langage naturel. L\'IA extrait les faits, identifie les parties, construit la chronologie et qualifie juridiquement les enjeux. Le résultat peut être transformé en dossier ou transmis en Consultation.'}
+          </p>
+          <div className={`flex flex-wrap gap-2 ${isAr ? 'justify-end' : ''}`}>
+            <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 text-xs text-purple-800 dark:text-purple-200">
+              🤖 DeepSeek deepseek-chat
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
+              {isAr ? '📄 مخرج: JSON منظّم' : '📄 Output: JSON structuré'}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 text-xs text-indigo-800 dark:text-indigo-200">
+              {isAr ? '← الخطوة التالية: الاستشارة' : '→ Étape suivante: Consultation'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Erreur globale */}
       {error && (
@@ -247,7 +246,7 @@ export function StructurePage({ clients }: StructurePageProps) {
         </div>
       )}
 
-      {/* Step 1: Saisie */}
+      {/* Saisie */}
       {step === 'input' && (
         <>
           <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
@@ -260,37 +259,31 @@ export function StructurePage({ clients }: StructurePageProps) {
             </div>
           </div>
 
+          {/* Sélecteur de posture */}
+          <div className="flex items-center gap-2">
+            <StanceSelector stance={stance} onChange={setStance} />
+          </div>
+
           <NarrativeInput
             value={narratif}
             onChange={setNarratif}
             onSubmit={handleSubmitNarrative}
-            disabled={generatingQuestions}
+            disabled={false}
           />
 
           <ExamplesCarousel onSelect={(example) => setNarratif(example)} />
         </>
       )}
 
-      {/* Step 2: Questions clarificatrices */}
-      {step === 'clarifying' && clarifyingQuestions.length > 0 && (
-        <ClarifyingQuestions
-          questions={clarifyingQuestions}
-          answers={clarifyingAnswers}
-          onAnswerChange={setClarifyingAnswer}
-          onSubmit={handleClarifyingSubmit}
-          onSkip={handleClarifyingSkip}
-          onBack={() => setStep('input')}
-        />
-      )}
-
-      {/* Step 3: Analyse */}
+      {/* Analyse en cours */}
       {step === 'analyzing' && <AnalysisLoader completedSteps={analysisSteps} />}
 
-      {/* Step 4: Résultat */}
+      {/* Résultat */}
       {step === 'result' && result && (
         <StructuredResult
           result={result}
           onReanalyze={handleReanalyze}
+          onReset={() => reset()}
           onCreateDossier={() => setShowCreateModal(true)}
           onUpdateResult={(updated) => setResult(updated)}
         />

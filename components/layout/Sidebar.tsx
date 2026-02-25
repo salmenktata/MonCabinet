@@ -45,9 +45,9 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     variant: 'highlighted',
     groupIcon: 'sparkles',
     items: [
-      { href: '/qadhya-ia/chat', label: 'qadhyaIAChat', icon: 'messageSquare' },
       { href: '/qadhya-ia/structure', label: 'qadhyaIAStructure', icon: 'edit' },
       { href: '/qadhya-ia/consult', label: 'qadhyaIAConsult', icon: 'scale' },
+      { href: '/qadhya-ia/chat', label: 'qadhyaIAChat', icon: 'messageSquare' },
     ],
   },
   {

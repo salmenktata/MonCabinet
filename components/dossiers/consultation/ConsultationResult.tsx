@@ -4,6 +4,7 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -57,7 +58,43 @@ export function ConsultationResult({ result, onNewConsultation }: ConsultationRe
   }
 
   const handleCopyAnswer = async () => {
-    await navigator.clipboard.writeText(result.conseil)
+    try {
+      await navigator.clipboard.writeText(result.conseil)
+      toast.success('Consultation copiée dans le presse-papiers')
+    } catch {
+      toast.error('Impossible de copier')
+    }
+  }
+
+  const handleExport = () => {
+    const lines = [
+      `# Consultation juridique — Qadhya`,
+      '',
+      `**Question :** ${result.question}`,
+      '',
+      '---',
+      '',
+      result.conseil,
+      '',
+    ]
+    if (result.sources?.length > 0) {
+      lines.push('## Références')
+      result.sources.forEach((s) => lines.push(`- ${s.titre}`))
+      lines.push('')
+    }
+    lines.push('---')
+    lines.push('*Généré par Qadhya — Assistant juridique IA*')
+    const content = lines.join('\n')
+    const blob = new Blob([content], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `qadhya-consultation-${Date.now()}.md`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    toast.success('Fichier exporté')
   }
 
   const visibleSources = showAllSources
@@ -107,10 +144,14 @@ export function ConsultationResult({ result, onNewConsultation }: ConsultationRe
             />
           </div>
 
-          <div className="flex items-center gap-2 mt-6 pt-4 border-t">
+          <div className="flex flex-wrap items-center gap-2 mt-6 pt-4 border-t">
             <Button variant="ghost" size="sm" onClick={handleCopyAnswer}>
               <Icons.copy className="h-4 w-4 mr-2" />
               {t('copyAnswer')}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleExport}>
+              <Icons.download className="h-4 w-4 mr-2" />
+              Exporter (.md)
             </Button>
           </div>
         </CardContent>

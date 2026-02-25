@@ -6,5 +6,5 @@ export default async function QadhyaIAPage() {
   if (!session?.user?.id) redirect('/login')
 
   // Rediriger vers la page Chat par défaut
-  redirect('/qadhya-ia/chat')
+  redirect('/qadhya-ia/structure')
 }

@@ -17,11 +17,13 @@ import RAGInsights from './RAGInsights'
 import ExecutiveSummary from './ExecutiveSummary'
 import { AnalysisTableOfContents } from './AnalysisTableOfContents'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Copy, Download, RotateCcw } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface StructuredResultProps {
   result: StructuredDossier
   onReanalyze: () => void
+  onReset?: () => void
   onCreateDossier: () => void
   onUpdateResult: (updated: StructuredDossier) => void
 }
@@ -29,6 +31,7 @@ interface StructuredResultProps {
 export default function StructuredResult({
   result,
   onReanalyze,
+  onReset,
   onCreateDossier,
   onUpdateResult,
 }: StructuredResultProps) {
@@ -47,6 +50,63 @@ export default function StructuredResult({
     newActions: StructuredDossier['actionsSuggerees']
   ) => {
     onUpdateResult({ ...result, actionsSuggerees: newActions })
+  }
+
+  const buildMarkdown = () => {
+    const lines: string[] = []
+    lines.push(`# ${result.titrePropose || 'Analyse juridique — Qadhya'}`)
+    lines.push('')
+    if (result.resumeCourt) {
+      lines.push(`> ${result.resumeCourt}`)
+      lines.push('')
+    }
+    if (result.typeProcedure) {
+      lines.push(`**Type de procédure :** ${result.typeProcedure}${result.sousType ? ` — ${result.sousType}` : ''}`)
+      lines.push('')
+    }
+    if (result.analyseJuridique?.recommandationStrategique) {
+      lines.push('## Recommandation stratégique')
+      lines.push(result.analyseJuridique.recommandationStrategique)
+      lines.push('')
+    }
+    if (result.analyseJuridique?.syllogisme?.conclusion) {
+      lines.push('## Conclusion juridique')
+      lines.push(result.analyseJuridique.syllogisme.conclusion)
+      lines.push('')
+    }
+    if (result.references?.length > 0) {
+      lines.push('## Références')
+      result.references.forEach((ref) => {
+        lines.push(`- ${ref.titre}`)
+      })
+      lines.push('')
+    }
+    lines.push('---')
+    lines.push('*Généré par Qadhya — Assistant juridique IA*')
+    return lines.join('\n')
+  }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(buildMarkdown())
+      toast.success('Analyse copiée dans le presse-papiers')
+    } catch {
+      toast.error('Impossible de copier')
+    }
+  }
+
+  const handleExport = () => {
+    const content = buildMarkdown()
+    const blob = new Blob([content], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `qadhya-structure-${Date.now()}.md`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    toast.success('Fichier exporté')
   }
 
   const handleQuickAdvice = () => {
@@ -243,66 +303,66 @@ export default function StructuredResult({
       )}
 
       {/* Actions principales */}
-      <div className="flex items-center justify-center gap-4 rounded-lg border bg-card p-4">
-        <button
-          onClick={onReanalyze}
-          className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-foreground font-medium hover:bg-muted transition-colors"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        {/* Barre secondaire : copy / export / reset */}
+        <div className="flex flex-wrap gap-2 pb-3 border-b">
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          {t('actions.reanalyze')}
-        </button>
+            <Copy className="h-3.5 w-3.5" />
+            Copier
+          </button>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Exporter (.md)
+          </button>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Recommencer
+            </button>
+          )}
+        </div>
 
-        <button
-          onClick={handleQuickAdvice}
-          className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-foreground font-medium hover:bg-muted transition-colors"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {/* Barre principale */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={onReanalyze}
+            className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-foreground font-medium hover:bg-muted transition-colors"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 10V3L4 14h7v7l9-11h-7z"
-            />
-          </svg>
-          {t('actions.quickAdvice')}
-        </button>
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {t('actions.reanalyze')}
+          </button>
 
-        <button
-          onClick={onCreateDossier}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-white font-semibold hover:bg-blue-700 transition-colors"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          <button
+            onClick={handleQuickAdvice}
+            className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-foreground font-medium hover:bg-muted transition-colors"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-          {t('actions.createDossier')}
-        </button>
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            {t('actions.quickAdvice')}
+          </button>
+
+          <button
+            onClick={onCreateDossier}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-white font-semibold hover:bg-blue-700 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            {t('actions.createDossier')}
+          </button>
+        </div>
       </div>
     </div>
   )

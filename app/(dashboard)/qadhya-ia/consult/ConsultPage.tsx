@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { toast } from 'sonner'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
@@ -14,7 +14,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { History } from 'lucide-react'
+import { History, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { MODE_CONFIGS } from '../mode-config'
 import { ConsultationInput } from '@/components/dossiers/consultation/ConsultationInput'
 import { ConsultationResult } from '@/components/dossiers/consultation/ConsultationResult'
 import ConsultationHistory from '@/components/qadhya-ia/consult/ConsultationHistory'
@@ -27,10 +29,21 @@ import type { ConsultationResponse } from '@/app/actions/consultation'
 
 export function ConsultPage() {
   const t = useTranslations('consultation')
+  const locale = useLocale()
+  const isAr = locale === 'ar'
   const searchParams = useSearchParams()
+  const config = MODE_CONFIGS['consult']
 
   const [result, setResult] = useState<ConsultationResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [showNotice, setShowNotice] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('qadhya_notice_consult') !== 'dismissed'
+  })
+  const dismissNotice = () => {
+    localStorage.setItem('qadhya_notice_consult', 'dismissed')
+    setShowNotice(false)
+  }
   const [initialQuestion, setInitialQuestion] = useState('')
   const [initialContext, setInitialContext] = useState('')
   const [selectedConsultationId, setSelectedConsultationId] = useState<string | null>(null)
@@ -107,12 +120,12 @@ export function ConsultPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Icons.messageSquare className="h-6 w-6 text-primary" />
+                <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', config.iconBgClass)}>
+                  <Icons.scale className={cn('h-5 w-5', config.iconTextClass)} />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">{t('title')}</h1>
-                  <p className="text-muted-foreground">{t('subtitle')}</p>
+                  <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
                 </div>
               </div>
 
@@ -135,6 +148,38 @@ export function ConsultPage() {
               </Sheet>
             </div>
           </div>
+
+          {/* Notice contextuelle — flux recommandé */}
+          {showNotice && !result && (
+            <div className={`relative mb-4 rounded-lg border-l-4 border-amber-500 bg-amber-50/70 dark:bg-amber-950/30 px-4 py-3 pr-10 ${isAr ? 'text-right' : ''}`}>
+              <button
+                onClick={dismissNotice}
+                className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+                aria-label="Fermer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                {isAr ? 'الخطوة 2/3 — الاستشارة القانونية الرسمية' : 'Étape 2/3 — Consultation juridique formelle'}
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
+                {isAr
+                  ? 'اطرح سؤالاً قانونياً دقيقاً أو الصق السياق المُهيكَل من صفحة الهيكلة. تُولّد الذكاء الاصطناعي تحليلاً رسمياً في 6 كتل IRAC (التشخيص، التكييف، الأدلة، الحجج، السيناريوهات، خطة العمل) مع استشهادات إلزامية. استجابة فردية بدون ذاكرة محادثة.'
+                  : 'Posez une question précise ou collez le contexte issu de Structuration. L\'IA génère une analyse en 6 blocs IRAC (diagnostic, qualification, preuves, arguments, scénarios, plan d\'action) avec citations obligatoires. One-shot sans mémoire de conversation.'}
+              </p>
+              <div className={`flex flex-wrap gap-2 ${isAr ? 'justify-end' : ''}`}>
+                <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 text-xs text-purple-800 dark:text-purple-200">
+                  🤖 DeepSeek deepseek-chat
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
+                  {isAr ? '📋 مخرج: 6 كتل IRAC' : '📋 Output: 6 blocs IRAC'}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 text-xs text-amber-800 dark:text-amber-200">
+                  {isAr ? '← من: الهيكلة' : '← Depuis: Structuration'}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Contenu principal */}
           {!result ? (
