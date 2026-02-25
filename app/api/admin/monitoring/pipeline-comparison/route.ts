@@ -23,9 +23,16 @@ import { getPipelineMetrics, type PipelineDaySummary } from '@/lib/metrics/rag-m
 
 export const dynamic = 'force-dynamic'
 
-function avgMetric(summaries: PipelineDaySummary[], key: keyof PipelineDaySummary): number {
-  const withData = summaries.filter(s => (s[key] as number) > 0 || key === 'abstentionRate')
-  if (withData.length === 0) return 0
+// Métriques de type "taux" : valeur 0 est significative (ex: 0 abstentions = bonne santé)
+// → filtrer par totalRequests > 0 (pas par la valeur du champ)
+const RATE_METRICS = new Set(['abstentionRate', 'cacheHitRate', 'qualityGateRate', 'routerFailedRate'])
+
+function avgMetric(summaries: PipelineDaySummary[], key: keyof PipelineDaySummary): number | null {
+  if (summaries.length === 0) return null
+  const withData = RATE_METRICS.has(key as string)
+    ? summaries.filter(s => s.totalRequests > 0)
+    : summaries.filter(s => (s[key] as number) > 0)
+  if (withData.length === 0) return null
   return withData.reduce((sum, s) => sum + (s[key] as number), 0) / withData.length
 }
 
@@ -62,21 +69,27 @@ export const GET = withAdminApiAuth(async (req: NextRequest) => {
   }
 
   // Delta relatif (kb_search vs chat) — positif = kb_search > chat
-  const delta = (a: number, b: number) => a === 0 ? null : ((b - a) / a)
+  // Retourne null si l'un des pipelines n'a pas de données (évite les faux -100%)
+  const delta = (a: number | null, b: number | null) =>
+    (a == null || b == null || a === 0) ? null : ((b - a) / a)
 
   const comparison = {
     abstentionRateDelta: delta(chatAvg.abstentionRate, kbSearchAvg.abstentionRate),
     avgSimilarityDelta: delta(chatAvg.avgSimilarity, kbSearchAvg.avgSimilarity),
     avgSourcesDelta: delta(chatAvg.avgSourcesCount, kbSearchAvg.avgSourcesCount),
     avgLatencyDelta: delta(chatAvg.avgLatencyMs, kbSearchAvg.avgLatencyMs),
-    // Alertes : divergences > 20%
+    // Alertes : divergences > 20% (seulement si les deux pipelines ont des données)
     alerts: [] as string[],
   }
 
-  if (comparison.abstentionRateDelta !== null && Math.abs(comparison.abstentionRateDelta) > 0.2) {
+  // Alertes seulement si les deux pipelines ont suffisamment de données (évite faux positifs)
+  const MIN_REQUESTS_FOR_ALERT = 10
+  const canCompare = chatAvg.totalRequests >= MIN_REQUESTS_FOR_ALERT && kbSearchAvg.totalRequests >= MIN_REQUESTS_FOR_ALERT
+
+  if (canCompare && comparison.abstentionRateDelta !== null && Math.abs(comparison.abstentionRateDelta) > 0.2) {
     comparison.alerts.push(`Taux d'abstention : delta ${(comparison.abstentionRateDelta * 100).toFixed(0)}% entre chat et kb_search`)
   }
-  if (comparison.avgSimilarityDelta !== null && Math.abs(comparison.avgSimilarityDelta) > 0.2) {
+  if (canCompare && comparison.avgSimilarityDelta !== null && Math.abs(comparison.avgSimilarityDelta) > 0.2) {
     comparison.alerts.push(`Similarité moyenne : delta ${(comparison.avgSimilarityDelta * 100).toFixed(0)}% entre chat et kb_search`)
   }
 

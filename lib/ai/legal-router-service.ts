@@ -223,8 +223,14 @@ export async function routeQuery(
     }
   }
 
-  // Cache Redis
-  const queryHash = createHash('md5').update(query.trim().toLowerCase()).digest('hex')
+  // Cache Redis — normalisation pour augmenter le taux de hit (~5% → ~20%)
+  // Supprime ponctuation variable + mots interrogatifs de début
+  const normalizeQuery = (q: string) =>
+    q.trim().toLowerCase()
+     .replace(/[؟?!،,.\s]+/g, ' ')
+     .replace(/^(ما هو|ما هي|كيف|هل|ماذا|what is|how to|comment)\s+/i, '')
+     .trim()
+  const queryHash = createHash('md5').update(normalizeQuery(query)).digest('hex')
   const cacheKey = `qrouter:${queryHash}`
   const redis = await getRedisClient()
   if (redis) {

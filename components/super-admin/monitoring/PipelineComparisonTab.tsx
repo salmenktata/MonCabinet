@@ -223,10 +223,15 @@ export function PipelineComparisonTab() {
       </Card>
 
       {/* Note données insuffisantes */}
-      {chat.avg.totalRequests === 0 && kbSearch.avg.totalRequests === 0 && (
+      {(chat.avg.totalRequests === 0 || kbSearch.avg.totalRequests < 10) && (
         <Alert>
           <AlertDescription className="text-xs">
-            Aucune donnée disponible. Les métriques s'accumulent après la première utilisation des pipelines.
+            {chat.avg.totalRequests === 0 && kbSearch.avg.totalRequests === 0
+              ? 'Aucune donnée disponible. Les métriques s\'accumulent après la première utilisation des pipelines.'
+              : kbSearch.avg.totalRequests < 10
+                ? `KB Search a moins de 10 requêtes sur 7 jours (${kbSearch.avg.totalRequests} au total) — les comparaisons et alertes sont désactivées jusqu\'à accumulation de données suffisantes.`
+                : 'Chat RAG n\'a pas de données sur la période sélectionnée.'
+            }
           </AlertDescription>
         </Alert>
       )}
