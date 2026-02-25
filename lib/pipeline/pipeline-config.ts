@@ -30,7 +30,7 @@ export const PIPELINE_CONFIG: AutoAdvanceConfig = {
   thresholds: {
     minContentLength: 100,
     minChunks: 1,
-    minQualityScore: 75,
+    minQualityScore: 60,
     requireCategory: true,
   },
 }
