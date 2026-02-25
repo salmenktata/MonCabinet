@@ -17,8 +17,7 @@ export const POST = withAdminApiAuth(async (_request: NextRequest, _ctx, _sessio
       SELECT id, base_url AS url, name, category
       FROM web_sources
       WHERE is_active = true
-        AND auto_crawl = true
-      ORDER BY last_crawled_at ASC NULLS FIRST
+      ORDER BY last_crawl_at ASC NULLS FIRST
       `
     )
 
@@ -27,7 +26,7 @@ export const POST = withAdminApiAuth(async (_request: NextRequest, _ctx, _sessio
         success: true,
         sources: 0,
         pages: 0,
-        message: 'Aucune source active avec auto_crawl=true',
+        message: 'Aucune source active trouvée',
       })
     }
 
