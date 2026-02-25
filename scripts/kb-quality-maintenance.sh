@@ -8,13 +8,20 @@
 #   2. rechunk-large         — 3×5  docs/jour
 #   3. reindex-articles      — 2×3  docs/jour (code + jort)
 #   4. extract-metadata      — 2×10 docs/jour (jurisprudence cassation)
+#   5. enrich-metadata       — 3×10 docs/jour (completeness < 70)
+#   6. deactivate-short-docs — 1×200 docs/jour (full_text < 50 chars)
+#   7. detect-contradictions — 2×3  pages/jour (non encore vérifiées)
 #
 
-API_URL="${APP_URL:-https://qadhya.tn}"
+API_URL="${APP_URL:-http://localhost:3000}"
 LOG_FILE="/var/log/qadhya/kb-quality-maintenance.log"
-CRON_SECRET="${CRON_SECRET:-}"
 START_TS=$(date +%s)
 SCRIPT_NAME="kb-quality-maintenance"
+
+# Récupérer CRON_SECRET depuis le container Docker (disponible même sans env cron)
+if [ -z "$CRON_SECRET" ]; then
+  CRON_SECRET=$(docker exec qadhya-nextjs printenv CRON_SECRET 2>/dev/null | tr -d '\n\r')
+fi
 
 log() {
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
@@ -182,12 +189,108 @@ done
 
 log "  [P4] Total métadonnées extraites: $META_TOTAL"
 
+# ─── Phase 5 : Enrichissement métadonnées (completeness < 70) ───────────────
+
+log ""
+log "── Phase 5 : Enrich metadata (completeness < 70, 3 batches × 10) ──"
+
+ENRICH_TOTAL=0
+for i in $(seq 1 3); do
+  log "  [P5] Batch $i/3..."
+  RESP=$(curl -sf -m 300 \
+    -X POST "$API_URL/api/admin/kb/enrich-metadata" \
+    -H "Authorization: Bearer $CRON_SECRET" \
+    -H "Content-Type: application/json" \
+    -d '{"batchSize":10,"maxCompletenessScore":70,"reanalyzeAfter":true}')
+
+  if ! echo "$RESP" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+    log "  [P5] Réponse non-JSON — skip"
+    continue
+  fi
+
+  SUCCEEDED=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('succeeded',0))" 2>/dev/null || echo "0")
+  FAILED=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('failed',0))" 2>/dev/null || echo "0")
+  PROCESSED=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('processed',0))" 2>/dev/null || echo "0")
+
+  ENRICH_TOTAL=$((ENRICH_TOTAL + SUCCEEDED))
+  log "  [P5] Batch $i: processed=$PROCESSED succeeded=$SUCCEEDED failed=$FAILED"
+
+  if [ "$PROCESSED" = "0" ]; then
+    log "  [P5] Plus de docs à enrichir — phase terminée"
+    break
+  fi
+
+  sleep 30
+done
+
+log "  [P5] Total enrichis: $ENRICH_TOTAL"
+
+# ─── Phase 6 : Désactivation docs trop courts (< 50 chars) ──────────────────
+
+log ""
+log "── Phase 6 : Désactivation docs trop courts (< 50 chars) ──"
+
+RESP=$(curl -sf -m 120 \
+  -X POST "$API_URL/api/admin/kb/analyze-quality" \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"batchSize":200,"skipAnalyzed":false,"deactivateShortDocs":true}')
+
+if echo "$RESP" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+  DEACTIVATED=$(echo "$RESP" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+n = sum(1 for r in d.get('results', []) if 'Désactivé' in (r.get('error') or ''))
+print(n)
+" 2>/dev/null || echo "0")
+  log "  [P6] Docs désactivés (< 50 chars): $DEACTIVATED"
+else
+  log "  [P6] Réponse non-JSON — skip"
+  DEACTIVATED=0
+fi
+
+# ─── Phase 7 : Détection contradictions (2×3 pages) ─────────────────────────
+
+log ""
+log "── Phase 7 : Détection contradictions (2 batches × 3 pages) ──"
+
+CONTRA_TOTAL=0
+for i in $(seq 1 2); do
+  log "  [P7] Batch $i/2..."
+  RESP=$(curl -sf -m 300 \
+    -X POST "$API_URL/api/admin/kb/detect-contradictions" \
+    -H "Authorization: Bearer $CRON_SECRET" \
+    -H "Content-Type: application/json" \
+    -d '{"batchSize":3}')
+
+  if ! echo "$RESP" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+    log "  [P7] Réponse non-JSON — skip"
+    continue
+  fi
+
+  PROCESSED=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('processed',0))" 2>/dev/null || echo "0")
+  FOUND=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('totalFound',0))" 2>/dev/null || echo "0")
+  REMAINING=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('remaining',0))" 2>/dev/null || echo "0")
+
+  CONTRA_TOTAL=$((CONTRA_TOTAL + FOUND))
+  log "  [P7] Batch $i: processed=$PROCESSED found=$FOUND remaining=$REMAINING"
+
+  if [ "$PROCESSED" = "0" ]; then
+    log "  [P7] Toutes les pages ont été vérifiées — phase terminée"
+    break
+  fi
+
+  sleep 15
+done
+
+log "  [P7] Total contradictions détectées: $CONTRA_TOTAL"
+
 # ─── Enregistrer fin en DB ───────────────────────────────────────────────────
 
 END_TS=$(date +%s)
 DURATION_MS=$(( (END_TS - START_TS) * 1000 ))
 
-OUTPUT="Phase1: ${TOTAL_SUCCESS} docs quality-scored | Phase2: ${RECHUNK_TOTAL} rechunked | Phase4: ${META_TOTAL} metadata extracted"
+OUTPUT="Phase1: ${TOTAL_SUCCESS} quality-scored | Phase2: ${RECHUNK_TOTAL} rechunked | Phase4: ${META_TOTAL} metadata | Phase5: ${ENRICH_TOTAL} enriched | Phase6: ${DEACTIVATED} deactivated | Phase7: ${CONTRA_TOTAL} contradictions"
 
 curl -sf -X POST "$API_URL/api/admin/monitoring/cron-executions" \
   -H "Authorization: Bearer $CRON_SECRET" \
