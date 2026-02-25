@@ -308,8 +308,11 @@ async function callOllamaAPI(
     }
 
     const data = await response.json()
+    // Supprimer les balises <think>...</think> (qwen3 thinking mode résiduel)
+    const rawContent: string = data.message?.content || ''
+    const content = rawContent.replace(/<think>[\s\S]*?<\/think>\n?/g, '').trim()
     return {
-      content: data.message?.content || '',
+      content,
       tokens: data.eval_count || 0,
     }
   } catch (error) {
@@ -963,6 +966,9 @@ async function* callOllamaStream(
 
     const decoder = new TextDecoder()
     let buffer = ''
+    // Filtre <think>...</think> en streaming : accumuler les tokens pendant le bloc thinking
+    let inThinkBlock = false
+    let thinkBuffer = ''
 
     while (true) {
       const { done, value } = await reader.read()
@@ -976,8 +982,42 @@ async function* callOllamaStream(
         if (!line.trim()) continue
         try {
           const data = JSON.parse(line)
-          const text = data.message?.content || ''
-          if (text) yield text
+          let text: string = data.message?.content || ''
+
+          if (text) {
+            // Gestion du bloc <think> potentiellement fragmenté sur plusieurs tokens
+            thinkBuffer += text
+            if (inThinkBlock) {
+              const endIdx = thinkBuffer.indexOf('</think>')
+              if (endIdx !== -1) {
+                inThinkBlock = false
+                text = thinkBuffer.slice(endIdx + 8) // après </think>
+                thinkBuffer = ''
+              } else {
+                text = '' // encore dans le bloc thinking
+              }
+            } else {
+              const startIdx = thinkBuffer.indexOf('<think>')
+              if (startIdx !== -1) {
+                const before = thinkBuffer.slice(0, startIdx)
+                const endIdx = thinkBuffer.indexOf('</think>', startIdx)
+                if (endIdx !== -1) {
+                  // Bloc complet dans ce chunk
+                  text = before + thinkBuffer.slice(endIdx + 8)
+                  thinkBuffer = ''
+                } else {
+                  // Début de bloc, pas encore la fin
+                  inThinkBlock = true
+                  text = before
+                  thinkBuffer = thinkBuffer.slice(startIdx)
+                }
+              } else {
+                thinkBuffer = ''
+              }
+            }
+            if (text) yield text
+          }
+
           if (data.done && usageOut) {
             usageOut.input = data.prompt_eval_count || 0
             usageOut.output = data.eval_count || 0
