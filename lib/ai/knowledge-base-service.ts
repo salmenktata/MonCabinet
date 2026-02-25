@@ -1083,7 +1083,9 @@ export async function searchKnowledgeBaseHybrid(
   // Solution : recherche forcée dans 'codes' avec threshold très bas (0.20) +
   // boost CODE_PRIORITY_BOOST pour compenser l'écart sémantique naturel.
   // N'ajoute rien si on filtre déjà par codes (évite doublons).
-  const CODE_PRIORITY_BOOST = 1.60 // P4 fix Feb 25: 1.45→1.60 — COC arts en arabe classique ont sim intrinsèquement basse (~0.15-0.20) vs doctrine (~0.55-0.65)
+  const CODE_PRIORITY_BOOST = detectedLang === 'ar' ? 2.5 : 1.60
+  // Fix Feb 26: 2.5 pour arabe — COC classique raw ~0.15-0.20, doit dépasser effectiveMinimum=0.30
+  // 0.18×2.5=0.45 ✅ | 0.20×2.5=0.50 ✅ | FR conservé à 1.60 (doctrine FR doit rester prioritaire)
   const shouldForceCodes = !category || category !== 'codes'
   if (shouldForceCodes && openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
     const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)

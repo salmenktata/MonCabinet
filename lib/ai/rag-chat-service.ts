@@ -436,7 +436,8 @@ function detectDomainBoost(query: string): { pattern: string; factor: number }[]
     },
     // Civil
     {
-      keywords: ['مدني', 'التزامات', 'عقود', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'civil', 'responsabilité', 'délictuel'],
+      keywords: ['مدني', 'التزامات', 'عقود', 'العقد', 'البطلان', 'الفسخ', 'الضمان', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'civil', 'responsabilité', 'délictuel'],
+      // Fix Feb 26: formes arabes avec article défini "ال" — 'العقد' (ar_civil_01), 'البطلان' (ar_civil_09), 'الفسخ' (ar_civil_08), 'الضمان' (ar_civil_05)
       titlePatterns: ['مجلة الالتزامات والعقود'],
       factor: 2.5,
     },
