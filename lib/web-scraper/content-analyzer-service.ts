@@ -226,7 +226,7 @@ export async function analyzeContentQuality(
 
   // Track LLM usage for quality analysis
   await logUsage({
-    userId: 'system',
+    userId: null,
     operationType: 'extraction',
     provider: llmResult.provider,
     model: llmResult.model,

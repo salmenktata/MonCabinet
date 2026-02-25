@@ -562,7 +562,7 @@ async function classifyWithMultiSignals(
 
       // Track LLM usage for classification
       await logUsage({
-        userId: 'system',
+        userId: null,
         operationType: 'classification',
         provider: llmResult.provider,
         model: llmResult.model,

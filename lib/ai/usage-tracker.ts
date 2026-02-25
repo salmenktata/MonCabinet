@@ -24,7 +24,7 @@ export type OperationType =
 export type Provider = 'openai' | 'anthropic' | 'ollama' | 'groq' | 'deepseek' | 'gemini'
 
 export interface UsageLog {
-  userId: string
+  userId: string | null
   operationType: OperationType
   provider: Provider
   model: string
