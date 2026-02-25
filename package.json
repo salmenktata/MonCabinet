@@ -1,6 +1,6 @@
 {
   "name": "qadhya",
-  "version": "1.0.83",
+  "version": "1.0.84",
   "private": true,
   "description": "Qadhya - Plateforme IA juridique tunisienne avec RAG multi-provider, triple embedding et assistant IA",
   "author": "Qadhya Team",
