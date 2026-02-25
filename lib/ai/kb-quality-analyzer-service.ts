@@ -468,7 +468,7 @@ export async function enrichCourtMetadataBatch(
 
   // Sélectionner les docs JURIS sans courtDecisionNumber dans metadata
   const sourceFilter = sourceUrl
-    ? `AND (kb.metadata->>'source_url' ILIKE $3 OR kb.metadata->>'sourceUrl' ILIKE $3)`
+    ? `AND (metadata->>'source_url' ILIKE $3 OR metadata->>'sourceUrl' ILIKE $3)`
     : ''
   const queryParams: unknown[] = ['jurisprudence', batchSize]
   if (sourceUrl) queryParams.push(`%${sourceUrl}%`)
