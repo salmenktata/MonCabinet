@@ -555,6 +555,27 @@ function inferBranchFromTitle(docName: string): string | undefined {
   return undefined
 }
 
+/**
+ * Détecte si un document est manifestement fiscal sur la base de son titre.
+ * Patterns "hard fiscal" à haute certitude : Note-Commune DGI, code droits enregistrement,
+ * codes TVA/IRPP, etc.
+ *
+ * Ces documents obtiennent une pénalité plus forte (×0.15) quand ils apparaissent
+ * pour des requêtes non-fiscales, car leur similarité intrinsèque est anormalement haute
+ * (BM25 sur termes génériques "prescription", "délai"...) malgré l'absence de pertinence.
+ */
+function isHardFiscalDocument(docName: string): boolean {
+  if (!docName) return false
+  const n = docName.toLowerCase()
+  return (
+    n.includes('note-commune') || n.includes('note commune') ||
+    n.includes('enregistrement') || n.includes('timbre') ||
+    /\bdgi\b/.test(n) || /\birpp\b/.test(n) || /\btva\b/.test(n) ||
+    n.includes('جباية') || n.includes('جبائي') ||
+    n.includes('code de la tva') || n.includes('code de l\'irpp')
+  )
+}
+
 async function rerankSources(
   sources: ChatSource[],
   query?: string,
@@ -605,11 +626,15 @@ async function rerankSources(
         const inferredBranch = explicitBranch ? undefined : inferBranchFromTitle(s.documentName || '')
         const branch = explicitBranch || inferredBranch
         if (branch && branch !== 'autre' && branchOptions.forbiddenBranches.includes(branch)) {
-          // Pénalité plus forte pour branches inférées : ces docs ont sim intrinsèquement haute
-          // ex: Note-commune(0.97×0.15=0.145) < COC art 402(0.20×1.49=0.298) ✓
-          const penaltyFactor = inferredBranch ? 0.15 : 0.4
+          // Pénalité ciblée selon certitude de la classification :
+          // ×0.15 : documents "hard fiscal" (Note-Commune, code enregistrement, TVA, IRPP, DGI)
+          //         dont la sim intrinsèque est anormalement haute (~0.97) sur termes génériques
+          //         ex: Note-commune(0.97×0.15=0.145) < COC(0.20×1.49=0.298) ✓
+          // ×0.4  : branches DB explicites ou autres inférences moins certaines
+          const isHardFiscal = !explicitBranch && branch === 'fiscal' && isHardFiscalDocument(s.documentName || '')
+          const penaltyFactor = isHardFiscal ? 0.15 : 0.4
           boost *= penaltyFactor
-          log.info(`[RAG Branch] Pénalité ${penaltyFactor}× sur "${s.documentName}" (branch=${branch}, inferred=${!!inferredBranch}, confidence=${routerConfidence.toFixed(2)})`)
+          log.info(`[RAG Branch] Pénalité ${penaltyFactor}× sur "${s.documentName}" (branch=${branch}, hardFiscal=${isHardFiscal}, confidence=${routerConfidence.toFixed(2)})`)
         }
       }
     }
