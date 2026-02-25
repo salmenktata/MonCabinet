@@ -549,7 +549,7 @@ export async function indexKnowledgeDocument(
   }
   const hasOllamaEmbeddings = ollamaEmbeddingsResult.status === 'fulfilled' && ollamaEmbeddingsResult.value.embeddings.length > 0
   if (hasOllamaEmbeddings) {
-    logger.info(`[KB Index] Embeddings Ollama générés (1024-dim) pour ${ollamaEmbeddingsResult.value.embeddings.length} chunks`)
+    logger.info(`[KB Index] Embeddings Ollama générés (768-dim nomic) pour ${ollamaEmbeddingsResult.value.embeddings.length} chunks`)
   }
 
   // Générer un embedding pour le document entier (titre + description)
@@ -614,7 +614,7 @@ export async function indexKnowledgeDocument(
       }
       if (indices.length > 0) {
         await client.query(
-          `UPDATE knowledge_base_chunks kbc SET embedding = batch.vec::vector(1024)
+          `UPDATE knowledge_base_chunks kbc SET embedding = batch.vec::vector(768)
            FROM unnest($1::int[], $2::text[]) AS batch(idx, vec)
            WHERE kbc.knowledge_base_id = $3 AND kbc.chunk_index = batch.idx`,
           [indices, vectors, documentId]
@@ -623,9 +623,9 @@ export async function indexKnowledgeDocument(
       }
     }
 
-    // Mettre à jour le document — knowledge_base.embedding est vector(1024) (Ollama uniquement)
+    // Mettre à jour le document — knowledge_base.embedding est vector(768) nomic-embed-text (Ollama uniquement)
     // Si embedding généré par OpenAI (1536-dim), on ne l'écrit pas dans cette colonne
-    const isOllamaEmbedding = docEmbeddingResult.embedding.length === 1024
+    const isOllamaEmbedding = docEmbeddingResult.embedding.length === 768
     if (isOllamaEmbedding) {
       await client.query(
         `UPDATE knowledge_base
@@ -694,10 +694,17 @@ export async function indexPendingDocuments(limit: number = 10): Promise<{
   // pour éviter de les re-tenter à chaque batch et bloquer les autres documents.
   // Après 1h, ils seront retentés automatiquement.
   const pendingResult = await db.query(
-    `SELECT id, title, category, quality_score
-     FROM knowledge_base
-     WHERE is_indexed = false AND full_text IS NOT NULL
-     AND (last_index_error IS NULL OR last_index_attempt_at < NOW() - INTERVAL '1 hour')
+    `SELECT kb.id, kb.title, kb.category, kb.quality_score
+     FROM knowledge_base kb
+     WHERE kb.is_indexed = false AND kb.full_text IS NOT NULL
+     AND (kb.last_index_error IS NULL OR kb.last_index_attempt_at < NOW() - INTERVAL '1 hour')
+     -- Exclure les docs dont la source web a rag_enabled=false
+     AND NOT EXISTS (
+       SELECT 1 FROM web_pages wp
+       JOIN web_sources ws ON wp.web_source_id = ws.id
+       WHERE wp.knowledge_base_id = kb.id
+         AND ws.rag_enabled = false
+     )
      ORDER BY
        -- Priorité 1: Catégories critiques
        CASE
@@ -1029,7 +1036,7 @@ export async function searchKnowledgeBaseHybrid(
   ])
   const [openaiEmbResult, ollamaEmbResult] = await Promise.allSettled([
     generateEmbedding(query, { operationName: operationName as any }),       // OpenAI (1536-dim)
-    ollamaWithTimeout,                                                        // Ollama (1024-dim, chunks legacy, timeout 3s)
+    ollamaWithTimeout,                                                        // Ollama (768-dim nomic, timeout 3s)
   ])
 
   // Log providers disponibles
@@ -1053,8 +1060,8 @@ export async function searchKnowledgeBaseHybrid(
   }
 
   if (ollamaEmbResult.status === 'fulfilled' && ollamaEmbResult.value.provider === 'ollama') {
-    // Guard critique : ne lancer la recherche Ollama QUE si l'embedding est vraiment 1024-dim (Ollama)
-    // Sinon dimension mismatch PostgreSQL (1536 vs 1024) → crash → 0% hit@5
+    // Guard critique : ne lancer la recherche Ollama QUE si l'embedding est vraiment 768-dim (nomic)
+    // Sinon dimension mismatch PostgreSQL (1536 vs 768) → crash → 0% hit@5
     const embStr = formatEmbeddingForPostgres(ollamaEmbResult.value.embedding)
     searchPromises.push(
       searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'ollama', bm25Language)

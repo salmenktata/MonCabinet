@@ -105,11 +105,11 @@ export async function hybridSearch(
     const queryEmbedding = await generateEmbedding(query)
     const dims = getEmbeddingDimensions()
 
-    // La fonction SQL hybrid_search() attend VECTOR(1024) (Ollama).
-    // Avec un autre provider (OpenAI 1536-dim, Gemini 768-dim), fallback vers dense uniquement.
-    if (dims !== 1024) {
+    // La fonction SQL hybrid_search() attend VECTOR(768) (Ollama nomic-embed-text).
+    // Avec un autre provider (OpenAI 1536-dim), fallback vers dense uniquement.
+    if (dims !== 768) {
       console.warn(
-        `[Hybrid Search] hybrid_search() attend VECTOR(1024), provider actuel génère ${dims}-dim. Fallback dense uniquement.`
+        `[Hybrid Search] hybrid_search() attend VECTOR(768), provider actuel génère ${dims}-dim. Fallback dense uniquement.`
       )
       return fallbackDenseSearch(query, opts, startTime)
     }
@@ -120,7 +120,7 @@ export async function hybridSearch(
     const sqlQuery = `
       SELECT * FROM hybrid_search(
         $1::TEXT,
-        $2::VECTOR(1024),
+        $2::VECTOR(768),
         $3::TEXT,
         $4::TEXT,
         $5::INTEGER,

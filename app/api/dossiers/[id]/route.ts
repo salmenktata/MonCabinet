@@ -53,6 +53,9 @@ function mapDossierFromDB(row: any): any {
     objet: row.objet,
     tribunal: row.tribunal,
     statut: row.statut, // Garder aussi la version originale pour compatibilité
+    // Champs workflow
+    workflow_etape_actuelle: row.workflow_etape_actuelle,
+    type_procedure: row.type_procedure,
   }
 }
 

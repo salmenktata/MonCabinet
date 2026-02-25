@@ -37,7 +37,7 @@ export interface EmbeddingOptions {
   forceTurbo?: boolean
   /** Type d'opération pour utiliser la configuration spécifique */
   operationName?: OperationName
-  /** Force Ollama même en production (pour dual-provider search sur chunks legacy 1024-dim) */
+  /** Force Ollama même en production (pour dual-provider search sur chunks Ollama 768-dim nomic) */
   forceOllama?: boolean
   /** Force Gemini (gemini-embedding-001, 768-dim) pour triple-provider search */
   forceGemini?: boolean

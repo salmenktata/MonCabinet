@@ -48,6 +48,13 @@ export const POST = withAdminApiAuth(
         return NextResponse.json({ error: 'Source désactivée' }, { status: 400 })
       }
 
+      if (source.ragEnabled === false) {
+        return NextResponse.json(
+          { error: 'Source désactivée pour le RAG (ragEnabled=false). Activez-la avant de crawler.' },
+          { status: 400 }
+        )
+      }
+
       // Mode async: créer un job et retourner immédiatement
       if (async) {
         try {

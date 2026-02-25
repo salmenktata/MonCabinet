@@ -69,6 +69,14 @@ export async function POST(
       return NextResponse.json({ error: 'Source non trouvée' }, { status: 404 })
     }
 
+    // Bloquer l'indexation si la source est désactivée pour le RAG
+    if (source.ragEnabled === false) {
+      return NextResponse.json(
+        { error: 'Source désactivée pour le RAG (ragEnabled=false). Activez-la avant d\'indexer.' },
+        { status: 400 }
+      )
+    }
+
     // Compter les pages à indexer
     // FIX: Inclure aussi les pages 'unchanged' qui n'ont jamais été indexées
     const countResult = await db.query(

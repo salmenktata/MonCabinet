@@ -388,6 +388,19 @@ export async function updateWebSource(
     }
   }
 
+  // Cascade is_active: désactiver les docs KB si la source est arrêtée (stop crawl)
+  // Réactivation via ragEnabled=true uniquement (crawl actif ≠ inclusion RAG automatique)
+  if (input.isActive === false) {
+    await db.query(
+      `UPDATE knowledge_base SET is_active = false
+       WHERE id IN (
+         SELECT wp.knowledge_base_id FROM web_pages wp
+         WHERE wp.web_source_id = $1 AND wp.knowledge_base_id IS NOT NULL
+       )`,
+      [id]
+    )
+  }
+
   return mapRowToWebSource(result.rows[0])
 }
 

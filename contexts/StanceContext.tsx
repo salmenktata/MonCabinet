@@ -16,6 +16,7 @@ export const StanceContext = createContext<StanceContextValue>({
 })
 
 function readStoredStance(): LegalStance {
+  if (typeof window === 'undefined') return 'defense'
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored === 'defense' || stored === 'attack' || stored === 'neutral') {
     return stored

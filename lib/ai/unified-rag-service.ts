@@ -460,7 +460,7 @@ export async function search(
 
   // 3a. Recherche hybride BM25 + vectorielle (si ENABLE_HYBRID_SEARCH=true)
   // Utilise search_knowledge_base_hybrid() — 7 params, BM25 auto-détecte la langue (Feb 24, 2026).
-  // Supporte OpenAI (1536-dim), Ollama (1024-dim) et Gemini (768-dim).
+  // Supporte OpenAI (1536-dim), Ollama nomic (768-dim) et Gemini (768-dim).
   // Pagination (offset > 0) → fallback dense. Échec SQL → fallback dense automatique.
   if (process.env.ENABLE_HYBRID_SEARCH === 'true' && offset === 0) {
     try {
@@ -496,7 +496,7 @@ export async function search(
 
       const searchTimeMs = Date.now() - startTime
 
-      if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId) {
+      if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId && hybridResults.length > 0) {
         setCachedSearchResults(embeddingResult.embedding, hybridResults, {
           userId: options.userId,
           dossierId: filters.dossierId,
@@ -634,8 +634,8 @@ export async function search(
 
   const searchTimeMs = Date.now() - startTime
 
-  // 7. Mettre en cache (async, pas bloquant) - Skip si pagination
-  if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId && offset === 0) {
+  // 7. Mettre en cache (async, pas bloquant) - Skip si pagination ou résultats vides
+  if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId && offset === 0 && results.length > 0) {
     const scope: SearchScope = {
       userId: options.userId,
       dossierId: filters.dossierId,

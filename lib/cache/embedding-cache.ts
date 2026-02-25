@@ -30,9 +30,9 @@ interface CachedEmbedding {
 
 /**
  * Génère une clé de cache versionnée par provider.
- * Chaque provider (openai 1536-dim, ollama 1024-dim, gemini 768-dim) a
+ * Chaque provider (openai 1536-dim, ollama 768-dim nomic, gemini 768-dim) a
  * son propre espace de cache car les embeddings NE SONT PAS interchangeables.
- * Un embedding OpenAI 1536-dim ne peut pas être utilisé là où 1024-dim est attendu.
+ * Un embedding OpenAI 1536-dim ne peut pas être utilisé là où 768-dim est attendu.
  */
 function getVersionedCacheKey(textHash: string, provider: 'ollama' | 'openai' | 'gemini'): string {
   return REDIS_KEYS.embedding(`${provider}:${textHash}`)

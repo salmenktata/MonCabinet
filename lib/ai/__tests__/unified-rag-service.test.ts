@@ -21,9 +21,9 @@ vi.mock('@/lib/db/postgres', () => ({
 
 vi.mock('../embeddings-service', () => ({
   generateEmbedding: vi.fn(async (text: string) => ({
-    embedding: new Array(1024).fill(0.1),
-    dimensions: 1024,
-    model: 'qwen3-embedding:0.6b',
+    embedding: new Array(768).fill(0.1),
+    dimensions: 768,
+    model: 'nomic-embed-text',
   })),
   formatEmbeddingForPostgres: vi.fn((embedding: number[]) => `[${embedding.join(',')}]`),
 }))

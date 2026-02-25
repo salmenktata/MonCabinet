@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { search } from '@/lib/ai/unified-rag-service'
 import type { RAGSearchFilters, RAGSearchResult } from '@/lib/ai/unified-rag-service'
+import { RAG_THRESHOLDS } from '@/lib/ai/config'
 import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
@@ -124,6 +125,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<KBSearchRespo
       offset,
       includeRelations,
       userId: session.user.id, // Pour cache Redis
+      threshold: RAG_THRESHOLDS.kbSearch, // Seuil bas (0.20) pour exploration KB
     })
 
     // 5. Tri si nécessaire
@@ -213,7 +215,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<KBSearchRespon
     }
 
     // 3. Recherche simple
-    const results = await search(query, { category }, { limit })
+    const results = await search(query, { category }, { limit, threshold: RAG_THRESHOLDS.kbSearch })
 
     const processingTimeMs = Date.now() - startTime
 

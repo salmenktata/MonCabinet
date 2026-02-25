@@ -200,6 +200,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
        wp.*,
        ws.category as source_category,
        ws.name as source_name,
+       ws.rag_enabled as source_rag_enabled,
        lc.primary_category,
        lc.confidence_score,
        lc.signals_used
@@ -212,6 +213,12 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
 
   if (pageResult.rows.length === 0) {
     return { success: false, chunksCreated: 0, error: 'Page non trouvée' }
+  }
+
+  // Guard: skip si la source parente est désactivée pour le RAG
+  if (pageResult.rows[0].source_rag_enabled === false) {
+    console.log(`[WebIndexer] Page ${pageId} ignorée — source désactivée (rag_enabled=false)`)
+    return { success: false, chunksCreated: 0, error: 'Source désactivée pour le RAG (rag_enabled=false)' }
   }
 
   const row = pageResult.rows[0]
@@ -544,6 +551,16 @@ export async function indexSourcePages(
 }> {
   const { limit = 50, reindex = false } = options
 
+  // Guard: skip si la source est désactivée pour le RAG
+  const sourceRagCheck = await db.query(
+    'SELECT rag_enabled FROM web_sources WHERE id = $1',
+    [sourceId]
+  )
+  if (!sourceRagCheck.rows[0] || sourceRagCheck.rows[0].rag_enabled === false) {
+    console.log(`[Index] Source ${sourceId} désactivée (rag_enabled=false) — indexation ignorée`)
+    return { processed: 0, succeeded: 0, failed: 0, results: [] }
+  }
+
   // Récupérer les pages à indexer
   // Seules les pages avec texte extrait suffisant sont indexables
   let sql = `
@@ -622,17 +639,19 @@ export async function indexWebPages(
   // Seules les pages avec texte extrait suffisant sont indexables
   // Les pages fichiers-seuls (Google Drive sans texte) sont exclues pour éviter une boucle infinie
   const params: (number | string)[] = [limit]
-  const sourceFilter = sourceId ? `AND web_source_id = $2` : ''
+  const sourceFilter = sourceId ? `AND wp.web_source_id = $2` : ''
   if (sourceId) params.push(sourceId)
 
   const sql = `
-    SELECT id FROM web_pages
-    WHERE status IN ('crawled', 'unchanged', 'indexed')
-    AND is_indexed = false
-    AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 50
-    ${KB_ARABIC_ONLY ? `AND (language_detected = 'ar' OR language_detected IS NULL)` : ''}
+    SELECT wp.id FROM web_pages wp
+    JOIN web_sources ws ON wp.web_source_id = ws.id
+    WHERE ws.rag_enabled = true
+    AND wp.status IN ('crawled', 'unchanged', 'indexed')
+    AND wp.is_indexed = false
+    AND wp.extracted_text IS NOT NULL AND LENGTH(wp.extracted_text) >= 50
+    ${KB_ARABIC_ONLY ? `AND (wp.language_detected = 'ar' OR wp.language_detected IS NULL)` : ''}
     ${sourceFilter}
-    ORDER BY last_crawled_at DESC
+    ORDER BY wp.last_crawled_at DESC
     LIMIT $1
   `
 

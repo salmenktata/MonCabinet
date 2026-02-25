@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import WorkflowVisualizer from '../workflows/WorkflowVisualizer'
 import ActionsList from './ActionsList'
 import AddActionForm from './AddActionForm'
@@ -11,6 +11,8 @@ import { EcheanceFormAdvanced } from '@/components/echeances/EcheanceFormAdvance
 import { updateDossierEtapeAction, getWorkflowHistoryAction } from '@/app/actions/dossiers'
 import type { WorkflowHistoryEntry } from '@/app/actions/dossiers'
 import { getWorkflowById } from '@/lib/workflows/workflows-config'
+import { dossierKeys } from '@/lib/hooks/useDossiers'
+import { toast } from 'sonner'
 
 interface DossierDetailContentProps {
   dossier: any
@@ -48,7 +50,7 @@ export default function DossierDetailContent({
   documents,
   initialTab,
 }: DossierDetailContentProps) {
-  const router = useRouter()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState(initialTab)
   const [showAddAction, setShowAddAction] = useState(false)
   const [showAddEcheance, setShowAddEcheance] = useState(false)
@@ -71,14 +73,17 @@ export default function DossierDetailContent({
     setUpdatingEtape(false)
 
     if (result.success) {
+      // Invalider le cache React Query pour forcer le refetch du dossier
+      await queryClient.invalidateQueries({ queryKey: dossierKeys.detail(dossier.id) })
       // Recharger l'historique après transition
       const histRes = await getWorkflowHistoryAction(dossier.id)
       if (histRes.success && histRes.data) {
         setWorkflowHistory(histRes.data)
       }
-      router.refresh()
+    } else {
+      toast.error(result.error || 'Erreur lors du changement d\'étape')
     }
-  }, [dossier.id, router])
+  }, [dossier.id, queryClient])
 
   // Mémoriser les onglets pour éviter les re-renders
   const tabs = useMemo(() => [

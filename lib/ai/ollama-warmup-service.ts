@@ -22,7 +22,7 @@ const OLLAMA_ENABLED = process.env.OLLAMA_ENABLED === 'true'
  */
 const MODELS_TO_WARMUP = [
   'qwen2.5:3b', // Modèle chat par défaut
-  'qwen3-embedding:0.6b', // Embeddings KB
+  'nomic-embed-text', // Embeddings KB (768-dim, migré Feb 25, 2026)
 ]
 
 /**
