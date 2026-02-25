@@ -150,7 +150,7 @@ async function runBenchmarkAsync(runId: string, goldCases: GoldEvalCase[], runMo
 
       const searchResults = await searchKnowledgeBaseHybrid(evalCase.question, {
         limit: 10,
-        operationName: 'eval-benchmark',
+        operationName: 'assistant-ia',
       })
 
       const retrievalLatencyMs = Date.now() - retrievalStart
