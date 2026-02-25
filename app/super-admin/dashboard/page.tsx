@@ -146,30 +146,31 @@ const USD_TO_TND = 3.1
 async function AICostsStats() {
   const result = await query(`
     SELECT
-      COALESCE(SUM(cost_usd), 0) as total_cost,
+      COALESCE(SUM(estimated_cost_usd), 0) as total_cost,
       COUNT(*) as total_operations,
       COUNT(DISTINCT user_id) as unique_users
     FROM ai_usage_logs
     WHERE created_at > NOW() - INTERVAL '30 days'
   `)
   const stats = result.rows[0]
-  const costTND = (parseFloat(stats.total_cost) * USD_TO_TND).toFixed(3)
+  const costUSD = parseFloat(stats.total_cost)
+  const costTND = (costUSD * USD_TO_TND).toFixed(3)
 
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
         <CardTitle className="text-white">Coûts IA (30 jours)</CardTitle>
         <CardDescription className="text-slate-400">
-          Utilisation et coûts OpenAI
+          OpenAI embeddings + DeepSeek dossiers (Groq/Ollama = gratuit)
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-3">
           <div className="text-center">
             <div className="text-3xl font-bold text-white">
-              {costTND} TND
+              ${costUSD.toFixed(2)}
             </div>
-            <p className="text-sm text-slate-400">Coût total</p>
+            <p className="text-sm text-slate-400">{costTND} TND</p>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-blue-500">{stats.total_operations}</div>

@@ -108,22 +108,21 @@ function testCoherenceRules() {
       }
     }
 
-    // Règle 2: Assistant IA doit utiliser Ollama (migration Groq→Ollama Feb 24)
+    // Règle 2: Assistant IA doit utiliser Groq 70b (migration Ollama→Groq Feb 25, 2026)
     if (op === 'assistant-ia') {
       const primary = getPrimaryProvider(op)
-      if (primary !== 'ollama') {
-        console.log(`  ❌ ${op}: Doit utiliser Ollama (Groq supprimé Feb 24)`)
+      if (primary !== 'groq') {
+        console.log(`  ❌ ${op}: Doit utiliser Groq (migration Feb 25 — Ollama remplacé pour scale)`)
         errors++
       } else {
-        console.log(`  ✓ ${op}: Utilise Ollama (gratuit, streaming SSE)`)
+        console.log(`  ✓ ${op}: Utilise Groq llama-3.3-70b (292ms, 500K req/jour gratuit)`)
       }
 
-      // Timeout adapté à Ollama (60-75s acceptable avec streaming)
-      if (config.timeouts?.chat && config.timeouts.chat < 30000) {
-        console.log(`  ❌ ${op}: Timeout chat trop court pour Ollama (${config.timeouts.chat}ms < 30s)`)
-        errors++
+      // Timeout adapté à Groq (15s suffit, 20s total)
+      if (config.timeouts?.chat && config.timeouts.chat > 30000) {
+        console.log(`  ⚠ ${op}: Timeout chat élevé pour Groq (${config.timeouts.chat}ms — Groq répond en ~300ms)`)
       } else {
-        console.log(`  ✓ ${op}: Timeout Ollama adapté (${config.timeouts?.chat || 'N/A'}ms)`)
+        console.log(`  ✓ ${op}: Timeout Groq adapté (${config.timeouts?.chat || 'N/A'}ms)`)
       }
     }
 
@@ -210,8 +209,9 @@ function testCostEstimation() {
     console.log(`    LLM: ${llmCost}`)
   }
 
-  console.log('\n💡 Total estimé: ~3-5€/mois (vs ~53€/mois avant = -94% économies)')
-  console.log('   Groq supprimé: -$9/mois | Gemini LLM supprimé: -€44/mois')
+  console.log('\n💡 Total estimé: ~$5/mois jusqu\'à ~35K DAU (Groq free tier 500K req/jour)')
+  console.log('   Groq 70b (chat) + Groq 8b (classif/expansion) = 2 quotas indépendants gratuits')
+  console.log('   DeepSeek dossiers: ~$4/mois (cache hit $0.028/M) | OpenAI embeds: ~$1/mois')
 }
 
 // =============================================================================

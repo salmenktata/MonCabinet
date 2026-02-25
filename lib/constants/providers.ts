@@ -7,7 +7,7 @@
  * - Quotas page
  * - Monitoring > Providers
  *
- * Dernière mise à jour : 11 février 2026
+ * Dernière mise à jour : 25 février 2026
  */
 
 export type ProviderId = 'gemini' | 'deepseek' | 'groq' | 'anthropic' | 'ollama' | 'openai'
@@ -26,22 +26,23 @@ export interface ProviderConfig {
 
 /**
  * Configuration complète de tous les providers
- * Ordre de priorité basé sur le fallback chain :
- * 1. Gemini (primaire, tier gratuit généreux)
- * 2. DeepSeek (fallback 1, économique)
- * 3. Groq (fallback 2, rapide)
- * 4. Ollama (fallback 3, local gratuit)
- * 5. Anthropic (fallback 4, haute qualité)
- * 6. OpenAI (fallback 5, embeddings turbo)
+ * Mode no-fallback (Feb 2026) — 1 provider fixe par opération :
+ * - Groq llama-3.3-70b   : assistant-ia (chat utilisateur)
+ * - Groq llama-3.1-8b    : query-classification, query-expansion (routing, 12× moins cher)
+ * - DeepSeek deepseek-chat: dossiers-assistant, dossiers-consultation, document-consolidation
+ * - Ollama qwen3:8b      : indexation, kb-quality-analysis, rag-eval-judge (batch local gratuit)
+ * - OpenAI text-emb-3-sm : embeddings prod (1536-dim)
+ * - Gemini text-emb-004  : embeddings secondaires (768-dim) — plus utilisé comme LLM
+ * La priorité ci-dessous = ordre d'affichage dans les tableaux admin uniquement.
  */
 export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
-  gemini: {
-    id: 'gemini',
-    name: 'Gemini 2.0 Flash',
-    icon: '✨',
-    color: 'blue',
-    colorClass: 'text-blue-400 border-blue-500',
-    priority: 1,
+  groq: {
+    id: 'groq',
+    name: 'Groq',
+    icon: '⚡',
+    color: 'yellow',
+    colorClass: 'text-yellow-400 border-yellow-500',
+    priority: 1, // LLM principal : chat 70b + routing 8b
     tier: 'free',
     hasQuotas: true,
     hasMonitoring: true,
@@ -52,19 +53,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     icon: '💜',
     color: 'purple',
     colorClass: 'text-purple-400 border-purple-500',
-    priority: 2,
+    priority: 2, // Dossiers juridiques (cache hit $0.028/M)
     tier: 'paid',
-    hasQuotas: true,
-    hasMonitoring: true,
-  },
-  groq: {
-    id: 'groq',
-    name: 'Groq',
-    icon: '⚡',
-    color: 'yellow',
-    colorClass: 'text-yellow-400 border-yellow-500',
-    priority: 3,
-    tier: 'free',
     hasQuotas: true,
     hasMonitoring: true,
   },
@@ -74,19 +64,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     icon: '🦙',
     color: 'green',
     colorClass: 'text-green-400 border-green-500',
-    priority: 4,
+    priority: 3, // Batch local gratuit (indexation, qualité, eval)
     tier: 'local',
-    hasQuotas: true,
-    hasMonitoring: true,
-  },
-  anthropic: {
-    id: 'anthropic',
-    name: 'Anthropic Claude',
-    icon: '🧡',
-    color: 'orange',
-    colorClass: 'text-orange-400 border-orange-500',
-    priority: 5,
-    tier: 'paid',
     hasQuotas: true,
     hasMonitoring: true,
   },
@@ -96,7 +75,29 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     icon: '🤖',
     color: 'cyan',
     colorClass: 'text-cyan-400 border-cyan-500',
-    priority: 6,
+    priority: 4, // Embeddings prod (text-embedding-3-small, 1536-dim)
+    tier: 'paid',
+    hasQuotas: true,
+    hasMonitoring: true,
+  },
+  gemini: {
+    id: 'gemini',
+    name: 'Gemini (Embeddings)',
+    icon: '✨',
+    color: 'blue',
+    colorClass: 'text-blue-400 border-blue-500',
+    priority: 5, // Embeddings secondaires uniquement (text-embedding-004, 768-dim)
+    tier: 'free',
+    hasQuotas: true,
+    hasMonitoring: true,
+  },
+  anthropic: {
+    id: 'anthropic',
+    name: 'Anthropic Claude',
+    icon: '🧡',
+    color: 'orange',
+    colorClass: 'text-orange-400 border-orange-500',
+    priority: 6, // Non utilisé en prod
     tier: 'paid',
     hasQuotas: true,
     hasMonitoring: true,
@@ -138,12 +139,12 @@ export function isValidProvider(id: string): id is ProviderId {
  * Ordre de priorité pour mapping (legacy)
  */
 export const PROVIDER_PRIORITY: Record<string, number> = {
-  gemini: 1,
-  deepseek: 2,
-  groq: 3,
-  ollama: 4,
-  anthropic: 5,
-  openai: 6,
+  groq: 1,       // LLM principal (chat 70b + routing 8b)
+  deepseek: 2,   // Dossiers juridiques
+  ollama: 3,     // Batch local (indexation, qualité, eval)
+  openai: 4,     // Embeddings prod (1536-dim)
+  gemini: 5,     // Embeddings secondaires uniquement (768-dim)
+  anthropic: 6,  // Non utilisé en prod
 }
 
 /**
@@ -162,12 +163,12 @@ export const PROVIDER_ICONS: Record<string, string> = {
  * Noms par provider (legacy)
  */
 export const PROVIDER_NAMES: Record<string, string> = {
-  gemini: 'Gemini 2.0 Flash',
-  deepseek: 'DeepSeek',
   groq: 'Groq',
+  deepseek: 'DeepSeek',
   ollama: 'Ollama',
-  anthropic: 'Anthropic Claude',
   openai: 'OpenAI',
+  gemini: 'Gemini (Embeddings)',
+  anthropic: 'Anthropic Claude',
 }
 
 /**

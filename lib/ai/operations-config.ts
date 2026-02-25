@@ -82,20 +82,25 @@ const isDev = process.env.NODE_ENV === 'development'
 /**
  * Configuration centralisée - 1 modèle fixe par opération, 0 fallback
  *
- * Migration coûts Feb 24, 2026 : Groq ($9/m) + Gemini (€44/m) → Ollama (gratuit) + DeepSeek (~$1-3/m)
+ * Migration Feb 25, 2026 : Ollama (latence 10-60s) → Groq tiered + Ollama batch
+ * Stratégie coût minimal : modèle 70b pour qualité, 8b pour tâches simples (12× moins cher, quota indépendant)
  *
- * | Opération              | Provider  | Modèle                    | Coût        | Contexte |
- * |------------------------|-----------|---------------------------|-------------|----------|
- * | Assistant IA (chat)    | Ollama    | qwen3:8b                  | 0€          | 128K     |
- * | Dossiers Assistant     | DeepSeek  | deepseek-chat             | ~$0.10/Mtkn | 64K      |
- * | Consultations IRAC     | DeepSeek  | deepseek-chat             | ~$0.10/Mtkn | 64K      |
- * | KB Quality Analysis    | Ollama    | qwen3:8b                  | 0€          | 128K     |
- * | Query Classification   | Ollama    | qwen3:8b                  | 0€          | 128K     |
- * | Query Expansion        | Ollama    | qwen3:8b                  | 0€          | 128K     |
- * | Consolidation docs     | DeepSeek  | deepseek-chat             | ~$0.10/Mtkn | 64K      |
- * | RAG Eval Judge         | Ollama    | qwen3:8b                  | 0€          | 128K     |
- * | Embeddings (tout)      | OpenAI    | text-embedding-3-small    | ~$2-5/mois  | —        |
- * | Re-ranking             | Local     | ms-marco-MiniLM-L-6-v2    | 0€          | —        |
+ * Free tier Groq : 500K req/jour par modèle, 1K RPM — gratuit jusqu'à ~35K DAU
+ *
+ * | Opération              | Provider  | Modèle                    | Free tier       | Coût payant     | Contexte |
+ * |------------------------|-----------|---------------------------|-----------------|-----------------|----------|
+ * | Assistant IA (chat)    | Groq      | llama-3.3-70b-versatile   | 500K req/jour   | $0.59/$0.79/M   | 128K     |
+ * | Dossiers Assistant     | DeepSeek  | deepseek-chat             | illimité        | $0.028/$0.42/M* | 128K     |
+ * | Consultations IRAC     | DeepSeek  | deepseek-chat             | illimité        | $0.028/$0.42/M* | 128K     |
+ * | KB Quality Analysis    | Ollama    | qwen3:8b                  | illimité local  | $0              | 128K     |
+ * | Query Classification   | Groq      | llama-3.1-8b-instant      | 500K req/jour†  | $0.05/$0.08/M   | 128K     |
+ * | Query Expansion        | Groq      | llama-3.1-8b-instant      | même quota†     | $0.05/$0.08/M   | 128K     |
+ * | Consolidation docs     | DeepSeek  | deepseek-chat             | illimité        | $0.028/$0.42/M* | 128K     |
+ * | RAG Eval Judge         | Ollama    | qwen3:8b                  | illimité local  | $0              | 128K     |
+ * | Embeddings (tout)      | OpenAI    | text-embedding-3-small    | —               | $0.02/M         | —        |
+ * | Re-ranking             | Local     | ms-marco-MiniLM-L-6-v2    | illimité local  | $0              | —        |
+ * (* DeepSeek cache hit sur system prompt stable — input = $0.028/M, cache miss = $0.28/M)
+ * († quota partagé entre classification + expansion = même modèle 8b)
  */
 export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
@@ -129,7 +134,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 2. ASSISTANT IA (chat temps réel utilisateur)
   // ---------------------------------------------------------------------------
   'assistant-ia': {
-    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama gratuit (latence 5-15s acceptable phase dev)
+    model: { provider: 'groq', name: 'llama-3.3-70b-versatile' }, // Groq : 292ms, gratuit 14K req/jour
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
@@ -137,18 +142,18 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     timeouts: {
       embedding: 3000,
-      chat: 60000,  // Ollama plus lent que Groq → 60s
-      total: 75000,
+      chat: 15000,  // Groq très rapide (~292ms → marge 15s)
+      total: 20000,
     },
 
     llmConfig: {
       temperature: 0.1,
-      maxTokens: 2048, // Réduit 8000→2048 pour limiter latence Ollama
+      maxTokens: 2048,
       systemPromptType: 'chat',
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Chat utilisateur temps réel - Ollama qwen3:8b (gratuit, latence ~5-15s)',
+    description: 'Chat utilisateur temps réel - Groq llama-3.3-70b (292ms, 500K req/jour gratuit)',
   },
 
   // ---------------------------------------------------------------------------
@@ -157,7 +162,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'dossiers-assistant': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : ~$0.10/Mtkn, 64K ctx
+      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
@@ -176,7 +181,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Analyse approfondie dossier - DeepSeek deepseek-chat (~$1-3/mois, 64K ctx)',
+    description: 'Analyse approfondie dossier - DeepSeek deepseek-chat (cache hit $0.028/M in, 128K ctx)',
   },
 
   // ---------------------------------------------------------------------------
@@ -205,7 +210,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'dossiers-consultation': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : ~$0.10/Mtkn, 64K ctx
+      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
@@ -224,18 +229,18 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Consultation juridique formelle IRAC - DeepSeek deepseek-chat (~$1-3/mois, 64K ctx)',
+    description: 'Consultation juridique formelle IRAC - DeepSeek deepseek-chat (cache hit $0.028/M in, 128K ctx)',
   },
 
   // ---------------------------------------------------------------------------
   // 6. QUERY CLASSIFICATION (pré-filtrage KB)
   // ---------------------------------------------------------------------------
   'query-classification': {
-    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama gratuit (Groq supprimé)
+    model: { provider: 'groq', name: 'llama-3.1-8b-instant' }, // 8b : JSON fiable, quota séparé, 12× moins cher que 70b
 
     timeouts: {
-      chat: 20000,  // Ollama plus lent → 20s (était 5s Groq)
-      total: 30000,
+      chat: 5000,  // 8b encore plus rapide ~150ms
+      total: 8000,
     },
 
     llmConfig: {
@@ -244,18 +249,18 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'Classification query pour filtrage catégories KB - Ollama qwen3:8b',
+    description: 'Classification query KB - Groq llama-3.1-8b-instant ($0.05/$0.08/M, quota indépendant)',
   },
 
   // ---------------------------------------------------------------------------
   // 7. QUERY EXPANSION (reformulation requêtes courtes)
   // ---------------------------------------------------------------------------
   'query-expansion': {
-    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama gratuit (Groq supprimé)
+    model: { provider: 'groq', name: 'llama-3.1-8b-instant' }, // 8b : reformulation simple, 12× moins cher
 
     timeouts: {
-      chat: 20000,  // Ollama plus lent → 20s (était 5s Groq)
-      total: 30000,
+      chat: 5000,  // 8b rapide ~150ms
+      total: 8000,
     },
 
     llmConfig: {
@@ -264,7 +269,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'Expansion queries courtes <50 chars - Ollama qwen3:8b',
+    description: 'Expansion queries courtes <50 chars - Groq llama-3.1-8b-instant',
   },
 
   // ---------------------------------------------------------------------------
@@ -273,7 +278,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'document-consolidation': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : 64K ctx (Gemini 1M supprimé — coût)
+      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
     timeouts: {
       chat: 90000,
@@ -286,18 +291,18 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'warning' },
-    description: 'Consolidation documents multi-pages - DeepSeek deepseek-chat (64K ctx, ~$1-3/mois)',
+    description: 'Consolidation documents multi-pages - DeepSeek deepseek-chat (cache hit $0.028/M in, 128K ctx)',
   },
 
   // ---------------------------------------------------------------------------
   // 9. RAG EVAL JUDGE (évaluation fidélité réponses)
   // ---------------------------------------------------------------------------
   'rag-eval-judge': {
-    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama gratuit (Groq supprimé)
+    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama gratuit (batch hebdo, pas time-critical)
 
     timeouts: {
-      chat: 30000,  // Ollama plus lent → 30s (était 15s Groq)
-      total: 45000,
+      chat: 60000,
+      total: 75000,
     },
 
     llmConfig: {
@@ -306,7 +311,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'LLM judge fidélité réponse RAG - Ollama qwen3:8b',
+    description: 'LLM judge fidélité réponse RAG - Ollama qwen3:8b (batch hebdo, gratuit)',
   },
 }
 

@@ -534,13 +534,22 @@ export function getRAGConfig(): {
 // =============================================================================
 // COÛTS ESTIMÉS - RÉFÉRENCE HISTORIQUE
 // =============================================================================
-// NOTE: Ces coûts sont conservés pour référence, mais la plupart des opérations
-// utilisent maintenant Groq/Gemini (gratuits) et Ollama (local gratuit).
-// Coût réel Février 2026: ~$2-5/mois (principalement OpenAI embeddings)
+// NOTE: Tarifs réels Février 2026 — mode no-fallback
+// - Groq : GRATUIT (free tier 500K req/jour par modèle)
+// - Ollama : GRATUIT (local)
+// - OpenAI : $0.02/1M tokens (embeddings uniquement)
+// - DeepSeek : $0.028/1M input (cache hit system prompt) + $0.42/1M output (dossiers)
+// - Anthropic : NON UTILISÉ EN PROD (dernier fallback théorique)
+// Coût réel Février 2026: ~$5/mois (OpenAI embeddings + DeepSeek dossiers)
 
 export const AI_COSTS = {
   // OpenAI text-embedding-3-small: $0.02 / 1M tokens
   embeddingCostPer1MTokens: 0.02,
+
+  // DeepSeek deepseek-chat : cache hit system prompt (dossiers juridiques)
+  // Input cache hit: $0.028/1M | Output: $0.42/1M
+  deepseekInputCostPer1MTokens: 0.028,  // cache hit (system prompt stable)
+  deepseekOutputCostPer1MTokens: 0.42,
 
   // Claude 3.5 Sonnet (RAREMENT utilisé, dernier fallback uniquement)
   // $3 / 1M input tokens, $15 / 1M output tokens

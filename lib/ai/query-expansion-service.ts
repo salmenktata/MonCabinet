@@ -97,7 +97,7 @@ export async function expandQuery(query: string): Promise<string> {
   try {
     console.log(`[Query Expansion] Expansion query courte (${query.length} chars)...`)
 
-    // Appel LLM avec config assistant-ia (Groq rapide)
+    // Appel LLM avec config query-expansion (Groq 8b : rapide, quota indépendant)
     const response = await callLLMWithFallback(
       [
         {
@@ -108,7 +108,7 @@ export async function expandQuery(query: string): Promise<string> {
       {
         temperature: 0.3, // Créativité modérée pour termes variés
         maxTokens: 200, // ~300 caractères max
-        operationName: 'assistant-ia', // Groq ultra-rapide
+        operationName: 'query-expansion',
       }
     )
 
@@ -204,7 +204,7 @@ export async function condenseQuery(query: string): Promise<string> {
       {
         temperature: 0.1, // Très déterministe pour extraction
         maxTokens: 150, // ~150 caractères max (narrations arabes longues)
-        operationName: 'assistant-ia',
+        operationName: 'query-expansion',
       }
     )
 

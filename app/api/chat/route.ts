@@ -382,11 +382,17 @@ export async function POST(
 
     // E1: Tracking coût conversation (fire-and-forget)
     if (response.tokensUsed.total > 0 && response.model !== 'abstained') {
+      const m = response.model || ''
+      const detectedProvider = m.includes('gemini') ? 'gemini'
+        : m.includes('deepseek') ? 'deepseek'
+        : m.includes('llama') || m.includes('groq') ? 'groq'
+        : m.includes('qwen') || m.includes('ollama') ? 'ollama'
+        : 'groq' // défaut : assistant-ia → Groq
       trackConversationCost({
         conversationId: activeConversationId,
         userId,
-        provider: (response.model?.includes('gemini') ? 'gemini' : 'groq') as any,
-        model: response.model || 'unknown',
+        provider: detectedProvider as any,
+        model: m || 'unknown',
         inputTokens: response.tokensUsed.input,
         outputTokens: response.tokensUsed.output,
         operationType: 'chat',
@@ -692,11 +698,17 @@ async function handleStreamingResponse(
 
             // E1: Tracking coût conversation (fire-and-forget)
             if (event.tokensUsed.total > 0 && savedModel !== 'abstained') {
+              const sm = savedModel || ''
+              const streamProvider = sm.includes('gemini') ? 'gemini'
+                : sm.includes('deepseek') ? 'deepseek'
+                : sm.includes('llama') || sm.includes('groq') ? 'groq'
+                : sm.includes('qwen') || sm.includes('ollama') ? 'ollama'
+                : 'groq' // défaut : assistant-ia → Groq
               trackConversationCost({
                 conversationId,
                 userId,
-                provider: (savedModel?.includes('gemini') ? 'gemini' : 'groq') as any,
-                model: savedModel || 'unknown',
+                provider: streamProvider as any,
+                model: sm || 'unknown',
                 inputTokens: event.tokensUsed.input,
                 outputTokens: event.tokensUsed.output,
                 operationType: 'chat',

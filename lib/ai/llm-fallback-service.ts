@@ -1098,24 +1098,44 @@ export async function* callGroqStream(
     allMessages.push({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })
   }
 
-  const stream = await client.chat.completions.create({
-    model,
-    messages: allMessages,
-    stream: true,
-    stream_options: { include_usage: true },
-    max_tokens: options.maxTokens ?? 8000,
-    temperature: options.temperature ?? 0.1,
-  })
-
-  for await (const chunk of stream) {
-    const text = chunk.choices[0]?.delta?.content || ''
-    if (text) yield text
-    // Groq envoie usage dans le dernier chunk quand stream_options.include_usage=true
-    if (chunk.usage && usageOut) {
-      usageOut.input = chunk.usage.prompt_tokens || 0
-      usageOut.output = chunk.usage.completion_tokens || 0
-      usageOut.total = chunk.usage.total_tokens || 0
+  let stream: Awaited<ReturnType<typeof client.chat.completions.create>>
+  try {
+    stream = await client.chat.completions.create({
+      model,
+      messages: allMessages,
+      stream: true,
+      stream_options: { include_usage: true },
+      max_tokens: options.maxTokens ?? 8000,
+      temperature: options.temperature ?? 0.1,
+    })
+  } catch (err) {
+    // Protection 429 : rate limit Groq → throw message explicite + enregistre l'échec
+    if (isRateLimitError(err)) {
+      recordProviderFailure('groq')
+      logger.warn(`[Groq Stream] 429 rate limit atteint pour modèle ${model}`)
+      throw new Error(`Assistant temporairement surchargé (rate limit Groq). Réessayez dans quelques secondes.`)
     }
+    throw err
+  }
+
+  try {
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content || ''
+      if (text) yield text
+      // Groq envoie usage dans le dernier chunk quand stream_options.include_usage=true
+      if (chunk.usage && usageOut) {
+        usageOut.input = chunk.usage.prompt_tokens || 0
+        usageOut.output = chunk.usage.completion_tokens || 0
+        usageOut.total = chunk.usage.total_tokens || 0
+      }
+    }
+  } catch (err) {
+    if (isRateLimitError(err)) {
+      recordProviderFailure('groq')
+      logger.warn(`[Groq Stream] 429 en cours de streaming pour modèle ${model}`)
+      throw new Error(`Assistant temporairement surchargé (rate limit Groq). Réessayez dans quelques secondes.`)
+    }
+    throw err
   }
 }
 

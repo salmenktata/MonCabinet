@@ -305,7 +305,7 @@ const ProviderConfigTable: React.FC = () => {
               <CardTitle>Configuration des Providers IA</CardTitle>
               <CardDescription>
                 Gérer les clés API et la configuration des providers.
-                Providers primaires (Fév 2026): Groq (chat), Gemini (analyse), OpenAI (embeddings)
+                Providers actifs (Fév 2026 — No-Fallback): Groq (chat + routing), DeepSeek (dossiers), Ollama (batch), OpenAI + Gemini (embeddings)
               </CardDescription>
             </div>
             <Button onClick={handleAddNew} size="sm">

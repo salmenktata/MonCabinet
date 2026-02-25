@@ -27,10 +27,10 @@ const AIFlowDiagram: React.FC = () => {
         </CardHeader>
       </Card>
 
-      {/* Tableau des 8 opérations */}
+      {/* Tableau des 9 opérations */}
       <Card>
         <CardHeader>
-          <CardTitle>8 Opérations — Configuration Prod (Fév 2026)</CardTitle>
+          <CardTitle>9 Opérations — Configuration Prod (Fév 2026)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -49,45 +49,45 @@ const AIFlowDiagram: React.FC = () => {
                   <td className="p-3 font-mono text-xs">assistant-ia</td>
                   <td className="p-3 text-muted-foreground">Chat utilisateur</td>
                   <td className="p-3 text-center">
-                    <Badge className="bg-blue-500">Gemini</Badge>
+                    <Badge className="bg-orange-500">Groq</Badge>
                   </td>
-                  <td className="p-3 text-center font-mono text-xs">gemini-2.5-flash</td>
+                  <td className="p-3 text-center font-mono text-xs">llama-3.3-70b-versatile</td>
                   <td className="p-3 text-center font-mono text-xs">text-embedding-3-small</td>
                 </tr>
                 <tr className="border-b hover:bg-muted/50">
                   <td className="p-3 font-mono text-xs">dossiers-assistant</td>
                   <td className="p-3 text-muted-foreground">Analyse dossiers</td>
                   <td className="p-3 text-center">
-                    <Badge className="bg-blue-500">Gemini</Badge>
+                    <Badge className="bg-purple-500">DeepSeek</Badge>
                   </td>
-                  <td className="p-3 text-center font-mono text-xs">gemini-2.5-flash</td>
+                  <td className="p-3 text-center font-mono text-xs">deepseek-chat</td>
                   <td className="p-3 text-center font-mono text-xs">text-embedding-3-small</td>
                 </tr>
                 <tr className="border-b hover:bg-muted/50">
                   <td className="p-3 font-mono text-xs">dossiers-consultation</td>
                   <td className="p-3 text-muted-foreground">Consultation IRAC</td>
                   <td className="p-3 text-center">
-                    <Badge className="bg-blue-500">Gemini</Badge>
+                    <Badge className="bg-purple-500">DeepSeek</Badge>
                   </td>
-                  <td className="p-3 text-center font-mono text-xs">gemini-2.5-flash</td>
+                  <td className="p-3 text-center font-mono text-xs">deepseek-chat</td>
                   <td className="p-3 text-center font-mono text-xs">text-embedding-3-small</td>
                 </tr>
                 <tr className="border-b hover:bg-muted/50">
                   <td className="p-3 font-mono text-xs">kb-quality-analysis</td>
                   <td className="p-3 text-muted-foreground">Analyse qualité KB</td>
                   <td className="p-3 text-center">
-                    <Badge className="bg-blue-500">Gemini</Badge>
+                    <Badge variant="secondary">Ollama</Badge>
                   </td>
-                  <td className="p-3 text-center font-mono text-xs">gemini-2.5-flash</td>
+                  <td className="p-3 text-center font-mono text-xs">qwen3:8b</td>
                   <td className="p-3 text-center text-muted-foreground">—</td>
                 </tr>
                 <tr className="border-b hover:bg-muted/50">
                   <td className="p-3 font-mono text-xs">document-consolidation</td>
                   <td className="p-3 text-muted-foreground">Consolidation docs</td>
                   <td className="p-3 text-center">
-                    <Badge className="bg-blue-500">Gemini</Badge>
+                    <Badge className="bg-purple-500">DeepSeek</Badge>
                   </td>
-                  <td className="p-3 text-center font-mono text-xs">gemini-2.5-flash</td>
+                  <td className="p-3 text-center font-mono text-xs">deepseek-chat</td>
                   <td className="p-3 text-center font-mono text-xs">text-embedding-3-small</td>
                 </tr>
                 <tr className="border-b hover:bg-muted/50">
@@ -96,7 +96,7 @@ const AIFlowDiagram: React.FC = () => {
                   <td className="p-3 text-center">
                     <Badge className="bg-orange-500">Groq</Badge>
                   </td>
-                  <td className="p-3 text-center font-mono text-xs">llama-3.3-70b-versatile</td>
+                  <td className="p-3 text-center font-mono text-xs">llama-3.1-8b-instant</td>
                   <td className="p-3 text-center text-muted-foreground">—</td>
                 </tr>
                 <tr className="border-b hover:bg-muted/50">
@@ -105,7 +105,7 @@ const AIFlowDiagram: React.FC = () => {
                   <td className="p-3 text-center">
                     <Badge className="bg-orange-500">Groq</Badge>
                   </td>
-                  <td className="p-3 text-center font-mono text-xs">llama-3.3-70b-versatile</td>
+                  <td className="p-3 text-center font-mono text-xs">llama-3.1-8b-instant</td>
                   <td className="p-3 text-center text-muted-foreground">—</td>
                 </tr>
                 <tr className="border-b hover:bg-muted/50">
@@ -117,10 +117,19 @@ const AIFlowDiagram: React.FC = () => {
                   <td className="p-3 text-center font-mono text-xs">qwen3:8b</td>
                   <td className="p-3 text-center font-mono text-xs">text-embedding-3-small</td>
                 </tr>
+                <tr className="border-b hover:bg-muted/50">
+                  <td className="p-3 font-mono text-xs">rag-eval-judge</td>
+                  <td className="p-3 text-muted-foreground">LLM judge RAG</td>
+                  <td className="p-3 text-center">
+                    <Badge variant="secondary">Ollama</Badge>
+                  </td>
+                  <td className="p-3 text-center font-mono text-xs">qwen3:8b</td>
+                  <td className="p-3 text-center text-muted-foreground">—</td>
+                </tr>
               </tbody>
             </table>
             <p className="text-xs text-muted-foreground mt-2">
-              Dev local : tous les providers remplacés par Ollama qwen3:8b + qwen3-embedding:0.6b
+              Dev local : tous les providers LLM remplacés par Ollama qwen3:8b + qwen3-embedding:0.6b
             </p>
           </div>
         </CardContent>
@@ -144,7 +153,7 @@ const AIFlowDiagram: React.FC = () => {
                 ▼
    ┌────────────────────────────┐
    │  Provider fixe configuré  │
-   │  (ex: Gemini 2.5 Flash)   │
+   │  (ex: Groq llama-3.3-70b) │
    └───────────┬────────────────┘
                │
        ┌───────┴────────┐
@@ -165,10 +174,10 @@ const AIFlowDiagram: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Accordion 8 opérations */}
+      {/* Accordion 9 opérations */}
       <Card>
         <CardHeader>
-          <CardTitle>Détail des 8 Opérations</CardTitle>
+          <CardTitle>Détail des 9 Opérations</CardTitle>
           <CardDescription>
             Configuration effective en production (source : lib/ai/operations-config.ts)
           </CardDescription>
@@ -178,7 +187,7 @@ const AIFlowDiagram: React.FC = () => {
             <AccordionItem value="assistant-ia">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-blue-500">Gemini</Badge>
+                  <Badge className="bg-orange-500">Groq</Badge>
                   <span className="font-mono text-xs">assistant-ia</span>
                   <span className="text-sm font-normal text-muted-foreground">
                     Chat utilisateur temps réel
@@ -187,11 +196,11 @@ const AIFlowDiagram: React.FC = () => {
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Modèle :</strong> gemini-2.5-flash</p>
+                  <p><strong>Modèle :</strong> llama-3.3-70b-versatile</p>
                   <p><strong>Embeddings :</strong> OpenAI text-embedding-3-small (1536-dim)</p>
-                  <p><strong>Timeout :</strong> chat 30s, total 45s</p>
+                  <p><strong>Timeout :</strong> chat 15s, total 20s</p>
                   <p><strong>Alerte :</strong> email, severity critical</p>
-                  <p><strong>Contexte :</strong> Chat RAG avec streaming SSE natif, seuil arabe 0.30</p>
+                  <p><strong>Contexte :</strong> Chat RAG avec streaming SSE natif, seuil arabe 0.30. 500K req/jour gratuits (free tier Groq).</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -199,7 +208,7 @@ const AIFlowDiagram: React.FC = () => {
             <AccordionItem value="dossiers-assistant">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-blue-500">Gemini</Badge>
+                  <Badge className="bg-purple-500">DeepSeek</Badge>
                   <span className="font-mono text-xs">dossiers-assistant</span>
                   <span className="text-sm font-normal text-muted-foreground">
                     Analyse approfondie de dossiers
@@ -208,11 +217,11 @@ const AIFlowDiagram: React.FC = () => {
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Modèle :</strong> gemini-2.5-flash</p>
+                  <p><strong>Modèle :</strong> deepseek-chat</p>
                   <p><strong>Embeddings :</strong> OpenAI text-embedding-3-small (1536-dim)</p>
-                  <p><strong>Timeout :</strong> chat 40s, total 60s</p>
+                  <p><strong>Timeout :</strong> chat 90s, total 105s</p>
                   <p><strong>Alerte :</strong> email, severity critical</p>
-                  <p><strong>Contexte :</strong> Analyse juridique avec contexte 1M tokens Gemini</p>
+                  <p><strong>Contexte :</strong> Analyse juridique longue, 128K ctx. Cache hit system prompt : $0.028/M input (10× moins cher que cache miss).</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -220,7 +229,7 @@ const AIFlowDiagram: React.FC = () => {
             <AccordionItem value="dossiers-consultation">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-blue-500">Gemini</Badge>
+                  <Badge className="bg-purple-500">DeepSeek</Badge>
                   <span className="font-mono text-xs">dossiers-consultation</span>
                   <span className="text-sm font-normal text-muted-foreground">
                     Consultation formelle IRAC
@@ -229,11 +238,11 @@ const AIFlowDiagram: React.FC = () => {
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Modèle :</strong> gemini-2.5-flash</p>
+                  <p><strong>Modèle :</strong> deepseek-chat</p>
                   <p><strong>Embeddings :</strong> OpenAI text-embedding-3-small (1536-dim)</p>
-                  <p><strong>Timeout :</strong> chat 30s, total 60s</p>
+                  <p><strong>Timeout :</strong> chat 90s, total 105s</p>
                   <p><strong>Alerte :</strong> email, severity critical</p>
-                  <p><strong>Contexte :</strong> Génération consultation juridique structurée (Issue / Rule / Application / Conclusion)</p>
+                  <p><strong>Contexte :</strong> Génération consultation juridique structurée (Issue / Rule / Application / Conclusion), 128K ctx, temperature 0.1 (factuel).</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -241,7 +250,7 @@ const AIFlowDiagram: React.FC = () => {
             <AccordionItem value="kb-quality-analysis">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-blue-500">Gemini</Badge>
+                  <Badge variant="secondary">Ollama</Badge>
                   <span className="font-mono text-xs">kb-quality-analysis</span>
                   <span className="text-sm font-normal text-muted-foreground">
                     Analyse qualité de la Knowledge Base
@@ -250,11 +259,11 @@ const AIFlowDiagram: React.FC = () => {
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Modèle :</strong> gemini-2.5-flash</p>
+                  <p><strong>Modèle :</strong> qwen3:8b (local)</p>
                   <p><strong>Embeddings :</strong> — (LLM seul)</p>
-                  <p><strong>Timeout :</strong> chat 45s, total 90s</p>
+                  <p><strong>Timeout :</strong> chat 60s, total 120s</p>
                   <p><strong>Alerte :</strong> email, severity warning</p>
-                  <p><strong>Contexte :</strong> Analyse qualité arabe juridique, output JSON structuré, contexte 12k tokens</p>
+                  <p><strong>Contexte :</strong> Analyse qualité arabe juridique, output JSON structuré, contexte 12k tokens. Batch nocturne, gratuit (local).</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -262,7 +271,7 @@ const AIFlowDiagram: React.FC = () => {
             <AccordionItem value="document-consolidation">
               <AccordionTrigger>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-blue-500">Gemini</Badge>
+                  <Badge className="bg-purple-500">DeepSeek</Badge>
                   <span className="font-mono text-xs">document-consolidation</span>
                   <span className="text-sm font-normal text-muted-foreground">
                     Consolidation de documents multi-pages
@@ -271,11 +280,11 @@ const AIFlowDiagram: React.FC = () => {
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Modèle :</strong> gemini-2.5-flash</p>
+                  <p><strong>Modèle :</strong> deepseek-chat</p>
                   <p><strong>Embeddings :</strong> OpenAI text-embedding-3-small (1536-dim)</p>
-                  <p><strong>Timeout :</strong> chat 60s, total 120s</p>
+                  <p><strong>Timeout :</strong> chat 90s, total 120s</p>
                   <p><strong>Alerte :</strong> log, severity warning</p>
-                  <p><strong>Contexte :</strong> Fusion de plusieurs pages en 1 document cohérent, exploite le contexte 1M tokens</p>
+                  <p><strong>Contexte :</strong> Fusion de plusieurs pages en 1 document cohérent, 128K ctx, cache hit $0.028/M input.</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -292,11 +301,11 @@ const AIFlowDiagram: React.FC = () => {
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Modèle :</strong> llama-3.3-70b-versatile</p>
+                  <p><strong>Modèle :</strong> llama-3.1-8b-instant</p>
                   <p><strong>Embeddings :</strong> — (LLM seul)</p>
-                  <p><strong>Timeout :</strong> chat 5s, total 10s</p>
+                  <p><strong>Timeout :</strong> chat 5s, total 8s</p>
                   <p><strong>Alerte :</strong> log, severity info</p>
-                  <p><strong>Contexte :</strong> Détermine les catégories KB pertinentes avant recherche vectorielle, ultra-rapide</p>
+                  <p><strong>Contexte :</strong> Détermine les catégories KB pertinentes avant recherche vectorielle. Quota 8b indépendant du 70b (500K req/jour), 12× moins cher que 70b.</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -313,11 +322,11 @@ const AIFlowDiagram: React.FC = () => {
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Modèle :</strong> llama-3.3-70b-versatile</p>
+                  <p><strong>Modèle :</strong> llama-3.1-8b-instant</p>
                   <p><strong>Embeddings :</strong> — (LLM seul)</p>
-                  <p><strong>Timeout :</strong> chat 5s, total 10s</p>
+                  <p><strong>Timeout :</strong> chat 5s, total 8s</p>
                   <p><strong>Alerte :</strong> log, severity info</p>
-                  <p><strong>Contexte :</strong> Reformule les requêtes &lt;50 caractères pour améliorer le rappel RAG</p>
+                  <p><strong>Contexte :</strong> Reformule les requêtes &lt;50 caractères pour améliorer le rappel RAG. Même quota 8b que query-classification (500K req/jour gratuits).</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -339,7 +348,28 @@ const AIFlowDiagram: React.FC = () => {
                   <p><strong>Embeddings dev :</strong> Ollama qwen3-embedding:0.6b (1024-dim)</p>
                   <p><strong>Timeout :</strong> embedding 10s, chat 30s, total 60s</p>
                   <p><strong>Alerte :</strong> log, severity warning</p>
-                  <p><strong>Contexte :</strong> Triple embedding parallèle (OpenAI + Ollama + Gemini) pour hybrid search</p>
+                  <p><strong>Contexte :</strong> Triple embedding parallèle (OpenAI 1536-dim + Ollama 1024-dim + Gemini 768-dim) pour hybrid search. LLM local gratuit.</p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="rag-eval-judge">
+              <AccordionTrigger>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">Ollama</Badge>
+                  <span className="font-mono text-xs">rag-eval-judge</span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    LLM judge — évaluation RAG hebdomadaire
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Modèle :</strong> Ollama qwen3:8b (local)</p>
+                  <p><strong>Embeddings :</strong> — (LLM seul)</p>
+                  <p><strong>Timeout :</strong> chat 60s, total 75s</p>
+                  <p><strong>Alerte :</strong> log, severity info</p>
+                  <p><strong>Contexte :</strong> Batch hebdomadaire (cron dimanche 3h CET), 20 questions aléatoires du gold dataset. Pas time-critical → Ollama local gratuit. Détecte régressions Judge Score.</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -364,16 +394,17 @@ const AIFlowDiagram: React.FC = () => {
               <p className="text-3xl font-bold text-green-600 dark:text-green-400">→</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">~$2-5/mois</p>
-              <p className="text-sm text-muted-foreground">Coût actuel (OpenAI embeddings uniquement)</p>
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400">~$5/mois</p>
+              <p className="text-sm text-muted-foreground">Coût actuel (OpenAI embeddings + DeepSeek dossiers)</p>
             </div>
           </div>
           <div className="mt-4 text-center">
             <p className="text-4xl font-bold text-green-700 dark:text-green-300">
-              ~98% d&apos;économie sur les LLM
+              ~97% d&apos;économie sur les LLM
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Gain principal : LLM gratuits (Gemini 2.5 Flash + Groq llama-3.3-70b) — seuls les embeddings OpenAI sont facturés (~$2-5/mois)
+              LLM gratuits : Groq (chat 70b + routing 8b, 500K req/jour) + Ollama (batch local) —
+              seuls OpenAI embeddings (~$2/mois) + DeepSeek dossiers (~$0.028/M cache hit) sont facturés.
             </p>
           </div>
         </CardContent>

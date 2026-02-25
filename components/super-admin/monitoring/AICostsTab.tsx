@@ -205,8 +205,8 @@ export function AICostsTab() {
       {geminiCosts && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-lg font-semibold">Coûts Gemini (7 derniers jours)</h3>
-            <p className="text-sm text-muted-foreground">Tracking Redis en temps réel — LLM + Embeddings</p>
+            <h3 className="text-lg font-semibold">Coûts Gemini Embeddings (7 derniers jours)</h3>
+            <p className="text-sm text-muted-foreground">Tracking Redis — Embeddings uniquement (text-embedding-004, 768-dim) depuis migration Feb 25</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-4">
@@ -221,11 +221,11 @@ export function AICostsTab() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Appels LLM (7j)</CardTitle>
+                <CardTitle className="text-sm font-medium">Appels LLM Gemini (7j)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{geminiCosts.costs.totals.llmCalls}</div>
-                <p className="text-xs text-muted-foreground">Seuil alerte : {geminiCosts.thresholds.dailyLLMCallsAlert}/jour</p>
+                <p className="text-xs text-muted-foreground">Devrait être ~0 depuis migration Feb 25 (Gemini = embeddings uniquement)</p>
               </CardContent>
             </Card>
             <Card>

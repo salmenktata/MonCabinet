@@ -61,14 +61,21 @@ export function calculateCost(
   if (provider === 'openai') {
     // text-embedding-3-small: $0.02 / 1M tokens
     return (inputTokens / 1_000_000) * AI_COSTS.embeddingCostPer1MTokens
+  } else if (provider === 'deepseek') {
+    // deepseek-chat: $0.028/1M input (cache hit system prompt) + $0.42/1M output
+    return (
+      (inputTokens / 1_000_000) * AI_COSTS.deepseekInputCostPer1MTokens +
+      (outputTokens / 1_000_000) * AI_COSTS.deepseekOutputCostPer1MTokens
+    )
   } else if (provider === 'anthropic') {
-    // ⚠️ DEPRECATION: Anthropic rarement utilisé en Février 2026 (dernier fallback uniquement)
+    // NON UTILISÉ EN PROD (dernier fallback théorique uniquement)
     // Claude 3.5 Sonnet: $3 / 1M input, $15 / 1M output
     return (
       (inputTokens / 1_000_000) * AI_COSTS.claudeInputCostPer1MTokens +
       (outputTokens / 1_000_000) * AI_COSTS.claudeOutputCostPer1MTokens
     )
   }
+  // Groq, Ollama, Gemini (LLM) : gratuit
   return 0
 }
 
@@ -126,7 +133,7 @@ export async function logEmbeddingUsage(
  * Log simplifié pour le chat
  *
  * @deprecated Février 2026 - Utiliser logUsage() avec provider dynamique.
- * Cette fonction hardcode 'gemini' (provider primaire depuis Fév 2026).
+ * Provider mis à jour Feb 25, 2026 : Groq (migration Ollama→Groq pour scale 1K users).
  */
 export async function logChatUsage(
   userId: string,
@@ -138,7 +145,7 @@ export async function logChatUsage(
   await logUsage({
     userId,
     operationType: 'chat',
-    provider: 'gemini',
+    provider: 'groq', // assistant-ia → Groq llama-3.3-70b (migré Feb 25, 2026)
     model,
     inputTokens,
     outputTokens,

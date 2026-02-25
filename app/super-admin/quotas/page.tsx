@@ -51,7 +51,7 @@ interface QuotaData {
 export default function QuotasPage() {
   const [quotasData, setQuotasData] = useState<Record<string, QuotaData | null>>({})
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('gemini')
+  const [activeTab, setActiveTab] = useState('groq')
 
   useEffect(() => {
     fetchQuotas()
@@ -224,27 +224,30 @@ export default function QuotasPage() {
           <div className="flex items-start gap-2">
             <Icons.checkCircle className="h-4 w-4 text-green-500 mt-0.5" />
             <div>
-              <p className="font-semibold">Gemini Paid Tier (Recommandé)</p>
+              <p className="font-semibold">Groq + Ollama = gratuits (chat + batch)</p>
               <p className="text-muted-foreground">
-                Pour 10K docs/mois : ~$11.25/mois (35 TND) avec 1000 RPM. Économie -90% vs DeepSeek.
+                Groq llama-3.3-70b (chat) + llama-3.1-8b (routing) + Ollama qwen3:8b (indexation, eval) : 0€/mois.
+                Seuls OpenAI embeddings + DeepSeek dossiers sont facturés.
               </p>
             </div>
           </div>
           <div className="flex items-start gap-2">
             <Icons.info className="h-4 w-4 text-blue-500 mt-0.5" />
             <div>
-              <p className="font-semibold">Configurer alerte budget</p>
+              <p className="font-semibold">Surveiller DeepSeek ($0.028/M cache hit)</p>
               <p className="text-muted-foreground">
-                Dans Google Cloud Console, définir budget alert à $15/mois pour monitoring.
+                DeepSeek facture les dossiers juridiques. Coût typique &lt; $2/mois selon volume.
+                Alerte si &gt; $5/mois.
               </p>
             </div>
           </div>
           <div className="flex items-start gap-2">
             <Icons.trendingUp className="h-4 w-4 text-orange-500 mt-0.5" />
             <div>
-              <p className="font-semibold">Scaler progressivement</p>
+              <p className="font-semibold">OpenAI embeddings (~$0.02/M tokens)</p>
               <p className="text-muted-foreground">
-                Commencer avec 100 docs/jour (3000/mois), valider coûts réels, puis scaler à 10K.
+                Budget actuel : $10/mois, alerte à $5. Pour 33K chunks réindexés : &lt; $0.01.
+                Gemini embeddings (768-dim) gratuits jusqu'à 1500 RPM.
               </p>
             </div>
           </div>

@@ -257,13 +257,13 @@ Question: ${query}
 Réponse (JSON uniquement):`
 
   try {
-    // Appel LLM avec config assistant-ia (Groq rapide)
+    // Appel LLM avec config query-classification (Groq 8b : JSON fiable, rapide, quota indépendant)
     const response = await callLLMWithFallback(
       [{ role: 'user', content: fullPrompt }],
       {
         temperature: 0.1, // Très déterministe
         maxTokens: 300,
-        operationName: 'assistant-ia', // Groq ultra-rapide
+        operationName: 'query-classification',
       }
     )
 
