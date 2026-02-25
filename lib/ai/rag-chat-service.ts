@@ -557,8 +557,8 @@ function inferBranchFromTitle(docName: string): string | undefined {
 
 /**
  * Détecte si un document est manifestement fiscal sur la base de son titre.
- * Patterns "hard fiscal" à haute certitude : Note-Commune DGI, code droits enregistrement,
- * codes TVA/IRPP, etc.
+ * Patterns "hard fiscal" à haute certitude : Note-Commune DGI, codes TVA/IRPP, جباية.
+ * NB : 'enregistrement' et 'timbre' retirés — trop génériques (faux positifs civil/contrats).
  *
  * Ces documents obtiennent une pénalité plus forte (×0.15) quand ils apparaissent
  * pour des requêtes non-fiscales, car leur similarité intrinsèque est anormalement haute
@@ -569,7 +569,6 @@ function isHardFiscalDocument(docName: string): boolean {
   const n = docName.toLowerCase()
   return (
     n.includes('note-commune') || n.includes('note commune') ||
-    n.includes('enregistrement') || n.includes('timbre') ||
     /\bdgi\b/.test(n) || /\birpp\b/.test(n) || /\btva\b/.test(n) ||
     n.includes('جباية') || n.includes('جبائي') ||
     n.includes('code de la tva') || n.includes('code de l\'irpp')
