@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -43,8 +43,12 @@ export default function BackupsManager() {
   const [backupInProgress, setBackupInProgress] = useState(false)
   const [deleteInProgress, setDeleteInProgress] = useState<string | null>(null)
   const [restoreInProgress, setRestoreInProgress] = useState(false)
-  const [restoreDialog, setRestoreDialog] = useState<{ open: boolean; filename: string }>({ open: false, filename: '' })
+  const [restoreDialog, setRestoreDialog] = useState<{ open: boolean; filename: string; isUploadRestore: boolean }>({ open: false, filename: '', isUploadRestore: false })
   const [restoreConfirmInput, setRestoreConfirmInput] = useState('')
+  const [downloadInProgress, setDownloadInProgress] = useState<string | null>(null)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadInProgress, setUploadInProgress] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -134,22 +138,75 @@ export default function BackupsManager() {
     }
   }
 
+  // Télécharger un backup
+  const downloadBackup = async (filename: string) => {
+    setDownloadInProgress(filename)
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/backup?download=${encodeURIComponent(filename)}`)
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json.error || 'Erreur lors du téléchargement')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      // Les dossiers MinIO n'ont pas d'extension — on ajoute .tar.gz
+      a.download = filename.includes('.') ? filename : `${filename}.tar.gz`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors du téléchargement')
+    } finally {
+      setDownloadInProgress(null)
+    }
+  }
+
   // Ouvrir le dialogue de restauration
   const openRestoreDialog = (filename: string) => {
-    setRestoreDialog({ open: true, filename })
+    setRestoreDialog({ open: true, filename, isUploadRestore: false })
     setRestoreConfirmInput('')
   }
 
-  // Restaurer un backup
+  // Ouvrir le dialogue de restauration après upload
+  const openUploadRestoreDialog = () => {
+    if (!uploadFile) return
+    setRestoreDialog({ open: true, filename: uploadFile.name, isUploadRestore: true })
+    setRestoreConfirmInput('')
+  }
+
+  // Restaurer un backup (depuis serveur ou après upload)
   const restoreBackup = async () => {
-    const { filename } = restoreDialog
-    setRestoreDialog({ open: false, filename: '' })
+    const { filename, isUploadRestore } = restoreDialog
+    setRestoreDialog({ open: false, filename: '', isUploadRestore: false })
     setRestoreConfirmInput('')
     setRestoreInProgress(true)
     setError('')
     setSuccess('')
 
     try {
+      // Si upload requis, envoyer le fichier d'abord
+      if (isUploadRestore && uploadFile) {
+        setUploadInProgress(true)
+        const formData = new FormData()
+        formData.append('file', uploadFile)
+        const uploadRes = await fetch('/api/admin/backup/upload', {
+          method: 'POST',
+          body: formData,
+        })
+        const uploadJson = await uploadRes.json()
+        setUploadInProgress(false)
+        if (!uploadRes.ok || !uploadJson.success) {
+          throw new Error(uploadJson.error || 'Échec de l\'upload')
+        }
+        setUploadFile(null)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+      }
+
+      // Restaurer depuis le serveur
       const res = await fetch('/api/admin/backup', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -163,10 +220,12 @@ export default function BackupsManager() {
       }
 
       setSuccess(`Base de données restaurée depuis "${filename}" en ${json.duration}`)
+      loadBackups()
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la restauration')
     } finally {
       setRestoreInProgress(false)
+      setUploadInProgress(false)
     }
   }
 
@@ -316,7 +375,9 @@ export default function BackupsManager() {
               backups={data?.backups.database || []}
               onDelete={deleteBackup}
               onRestore={openRestoreDialog}
+              onDownload={downloadBackup}
               deleteInProgress={deleteInProgress}
+              downloadInProgress={downloadInProgress}
               restoreInProgress={restoreInProgress}
               formatDate={formatDate}
               type="database"
@@ -337,7 +398,9 @@ export default function BackupsManager() {
             <BackupList
               backups={data?.backups.minio || []}
               onDelete={deleteBackup}
+              onDownload={downloadBackup}
               deleteInProgress={deleteInProgress}
+              downloadInProgress={downloadInProgress}
               formatDate={formatDate}
               type="minio"
             />
@@ -357,13 +420,67 @@ export default function BackupsManager() {
             <BackupList
               backups={data?.backups.code || []}
               onDelete={deleteBackup}
+              onDownload={downloadBackup}
               deleteInProgress={deleteInProgress}
+              downloadInProgress={downloadInProgress}
               formatDate={formatDate}
               type="code"
             />
           </CardContent>
         </Card>
       </div>
+
+      {/* Upload et restauration depuis un fichier local */}
+      <Card className="border-amber-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Icons.upload className="h-5 w-5 text-amber-500" />
+            Restaurer depuis un fichier local
+          </CardTitle>
+          <CardDescription>
+            Uploadez un fichier <code className="rounded bg-muted px-1.5 py-0.5 text-xs">.sql.gz</code> depuis votre poste pour le restaurer
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Input
+              ref={fileInputRef}
+              type="file"
+              accept=".sql.gz"
+              onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+              disabled={restoreInProgress || uploadInProgress}
+              className="flex-1 cursor-pointer file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm"
+            />
+            <Button
+              variant="destructive"
+              onClick={openUploadRestoreDialog}
+              disabled={!uploadFile || restoreInProgress || uploadInProgress}
+            >
+              {uploadInProgress ? (
+                <>
+                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                  Upload en cours...
+                </>
+              ) : (
+                <>
+                  <Icons.undo className="mr-2 h-4 w-4" />
+                  Restaurer
+                </>
+              )}
+            </Button>
+          </div>
+          {uploadFile && (
+            <p className="text-xs text-muted-foreground">
+              Fichier sélectionné : <span className="font-mono font-medium">{uploadFile.name}</span>{' '}
+              ({(uploadFile.size / (1024 * 1024)).toFixed(2)} MB)
+            </p>
+          )}
+          <p className="text-xs text-amber-600 flex items-center gap-1.5">
+            <Icons.alertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Cette opération écrasera la base de données actuelle de manière irréversible.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Informations */}
       <Card>
@@ -390,7 +507,7 @@ export default function BackupsManager() {
         open={restoreDialog.open}
         onOpenChange={(open) => {
           if (!open) {
-            setRestoreDialog({ open: false, filename: '' })
+            setRestoreDialog({ open: false, filename: '', isUploadRestore: false })
             setRestoreConfirmInput('')
           }
         }}
@@ -451,13 +568,15 @@ interface BackupListProps {
   backups: BackupFile[]
   onDelete: (filename: string) => void
   onRestore?: (filename: string) => void
+  onDownload: (filename: string) => void
   deleteInProgress: string | null
+  downloadInProgress: string | null
   restoreInProgress?: boolean
   formatDate: (date: string) => string
   type: 'database' | 'minio' | 'code'
 }
 
-function BackupList({ backups, onDelete, onRestore, deleteInProgress, restoreInProgress, formatDate, type }: BackupListProps) {
+function BackupList({ backups, onDelete, onRestore, onDownload, deleteInProgress, downloadInProgress, restoreInProgress, formatDate, type }: BackupListProps) {
   if (backups.length === 0) {
     return (
       <p className="text-sm text-muted-foreground text-center py-4">
@@ -497,6 +616,20 @@ function BackupList({ backups, onDelete, onRestore, deleteInProgress, restoreInP
                 Dernier
               </Badge>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDownload(backup.name)}
+              disabled={downloadInProgress === backup.name || restoreInProgress}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+              title="Télécharger ce backup"
+            >
+              {downloadInProgress === backup.name ? (
+                <Icons.spinner className="h-4 w-4 animate-spin" />
+              ) : (
+                <Icons.download className="h-4 w-4" />
+              )}
+            </Button>
             {type === 'database' && onRestore && (
               <Button
                 variant="ghost"

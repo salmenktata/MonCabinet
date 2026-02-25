@@ -4,6 +4,9 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import path from 'path'
 import fs from 'fs/promises'
+import { createReadStream } from 'fs'
+import { Readable } from 'stream'
+import { spawn } from 'child_process'
 
 const execAsync = promisify(exec)
 
@@ -12,6 +15,7 @@ const BACKUP_DIR = process.env.BACKUP_DIR || '/opt/backups/qadhya'
 /**
  * GET /api/admin/backup
  * Liste les backups disponibles
+ * GET /api/admin/backup?download=filename — télécharger un backup
  */
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +26,48 @@ export async function GET(request: NextRequest) {
         { error: 'Non autorisé' },
         { status: 401 }
       )
+    }
+
+    // Téléchargement d'un backup spécifique
+    const { searchParams } = new URL(request.url)
+    const download = searchParams.get('download')
+    if (download) {
+      // Validation sécurité (pas de path traversal)
+      if (download.includes('..') || download.includes('/') || download.includes('\\')) {
+        return NextResponse.json({ error: 'Nom de fichier invalide' }, { status: 400 })
+      }
+
+      const filePath = path.join(BACKUP_DIR, download)
+
+      let stats: Awaited<ReturnType<typeof fs.stat>>
+      try {
+        stats = await fs.stat(filePath)
+      } catch {
+        return NextResponse.json({ error: 'Backup non trouvé' }, { status: 404 })
+      }
+
+      if (stats.isDirectory()) {
+        // Dossiers MinIO → tar.gz en streaming
+        const tar = spawn('tar', ['-czf', '-', '-C', BACKUP_DIR, download])
+        const webStream = Readable.toWeb(tar.stdout) as ReadableStream
+        return new NextResponse(webStream, {
+          headers: {
+            'Content-Type': 'application/gzip',
+            'Content-Disposition': `attachment; filename="${download}.tar.gz"`,
+          },
+        })
+      } else {
+        // Fichiers (.sql.gz, .tar.gz) → stream direct
+        const nodeStream = createReadStream(filePath)
+        const webStream = Readable.toWeb(nodeStream) as ReadableStream
+        return new NextResponse(webStream, {
+          headers: {
+            'Content-Type': 'application/gzip',
+            'Content-Disposition': `attachment; filename="${download}"`,
+            'Content-Length': String(stats.size),
+          },
+        })
+      }
     }
 
     // Lister les backups
