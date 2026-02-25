@@ -21,13 +21,13 @@ interface PipelineDaySummary {
 }
 
 interface PipelineAvg {
-  abstentionRate: number
-  cacheHitRate: number
-  avgSourcesCount: number
-  avgSimilarity: number
-  avgLatencyMs: number
-  qualityGateRate: number
-  routerFailedRate: number
+  abstentionRate: number | null
+  cacheHitRate: number | null
+  avgSourcesCount: number | null
+  avgSimilarity: number | null
+  avgLatencyMs: number | null
+  qualityGateRate: number | null
+  routerFailedRate: number | null
   totalRequests: number
 }
 
@@ -65,17 +65,17 @@ function DeltaBadge({ delta }: { delta: number | null }) {
 
 function MetricRow({ label, chat, kbSearch, format, deltaInverted = false }: {
   label: string
-  chat: number
-  kbSearch: number
+  chat: number | null
+  kbSearch: number | null
   format: (v: number) => string
   deltaInverted?: boolean
 }) {
-  const delta = chat === 0 ? null : (kbSearch - chat) / chat
+  const delta = (chat == null || kbSearch == null || chat === 0) ? null : (kbSearch - chat) / chat
   return (
     <tr className="border-b last:border-0">
       <td className="py-2 pr-4 text-sm text-muted-foreground">{label}</td>
-      <td className="py-2 pr-4 text-sm font-mono font-medium">{format(chat)}</td>
-      <td className="py-2 pr-4 text-sm font-mono font-medium">{format(kbSearch)}</td>
+      <td className="py-2 pr-4 text-sm font-mono font-medium">{chat != null ? format(chat) : '—'}</td>
+      <td className="py-2 pr-4 text-sm font-mono font-medium">{kbSearch != null ? format(kbSearch) : '—'}</td>
       <td className="py-2">
         <DeltaBadge delta={deltaInverted ? (delta !== null ? -delta : null) : delta} />
       </td>
