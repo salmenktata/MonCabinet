@@ -1,0 +1,13 @@
+{
+  "name": "Qadhya - Gestion de Cabinet Juridique",
+  "short_name": "Qadhya",
+  "description": "Plateforme SaaS pour la gestion de cabinet juridique en Tunisie",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#1e3a5f",
+  "icons": [
+    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
