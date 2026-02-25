@@ -1652,7 +1652,7 @@ export async function creerDossierDepuisStructure(
          VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         [
           userId,
-          newClientData.type_client,
+          newClientData.type_client.toLowerCase(),
           newClientData.nom.trim(),
           newClientData.prenom?.trim() || null,
           newClientData.telephone?.trim() || null,
@@ -1676,9 +1676,9 @@ export async function creerDossierDepuisStructure(
     const dossierResult = await client.query(
       `INSERT INTO dossiers (
         user_id, client_id, numero, type_procedure, objet,
-        partie_adverse, tribunal, statut, montant_litige,
-        date_ouverture, notes, workflow_etape_actuelle
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        adverse_partie, tribunal, statut, montant_principal,
+        date_ouverture, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING id`,
       [
         userId,
@@ -1691,11 +1691,10 @@ export async function creerDossierDepuisStructure(
             ? ` ${structure.partieAdverse.prenom}`
             : ''),
         structure.donneesSpecifiques.tribunal || null,
-        'ACTIF',
+        'en_cours',
         structure.donneesSpecifiques.montantPrincipal || null,
         new Date().toISOString().split('T')[0],
         `${structure.resumeCourt}\n\n---\nRécit original:\n${structure.narratifOriginal}`,
-        getInitialWorkflowStep(structure.typeProcedure),
       ]
     )
 
