@@ -345,40 +345,78 @@ function extractWithRegex(
 
     // Patterns arabes pour cassation.tn (décisions en arabe)
     if (!metadata.decision_number) {
-      // عدد XXXXX, رقم XXXXX/YYYY
+      // Format cassation.tn: "قرار تعقيبي عدد XXXXX" ou "قرار عدد XXXXX/YYYY"
+      const arCassationPattern = /قرار(?:\s*(?:تعقيبي|جنائي|مدني|تجاري|اجتماعي))?\s*(?:عدد|رقم)\s*:?\s*(\d+(?:\/\d{4})?)/g
+      const cassationMatch = arCassationPattern.exec(content)
+      if (cassationMatch) {
+        metadata.decision_number = cassationMatch[1]
+      }
+    }
+    if (!metadata.decision_number) {
+      // Fallback: عدد XXXXX, رقم XXXXX/YYYY (seul)
       const arDecisionPattern = /(?:عدد|رقم)\s*[:：]?\s*(\d+(?:\/\d{4})?)/g
-      const arDecisionMatch = content.match(arDecisionPattern)
+      const arDecisionMatch = arDecisionPattern.exec(content)
       if (arDecisionMatch) {
-        const numMatch = arDecisionMatch[0].match(/(\d+(?:\/\d{4})?)/)
-        if (numMatch) {
-          metadata.decision_number = numMatch[0]
-        }
+        metadata.decision_number = arDecisionMatch[1]
       }
     }
 
-    // Date arabe : بتاريخ DD/MM/YYYY ou DD-MM-YYYY
+    // Date arabe — plusieurs patterns par ordre de précision
     if (!metadata.decision_date) {
-      const arDatePattern = /بتاريخ\s+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/g
-      const arDateMatch = content.match(arDatePattern)
-      if (arDateMatch) {
-        const dateStr = arDateMatch[0].replace('بتاريخ', '').trim()
-        const sep = dateStr.includes('/') ? '/' : '-'
-        const [day, month, year] = dateStr.split(sep)
-        if (day && month && year) {
-          metadata.decision_date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      const arDateVariants = [
+        // "صادر بتاريخ DD/MM/YYYY" ou "صدر في DD/MM/YYYY" — très précis
+        /(?:صادر|صدر)\s*(?:في|بتاريخ)\s+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/,
+        // "في جلسة DD/MM/YYYY" — date d'audience
+        /في\s+جلسة\s+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/,
+        // "بتاريخ DD/MM/YYYY" — pattern général
+        /بتاريخ\s+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/,
+      ]
+      for (const pattern of arDateVariants) {
+        const m = content.match(pattern)
+        if (m) {
+          const dateStr = m[1]
+          const sep = dateStr.includes('/') ? '/' : '-'
+          const [day, month, year] = dateStr.split(sep)
+          if (day && month && year) {
+            metadata.decision_date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+            break
+          }
         }
       }
     }
 
-    // Chambre arabe → mapping FR
+    // Chambre arabe → mapping FR (patterns précis avec "الدائرة" en priorité)
     if (!metadata.chambre) {
+      // Priorité 1 : "الدائرة X" dans les 400 premiers caractères (en-tête)
+      const header = content.substring(0, 400)
+      const arChambreFullMap: Array<[string, string]> = [
+        ['الدائرة المدنية', 'civil'],
+        ['الدائرة التجارية', 'commercial'],
+        ['الدائرة الجنائية', 'pénal'],
+        ['الدائرة الجزائية', 'pénal'],
+        ['الدائرة الاجتماعية', 'social'],
+        ['الدائرة العقارية', 'immobilier'],
+        ['دائرة الأحوال الشخصية', 'statut_personnel'],
+        ['الدائرة الإدارية', 'administratif'],
+      ]
+      for (const [arPhrase, frName] of arChambreFullMap) {
+        if (header.includes(arPhrase)) {
+          metadata.chambre = frName
+          break
+        }
+      }
+    }
+    if (!metadata.chambre) {
+      // Fallback : termes courts dans tout le contenu
       const arChambreMap: Record<string, string> = {
         'مدني': 'civil',
         'تجاري': 'commercial',
         'جزائي': 'pénal',
+        'جنائي': 'pénal',
         'أحوال شخصية': 'statut_personnel',
         'عقاري': 'immobilier',
         'اجتماعي': 'social',
+        'إداري': 'administratif',
       }
       for (const [arName, frName] of Object.entries(arChambreMap)) {
         if (content.includes(arName)) {
