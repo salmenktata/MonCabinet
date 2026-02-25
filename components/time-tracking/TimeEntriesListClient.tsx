@@ -72,7 +72,7 @@ export default function TimeEntriesListClient({ entries }: TimeEntriesListClient
       if (search.trim()) {
         const q = search.toLowerCase()
         if (
-          !e.description.toLowerCase().includes(q) &&
+          !(e.description ?? '').toLowerCase().includes(q) &&
           !(e.dossiers?.numero ?? '').toLowerCase().includes(q) &&
           !(e.dossiers?.objet ?? '').toLowerCase().includes(q)
         ) {
