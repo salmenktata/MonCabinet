@@ -32,7 +32,10 @@ export const metadata: Metadata = {
   title: 'Qadhya - Gestion de Cabinet Juridique',
   description: 'Qadhya - Plateforme SaaS pour la gestion de cabinet juridique en Tunisie',
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.png', type: 'image/png' },
+    ],
     apple: '/apple-touch-icon.png',
   },
 }
