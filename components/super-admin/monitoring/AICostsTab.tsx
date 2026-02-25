@@ -50,14 +50,33 @@ interface GeminiCosts {
   thresholds: { dailyLLMCallsAlert: number; dailyCostUSDAlert: number }
 }
 
+interface GroqStats {
+  stats: Array<{
+    date: string
+    totalCalls: number
+    byModel: Record<string, { calls: number; tokensIn: number; tokensOut: number; estimatedCostUsd: number }>
+  }>
+  totals: {
+    totalCalls: number
+    total70bCalls: number
+    total8bCalls: number
+    totalTokensIn: number
+    totalTokensOut: number
+    estimatedCostUsd: number
+  }
+  thresholds: { freeTier70bPerDay: number; alertThreshold70b: number }
+}
+
 export function AICostsTab() {
   const [stats, setStats] = useState<CostsStats | null>(null)
   const [geminiCosts, setGeminiCosts] = useState<GeminiCosts | null>(null)
+  const [groqStats, setGroqStats] = useState<GroqStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchCosts()
     fetchGeminiCosts()
+    fetchGroqStats()
   }, [])
 
   async function fetchCosts() {
@@ -83,6 +102,18 @@ export function AICostsTab() {
       }
     } catch (error) {
       console.error('Error fetching Gemini costs:', error)
+    }
+  }
+
+  async function fetchGroqStats() {
+    try {
+      const response = await fetch('/api/admin/monitoring/groq-stats')
+      const data = await response.json()
+      if (data.status === 'ok') {
+        setGroqStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching Groq stats:', error)
     }
   }
 
@@ -269,6 +300,100 @@ export function AICostsTab() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Groq Usage (Redis tracking) */}
+      {groqStats && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Usage Groq (7 derniers jours)</h3>
+            <p className="text-sm text-muted-foreground">
+              Tracking Redis — llama-3.3-70b (assistant-ia) + llama-3.1-8b (classif/expansion) · Free tier 70b : 14 400 req/jour
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Appels 70b (7j)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${groqStats.totals.total70bCalls > groqStats.thresholds.alertThreshold70b * 7 ? 'text-orange-500' : ''}`}>
+                  {groqStats.totals.total70bCalls.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Free tier : {groqStats.thresholds.freeTier70bPerDay.toLocaleString()}/jour
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Appels 8b (7j)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{groqStats.totals.total8bCalls.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Classif + expansion queries</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Tokens totaux (7j)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {((groqStats.totals.totalTokensIn + groqStats.totals.totalTokensOut) / 1000).toFixed(0)}K
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {(groqStats.totals.totalTokensIn / 1000).toFixed(0)}K in · {(groqStats.totals.totalTokensOut / 1000).toFixed(0)}K out
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Coût estimé (7j)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-500">
+                  ${groqStats.totals.estimatedCostUsd.toFixed(4)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {groqStats.totals.totalCalls === 0 ? '~$0 (free tier)' : `${formatTND(groqStats.totals.estimatedCostUsd)} TND si payant`}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {groqStats.stats.some(d => d.totalCalls > 0) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Détail par jour</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {groqStats.stats.filter(d => d.totalCalls > 0).map((day) => {
+                    const calls70b = day.byModel['llama-3.3-70b-versatile']?.calls ?? 0
+                    const pct70b = groqStats.thresholds.freeTier70bPerDay > 0
+                      ? Math.round((calls70b / groqStats.thresholds.freeTier70bPerDay) * 100)
+                      : 0
+                    return (
+                      <div key={day.date} className="flex items-center justify-between border-b pb-2 last:border-0">
+                        <span className="text-sm font-medium">{new Date(day.date).toLocaleDateString('fr-FR')}</span>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{day.totalCalls} appels</span>
+                          {calls70b > 0 && (
+                            <Badge variant={pct70b >= 80 ? 'destructive' : pct70b >= 50 ? 'secondary' : 'outline'}>
+                              70b: {calls70b} ({pct70b}% free tier)
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
