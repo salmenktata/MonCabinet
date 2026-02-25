@@ -27,7 +27,7 @@ export function MarketingHeader() {
       <nav className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
         {/* Logo */}
         <Link href="/">
-          <LogoHorizontal size="sm" variant="juridique" showTag={false} animate={false} />
+          <LogoHorizontal size="md" variant="juridique" showTag={false} animate={false} />
         </Link>
 
         {/* Desktop Nav */}

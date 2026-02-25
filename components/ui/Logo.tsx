@@ -19,10 +19,10 @@ const variantConfig: Record<LogoVariant, { label: string; color: string }> = {
 }
 
 const sizeConfig: Record<LogoSize, { icon: number; text: string; tag: string; gap: string }> = {
-  sm: { icon: 32, text: 'text-lg', tag: 'text-[10px] px-2 py-0.5', gap: 'gap-1' },
-  md: { icon: 40, text: 'text-xl', tag: 'text-xs px-2.5 py-0.5', gap: 'gap-1.5' },
-  lg: { icon: 56, text: 'text-2xl', tag: 'text-sm px-3 py-1', gap: 'gap-2' },
-  xl: { icon: 72, text: 'text-3xl', tag: 'text-base px-4 py-1.5', gap: 'gap-3' },
+  sm: { icon: 36, text: 'text-lg', tag: 'text-[10px] px-2 py-0.5', gap: 'gap-1' },
+  md: { icon: 48, text: 'text-xl', tag: 'text-xs px-2.5 py-0.5', gap: 'gap-1.5' },
+  lg: { icon: 64, text: 'text-2xl', tag: 'text-sm px-3 py-1', gap: 'gap-2' },
+  xl: { icon: 96, text: 'text-3xl', tag: 'text-base px-4 py-1.5', gap: 'gap-3' },
 }
 
 export function Logo({
@@ -56,89 +56,16 @@ export function Logo({
           />
         )}
 
-        {/* SVG Logo — bouclier amber + balance marine réseau */}
-        <svg
-          viewBox="0 0 64 64"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
+        {/* Logo PNG — transparent, sans fond blanc */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.png"
+          alt="Qadhya"
           className={cn(
-            'w-full h-full relative z-10 drop-shadow-lg',
+            'w-full h-full relative z-10 object-contain drop-shadow-lg',
             animate && 'transition-transform duration-300'
           )}
-        >
-          {/* Bouclier amber plat */}
-          <path
-            d="M32 3C32 3 7 11 7 24C7 37 7 45 32 61C57 45 57 37 57 24C57 11 32 3 32 3Z"
-            fill="#E8951A"
-          />
-          {/* Ombre portée droite (flat shadow) */}
-          <path
-            d="M32 3C32 3 57 11 57 24C57 37 57 45 32 61L32 3Z"
-            fill="#C47A10"
-            opacity="0.4"
-          />
-          {/* Bordure interne */}
-          <path
-            d="M32 6C32 6 10 13 10 24C10 36 10 44 32 59C54 44 54 36 54 24C54 13 32 6 32 6Z"
-            fill="none"
-            stroke="#C47A10"
-            strokeWidth="1"
-            opacity="0.6"
-          />
-
-          {/* Balance marine avec nœuds réseau */}
-          <g fill="#1E3464" stroke="#1E3464">
-            {/* Diamant au sommet */}
-            <path d="M32 11 L30 14.5 L32 16.5 L34 14.5 Z" />
-
-            {/* Pilier central vertical */}
-            <rect x="31" y="16" width="2" height="26" rx="1" />
-
-            {/* Nœud central haut */}
-            <circle cx="32" cy="20" r="2" />
-
-            {/* Bras gauche haut (vers nœud ext gauche) */}
-            <line x1="32" y1="20" x2="19" y2="20" strokeWidth="1.8" />
-            {/* Bras droit haut (vers nœud ext droit) */}
-            <line x1="32" y1="20" x2="45" y2="20" strokeWidth="1.8" />
-
-            {/* Nœud extérieur gauche */}
-            <circle cx="19" cy="20" r="2" />
-            {/* Nœud extérieur droit */}
-            <circle cx="45" cy="20" r="2" />
-
-            {/* Diagonale gauche (nœud ext → nœud mid) */}
-            <line x1="19" y1="20" x2="24" y2="26" strokeWidth="1.8" />
-            {/* Diagonale droite (nœud ext → nœud mid) */}
-            <line x1="45" y1="20" x2="40" y2="26" strokeWidth="1.8" />
-
-            {/* Nœud milieu gauche */}
-            <circle cx="24" cy="26" r="2" />
-            {/* Nœud milieu droit */}
-            <circle cx="40" cy="26" r="2" />
-
-            {/* Converge vers nœud central bas */}
-            <line x1="24" y1="26" x2="32" y2="30" strokeWidth="1.8" />
-            <line x1="40" y1="26" x2="32" y2="30" strokeWidth="1.8" />
-
-            {/* Nœud central bas */}
-            <circle cx="32" cy="30" r="2.5" />
-
-            {/* Chaînes vers plateaux */}
-            <line x1="19" y1="22" x2="19" y2="31" strokeWidth="1.5" />
-            <line x1="45" y1="22" x2="45" y2="31" strokeWidth="1.5" />
-
-            {/* Plateau gauche */}
-            <path d="M13 31 L25 31 L23 37 L15 37 Z" />
-            {/* Plateau droit */}
-            <path d="M39 31 L51 31 L49 37 L41 37 Z" />
-
-            {/* Base du pilier — socle */}
-            <rect x="29" y="42" width="6" height="2" rx="1" />
-            <rect x="27" y="43.5" width="10" height="2" rx="1" />
-            <rect x="24" y="45" width="16" height="3" rx="1.5" />
-          </g>
-        </svg>
+        />
       </div>
 
       {/* Texte du logo */}
@@ -223,39 +150,12 @@ export function LogoHorizontal({
             }}
           />
         )}
-        <svg
-          viewBox="0 0 64 64"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full relative z-10 drop-shadow-lg"
-        >
-          <path d="M32 3C32 3 7 11 7 24C7 37 7 45 32 61C57 45 57 37 57 24C57 11 32 3 32 3Z" fill="#E8951A" />
-          <path d="M32 3C32 3 57 11 57 24C57 37 57 45 32 61L32 3Z" fill="#C47A10" opacity="0.4" />
-          <path d="M32 6C32 6 10 13 10 24C10 36 10 44 32 59C54 44 54 36 54 24C54 13 32 6 32 6Z" fill="none" stroke="#C47A10" strokeWidth="1" opacity="0.6" />
-          <g fill="#1E3464" stroke="#1E3464">
-            <path d="M32 11 L30 14.5 L32 16.5 L34 14.5 Z" />
-            <rect x="31" y="16" width="2" height="26" rx="1" />
-            <circle cx="32" cy="20" r="2" />
-            <line x1="32" y1="20" x2="19" y2="20" strokeWidth="1.8" />
-            <line x1="32" y1="20" x2="45" y2="20" strokeWidth="1.8" />
-            <circle cx="19" cy="20" r="2" />
-            <circle cx="45" cy="20" r="2" />
-            <line x1="19" y1="20" x2="24" y2="26" strokeWidth="1.8" />
-            <line x1="45" y1="20" x2="40" y2="26" strokeWidth="1.8" />
-            <circle cx="24" cy="26" r="2" />
-            <circle cx="40" cy="26" r="2" />
-            <line x1="24" y1="26" x2="32" y2="30" strokeWidth="1.8" />
-            <line x1="40" y1="26" x2="32" y2="30" strokeWidth="1.8" />
-            <circle cx="32" cy="30" r="2.5" />
-            <line x1="19" y1="22" x2="19" y2="31" strokeWidth="1.5" />
-            <line x1="45" y1="22" x2="45" y2="31" strokeWidth="1.5" />
-            <path d="M13 31 L25 31 L23 37 L15 37 Z" />
-            <path d="M39 31 L51 31 L49 37 L41 37 Z" />
-            <rect x="29" y="42" width="6" height="2" rx="1" />
-            <rect x="27" y="43.5" width="10" height="2" rx="1" />
-            <rect x="24" y="45" width="16" height="3" rx="1.5" />
-          </g>
-        </svg>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.png"
+          alt="Qadhya"
+          className="w-full h-full relative z-10 object-contain drop-shadow-lg"
+        />
       </div>
 
       {/* Texte et tag */}
