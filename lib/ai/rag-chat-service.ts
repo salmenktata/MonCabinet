@@ -599,6 +599,17 @@ async function rerankSources(
       log.info(`[RAG Rerank] Malus qualité 0.5× sur "${s.documentName}" (quality_score=${qualityScore})`)
     }
 
+    // P4 fix Feb 25, 2026 : boost spécifique مجلة الالتزامات والعقود (COC)
+    // Les articles COC en arabe classique ont une similarité sémantique intrinsèquement
+    // basse (~0.15-0.20) vs doctrine (~0.55-0.65) à cause du style archaïque.
+    // Boost 1.25× pour rééquilibrer sans dépasser le cap global 2.0×.
+    const docName = s.documentName || ''
+    const isCocArticle = (_meta?.category === 'codes' || _meta?.doc_type === 'TEXTES') &&
+      (docName.includes('مجلة الالتزامات') || docName.includes('م.ا.ع') || docName.includes('COC'))
+    if (isCocArticle) {
+      boost *= 1.25
+    }
+
     // P0 fix Feb 24, 2026 : plafonner le boost cumulatif à 2.0×
     // Sans cap : domain(2.5×) × hierarchy(1.35×) × temporal × stance(1.3×) → ~5.5×
     // Un chunk médiocre avec tous les boosts peut dépasser un chunk très pertinent

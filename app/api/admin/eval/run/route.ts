@@ -149,7 +149,7 @@ async function runBenchmarkAsync(runId: string, goldCases: GoldEvalCase[], runMo
       const retrievalStart = Date.now()
 
       const searchResults = await searchKnowledgeBaseHybrid(evalCase.question, {
-        limit: 10,
+        limit: 30, // P1 fix Feb 25: 10→30 — KB a grandi de 33K→45K chunks, pool élargi pour meilleur recall@5/10
         operationName: 'assistant-ia',
       })
 

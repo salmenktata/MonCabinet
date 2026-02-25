@@ -29,7 +29,7 @@
     },
     "intentType": "factual",
     "goldChunkIds": [
-      "df71e730-32a1-4c9c-b434-4b997654159a",
+      "78d20225-5839-4624-859b-9ddd3e7dc3cd",
       "a2a22028-0eaa-4c90-98dc-804147e7d5c2",
       "8f35dbee-2153-4b10-905f-b878263402a4",
       "4bf172b1-e43b-47c3-80b4-7705481bd219",
@@ -42,7 +42,7 @@
       "1b4b4028-f94f-4ec7-9030-b7048708d6f2",
       "233a4e28-793e-4452-9235-65196c39a39b"
     ],
-    "_annotationFix": "Feb 24 2026: chunks corrigés vers art 402 COC (xav chunkIds pointaient vers مجلة المحاسبة العمومية/Comptable — prescriptions de 4 ans d'État, pas la prescription civile générale)"
+    "_annotationFix": "Feb 25 2026 (P0): df71e730 (code fiscal enregistrement — 10 ans WRONG) → 78d20225 (art 402 COC — 15 ans prescription civile générale). Note: chunk fiscal était en position 1 (KB-1), LLM répondait 10 ans au lieu de 15 ans."
   },
   {
     "id": "civil_easy_02",
@@ -360,7 +360,7 @@
     },
     "goldChunkIds": [
       "a8ee827e-9114-45e4-8a88-4c250e896e7c",
-      "99a39f6c-768e-47d7-bbaf-c056841fb3f1",
+      "031f8d6c-b67e-43b8-a856-4ac2e27cf48d",
       "759197e4-c919-47c8-a4cb-c8c2c3fa0153",
       "84789ea2-6db4-4cb3-b833-5cd50ec986af",
       "1aae831e-a078-4757-9ce8-7ab41875c1a1"
@@ -368,7 +368,8 @@
     "goldDocumentIds": [
       "764fb3c5-f671-4c52-8183-8897d5b23c25",
       "485f7370-2107-407a-b61c-d0a535847541"
-    ]
+    ],
+    "_annotationFix": "Feb 25 2026 (P2): 99a39f6c (manquant DB) → 031f8d6c (art 23 م.ا.ع — لا يتم الاتفاق إلا بتراضي المتعاقدين على أركان العقد)"
   },
   {
     "id": "ar_civil_02",
@@ -404,7 +405,9 @@
       "78d20225-5839-4624-859b-9ddd3e7dc3cd",
       "10a25764-1aff-419d-a633-5503a907d5d0",
       "4467caf5-28e3-4b0c-b73f-a28336c988f1",
-      "18279a17-7ff4-4bed-88cc-388d53c7f504"
+      "18279a17-7ff4-4bed-88cc-388d53c7f504",
+      "fc072f3e-9a10-47ae-a8e0-a470d5d09398",
+      "306e3834-dc4e-497f-8fee-c66848eefd43"
     ],
     "goldDocumentIds": [
       "f0d28e55-0507-41dd-b782-483cf28c39df",
@@ -412,7 +415,7 @@
       "bf174d97-a899-4a28-b714-dae3ee706ac9",
       "27dd998c-c26c-4bdd-9996-e787bfe936f4"
     ],
-    "_annotationFix": "Feb 24 2026: chunks corrigés vers art 402 م.ا.ع (anciens chunkIds pointaient vers مجلة المحاسبة العمومية — prescriptions comptables 4 ans, pas التقادم المدني العام)"
+    "_annotationFix": "Feb 25 2026 (P2): ajout fc072f3e (art 401 — حساب المدة) et 306e3834 (art 408 — تقادم 5 سنوات اداءات راتبة)"
   },
   {
     "id": "ar_civil_03",
@@ -528,15 +531,15 @@
     "goldChunkIds": [
       "ae9748a1-b5ba-4e0a-b1ce-bad5cb7fd8d1",
       "5938db62-d9ee-49bb-b7a0-161f360c1335",
-      "2649ed3e-0ded-40cd-8a5b-9d8122a03fe8",
-      "246828d1-6917-425b-bcaf-be84e78ecafe",
-      "5d31baff-f58a-4e8a-9075-e5fde2f0ea52"
+      "96fa95f4-2b34-456e-be2f-f474bfd38e63",
+      "8206309f-5f8d-46df-97eb-3b84b07079b8"
     ],
     "goldDocumentIds": [
       "764fb3c5-f671-4c52-8183-8897d5b23c25",
       "770439ea-1057-4698-97c9-14e1da12c41e",
       "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
-    ]
+    ],
+    "_annotationFix": "Feb 25 2026 (P2): 2649ed3e+246828d1 (مجلة الديوانة — WRONG) → 96fa95f4 (art 342 م.ا.ع ضمان عيوب خفية) + 8206309f (art 393 ضمان+استحقاق). 5d31baff (manquant DB) supprimé."
   },
   {
     "id": "ar_civil_06",
@@ -642,12 +645,16 @@
       "12809574-d610-4990-addd-86b66f7c98a0",
       "01b50aac-77b8-4c6f-83d1-607e4c34136f",
       "89b56277-fd72-4eaa-8800-bd2aaea7670c",
-      "e8b1fe78-ed2c-4408-9a17-4a71a75934f9"
+      "e8b1fe78-ed2c-4408-9a17-4a71a75934f9",
+      "c2c09c3a-405a-4f36-b32f-4ededd3c4116",
+      "64b295e2-4988-4d66-923e-1e3529f8b96a",
+      "19cdacdd-dda8-4161-851b-e2547d6e83eb"
     ],
     "goldDocumentIds": [
       "764fb3c5-f671-4c52-8183-8897d5b23c25",
       "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
-    ]
+    ],
+    "_annotationFix": "Feb 25 2026 (P2): ajout c2c09c3a (art 61 فسخ للغبن), 64b295e2 (art 51 فسخ للإكراه), 19cdacdd (art 346 فسخ جزئي)"
   },
   {
     "id": "ar_civil_09",
@@ -682,11 +689,14 @@
       "759197e4-c919-47c8-a4cb-c8c2c3fa0153",
       "84789ea2-6db4-4cb3-b833-5cd50ec986af",
       "d418789d-52f6-4ac4-b1c0-3f1d13e2afc4",
-      "4e5a2e00-e3eb-4136-9e8f-4268beee8523"
+      "4e5a2e00-e3eb-4136-9e8f-4268beee8523",
+      "8fd733da-7112-4843-a9a4-ef49d40d824a",
+      "9a3bd318-29ac-4086-86e3-9888f271d0e3"
     ],
     "goldDocumentIds": [
       "764fb3c5-f671-4c52-8183-8897d5b23c25"
-    ]
+    ],
+    "_annotationFix": "Feb 25 2026 (P2): ajout 8fd733da (art 326 بطلان الالتزام الأصلي), 9a3bd318 (art 335 إثارة البطلان دفعاً)"
   },
   {
     "id": "fr_civil_01",

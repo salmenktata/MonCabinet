@@ -200,7 +200,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     llmConfig: {
       temperature: 0.3,
-      maxTokens: 4000, // Réduit 8000→4000 (structures standard < 4000 tokens)
+      maxTokens: 6000, // Augmenté 4000→6000 : cas pénaux complexes (7 phases) peuvent dépasser 4000 tokens
       systemPromptType: 'chat',
     },
 

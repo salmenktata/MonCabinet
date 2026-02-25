@@ -50,10 +50,37 @@ curl -sf -X POST "$API_URL/api/admin/monitoring/cron-executions" \
 TOTAL_SUCCESS=0
 TOTAL_FAIL=0
 
+# ─── P3 fix Feb 25 : Guard anti-conflit Ollama ───────────────────────────────
+# Le cron eval-rag-weekly tourne le dimanche à 3h00.
+# Si kb-quality-maintenance est lancé manuellement un dimanche matin AVANT 7h,
+# les appels Ollama en parallèle saturent le circuit breaker et dégradent le RAG.
+# Solution : détecter si l'eval a tourné récemment (<3h) et sauter Phase 1-2 (Ollama-heavy).
+
+SKIP_OLLAMA_PHASES=false
+DOW=$(date +%u)  # 1=Lundi … 7=Dimanche
+HOUR=$(date +%H)
+if [ "$DOW" = "7" ] && [ "$HOUR" -lt "7" ]; then
+  log "  [GUARD] Dimanche avant 7h — eval RAG peut encore être actif, skip phases Ollama (P1-P2)"
+  SKIP_OLLAMA_PHASES=true
+fi
+
+# Vérifier aussi si Ollama est actuellement en cooldown (circuit breaker ouvert)
+OLLAMA_CB=$(curl -sf -m 5 "$API_URL/api/admin/monitoring/providers-health" \
+  -H "Authorization: Bearer $CRON_SECRET" 2>/dev/null \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); p=d.get('providers',{}); print(p.get('ollama',{}).get('circuitBreaker','closed'))" 2>/dev/null || echo "unknown")
+if [ "$OLLAMA_CB" = "open" ]; then
+  log "  [GUARD] Ollama circuit breaker OUVERT — skip phases Ollama (P1-P2)"
+  SKIP_OLLAMA_PHASES=true
+fi
+
 # ─── Phase 1 : Quality scores (10×50 = 500 docs max) ────────────────────────
 
 log ""
 log "── Phase 1 : Quality scores (20 batches × 50 docs) ──"
+
+if [ "$SKIP_OLLAMA_PHASES" = "true" ]; then
+  log "  [P1] Skipped (Ollama protégé)"
+else
 
 for i in $(seq 1 20); do
   log "  [P1] Batch $i/20..."
@@ -89,12 +116,18 @@ done
 
 log "  [P1] Total: succeeded=$TOTAL_SUCCESS failed=$TOTAL_FAIL"
 
+fi  # end SKIP_OLLAMA_PHASES guard Phase 1
+
 # ─── Phase 2 : Rechunk large docs (3×5) ─────────────────────────────────────
 
 log ""
 log "── Phase 2 : Rechunk large docs (3 batches × 5 docs) ──"
 
 RECHUNK_TOTAL=0
+if [ "$SKIP_OLLAMA_PHASES" = "true" ]; then
+  log "  [P2] Skipped (Ollama protégé)"
+else
+
 for i in $(seq 1 3); do
   log "  [P2] Batch $i/3..."
   RESP=$(curl -sf -m 180 \
@@ -123,6 +156,8 @@ for i in $(seq 1 3); do
 done
 
 log "  [P2] Total rechunked: $RECHUNK_TOTAL"
+
+fi  # end SKIP_OLLAMA_PHASES guard Phase 2
 
 # ─── Phase 3 : Reindex articles code + jort (2×3 chacun) ────────────────────
 

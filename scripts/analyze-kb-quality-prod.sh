@@ -14,6 +14,14 @@ BATCH_SIZE=${1:-20}
 MAX_BATCHES=${2:-999}
 API_URL="https://qadhya.tn/api/admin/kb/analyze-quality"
 
+# Récupérer le CRON_SECRET depuis le container prod via SSH
+CRON_SECRET=$(ssh moncabinet-prod "docker exec qadhya-nextjs printenv CRON_SECRET 2>/dev/null" 2>/dev/null | tr -d '\n\r')
+if [ -z "$CRON_SECRET" ]; then
+  echo "❌ Impossible de récupérer CRON_SECRET depuis le container prod"
+  exit 1
+fi
+AUTH_HEADER="x-cron-secret: $CRON_SECRET"
+
 echo "═══════════════════════════════════════════════════════════════"
 echo "  🎯 Analyse Qualité KB Production - Qadhya"
 echo "═══════════════════════════════════════════════════════════════"
@@ -26,7 +34,7 @@ echo ""
 
 # Récupérer statistiques initiales
 echo "📊 Statistiques initiales..."
-STATS=$(curl -s "$API_URL")
+STATS=$(curl -s "$API_URL" -H "$AUTH_HEADER")
 TOTAL_DOCS=$(echo "$STATS" | jq -r '.stats.totalDocs')
 WITHOUT_SCORE=$(echo "$STATS" | jq -r '.stats.withoutScore')
 WITH_SCORE=$(echo "$STATS" | jq -r '.stats.withScore')
@@ -71,6 +79,7 @@ for i in $(seq 1 $ACTUAL_BATCHES); do
 
     RESULT=$(curl -s -X POST "$API_URL" \
         -H 'Content-Type: application/json' \
+        -H "$AUTH_HEADER" \
         -d "{\"batchSize\":$BATCH_SIZE,\"skipAnalyzed\":true}")
 
     SUCCESS=$(echo "$RESULT" | jq -r '.success')
@@ -141,7 +150,7 @@ echo ""
 
 # Statistiques finales
 echo "📊 Statistiques finales..."
-FINAL_STATS=$(curl -s "$API_URL")
+FINAL_STATS=$(curl -s "$API_URL" -H "$AUTH_HEADER")
 FINAL_WITH_SCORE=$(echo "$FINAL_STATS" | jq -r '.stats.withScore')
 FINAL_WITHOUT_SCORE=$(echo "$FINAL_STATS" | jq -r '.stats.withoutScore')
 FINAL_AVG_SCORE=$(echo "$FINAL_STATS" | jq -r '.stats.avgScore // "N/A"')
