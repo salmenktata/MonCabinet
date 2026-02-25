@@ -232,6 +232,20 @@ export async function GET(req: NextRequest): Promise<NextResponse<KBSearchRespon
     const results = await search(query, { category }, { limit, threshold: RAG_THRESHOLDS.kbSearch })
 
     const processingTimeMs = Date.now() - startTime
+    const cacheHit = processingTimeMs < 50
+    const avgSim = results.length > 0
+      ? results.reduce((s, r) => s + r.similarity, 0) / results.length
+      : 0
+
+    // Instrumentation métriques comparatives pipeline (GET)
+    recordPipelineMetric({
+      pipeline: 'kb_search',
+      abstention: results.length === 0,
+      cacheHit,
+      sourcesCount: results.length,
+      avgSimilarity: avgSim,
+      latencyMs: processingTimeMs,
+    })
 
     return NextResponse.json({
       success: true,
@@ -243,7 +257,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<KBSearchRespon
       },
       metadata: {
         processingTimeMs,
-        cacheHit: false,
+        cacheHit,
       },
     })
   } catch (error) {

@@ -602,6 +602,7 @@ async function handleStreamingResponse(
   excludeCategories?: string[]
 ): Promise<Response> {
   const encoder = new TextEncoder()
+  const streamStartTime = Date.now()
 
   // Streaming natif Gemini via answerQuestionStream()
   const generator = answerQuestionStream(question, userId, {
@@ -643,6 +644,21 @@ async function handleStreamingResponse(
             const done = { type: 'done', tokensUsed: event.tokensUsed }
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(done)}\n\n`))
             controller.close()
+
+            // Instrumentation métriques comparatives pipeline (streaming)
+            const streamAvgSim = savedSources.length > 0
+              ? savedSources.reduce((s, r) => s + ((r as any).similarity ?? 0), 0) / savedSources.length
+              : 0
+            recordPipelineMetric({
+              pipeline: 'chat',
+              abstention: !fullAnswer || fullAnswer.trim().length === 0,
+              cacheHit: false,
+              sourcesCount: savedSources.length,
+              avgSimilarity: streamAvgSim,
+              latencyMs: Date.now() - streamStartTime,
+              qualityGateTriggered: false,
+              routerFailed: false,
+            })
 
             // Post-stream : sauvegarder la réponse complète
             await saveMessage(
