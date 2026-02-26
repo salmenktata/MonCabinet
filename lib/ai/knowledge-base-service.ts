@@ -964,6 +964,31 @@ async function searchHybridSingle(
 }
 
 /**
+ * Détecte le fragment de titre du code juridique cible pour les queries arabes.
+ * Utilisé dans codes-forced pour appliquer bm25EffSim boost UNIQUEMENT au code pertinent.
+ *
+ * Fix Feb 26 v6: résout l'inflation BM25 (accord_et_ses_annexe, IRPP) → tous à 1.0.
+ * En détectant le code cible, le boost fort (bm25EffSim × CODE_PRIORITY_BOOST) est réservé
+ * aux chunks de ce code, tandis que les autres codes n'ont qu'un boost vecSim × boost.
+ */
+function getTargetCodeTitleFragment(queryText: string, lang: string): string | null {
+  if (lang !== 'ar') return null
+  // Penal first (before civil, to avoid التقادم الجزائي matching civil)
+  if (/الجريمة|عقوبة|جنحة|سرقة|قتل|الجزائي|الجنائي|النيابة العمومية|اجراءات جزائية/.test(queryText)) {
+    return 'مجلة الاجراءات الجزائية'
+  }
+  // Labor
+  if (/مجلة الشغل|عقد الشغل|صاحب العمل|رب العمل|الأجير|الطرد التعسفي|التشغيل/.test(queryText)) {
+    return 'مجلة الشغل'
+  }
+  // Civil obligations (COC) — التقادم included (default prescription = COC Fsl 402)
+  if (/العقد|الالتزامات|البطلان|الفسخ|الضمان|التقادم|المسؤولية التقصيرية|المسؤولية المدنية|مجلة الالتزامات|أركان العقد|الرضا|الإيجاب والقبول/.test(queryText)) {
+    return 'مجلة الالتزامات'
+  }
+  return null
+}
+
+/**
  * Recherche HYBRIDE dans la base de connaissances
  *
  * ✨ OPTIMISATION RAG - Sprint 3 (Feb 2026)
@@ -1124,15 +1149,23 @@ export async function searchKnowledgeBaseHybrid(
       if (label === 'codes-forced') {
         const chunkBranch = r.metadata?.branch as string | undefined
         if (chunkBranch !== 'autre') {
-          // Fix Feb 26 v5: pour queries AR, les articles COC ont vecSim faible (0.15-0.20)
-          // mais bm25Rank élevé (0.3-0.6 quand chunk bien catché par OR-query).
-          // Si bm25EffSim > vecSim → utiliser BM25 comme base du boost.
-          // Nécessite SQL fix bm25_pool_limit=100 pour que bm25Rank > 0 soit retourné (position 64).
           const vecSim = (r.metadata?.vectorSimilarity as number) || 0
           const bm25Rank = (r.metadata?.bm25Rank as number) || 0
-          const bm25EffSim = bm25Rank > 0 ? Math.max(0.35, Math.min(0.50, bm25Rank * 10)) : 0
-          const baseSim = bm25EffSim > vecSim ? bm25EffSim : r.similarity
-          r.similarity = Math.min(1.0, baseSim * CODE_PRIORITY_BOOST)
+          // Fix Feb 26 v6: boost sélectif par code cible (résout l'inflation BM25 accordEtSesAnnexe)
+          // Pour AR: détecter le code juridique cible (COC, CPP, Shoghl...) par pattern dans la query.
+          // Seul le code cible bénéficie de bm25EffSim boost ; les autres reçoivent vecSim × boost.
+          // → accord_et_ses_annexe.pdf, IRPP, LF2023 ne peuvent plus pousser à 1.0 par BM25 seul.
+          const targetFragment = getTargetCodeTitleFragment(queryText, bm25Language as string)
+          const isTargetCode = targetFragment ? r.title.includes(targetFragment) : false
+          if (isTargetCode) {
+            // ✅ Code cible: leverage BM25 signal → bm25EffSim × CODE_PRIORITY_BOOST
+            const bm25EffSim = bm25Rank > 0 ? Math.max(0.35, Math.min(0.50, bm25Rank * 10)) : 0
+            const baseSim = bm25EffSim > vecSim ? bm25EffSim : r.similarity
+            r.similarity = Math.min(1.0, baseSim * CODE_PRIORITY_BOOST)
+          } else {
+            // Non-target code: vecSim-based boost uniquement (pas de bm25EffSim inflation)
+            r.similarity = Math.min(1.0, vecSim * CODE_PRIORITY_BOOST)
+          }
         }
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
