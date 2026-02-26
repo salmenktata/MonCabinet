@@ -1064,6 +1064,77 @@ async function searchArticleByTextMatch(
 }
 
 /**
+ * Recherche BM25 directe dans un code juridique cible.
+ *
+ * Fix Feb 26 v9: contourne le biais RRF 70/30 pour les requêtes arabes classiques.
+ * Problème: chunks COC avec vecSim < threshold (0.15) sont EXCLUS du pool vectoriel.
+ * En BM25-only, le score RRF = 0.7/(60+rank). Mais les chunks ayant vector+BM25 scorent
+ * 1.0/(60+rank), donc si 15+ chunks ont les deux signaux, le COC BM25-only n'entre jamais.
+ *
+ * Cette fonction fait une recherche BM25 PURE filtrée par titre du code cible → garantit
+ * que les articles Fsl 2/23/119 entrent dans le pool même avec sim embedding < threshold.
+ *
+ * @param queryText - Texte de la query (sans tashkeel, avec ponctuation nettoyée)
+ * @param titleFragment - Fragment du titre du code cible (ex: 'مجلة الالتزامات')
+ * @param language - Langue détectée ('ar', 'fr', 'simple')
+ * @param limit - Nombre de résultats (défaut: 5)
+ */
+async function searchTargetCodeByBM25Direct(
+  queryText: string,
+  titleFragment: string,
+  language: string,
+  limit: number
+): Promise<KnowledgeBaseSearchResult[]> {
+  try {
+    const sql = `
+      SELECT
+        kbc.id as chunk_id,
+        kbc.content as chunk_content,
+        kbc.chunk_index,
+        kbc.knowledge_base_id,
+        kbc.metadata,
+        kb.title,
+        kb.category,
+        ts_rank_cd(to_tsvector('simple', kbc.content), plainto_tsquery('simple', $1)) as bm25_score
+      FROM knowledge_base_chunks kbc
+      JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+      WHERE kb.is_indexed = true
+        AND kb.category = 'codes'
+        AND kb.title ILIKE $2
+        AND to_tsvector('simple', kbc.content) @@ plainto_tsquery('simple', $1)
+      ORDER BY bm25_score DESC
+      LIMIT $3`
+
+    const result = await db.query(sql, [queryText, `%${titleFragment}%`, limit])
+
+    if (result.rows.length === 0) {
+      logger.info(`[KB target-code-bm25] Aucun chunk BM25 pour "${titleFragment}" (query: "${queryText.substring(0, 40)}")`)
+      return []
+    }
+
+    logger.info(`[KB target-code-bm25] ${result.rows.length} chunks BM25 directs pour "${titleFragment}"`)
+
+    return result.rows.map((row) => ({
+      knowledgeBaseId: row.knowledge_base_id,
+      chunkId: row.chunk_id,
+      title: row.title,
+      category: row.category as KnowledgeBaseCategory,
+      chunkContent: row.chunk_content,
+      chunkIndex: row.chunk_index || 0,
+      similarity: 0.50, // placeholder — remplacé par boost codes-forced-direct dans la boucle merge
+      metadata: {
+        ...(row.metadata || {}),
+        bm25Rank: parseFloat(row.bm25_score) || 0,
+        searchType: 'bm25_direct',
+      },
+    }))
+  } catch (err) {
+    logger.warn(`[KB target-code-bm25] Erreur pour "${titleFragment}":`, err)
+    return []
+  }
+}
+
+/**
  * Recherche HYBRIDE dans la base de connaissances
  *
  * ✨ OPTIMISATION RAG - Sprint 3 (Feb 2026)
@@ -1210,10 +1281,22 @@ export async function searchKnowledgeBaseHybrid(
     const articleExplicitMatch = queryText.match(/الفصل\s+(\d+)/)
     if (articleExplicitMatch) {
       const artNum = articleExplicitMatch[1]
-      const targetFrag = getTargetCodeTitleFragment(queryText, bm25Language as string)
-      searchPromises.push(searchArticleByTextMatch(artNum, targetFrag))
+      searchPromises.push(searchArticleByTextMatch(artNum, targetCodeFragment))
       providerLabels.push('article-text')
     }
+  }
+
+  // Fix Feb 26 v9: Recherche BM25 directe sur le code cible (bypass du biais RRF)
+  // Problème fondamental : le score RRF 70/30 avantage les chunks avec DEUX signaux (vector+BM25).
+  // Les articles COC (vecSim < 0.15 → BM25-only) sont exclus du LIMIT 15 même si le BM25 les ranke 1er.
+  // Car: vector+BM25 chunk rank 1 = 1.0/61 = 0.01639 >> BM25-only rank 1 = 0.7/61 = 0.01148
+  // → Si 15+ chunks ont vector+BM25, le BM25-only COC n'entre JAMAIS dans le top 15.
+  // Solution: recherche BM25 PURE filtrée par titre du code cible → garantit que Fsl 2/23/119 entrent.
+  if (shouldForceCodes && targetCodeFragment) {
+    searchPromises.push(
+      searchTargetCodeByBM25Direct(queryText, targetCodeFragment, bm25Language as string, 5)
+    )
+    providerLabels.push('codes-forced-direct')
   }
 
   if (searchPromises.length === 0) {
@@ -1247,11 +1330,8 @@ export async function searchKnowledgeBaseHybrid(
           const vecSim = (r.metadata?.vectorSimilarity as number) || 0
           const bm25Rank = (r.metadata?.bm25Rank as number) || 0
           // Fix Feb 26 v6: boost sélectif par code cible (résout l'inflation BM25 accordEtSesAnnexe)
-          // Pour AR: détecter le code juridique cible (COC, CPP, Shoghl...) par pattern dans la query.
-          // Seul le code cible bénéficie de bm25EffSim boost ; les autres reçoivent vecSim × boost.
-          // → accord_et_ses_annexe.pdf, IRPP, LF2023 ne peuvent plus pousser à 1.0 par BM25 seul.
-          const targetFragment = getTargetCodeTitleFragment(queryText, bm25Language as string)
-          const isTargetCode = targetFragment ? r.title.includes(targetFragment) : false
+          // targetCodeFragment pré-calculé une fois (v9: évite appel par chunk)
+          const isTargetCode = targetCodeFragment ? r.title.includes(targetCodeFragment) : false
           if (isTargetCode) {
             // ✅ Code cible: leverage BM25 signal → bm25EffSim × CODE_PRIORITY_BOOST
             // Fix Feb 26 v7: floor 0.35→0.60 — garantit bm25EffSim > vecSim max codes-forced (~0.55)
@@ -1265,6 +1345,19 @@ export async function searchKnowledgeBaseHybrid(
             r.similarity = Math.min(1.0, vecSim * CODE_PRIORITY_BOOST)
           }
         }
+      }
+
+      // Fix Feb 26 v9: boost pour les résultats de la recherche BM25 directe sur code cible
+      // Tous les résultats de cette recherche SONT le code cible (filtré par titre dans SQL)
+      // → appliquer directement bm25EffSim × CODE_PRIORITY_BOOST
+      if (label === 'codes-forced-direct') {
+        const bm25Rank = (r.metadata?.bm25Rank as number) || 0
+        // bm25Rank = ts_rank_cd score (0.0–1.0)
+        // bm25Rank=0.3 → max(0.60, min(0.80, 3.0))=0.80 → 0.80×1.50=1.20→1.0 ✅
+        // bm25Rank=0.05 → max(0.60, min(0.80, 0.5))=0.60 → 0.60×1.50=0.90 > JORT 0.84 ✅
+        // bm25Rank→0: fallback floor 0.60 → 0.60×1.50=0.90 (si match BM25, même faible, c'est pertinent)
+        const bm25EffSim = Math.max(0.60, Math.min(0.80, bm25Rank * 10))
+        r.similarity = Math.min(1.0, bm25EffSim * CODE_PRIORITY_BOOST)
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
       // Tracker les chunks issus de la recherche article-text (avant écrasement possible par codes-forced)
