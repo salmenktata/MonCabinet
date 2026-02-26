@@ -71,11 +71,8 @@
     },
     "intentType": "factual",
     "goldChunkIds": [
-      "79b404c7-0b79-4fac-abeb-d16d16f5adb0",
-      "fbb0ebf1-5c80-4c9a-b72b-a3171c7eebbd",
-      "a436cd6b-fb9e-4eaa-96d8-8b346eedc9f0",
-      "cb4f3af8-6b59-4a7e-b519-76091bc0376b",
-      "a97d7748-1fcd-4a1a-a10f-8250f3f1cb0a"
+      "a8ee827e-9114-45e4-8a88-4c250e896e7c",
+      "4710bf1a-b32b-4fce-809f-9ee9688526bc"
     ],
     "goldDocumentIds": [
       "fa8f44b5-51d6-40c1-bcdd-d74232705d93",
@@ -306,10 +303,7 @@
     "intentType": "procedural",
     "goldChunkIds": [
       "fb30f033-8929-4f6d-b989-479f10c7dfe5",
-      "b46280bb-6a2f-4346-88f5-2a0edc5263ef",
-      "7d196a41-3b19-4a8c-87c3-eff639d9d932",
-      "0b15d7cd-ba76-4e14-8dcc-c5e6482afa53",
-      "21f526e7-d980-49bb-ab7d-536feb08c4c2"
+      "ad180736-e1a9-4bae-bea3-dec98847f503"
     ],
     "goldDocumentIds": [
       "ef3b0574-33b2-4fee-a2ab-03f55ffae3cf",
@@ -482,9 +476,8 @@
       "consensus": 0
     },
     "goldChunkIds": [
-      "5bef9b77-531c-4646-9814-84abea3faf7e",
-      "1ee9998b-dfc8-4537-9c32-1f0ab0ea4c78",
-      "2461659f-acfb-4142-be13-ed09cc367ed2"
+      "e5e668a4-3832-48e8-828d-5014fbbd3438",
+      "f4ab4881-8319-4c3b-8198-a33133a33b90"
     ],
     "goldDocumentIds": [
       "485f7370-2107-407a-b61c-d0a535847541"
@@ -851,11 +844,8 @@
       "consensus": 0
     },
     "goldChunkIds": [
-      "e6c716e1-8087-4420-ad78-b5c93e2673b0",
-      "a09c4f9f-b3aa-40c6-a1ef-fa7a8ebd9c51",
-      "8f35dbee-2153-4b10-905f-b878263402a4",
-      "312cee99-cd28-410f-b714-c9deeeb3085c",
-      "7987b940-0d55-4feb-86b4-f57aac376015"
+      "0e99cfe7-a668-4a79-8536-1cf985618e00",
+      "50cee366-0f17-4cbe-aaa6-b438b7d68173"
     ],
     "goldDocumentIds": [
       "f5c8ba57-e5f0-4a66-8326-836437b17c99",

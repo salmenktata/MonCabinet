@@ -1116,13 +1116,13 @@ export async function searchKnowledgeBaseHybrid(
 
     for (const r of resultSet) {
       // Appliquer boost aux codes forcés pour compenser l'écart sémantique
-      // Fix Feb 26 v3: boost sélectif par TITRE (branch n'est PAS dans kbc.metadata)
-      // COC "مجلة الالتزامات والعقود" → contient "مجلة" → boost ✅
-      // CNSS "DEUXIEME PARTIE" / "Note-Commune-*.pdf" → pas de "مجلة" → pas de boost ✅
+      // Fix Feb 26 v4: boost tous les codes-forced sauf branch='autre' explicite
+      // category='codes' garantit que c'est un texte législatif (COC, CPP, Code Travail, etc.)
+      // Seuls les chunks explicitement branch='autre' (CNSS, Notes-Communes hors-scope) sont exclus
+      // NULL-branch = bénéfice du doute → boost appliqué
       if (label === 'codes-forced') {
-        const title = r.title || ''
-        const isTunisianCode = title.includes('مجلة') || /^code\s/i.test(title)
-        if (isTunisianCode) {
+        const chunkBranch = r.metadata?.branch as string | undefined
+        if (chunkBranch !== 'autre') {
           r.similarity = Math.min(1.0, r.similarity * CODE_PRIORITY_BOOST)
         }
       }
