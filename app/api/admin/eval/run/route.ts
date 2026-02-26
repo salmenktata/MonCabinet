@@ -20,6 +20,7 @@ import fs from 'fs'
 import path from 'path'
 import { searchKnowledgeBaseHybrid } from '@/lib/ai/knowledge-base-service'
 import { answerQuestion } from '@/lib/ai/rag-chat-service'
+import { enrichQueryWithLegalSynonyms } from '@/lib/ai/query-expansion-service'
 import {
   computeRecallAtK,
   computePrecisionAtK,
@@ -148,7 +149,9 @@ async function runBenchmarkAsync(runId: string, goldCases: GoldEvalCase[], runMo
       // ===== RETRIEVAL: vrai pipeline hybride =====
       const retrievalStart = Date.now()
 
-      const searchResults = await searchKnowledgeBaseHybrid(evalCase.question, {
+      // Enrichir la query comme le fait le pipeline de production (synonymes bilingues FR↔AR)
+      const enrichedQuestion = enrichQueryWithLegalSynonyms(evalCase.question)
+      const searchResults = await searchKnowledgeBaseHybrid(enrichedQuestion, {
         limit: 30, // P1 fix Feb 25: 10→30 — KB a grandi de 33K→45K chunks, pool élargi pour meilleur recall@5/10
         operationName: 'assistant-ia',
       })
