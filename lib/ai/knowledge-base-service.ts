@@ -1017,7 +1017,11 @@ function getTargetCodeTitleFragment(queryText: string, lang: string): string | n
     return 'مجلة الأحوال الشخصية'
   }
   // Civil obligations (COC) — التقادم + تعمير الذمة → art.402
-  if (/العقد|الالتزامات|البطلان|الفسخ|الضمان|التقادم|المسؤولية التقصيرية|المسؤولية المدنية|مجلة الالتزامات|أركان العقد|الرضا|الإيجاب والقبول|تعمير الذمة/.test(queryText)) {
+  if (/العقد|الالتزامات|البطلان|الفسخ|الضمان|التقادم|المسؤولية التقصيرية|المسؤولية المدنية|مجلة الالتزامات|أركان العقد|الرضا|الإيجاب والقبول|تعمير الذمة|شروط.*صحة|صحة.*العقد|إثبات.*التزام|وسائل الإثبات/.test(queryText)) {
+    return 'مجلة الالتزامات'
+  }
+  // Fix Feb 26 v13: Queries FR ciblant le COC tunisien → même chemin codes-forced-direct
+  if (/validit.*contrat|conditions.*contrat|COC tunisien|obligat.*tunisien|résolution.*contrat|nullit.*contrat|garantie.*contrat|preuve.*obligat/.test(queryText)) {
     return 'مجلة الالتزامات'
   }
   return null
@@ -1130,6 +1134,11 @@ function buildClassicalArabicBM25OR(queryText: string): string {
     [/ضرر.*معنوي|تعويض.*معنوي|préjudice.*moral/, ['معنوي', 'ضرر', 'جبر', 'تعويض']],
     // Fix Feb 26: conditions validité contrat FR → terms COC art.2
     [/validit.*contrat|conditions.*contrat|COC tunisien/, ['أركان', 'أهلية', 'التراضي', 'رضاء']],
+    // Fix Feb 26 v13: إثبات الالتزامات → COC Fsl 443 (types de preuves admissibles)
+    [/إثبات.*التزام|إثبات.*عقد|وسائل الإثبات|الإثبات.*مدني/, ['إثبات', 'الكتابة', 'الشهود', 'القرينة', 'اليمين']],
+    // Fix Feb 26 v13: البطلان المطلق / البطلان النسبي → Fsl 325 + قابل للإبطال
+    [/بطلان.*مطلق|البطلان المطلق/, ['باطل', 'اصله', 'الباطل من اصله']],
+    [/بطلان.*نسبي|البطلان النسبي/, ['إبطال', 'القيام', 'الإبطال', 'يجوز القيام']],
   ]
 
   const allTerms = new Set<string>()
@@ -1510,8 +1519,10 @@ export async function searchKnowledgeBaseHybrid(
       providerLabels.push('codes-forced-direct')
     }
 
-    if (detectedLang === 'ar') {
-      // BM25 OR-expansion uniquement pour les queries arabes (COC classique)
+    // Fix Feb 26 v13: BM25 OR pour AR et FR (queries FR enrichies via CLASSICAL_EXPANSION)
+    // Pour FR: les tokens arabes ajoutés par CLASSICAL_EXPANSION matchent les chunks COC classiques
+    // Pour AR: synonymes classiques (أركان, تعمير, باطل...) → articles COC archaïques
+    if (detectedLang === 'ar' || detectedLang === 'fr') {
       // limit=25: Fsl 2 (rang 5), Fsl 119 (rang 17), Fsl 23 (rang 24) → tous couverts
       searchPromises.push(
         searchTargetCodeByORExpansion(queryText, targetCodeFragment, 25)
