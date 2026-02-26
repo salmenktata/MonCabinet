@@ -1076,38 +1076,31 @@ async function searchArticleByTextMatch(
 }
 
 /**
- * Recherche BM25 directe dans un code juridique cible.
+ * Recherche vectorielle SANS threshold dans un code juridique cible.
  *
- * Fix Feb 26 v9: contourne le biais RRF 70/30 pour les requêtes arabes classiques.
- * Problème: chunks COC avec vecSim < threshold (0.15) sont EXCLUS du pool vectoriel.
- * En BM25-only, le score RRF = 0.7/(60+rank). Mais les chunks ayant vector+BM25 scorent
- * 1.0/(60+rank), donc si 15+ chunks ont les deux signaux, le COC BM25-only n'entre jamais.
+ * Fix Feb 26 v10: remplace la recherche BM25 (v9b) qui échouait pour l'arabe classique COC.
  *
- * Cette fonction fait une recherche BM25 PURE filtrée par titre du code cible → garantit
- * que les articles Fsl 2/23/119 entrent dans le pool même avec sim embedding < threshold.
+ * POURQUOI BM25 ÉCHOUE (post-mortem v9/v9b) :
+ * - plainto_tsquery('arabic', 'ما هي شروط صحة العقد') génère un AND sur TOUS les tokens
+ *   incluant les stop words arabes (PostgreSQL 'arabic' config ne les supprime PAS).
+ * - Vocabulaire classique COC (أركان العقد) ≠ arabe moderne (شروط صحة العقد).
+ * - Résultat : 0 chunks BM25 pour مجلة الالتزامات sur toutes les queries ar_civil_*.
  *
- * @param queryText - Texte de la query (sans tashkeel, avec ponctuation nettoyée)
+ * SOLUTION VECTORIELLE SANS THRESHOLD :
+ * - Les chunks COC ont vecSim ~0.08-0.15 (en dessous du threshold 0.15 de codes-forced).
+ * - En retirant le threshold, on récupère les top 5 articles COC les plus proches.
+ * - Floor boost 0.60 → similarity = 0.60 × 1.50 = 0.90 > JORT 0.84 → COC gagne ✅
+ *
+ * @param embeddingStr - Embedding OpenAI formatté pour PostgreSQL
  * @param titleFragment - Fragment du titre du code cible (ex: 'مجلة الالتزامات')
- * @param language - Langue détectée ('ar', 'fr', 'simple')
  * @param limit - Nombre de résultats (défaut: 5)
  */
-async function searchTargetCodeByBM25Direct(
-  queryText: string,
+async function searchTargetCodeForced(
+  embeddingStr: string,
   titleFragment: string,
-  language: string,
   limit: number
 ): Promise<KnowledgeBaseSearchResult[]> {
-  // Fix Feb 26 v9b: utiliser la config language-aware pour le matching BM25.
-  // PROBLÈME v9: plainto_tsquery('simple', query) génère un AND sur TOUS les tokens incluant
-  // les stop words arabes (ما، هي، في، القانون...) → les chunks COC ne les contiennent pas tous → 0 résultats.
-  // FIX v9b: to_tsvector('arabic', content) @@ plainto_tsquery('arabic', query) :
-  //   - 'arabic' config : stop words AR supprimés + stemming (شروط→شرط, يشترط→شرط → MATCH ✓)
-  //   - to_tsvector() on-the-fly (pas d'index) mais filtré par title ILIKE → petit set COC (~500 chunks max)
-  // Note: 'arabic' config disponible en prod (confirmé par la fn SQL search_knowledge_base_hybrid)
-  const langConfig = language === 'ar' ? 'arabic' : language === 'fr' ? 'french' : 'simple'
-
   try {
-    // eslint-disable-next-line no-useless-escape
     const sql = `
       SELECT
         kbc.id as chunk_id,
@@ -1117,26 +1110,27 @@ async function searchTargetCodeByBM25Direct(
         kbc.metadata,
         kb.title,
         kb.category,
-        ts_rank_cd(to_tsvector('${langConfig}', kbc.content), plainto_tsquery('${langConfig}', $1)) as bm25_score
+        (1 - (kbc.embedding_openai <=> $1::vector)) as vec_sim
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
       WHERE kb.is_indexed = true
         AND kb.category = 'codes'
         AND kb.title ILIKE $2
-        AND to_tsvector('${langConfig}', kbc.content) @@ plainto_tsquery('${langConfig}', $1)
-      ORDER BY bm25_score DESC
+        AND kbc.embedding_openai IS NOT NULL
+      ORDER BY kbc.embedding_openai <=> $1::vector
       LIMIT $3`
 
-    const result = await db.query(sql, [queryText, `%${titleFragment}%`, limit])
+    const result = await db.query(sql, [embeddingStr, `%${titleFragment}%`, limit])
 
     if (result.rows.length === 0) {
-      logger.info(`[KB target-code-bm25] Aucun chunk BM25 (${langConfig}) pour "${titleFragment}" (query: "${queryText.substring(0, 40)}")`)
+      logger.info(`[KB target-code-forced] 0 chunks (sans threshold) pour "${titleFragment}"`)
       return []
     }
 
-    logger.info(`[KB target-code-bm25] ${result.rows.length} chunks BM25 directs (${langConfig}) pour "${titleFragment}"`)
+    const vecSims = result.rows.map((r: { vec_sim: string }) => parseFloat(r.vec_sim).toFixed(3)).join(', ')
+    logger.info(`[KB target-code-forced] ${result.rows.length} chunks vectoriels pour "${titleFragment}" (vecSims: ${vecSims})`)
 
-    return result.rows.map((row) => ({
+    return result.rows.map((row: { knowledge_base_id: string; chunk_id: string; title: string; category: string; chunk_content: string; chunk_index: number; metadata: Record<string, unknown>; vec_sim: string }) => ({
       knowledgeBaseId: row.knowledge_base_id,
       chunkId: row.chunk_id,
       title: row.title,
@@ -1146,12 +1140,12 @@ async function searchTargetCodeByBM25Direct(
       similarity: 0.50, // placeholder — remplacé par boost codes-forced-direct dans la boucle merge
       metadata: {
         ...(row.metadata || {}),
-        bm25Rank: parseFloat(row.bm25_score) || 0,
-        searchType: 'bm25_direct',
+        vectorSimilarity: parseFloat(row.vec_sim) || 0,
+        searchType: 'vector_forced',
       },
     }))
   } catch (err) {
-    logger.warn(`[KB target-code-bm25] Erreur (${langConfig}) pour "${titleFragment}":`, err)
+    logger.warn(`[KB target-code-forced] Erreur pour "${titleFragment}":`, err)
     return []
   }
 }
@@ -1308,15 +1302,15 @@ export async function searchKnowledgeBaseHybrid(
     }
   }
 
-  // Fix Feb 26 v9: Recherche BM25 directe sur le code cible (bypass du biais RRF)
-  // Problème fondamental : le score RRF 70/30 avantage les chunks avec DEUX signaux (vector+BM25).
-  // Les articles COC (vecSim < 0.15 → BM25-only) sont exclus du LIMIT 15 même si le BM25 les ranke 1er.
-  // Car: vector+BM25 chunk rank 1 = 1.0/61 = 0.01639 >> BM25-only rank 1 = 0.7/61 = 0.01148
-  // → Si 15+ chunks ont vector+BM25, le BM25-only COC n'entre JAMAIS dans le top 15.
-  // Solution: recherche BM25 PURE filtrée par titre du code cible → garantit que Fsl 2/23/119 entrent.
-  if (shouldForceCodes && targetCodeFragment) {
+  // Fix Feb 26 v10: Recherche vectorielle SANS threshold pour le code cible (remplace BM25 v9/v9b)
+  // ÉCHEC v9/v9b: plainto_tsquery('arabic', query) génère AND + stop words non supprimés →
+  //   0 chunks BM25 pour مجلة الالتزامات (vocabulary gap classique/moderne).
+  // SOLUTION v10: ORDER BY distance vectorielle, pas de threshold → retourne les top N chunks COC
+  //   les plus proches même si vecSim=0.08. Floor boost 0.60×1.50=0.90 > JORT 0.84 → COC GAGNE.
+  if (shouldForceCodes && targetCodeFragment && openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
+    const embStrForced = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
     searchPromises.push(
-      searchTargetCodeByBM25Direct(queryText, targetCodeFragment, bm25Language as string, 5)
+      searchTargetCodeForced(embStrForced, targetCodeFragment, 5)
     )
     providerLabels.push('codes-forced-direct')
   }
@@ -1369,17 +1363,16 @@ export async function searchKnowledgeBaseHybrid(
         }
       }
 
-      // Fix Feb 26 v9: boost pour les résultats de la recherche BM25 directe sur code cible
-      // Tous les résultats de cette recherche SONT le code cible (filtré par titre dans SQL)
-      // → appliquer directement bm25EffSim × CODE_PRIORITY_BOOST
+      // Fix Feb 26 v10: boost pour les résultats de la recherche vectorielle forcée sur code cible
+      // Tous les résultats SONT du code cible (filtré par kb.title ILIKE dans SQL).
+      // vecSim COC classique ~0.08-0.15 (très bas mais c'est le chunk le plus proche disponible).
+      // Floor 0.60 → similarity = 0.60 × 1.50 = 0.90 > JORT 0.84 → COC gagne TOUJOURS ✅
+      // vecSim sert à ordonner les chunks COC entre eux (Fsl 2 vs Fsl 23 vs Fsl 119).
       if (label === 'codes-forced-direct') {
-        const bm25Rank = (r.metadata?.bm25Rank as number) || 0
-        // bm25Rank = ts_rank_cd score (0.0–1.0)
-        // bm25Rank=0.3 → max(0.60, min(0.80, 3.0))=0.80 → 0.80×1.50=1.20→1.0 ✅
-        // bm25Rank=0.05 → max(0.60, min(0.80, 0.5))=0.60 → 0.60×1.50=0.90 > JORT 0.84 ✅
-        // bm25Rank→0: fallback floor 0.60 → 0.60×1.50=0.90 (si match BM25, même faible, c'est pertinent)
-        const bm25EffSim = Math.max(0.60, Math.min(0.80, bm25Rank * 10))
-        r.similarity = Math.min(1.0, bm25EffSim * CODE_PRIORITY_BOOST)
+        const vecSim = (r.metadata?.vectorSimilarity as number) || 0
+        // Floor 0.60 garantit que n'importe quel chunk COC score ≥ 0.60×1.50=0.90 > JORT 0.84
+        const effSim = Math.max(0.60, vecSim)
+        r.similarity = Math.min(1.0, effSim * CODE_PRIORITY_BOOST)
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
       // Tracker les chunks issus de la recherche article-text (avant écrasement possible par codes-forced)
