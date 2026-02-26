@@ -43,7 +43,10 @@ export const POST = withAdminApiAuth(
     const autoRejectBelow = body.autoRejectBelow ?? 40
     const stages: string[] = body.stages ?? INTERMEDIATE_STAGES
 
-    const userId = session?.user?.id ?? 'system-auto-process'
+    // UUID valide ou null (performed_by en DB est de type UUID)
+    const userId = (session?.user?.id && /^[0-9a-f]{8}-/i.test(session.user.id))
+      ? session.user.id
+      : null
 
     // -------------------------------------------------------------------------
     // Phase 1 — Auto-advance
@@ -109,7 +112,7 @@ export const POST = withAdminApiAuth(
       const rejectIds = rejectCandidatesResult.rows.map((r: { id: string }) => r.id)
       const bulkResult = await bulkReject(
         rejectIds,
-        userId,
+        (userId as unknown as string), // null si cron — performed_by nullable, géré par logHistory
         `Qualité insuffisante (score < ${autoRejectBelow}) - rejet automatique`
       )
       rejectStats.rejected = bulkResult.succeeded.length
@@ -138,7 +141,7 @@ export const POST = withAdminApiAuth(
             'auto-validate-pipeline',
             'completed',
             JSON.stringify(stats),
-            userId === 'system-auto-process' ? 'cron' : 'manual',
+            userId === null ? 'cron' : 'manual',
           ]
         )
       } catch {
