@@ -1104,12 +1104,35 @@ export async function searchRelevantContext(
           `[RAG Search] Multi-track: ${tracks.length} tracks, ${tracks.reduce((a, t) => a + t.searchQueries.length, 0)} queries (source: ${routerResult?.source}, confiance: ${(classification.confidence * 100).toFixed(1)}%)`
         )
         const { searchMultiTrack } = await import('./knowledge-base-service')
-        kbResults = await searchMultiTrack(tracks, {
-          topKPerQuery: 5,
-          threshold: globalThreshold,
-          operationName: options.operationName,
-          limit: maxContextChunks,
-        })
+        // Fix Feb 26 v11: lancer en parallèle multi-track + recherche directe avec embeddingQuestion enrichie
+        // Les queries multi-track sont générées par LLM (ex: "التقادم الجزائي") sans référence d'article
+        // → la recherche directe garantit que les article-text matches (sim=1.05) sont dans le pool
+        const [multiTrackResults, directResults] = await Promise.all([
+          searchMultiTrack(tracks, {
+            topKPerQuery: 5,
+            threshold: globalThreshold,
+            operationName: options.operationName,
+            limit: maxContextChunks,
+          }),
+          searchKnowledgeBaseHybrid(embeddingQuestion, {
+            limit: 5,
+            threshold: globalThreshold,
+            operationName: options.operationName,
+          }),
+        ])
+        // Merge: dédupliquer par chunkId, garder meilleure similarité
+        const mergedSeen = new Map<string, (typeof multiTrackResults)[0]>()
+        for (const r of multiTrackResults) {
+          const key = r.chunkId || `${r.knowledgeBaseId}:${r.chunkContent.substring(0, 50)}`
+          mergedSeen.set(key, r)
+        }
+        for (const r of directResults) {
+          const key = r.chunkId || `${r.knowledgeBaseId}:${r.chunkContent.substring(0, 50)}`
+          if (!mergedSeen.has(key) || r.similarity > (mergedSeen.get(key)?.similarity ?? 0)) {
+            mergedSeen.set(key, r)
+          }
+        }
+        kbResults = Array.from(mergedSeen.values()).sort((a, b) => b.similarity - a.similarity)
       } else {
         // Fallback: recherche globale hybride classique (aussi utilisé si classification null)
         if (!classification) {
