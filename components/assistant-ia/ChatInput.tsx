@@ -104,20 +104,20 @@ export function ChatInput({
         {/* Filtre doc_type */}
         {showDocTypeFilter && (
           <div className="flex items-center gap-2 px-1">
-            <span className="text-xs text-muted-foreground">Rechercher dans:</span>
+            <span className="text-xs text-muted-foreground">{t('searchIn')}</span>
             <Select value={selectedDocType} onValueChange={(v) => setSelectedDocType(v as DocumentType | 'ALL')}>
               <SelectTrigger className="h-7 w-auto min-w-[180px] text-xs">
                 <SelectValue>
                   <span className="flex items-center gap-1.5">
                     {DOC_TYPE_ICONS[selectedDocType]}
-                    {selectedDocType === 'ALL' ? 'Tous les types' : DOC_TYPE_TRANSLATIONS[selectedDocType as DocumentType].fr}
+                    {selectedDocType === 'ALL' ? t('allTypes') : DOC_TYPE_TRANSLATIONS[selectedDocType as DocumentType].fr}
                   </span>
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">
                   <span className="flex items-center gap-2">
-                    {DOC_TYPE_ICONS.ALL} Tous les types
+                    {DOC_TYPE_ICONS.ALL} {t('allTypes')}
                   </span>
                 </SelectItem>
                 {ALL_DOC_TYPES.map((docType) => (
@@ -143,7 +143,7 @@ export function ChatInput({
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isStreaming ? 'En cours de génération...' : (placeholder || t('placeholder'))}
+            placeholder={isStreaming ? t('generating') : (placeholder || t('placeholder'))}
             disabled={disabled || isStreaming}
             rows={1}
             className={cn(
@@ -181,7 +181,7 @@ export function ChatInput({
                 size="icon"
                 variant="destructive"
                 className="h-9 w-9 rounded-xl shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
-                title="Arrêter la génération"
+                title={t('stopGeneration')}
               >
                 <Icons.x className="h-4 w-4" />
               </Button>

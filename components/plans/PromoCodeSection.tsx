@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Icons } from '@/lib/icons'
 import { PromoCodeInput } from './PromoCodeInput'
 
 export function PromoCodeSection() {
+  const t = useTranslations('plans')
   const [promoCode, setPromoCode] = useState<string | null>(null)
   const [discountedPrice, setDiscountedPrice] = useState<number | null>(null)
   const [activePlan, setActivePlan] = useState<'pro' | 'expert'>('pro')
@@ -25,7 +27,7 @@ export function PromoCodeSection() {
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Icons.tag className="h-4 w-4 text-slate-400" />
-          <CardTitle className="text-white text-base">Vous avez un code promo ?</CardTitle>
+          <CardTitle className="text-white text-base">{t('promoTitle')}</CardTitle>
         </div>
         <CardDescription className="text-slate-400">
           <div className="flex gap-2 mt-2">
@@ -37,7 +39,7 @@ export function PromoCodeSection() {
                   : 'text-slate-400 border-slate-600 hover:border-slate-500'
               }`}
             >
-              Pour Pro (89 DT/mois)
+              {t('proForPlan')}
             </button>
             <button
               onClick={() => { setActivePlan('expert'); handlePromoApplied(null, null) }}
@@ -47,7 +49,7 @@ export function PromoCodeSection() {
                   : 'text-slate-400 border-slate-600 hover:border-slate-500'
               }`}
             >
-              Pour Expert (229 DT/mois)
+              {t('expertForPlan')}
             </button>
           </div>
         </CardDescription>
@@ -56,7 +58,7 @@ export function PromoCodeSection() {
         <PromoCodeInput plan={activePlan} onPromoApplied={handlePromoApplied} />
         {promoCode && discountedPrice !== null && (
           <p className="text-xs text-slate-400 mt-3">
-            Le code <strong className="text-white">{promoCode}</strong> sera automatiquement appliqué à votre demande d&apos;abonnement.
+            {t('promoAppliedNote', { code: promoCode! })}
           </p>
         )}
       </CardContent>

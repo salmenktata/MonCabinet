@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db/postgres'
+import { getTranslations } from 'next-intl/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { UpgradeRequestButton } from '@/components/plans/UpgradeRequestButton'
@@ -70,6 +71,8 @@ export default async function UpgradePage() {
   const session = await getSession()
   if (!session?.user?.id) redirect('/login')
 
+  const t = await getTranslations('upgrade')
+
   const result = await query(
     `SELECT plan, trial_ai_uses_remaining, upgrade_requested_plan FROM users WHERE id = $1`,
     [session.user.id]
@@ -84,29 +87,29 @@ export default async function UpgradePage() {
   if (isPaid) redirect('/dashboard')
 
   const soloFeatures = [
-    { text: 'Dossiers illimités', included: true },
-    { text: 'Clients illimités', included: true },
-    { text: '200 requêtes IA / mois', included: true },
-    { text: 'Chat IA juridique', included: true },
-    { text: 'Structuration automatique', included: true },
-    { text: 'Templates documents', included: true },
-    { text: 'Facturation complète', included: true },
-    { text: '10 Go de stockage', included: true },
-    { text: 'Support Email + Chat', included: true },
-    { text: "Jusqu'à 10 utilisateurs", included: false },
-    { text: 'SLA garanti', included: false },
+    { text: t('features.unlimitedDossiers'), included: true },
+    { text: t('features.unlimitedClients'), included: true },
+    { text: t('features.ai200'), included: true },
+    { text: t('features.legalChat'), included: true },
+    { text: t('features.autoStructure'), included: true },
+    { text: t('features.docTemplates'), included: true },
+    { text: t('features.fullBilling'), included: true },
+    { text: t('features.storage10'), included: true },
+    { text: t('features.supportEmailChat'), included: true },
+    { text: t('features.upTo10Users'), included: false },
+    { text: t('features.slaGuaranteed'), included: false },
   ]
 
   const cabinetFeatures = [
-    { text: 'Dossiers illimités', included: true },
-    { text: 'Clients illimités', included: true },
-    { text: 'IA illimitée', included: true },
-    { text: "Jusqu'à 10 utilisateurs", included: true },
-    { text: 'Rôles et permissions', included: true },
-    { text: 'Stockage illimité', included: true },
-    { text: 'Support prioritaire dédié', included: true },
-    { text: 'SLA garanti', included: true },
-    { text: 'Formation incluse', included: true },
+    { text: t('features.unlimitedDossiers'), included: true },
+    { text: t('features.unlimitedClients'), included: true },
+    { text: t('features.unlimitedAI'), included: true },
+    { text: t('features.upTo10Users'), included: true },
+    { text: t('features.rolesPermissions'), included: true },
+    { text: t('features.unlimitedStorage'), included: true },
+    { text: t('features.prioritySupport'), included: true },
+    { text: t('features.slaGuaranteed'), included: true },
+    { text: t('features.trainingIncluded'), included: true },
   ]
 
   return (
@@ -115,31 +118,31 @@ export default async function UpgradePage() {
       <div className="text-center">
         {isExpired ? (
           <>
-            <Badge className="bg-red-500/20 text-red-400 mb-4">Essai terminé</Badge>
+            <Badge className="bg-red-500/20 text-red-400 mb-4">{t('trialExpiredBadge')}</Badge>
             <h1 className="text-3xl font-bold text-white mb-3">
-              Votre essai gratuit est terminé
+              {t('trialExpiredTitle')}
             </h1>
             <p className="text-slate-400 max-w-lg mx-auto">
-              Vous avez profité de toutes les fonctionnalités Qadhya. Choisissez un plan pour continuer.
+              {t('trialExpiredSubtitle')}
             </p>
           </>
         ) : (
           <>
             <Badge className="bg-emerald-500/20 text-emerald-400 mb-4">
-              Essai gratuit — {trialUsesLeft}/30 requêtes IA restantes
+              {t('trialActiveBadge', { remaining: trialUsesLeft })}
             </Badge>
             <h1 className="text-3xl font-bold text-white mb-3">
-              Passez à la vitesse supérieure
+              {t('trialActiveTitle')}
             </h1>
             <p className="text-slate-400 max-w-lg mx-auto">
-              Continuez sans interruption avec un accès IA illimité et toutes les fonctionnalités avancées.
+              {t('trialActiveSubtitle')}
             </p>
           </>
         )}
 
         {requestedPlan && (
           <div className="mt-4 inline-flex items-center gap-2 bg-blue-500/15 border border-blue-500/30 text-blue-300 text-sm px-4 py-2 rounded-full">
-            ✅ Demande de passage au plan <strong>{requestedPlan === 'solo' ? 'Pro' : 'Expert'}</strong> en cours de traitement
+            ✅ {t('requestedPlanNotice', { plan: requestedPlan === 'solo' ? 'Pro' : 'Expert' })}
           </div>
         )}
       </div>
@@ -149,19 +152,19 @@ export default async function UpgradePage() {
         <PlanCard
           name="Pro"
           price="89 DT"
-          priceNote="/mois (ou 71 DT/mois en annuel)"
-          description="Pour l'avocat indépendant qui veut tout optimiser"
+          priceNote={t('proPriceNote')}
+          description={t('proDescription')}
           features={soloFeatures}
           plan="solo"
           highlighted
-          badge="Le plus populaire"
+          badge={t('mostPopular')}
           alreadyRequested={requestedPlan === 'solo'}
         />
         <PlanCard
           name="Expert"
           price="229 DT"
-          priceNote="/mois (ou 183 DT/mois en annuel)"
-          description="Pour les cabinets multi-associés avec besoin d'IA intensive"
+          priceNote={t('expertPriceNote')}
+          description={t('expertDescription')}
           features={cabinetFeatures}
           plan="cabinet"
           alreadyRequested={requestedPlan === 'cabinet'}
@@ -178,10 +181,10 @@ export default async function UpgradePage() {
         <CardContent className="pt-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { icon: '🔒', label: 'Données hébergées en Tunisie', sub: 'Sécurité SSL' },
-              { icon: '⚡', label: 'Activation sous 24h', sub: 'Après confirmation paiement' },
-              { icon: '❌', label: 'Sans engagement', sub: 'Annulation à tout moment' },
-              { icon: '🏛️', label: 'Conforme Barreau', sub: 'Calculs légaux tunisiens' },
+              { icon: '🔒', label: t('guaranteeData'), sub: t('guaranteeDataSub') },
+              { icon: '⚡', label: t('guaranteeActivation'), sub: t('guaranteeActivationSub') },
+              { icon: '❌', label: t('guaranteeNoCommit'), sub: t('guaranteeNoCommitSub') },
+              { icon: '🏛️', label: t('guaranteeBarreau'), sub: t('guaranteeBarreauSub') },
             ].map((g, i) => (
               <div key={i} className="text-center">
                 <div className="text-2xl mb-1">{g.icon}</div>
@@ -196,22 +199,13 @@ export default async function UpgradePage() {
       {/* FAQ */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white text-lg">Questions fréquentes</CardTitle>
+          <CardTitle className="text-white text-lg">{t('faqTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {[
-            {
-              q: 'Comment fonctionne la demande ?',
-              a: "Cliquez sur \"Demander Pro\" — notre équipe vous contacte sous 24h avec les modalités de paiement (virement ou Flouci). L'activation est immédiate après confirmation.",
-            },
-            {
-              q: 'Mes données d\'essai sont-elles conservées ?',
-              a: 'Oui. Tous vos dossiers, clients et documents créés pendant l\'essai sont conservés et accessibles dès l\'activation de votre plan.',
-            },
-            {
-              q: 'Puis-je passer du Pro au Expert plus tard ?',
-              a: 'Oui, vous pouvez changer de plan à tout moment. Le changement prend effet immédiatement.',
-            },
+            { q: t('faqQ1'), a: t('faqA1') },
+            { q: t('faqQ2'), a: t('faqA2') },
+            { q: t('faqQ3'), a: t('faqA3') },
           ].map((faq, i) => (
             <div key={i} className="border-b border-slate-700 pb-4 last:border-0 last:pb-0">
               <p className="text-white text-sm font-medium mb-1">{faq.q}</p>

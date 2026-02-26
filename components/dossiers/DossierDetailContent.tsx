@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import WorkflowVisualizer from '../workflows/WorkflowVisualizer'
 import ActionsList from './ActionsList'
 import AddActionForm from './AddActionForm'
@@ -29,12 +30,7 @@ const TRANSITION_ICONS: Record<string, string> = {
   revert: '↩️',
 }
 
-const TRANSITION_LABELS: Record<string, string> = {
-  initial: 'Initialisation',
-  normal: 'Avancement',
-  bypass: 'Bypass',
-  revert: 'Retour',
-}
+// TRANSITION_LABELS remplacé par useTranslations('dossiers').transitions.*
 
 const TRANSITION_COLORS: Record<string, string> = {
   initial: 'text-blue-700',
@@ -50,6 +46,8 @@ export default function DossierDetailContent({
   documents,
   initialTab,
 }: DossierDetailContentProps) {
+  const t = useTranslations('dossiers')
+  const tCommon = useTranslations('common')
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState(initialTab)
   const [showAddAction, setShowAddAction] = useState(false)
@@ -81,18 +79,18 @@ export default function DossierDetailContent({
         setWorkflowHistory(histRes.data)
       }
     } else {
-      toast.error(result.error || 'Erreur lors du changement d\'étape')
+      toast.error(result.error || t('stepUpdateError'))
     }
   }, [dossier.id, queryClient])
 
   // Mémoriser les onglets pour éviter les re-renders
   const tabs = useMemo(() => [
-    { id: 'workflow', label: 'Workflow', icon: '🔄' },
-    { id: 'info', label: 'Informations', icon: 'ℹ️' },
-    { id: 'actions', label: `Actions (${actions.length})`, icon: '✅' },
-    { id: 'echeances', label: `Échéances (${echeances.length})`, icon: '📅' },
-    { id: 'documents', label: `Documents (${documents.length})`, icon: '📁' },
-  ], [actions.length, echeances.length, documents.length])
+    { id: 'workflow', label: t('tabs.workflow'), icon: '🔄' },
+    { id: 'info', label: t('tabs.info'), icon: 'ℹ️' },
+    { id: 'actions', label: `${t('tabs.actions')} (${actions.length})`, icon: '✅' },
+    { id: 'echeances', label: `${t('tabs.echeances')} (${echeances.length})`, icon: '📅' },
+    { id: 'documents', label: `${t('tabs.documents')} (${documents.length})`, icon: '📁' },
+  ], [t, actions.length, echeances.length, documents.length])
 
   // Résoudre les libellés d'étapes pour l'historique
   const workflowId = dossier.type_procedure || 'civil_premiere_instance'
@@ -131,12 +129,12 @@ export default function DossierDetailContent({
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-foreground">
-                  Workflow de la procédure
+                  {t('workflowSection')}
                 </h2>
                 {updatingEtape && (
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Mise à jour…
+                    {t('updatingStep')}
                   </span>
                 )}
               </div>
@@ -153,7 +151,7 @@ export default function DossierDetailContent({
             {workflowHistory.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-3">
-                  Historique des transitions
+                  {t('transitionHistory')}
                 </h3>
                 <div className="space-y-2">
                   {/* Ordre chronologique : du plus récent au plus ancien */}
@@ -173,7 +171,7 @@ export default function DossierDetailContent({
                           <span
                             className={`font-medium ${TRANSITION_COLORS[entry.typeTransition] ?? 'text-foreground'}`}
                           >
-                            {TRANSITION_LABELS[entry.typeTransition] ?? entry.typeTransition}
+                            {t(`transitions.${entry.typeTransition}` as any) ?? entry.typeTransition}
                           </span>
                           <span className="text-muted-foreground">—</span>
                           <span className="text-foreground">
@@ -212,7 +210,7 @@ export default function DossierDetailContent({
         {activeTab === 'info' && (
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">
-              Modifier les informations
+              {t('editInfoTitle')}
             </h2>
             <DossierForm initialData={dossier} isEditing clients={dossier.client ? [dossier.client] : []} />
           </div>
@@ -222,14 +220,14 @@ export default function DossierDetailContent({
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-foreground">
-                Actions à faire ({actions.length})
+                {t('tabs.actions')} ({actions.length})
               </h2>
               {!showAddAction && (
                 <button
                   onClick={() => setShowAddAction(true)}
                   className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
                 >
-                  + Ajouter action
+                  + {t('addAction')}
                 </button>
               )}
             </div>
@@ -237,7 +235,7 @@ export default function DossierDetailContent({
             {showAddAction && (
               <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
                 <h3 className="text-sm font-medium text-foreground mb-3">
-                  Nouvelle action
+                  {t('newAction')}
                 </h3>
                 <AddActionForm
                   dossierId={dossier.id}
@@ -254,14 +252,14 @@ export default function DossierDetailContent({
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-foreground">
-                Échéances ({echeances.length})
+                {t('tabs.echeances')} ({echeances.length})
               </h2>
               {!showAddEcheance && (
                 <button
                   onClick={() => setShowAddEcheance(true)}
                   className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
                 >
-                  + Ajouter échéance
+                  + {t('addEcheance')}
                 </button>
               )}
             </div>
@@ -270,13 +268,13 @@ export default function DossierDetailContent({
               <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-medium text-foreground">
-                    Nouvelle échéance
+                    {t('newEcheance')}
                   </h3>
                   <button
                     onClick={() => setShowAddEcheance(false)}
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
-                    ✕ Annuler
+                    ✕ {tCommon('cancel')}
                   </button>
                 </div>
                 <EcheanceFormAdvanced dossierId={dossier.id} />
@@ -291,7 +289,7 @@ export default function DossierDetailContent({
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border bg-muted p-8 text-center">
-                <p className="text-sm text-muted-foreground">Aucune échéance</p>
+                <p className="text-sm text-muted-foreground">{t('noEcheances')}</p>
               </div>
             )}
           </div>
@@ -301,10 +299,10 @@ export default function DossierDetailContent({
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-foreground">
-                Documents ({documents.length})
+                {t('tabs.documents')} ({documents.length})
               </h2>
               <button className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
-                + Ajouter document
+                + {t('addDocument')}
               </button>
             </div>
 
@@ -330,7 +328,7 @@ export default function DossierDetailContent({
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border bg-muted p-8 text-center">
-                <p className="text-sm text-muted-foreground">Aucun document</p>
+                <p className="text-sm text-muted-foreground">{t('noDocuments')}</p>
               </div>
             )}
           </div>

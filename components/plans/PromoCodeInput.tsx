@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
@@ -22,6 +23,7 @@ interface PromoCodeInputProps {
 }
 
 export function PromoCodeInput({ plan, onPromoApplied }: PromoCodeInputProps) {
+  const t = useTranslations('plans')
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<PromoResult | null>(null)
@@ -40,7 +42,7 @@ export function PromoCodeInput({ plan, onPromoApplied }: PromoCodeInputProps) {
         onPromoApplied(data.code, data.discountedPrice)
       }
     } catch {
-      setResult({ valid: false, error: 'Erreur de validation' })
+      setResult({ valid: false, error: t('validationError') })
     } finally {
       setLoading(false)
     }
@@ -56,7 +58,7 @@ export function PromoCodeInput({ plan, onPromoApplied }: PromoCodeInputProps) {
     <div className="space-y-2">
       <div className="flex gap-2">
         <Input
-          placeholder="Code promo (ex: QADHYA20)"
+          placeholder={t('promoPlaceholder')}
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === 'Enter' && handleValidate()}
@@ -76,7 +78,7 @@ export function PromoCodeInput({ plan, onPromoApplied }: PromoCodeInputProps) {
             disabled={loading || !code.trim()}
             className="shrink-0"
           >
-            {loading ? <Icons.spinner className="h-4 w-4 animate-spin" /> : 'Valider'}
+            {loading ? <Icons.spinner className="h-4 w-4 animate-spin" /> : t('validate')}
           </Button>
         )}
       </div>

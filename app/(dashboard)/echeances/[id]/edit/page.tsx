@@ -1,6 +1,7 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { redirect, notFound } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { EcheanceFormAdvanced } from '@/components/echeances/EcheanceFormAdvanced'
 
 interface EditEcheancePageProps {
@@ -10,6 +11,7 @@ interface EditEcheancePageProps {
 export default async function EditEcheancePage({ params }: EditEcheancePageProps) {
   const { id } = await params
   const session = await getSession()
+  const t = await getTranslations('echeances')
 
   if (!session?.user?.id) {
     redirect('/login')
@@ -33,9 +35,9 @@ export default async function EditEcheancePage({ params }: EditEcheancePageProps
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Modifier l&apos;échéance</h1>
+        <h1 className="text-3xl font-bold text-foreground">{t('editTitle')}</h1>
         <p className="mt-2 text-muted-foreground">
-          Modifiez les informations de l&apos;échéance.
+          {t('editSubtitle')}
         </p>
       </div>
 

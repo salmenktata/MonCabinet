@@ -65,10 +65,10 @@ export default async function FactureDetailPage({
     new Date(facture.date_echeance) < new Date()
 
   const statutConfig: Record<string, { label: string; className: string }> = {
-    brouillon: { label: 'Brouillon', className: 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400' },
-    envoyee: { label: 'Envoyée', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' },
-    payee: { label: 'Payée', className: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' },
-    impayee: { label: 'Impayée', className: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' },
+    brouillon: { label: t('draft'), className: 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400' },
+    envoyee: { label: t('sent'), className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' },
+    payee: { label: t('paid'), className: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' },
+    impayee: { label: t('unpaid'), className: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' },
   }
   const statut = statutConfig[facture.statut] ?? { label: facture.statut, className: '' }
 

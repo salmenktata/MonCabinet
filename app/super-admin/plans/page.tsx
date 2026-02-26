@@ -391,7 +391,7 @@ async function PaidPlans() {
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
         <CardTitle className="text-white">Abonnés payants</CardTitle>
-        <CardDescription className="text-slate-400">Solo et Cabinet</CardDescription>
+        <CardDescription className="text-slate-400">Pro et Expert</CardDescription>
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
@@ -492,8 +492,8 @@ export default function PlansPage() {
                 <tr className="border-b border-slate-700">
                   <th className="text-left py-3 px-4 text-slate-400 font-medium">Fonctionnalité</th>
                   <th className="text-center py-3 px-4 text-emerald-400 font-medium">Essai</th>
-                  <th className="text-center py-3 px-4 text-blue-400 font-medium">Solo</th>
-                  <th className="text-center py-3 px-4 text-purple-400 font-medium">Cabinet</th>
+                  <th className="text-center py-3 px-4 text-blue-400 font-medium">Pro</th>
+                  <th className="text-center py-3 px-4 text-purple-400 font-medium">Expert</th>
                 </tr>
               </thead>
               <tbody className="text-white">

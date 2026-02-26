@@ -2,6 +2,7 @@ import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import TimeEntryForm from '@/components/time-tracking/TimeEntryForm'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
@@ -13,6 +14,7 @@ export default async function NewTimeEntryPage({
 }) {
   const params = await searchParams
   const session = await getSession()
+  const t = await getTranslations('timeTracking')
 
   if (!session?.user?.id) {
     redirect('/login')
@@ -42,9 +44,9 @@ export default async function NewTimeEntryPage({
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Nouvelle entrée de temps</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('newEntryTitle')}</h1>
           <p className="text-sm text-muted-foreground">
-            Enregistrez une activité sur un dossier
+            {t('newEntrySubtitle')}
           </p>
         </div>
       </div>

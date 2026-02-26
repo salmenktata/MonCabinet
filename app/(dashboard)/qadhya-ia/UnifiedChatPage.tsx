@@ -58,6 +58,7 @@ export function UnifiedChatPage({
   hideActionButtons = false
 }: UnifiedChatPageProps) {
   const t = useTranslations('qadhyaIA')
+  const tCommon = useTranslations('common')
   const router = useRouter()
   const queryClient = useQueryClient()
 
@@ -304,7 +305,7 @@ export function UnifiedChatPage({
     <FeatureErrorBoundary
       featureName="Qadhya IA"
       fallbackAction={{
-        label: "Retour à l'accueil",
+        label: t('backToHome'),
         onClick: () => router.push('/dashboard'),
       }}
     >
@@ -345,7 +346,7 @@ export function UnifiedChatPage({
               size="icon"
               className="h-8 w-8"
               onClick={() => setSidebarCollapsed((c) => !c)}
-              title={sidebarCollapsed ? 'Ouvrir la sidebar' : 'Réduire la sidebar'}
+              title={sidebarCollapsed ? t('openSidebar') : t('closeSidebar')}
             >
               <Icons.chevronLeft className={cn(
                 'h-4 w-4 transition-transform duration-200',
@@ -364,7 +365,7 @@ export function UnifiedChatPage({
               <button
                 onClick={dismissChatNotice}
                 className="absolute top-2.5 right-3 text-muted-foreground hover:text-foreground"
-                aria-label="Fermer"
+                aria-label={tCommon('close')}
               >
                 <Icons.x className="h-3.5 w-3.5" />
               </button>
@@ -412,7 +413,7 @@ export function UnifiedChatPage({
                 <span className="text-2xl flex-shrink-0">✨</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-orange-300">
-                    {quotaExceeded.reason === 'trial_exhausted' ? 'Requêtes d\'essai épuisées' : 'Quota mensuel atteint'}
+                    {quotaExceeded.reason === 'trial_exhausted' ? t('quotaTrialExhausted') : t('quotaMonthlyReached')}
                   </p>
                   <p className="text-xs text-orange-200/80 mt-0.5">{quotaExceeded.error}</p>
                 </div>
@@ -421,12 +422,12 @@ export function UnifiedChatPage({
                     href="/upgrade"
                     className="btn-premium px-4 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap"
                   >
-                    Passer à Pro
+                    {t('upgradeToPro')}
                   </a>
                   <button
                     onClick={clearQuotaExceeded}
                     className="text-orange-400/60 hover:text-orange-300 text-xs"
-                    aria-label="Fermer"
+                    aria-label={tCommon('close')}
                   >
                     ✕
                   </button>

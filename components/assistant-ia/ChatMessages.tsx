@@ -436,10 +436,10 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched, can
                       ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   )}
-                  title="Copier le message"
+                  title={t('copyMessage')}
                 >
                   {copied ? (
-                    <><Icons.check className="h-3 w-3" /> <span>Copié</span></>
+                    <><Icons.check className="h-3 w-3" /> <span>{t('copied')}</span></>
                   ) : (
                     <Icons.copy className="h-3 w-3" />
                   )}
@@ -448,7 +448,7 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched, can
                   <button
                     onClick={() => { setEditContent(message.content); setIsEditing(true) }}
                     className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
-                    title="Modifier et renvoyer"
+                    title={t('editAndResend')}
                   >
                     <Icons.edit className="h-3 w-3" />
                   </button>
@@ -537,12 +537,12 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched, can
                       ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   )}
-                  title="Copier la réponse"
+                  title={t('copyResponse')}
                 >
                   {copied ? (
-                    <><Icons.check className="h-3 w-3" /> <span>Copié</span></>
+                    <><Icons.check className="h-3 w-3" /> <span>{t('copied')}</span></>
                   ) : (
-                    <><Icons.copy className="h-3 w-3" /> <span>Copier</span></>
+                    <><Icons.copy className="h-3 w-3" /> <span>{t('copy')}</span></>
                   )}
                 </button>
               </div>

@@ -1,6 +1,7 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { redirect, notFound } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import ProfileForm from '@/components/profile/ProfileForm'
 
 export const metadata = {
@@ -14,6 +15,8 @@ export default async function ProfilePage() {
   if (!session?.user?.id) {
     redirect('/login')
   }
+
+  const t = await getTranslations('profile')
 
   // Récupérer le profil
   const result = await query(
@@ -30,9 +33,9 @@ export default async function ProfilePage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Mon Profil</h1>
+        <h1 className="text-3xl font-bold">{t('title')}</h1>
         <p className="mt-2 text-muted-foreground">
-          Gérez vos informations personnelles et votre compte
+          {t('subtitle')}
         </p>
       </div>
 
@@ -41,14 +44,14 @@ export default async function ProfilePage() {
       </div>
 
       <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="font-semibold text-yellow-900">ℹ️ Informations importantes</h3>
+        <h3 className="font-semibold text-yellow-900">{t('importantInfoTitle')}</h3>
         <ul className="mt-2 space-y-1 text-sm text-yellow-800">
-          <li>• La modification de l'email nécessitera une nouvelle vérification</li>
-          <li>• Le mot de passe doit contenir au moins 6 caractères</li>
+          <li>• {t('infoEmail')}</li>
+          <li>• {t('infoPassword')}</li>
           <li>
-            • Pour les paramètres du cabinet (logo, matricule ONAT), rendez-vous dans{' '}
+            • {t('infoCabinet')}{' '}
             <a href="/parametres/cabinet" className="underline font-medium">
-              Paramètres Cabinet
+              {t('infoCabinetLink')}
             </a>
           </li>
         </ul>

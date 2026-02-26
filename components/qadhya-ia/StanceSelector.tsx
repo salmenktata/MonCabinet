@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale, useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import type { LegalStance } from '@/lib/ai/legal-reasoning-prompts'
@@ -45,10 +46,13 @@ const STANCE_OPTIONS: {
 ]
 
 export function StanceSelector({ stance, onChange, disabled = false }: StanceSelectorProps) {
+  const t = useTranslations('qadhyaIA.stance')
+  const locale = useLocale()
+  const isAr = locale === 'ar'
   return (
     <div className="flex items-center gap-1.5 px-3 py-1.5">
       <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">
-        Posture
+        {t('label')}
       </span>
       <div className="flex gap-1">
         {STANCE_OPTIONS.map((option) => {
@@ -71,7 +75,7 @@ export function StanceSelector({ stance, onChange, disabled = false }: StanceSel
               title={`${option.labelAr} — ${option.labelFr}`}
             >
               <Icon className="h-3 w-3 shrink-0" />
-              <span>{option.labelFr}</span>
+              <span>{isAr ? option.labelAr : option.labelFr}</span>
             </button>
           )
         })}

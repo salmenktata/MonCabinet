@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 type Plan = 'solo' | 'cabinet'
@@ -12,6 +13,7 @@ interface UpgradeRequestButtonProps {
 }
 
 export function UpgradeRequestButton({ plan, highlighted, alreadyRequested }: UpgradeRequestButtonProps) {
+  const t = useTranslations('plans')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(alreadyRequested ?? false)
   const [note, setNote] = useState('')
@@ -40,14 +42,14 @@ export function UpgradeRequestButton({ plan, highlighted, alreadyRequested }: Up
       })
       if (!res.ok) {
         const data = await res.json()
-        toast.error(data.error || 'Erreur lors de la demande')
+        toast.error(data.error || t('requestError'))
         return
       }
       setDone(true)
       localStorage.removeItem('qadhya_promo_code')
-      toast.success(`Demande envoyée ! Notre équipe vous contacte sous 24h.`)
+      toast.success(t('requestSuccess'))
     } catch {
-      toast.error('Erreur réseau, veuillez réessayer')
+      toast.error(t('networkError'))
     } finally {
       setLoading(false)
     }
@@ -56,7 +58,7 @@ export function UpgradeRequestButton({ plan, highlighted, alreadyRequested }: Up
   if (done) {
     return (
       <div className="w-full text-center py-3 px-6 rounded-xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-sm font-medium">
-        ✅ Demande envoyée — on vous répond sous 24h
+        ✅ {t('requestSent')}
       </div>
     )
   }
@@ -67,7 +69,7 @@ export function UpgradeRequestButton({ plan, highlighted, alreadyRequested }: Up
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Message optionnel (questions, modalités de paiement…)"
+          placeholder={t('messageOptional')}
           className="w-full rounded-lg bg-slate-700/50 border border-slate-600 text-slate-200 placeholder:text-slate-500 text-sm px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
           rows={2}
         />
@@ -83,13 +85,13 @@ export function UpgradeRequestButton({ plan, highlighted, alreadyRequested }: Up
               : 'bg-slate-700 hover:bg-slate-600 text-white border border-slate-600'
           }`}
         >
-          {loading ? 'Envoi…' : `Demander ${planLabel}`}
+          {loading ? t('sending') : t('requestPlan', { plan: planLabel })}
         </button>
 
         {!showNote && (
           <button
             onClick={() => setShowNote(true)}
-            title="Ajouter un message"
+            title={t('addMessage')}
             className="px-3 py-2 rounded-xl bg-slate-700/50 border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors text-lg"
           >
             ✏️
@@ -98,7 +100,7 @@ export function UpgradeRequestButton({ plan, highlighted, alreadyRequested }: Up
       </div>
 
       <p className="text-xs text-slate-500 text-center">
-        Notre équipe vous contacte sous 24h avec les modalités de paiement
+        {t('contactDelay')}
       </p>
     </div>
   )
