@@ -70,6 +70,8 @@ const typeColors: Record<string, string> = {
 export default function EcheanceCard({ echeance, showDossierInfo = false }: EcheanceCardProps) {
   const router = useRouter()
   const t = useTranslations('echeances.types')
+  const tEch = useTranslations('echeances')
+  const tCommon = useTranslations('common')
   const tConfirm = useTranslations('confirmations')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -140,7 +142,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
             {echeance.statut === 'respecte' && (
               <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400">
                 <Icons.check className="h-3 w-3 mr-1" />
-                Respectée
+                {tEch('respected')}
               </Badge>
             )}
 
@@ -196,11 +198,11 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
               <span>
                 {echeance.nombre_jours} jour(s){' '}
                 {echeance.delai_type === 'jours_ouvrables'
-                  ? 'ouvrables'
+                  ? tEch('workingDays')
                   : echeance.delai_type === 'jours_francs'
-                  ? 'francs'
-                  : 'calendaires'}{' '}
-                depuis le {new Date(echeance.date_point_depart).toLocaleDateString('fr-FR')}
+                  ? tEch('frankDays')
+                  : tEch('calendarDays')}{' '}
+                {tEch('sinceDate', { date: new Date(echeance.date_point_depart).toLocaleDateString('fr-FR') })}
               </span>
             </div>
           )}
@@ -247,7 +249,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
             {echeance.statut === 'actif' && (
               <DropdownMenuItem onClick={handleMarquerRespecte} disabled={loading}>
                 <Icons.check className="mr-2 h-4 w-4 text-green-600" />
-                Marquer comme respectée
+                {tEch('markAsRespected')}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
@@ -255,7 +257,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
               disabled={loading}
             >
               <Icons.edit className="mr-2 h-4 w-4" />
-              Modifier
+              {tCommon('edit')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -264,7 +266,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
               className="text-destructive focus:text-destructive"
             >
               <Icons.delete className="mr-2 h-4 w-4" />
-              Supprimer
+              {tCommon('delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

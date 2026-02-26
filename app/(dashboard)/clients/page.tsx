@@ -56,7 +56,7 @@ export default function ClientsPage() {
     return (
       <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
         <p className="text-sm text-destructive">
-          Erreur lors du chargement des clients: {error.message}
+          {t('errorLoading')}: {error.message}
         </p>
       </div>
     )

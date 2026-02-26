@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import { Icons } from '@/lib/icons'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
@@ -9,46 +10,47 @@ export const metadata = {
   description: 'Gérer les paramètres de votre cabinet',
 }
 
-const settingsCards = [
-  {
-    title: 'Cabinet',
-    description: 'Informations légales, logo, matricule ONAT',
-    icon: 'building' as const,
-    href: '/parametres/cabinet',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-  },
-  {
-    title: 'Notifications',
-    description: 'Préférences de notifications email',
-    icon: 'bell' as const,
-    href: '/parametres/notifications',
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-50',
-  },
-  {
-    title: 'Stockage Cloud',
-    description: 'Configuration Google Drive et synchronisation',
-    icon: 'cloud' as const,
-    href: '/parametres/cloud-storage',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-  },
-]
-
 export default async function SettingsPage() {
   const session = await getSession()
+  const t = await getTranslations('settings')
 
   if (!session?.user?.id) {
     redirect('/login')
   }
 
+  const settingsCards = [
+    {
+      title: t('cabinetTitle'),
+      description: t('cabinetDescription'),
+      icon: 'building' as const,
+      href: '/parametres/cabinet',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+    },
+    {
+      title: t('notificationsTitle'),
+      description: t('notificationsDescription'),
+      icon: 'bell' as const,
+      href: '/parametres/notifications',
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-50',
+    },
+    {
+      title: t('cloudStorageTitle'),
+      description: t('cloudStorageDescription'),
+      icon: 'cloud' as const,
+      href: '/parametres/cloud-storage',
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+    },
+  ]
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Paramètres</h1>
+        <h1 className="text-3xl font-bold">{t('title')}</h1>
         <p className="mt-2 text-muted-foreground">
-          Gérez les paramètres et la configuration de votre cabinet
+          {t('subtitle')}
         </p>
       </div>
 
@@ -84,14 +86,13 @@ export default async function SettingsPage() {
             <Icons.info className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
               <CardTitle className="text-blue-900 text-base mb-2">
-                Profil utilisateur
+                {t('userProfile')}
               </CardTitle>
               <CardDescription className="text-blue-800 text-sm">
-                Pour modifier vos informations personnelles (nom, prénom, email), rendez-vous sur la{' '}
+                {t('userProfileInfo')}{' '}
                 <Link href="/profile" className="underline font-medium">
-                  page de profil
+                  {t('profilePageLink')}
                 </Link>
-                .
               </CardDescription>
             </div>
           </div>

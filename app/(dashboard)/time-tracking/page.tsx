@@ -2,6 +2,7 @@ import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import { getActiveTimerAction } from '@/app/actions/time-entries'
 import ActiveTimer from '@/components/time-tracking/ActiveTimer'
 import TimeEntriesListClient from '@/components/time-tracking/TimeEntriesListClient'
@@ -11,6 +12,7 @@ import { Icons } from '@/lib/icons'
 
 export default async function TimeTrackingPage() {
   const session = await getSession()
+  const t = await getTranslations('timeTracking')
 
   if (!session?.user?.id) {
     redirect('/login')
@@ -61,15 +63,15 @@ export default async function TimeTrackingPage() {
       {/* En-tête */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Suivi du temps</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Enregistrez et gérez vos heures de travail
+            {t('subtitle')}
           </p>
         </div>
         <Button asChild size="sm">
           <Link href="/time-tracking/new">
             <Icons.add className="mr-1.5 h-4 w-4" />
-            Nouvelle entrée
+            {t('newEntry')}
           </Link>
         </Button>
       </div>
@@ -82,27 +84,27 @@ export default async function TimeTrackingPage() {
         <StatCard
           icon={Icons.clock}
           variant="primary"
-          title="Heures cette semaine"
+          title={t('hoursThisWeek')}
           value={`${stats.heuresSemaine.toFixed(1)}h`}
         />
         <StatCard
           icon={Icons.calendar}
           variant="default"
-          title="Heures ce mois"
+          title={t('hoursThisMonth')}
           value={`${stats.heuresMois.toFixed(1)}h`}
         />
         <StatCard
           icon={Icons.banknote}
           variant="success"
-          title="Facturable ce mois"
+          title={t('billableThisMonth')}
           value={`${stats.montantMois.toFixed(0)} TND`}
         />
         <StatCard
           icon={Icons.listTodo}
           variant="warning"
-          title="Non facturées"
+          title={t('notBilled')}
           value={stats.nonFacturees}
-          subtitle="entrées en attente"
+          subtitle={t('pendingEntries')}
         />
       </div>
 

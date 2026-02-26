@@ -228,7 +228,8 @@
     "searchPlaceholder": "البحث عن عميل...",
     "filterAll": "الكل",
     "filterPhysical": "الأشخاص الطبيعيون",
-    "filterLegal": "الأشخاص المعنويون"
+    "filterLegal": "الأشخاص المعنويون",
+    "errorLoading": "خطأ في تحميل العملاء"
   },
   "dossiers": {
     "title": "الملفات",
@@ -325,7 +326,12 @@
     "quickArchive": "أرشفة",
     "quickReopen": "إعادة فتح",
     "quickUnarchive": "إلغاء الأرشفة",
-    "quickActions": "إجراءات سريعة"
+    "quickActions": "إجراءات سريعة",
+    "errorLoading": "خطأ في تحميل الملفات",
+    "updateError": "خطأ في تحديث الملف",
+    "noResults": "لا توجد نتائج",
+    "noResultsSearch": "لم يتم العثور على ملف لـ « {search} »",
+    "noResultsFilter": "لا يوجد ملف يطابق هذه المعايير"
   },
   "factures": {
     "title": "الفواتير",
@@ -373,7 +379,12 @@
     "late": "متأخرة",
     "unpaid": "غير مدفوعة",
     "invoicesCount": "فاتورة",
-    "createFirstInvoice": "أنشئ فاتورتك الأولى للبدء"
+    "createFirstInvoice": "أنشئ فاتورتك الأولى للبدء",
+    "sendByEmail": "إرسال بالبريد الإلكتروني",
+    "noEmailError": "العميل ليس لديه بريد إلكتروني",
+    "sendEmailConfirm": "إرسال الفاتورة بالبريد الإلكتروني إلى {email}؟",
+    "downloadPDF": "تحميل PDF",
+    "onatNote": "مذكرة أتعاب ONAT"
   },
   "echeances": {
     "title": "المواعيد",
@@ -413,7 +424,13 @@
       "DELAI_LEGAL": "موعد قانوني",
       "DELAI_INTERNE": "موعد داخلي",
       "AUTRE": "أخرى"
-    }
+    },
+    "respected": "مُحترمة",
+    "markAsRespected": "تحديد كمُحترمة",
+    "workingDays": "أيام عمل",
+    "frankDays": "أيام صريحة",
+    "calendarDays": "أيام تقويمية",
+    "sinceDate": "منذ {date}"
   },
   "timeTracking": {
     "title": "تتبع الوقت",
@@ -444,7 +461,13 @@
     "entries": "إدخال(ات)",
     "history": "السجل",
     "notBillable": "غير قابل للفوترة",
-    "billed": "✓ مفوتر"
+    "billed": "✓ مفوتر",
+    "hoursThisWeek": "ساعات هذا الأسبوع",
+    "hoursThisMonth": "ساعات هذا الشهر",
+    "billableThisMonth": "قابل للفوترة هذا الشهر",
+    "pendingEntries": "إدخال(ات) معلقة",
+    "deleteEntryConfirm": "حذف هذا الإدخال الزمني؟",
+    "entryDeleted": "تم حذف الإدخال"
   },
   "documents": {
     "title": "الوثائق",
@@ -714,6 +737,19 @@
     "deleteDeadline": "حذف هذا الموعد؟",
     "deleteTimeEntry": "حذف هذا الإدخال الزمني؟",
     "deleteTemplate": "حذف هذا النموذج؟ هذا الإجراء لا رجعة فيه."
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "subtitle": "إدارة إعدادات وتكوين مكتبك",
+    "cabinetTitle": "المكتب",
+    "cabinetDescription": "المعلومات القانونية والشعار ورقم النقابة",
+    "notificationsTitle": "الإشعارات",
+    "notificationsDescription": "تفضيلات إشعارات البريد الإلكتروني",
+    "cloudStorageTitle": "التخزين السحابي",
+    "cloudStorageDescription": "تكوين Google Drive والمزامنة",
+    "userProfile": "الملف الشخصي",
+    "userProfileInfo": "لتعديل معلوماتك الشخصية (الاسم، اللقب، البريد الإلكتروني)، توجه إلى صفحة الملف الشخصي.",
+    "profilePageLink": "صفحة الملف الشخصي"
   },
   "cards": {
     "clientType": {

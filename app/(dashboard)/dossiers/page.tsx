@@ -108,7 +108,7 @@ export default function DossiersPage() {
     return (
       <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
         <p className="text-sm text-destructive">
-          Erreur lors du chargement des dossiers: {error.message}
+          {t('errorLoading')}: {error.message}
         </p>
       </div>
     )
@@ -277,14 +277,14 @@ export default function DossiersPage() {
           </div>
           <p className="mt-4 text-sm font-semibold text-foreground">
             {search || statusFilter !== 'all' || activeFiltersCount > 0
-              ? 'Aucun résultat'
+              ? t('noResults')
               : t('noDossiers')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {search
-              ? `Aucun dossier trouvé pour "${search}"`
+              ? t('noResultsSearch', { search })
               : statusFilter !== 'all' || activeFiltersCount > 0
-              ? 'Aucun dossier correspond à ces critères'
+              ? t('noResultsFilter')
               : t('createFirstDossier')}
           </p>
           {!search && statusFilter === 'all' && activeFiltersCount === 0 && (

@@ -228,7 +228,8 @@
     "searchPlaceholder": "Rechercher un client...",
     "filterAll": "Tous",
     "filterPhysical": "Personnes physiques",
-    "filterLegal": "Personnes morales"
+    "filterLegal": "Personnes morales",
+    "errorLoading": "Erreur lors du chargement des clients"
   },
   "dossiers": {
     "title": "Dossiers",
@@ -325,7 +326,12 @@
     "quickArchive": "Archiver",
     "quickReopen": "Rouvrir",
     "quickUnarchive": "Désarchiver",
-    "quickActions": "Actions rapides"
+    "quickActions": "Actions rapides",
+    "errorLoading": "Erreur lors du chargement des dossiers",
+    "updateError": "Erreur lors de la mise à jour",
+    "noResults": "Aucun résultat",
+    "noResultsSearch": "Aucun dossier trouvé pour « {search} »",
+    "noResultsFilter": "Aucun dossier ne correspond à ces critères"
   },
   "factures": {
     "title": "Factures",
@@ -373,7 +379,12 @@
     "late": "En retard",
     "unpaid": "Impayée",
     "invoicesCount": "facture(s)",
-    "createFirstInvoice": "Créez votre première facture pour commencer"
+    "createFirstInvoice": "Créez votre première facture pour commencer",
+    "sendByEmail": "Envoyer par email",
+    "noEmailError": "Le client n'a pas d'adresse email",
+    "sendEmailConfirm": "Envoyer la facture par email à {email} ?",
+    "downloadPDF": "Télécharger PDF",
+    "onatNote": "Note d'honoraires ONAT"
   },
   "echeances": {
     "title": "Échéances",
@@ -413,7 +424,13 @@
       "DELAI_LEGAL": "Délai légal",
       "DELAI_INTERNE": "Délai interne",
       "AUTRE": "Autre"
-    }
+    },
+    "respected": "Respectée",
+    "markAsRespected": "Marquer comme respectée",
+    "workingDays": "ouvrables",
+    "frankDays": "francs",
+    "calendarDays": "calendaires",
+    "sinceDate": "depuis le {date}"
   },
   "timeTracking": {
     "title": "Suivi du temps",
@@ -444,7 +461,13 @@
     "entries": "entrée(s)",
     "history": "Historique",
     "notBillable": "Non facturable",
-    "billed": "✓ Facturé"
+    "billed": "✓ Facturé",
+    "hoursThisWeek": "Heures cette semaine",
+    "hoursThisMonth": "Heures ce mois",
+    "billableThisMonth": "Facturable ce mois",
+    "pendingEntries": "entrée(s) en attente",
+    "deleteEntryConfirm": "Supprimer cette entrée de temps ?",
+    "entryDeleted": "Entrée supprimée"
   },
   "documents": {
     "title": "Documents",
@@ -714,6 +737,19 @@
     "deleteDeadline": "Supprimer cette échéance ?",
     "deleteTimeEntry": "Supprimer cette entrée de temps ?",
     "deleteTemplate": "Supprimer ce template ? Cette action est irréversible."
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérez les paramètres et la configuration de votre cabinet",
+    "cabinetTitle": "Cabinet",
+    "cabinetDescription": "Informations légales, logo, matricule ONAT",
+    "notificationsTitle": "Notifications",
+    "notificationsDescription": "Préférences de notifications email",
+    "cloudStorageTitle": "Stockage Cloud",
+    "cloudStorageDescription": "Configuration Google Drive et synchronisation",
+    "userProfile": "Profil utilisateur",
+    "userProfileInfo": "Pour modifier vos informations personnelles (nom, prénom, email), rendez-vous sur la page de profil.",
+    "profilePageLink": "page de profil"
   },
   "cards": {
     "clientType": {

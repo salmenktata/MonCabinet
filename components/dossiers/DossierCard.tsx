@@ -82,7 +82,7 @@ export default function DossierCard({ dossier }: DossierCardProps) {
   const prefetchDossier = usePrefetchDossier()
   const { mutate: updateDossier, isPending: isUpdating } = useUpdateDossier({
     onSuccess: () => toast.success(t('quickActions')),
-    onError: () => toast.error('Erreur lors de la mise à jour'),
+    onError: () => toast.error(t('updateError')),
   })
 
   const workflowKey = dossier.workflowEtape || dossier.workflow_etape_actuelle || 'ASSIGNATION'

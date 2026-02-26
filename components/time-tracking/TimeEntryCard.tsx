@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import { deleteTimeEntryAction } from '@/app/actions/time-entries'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +33,8 @@ function formatDuration(minutes: number): string {
 
 export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEntryCardProps) {
   const router = useRouter()
+  const t = useTranslations('timeTracking')
+  const tCommon = useTranslations('common')
   const [loading, setLoading] = useState(false)
 
   const isFacturee = !!entry.facture_id
@@ -43,7 +46,7 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
     : 'border-l-border'
 
   const handleDelete = async () => {
-    if (!confirm('Supprimer cette entrée de temps ?')) return
+    if (!confirm(t('deleteEntryConfirm'))) return
     setLoading(true)
     const result = await deleteTimeEntryAction(entry.id)
     if (result.error) {
@@ -51,7 +54,7 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
       setLoading(false)
       return
     }
-    toast.success('Entrée supprimée')
+    toast.success(t('entryDeleted'))
     router.refresh()
   }
 
@@ -87,18 +90,18 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
                 className="text-xs bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400"
               >
                 <Icons.check className="h-3 w-3 mr-1" />
-                Facturé
+                {t('billed')}
               </Badge>
             ) : entry.facturable ? (
               <Badge
                 variant="outline"
                 className="text-xs bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400"
               >
-                Facturable
+                {t('billable')}
               </Badge>
             ) : (
               <Badge variant="secondary" className="text-xs">
-                Non facturable
+                {t('notBillable')}
               </Badge>
             )}
           </div>
@@ -169,7 +172,7 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
                 disabled={loading}
               >
                 <Icons.edit className="mr-2 h-4 w-4" />
-                Modifier
+                {tCommon('edit')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -178,7 +181,7 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
                 className="text-destructive focus:text-destructive"
               >
                 <Icons.delete className="mr-2 h-4 w-4" />
-                Supprimer
+                {tCommon('delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

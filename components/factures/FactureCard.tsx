@@ -20,6 +20,7 @@ const statutColors: Record<string, string> = {
 export default function FactureCard({ facture }: FactureCardProps) {
   const router = useRouter()
   const t = useTranslations('cards')
+  const tF = useTranslations('factures')
   const [showActions, setShowActions] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -55,11 +56,11 @@ export default function FactureCard({ facture }: FactureCardProps) {
 
   const handleEnvoyerEmail = async () => {
     if (!facture.clients?.email) {
-      setError('Le client n\'a pas d\'adresse email')
+      setError(tF('noEmailError'))
       return
     }
 
-    if (!confirm(`Envoyer la facture par email à ${facture.clients.email} ?`)) {
+    if (!confirm(tF('sendEmailConfirm', { email: facture.clients.email }))) {
       return
     }
 
@@ -213,7 +214,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-md border border-green-600 bg-card px-3 py-2 text-sm font-medium text-green-600 hover:bg-green-50 flex items-center gap-1"
-          title="Télécharger PDF"
+          title={tF('downloadPDF')}
         >
           <svg
             className="h-4 w-4"
@@ -237,7 +238,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-md border border-blue-600 bg-card px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 flex items-center gap-1"
-            title="Note d'honoraires ONAT"
+            title={tF('onatNote')}
           >
             <svg
               className="h-4 w-4"
@@ -286,7 +287,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
                   d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                 />
               </svg>
-              Envoyer par email
+              {tF('sendByEmail')}
             </button>
           )}
 

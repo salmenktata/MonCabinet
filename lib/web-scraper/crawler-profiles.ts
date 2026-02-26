@@ -211,11 +211,12 @@ export const JIBAYA_PROFILE: CrawlerProfile = {
     '/wp-admin/*',
     '/wp-login.php',
     '/feed/',
-    '/blog/*',         // Articles de blog (faible valeur KB)
-    '/event/*',        // Événements
-    '/albums/*',       // Albums photos
-    '/carrousel*',     // Carrousels d'actualité
-    '/tribe_events/*', // Événements Tribe
+    '/blog/*',                    // Articles de blog (faible valeur KB)
+    '/event/*',                   // Événements
+    '/albums/*',                  // Albums photos
+    '/carrousel*',                // Carrousels d'actualité
+    '/tribe_events/*',            // Événements Tribe
+    '/formulaire-a-telecha/*',    // Pages téléchargement PDF (6-8 mots, non indexables)
   ],
   concurrency: 2, // Pages lentes → limiter concurrence
   rateLimit: 1500, // 1.5s entre requêtes
