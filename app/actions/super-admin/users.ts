@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { sendEmail } from '@/lib/email/email-service'
 import { safeParseInt } from '@/lib/utils/safe-number'
 import { rewardReferrerIfEligible } from '@/lib/plans/referral-service'
+import { getJ0WelcomeEmailHtml, getJ0WelcomeEmailText } from '@/lib/email/templates/trial-onboarding-emails'
 
 // =============================================================================
 // VÉRIFICATION SUPER ADMIN
@@ -184,7 +185,8 @@ export async function approveUserAction(userId: string) {
         plan = 'trial',
         plan_expires_at = $3,
         trial_started_at = NOW(),
-        trial_ai_uses_remaining = 30
+        trial_ai_uses_remaining = 30,
+        referral_code = COALESCE(referral_code, generate_referral_code())
        WHERE id = $2`,
       [authCheck.adminId, userId, trialExpiresAt]
     )
@@ -201,13 +203,27 @@ export async function approveUserAction(userId: string) {
       { status: 'approved', plan: 'trial', trial_expires_at: trialExpiresAt }
     )
 
-    // Envoyer email
+    // Récupérer le referral_code généré (pour l'email J0)
+    const updatedUser = await query(
+      'SELECT referral_code FROM users WHERE id = $1',
+      [userId]
+    )
+    const referralCode = updatedUser.rows[0]?.referral_code || '—'
+
+    // Envoyer email J0 bienvenue trial (remplace l'email d'approbation générique)
     const userName = user.prenom && user.nom ? `${user.prenom} ${user.nom}` : user.email
     await sendEmail({
       to: user.email,
-      subject: 'Votre compte Qadhya a été approuvé',
-      html: getApprovalEmailHtml(userName)
+      subject: 'Bienvenue sur Qadhya — Votre essai de 14 jours commence maintenant !',
+      html: getJ0WelcomeEmailHtml(userName, referralCode),
+      text: getJ0WelcomeEmailText(userName),
     })
+
+    // Marquer J0 comme envoyé
+    query(
+      `UPDATE users SET trial_emails_sent = '["j0_welcome"]'::jsonb WHERE id = $1`,
+      [userId]
+    ).catch(() => null)
 
     // Marquer la notification comme traitée
     await query(

@@ -19,6 +19,8 @@ import { registerLimiter, getClientIP, getRateLimitHeaders } from '@/lib/rate-li
 import { createLogger } from '@/lib/logger'
 import { sendVerificationEmail } from '@/lib/email/templates/verification-email'
 import { seedUserData } from '@/lib/db/seed-user-data'
+import { getJ0WelcomeEmailHtml, getJ0WelcomeEmailText } from '@/lib/email/templates/trial-onboarding-emails'
+import { sendEmail } from '@/lib/email/email-service'
 
 const log = createLogger('Auth:Register')
 
@@ -198,6 +200,22 @@ export async function POST(request: NextRequest) {
     seedUserData(user.id).catch((err) =>
       log.warn('Seed données démo échoué (non-bloquant)', { userId: user.id, err })
     )
+
+    // 6b-bis. Si invité → envoyer email J0 bienvenue trial (non-bloquant)
+    if (isInvited) {
+      const userName = `${validatedData.prenom} ${validatedData.nom}`
+      sendEmail({
+        to: user.email,
+        subject: 'Bienvenue sur Qadhya — Votre essai de 14 jours commence maintenant !',
+        html: getJ0WelcomeEmailHtml(userName, newReferralCode),
+        text: getJ0WelcomeEmailText(userName),
+      }).then(() =>
+        query(
+          `UPDATE users SET trial_emails_sent = '["j0_welcome"]'::jsonb WHERE id = $1`,
+          [user.id]
+        )
+      ).catch(() => null)
+    }
 
     // 6c. Phase 2 : Marquer la waitlist comme convertie (non-bloquant)
     if (waitlistEntry) {
