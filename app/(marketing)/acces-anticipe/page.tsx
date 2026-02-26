@@ -92,7 +92,7 @@ export default function AccesAnticipePage() {
           {[
             { value: '+6 800', label: 'documents juridiques' },
             { value: '30', label: 'req. IA offertes' },
-            { value: '14j', label: 'essai gratuit' },
+            { value: '∞', label: 'accès gratuit' },
           ].map((stat, i) => (
             <div key={i} className="glass-card rounded-xl p-4 text-center">
               <p className="text-2xl font-bold text-white">{stat.value}</p>

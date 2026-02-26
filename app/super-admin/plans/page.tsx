@@ -4,6 +4,167 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 
+// Métriques revenus
+async function RevenueStats() {
+  const result = await query(`
+    SELECT
+      COUNT(*) FILTER (WHERE plan = 'pro') AS pro_count,
+      COUNT(*) FILTER (WHERE plan = 'enterprise') AS enterprise_count,
+      COUNT(*) FILTER (WHERE upgrade_requested_plan IS NOT NULL) AS pending_upgrades,
+      COUNT(*) FILTER (
+        WHERE plan_expires_at BETWEEN NOW() AND NOW() + INTERVAL '30 days'
+      ) AS expiring_soon,
+      COUNT(*) FILTER (
+        WHERE plan IN ('pro', 'enterprise')
+          AND created_at > date_trunc('month', NOW())
+      ) AS new_paid_this_month
+    FROM users
+    WHERE status = 'approved'
+  `)
+
+  const auditResult = await query(`
+    SELECT COUNT(*) AS upgraded_this_month
+    FROM admin_audit_logs
+    WHERE action_type = 'upgrade_approved'
+      AND created_at > date_trunc('month', NOW())
+  `)
+
+  const s = result.rows[0]
+  const proCount = parseInt(s.pro_count || 0)
+  const enterpriseCount = parseInt(s.enterprise_count || 0)
+  const mrr = proCount * 89 + enterpriseCount * 229
+  const arr = mrr * 12
+
+  const metrics = [
+    {
+      label: 'MRR',
+      value: `${mrr.toLocaleString('fr-FR')} DT`,
+      sub: `${proCount} Pro + ${enterpriseCount} Expert`,
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-500/10',
+      icon: 'trendingUp',
+    },
+    {
+      label: 'ARR estimé',
+      value: `${arr.toLocaleString('fr-FR')} DT`,
+      sub: 'MRR × 12',
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10',
+      icon: 'barChart',
+    },
+    {
+      label: 'Demandes upgrade',
+      value: s.pending_upgrades,
+      sub: 'En attente d\'approbation',
+      color: parseInt(s.pending_upgrades) > 0 ? 'text-orange-400' : 'text-slate-400',
+      bg: parseInt(s.pending_upgrades) > 0 ? 'bg-orange-500/10' : 'bg-slate-700/50',
+      icon: 'arrowUpCircle',
+    },
+    {
+      label: 'Expirations < 30j',
+      value: s.expiring_soon,
+      sub: 'Plans à renouveler',
+      color: parseInt(s.expiring_soon) > 0 ? 'text-yellow-400' : 'text-slate-400',
+      bg: parseInt(s.expiring_soon) > 0 ? 'bg-yellow-500/10' : 'bg-slate-700/50',
+      icon: 'clock',
+    },
+    {
+      label: 'Nouveaux payants',
+      value: auditResult.rows[0]?.upgraded_this_month || 0,
+      sub: 'Ce mois-ci',
+      color: 'text-purple-400',
+      bg: 'bg-purple-500/10',
+      icon: 'userCheck',
+    },
+  ]
+
+  return (
+    <div className="grid gap-4 md:grid-cols-5">
+      {metrics.map((m) => (
+        <Card key={m.label} className={`border-slate-700 ${m.bg}`}>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs text-slate-400 mb-1">{m.label}</p>
+            <p className={`text-2xl font-bold ${m.color}`}>{m.value}</p>
+            <p className="text-xs text-slate-500 mt-1">{m.sub}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
+// Renouvellements à venir
+async function UpcomingRenewals() {
+  const result = await query(`
+    SELECT
+      id, email, nom, prenom, plan, plan_expires_at,
+      EXTRACT(DAY FROM (plan_expires_at - NOW())) AS days_remaining
+    FROM users
+    WHERE status = 'approved'
+      AND plan IN ('pro', 'enterprise')
+      AND plan_expires_at BETWEEN NOW() AND NOW() + INTERVAL '30 days'
+    ORDER BY plan_expires_at ASC
+    LIMIT 20
+  `)
+
+  if (result.rows.length === 0) return null
+
+  return (
+    <Card className="bg-slate-800 border-slate-700 border-yellow-500/30">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Icons.clock className="h-4 w-4 text-yellow-400" />
+          <CardTitle className="text-white">Renouvellements à venir</CardTitle>
+        </div>
+        <CardDescription className="text-slate-400">
+          Plans expirant dans les 30 prochains jours — {result.rows.length} abonné(s)
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {result.rows.map((user: {
+            id: string
+            email: string
+            nom: string
+            prenom: string
+            plan: string
+            plan_expires_at: Date
+            days_remaining: number
+          }) => {
+            const daysLeft = Math.ceil(user.days_remaining)
+            const isUrgent = daysLeft <= 7
+
+            return (
+              <div
+                key={user.id}
+                className={`flex items-center justify-between p-3 rounded-lg ${
+                  isUrgent ? 'bg-red-500/10 border border-red-500/30' : 'bg-yellow-500/10 border border-yellow-500/20'
+                }`}
+              >
+                <div>
+                  <p className="font-medium text-white text-sm">{user.prenom} {user.nom}</p>
+                  <p className="text-xs text-slate-400">{user.email}</p>
+                </div>
+                <div className="flex items-center gap-3 text-right">
+                  <Badge className={user.plan === 'pro' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-purple-500/20 text-purple-400 border-purple-500/30'}>
+                    {user.plan === 'pro' ? 'Pro' : 'Expert'}
+                  </Badge>
+                  <div>
+                    <p className="text-xs text-slate-400">Expire le</p>
+                    <p className={`text-sm font-medium ${isUrgent ? 'text-red-400' : 'text-yellow-400'}`}>
+                      {new Date(user.plan_expires_at).toLocaleDateString('fr-FR')} ({daysLeft}j)
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 // Stats des plans (incluant trial)
 async function PlansStats() {
   const result = await query(`
@@ -28,7 +189,7 @@ async function PlansStats() {
     pro: { label: 'Pro', color: 'text-blue-400', bg: 'bg-blue-500/20', limits: '200 req IA/mois' },
     enterprise: { label: 'Expert', color: 'text-purple-400', bg: 'bg-purple-500/20', limits: 'Illimité' },
     expired_trial: { label: 'Essai expiré', color: 'text-red-400', bg: 'bg-red-500/20', limits: 'Accès limité' },
-    free: { label: 'Gratuit (legacy)', color: 'text-slate-400', bg: 'bg-slate-600', limits: 'Sans IA' },
+    free: { label: 'Gratuit (legacy)', color: 'text-slate-400', bg: 'bg-slate-600', limits: '5 req IA/mois' },
   }
 
   const plans = ['enterprise', 'pro', 'trial', 'expired_trial', 'free']
@@ -218,9 +379,9 @@ async function PaidPlans() {
   const getPlanBadge = (plan: string) => {
     switch (plan) {
       case 'pro':
-        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Solo</Badge>
+        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Pro</Badge>
       case 'enterprise':
-        return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Cabinet</Badge>
+        return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Expert</Badge>
       default:
         return <Badge variant="secondary">{plan}</Badge>
     }
@@ -295,6 +456,16 @@ export default function PlansPage() {
         <h2 className="text-2xl font-bold text-white">Plans & Abonnements</h2>
         <p className="text-slate-400">Gérer les plans utilisateurs et suivre les conversions</p>
       </div>
+
+      {/* Métriques revenus */}
+      <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>
+        <RevenueStats />
+      </Suspense>
+
+      {/* Renouvellements urgents */}
+      <Suspense fallback={null}>
+        <UpcomingRenewals />
+      </Suspense>
 
       {/* Stats par plan */}
       <Suspense fallback={<div className="h-32 bg-slate-800 animate-pulse rounded-lg" />}>

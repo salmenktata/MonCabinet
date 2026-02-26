@@ -1389,7 +1389,7 @@
       "subtitle": "La plateforme tout-en-un qui simplifie la gestion de votre cabinet juridique. Dossiers, délais, facturation et IA juridique — le tout dans un seul outil.",
       "cta": "Commencer gratuitement",
       "ctaSecondary": "Voir les fonctionnalités",
-      "trustLine": "Aucune carte requise • Essai 14 jours • Sans engagement",
+      "trustLine": "Aucune carte requise • Accès gratuit • Sans engagement",
       "socialProof": "500+ avocats nous font confiance"
     },
     "stats": {
@@ -1501,7 +1501,7 @@
     "pricing": {
       "badge": "Tarification",
       "title": "Essayez gratuitement, payez si vous aimez",
-      "subtitle": "14 jours d'essai complet, sans carte bancaire. Accédez à toutes les fonctionnalités Pro dès l'inscription.",
+      "subtitle": "Accès gratuit complet, sans carte bancaire. Accédez à toutes les fonctionnalités dès l'inscription.",
       "monthly": "Mensuel",
       "annual": "Annuel",
       "annualSave": "Économisez 20%",
@@ -1511,7 +1511,7 @@
       "trial": {
         "name": "Essai Gratuit",
         "description": "Découvrez toutes les fonctionnalités sans engagement",
-        "badge": "14 jours",
+        "badge": "Gratuit",
         "features": ["Jusqu'à 10 dossiers", "Jusqu'à 20 clients", "30 requêtes IA incluses", "Calcul des délais", "1 utilisateur", "Support email"]
       },
       "pro": {
@@ -1534,7 +1534,7 @@
       "ctaCabinet": "Nous contacter",
       "guarantee": "Sans carte bancaire — annulation à tout moment",
       "currency": "DT",
-      "trialNote": "30 requêtes IA incluses • 14 jours • Sans CB",
+      "trialNote": "30 requêtes IA incluses • Sans CB",
       "comparison": {
         "title": "Comparer les plans en détail",
         "feature": "Fonctionnalité",
@@ -1571,8 +1571,8 @@
     "faq": {
       "title": "Questions fréquentes",
       "q1": { "question": "Est-ce que mes données sont sécurisées ?", "answer": "Absolument. Vos données sont hébergées en Tunisie sur des serveurs sécurisés avec chiffrement SSL. Nous respectons les normes de sécurité les plus strictes et ne partageons jamais vos données." },
-      "q2": { "question": "Y a-t-il un engagement minimum ?", "answer": "Non, aucun engagement. Vous pouvez annuler à tout moment. L'essai de 14 jours est entièrement gratuit, sans carte bancaire." },
-      "q3": { "question": "Puis-je essayer avant de payer ?", "answer": "Oui ! Tous les nouveaux comptes bénéficient automatiquement d'un essai de 14 jours complet. Vous accédez à toutes les fonctionnalités Pro, incluant 30 requêtes IA, sans carte bancaire requise." },
+      "q2": { "question": "Y a-t-il un engagement minimum ?", "answer": "Non, aucun engagement. Vous pouvez annuler à tout moment. L'accès gratuit est entièrement sans carte bancaire." },
+      "q3": { "question": "Puis-je essayer avant de payer ?", "answer": "Oui ! Tous les nouveaux comptes bénéficient automatiquement d'un accès gratuit complet. Vous accédez à toutes les fonctionnalités, incluant 30 requêtes IA, sans carte bancaire requise." },
       "q4": { "question": "Est-ce conforme aux exigences du Barreau ?", "answer": "Qadhya est conçu spécifiquement pour les avocats tunisiens et respecte les normes et procédures du Barreau de Tunisie, incluant les calculs de délais légaux." },
       "q5": { "question": "Comment fonctionne l'IA juridique ?", "answer": "Qadhya IA est alimentée par une base de plus de 3 400 documents juridiques tunisiens. Elle vous aide à rechercher la jurisprudence, structurer vos dossiers et obtenir des consultations juridiques contextualisées." },
       "q6": { "question": "Puis-je importer mes dossiers existants ?", "answer": "Oui, vous pouvez créer vos dossiers manuellement ou utiliser l'assistant IA pour les structurer automatiquement à partir d'une description en langage naturel." },

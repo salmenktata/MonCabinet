@@ -183,7 +183,7 @@ export async function getAiQuotaStatus(userId: string): Promise<{
     plan,
     trialUsesRemaining: plan === 'trial' ? (row.trial_ai_uses_remaining ?? 30) : null,
     trialDaysRemaining: null, // Le trial n'a plus de limite temporelle
-    monthlyUsed: plan === 'pro' ? (row.monthly_ai_queries_used ?? 0) : null,
-    monthlyLimit: plan === 'pro' ? (row.monthly_ai_queries_limit ?? 200) : null,
+    monthlyUsed: (plan === 'pro' || plan === 'free') ? (row.monthly_ai_queries_used ?? 0) : null,
+    monthlyLimit: (plan === 'pro' || plan === 'free') ? (row.monthly_ai_queries_limit ?? PLAN_LIMITS[plan]?.aiUsesPerMonth ?? 0) : null,
   }
 }
