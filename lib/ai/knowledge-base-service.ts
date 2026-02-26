@@ -1465,7 +1465,10 @@ export async function searchKnowledgeBaseHybrid(
   //   ar_civil_09 "البطلان"             → Fsl 325/327
   if (shouldForceCodes && detectedLang === 'ar') {
     const COC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
-      [/شروط.*عقد|صح[ةه].*عقد|أركان.*عقد/, [2, 23, 119]],
+      // Fix v14: pattern "شروط.*عقد" était trop large → matchait "شروط فسخ العقد" (ar_civil_08)
+      // → injectait Fsl 2/23/119 (faux gold) et bloquait le pattern فسخ → R@5 ar_civil_08 0→0.00
+      // Fix: exiger "صحة" OU "أركان" pour formation du contrat (exclusif de فسخ)
+      [/شروط.*صح[ةه]|صح[ةه].*عقد|أركان.*عقد/, [2, 23, 119]],
       [/تقادم|تعمير.*ذمة/, [402, 403]],
       [/إثبات.*الالتزام|إثبات.*حق|الإثبات.*مدني/, [443, 401]],
       [/ضرر.*معنوي|الضرر.*معنوي|تعويض.*معنوي/, [82, 83]],
