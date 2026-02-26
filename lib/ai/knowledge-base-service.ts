@@ -989,6 +989,81 @@ function getTargetCodeTitleFragment(queryText: string, lang: string): string | n
 }
 
 /**
+ * Recherche textuelle directe d'un article de code par numéro exact.
+ * Fix Feb 26 v8: pour les queries "ماذا ينص الفصل X من مجلة Y",
+ * garantit que le chunk de l'article est dans le pool même si sim vectorielle < threshold.
+ * Utilise ILIKE pour trouver "الفصل X " (espace après = no false-positive sur الفصل X0).
+ */
+async function searchArticleByTextMatch(
+  artNum: string,
+  targetCodeFragment: string | null
+): Promise<KnowledgeBaseSearchResult[]> {
+  try {
+    const artPattern = `%الفصل ${artNum} %`
+    let sql: string
+    let params: string[]
+
+    if (targetCodeFragment) {
+      sql = `
+        SELECT
+          kbc.id as chunk_id,
+          kbc.content as chunk_content,
+          kbc.chunk_index,
+          kbc.knowledge_base_id,
+          kbc.metadata,
+          kb.title,
+          kb.category
+        FROM knowledge_base_chunks kbc
+        JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+        WHERE kb.is_indexed = true
+          AND kb.category = 'codes'
+          AND kbc.content ILIKE $1
+          AND kb.title ILIKE $2
+        ORDER BY kbc.chunk_index
+        LIMIT 3`
+      params = [artPattern, `%${targetCodeFragment}%`]
+    } else {
+      sql = `
+        SELECT
+          kbc.id as chunk_id,
+          kbc.content as chunk_content,
+          kbc.chunk_index,
+          kbc.knowledge_base_id,
+          kbc.metadata,
+          kb.title,
+          kb.category
+        FROM knowledge_base_chunks kbc
+        JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+        WHERE kb.is_indexed = true
+          AND kb.category = 'codes'
+          AND kbc.content ILIKE $1
+        ORDER BY kbc.chunk_index
+        LIMIT 3`
+      params = [artPattern]
+    }
+
+    const result = await db.query(sql, params)
+
+    return result.rows.map((row) => ({
+      knowledgeBaseId: row.knowledge_base_id,
+      chunkId: row.chunk_id,
+      title: row.title,
+      category: row.category as KnowledgeBaseCategory,
+      chunkContent: row.chunk_content,
+      chunkIndex: row.chunk_index || 0,
+      similarity: 0.75, // Score élevé: match textuel exact > vectoriel sémantique
+      metadata: {
+        ...(row.metadata || {}),
+        searchType: 'article_text_match',
+      },
+    }))
+  } catch (err) {
+    logger.warn(`[KB article-text] Erreur pour الفصل ${artNum}:`, err)
+    return []
+  }
+}
+
+/**
  * Recherche HYBRIDE dans la base de connaissances
  *
  * ✨ OPTIMISATION RAG - Sprint 3 (Feb 2026)
@@ -1122,6 +1197,19 @@ export async function searchKnowledgeBaseHybrid(
       searchHybridSingle(queryText, embStr, 'codes', null, Math.max(Math.ceil(limit / 2), 15), 0.15, 'openai', bm25Language)
     )
     providerLabels.push('codes-forced')
+  }
+
+  // Fix Feb 26 v8: Recherche textuelle directe pour queries "ماذا ينص الفصل X من مجلة Y"
+  // Contourne le threshold vectoriel (0.15) qui peut exclure l'article exact si sim embedding < seuil.
+  // Pattern "الفصل X " (espace après) évite les faux positifs sur الفصل X0, الفصل X1...
+  if (shouldForceCodes) {
+    const articleExplicitMatch = queryText.match(/الفصل\s+(\d+)/)
+    if (articleExplicitMatch) {
+      const artNum = articleExplicitMatch[1]
+      const targetFrag = getTargetCodeTitleFragment(queryText, bm25Language as string)
+      searchPromises.push(searchArticleByTextMatch(artNum, targetFrag))
+      providerLabels.push('article-text')
+    }
   }
 
   if (searchPromises.length === 0) {
