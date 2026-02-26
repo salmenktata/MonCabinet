@@ -1444,8 +1444,9 @@ export async function searchKnowledgeBaseHybrid(
 
     if (detectedLang === 'ar') {
       // BM25 OR-expansion uniquement pour les queries arabes (COC classique)
+      // limit=25: Fsl 2 (rang 5), Fsl 119 (rang 17), Fsl 23 (rang 24) → tous couverts
       searchPromises.push(
-        searchTargetCodeByORExpansion(queryText, targetCodeFragment, 10)
+        searchTargetCodeByORExpansion(queryText, targetCodeFragment, 25)
       )
       providerLabels.push('codes-forced-direct') // même label → même boost
     }
