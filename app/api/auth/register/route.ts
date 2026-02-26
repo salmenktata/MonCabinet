@@ -35,6 +35,10 @@ const registerSchema = z.object({
     .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre')
     .regex(/[^A-Za-z0-9]/, 'Le mot de passe doit contenir au moins un caractère spécial'),
   confirmPassword: z.string(),
+  // Phase 2 : token d'invitation beta (bypass approbation manuelle)
+  invitationToken: z.string().optional(),
+  // Phase 3 : code de parrainage (1 mois offert au parrain après souscription)
+  referralCode: z.string().max(20).optional(),
 })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Les mots de passe ne correspondent pas',
@@ -77,6 +81,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 2b. Phase 2 : Valider le token d'invitation (si fourni)
+    let waitlistEntry: { id: string; email: string } | null = null
+    if (validatedData.invitationToken) {
+      const inviteResult = await query(
+        `SELECT id, email FROM waitlist
+         WHERE invitation_token = $1 AND status = 'invited'`,
+        [validatedData.invitationToken]
+      )
+      if (inviteResult.rows.length > 0) {
+        waitlistEntry = inviteResult.rows[0] as { id: string; email: string }
+        // Vérifier que l'email correspond au token
+        if (waitlistEntry.email !== validatedData.email.toLowerCase()) {
+          return NextResponse.json(
+            { error: 'Ce lien d\'invitation ne correspond pas à cet email.' },
+            { status: 400 }
+          )
+        }
+      }
+      // Token invalide → ignorer silencieusement (pas de blocage)
+    }
+
+    // 2c. Phase 3 : Valider le code de parrainage (si fourni)
+    let referrerUserId: string | null = null
+    if (validatedData.referralCode) {
+      const referrerResult = await query(
+        `SELECT id FROM users WHERE referral_code = $1 AND status = 'approved'`,
+        [validatedData.referralCode.toUpperCase()]
+      )
+      if (referrerResult.rows.length > 0) {
+        referrerUserId = referrerResult.rows[0].id
+      }
+    }
+
     // 3. Hasher le mot de passe
     const passwordHash = await hash(validatedData.password, 10)
 
@@ -84,8 +121,15 @@ export async function POST(request: NextRequest) {
     const emailVerificationToken = crypto.randomBytes(32).toString('hex')
     const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
 
-    // 5. Créer l'utilisateur avec status='pending' pour approbation
-    // Note: email_verified est un timestamp (NULL = non vérifié), pas un boolean
+    // 5. Déterminer le statut initial
+    // Si invitation valide → approuvé directement + trial démarré
+    // Sinon → pending (approbation manuelle)
+    const isInvited = !!waitlistEntry
+    const trialExpiresAt = isInvited ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) : null
+
+    // Générer un code de parrainage unique pour ce nouvel utilisateur
+    const newReferralCode = crypto.randomBytes(4).toString('hex').toUpperCase() // 8 chars hex
+
     const userResult = await query(
       `INSERT INTO users (
         email,
@@ -98,9 +142,18 @@ export async function POST(request: NextRequest) {
         is_approved,
         role,
         plan,
+        plan_expires_at,
+        trial_started_at,
+        trial_ai_uses_remaining,
+        invitation_token,
+        invited_from_waitlist_id,
+        invited_user,
+        referred_by_code,
+        referred_by_user_id,
+        referral_code,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,NOW(),NOW())
       RETURNING id, email, nom, prenom, status`,
       [
         validatedData.email.toLowerCase(),
@@ -109,10 +162,19 @@ export async function POST(request: NextRequest) {
         validatedData.prenom,
         emailVerificationToken,
         emailVerificationExpires,
-        'pending',
-        false,
+        isInvited ? 'approved' : 'pending',
+        isInvited,
         'user',
-        'free',
+        isInvited ? 'trial' : 'free',
+        trialExpiresAt,
+        isInvited ? new Date() : null,
+        isInvited ? 30 : null,
+        validatedData.invitationToken || null,
+        waitlistEntry?.id || null,
+        isInvited,
+        validatedData.referralCode?.toUpperCase() || null,
+        referrerUserId,
+        newReferralCode,
       ]
     )
 
@@ -130,12 +192,21 @@ export async function POST(request: NextRequest) {
       [user.id, user.email]
     )
 
-    log.info('Nouvel utilisateur créé', { email: user.email, id: user.id })
+    log.info('Nouvel utilisateur créé', { email: user.email, id: user.id, isInvited, hasReferral: !!referrerUserId })
 
     // 6b. Insérer données démo pour onboarding (non-bloquant)
     seedUserData(user.id).catch((err) =>
       log.warn('Seed données démo échoué (non-bloquant)', { userId: user.id, err })
     )
+
+    // 6c. Phase 2 : Marquer la waitlist comme convertie (non-bloquant)
+    if (waitlistEntry) {
+      query(
+        `UPDATE waitlist SET status = 'converted', converted_at = NOW(), converted_user_id = $1
+         WHERE id = $2`,
+        [user.id, waitlistEntry.id]
+      ).catch(() => null)
+    }
 
     // 7. Envoyer email de vérification
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-email?token=${emailVerificationToken}`
@@ -151,19 +222,22 @@ export async function POST(request: NextRequest) {
       log.info('Email de vérification envoyé', { email: user.email })
     }
 
-    // 8. Retourner succès avec indication d'approbation requise
+    // 8. Retourner succès
     return NextResponse.json(
       {
         success: true,
-        requiresApproval: true,
+        requiresApproval: !isInvited,
+        isInvited,
         emailSent: emailResult.success,
-        message: 'Compte créé avec succès. Votre demande est en attente d\'approbation.',
+        message: isInvited
+          ? 'Compte créé et activé. Votre essai de 14 jours commence maintenant !'
+          : 'Compte créé avec succès. Votre demande est en attente d\'approbation.',
         user: {
           id: user.id,
           email: user.email,
           nom: user.nom,
           prenom: user.prenom,
-          status: 'pending',
+          status: user.status,
         },
       },
       { status: 201 }

@@ -13,14 +13,21 @@ interface PricingCardProps {
   ctaHref: string
   popular?: boolean
   free?: boolean
+  /** Badge affiché au-dessus de la carte (ex: "14 jours") */
+  badge?: string
 }
 
-export function PricingCard({ name, description, price, currency, perMonth, features, cta, ctaHref, popular, free }: PricingCardProps) {
+export function PricingCard({ name, description, price, currency, perMonth, features, cta, ctaHref, popular, free, badge }: PricingCardProps) {
   return (
     <div className={`relative glass-card rounded-2xl p-8 flex flex-col ${popular ? 'ring-2 ring-blue-500 scale-105' : ''}`}>
       {popular && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-4 py-1 rounded-full">
-          {name === 'Pro' ? '⭐' : ''} Le plus populaire
+          Le plus populaire
+        </div>
+      )}
+      {badge && !popular && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-xs font-bold px-4 py-1 rounded-full">
+          {badge}
         </div>
       )}
       <h3 className="text-xl font-bold text-white">{name}</h3>

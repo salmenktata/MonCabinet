@@ -128,7 +128,12 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    referralCode: '',
   })
+
+  // Token d'invitation beta (phase 2) + code parrainage (phase 3) depuis l'URL
+  const invitationToken = searchParams.get('invite') || ''
+  const isInvited = !!invitationToken
 
   // Pré-remplir le formulaire avec les paramètres URL
   useEffect(() => {
@@ -137,8 +142,9 @@ export default function RegisterPage() {
     const email = searchParams.get('email')
     const password = searchParams.get('password')
     const confirmPassword = searchParams.get('confirmPassword')
+    const ref = searchParams.get('ref') // code parrainage
 
-    if (nom || prenom || email || password || confirmPassword) {
+    if (nom || prenom || email || password || confirmPassword || ref) {
       setFormData(prev => ({
         ...prev,
         ...(nom && { nom }),
@@ -146,6 +152,7 @@ export default function RegisterPage() {
         ...(email && { email }),
         ...(password && { password }),
         ...(confirmPassword && { confirmPassword }),
+        ...(ref && { referralCode: ref.toUpperCase() }),
       }))
     }
   }, [searchParams])
@@ -203,7 +210,11 @@ export default function RegisterPage() {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          ...(invitationToken && { invitationToken }),
+          ...(formData.referralCode && { referralCode: formData.referralCode }),
+        }),
       })
 
       const data = await response.json()
@@ -219,9 +230,13 @@ export default function RegisterPage() {
         return
       }
 
-      const redirectUrl = data.emailSent === false
-        ? '/pending-approval?emailFailed=true'
-        : '/pending-approval'
+      // Si invitation valide → accès direct au dashboard (trial déjà actif)
+      // Sinon → page d'attente d'approbation
+      const redirectUrl = data.isInvited
+        ? '/dashboard'
+        : data.emailSent === false
+          ? '/pending-approval?emailFailed=true'
+          : '/pending-approval'
       router.push(redirectUrl)
     } catch {
       setError(t('registerError'))
@@ -247,9 +262,15 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-bold text-foreground">
           {t('createAccount')}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {t('registerSubtitle')}
-        </p>
+        {isInvited ? (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-sm text-emerald-400">
+            Invitation valide — Votre essai de 14 jours sera activé immédiatement.
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {t('registerSubtitle')}
+          </p>
+        )}
       </div>
 
       {/* Formulaire */}
@@ -457,6 +478,31 @@ export default function RegisterPage() {
             </p>
           )}
         </div>
+
+        {/* Code de parrainage (optionnel) — Phase 3 */}
+        {!isInvited && (
+          <div className="space-y-1.5">
+            <label htmlFor="referralCode" className="block text-sm font-medium text-foreground">
+              Code de parrainage <span className="text-muted-foreground font-normal">(optionnel)</span>
+            </label>
+            <input
+              id="referralCode"
+              name="referralCode"
+              type="text"
+              value={formData.referralCode}
+              onChange={handleChange}
+              maxLength={20}
+              className="input-premium w-full px-3 py-2 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none uppercase"
+              placeholder="ABCD1234"
+            />
+            {formData.referralCode && (
+              <p className="text-xs text-emerald-400 flex items-center gap-1">
+                <CheckIcon className="w-3 h-3" />
+                Votre parrain recevra 1 mois offert si vous souscrivez
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Bouton d'inscription */}
         <button

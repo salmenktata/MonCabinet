@@ -17,13 +17,13 @@ export default function TarificationPage() {
     answer: t(`faq.q${i + 1}.answer`),
   }))
 
-  // Type-safe access to features arrays
-  const starterFeatures: string[] = [
-    t('pricing.starter.features.0'),
-    t('pricing.starter.features.1'),
-    t('pricing.starter.features.2'),
-    t('pricing.starter.features.3'),
-    t('pricing.starter.features.4'),
+  const trialFeatures: string[] = [
+    t('pricing.trial.features.0'),
+    t('pricing.trial.features.1'),
+    t('pricing.trial.features.2'),
+    t('pricing.trial.features.3'),
+    t('pricing.trial.features.4'),
+    t('pricing.trial.features.5'),
   ]
   const proFeatures: string[] = [
     t('pricing.pro.features.0'),
@@ -54,7 +54,7 @@ export default function TarificationPage() {
             subtitle={t('pricing.subtitle')}
           />
 
-          {/* Toggle */}
+          {/* Toggle mensuel / annuel */}
           <div className="flex items-center justify-center gap-4 mt-8">
             <span className={`text-sm font-medium ${!annual ? 'text-white' : 'text-slate-400'}`}>
               {t('pricing.monthly')}
@@ -80,17 +80,21 @@ export default function TarificationPage() {
       {/* Pricing Cards */}
       <section className="pb-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 items-start">
+          {/* Essai gratuit */}
           <PricingCard
-            name={t('pricing.starter.name')}
-            description={t('pricing.starter.description')}
+            name={t('pricing.trial.name')}
+            description={t('pricing.trial.description')}
             price={t('pricing.free')}
             currency=""
             perMonth=""
-            features={starterFeatures}
-            cta={t('pricing.ctaFree')}
+            features={trialFeatures}
+            cta={t('pricing.ctaTrial')}
             ctaHref="/register"
             free
+            badge={t('pricing.trial.badge')}
           />
+
+          {/* Solo (Pro) */}
           <PricingCard
             name={t('pricing.pro.name')}
             description={t('pricing.pro.description')}
@@ -102,6 +106,8 @@ export default function TarificationPage() {
             ctaHref="/register"
             popular
           />
+
+          {/* Cabinet */}
           <PricingCard
             name={t('pricing.cabinet.name')}
             description={t('pricing.cabinet.description')}
@@ -113,6 +119,11 @@ export default function TarificationPage() {
             ctaHref="/contact"
           />
         </div>
+
+        {/* Note sous les cartes */}
+        <p className="text-center text-sm text-slate-400 mt-6">
+          {t('pricing.trialNote')}
+        </p>
       </section>
 
       {/* Comparison Table */}
@@ -124,28 +135,69 @@ export default function TarificationPage() {
               <thead>
                 <tr className="border-b border-white/10">
                   <th className="text-left p-4 text-slate-400 font-medium">{t('pricing.comparison.feature')}</th>
-                  <th className="p-4 text-white font-medium text-center">{t('pricing.starter.name')}</th>
+                  <th className="p-4 text-white font-medium text-center">{t('pricing.trial.name')}</th>
                   <th className="p-4 text-blue-400 font-medium text-center">{t('pricing.pro.name')}</th>
-                  <th className="p-4 text-white font-medium text-center">{t('pricing.cabinet.name')}</th>
+                  <th className="p-4 text-purple-400 font-medium text-center">{t('pricing.cabinet.name')}</th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  { key: 'dossiers', starter: t('pricing.comparison.limited5'), pro: t('pricing.comparison.unlimited'), cabinet: t('pricing.comparison.unlimited') },
-                  { key: 'clients', starter: t('pricing.comparison.limited3'), pro: t('pricing.comparison.unlimited'), cabinet: t('pricing.comparison.unlimited') },
-                  { key: 'users', starter: t('pricing.comparison.limited1'), pro: t('pricing.comparison.limited1'), cabinet: t('pricing.comparison.upTo10') },
-                  { key: 'delais', starter: '✓', pro: '✓', cabinet: '✓' },
-                  { key: 'facturation', starter: t('pricing.comparison.basic'), pro: t('pricing.comparison.full'), cabinet: t('pricing.comparison.full') },
-                  { key: 'templates', starter: '—', pro: '✓', cabinet: '✓' },
-                  { key: 'ia', starter: '—', pro: '✓', cabinet: '✓' },
-                  { key: 'stockage', starter: t('pricing.comparison.gb1'), pro: t('pricing.comparison.gb10'), cabinet: t('pricing.comparison.unlimited') },
-                  { key: 'support', starter: t('pricing.comparison.email'), pro: t('pricing.comparison.priority'), cabinet: t('pricing.comparison.dedicated') },
-                  { key: 'sla', starter: '—', pro: '—', cabinet: '✓' },
-                  { key: 'formation', starter: '—', pro: '—', cabinet: t('pricing.comparison.included') },
+                  {
+                    key: 'dossiers',
+                    trial: t('pricing.comparison.limited10'),
+                    pro: t('pricing.comparison.unlimited'),
+                    cabinet: t('pricing.comparison.unlimited'),
+                  },
+                  {
+                    key: 'clients',
+                    trial: t('pricing.comparison.limited20'),
+                    pro: t('pricing.comparison.unlimited'),
+                    cabinet: t('pricing.comparison.unlimited'),
+                  },
+                  {
+                    key: 'users',
+                    trial: t('pricing.comparison.limited1'),
+                    pro: t('pricing.comparison.limited1'),
+                    cabinet: t('pricing.comparison.upTo10'),
+                  },
+                  { key: 'delais', trial: '✓', pro: '✓', cabinet: '✓' },
+                  {
+                    key: 'facturation',
+                    trial: t('pricing.comparison.basic'),
+                    pro: t('pricing.comparison.full'),
+                    cabinet: t('pricing.comparison.full'),
+                  },
+                  { key: 'templates', trial: '—', pro: '✓', cabinet: '✓' },
+                  { key: 'ia', trial: '✓', pro: '✓', cabinet: '✓' },
+                  {
+                    key: 'aiQuota',
+                    trial: t('pricing.comparison.req30'),
+                    pro: t('pricing.comparison.req200'),
+                    cabinet: t('pricing.comparison.unlimited'),
+                  },
+                  {
+                    key: 'stockage',
+                    trial: t('pricing.comparison.mb500'),
+                    pro: t('pricing.comparison.gb10'),
+                    cabinet: t('pricing.comparison.unlimited'),
+                  },
+                  {
+                    key: 'support',
+                    trial: t('pricing.comparison.email'),
+                    pro: t('pricing.comparison.emailChat'),
+                    cabinet: t('pricing.comparison.dedicated'),
+                  },
+                  { key: 'sla', trial: '—', pro: '—', cabinet: '✓' },
+                  {
+                    key: 'formation',
+                    trial: '—',
+                    pro: '—',
+                    cabinet: t('pricing.comparison.included'),
+                  },
                 ].map((row) => (
                   <tr key={row.key} className="border-b border-white/5">
                     <td className="p-4 text-slate-300">{t(`pricing.comparison.${row.key}`)}</td>
-                    <td className="p-4 text-center text-slate-400">{row.starter}</td>
+                    <td className="p-4 text-center text-slate-400">{row.trial}</td>
                     <td className="p-4 text-center text-white">{row.pro}</td>
                     <td className="p-4 text-center text-slate-300">{row.cabinet}</td>
                   </tr>
@@ -175,7 +227,7 @@ export default function TarificationPage() {
           <TrustBadges ssl={t('trust.ssl')} tunisia={t('trust.tunisia')} barreau={t('trust.barreau')} support={t('trust.support')} />
           <div className="mt-12">
             <Link href="/register" className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white">
-              {t('hero.cta')}
+              {t('pricing.ctaTrial')}
             </Link>
           </div>
         </div>

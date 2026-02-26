@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { TrialBanner } from '@/components/layout/TrialBanner'
 import { GlobalKeyboardShortcuts } from '@/components/ui/KeyboardShortcuts'
 import { GlobalErrorBoundary } from '@/components/providers/GlobalErrorBoundary'
 import { StanceProviderWrapper } from '@/components/providers/StanceProviderWrapper'
@@ -34,6 +35,7 @@ export default async function DashboardLayout({
     <GlobalErrorBoundary>
       <StanceProviderWrapper>
         <div dir="ltr">
+        <TrialBanner />
         <AppLayout
           user={{
             email: session.user.email!,

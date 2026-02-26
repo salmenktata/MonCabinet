@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
 import { sendEmail } from '@/lib/email/email-service'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { rewardReferrerIfEligible } from '@/lib/plans/referral-service'
 
 // =============================================================================
 // VÉRIFICATION SUPER ADMIN
@@ -172,15 +173,20 @@ export async function approveUserAction(userId: string) {
       return { error: `Impossible d'approuver un utilisateur avec le status: ${user.status}` }
     }
 
-    // Mettre à jour le status
+    // Mettre à jour le status + démarrer l'essai 14 jours automatiquement
+    const trialExpiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
     await query(
       `UPDATE users SET
         status = 'approved',
         is_approved = TRUE,
         approved_by = $1,
-        approved_at = NOW()
+        approved_at = NOW(),
+        plan = 'trial',
+        plan_expires_at = $3,
+        trial_started_at = NOW(),
+        trial_ai_uses_remaining = 30
        WHERE id = $2`,
-      [authCheck.adminId, userId]
+      [authCheck.adminId, userId, trialExpiresAt]
     )
 
     // Log d'audit
@@ -192,7 +198,7 @@ export async function approveUserAction(userId: string) {
       userId,
       user.email,
       { status: 'pending' },
-      { status: 'approved' }
+      { status: 'approved', plan: 'trial', trial_expires_at: trialExpiresAt }
     )
 
     // Envoyer email
@@ -519,7 +525,7 @@ export async function changeUserPlanAction(userId: string, newPlan: string, expi
       return { error: authCheck.error }
     }
 
-    const validPlans = ['free', 'pro', 'enterprise']
+    const validPlans = ['free', 'trial', 'pro', 'enterprise', 'expired_trial']
     if (!validPlans.includes(newPlan)) {
       return { error: 'Plan invalide' }
     }
@@ -537,11 +543,24 @@ export async function changeUserPlanAction(userId: string, newPlan: string, expi
 
     const oldPlan = user.plan
 
-    // Mettre à jour le plan
-    await query(
-      'UPDATE users SET plan = $1, plan_expires_at = $2 WHERE id = $3',
-      [newPlan, expiresAt || null, userId]
-    )
+    // Mettre à jour le plan avec gestion des colonnes trial
+    if (newPlan === 'trial') {
+      const trialExpiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+      await query(
+        `UPDATE users SET
+           plan = $1,
+           plan_expires_at = $2,
+           trial_started_at = NOW(),
+           trial_ai_uses_remaining = 30
+         WHERE id = $3`,
+        [newPlan, trialExpiresAt, userId]
+      )
+    } else {
+      await query(
+        'UPDATE users SET plan = $1, plan_expires_at = $2 WHERE id = $3',
+        [newPlan, expiresAt || null, userId]
+      )
+    }
 
     // Log d'audit
     await createAuditLog(
@@ -554,6 +573,13 @@ export async function changeUserPlanAction(userId: string, newPlan: string, expi
       { plan: oldPlan },
       { plan: newPlan, expires_at: expiresAt }
     )
+
+    // Récompenser le parrain si le filleul souscrit à un plan payant
+    if (newPlan === 'pro' || newPlan === 'enterprise') {
+      rewardReferrerIfEligible(userId).catch((err) =>
+        console.warn('Erreur reward referral (non-bloquant):', err)
+      )
+    }
 
     revalidatePath('/super-admin/users')
     revalidatePath(`/super-admin/users/${userId}`)

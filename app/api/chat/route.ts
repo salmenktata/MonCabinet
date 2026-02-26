@@ -35,6 +35,7 @@ import { detectAbrogations, type AbrogationAlert } from '@/lib/legal/abrogation-
 import { structurerDossier } from '@/lib/ai/dossier-structuring-service'
 import { RateLimiter } from '@/lib/rate-limiter'
 import { acquireChatSemaphore, releaseChatSemaphore } from '@/lib/ai/chat-semaphore'
+import { checkAndConsumeAiQuota } from '@/lib/plans/check-ai-quota'
 
 // Rate limiter par utilisateur : 20 req/min (module-level → singleton)
 const chatRateLimiter = new RateLimiter({ windowMs: 60_000, maxRequests: 20, name: 'chat' })
@@ -228,13 +229,16 @@ export async function POST(
       )
     }
 
-    // Vérifier le quota IA de l'utilisateur
-    const quotaCheck = await checkAndIncrementQuota(userId)
+    // Vérifier le quota IA de l'utilisateur (trial / pro / enterprise)
+    const quotaCheck = await checkAndConsumeAiQuota(userId)
     if (!quotaCheck.allowed) {
+      const errorMsg = quotaCheck.reason === 'trial_exhausted'
+        ? `Vous avez utilisé vos 30 requêtes d'essai. Passez au plan Solo pour continuer.`
+        : quotaCheck.reason === 'no_ai' || quotaCheck.reason === 'expired'
+          ? `Votre plan ne donne pas accès à l'IA. Passez au plan Solo.`
+          : `Quota mensuel atteint (${quotaCheck.used}/${quotaCheck.limit} requêtes). Réinitialisation le ${quotaCheck.resetDate}`
       return NextResponse.json(
-        {
-          error: `Quota mensuel atteint (${quotaCheck.used}/${quotaCheck.limit} requêtes). Réinitialisation le ${quotaCheck.resetDate}`,
-        },
+        { error: errorMsg, reason: quotaCheck.reason, upgradeRequired: true },
         { status: 429 }
       )
     }
@@ -777,61 +781,4 @@ async function handleStreamingResponse(
   })
 }
 
-// =============================================================================
-// HELPER: Vérifier et incrémenter le quota
-// =============================================================================
-
-async function checkAndIncrementQuota(userId: string): Promise<{
-  allowed: boolean
-  used: number
-  limit: number
-  resetDate: string
-}> {
-  const now = new Date()
-  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-
-  // Une seule requête UPSERT avec RETURNING
-  const result = await db.query(
-    `INSERT INTO feature_flags (user_id, monthly_ai_queries_used, quota_reset_date)
-     VALUES ($1, 1, $2)
-     ON CONFLICT (user_id) DO UPDATE SET
-       monthly_ai_queries_used = CASE
-         WHEN feature_flags.quota_reset_date < $2 THEN 1
-         ELSE feature_flags.monthly_ai_queries_used + 1
-       END,
-       quota_reset_date = CASE
-         WHEN feature_flags.quota_reset_date < $2 THEN $2
-         ELSE feature_flags.quota_reset_date
-       END
-     RETURNING monthly_ai_queries_limit, monthly_ai_queries_used, quota_reset_date`,
-    [userId, currentMonthStart.toISOString()]
-  )
-
-  const flags = result.rows[0]
-  const limit = flags.monthly_ai_queries_limit
-  const used = flags.monthly_ai_queries_used
-  const resetDate = new Date(flags.quota_reset_date)
-
-  // Vérifier si quota dépassé (on a déjà incrémenté, donc on compare avec >)
-  if (used > limit) {
-    return {
-      allowed: false,
-      used: used - 1, // Retourner la valeur avant incrémentation
-      limit,
-      resetDate: getNextMonthDate(resetDate),
-    }
-  }
-
-  return {
-    allowed: true,
-    used,
-    limit,
-    resetDate: getNextMonthDate(resetDate),
-  }
-}
-
-function getNextMonthDate(date: Date): string {
-  const next = new Date(date)
-  next.setMonth(next.getMonth() + 1)
-  return next.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
-}
+// checkAndIncrementQuota migré vers lib/plans/check-ai-quota.ts
