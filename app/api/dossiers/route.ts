@@ -13,6 +13,7 @@ import { getSession } from '@/lib/auth/session'
 import { query } from '@/lib/db/postgres'
 import { dossierSchema } from '@/lib/validations/dossier'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { PLAN_LIMITS } from '@/lib/plans/plan-config'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -239,6 +240,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const userId = session.user.id
+
+    // Vérifier limite dossiers selon plan (trial = 10 max)
+    const planRow = await query(
+      'SELECT plan FROM users WHERE id = $1',
+      [userId]
+    )
+    const userPlan = (planRow.rows[0]?.plan ?? 'free') as keyof typeof PLAN_LIMITS
+    const maxDossiers = PLAN_LIMITS[userPlan]?.maxDossiers ?? Infinity
+    if (maxDossiers !== Infinity) {
+      const countRow = await query(
+        'SELECT COUNT(*) AS count FROM dossiers WHERE user_id = $1',
+        [userId]
+      )
+      const current = parseInt(countRow.rows[0]?.count || '0', 10)
+      if (current >= maxDossiers) {
+        return NextResponse.json(
+          {
+            error: `Limite atteinte : votre essai est limité à ${maxDossiers} dossiers.`,
+            limitReached: true,
+            upgradeRequired: true,
+          },
+          { status: 403 }
+        )
+      }
+    }
+
     const body = await request.json()
 
     // Validation avec Zod

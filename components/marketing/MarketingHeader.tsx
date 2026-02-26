@@ -51,7 +51,7 @@ export function MarketingHeader() {
           <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
             {t('login')}
           </Link>
-          <Link href="/register" className="btn-premium px-4 py-2 rounded-lg text-sm font-semibold text-white">
+          <Link href="/acces-anticipe" className="btn-premium px-4 py-2 rounded-lg text-sm font-semibold text-white">
             {t('register')}
           </Link>
         </div>
@@ -85,7 +85,7 @@ export function MarketingHeader() {
                 <Link href="/login" onClick={() => setOpen(false)} className="text-lg font-medium text-slate-300 hover:text-white">
                   {t('login')}
                 </Link>
-                <Link href="/register" onClick={() => setOpen(false)} className="btn-premium px-6 py-3 rounded-xl text-center font-semibold text-white">
+                <Link href="/acces-anticipe" onClick={() => setOpen(false)} className="btn-premium px-6 py-3 rounded-xl text-center font-semibold text-white">
                   {t('register')}
                 </Link>
               </div>

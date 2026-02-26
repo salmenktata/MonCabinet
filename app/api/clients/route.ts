@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { query } from '@/lib/db/postgres'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { PLAN_LIMITS } from '@/lib/plans/plan-config'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -168,6 +169,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const userId = session.user.id
+
+    // Vérifier limite clients selon plan (trial = 20 max)
+    const planRow = await query(
+      'SELECT plan FROM users WHERE id = $1',
+      [userId]
+    )
+    const userPlan = (planRow.rows[0]?.plan ?? 'free') as keyof typeof PLAN_LIMITS
+    const maxClients = PLAN_LIMITS[userPlan]?.maxClients ?? Infinity
+    if (maxClients !== Infinity) {
+      const countRow = await query(
+        'SELECT COUNT(*) AS count FROM clients WHERE user_id = $1',
+        [userId]
+      )
+      const current = parseInt(countRow.rows[0]?.count || '0', 10)
+      if (current >= maxClients) {
+        return NextResponse.json(
+          {
+            error: `Limite atteinte : votre essai est limité à ${maxClients} clients.`,
+            limitReached: true,
+            upgradeRequired: true,
+          },
+          { status: 403 }
+        )
+      }
+    }
+
     const body = await request.json()
 
     // Validation basique

@@ -93,7 +93,7 @@ export default async function HomePage() {
 
           {/* CTA */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6 animate-fade-in-up stagger-4">
-            <Link href="/register" className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white animate-glow">
+            <Link href="/acces-anticipe" className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white animate-glow">
               {t('hero.cta')}
             </Link>
             <Link href="/fonctionnalites" className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white hover:bg-white/10 transition-all">
@@ -280,7 +280,7 @@ export default async function HomePage() {
             {t('ctaFinal.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register" className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white">
+            <Link href="/acces-anticipe" className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white">
               {t('ctaFinal.cta')}
             </Link>
             <Link href="/contact" className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white border border-white/30 hover:bg-white/10 transition-all">
