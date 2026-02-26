@@ -1083,9 +1083,10 @@ export async function searchKnowledgeBaseHybrid(
   // Solution : recherche forcée dans 'codes' avec threshold très bas (0.20) +
   // boost CODE_PRIORITY_BOOST pour compenser l'écart sémantique naturel.
   // N'ajoute rien si on filtre déjà par codes (évite doublons).
-  const CODE_PRIORITY_BOOST = detectedLang === 'ar' ? 2.0 : 1.60
-  // Fix Feb 26 v3: 2.0 pour arabe — boost sélectif par TITRE (pas branch, absent de kbc.metadata)
-  // COC raw ~0.18 × 2.0 = 0.36 > effectiveMinimum=0.30 ✅ | CNSS/Note-Communes → pas de boost
+  const CODE_PRIORITY_BOOST = detectedLang === 'ar' ? 2.5 : 3.0
+  // Fix Feb 26 v5: boost augmenté pour compenser l'écart sémantique cross-language FR→AR
+  // FR: raw ~0.18 × 3.0 = 0.54 > doctrine ~0.50 ✅ | AR: raw ~0.18 × 2.5 = 0.45 ✅
+  // (v4 était: AR=2.0 FR=1.60 — insuffisant pour dépasser doctrine 0.50 en queries FR)
   const shouldForceCodes = !category || category !== 'codes'
   if (shouldForceCodes && openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
     const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
