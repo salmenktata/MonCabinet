@@ -31,7 +31,8 @@ import {
   reactivateUserAction,
   changeUserRoleAction,
   changeUserPlanAction,
-  deleteUserAction
+  deleteUserAction,
+  approveUpgradeAction
 } from '@/app/actions/super-admin/users'
 import { startImpersonationAction } from '@/app/actions/super-admin/impersonation'
 
@@ -43,6 +44,8 @@ interface User {
   role: string
   status: string
   plan: string
+  upgrade_requested_plan?: string | null
+  upgrade_request_note?: string | null
 }
 
 interface UserActionsProps {
@@ -132,6 +135,24 @@ export function UserActions({ user }: UserActionsProps) {
         toast.error(result.error)
       } else {
         toast.success(`Utilisateur r\u00e9activ\u00e9 \u2014 Le compte de ${user.email} a \u00e9t\u00e9 r\u00e9activ\u00e9.`)
+        router.refresh()
+      }
+    } catch {
+      toast.error('Une erreur est survenue')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleApproveUpgrade = async () => {
+    setLoading(true)
+    try {
+      const result = await approveUpgradeAction(user.id)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        const planLabel = user.upgrade_requested_plan === 'solo' ? 'Solo' : 'Cabinet'
+        toast.success(`Plan ${planLabel} activé — Email de confirmation envoyé à ${user.email}`)
         router.refresh()
       }
     } catch {
@@ -254,6 +275,18 @@ export function UserActions({ user }: UserActionsProps) {
           <Icons.shield className="h-4 w-4 mr-2" />
           Changer le rôle
         </Button>
+
+        {/* Approuver l'upgrade en 1 clic si demande en cours */}
+        {user.upgrade_requested_plan && (
+          <Button
+            onClick={handleApproveUpgrade}
+            disabled={loading}
+            className="bg-orange-600 hover:bg-orange-500 text-white font-semibold"
+          >
+            <Icons.checkCircle className="h-4 w-4 mr-2" />
+            ✅ Approuver → {user.upgrade_requested_plan === 'solo' ? 'Solo' : 'Cabinet'}
+          </Button>
+        )}
 
         {/* Changer le plan */}
         <Button

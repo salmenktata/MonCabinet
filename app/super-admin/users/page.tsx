@@ -77,10 +77,12 @@ export default async function UsersPage({ searchParams }: PageProps) {
   const usersResult = await query(
     `SELECT
       id, email, nom, prenom, role, status, plan, plan_expires_at,
-      created_at, last_login_at, login_count, is_approved
+      created_at, last_login_at, login_count, is_approved,
+      upgrade_requested_plan, upgrade_request_note
     FROM users
     ${whereClause}
     ORDER BY
+      CASE WHEN upgrade_requested_plan IS NOT NULL THEN 0 ELSE 1 END,
       CASE status
         WHEN 'pending' THEN 1
         WHEN 'approved' THEN 2

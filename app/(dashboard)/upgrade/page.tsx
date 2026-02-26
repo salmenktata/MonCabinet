@@ -1,9 +1,9 @@
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import { query } from '@/lib/db/postgres'
-import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { UpgradeRequestButton } from '@/components/plans/UpgradeRequestButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,13 +13,13 @@ interface PlanCardProps {
   priceNote: string
   description: string
   features: { text: string; included: boolean }[]
-  cta: string
-  ctaHref: string
+  plan: 'solo' | 'cabinet'
   highlighted?: boolean
   badge?: string
+  alreadyRequested?: boolean
 }
 
-function PlanCard({ name, price, priceNote, description, features, cta, ctaHref, highlighted, badge }: PlanCardProps) {
+function PlanCard({ name, price, priceNote, description, features, plan, highlighted, badge, alreadyRequested }: PlanCardProps) {
   return (
     <div className={`relative rounded-2xl p-8 flex flex-col border ${
       highlighted
@@ -60,16 +60,7 @@ function PlanCard({ name, price, priceNote, description, features, cta, ctaHref,
         ))}
       </ul>
 
-      <Link
-        href={ctaHref}
-        className={`text-center py-3 px-6 rounded-xl font-semibold transition-all ${
-          highlighted
-            ? 'bg-blue-600 hover:bg-blue-500 text-white'
-            : 'bg-slate-700 hover:bg-slate-600 text-white border border-slate-600'
-        }`}
-      >
-        {cta}
-      </Link>
+      <UpgradeRequestButton plan={plan} highlighted={highlighted} alreadyRequested={alreadyRequested} />
     </div>
   )
 }
@@ -78,21 +69,17 @@ export default async function UpgradePage() {
   const session = await getSession()
   if (!session?.user?.id) redirect('/login')
 
-  // Récupérer les infos du plan actuel
   const result = await query(
-    `SELECT plan, trial_ai_uses_remaining, trial_started_at,
-     EXTRACT(DAY FROM (trial_started_at + INTERVAL '14 days' - NOW())) AS trial_days_remaining
-     FROM users WHERE id = $1`,
+    `SELECT plan, trial_ai_uses_remaining, upgrade_requested_plan FROM users WHERE id = $1`,
     [session.user.id]
   )
   const user = result.rows[0]
   const plan = user?.plan || 'free'
-  const trialDaysLeft = Math.max(0, Math.ceil(user?.trial_days_remaining || 0))
   const trialUsesLeft = user?.trial_ai_uses_remaining ?? 0
-  const isExpired = plan === 'expired_trial' || (plan === 'trial' && trialDaysLeft === 0)
+  const isExpired = plan === 'expired_trial' || (plan === 'trial' && trialUsesLeft === 0)
   const isPaid = plan === 'pro' || plan === 'enterprise'
+  const requestedPlan = user?.upgrade_requested_plan as string | null
 
-  // Si déjà sur un plan payant, rediriger vers le profil
   if (isPaid) redirect('/dashboard')
 
   const soloFeatures = [
@@ -105,7 +92,7 @@ export default async function UpgradePage() {
     { text: 'Facturation complète', included: true },
     { text: '10 Go de stockage', included: true },
     { text: 'Support Email + Chat', included: true },
-    { text: 'Jusqu\'à 10 utilisateurs', included: false },
+    { text: "Jusqu'à 10 utilisateurs", included: false },
     { text: 'SLA garanti', included: false },
   ]
 
@@ -113,7 +100,7 @@ export default async function UpgradePage() {
     { text: 'Dossiers illimités', included: true },
     { text: 'Clients illimités', included: true },
     { text: 'IA illimitée', included: true },
-    { text: 'Jusqu\'à 10 utilisateurs', included: true },
+    { text: "Jusqu'à 10 utilisateurs", included: true },
     { text: 'Rôles et permissions', included: true },
     { text: 'Stockage illimité', included: true },
     { text: 'Support prioritaire dédié', included: true },
@@ -138,7 +125,7 @@ export default async function UpgradePage() {
         ) : (
           <>
             <Badge className="bg-emerald-500/20 text-emerald-400 mb-4">
-              Essai en cours — {trialDaysLeft}j restants • {trialUsesLeft}/30 requêtes IA
+              Essai gratuit — {trialUsesLeft}/30 requêtes IA restantes
             </Badge>
             <h1 className="text-3xl font-bold text-white mb-3">
               Passez à la vitesse supérieure
@@ -147,6 +134,12 @@ export default async function UpgradePage() {
               Continuez sans interruption avec un accès IA illimité et toutes les fonctionnalités avancées.
             </p>
           </>
+        )}
+
+        {requestedPlan && (
+          <div className="mt-4 inline-flex items-center gap-2 bg-blue-500/15 border border-blue-500/30 text-blue-300 text-sm px-4 py-2 rounded-full">
+            ✅ Demande de passage au plan <strong>{requestedPlan === 'solo' ? 'Solo' : 'Cabinet'}</strong> en cours de traitement
+          </div>
         )}
       </div>
 
@@ -158,10 +151,10 @@ export default async function UpgradePage() {
           priceNote="/mois (ou 71 DT/mois en annuel)"
           description="Pour l'avocat indépendant qui veut tout optimiser"
           features={soloFeatures}
-          cta="Choisir Solo"
-          ctaHref="/contact?plan=solo"
+          plan="solo"
           highlighted
           badge="Le plus populaire"
+          alreadyRequested={requestedPlan === 'solo'}
         />
         <PlanCard
           name="Cabinet"
@@ -169,8 +162,8 @@ export default async function UpgradePage() {
           priceNote="/mois (ou 183 DT/mois en annuel)"
           description="Pour les cabinets multi-associés avec besoin d'IA intensive"
           features={cabinetFeatures}
-          cta="Contacter l'équipe"
-          ctaHref="/contact?plan=cabinet"
+          plan="cabinet"
+          alreadyRequested={requestedPlan === 'cabinet'}
         />
       </div>
 
@@ -180,7 +173,7 @@ export default async function UpgradePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
               { icon: '🔒', label: 'Données hébergées en Tunisie', sub: 'Sécurité SSL' },
-              { icon: '🚀', label: 'Activation immédiate', sub: 'Pas d\'attente' },
+              { icon: '⚡', label: 'Activation sous 24h', sub: 'Après confirmation paiement' },
               { icon: '❌', label: 'Sans engagement', sub: 'Annulation à tout moment' },
               { icon: '🏛️', label: 'Conforme Barreau', sub: 'Calculs légaux tunisiens' },
             ].map((g, i) => (
@@ -194,7 +187,7 @@ export default async function UpgradePage() {
         </CardContent>
       </Card>
 
-      {/* FAQ rapide */}
+      {/* FAQ */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white text-lg">Questions fréquentes</CardTitle>
@@ -202,8 +195,8 @@ export default async function UpgradePage() {
         <CardContent className="space-y-4">
           {[
             {
-              q: 'Comment activer mon abonnement ?',
-              a: 'Contactez notre équipe via le formulaire de contact. L\'activation est manuelle pour le moment — nous traitons chaque demande sous 24h.',
+              q: 'Comment fonctionne la demande ?',
+              a: "Cliquez sur \"Demander Solo\" — notre équipe vous contacte sous 24h avec les modalités de paiement (virement ou Flouci). L'activation est immédiate après confirmation.",
             },
             {
               q: 'Mes données d\'essai sont-elles conservées ?',

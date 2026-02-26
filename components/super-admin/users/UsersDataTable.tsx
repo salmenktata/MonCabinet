@@ -26,6 +26,8 @@ interface User {
   last_login_at: Date | null
   login_count: number
   is_approved: boolean
+  upgrade_requested_plan: string | null
+  upgrade_request_note: string | null
 }
 
 interface UsersDataTableProps {
@@ -108,7 +110,16 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
               </TableCell>
               <TableCell>{getRoleBadge(user.role)}</TableCell>
               <TableCell>{getStatusBadge(user.status)}</TableCell>
-              <TableCell>{getPlanBadge(user.plan)}</TableCell>
+              <TableCell>
+                <div className="flex flex-col gap-1">
+                  {getPlanBadge(user.plan)}
+                  {user.upgrade_requested_plan && (
+                    <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs w-fit">
+                      🚀 Demande {user.upgrade_requested_plan === 'solo' ? 'Solo' : 'Cabinet'}
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
               <TableCell className="text-slate-400">
                 {user.last_login_at ? (
                   <div>

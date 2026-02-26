@@ -670,6 +670,101 @@ export async function deleteUserAction(userId: string, confirmEmail: string) {
 }
 
 /**
+ * Approuver une demande d'upgrade (solo → pro, cabinet → enterprise)
+ * Envoie un email de confirmation à l'utilisateur
+ */
+export async function approveUpgradeAction(userId: string) {
+  try {
+    const authCheck = await checkSuperAdminAccess()
+    if ('error' in authCheck) {
+      return { error: authCheck.error }
+    }
+
+    const userResult = await query(
+      'SELECT id, email, nom, prenom, plan, upgrade_requested_plan FROM users WHERE id = $1',
+      [userId]
+    )
+    const user = userResult.rows[0]
+
+    if (!user) return { error: 'Utilisateur non trouvé' }
+
+    const requestedPlan = user.upgrade_requested_plan
+    if (!requestedPlan || !['solo', 'cabinet'].includes(requestedPlan)) {
+      return { error: 'Aucune demande d\'upgrade en attente' }
+    }
+
+    // Mapping plan UI → plan DB
+    const newPlan = requestedPlan === 'solo' ? 'pro' : 'enterprise'
+    const oldPlan = user.plan
+
+    // Activer le plan + effacer la demande
+    await query(
+      `UPDATE users SET
+         plan = $1,
+         plan_expires_at = NULL,
+         upgrade_requested_plan = NULL,
+         upgrade_requested_at = NULL,
+         upgrade_request_note = NULL
+       WHERE id = $2`,
+      [newPlan, userId]
+    )
+
+    await createAuditLog(
+      authCheck.adminId,
+      authCheck.adminEmail,
+      'upgrade_approved',
+      'user',
+      userId,
+      user.email,
+      { plan: oldPlan, upgrade_requested_plan: requestedPlan },
+      { plan: newPlan }
+    )
+
+    // Récompenser le parrain
+    rewardReferrerIfEligible(userId).catch(() => null)
+
+    // Email de confirmation à l'utilisateur
+    const userName = user.prenom && user.nom ? `${user.prenom} ${user.nom}` : user.email
+    const planLabel = requestedPlan === 'solo' ? 'Solo — 89 DT/mois' : 'Cabinet — 229 DT/mois'
+    await sendEmail({
+      to: user.email,
+      subject: `Votre plan Qadhya ${requestedPlan === 'solo' ? 'Solo' : 'Cabinet'} est activé !`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8f9fa;">
+          <div style="background:white;border-radius:12px;padding:32px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+            <h2 style="color:#1e293b;">Bienvenue sur le plan ${requestedPlan === 'solo' ? 'Solo' : 'Cabinet'} !</h2>
+            <p style="color:#475569;line-height:1.6;">Bonjour ${escapeHtml(userName)},</p>
+            <p style="color:#475569;line-height:1.6;">
+              Votre abonnement <strong>${planLabel}</strong> est maintenant <strong style="color:#22c55e;">actif</strong>.
+              Vous avez accès à toutes les fonctionnalités de votre plan.
+            </p>
+            <div style="margin:24px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard"
+                 style="background:#2563eb;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">
+                Accéder à mon espace →
+              </a>
+            </div>
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
+            <p style="color:#94a3b8;font-size:12px;text-align:center;margin:0;">
+              Qadhya — <a href="mailto:contact@qadhya.tn" style="color:#2563eb;">contact@qadhya.tn</a>
+            </p>
+          </div>
+        </div>
+      `,
+      text: `Bonjour ${userName},\n\nVotre plan ${planLabel} est maintenant actif.\n\nAccédez à votre espace : ${process.env.NEXT_PUBLIC_APP_URL}/dashboard\n\nL'équipe Qadhya`,
+    }).catch(() => null)
+
+    revalidatePath('/super-admin/users')
+    revalidatePath(`/super-admin/users/${userId}`)
+
+    return { success: true, newPlan }
+  } catch (error) {
+    console.error('Erreur approbation upgrade:', error)
+    return { error: 'Erreur lors de l\'approbation de l\'upgrade' }
+  }
+}
+
+/**
  * Liste paginée des utilisateurs avec filtres
  */
 export async function listUsersAction(options: {

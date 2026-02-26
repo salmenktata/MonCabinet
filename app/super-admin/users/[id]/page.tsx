@@ -103,6 +103,24 @@ export default async function UserDetailPage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* Bandeau demande d'upgrade */}
+      {user.upgrade_requested_plan && (
+        <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-5 py-4 flex items-start gap-4">
+          <span className="text-2xl">🚀</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-orange-300 font-semibold text-sm">
+              Demande de passage au plan {user.upgrade_requested_plan === 'solo' ? 'Solo (89 DT/mois)' : 'Cabinet (229 DT/mois)'}
+            </p>
+            {user.upgrade_request_note && (
+              <p className="text-orange-400 text-xs mt-1 italic">"{user.upgrade_request_note}"</p>
+            )}
+            <p className="text-orange-500 text-xs mt-1">
+              Demande le {user.upgrade_requested_at ? new Date(user.upgrade_requested_at).toLocaleString('fr-FR') : '—'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <UserActions user={user} />
 
