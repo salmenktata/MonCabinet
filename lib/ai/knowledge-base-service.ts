@@ -1084,9 +1084,8 @@ export async function searchKnowledgeBaseHybrid(
   // boost CODE_PRIORITY_BOOST pour compenser l'écart sémantique naturel.
   // N'ajoute rien si on filtre déjà par codes (évite doublons).
   const CODE_PRIORITY_BOOST = detectedLang === 'ar' ? 2.0 : 1.60
-  // Fix Feb 26 v2: 2.0 pour arabe — COC raw ~0.18 × 2.0 = 0.36 > effectiveMinimum=0.30 ✅
-  // Sélectif : ne s'applique qu'aux codes avec branch explicite (!= 'autre')
-  // → évite de sur-booster CNSS takaful / Note-Communes (branch='autre', haute sim intrinsèque)
+  // Fix Feb 26 v3: 2.0 pour arabe — boost sélectif par TITRE (pas branch, absent de kbc.metadata)
+  // COC raw ~0.18 × 2.0 = 0.36 > effectiveMinimum=0.30 ✅ | CNSS/Note-Communes → pas de boost
   const shouldForceCodes = !category || category !== 'codes'
   if (shouldForceCodes && openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
     const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
@@ -1117,10 +1116,13 @@ export async function searchKnowledgeBaseHybrid(
 
     for (const r of resultSet) {
       // Appliquer boost aux codes forcés pour compenser l'écart sémantique
-      // Fix Feb 26: ne pas booster codes branch='autre' (CNSS, Notes-Communes) — déjà haute sim
+      // Fix Feb 26 v3: boost sélectif par TITRE (branch n'est PAS dans kbc.metadata)
+      // COC "مجلة الالتزامات والعقود" → contient "مجلة" → boost ✅
+      // CNSS "DEUXIEME PARTIE" / "Note-Commune-*.pdf" → pas de "مجلة" → pas de boost ✅
       if (label === 'codes-forced') {
-        const chunkBranch = r.metadata?.branch as string | undefined
-        if (chunkBranch && chunkBranch !== 'autre') {
+        const title = r.title || ''
+        const isTunisianCode = title.includes('مجلة') || /^code\s/i.test(title)
+        if (isTunisianCode) {
           r.similarity = Math.min(1.0, r.similarity * CODE_PRIORITY_BOOST)
         }
       }
