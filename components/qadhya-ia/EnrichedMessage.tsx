@@ -35,19 +35,19 @@ export function EnrichedMessage({ message }: EnrichedMessageProps) {
 }
 
 // Badge de posture stratégique (défense / attaque)
-function StanceBadge({ stance }: { stance: string | undefined }) {
+function StanceBadge({ stance, defenseLabel, attackLabel }: { stance: string | undefined; defenseLabel: string; attackLabel: string }) {
   if (!stance || stance === 'neutral') return null
   if (stance === 'defense') {
     return (
       <Badge variant="outline" className="text-[10px] gap-1 text-blue-600 border-blue-200 dark:text-blue-300 dark:border-blue-700">
-        <Icons.shield className="h-2.5 w-2.5" /> Défense
+        <Icons.shield className="h-2.5 w-2.5" /> {defenseLabel}
       </Badge>
     )
   }
   if (stance === 'attack') {
     return (
       <Badge variant="outline" className="text-[10px] gap-1 text-red-600 border-red-200 dark:text-red-300 dark:border-red-700">
-        <Icons.target className="h-2.5 w-2.5" /> Attaque
+        <Icons.target className="h-2.5 w-2.5" /> {attackLabel}
       </Badge>
     )
   }
@@ -56,12 +56,13 @@ function StanceBadge({ stance }: { stance: string | undefined }) {
 
 // Message de conversation normale - utilise MarkdownMessage pour le rendu
 function ChatMessageView({ message }: { message: ChatMessage }) {
+  const t = useTranslations('qadhyaIA.stance')
   const stance = (message as any).metadata?.stance as string | undefined
   return (
     <div>
       {stance && stance !== 'neutral' && (
         <div className="mb-2">
-          <StanceBadge stance={stance} />
+          <StanceBadge stance={stance} defenseLabel={t('defense')} attackLabel={t('attack')} />
         </div>
       )}
       <div className="text-base">
@@ -270,7 +271,7 @@ function ConsultationMessage({ message }: { message: ChatMessage }) {
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-base font-semibold text-foreground">{t('title')}</h3>
-            <StanceBadge stance={stance} />
+            <StanceBadge stance={stance} defenseLabel={t('defense')} attackLabel={t('attack')} />
           </div>
           <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
         </div>

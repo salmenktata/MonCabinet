@@ -469,7 +469,8 @@ function detectDomainBoost(query: string): { pattern: string; factor: number }[]
     // Fix Feb 26 v6 : CPP était absent des DOMAIN_KEYWORDS. penal_easy_01 "prescription action publique"
     // récupérait du contenu fiscal au lieu de CPP art.5.
     {
-      keywords: ['إجراءات جزائية', 'تقادم جزائي', 'دعوى عمومية', 'action publique', 'prescription pénale', 'délit', 'juge d\'instruction', 'جنحة', 'جناية', 'مخالفة', 'contravention'],
+      // Fix Feb 26 v7 : retiré 'délit' (trop générique — déclenche faux positifs en droit civil)
+      keywords: ['إجراءات جزائية', 'تقادم جزائي', 'دعوى عمومية', 'action publique', 'prescription pénale', 'juge d\'instruction', 'جنحة', 'جناية', 'مخالفة', 'contravention'],
       titlePatterns: ['مجلة الإجراءات الجزائية'],
       factor: 2.5,
     },
