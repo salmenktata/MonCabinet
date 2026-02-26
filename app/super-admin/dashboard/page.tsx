@@ -83,17 +83,18 @@ async function UserStats() {
 async function KnowledgeBaseStats() {
   const result = await query(`
     SELECT
-      COUNT(*) as total_docs,
-      COUNT(*) FILTER (WHERE is_indexed = TRUE) as indexed_docs,
-      COALESCE(SUM(chunk_count), 0) as total_chunks
+      COUNT(*) FILTER (WHERE is_active = TRUE) as total_docs,
+      COUNT(*) FILTER (WHERE is_indexed = TRUE AND is_active = TRUE) as indexed_docs,
+      COALESCE(SUM(chunk_count) FILTER (WHERE is_active = TRUE), 0) as total_chunks
     FROM knowledge_base
   `)
   const stats = result.rows[0]
 
-  // Répartition par catégorie
+  // Répartition par catégorie (sources actives uniquement)
   const categoryResult = await query(`
     SELECT category, COUNT(*) as count
     FROM knowledge_base
+    WHERE is_active = TRUE
     GROUP BY category
     ORDER BY count DESC
   `)

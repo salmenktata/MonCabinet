@@ -89,7 +89,7 @@ export default function TarificationPage() {
             perMonth=""
             features={trialFeatures}
             cta={t('pricing.ctaTrial')}
-            ctaHref="/register"
+            ctaHref="/acces-anticipe"
             free
             badge={t('pricing.trial.badge')}
           />
@@ -103,7 +103,7 @@ export default function TarificationPage() {
             perMonth={t('pricing.perMonth')}
             features={proFeatures}
             cta={t('pricing.ctaPro')}
-            ctaHref="/register"
+            ctaHref="/acces-anticipe"
             popular
           />
 
@@ -226,7 +226,7 @@ export default function TarificationPage() {
           </div>
           <TrustBadges ssl={t('trust.ssl')} tunisia={t('trust.tunisia')} barreau={t('trust.barreau')} support={t('trust.support')} />
           <div className="mt-12">
-            <Link href="/register" className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white">
+            <Link href="/acces-anticipe" className="btn-premium px-8 py-4 rounded-xl text-lg font-semibold text-white">
               {t('pricing.ctaTrial')}
             </Link>
           </div>

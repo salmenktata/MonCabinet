@@ -44,14 +44,14 @@ export async function GET(request: NextRequest) {
       total_chunks: number
     }>(`
       SELECT
-        COUNT(*) FILTER (WHERE is_indexed = true) as total_indexed,
-        COUNT(*) FILTER (WHERE is_indexed = true AND quality_score IS NOT NULL) as total_analyzed,
-        COUNT(*) FILTER (WHERE is_indexed = true AND quality_score IS NULL) as total_not_analyzed,
-        ROUND(AVG(quality_score) FILTER (WHERE is_indexed = true)::numeric, 1) as avg_quality_score,
+        COUNT(*) FILTER (WHERE is_indexed = true AND is_active = true) as total_indexed,
+        COUNT(*) FILTER (WHERE is_indexed = true AND is_active = true AND quality_score IS NOT NULL) as total_analyzed,
+        COUNT(*) FILTER (WHERE is_indexed = true AND is_active = true AND quality_score IS NULL) as total_not_analyzed,
+        ROUND(AVG(quality_score) FILTER (WHERE is_indexed = true AND is_active = true)::numeric, 1) as avg_quality_score,
         (SELECT COUNT(*)
          FROM knowledge_base_chunks kbc
          INNER JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
-         WHERE kb.is_indexed = true) as total_chunks
+         WHERE kb.is_indexed = true AND kb.is_active = true) as total_chunks
       FROM knowledge_base
     `)
 
@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
         ) as success_rate
       FROM knowledge_base
       WHERE is_indexed = true
+        AND is_active = true
         AND quality_score IS NOT NULL
         AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
       GROUP BY quality_llm_provider
@@ -99,6 +100,7 @@ export async function GET(request: NextRequest) {
         ) as openai_short_docs
       FROM knowledge_base
       WHERE is_indexed = true
+        AND is_active = true
         AND quality_score IS NOT NULL
         AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
     `)
@@ -133,6 +135,7 @@ export async function GET(request: NextRequest) {
         ROUND(AVG(quality_score)::numeric, 1) as avg_score
       FROM knowledge_base
       WHERE is_indexed = true
+        AND is_active = true
         AND quality_score IS NOT NULL
         AND quality_assessed_at >= CURRENT_DATE - INTERVAL '7 days'
       GROUP BY DATE(quality_assessed_at)
@@ -160,6 +163,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) as count
       FROM knowledge_base
       WHERE is_indexed = true
+        AND is_active = true
         AND quality_score IS NOT NULL
       GROUP BY score_range
       ORDER BY score_range DESC
@@ -181,6 +185,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) FILTER (WHERE LENGTH(COALESCE(full_text, '')) >= 500) as long_failures
       FROM knowledge_base
       WHERE is_indexed = true
+        AND is_active = true
         AND quality_score = 50
     `)
 

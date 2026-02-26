@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) as total_chunks
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
-      WHERE kb.is_indexed = true
+      WHERE kb.is_indexed = true AND kb.is_active = true
     `)
 
     const openaiCount = parseInt(embeddingsStats.rows[0]?.openai_count || '0', 10)
