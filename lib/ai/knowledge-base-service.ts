@@ -1083,9 +1083,10 @@ export async function searchKnowledgeBaseHybrid(
   // Solution : recherche forcée dans 'codes' avec threshold très bas (0.20) +
   // boost CODE_PRIORITY_BOOST pour compenser l'écart sémantique naturel.
   // N'ajoute rien si on filtre déjà par codes (évite doublons).
-  const CODE_PRIORITY_BOOST = detectedLang === 'ar' ? 2.5 : 1.60
-  // Fix Feb 26: 2.5 pour arabe — COC classique raw ~0.15-0.20, doit dépasser effectiveMinimum=0.30
-  // 0.18×2.5=0.45 ✅ | 0.20×2.5=0.50 ✅ | FR conservé à 1.60 (doctrine FR doit rester prioritaire)
+  const CODE_PRIORITY_BOOST = detectedLang === 'ar' ? 2.0 : 1.60
+  // Fix Feb 26 v2: 2.0 pour arabe — COC raw ~0.18 × 2.0 = 0.36 > effectiveMinimum=0.30 ✅
+  // Sélectif : ne s'applique qu'aux codes avec branch explicite (!= 'autre')
+  // → évite de sur-booster CNSS takaful / Note-Communes (branch='autre', haute sim intrinsèque)
   const shouldForceCodes = !category || category !== 'codes'
   if (shouldForceCodes && openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
     const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
@@ -1116,8 +1117,12 @@ export async function searchKnowledgeBaseHybrid(
 
     for (const r of resultSet) {
       // Appliquer boost aux codes forcés pour compenser l'écart sémantique
+      // Fix Feb 26: ne pas booster codes branch='autre' (CNSS, Notes-Communes) — déjà haute sim
       if (label === 'codes-forced') {
-        r.similarity = Math.min(1.0, r.similarity * CODE_PRIORITY_BOOST)
+        const chunkBranch = r.metadata?.branch as string | undefined
+        if (chunkBranch && chunkBranch !== 'autre') {
+          r.similarity = Math.min(1.0, r.similarity * CODE_PRIORITY_BOOST)
+        }
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
       const existing = seen.get(key)
