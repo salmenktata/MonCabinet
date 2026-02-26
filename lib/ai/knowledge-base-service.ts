@@ -1123,7 +1123,15 @@ export async function searchKnowledgeBaseHybrid(
       if (label === 'codes-forced') {
         const chunkBranch = r.metadata?.branch as string | undefined
         if (chunkBranch !== 'autre') {
-          r.similarity = Math.min(1.0, r.similarity * CODE_PRIORITY_BOOST)
+          // Fix Feb 26 v5: pour queries AR, les articles COC ont vecSim faible (0.15-0.20)
+          // mais bm25Rank élevé (0.3-0.6 quand chunk bien catché par OR-query).
+          // Si bm25EffSim > vecSim → utiliser BM25 comme base du boost.
+          // Nécessite SQL fix bm25_pool_limit=100 pour que bm25Rank > 0 soit retourné (position 64).
+          const vecSim = (r.metadata?.vectorSimilarity as number) || 0
+          const bm25Rank = (r.metadata?.bm25Rank as number) || 0
+          const bm25EffSim = bm25Rank > 0 ? Math.max(0.35, Math.min(0.50, bm25Rank * 10)) : 0
+          const baseSim = bm25EffSim > vecSim ? bm25EffSim : r.similarity
+          r.similarity = Math.min(1.0, baseSim * CODE_PRIORITY_BOOST)
         }
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
