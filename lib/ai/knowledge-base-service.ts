@@ -972,17 +972,22 @@ async function searchHybridSingle(
  * aux chunks de ce code, tandis que les autres codes n'ont qu'un boost vecSim × boost.
  */
 function getTargetCodeTitleFragment(queryText: string, lang: string): string | null {
-  if (lang !== 'ar') return null
-  // Penal first (before civil, to avoid التقادم الجزائي matching civil)
-  if (/الجريمة|عقوبة|جنحة|سرقة|قتل|الجزائي|الجنائي|النيابة العمومية|اجراءات جزائية/.test(queryText)) {
+  // Fix Feb 26 v10: Fonctionne sur TOUT texte, y.c. queries FR enrichies avec synonymes arabes
+  // (l'enrichissement par enrichQueryWithLegalSynonyms ajoute "مجلة X الفصل Y" même pour queries FR)
+  // CPP first (before civil, to avoid التقادم الجزائي → COC when it's criminal)
+  if (/الجريمة|عقوبة|جنحة|سرقة|قتل|الجزائي|الجنائي|النيابة العمومية|اجراءات جزائية|الإجراءات الجزائية|الدعوى العمومية|الدعوى الجزائية|التتبع الجزائي/.test(queryText)) {
     return 'مجلة الاجراءات الجزائية'
   }
   // Labor
   if (/مجلة الشغل|عقد الشغل|صاحب العمل|رب العمل|الأجير|الطرد التعسفي|التشغيل/.test(queryText)) {
     return 'مجلة الشغل'
   }
-  // Civil obligations (COC) — التقادم included (default prescription = COC Fsl 402)
-  if (/العقد|الالتزامات|البطلان|الفسخ|الضمان|التقادم|المسؤولية التقصيرية|المسؤولية المدنية|مجلة الالتزامات|أركان العقد|الرضا|الإيجاب والقبول/.test(queryText)) {
+  // Family (Personal Status Code)
+  if (/مجلة الأحوال الشخصية|الأحوال الشخصية|طلاق للضرر|التفريق للضرر/.test(queryText)) {
+    return 'مجلة الأحوال الشخصية'
+  }
+  // Civil obligations (COC) — التقادم + تعمير الذمة → art.402
+  if (/العقد|الالتزامات|البطلان|الفسخ|الضمان|التقادم|المسؤولية التقصيرية|المسؤولية المدنية|مجلة الالتزامات|أركان العقد|الرضا|الإيجاب والقبول|تعمير الذمة/.test(queryText)) {
     return 'مجلة الالتزامات'
   }
   return null
@@ -999,7 +1004,9 @@ async function searchArticleByTextMatch(
   targetCodeFragment: string | null
 ): Promise<KnowledgeBaseSearchResult[]> {
   try {
-    const artPattern = `%الفصل ${artNum} %`
+    // Fix Feb 26 v10: PostgreSQL regex ~ pour gérer "الفصل 23-2" (tiret) sans false-positive "الفصل 230"
+    // "الفصل X" suivi d'un caractère non-chiffre (espace, tiret, newline, fin de chaîne)
+    const artRegex = `الفصل ${artNum}([^0-9]|$)`
     let sql: string
     let params: string[]
 
@@ -1017,11 +1024,11 @@ async function searchArticleByTextMatch(
         JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
         WHERE kb.is_indexed = true
           AND kb.category = 'codes'
-          AND kbc.content ILIKE $1
+          AND kbc.content ~ $1
           AND kb.title ILIKE $2
         ORDER BY kbc.chunk_index
         LIMIT 3`
-      params = [artPattern, `%${targetCodeFragment}%`]
+      params = [artRegex, `%${targetCodeFragment}%`]
     } else {
       sql = `
         SELECT
@@ -1036,10 +1043,10 @@ async function searchArticleByTextMatch(
         JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
         WHERE kb.is_indexed = true
           AND kb.category = 'codes'
-          AND kbc.content ILIKE $1
+          AND kbc.content ~ $1
         ORDER BY kbc.chunk_index
         LIMIT 3`
-      params = [artPattern]
+      params = [artRegex]
     }
 
     const result = await db.query(sql, params)
