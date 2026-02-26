@@ -976,7 +976,7 @@ function getTargetCodeTitleFragment(queryText: string, lang: string): string | n
   // (l'enrichissement par enrichQueryWithLegalSynonyms ajoute "مجلة X الفصل Y" même pour queries FR)
   // CPP first (before civil, to avoid التقادم الجزائي → COC when it's criminal)
   if (/الجريمة|عقوبة|جنحة|سرقة|قتل|الجزائي|الجنائي|النيابة العمومية|اجراءات جزائية|الإجراءات الجزائية|الدعوى العمومية|الدعوى الجزائية|التتبع الجزائي/.test(queryText)) {
-    return 'مجلة الاجراءات الجزائية'
+    return 'مجلة الإجراءات الجزائية' // avec hamza على الإ (titre réel en DB)
   }
   // Labor
   if (/مجلة الشغل|عقد الشغل|صاحب العمل|رب العمل|الأجير|الطرد التعسفي|التشغيل/.test(queryText)) {

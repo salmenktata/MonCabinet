@@ -336,6 +336,7 @@ const LEGAL_SYNONYMS: Record<string, string[]> = {
 
   // Droit civil — prescription COC art.402
   'prescription droit commun': ['الفصل 402 مجلة الالتزامات والعقود', 'تعمير الذمة', 'التقادم المدني', 'خمس عشرة سنة', 'مجلة الالتزامات والعقود'],
+  'prescription de droit commun': ['الفصل 402 مجلة الالتزامات والعقود', 'تعمير الذمة', 'التقادم المدني', 'خمس عشرة سنة', 'مجلة الالتزامات والعقود'],
   'délai de prescription': ['التقادم', 'تعمير الذمة', 'مجلة الالتزامات والعقود', 'سقوط الحق'],
 
   // Droit de la famille — divorce pour préjudice art.31 CPS
