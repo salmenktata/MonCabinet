@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
-import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * GET /api/super-admin/classification/queue
@@ -10,6 +10,11 @@ import { safeParseInt } from '@/lib/utils/safe-number'
  */
 export async function GET(req: NextRequest) {
   try {
+    const session = await getSession()
+    if (!session?.user || session.user.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
     const { searchParams } = new URL(req.url)
 
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200)
