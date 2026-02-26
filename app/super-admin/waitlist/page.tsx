@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { query } from '@/lib/db/postgres'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { WaitlistActions } from './WaitlistActions'
+import { WaitlistActions, WaitlistInviteButton } from './WaitlistActions'
 
 async function WaitlistStats() {
   const result = await query(`
@@ -120,7 +120,7 @@ async function WaitlistTable() {
                     </td>
                     <td className="py-3 px-3">
                       {row.status === 'pending' && (
-                        <WaitlistActions.InviteButton waitlistId={row.id} email={row.email} name={`${row.prenom} ${row.nom}`} />
+                        <WaitlistInviteButton waitlistId={row.id} email={row.email} name={`${row.prenom} ${row.nom}`} />
                       )}
                       {row.status === 'invited' && row.invited_at && (
                         <span className="text-xs text-slate-500">

@@ -100,4 +100,4 @@ export function WaitlistActions({ pendingIds }: { pendingIds: string[] }) {
   return <InviteAllButton pendingIds={pendingIds} />
 }
 
-WaitlistActions.InviteButton = InviteButton
+export { InviteButton as WaitlistInviteButton }
