@@ -1183,10 +1183,11 @@ export async function searchKnowledgeBaseHybrid(
   // Solution : recherche forcée dans 'codes' avec threshold très bas (0.20) +
   // boost CODE_PRIORITY_BOOST pour compenser l'écart sémantique naturel.
   // N'ajoute rien si on filtre déjà par codes (évite doublons).
-  const CODE_PRIORITY_BOOST = detectedLang === 'ar' ? 2.5 : 3.0
-  // Fix Feb 26 v5: boost augmenté pour compenser l'écart sémantique cross-language FR→AR
-  // FR: raw ~0.18 × 3.0 = 0.54 > doctrine ~0.50 ✅ | AR: raw ~0.18 × 2.5 = 0.45 ✅
-  // (v4 était: AR=2.0 FR=1.60 — insuffisant pour dépasser doctrine 0.50 en queries FR)
+  const CODE_PRIORITY_BOOST = detectedLang === 'ar' ? 1.50 : 1.60
+  // Fix Feb 26 v7: réduit pour éviter que vector-only COC (vecSim≥0.40) cap à 1.0
+  // AR 1.50: BM25-matched (bm25EffSim=0.80) → 0.80×1.50=1.20→1.0 ✅ (capped, WINS)
+  //          vector-only (vecSim=0.40) → 0.40×1.50=0.60 < JORT 0.84 → FILTERED ✅
+  // FR 1.60: maintenu (régression FR si réduit)
   const shouldForceCodes = !category || category !== 'codes'
   if (shouldForceCodes && openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
     const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
@@ -1247,7 +1248,10 @@ export async function searchKnowledgeBaseHybrid(
           const isTargetCode = targetFragment ? r.title.includes(targetFragment) : false
           if (isTargetCode) {
             // ✅ Code cible: leverage BM25 signal → bm25EffSim × CODE_PRIORITY_BOOST
-            const bm25EffSim = bm25Rank > 0 ? Math.max(0.35, Math.min(0.50, bm25Rank * 10)) : 0
+            // Fix Feb 26 v7: floor 0.35→0.60 — garantit bm25EffSim > vecSim max codes-forced (~0.55)
+            // bm25Rank=0.3 → max(0.60, min(0.80, 3.0))=0.80 → 0.80×1.50=1.0 ✅
+            // bm25Rank=0.05 → max(0.60, min(0.80, 0.5))=0.60 → 0.60×1.50=0.90 > JORT 0.84 ✅
+            const bm25EffSim = bm25Rank > 0 ? Math.max(0.60, Math.min(0.80, bm25Rank * 10)) : 0
             const baseSim = bm25EffSim > vecSim ? bm25EffSim : r.similarity
             r.similarity = Math.min(1.0, baseSim * CODE_PRIORITY_BOOST)
           } else {
