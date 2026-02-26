@@ -188,7 +188,7 @@ const pool = new Pool({
 // ============================================================================
 
 const QUERIES = {
-  // A1 - Pages de faible qualité
+  // A1 - Pages de faible qualité (sources actives dans le RAG uniquement)
   lowQualityPages: `
     SELECT
       wp.id,
@@ -206,6 +206,7 @@ const QUERIES = {
     FROM web_pages wp
     JOIN web_sources ws ON wp.web_source_id = ws.id
     WHERE wp.is_indexed = true
+      AND ws.rag_enabled = true
       AND (
         wp.quality_score < $1
         OR wp.word_count < 500
@@ -215,7 +216,7 @@ const QUERIES = {
     LIMIT 100
   `,
 
-  // A2 - Distribution de qualité par source
+  // A2 - Distribution de qualité par source (sources actives dans le RAG uniquement)
   qualityBySource: `
     SELECT
       ws.id as source_id,
@@ -233,11 +234,12 @@ const QUERIES = {
     FROM web_sources ws
     JOIN web_pages wp ON ws.id = wp.web_source_id
     WHERE wp.is_indexed = true
+      AND ws.rag_enabled = true
     GROUP BY ws.id, ws.name, ws.category
     ORDER BY avg_quality ASC NULLS FIRST
   `,
 
-  // B1 - Chunks problématiques
+  // B1 - Chunks problématiques (sources actives dans le RAG uniquement)
   problemChunks: `
     WITH chunk_issues AS (
       SELECT
@@ -253,7 +255,8 @@ const QUERIES = {
         kb.category
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
-      WHERE LENGTH(kbc.content) < 200 OR LENGTH(kbc.content) > $1
+      WHERE kb.is_active = true
+        AND (LENGTH(kbc.content) < 200 OR LENGTH(kbc.content) > $1)
     )
     SELECT
       issue_type,
@@ -270,7 +273,7 @@ const QUERIES = {
     LIMIT 50
   `,
 
-  // B2 - Distribution de taille par catégorie
+  // B2 - Distribution de taille par catégorie (sources actives dans le RAG uniquement)
   sizeDistribution: `
     WITH chunk_stats AS (
       SELECT
@@ -279,6 +282,7 @@ const QUERIES = {
         kb.category
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+      WHERE kb.is_active = true
     )
     SELECT
       category,
@@ -296,7 +300,7 @@ const QUERIES = {
     ORDER BY avg_words DESC
   `,
 
-  // C1 - Extractions de faible confiance
+  // C1 - Extractions de faible confiance (sources actives dans le RAG uniquement)
   lowConfidenceExtractions: `
     SELECT
       wpm.id,
@@ -318,11 +322,12 @@ const QUERIES = {
     JOIN web_sources ws ON wp.web_source_id = ws.id
     WHERE wpm.extraction_confidence < $1
       AND wp.is_indexed = true
+      AND ws.rag_enabled = true
     ORDER BY wpm.extraction_confidence ASC
     LIMIT 100
   `,
 
-  // C2 - Couverture métadonnées par source
+  // C2 - Couverture métadonnées par source (sources actives dans le RAG uniquement)
   coverageBySource: `
     SELECT
       ws.id as source_id,
@@ -345,11 +350,12 @@ const QUERIES = {
     JOIN web_pages wp ON ws.id = wp.web_source_id
     LEFT JOIN web_page_structured_metadata wpm ON wp.id = wpm.web_page_id
     WHERE wp.is_indexed = true
+      AND ws.rag_enabled = true
     GROUP BY ws.id, ws.name, ws.category
     ORDER BY coverage_pct DESC
   `,
 
-  // D1 - Validation dimensions embeddings
+  // D1 - Validation dimensions embeddings (sources actives dans le RAG uniquement)
   embeddingValidation: `
     SELECT
       'knowledge_base' as table_name,
@@ -372,34 +378,36 @@ const QUERIES = {
         ELSE 'OK'
       END as status
     FROM knowledge_base
-    WHERE is_indexed = true
+    WHERE is_indexed = true AND is_active = true
 
     UNION ALL
 
     SELECT
       'knowledge_base_chunks' as table_name,
       COUNT(*) as total_chunks,
-      COUNT(*) FILTER (WHERE embedding IS NOT NULL) as has_embedding,
+      COUNT(*) FILTER (WHERE kbc.embedding IS NOT NULL) as has_embedding,
       COUNT(*) FILTER (
-        WHERE embedding IS NOT NULL
-        AND array_length(embedding::real[], 1) = 1024
+        WHERE kbc.embedding IS NOT NULL
+        AND array_length(kbc.embedding::real[], 1) = 1024
       ) as correct_dim,
       COUNT(*) FILTER (
-        WHERE embedding IS NOT NULL
-        AND array_length(embedding::real[], 1) != 1024
+        WHERE kbc.embedding IS NOT NULL
+        AND array_length(kbc.embedding::real[], 1) != 1024
       ) as wrong_dim,
       CASE
         WHEN COUNT(*) FILTER (
-          WHERE embedding IS NOT NULL
-          AND array_length(embedding::real[], 1) != 1024
+          WHERE kbc.embedding IS NOT NULL
+          AND array_length(kbc.embedding::real[], 1) != 1024
         ) > 0 THEN 'CRITICAL'
-        WHEN COUNT(*) FILTER (WHERE embedding IS NULL) > 0 THEN 'WARNING'
+        WHEN COUNT(*) FILTER (WHERE kbc.embedding IS NULL) > 0 THEN 'WARNING'
         ELSE 'OK'
       END as status
-    FROM knowledge_base_chunks
+    FROM knowledge_base_chunks kbc
+    JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+    WHERE kb.is_active = true
   `,
 
-  // D2 - Doublons d'URL
+  // D2 - Doublons d'URL (sources actives dans le RAG uniquement)
   duplicates: `
     SELECT
       wp.url_hash,
@@ -410,13 +418,14 @@ const QUERIES = {
     FROM web_pages wp
     JOIN web_sources ws ON wp.web_source_id = ws.id
     WHERE wp.is_indexed = true
+      AND ws.rag_enabled = true
     GROUP BY wp.url_hash
     HAVING COUNT(*) > 1
     ORDER BY duplicate_count DESC
     LIMIT 50
   `,
 
-  // Overall Health Score
+  // Overall Health Score (sources actives dans le RAG uniquement)
   healthScore: `
     WITH metrics AS (
       SELECT
@@ -435,7 +444,7 @@ const QUERIES = {
       LEFT JOIN knowledge_base_chunks kbc ON kb.id = kbc.knowledge_base_id
       LEFT JOIN web_pages wp ON kb.id = wp.knowledge_base_id
       LEFT JOIN web_page_structured_metadata wpm ON wp.id = wpm.web_page_id
-      WHERE kb.is_indexed = true
+      WHERE kb.is_indexed = true AND kb.is_active = true
     )
     SELECT
       ROUND(
@@ -451,17 +460,19 @@ const QUERIES = {
     FROM metrics
   `,
 
-  // Compter documents KB
+  // Compter documents KB (sources actives dans le RAG uniquement)
   kbCount: `
     SELECT COUNT(*) as total_docs
     FROM knowledge_base
-    WHERE is_indexed = true
+    WHERE is_indexed = true AND is_active = true
   `,
 
-  // Compter chunks KB
+  // Compter chunks KB (sources actives dans le RAG uniquement)
   chunksCount: `
     SELECT COUNT(*) as total_chunks
-    FROM knowledge_base_chunks
+    FROM knowledge_base_chunks kbc
+    JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+    WHERE kb.is_active = true
   `,
 }
 
