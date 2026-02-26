@@ -1386,9 +1386,9 @@ export async function searchKnowledgeBaseHybrid(
     if (/\(ألغي/.test(chunkText) || /\(ملغى/.test(chunkText)) {
       r.similarity = Math.min(r.similarity, 0.10)
     }
-    // Boost forcé pour exact article text match (même si codes-forced a écrasé le metadata)
+    // Boost forcé pour exact article text match — dépasse le cap 1.0 pour garantir rang 1er
     if (articleTextChunkIds.has(chunkKey)) {
-      r.similarity = Math.max(r.similarity, 0.85)
+      r.similarity = 1.05 // Force au-dessus de tout chunk codes-forced (max 1.0) → toujours 1er
     }
   }
 
