@@ -41,7 +41,7 @@ is_json() {
 log "=== Début cycle indexation ==="
 
 # Deadline globale : 50 min (le cron tourne toutes les heures)
-DEADLINE=$((1771534113 + 3000))
+DEADLINE=$(( $(date +%s) + 3000 ))
 
 # =============================================================================
 # 1. Indexer knowledge_base
@@ -60,8 +60,9 @@ for i in $(seq 1 3); do
   EXIT_CODE=$?
 
   if [ $EXIT_CODE -ne 0 ]; then
-    log "[KB] ✗ Erreur curl (code: $EXIT_CODE) à l'appel $i"
-    break
+    log "[KB] ✗ Erreur curl (code: $EXIT_CODE) à l'appel $i — retry dans 60s..."
+    sleep 60
+    continue
   fi
 
   # Vérifier que la réponse est du JSON (pas du HTML pendant un deploy)
@@ -94,7 +95,7 @@ log "[WEB] Indexation web_pages..."
 WEB_TOTAL=0
 WEB_CALLS=0
 
-for i in $(seq 1 3); do
+for i in $(seq 1 8); do
   if [ $(date +%s) -ge $DEADLINE ]; then
     log "[WEB] ⏰ Deadline atteinte après $WEB_CALLS appels ($WEB_TOTAL docs)"
     break
@@ -104,8 +105,9 @@ for i in $(seq 1 3); do
   EXIT_CODE=$?
 
   if [ $EXIT_CODE -ne 0 ]; then
-    log "[WEB] ✗ Erreur curl (code: $EXIT_CODE) à l'appel $i"
-    break
+    log "[WEB] ✗ Erreur curl (code: $EXIT_CODE) à l'appel $i — retry dans 60s..."
+    sleep 60
+    continue
   fi
 
   if ! is_json "$RESPONSE"; then
