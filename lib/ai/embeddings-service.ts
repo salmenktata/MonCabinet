@@ -248,6 +248,10 @@ async function generateEmbeddingsBatchWithOpenAI(
 
         const sorted = response.data.sort((a, b) => a.index - b.index)
         for (const item of sorted) {
+          const validation = validateEmbedding(item.embedding, 'openai')
+          if (!validation.valid) {
+            throw new Error(`Embedding OpenAI batch invalide (index ${item.index}): ${validation.error}`)
+          }
           allEmbeddings.push(item.embedding)
         }
         totalTokens += response.usage.total_tokens
