@@ -465,6 +465,14 @@ function detectDomainBoost(query: string): { pattern: string; factor: number }[]
       titlePatterns: ['مجلة المرافعات المدنية والتجارية'],
       factor: 2.0,
     },
+    // Procédure pénale (مجلة الإجراءات الجزائية — CPP)
+    // Fix Feb 26 v6 : CPP était absent des DOMAIN_KEYWORDS. penal_easy_01 "prescription action publique"
+    // récupérait du contenu fiscal au lieu de CPP art.5.
+    {
+      keywords: ['إجراءات جزائية', 'تقادم جزائي', 'دعوى عمومية', 'action publique', 'prescription pénale', 'délit', 'juge d\'instruction', 'جنحة', 'جناية', 'مخالفة', 'contravention'],
+      titlePatterns: ['مجلة الإجراءات الجزائية'],
+      factor: 2.5,
+    },
     // Saisies conservatoires / طرق التنفيذ
     {
       keywords: ['عقلة', 'تحفظي', 'تحفظية', 'طرق التنفيذ', 'اعتراض تحفظي', 'عريضة', 'ضرب عقلة', 'saisie', 'conservatoire'],
@@ -673,6 +681,18 @@ async function rerankSources(
       (docName.includes('مجلة الالتزامات') || docName.includes('م.ا.ع') || docName.includes('COC'))
     if (isCocArticle) {
       boost *= 1.25
+    }
+
+    // Fix Feb 26 v6 : boost article exact — si la query mentionne "الفصل X" ou "article X",
+    // booster les chunks contenant ce numéro d'article ×1.8.
+    // Impact : ar_penal_02 — query "ماذا ينص الفصل 217" → chunk art.217 remonte au rang 1.
+    const articleNumMatch = (query || '').match(/(?:الفصل|article|art\.?)\s+(\d+)/i)
+    if (articleNumMatch) {
+      const artNum = articleNumMatch[1]
+      const chunkText = s.chunkContent || ''
+      if (chunkText.includes(`الفصل ${artNum}`) || chunkText.toLowerCase().includes(`article ${artNum}`)) {
+        boost *= 1.8
+      }
     }
 
     // P0 fix Feb 24, 2026 : plafonner le boost cumulatif à 2.0×
