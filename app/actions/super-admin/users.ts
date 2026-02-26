@@ -723,7 +723,7 @@ export async function approveUpgradeAction(userId: string) {
 
     // Email de confirmation à l'utilisateur
     const userName = user.prenom && user.nom ? `${user.prenom} ${user.nom}` : user.email
-    const planLabel = requestedPlan === 'solo' ? 'Solo — 89 DT/mois' : 'Cabinet — 229 DT/mois'
+    const planLabel = requestedPlan === 'solo' ? 'Pro — 89 DT/mois' : 'Expert — 229 DT/mois'
     await sendEmail({
       to: user.email,
       subject: `Votre plan Qadhya ${requestedPlan === 'solo' ? 'Pro' : 'Expert'} est activé !`,

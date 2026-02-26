@@ -115,7 +115,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
                   {getPlanBadge(user.plan)}
                   {user.upgrade_requested_plan && (
                     <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs w-fit">
-                      🚀 Demande {user.upgrade_requested_plan === 'solo' ? 'Solo' : 'Cabinet'}
+                      🚀 Demande {user.upgrade_requested_plan === 'solo' ? 'Pro' : 'Expert'}
                     </Badge>
                   )}
                 </div>
