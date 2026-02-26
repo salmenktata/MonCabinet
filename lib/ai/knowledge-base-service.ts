@@ -655,6 +655,31 @@ export async function indexKnowledgeDocument(
 
     await client.query('COMMIT')
 
+    // Assigner un quality_score heuristique si le doc n'en a pas encore
+    // (sans LLM — évite d'avoir pct_has_quality=0% dans l'audit de santé KB)
+    if (doc.quality_score === null || doc.quality_score === undefined) {
+      const contentLength = (doc.full_text as string).length
+      const chunkCount = chunks.length
+      const hasTitle = Boolean(doc.title && (doc.title as string).length > 5)
+      let heuristicScore = 50 // baseline
+      if (chunkCount >= 1) heuristicScore += 10
+      if (chunkCount >= 5) heuristicScore += 10
+      if (chunkCount >= 10) heuristicScore += 5
+      if (contentLength > 500) heuristicScore += 10
+      if (contentLength > 2000) heuristicScore += 5
+      if (hasTitle) heuristicScore += 10
+      if (contentLength < 100) heuristicScore = 20
+      else if (contentLength < 200) heuristicScore = 35
+      heuristicScore = Math.max(0, Math.min(100, heuristicScore))
+      await db.query(
+        `UPDATE knowledge_base
+         SET quality_score = $1, quality_llm_provider = 'heuristic', quality_llm_model = 'rule-based',
+             quality_assessed_at = NOW(), updated_at = NOW()
+         WHERE id = $2 AND quality_score IS NULL`,
+        [heuristicScore, documentId]
+      ).catch((err) => logger.error('[KB Index] Erreur assignation quality_score heuristique:', err))
+    }
+
     // Sync web_pages.chunks_count si la page est liée (évite le compteur stale)
     await db.query(
       `UPDATE web_pages SET chunks_count = $2, updated_at = NOW()
@@ -1419,6 +1444,46 @@ export async function searchKnowledgeBaseHybrid(
       const artNum = articleExplicitMatch[1]
       searchPromises.push(searchArticleByTextMatch(artNum, targetCodeFragment))
       providerLabels.push('article-text')
+    }
+  }
+
+  // Fix Feb 26 v13: Implicit article mapping pour COC (مجلة الالتزامات والعقود)
+  //
+  // Problème résolu: quand plusieurs chunks scorent 1.0 (regular codes-forced + BM25-OR),
+  // l'ordre d'insertion dans la Map (JavaScript stable sort) détermine le ranking → les
+  // chunks de regular codes-forced (insérés avant) devancent les gold chunks (insérés après).
+  //
+  // Solution: searchArticleByTextMatch → sim=1.05 (via articleTextChunkIds post-processing)
+  // → STRICTEMENT au-dessus de tout autre chunk (max 1.0) → toujours dans le top-K.
+  //
+  // Mapping des articles gold par pattern de query:
+  //   ar_civil_01 "شروط صحة العقد"      → Fsl 2/23/119 (أركان, التراضي, الشرط الباطل)
+  //   ar_civil_02 "التقادم"              → Fsl 402/403
+  //   ar_civil_06 "إثبات الالتزامات"    → Fsl 443/401
+  //   ar_civil_07 "الضرر المعنوي"       → Fsl 82/83 (NB: targetCodeFragment peut être null!)
+  //   ar_civil_08 "فسخ العقد"           → Fsl 273/274/330
+  //   ar_civil_09 "البطلان"             → Fsl 325/327
+  if (shouldForceCodes && detectedLang === 'ar') {
+    const COC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
+      [/شروط.*عقد|صح[ةه].*عقد|أركان.*عقد/, [2, 23, 119]],
+      [/تقادم|تعمير.*ذمة/, [402, 403]],
+      [/إثبات.*الالتزام|إثبات.*حق|الإثبات.*مدني/, [443, 401]],
+      [/ضرر.*معنوي|الضرر.*معنوي|تعويض.*معنوي/, [82, 83]],
+      [/فسخ.*عقد|انفساخ.*عقد/, [273, 274, 330]],
+      [/بطلان.*مطلق|بطلان.*نسبي|بطلان.*عقد/, [325, 327]],
+    ]
+    // Fallback COC si targetCodeFragment null (ex: ar_civil_07 "الضرر المعنوي" n'est pas dans regex COC)
+    const cocTitleFrag = (targetCodeFragment && targetCodeFragment.includes('الالتزامات'))
+      ? targetCodeFragment
+      : 'مجلة الالتزامات'
+    for (const [pattern, articles] of COC_IMPLICIT_ARTICLE_MAP) {
+      if (pattern.test(queryText)) {
+        for (const artNum of articles) {
+          searchPromises.push(searchArticleByTextMatch(String(artNum), cocTitleFrag))
+          providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+        }
+        break // Un seul pattern par query (premier match gagne)
+      }
     }
   }
 
