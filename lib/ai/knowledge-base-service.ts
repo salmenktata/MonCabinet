@@ -1076,20 +1076,133 @@ async function searchArticleByTextMatch(
 }
 
 /**
+ * Construit une OR-query BM25 pour un texte de query arabe en ajoutant
+ * les équivalents classiques (COC/Tunisien) des termes juridiques modernes.
+ *
+ * Fix Feb 26 v11: résout le gap vocabulaire classique ↔ moderne
+ * - "شروط صحة العقد" (moderne) → "أركان" (COC Fsl 2)
+ * - "التقادم" (moderne) → "تعمير" (COC Fsl 402)
+ * - "البطلان" (moderne) → "باطل" (COC Fsl 325)
+ * etc.
+ *
+ * Retourne une string formatée pour `websearch_to_tsquery('simple', ...)` avec OR.
+ */
+function buildClassicalArabicBM25OR(queryText: string): string {
+  // Mapping moderne → classique pour les concepts COC
+  const CLASSICAL_EXPANSION: Array<[RegExp, string[]]> = [
+    [/شروط|صح[ةه]|أركان/, ['أركان', 'أهلية', 'التراضي', 'رضاء']],
+    [/عقد|تعاقد|إيجاب|قبول/, ['أركان', 'رضاء', 'أهلية']],
+    [/تقادم|مرور.*زمن|انقضاء.*مد[ةه]/, ['تعمير', 'تسمع']],
+    [/بطلان|باطل|إبطال/, ['باطل', 'تبطل', 'بطلان']],
+    [/فسخ|انفسخ|انحلال.*عقد/, ['فسخ', 'انفسخ']],
+    [/ضمان|ضامن/, ['ضمان', 'ضامن']],
+    [/اثراء.*بلا.*سبب|إثراء/, ['الاثراء', 'العين']],
+    [/مسؤولية.*عقدية|الالتزام.*عقدي/, ['يرتب', 'التزام', 'تعمير']],
+  ]
+
+  const allTerms = new Set<string>()
+
+  // Ajouter les mots-clés directs de la query (sans stop words arabes communs)
+  const ARABIC_STOP_WORDS = new Set(['ما', 'هي', 'هو', 'في', 'من', 'إلى', 'على', 'عن', 'مع', 'التي', 'الذي', 'التونسي', 'التونسية', 'القانون', 'القانوني', 'أحكام', 'نص', 'ينص'])
+  const tokens = queryText.replace(/[^\w\u0600-\u06FF]/g, ' ').split(/\s+/).filter(t => t.length > 2)
+  for (const token of tokens) {
+    const stripped = token.replace(/^(ال|وال|بال|كال|فال)/, '') // Strip article ال
+    if (!ARABIC_STOP_WORDS.has(token) && !ARABIC_STOP_WORDS.has(stripped) && stripped.length > 2) {
+      allTerms.add(stripped)
+    }
+  }
+
+  // Ajouter les expansions classiques si un pattern match
+  for (const [pattern, expansions] of CLASSICAL_EXPANSION) {
+    if (pattern.test(queryText)) {
+      for (const exp of expansions) {
+        allTerms.add(exp)
+      }
+    }
+  }
+
+  if (allTerms.size === 0) return queryText.substring(0, 50)
+
+  // websearch_to_tsquery('simple', ...) format: "term1 OR term2 OR term3"
+  return Array.from(allTerms).join(' OR ')
+}
+
+/**
+ * Recherche BM25 OR-expanded dans un code juridique cible.
+ *
+ * Fix Feb 26 v11: combine vectoriel sans threshold (v10) + BM25 OR classique.
+ * - Pour les articles COC classiques (Fsl 2/402/325...) introuvables par vecteur seul
+ *   car gap vocabulaire classique/moderne trop grand (Fsl 2 à rank 339/500 par vecteur).
+ * - BM25 OR avec synonymes classiques: "شروط OR أركان OR أهلية" → match Fsl 2 ✅
+ * - "تعمير OR التقادم" → match Fsl 402 ✅
+ *
+ * @param queryText - Texte de la query (nettoyé)
+ * @param titleFragment - Fragment du titre du code cible (ex: 'مجلة الالتزامات')
+ * @param limit - Nombre de résultats (défaut: 10)
+ */
+async function searchTargetCodeByORExpansion(
+  queryText: string,
+  titleFragment: string,
+  limit: number
+): Promise<KnowledgeBaseSearchResult[]> {
+  const orQuery = buildClassicalArabicBM25OR(queryText)
+
+  try {
+    const sql = `
+      SELECT
+        kbc.id as chunk_id,
+        kbc.content as chunk_content,
+        kbc.chunk_index,
+        kbc.knowledge_base_id,
+        kbc.metadata,
+        kb.title,
+        kb.category,
+        ts_rank_cd(kbc.content_tsvector, websearch_to_tsquery('simple', $1)) as bm25_score
+      FROM knowledge_base_chunks kbc
+      JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+      WHERE kb.is_indexed = true
+        AND kb.category = 'codes'
+        AND kb.title ILIKE $2
+        AND kbc.content_tsvector @@ websearch_to_tsquery('simple', $1)
+      ORDER BY bm25_score DESC
+      LIMIT $3`
+
+    const result = await db.query(sql, [orQuery, `%${titleFragment}%`, limit])
+
+    if (result.rows.length === 0) {
+      logger.info(`[KB target-code-or] 0 chunks BM25-OR pour "${titleFragment}" (or_query="${orQuery.substring(0, 60)}")`)
+      return []
+    }
+
+    logger.info(`[KB target-code-or] ${result.rows.length} chunks BM25-OR pour "${titleFragment}" (or_query="${orQuery.substring(0, 60)}")`)
+
+    return result.rows.map((row: { knowledge_base_id: string; chunk_id: string; title: string; category: string; chunk_content: string; chunk_index: number; metadata: Record<string, unknown>; bm25_score: string }) => ({
+      knowledgeBaseId: row.knowledge_base_id,
+      chunkId: row.chunk_id,
+      title: row.title,
+      category: row.category as KnowledgeBaseCategory,
+      chunkContent: row.chunk_content,
+      chunkIndex: row.chunk_index || 0,
+      similarity: 0.50, // placeholder — remplacé par boost codes-forced-direct dans la boucle merge
+      metadata: {
+        ...(row.metadata || {}),
+        bm25Rank: parseFloat(row.bm25_score) || 0,
+        searchType: 'bm25_or_expanded',
+      },
+    }))
+  } catch (err) {
+    logger.warn(`[KB target-code-or] Erreur pour "${titleFragment}" (or_query="${orQuery.substring(0, 60)}"):`, err)
+    return []
+  }
+}
+
+/**
  * Recherche vectorielle SANS threshold dans un code juridique cible.
  *
- * Fix Feb 26 v10: remplace la recherche BM25 (v9b) qui échouait pour l'arabe classique COC.
- *
- * POURQUOI BM25 ÉCHOUE (post-mortem v9/v9b) :
- * - plainto_tsquery('arabic', 'ما هي شروط صحة العقد') génère un AND sur TOUS les tokens
- *   incluant les stop words arabes (PostgreSQL 'arabic' config ne les supprime PAS).
- * - Vocabulaire classique COC (أركان العقد) ≠ arabe moderne (شروط صحة العقد).
- * - Résultat : 0 chunks BM25 pour مجلة الالتزامات sur toutes les queries ar_civil_*.
- *
- * SOLUTION VECTORIELLE SANS THRESHOLD :
- * - Les chunks COC ont vecSim ~0.08-0.15 (en dessous du threshold 0.15 de codes-forced).
- * - En retirant le threshold, on récupère les top 5 articles COC les plus proches.
- * - Floor boost 0.60 → similarity = 0.60 × 1.50 = 0.90 > JORT 0.84 → COC gagne ✅
+ * Fix Feb 26 v10: récupère les top N chunks COC par distance vectorielle sans threshold.
+ * Utilisé en parallèle avec searchTargetCodeByORExpansion (v11) pour couvrir les deux cas :
+ * - v10: chunks avec vecSim modéré (0.40-0.60) → articles généraux COC
+ * - v11: chunks avec mots-clés classiques (أركان, تعمير) → articles spécifiques COC
  *
  * @param embeddingStr - Embedding OpenAI formatté pour PostgreSQL
  * @param titleFragment - Fragment du titre du code cible (ex: 'مجلة الالتزامات')
@@ -1302,17 +1415,33 @@ export async function searchKnowledgeBaseHybrid(
     }
   }
 
-  // Fix Feb 26 v10: Recherche vectorielle SANS threshold pour le code cible (remplace BM25 v9/v9b)
-  // ÉCHEC v9/v9b: plainto_tsquery('arabic', query) génère AND + stop words non supprimés →
-  //   0 chunks BM25 pour مجلة الالتزامات (vocabulary gap classique/moderne).
-  // SOLUTION v10: ORDER BY distance vectorielle, pas de threshold → retourne les top N chunks COC
-  //   les plus proches même si vecSim=0.08. Floor boost 0.60×1.50=0.90 > JORT 0.84 → COC GAGNE.
-  if (shouldForceCodes && targetCodeFragment && openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
-    const embStrForced = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
-    searchPromises.push(
-      searchTargetCodeForced(embStrForced, targetCodeFragment, 5)
-    )
-    providerLabels.push('codes-forced-direct')
+  // Fix Feb 26 v11: Dual approach pour le code cible (vectoriel sans threshold + BM25 OR classique)
+  //
+  // Problème fondamental (post-mortem v9/v10):
+  // - v9/v9b BM25 AND: 0 résultats (AND logic + stop words non supprimés + gap vocab classique/moderne)
+  // - v10 vecteur sans threshold: retourne les top 5 COC les plus proches mais PAS les gold chunks
+  //   (Fsl 2 "أركان العقد" au rang 339/500 pour la query "شروط صحة العقد" → hors top 5)
+  //
+  // Solution v11 COMBINÉE:
+  // - Vectoriel (v10): top 5 COC chunks les plus proches → articles généraux pertinents
+  // - BM25 OR-expanded (v11): "شروط OR أركان OR أهلية" → Fsl 2 ✅ | "تعمير OR التقادم" → Fsl 402 ✅
+  //   Utilise websearch_to_tsquery('simple', OR_query) qui match si le chunk contient L'UN des termes
+  if (shouldForceCodes && targetCodeFragment) {
+    if (openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
+      const embStrForced = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
+      searchPromises.push(
+        searchTargetCodeForced(embStrForced, targetCodeFragment, 5)
+      )
+      providerLabels.push('codes-forced-direct')
+    }
+
+    if (detectedLang === 'ar') {
+      // BM25 OR-expansion uniquement pour les queries arabes (COC classique)
+      searchPromises.push(
+        searchTargetCodeByORExpansion(queryText, targetCodeFragment, 10)
+      )
+      providerLabels.push('codes-forced-direct') // même label → même boost
+    }
   }
 
   if (searchPromises.length === 0) {
@@ -1363,15 +1492,19 @@ export async function searchKnowledgeBaseHybrid(
         }
       }
 
-      // Fix Feb 26 v10: boost pour les résultats de la recherche vectorielle forcée sur code cible
+      // Fix Feb 26 v11: boost pour codes-forced-direct (vectoriel v10 ET BM25-OR v11)
       // Tous les résultats SONT du code cible (filtré par kb.title ILIKE dans SQL).
-      // vecSim COC classique ~0.08-0.15 (très bas mais c'est le chunk le plus proche disponible).
       // Floor 0.60 → similarity = 0.60 × 1.50 = 0.90 > JORT 0.84 → COC gagne TOUJOURS ✅
-      // vecSim sert à ordonner les chunks COC entre eux (Fsl 2 vs Fsl 23 vs Fsl 119).
+      // BM25-OR: bm25Rank (ts_rank_cd score) sert à ordonner les chunks COC entre eux.
+      // Vectoriel: vecSim sert à ordonner les chunks COC entre eux.
       if (label === 'codes-forced-direct') {
         const vecSim = (r.metadata?.vectorSimilarity as number) || 0
-        // Floor 0.60 garantit que n'importe quel chunk COC score ≥ 0.60×1.50=0.90 > JORT 0.84
-        const effSim = Math.max(0.60, vecSim)
+        const bm25Rank = (r.metadata?.bm25Rank as number) || 0
+        // BM25-OR: bm25Rank=0.3 → max(0.60, min(0.80, 3.0))=0.80 → 0.80×1.50=1.0 ✅
+        // Vectoriel: vecSim=0.45 → max(0.60, 0.45)=0.60 → 0.60×1.50=0.90 ✅
+        const bm25EffSim = bm25Rank > 0 ? Math.max(0.60, Math.min(0.80, bm25Rank * 10)) : 0
+        const vecEffSim = Math.max(0.60, vecSim)
+        const effSim = Math.max(bm25EffSim, vecEffSim) // meilleur signal gagne
         r.similarity = Math.min(1.0, effSim * CODE_PRIORITY_BOOST)
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
