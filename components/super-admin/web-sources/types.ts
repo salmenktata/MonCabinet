@@ -23,9 +23,13 @@ export interface WebSourceListItem {
   health_status: string
   consecutive_failures: number
   last_crawl_at: string | null
+  last_successful_crawl_at: string | null
+  last_job_status: string | null
+  last_job_pages: number
   next_crawl_at: string | null
   pages_count: number
   indexed_count: number
+  pending_index_count: number
   total_pages_discovered: number
   avg_pages_per_crawl: number
   drive_config: Record<string, unknown> | null

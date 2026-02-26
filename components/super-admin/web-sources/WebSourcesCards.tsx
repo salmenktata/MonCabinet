@@ -248,6 +248,11 @@ export function WebSourcesCards({
                       total={Number(source.pages_count)}
                       compact
                     />
+                    {source.pending_index_count > 0 && (
+                      <span className="text-[10px] text-amber-400/80">
+                        {source.pending_index_count} pages en attente d&apos;indexation
+                      </span>
+                    )}
                     {source.files_count > 0 && (
                       <div className="flex items-center gap-1.5 mt-1">
                         <Icons.file className="h-3 w-3 text-slate-500 shrink-0" />
@@ -257,9 +262,33 @@ export function WebSourcesCards({
                       </div>
                     )}
                   </div>
-                  <span className="text-xs text-slate-400">
-                    Crawl: {formatRelativeTime(source.last_crawl_at)}
-                  </span>
+                  <div className="space-y-0.5">
+                    <span className="text-xs text-slate-400">
+                      Crawl: {formatRelativeTime(source.last_crawl_at)}
+                    </span>
+                    {source.last_job_status && (
+                      <div>
+                        <span className={`text-[10px] ${
+                          source.last_job_status === 'completed' ? 'text-emerald-400/80' :
+                          source.last_job_status === 'failed' && source.last_job_pages > 0 ? 'text-amber-400/80' :
+                          source.last_job_status === 'failed' ? 'text-red-400/80' :
+                          source.last_job_status === 'running' ? 'text-blue-400/80' :
+                          'text-slate-500'
+                        }`}>
+                          {source.last_job_status === 'completed' ? '✓ succès' :
+                           source.last_job_status === 'failed' && source.last_job_pages > 0 ? `⚠ partiel (${source.last_job_pages}p)` :
+                           source.last_job_status === 'failed' ? '✗ échec' :
+                           source.last_job_status === 'running' ? '⟳ en cours' :
+                           source.last_job_status}
+                        </span>
+                      </div>
+                    )}
+                    {source.last_successful_crawl_at && source.last_successful_crawl_at !== source.last_crawl_at && (
+                      <span className="text-[10px] text-slate-600">
+                        dernier succès: {formatRelativeTime(source.last_successful_crawl_at)}
+                      </span>
+                    )}
+                  </div>
                   {source.next_crawl_at && (
                     <span className="text-xs text-slate-500">
                       Prochain: {formatRelativeTime(source.next_crawl_at)}

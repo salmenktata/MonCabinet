@@ -776,7 +776,7 @@ export async function getWebSourcesListData(params: {
   )
   const total = parseInt(countResult.rows[0].count, 10)
 
-  // Sources avec stats
+  // Sources avec stats dynamiques recalculées depuis les vraies données
   const sourcesResult = await db.query(
     `SELECT
       ws.id,
@@ -788,15 +788,45 @@ export async function getWebSourcesListData(params: {
       ws.priority,
       ws.is_active,
       ws.rag_enabled,
-      ws.health_status,
       ws.consecutive_failures,
-      ws.last_crawl_at,
       ws.next_crawl_at,
-      ws.total_pages_discovered,
       ws.avg_pages_per_crawl,
       ws.drive_config,
+      -- Dernier crawl : date réelle depuis les jobs (pas la colonne dénormalisée)
+      (SELECT MAX(started_at) FROM web_crawl_jobs WHERE web_source_id = ws.id) as last_crawl_at,
+      -- Dernier crawl réussi : job avec au moins 1 page traitée
+      (SELECT MAX(completed_at) FROM web_crawl_jobs
+        WHERE web_source_id = ws.id AND pages_processed > 0) as last_successful_crawl_at,
+      -- Statut du dernier job
+      (SELECT status FROM web_crawl_jobs WHERE web_source_id = ws.id
+        ORDER BY created_at DESC LIMIT 1) as last_job_status,
+      -- Pages traitées dans le dernier job
+      (SELECT pages_processed FROM web_crawl_jobs WHERE web_source_id = ws.id
+        ORDER BY created_at DESC LIMIT 1) as last_job_pages,
+      -- Health recalculé dynamiquement depuis les 3 derniers jobs
+      CASE
+        WHEN NOT ws.is_active THEN 'unknown'
+        WHEN (SELECT COUNT(*) FROM web_crawl_jobs WHERE web_source_id = ws.id) = 0 THEN 'unknown'
+        WHEN (
+          SELECT COUNT(*) FROM (
+            SELECT status, pages_processed FROM web_crawl_jobs
+            WHERE web_source_id = ws.id ORDER BY created_at DESC LIMIT 3
+          ) recent WHERE status != 'failed' OR pages_processed > 0
+        ) >= 2 THEN 'healthy'
+        WHEN (
+          SELECT COUNT(*) FROM (
+            SELECT status, pages_processed FROM web_crawl_jobs
+            WHERE web_source_id = ws.id ORDER BY created_at DESC LIMIT 3
+          ) recent WHERE status = 'failed' AND pages_processed = 0
+        ) >= 2 THEN 'failing'
+        ELSE 'degraded'
+      END as health_status,
+      -- Total pages découvertes = COUNT réel (pas cumulatif)
+      (SELECT COUNT(*) FROM web_pages WHERE web_source_id = ws.id) as total_pages_discovered,
+      -- Counts dynamiques
       (SELECT COUNT(*) FROM web_pages WHERE web_source_id = ws.id) as pages_count,
       (SELECT COUNT(*) FROM web_pages WHERE web_source_id = ws.id AND is_indexed = true) as indexed_count,
+      (SELECT COUNT(*) FROM web_pages WHERE web_source_id = ws.id AND status = 'crawled' AND is_indexed = false) as pending_index_count,
       (SELECT COUNT(*) FROM web_files WHERE web_source_id = ws.id) as files_count,
       (SELECT COUNT(*) FROM web_files WHERE web_source_id = ws.id AND is_indexed = true) as indexed_files_count
     FROM web_sources ws
@@ -871,9 +901,13 @@ export async function getWebSourcesListData(params: {
     health_status: string
     consecutive_failures: number
     last_crawl_at: string | null
+    last_successful_crawl_at: string | null
+    last_job_status: string | null
+    last_job_pages: number
     next_crawl_at: string | null
     pages_count: number
     indexed_count: number
+    pending_index_count: number
     total_pages_discovered: number
     avg_pages_per_crawl: number
     drive_config: Record<string, unknown> | null
@@ -894,10 +928,14 @@ export async function getWebSourcesListData(params: {
     health_status: source.health_status as string,
     consecutive_failures: source.consecutive_failures as number,
     last_crawl_at: source.last_crawl_at ? (source.last_crawl_at as Date).toISOString() : null,
+    last_successful_crawl_at: source.last_successful_crawl_at ? (source.last_successful_crawl_at as Date).toISOString() : null,
+    last_job_status: (source.last_job_status as string) || null,
+    last_job_pages: Number(source.last_job_pages) || 0,
     next_crawl_at: source.next_crawl_at ? (source.next_crawl_at as Date).toISOString() : null,
     pages_count: Number(source.pages_count) || 0,
     indexed_count: Number(source.indexed_count) || 0,
-    total_pages_discovered: source.total_pages_discovered as number,
+    pending_index_count: Number(source.pending_index_count) || 0,
+    total_pages_discovered: Number(source.total_pages_discovered) || 0,
     avg_pages_per_crawl: source.avg_pages_per_crawl as number,
     drive_config: (source.drive_config as Record<string, unknown>) || null,
     files_count: Number(source.files_count) || 0,

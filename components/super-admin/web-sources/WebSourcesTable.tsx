@@ -413,11 +413,18 @@ export function WebSourcesTable({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <IndexationProgress
-                      indexed={Number(source.indexed_count)}
-                      total={Number(source.pages_count)}
-                      compact
-                    />
+                    <div className="space-y-0.5">
+                      <IndexationProgress
+                        indexed={Number(source.indexed_count)}
+                        total={Number(source.pages_count)}
+                        compact
+                      />
+                      {source.pending_index_count > 0 && (
+                        <span className="text-[10px] text-amber-400/80">
+                          {source.pending_index_count} en attente
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {source.files_count > 0 ? (
@@ -434,9 +441,34 @@ export function WebSourcesTable({
                     )}
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs text-slate-400">
-                      {formatRelativeTime(source.last_crawl_at)}
-                    </span>
+                    <div className="space-y-0.5">
+                      <span className="text-xs text-slate-400">
+                        {formatRelativeTime(source.last_crawl_at)}
+                      </span>
+                      {source.last_job_status && (
+                        <div className="flex items-center gap-1">
+                          <span className={`text-[10px] ${
+                            source.last_job_status === 'completed' ? 'text-emerald-400/80' :
+                            source.last_job_status === 'failed' && source.last_job_pages > 0 ? 'text-amber-400/80' :
+                            source.last_job_status === 'failed' ? 'text-red-400/80' :
+                            source.last_job_status === 'running' ? 'text-blue-400/80' :
+                            'text-slate-500'
+                          }`}>
+                            {source.last_job_status === 'completed' ? '✓' :
+                             source.last_job_status === 'failed' && source.last_job_pages > 0 ? '⚠ partiel' :
+                             source.last_job_status === 'failed' ? '✗ échec' :
+                             source.last_job_status === 'running' ? '⟳ en cours' :
+                             source.last_job_status}
+                            {source.last_job_pages > 0 && source.last_job_status !== 'completed' && ` (${source.last_job_pages}p)`}
+                          </span>
+                        </div>
+                      )}
+                      {source.last_successful_crawl_at && source.last_successful_crawl_at !== source.last_crawl_at && (
+                        <span className="text-[10px] text-slate-600">
+                          succès: {formatRelativeTime(source.last_successful_crawl_at)}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <span className="text-xs text-slate-500">
