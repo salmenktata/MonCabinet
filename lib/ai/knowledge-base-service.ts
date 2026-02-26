@@ -972,11 +972,16 @@ async function searchHybridSingle(
  * aux chunks de ce code, tandis que les autres codes n'ont qu'un boost vecSim × boost.
  */
 function getTargetCodeTitleFragment(queryText: string, lang: string): string | null {
-  // Fix Feb 26 v10: Fonctionne sur TOUT texte, y.c. queries FR enrichies avec synonymes arabes
-  // (l'enrichissement par enrichQueryWithLegalSynonyms ajoute "مجلة X الفصل Y" même pour queries FR)
-  // CPP first (before civil, to avoid التقادم الجزائي → COC when it's criminal)
-  if (/الجريمة|عقوبة|جنحة|سرقة|قتل|الجزائي|الجنائي|النيابة العمومية|اجراءات جزائية|الإجراءات الجزائية|الدعوى العمومية|الدعوى الجزائية|التتبع الجزائي/.test(queryText)) {
-    return 'مجلة الإجراءات الجزائية' // avec hamza على الإ (titre réel en DB)
+  // Fix Feb 26 v10c: Fonctionne sur TOUT texte, y.c. queries FR enrichies avec synonymes arabes.
+  // ORDRE CRITIQUE: CPP > Pénal > Travail > Famille > COC (évite collisions entre codes)
+
+  // CPP: REQUIERT الإجراءات OU synonymes CPP spécifiques (≠ المجلة الجزائية = Pénal seul)
+  if (/الإجراءات الجزائية|اجراءات جزائية|الدعوى العمومية|الدعوى الجزائية|التتبع الجزائي|النيابة العمومية/.test(queryText)) {
+    return 'مجلة الإجراءات الجزائية'
+  }
+  // Penal Code — المجلة الجزائية ou termes pénaux (sans "الجزائي" seul qui est trop ambigu)
+  if (/المجلة الجزائية|الجريمة|عقوبة|جنحة|سرقة|قتل|الجنائي/.test(queryText)) {
+    return 'المجلة الجزائية'
   }
   // Labor
   if (/مجلة الشغل|عقد الشغل|صاحب العمل|رب العمل|الأجير|الطرد التعسفي|التشغيل/.test(queryText)) {

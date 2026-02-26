@@ -408,8 +408,14 @@ export function enrichQueryWithLegalSynonyms(query: string): string {
     return query
   }
 
-  // Limiter à 5 synonymes les plus pertinents pour ne pas diluer l'embedding
-  const topSynonyms = matchedSynonyms.slice(0, 5)
+  // Fix Feb 26 v10c: Prioritiser les synonymes contenant "الفصل X" (article refs)
+  // → garantit que "الفصل 23 مجلة الشغل" arrive avant les synonymes génériques
+  matchedSynonyms.sort((a, b) => {
+    const aArticle = /الفصل \d/.test(a) ? 0 : 1
+    const bArticle = /الفصل \d/.test(b) ? 0 : 1
+    return aArticle - bArticle
+  })
+  const topSynonyms = matchedSynonyms.slice(0, 8) // augmenté 5→8 pour inclure plus de refs
   const enriched = `${query} - ${topSynonyms.join(' - ')}`
 
   // Respecter la limite max
