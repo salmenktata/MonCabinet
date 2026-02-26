@@ -160,8 +160,8 @@ interface AuditReport {
 const THRESHOLDS = {
   QUALITY_CRITICAL: 70,
   QUALITY_EXCELLENT: 80,
-  CHUNK_MIN_WORDS: 100,
-  CHUNK_MAX_CHARS: 2000,
+  CHUNK_MIN_WORDS: 40,   // Aligné avec MIN_CHUNK_WORDS dans chunking-service.ts
+  CHUNK_MAX_CHARS: 5000, // 600-900 tokens de texte légal arabe/français ≈ 3000-5000 chars
   CHUNK_PROBLEMATIC_PCT: 5,
   METADATA_CONFIDENCE_MIN: 0.75,
   METADATA_COVERAGE_MIN: 70,
@@ -356,6 +356,8 @@ const QUERIES = {
   `,
 
   // D1 - Validation dimensions embeddings (sources actives dans le RAG uniquement)
+  // embedding colonne = Ollama nomic-embed-text = 768-dim
+  // embedding_openai = 1536-dim (colonne séparée, non vérifiée ici)
   embeddingValidation: `
     SELECT
       'knowledge_base' as table_name,
@@ -363,16 +365,16 @@ const QUERIES = {
       COUNT(*) FILTER (WHERE embedding IS NOT NULL) as has_embedding,
       COUNT(*) FILTER (
         WHERE embedding IS NOT NULL
-        AND array_length(embedding::real[], 1) = 1024
+        AND array_length(embedding::real[], 1) = 768
       ) as correct_dim,
       COUNT(*) FILTER (
         WHERE embedding IS NOT NULL
-        AND array_length(embedding::real[], 1) != 1024
+        AND array_length(embedding::real[], 1) != 768
       ) as wrong_dim,
       CASE
         WHEN COUNT(*) FILTER (
           WHERE embedding IS NOT NULL
-          AND array_length(embedding::real[], 1) != 1024
+          AND array_length(embedding::real[], 1) != 768
         ) > 0 THEN 'CRITICAL'
         WHEN COUNT(*) FILTER (WHERE embedding IS NULL) > 0 THEN 'WARNING'
         ELSE 'OK'
@@ -388,23 +390,23 @@ const QUERIES = {
       COUNT(*) FILTER (WHERE kbc.embedding IS NOT NULL) as has_embedding,
       COUNT(*) FILTER (
         WHERE kbc.embedding IS NOT NULL
-        AND array_length(kbc.embedding::real[], 1) = 1024
+        AND array_length(kbc.embedding::real[], 1) = 768
       ) as correct_dim,
       COUNT(*) FILTER (
         WHERE kbc.embedding IS NOT NULL
-        AND array_length(kbc.embedding::real[], 1) != 1024
+        AND array_length(kbc.embedding::real[], 1) != 768
       ) as wrong_dim,
       CASE
         WHEN COUNT(*) FILTER (
           WHERE kbc.embedding IS NOT NULL
-          AND array_length(kbc.embedding::real[], 1) != 1024
+          AND array_length(kbc.embedding::real[], 1) != 768
         ) > 0 THEN 'CRITICAL'
         WHEN COUNT(*) FILTER (WHERE kbc.embedding IS NULL) > 0 THEN 'WARNING'
         ELSE 'OK'
       END as status
     FROM knowledge_base_chunks kbc
     JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
-    WHERE kb.is_active = true
+    WHERE kb.is_active = true AND kb.is_indexed = true
   `,
 
   // D2 - Doublons d'URL (sources actives dans le RAG uniquement)
@@ -426,16 +428,22 @@ const QUERIES = {
   `,
 
   // Overall Health Score (sources actives dans le RAG uniquement)
+  // Nouvelle formule v2 — indépendante de quality_score (souvent NULL pour PDFs/Drive) :
+  //   35% → pct_good_chunks     : chunks dans plage 200-$1 chars (toujours mesurable)
+  //   30% → pct_embedding_cov   : % docs avec embedding Ollama 768-dim non NULL
+  //   20% → pct_confident_meta  : % métadonnées avec confiance ≥ $2 (100% si aucune metadata)
+  //   15% → pct_has_quality     : % docs ayant un quality_score défini (encourage l'évaluation)
   healthScore: `
     WITH metrics AS (
       SELECT
-        COUNT(DISTINCT kb.id) FILTER (WHERE kb.quality_score >= $1) * 100.0 / NULLIF(COUNT(DISTINCT kb.id), 0) as pct_high_quality,
         COUNT(kbc.id) FILTER (
-          WHERE LENGTH(kbc.content) BETWEEN 200 AND $2
+          WHERE LENGTH(kbc.content) BETWEEN 200 AND $1
         ) * 100.0 / NULLIF(COUNT(kbc.id), 0) as pct_good_chunks,
+        COUNT(DISTINCT kb.id) FILTER (WHERE kb.embedding IS NOT NULL) * 100.0 / NULLIF(COUNT(DISTINCT kb.id), 0) as pct_embedding_cov,
         COUNT(wpm.id) FILTER (
-          WHERE wpm.extraction_confidence >= $3
+          WHERE wpm.extraction_confidence >= $2
         ) * 100.0 / NULLIF(COUNT(wpm.id), 0) as pct_confident_metadata,
+        COUNT(DISTINCT kb.id) FILTER (WHERE kb.quality_score IS NOT NULL) * 100.0 / NULLIF(COUNT(DISTINCT kb.id), 0) as pct_has_quality,
         COUNT(DISTINCT wp.id) as total_pages,
         COUNT(DISTINCT kb.id) as total_docs,
         COUNT(kbc.id) as total_chunks,
@@ -448,9 +456,10 @@ const QUERIES = {
     )
     SELECT
       ROUND(
-        (COALESCE(pct_high_quality, 0) * 0.5) +
-        (COALESCE(pct_good_chunks, 0) * 0.3) +
-        (COALESCE(pct_confident_metadata, 0) * 0.2),
+        (COALESCE(pct_good_chunks, 0) * 0.35) +
+        (COALESCE(pct_embedding_cov, 0) * 0.30) +
+        (COALESCE(pct_confident_metadata, 100) * 0.20) +
+        (COALESCE(pct_has_quality, 0) * 0.15),
         1
       ) as overall_health_score,
       total_pages,
@@ -472,7 +481,7 @@ const QUERIES = {
     SELECT COUNT(*) as total_chunks
     FROM knowledge_base_chunks kbc
     JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
-    WHERE kb.is_active = true
+    WHERE kb.is_active = true AND kb.is_indexed = true
   `,
 }
 
@@ -561,7 +570,7 @@ async function auditChunking(): Promise<{
 
     if (pctNormal < 95 - THRESHOLDS.CHUNK_PROBLEMATIC_PCT) {
       criticalIssues.push(
-        `⚠️ Catégorie "${category.category}" : ${Math.round(100 - pctNormal)}% chunks hors plage normale (100-800 mots)`
+        `⚠️ Catégorie "${category.category}" : ${Math.round(100 - pctNormal)}% chunks hors plage normale (${THRESHOLDS.CHUNK_MIN_WORDS}-800 mots)`
       )
       recommendations.push(
         `Vérifier OVERLAP_BY_CATEGORY dans chunking-service.ts pour catégorie ${category.category}`
@@ -665,11 +674,11 @@ async function auditEmbeddings(): Promise<{
 
   const criticalIssues: string[] = []
 
-  // Vérifier dimensions incorrectes
+  // Vérifier dimensions incorrectes (colonne embedding = Ollama nomic-embed-text = 768-dim)
   for (const row of validation.rows) {
     if (row.wrong_dim > 0) {
       criticalIssues.push(
-        `🔴 BLOQUANT - ${row.table_name} : ${row.wrong_dim} embeddings avec dimension incorrecte (≠ 1024)`
+        `🔴 BLOQUANT - ${row.table_name} : ${row.wrong_dim} embeddings avec dimension incorrecte (≠ 768)`
       )
     }
   }
@@ -695,9 +704,8 @@ async function calculateHealthScore(): Promise<{
   totalChunks: number
 }> {
   const result = await pool.query(QUERIES.healthScore, [
-    THRESHOLDS.QUALITY_EXCELLENT, // pct_high_quality
-    THRESHOLDS.CHUNK_MAX_CHARS, // pct_good_chunks
-    THRESHOLDS.METADATA_CONFIDENCE_MIN, // pct_confident_metadata
+    THRESHOLDS.CHUNK_MAX_CHARS,        // $1 — pct_good_chunks max chars
+    THRESHOLDS.METADATA_CONFIDENCE_MIN, // $2 — pct_confident_metadata seuil
   ])
 
   const kbCount = await pool.query(QUERIES.kbCount)
@@ -872,7 +880,7 @@ function displayReport(report: AuditReport) {
     const status = val.status === 'OK' ? '✅' : val.status === 'WARNING' ? '🟡' : '🔴'
     console.log(
       `   ${status} ${val.table_name.padEnd(25)} : ` +
-        `${val.correct_dim}/${val.has_embedding} correct (dim=1024), ` +
+        `${val.correct_dim}/${val.has_embedding} correct (dim=768 Ollama), ` +
         `${val.wrong_dim} incorrect`
     )
   })
