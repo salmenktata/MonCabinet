@@ -1269,6 +1269,23 @@ export async function searchKnowledgeBaseHybrid(
     }
   }
 
+  // Fix Feb 26 v8b: post-merge adjustments
+  // 1. Pénaliser les chunks "abolis" (ألغي/ملغى) — courts, aucun contenu juridique utile.
+  //    Ces chunks courts ont une sim embedding élevée (structure partagée avec la query) mais
+  //    ne contiennent que "(ألغي بالأمر...)" → ne doivent jamais figurer dans le top-5.
+  // 2. Boost article-text matches au-dessus du seuil des chunks abolis.
+  for (const r of seen.values()) {
+    const chunkText = r.chunkContent || ''
+    // Penalty pour articles abolis (pattern: "الفصل X (ألغي[^)]*)")
+    if (/\(ألغي[^)]{0,50}\)/.test(chunkText) || /\(ملغى[^)]{0,50}\)/.test(chunkText)) {
+      r.similarity = Math.min(r.similarity, 0.10)
+    }
+    // Boost forcé pour les résultats de la recherche textuelle exacte (article-text)
+    if (r.metadata?.searchType === 'article_text_match') {
+      r.similarity = Math.max(r.similarity, 0.85)
+    }
+  }
+
   const results = Array.from(seen.values())
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, sqlCandidatePool)
