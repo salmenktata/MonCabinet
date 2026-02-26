@@ -1126,6 +1126,9 @@ export async function searchKnowledgeBaseHybrid(
   const detectedLang = detectLanguage(query)
   const bm25Language: 'ar' | 'fr' | 'simple' = detectedLang === 'ar' ? 'ar' : detectedLang === 'fr' ? 'fr' : 'simple'
 
+  // Fix Feb 26 v9: pré-calculer targetCodeFragment UNE fois (évite appel par chunk + permet push avant loop)
+  const targetCodeFragment = getTargetCodeTitleFragment(queryText, bm25Language as string)
+
   // ✨ OPTIMISATION Phase 2.4 : Détection auto type de query + poids adaptatifs
   const queryAnalysis = detectQueryType(query)
 
@@ -1223,6 +1226,9 @@ export async function searchKnowledgeBaseHybrid(
   // 3. Fusionner : dédupliquer par chunk_id, garder meilleur score
   const seen = new Map<string, KnowledgeBaseSearchResult>()
   const countByProvider: Record<string, number> = {}
+  // Fix Feb 26 v8c: tracker les chunkIds issus de la recherche article-text
+  // (nécessaire car le Map peut être écrasé par codes-forced si sim > 0.75 article-text)
+  const articleTextChunkIds = new Set<string>()
 
   for (let i = 0; i < searchResultSets.length; i++) {
     const resultSet = searchResultSets[i]
@@ -1261,6 +1267,10 @@ export async function searchKnowledgeBaseHybrid(
         }
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
+      // Tracker les chunks issus de la recherche article-text (avant écrasement possible par codes-forced)
+      if (label === 'article-text') {
+        articleTextChunkIds.add(key)
+      }
       const existing = seen.get(key)
       if (!existing || r.similarity > existing.similarity) {
         seen.set(key, r)
@@ -1269,19 +1279,22 @@ export async function searchKnowledgeBaseHybrid(
     }
   }
 
-  // Fix Feb 26 v8b: post-merge adjustments
-  // 1. Pénaliser les chunks "abolis" (ألغي/ملغى) — courts, aucun contenu juridique utile.
-  //    Ces chunks courts ont une sim embedding élevée (structure partagée avec la query) mais
-  //    ne contiennent que "(ألغي بالأمر...)" → ne doivent jamais figurer dans le top-5.
-  // 2. Boost article-text matches au-dessus du seuil des chunks abolis.
+  // Fix Feb 26 v8c: post-merge adjustments
+  // 1. Pénaliser les chunks "abolis" (ألغي/ملغى) — articles qui ne contiennent que la notice
+  //    d'abrogation "(ألغي بالأمر...)" sans contenu juridique utile.
+  //    Ces chunks courts ont une sim embedding élevée (même structure que la query) mais
+  //    ne fournissent aucun contenu utile au LLM → doivent être exclus du top-5.
+  //    Fix regex: \(ألغي (sans restriction longueur) — "(ألغي بالقانون عدد 72...)" > 50 chars.
+  // 2. Boost article-text matches → garantit ranking au-dessus des autres codes chunks (~0.80).
   for (const r of seen.values()) {
     const chunkText = r.chunkContent || ''
-    // Penalty pour articles abolis (pattern: "الفصل X (ألغي[^)]*)")
-    if (/\(ألغي[^)]{0,50}\)/.test(chunkText) || /\(ملغى[^)]{0,50}\)/.test(chunkText)) {
+    const chunkKey = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
+    // Penalty pour articles abolis: simple présence de "(ألغي" ou "(ملغى"
+    if (/\(ألغي/.test(chunkText) || /\(ملغى/.test(chunkText)) {
       r.similarity = Math.min(r.similarity, 0.10)
     }
-    // Boost forcé pour les résultats de la recherche textuelle exacte (article-text)
-    if (r.metadata?.searchType === 'article_text_match') {
+    // Boost forcé pour exact article text match (même si codes-forced a écrasé le metadata)
+    if (articleTextChunkIds.has(chunkKey)) {
       r.similarity = Math.max(r.similarity, 0.85)
     }
   }
