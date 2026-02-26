@@ -25,6 +25,16 @@ export default function FactureCard({ facture }: FactureCardProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const getStatutLabel = (statut: string) => {
+    const map: Record<string, string> = {
+      brouillon: tF('draft'),
+      envoyee: tF('sent'),
+      payee: tF('paid'),
+      impayee: tF('unpaid'),
+    }
+    return map[statut] ?? statut
+  }
+
   const handleDelete = async () => {
     if (!confirm(t('deleteInvoice'))) return
 
@@ -104,7 +114,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
                 statutColors[facture.statut]
               }`}
             >
-              {facture.statut}
+              {getStatutLabel(facture.statut)}
             </span>
             {isRetard && (
               <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-red-100 text-red-700">

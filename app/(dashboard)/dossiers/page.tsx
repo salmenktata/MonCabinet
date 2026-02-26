@@ -154,11 +154,11 @@ export default function DossiersPage() {
           }`}>
             <span>
               {level === 'danger'
-                ? `Limite atteinte — ${quota.currentDossiers}/${quota.maxDossiers} dossiers utilisés`
-                : `${remaining} dossier${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''} sur ${quota.maxDossiers} (essai)`}
+                ? t('limitReached', { current: quota.currentDossiers, max: quota.maxDossiers })
+                : t('remaining', { count: remaining, max: quota.maxDossiers })}
             </span>
             <Link href="/upgrade" className="font-semibold underline underline-offset-2 whitespace-nowrap hover:opacity-80">
-              Passer à Pro →
+              {t('upgradePrompt')}
             </Link>
           </div>
         )

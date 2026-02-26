@@ -1098,6 +1098,13 @@ function buildClassicalArabicBM25OR(queryText: string): string {
     [/ضمان|ضامن/, ['ضمان', 'ضامن']],
     [/اثراء.*بلا.*سبب|إثراء/, ['الاثراء', 'العين']],
     [/مسؤولية.*عقدية|الالتزام.*عقدي/, ['يرتب', 'التزام', 'تعمير']],
+    // Fix Feb 26: المسؤولية التقصيرية (tort) → termes classiques COC art.82/83
+    // "من تسبب في ضرر غيره" (art.82) et "من تسبب في مضرة غيره خطأ" (art.83)
+    [/مسؤولية.*تقصير|تقصيرية|تسبب.*ضرر|responsabilit.*chose|responsabilit.*fait/, ['تسبب', 'ضرر', 'خطأ', 'جبر']],
+    // Fix Feb 26: الضرر المعنوي (moral damage) → termes jurisprudence + COC
+    [/ضرر.*معنوي|تعويض.*معنوي|préjudice.*moral/, ['معنوي', 'ضرر', 'جبر', 'تعويض']],
+    // Fix Feb 26: conditions validité contrat FR → terms COC art.2
+    [/validit.*contrat|conditions.*contrat|COC tunisien/, ['أركان', 'أهلية', 'التراضي', 'رضاء']],
   ]
 
   const allTerms = new Set<string>()

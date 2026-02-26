@@ -247,7 +247,11 @@
     "confirmDeleteTitle": "Supprimer {prenom} {nom} ?",
     "confirmDeleteEntreprise": "Cette entreprise et toutes ses données associées (dossiers, factures, documents) seront définitivement supprimées. Cette action est irréversible.",
     "confirmDeleteParticulier": "Ce client et toutes ses données associées (dossiers, factures, documents) seront définitivement supprimés. Cette action est irréversible.",
-    "confirmDeleteBtn": "Supprimer définitivement"
+    "confirmDeleteBtn": "Supprimer définitivement",
+    "limitReached": "Limite atteinte — {current}/{max} clients utilisés",
+    "remaining": "{count} client(s) restant(s) sur {max}",
+    "upgradePrompt": "Passer à Pro →",
+    "noResultsSearch": "Aucun résultat pour « {search} »"
   },
   "dossiers": {
     "title": "Dossiers",
@@ -350,6 +354,9 @@
     "noResults": "Aucun résultat",
     "noResultsSearch": "Aucun dossier trouvé pour « {search} »",
     "noResultsFilter": "Aucun dossier ne correspond à ces critères",
+    "limitReached": "Limite atteinte — {current}/{max} dossiers utilisés",
+    "remaining": "{count} dossier(s) restant(s) sur {max}",
+    "upgradePrompt": "Passer à Pro →",
     "workflowSection": "Workflow de la procédure",
     "updatingStep": "Mise à jour…",
     "transitionHistory": "Historique des transitions",
@@ -1774,7 +1781,7 @@
       "title": "Questions fréquentes",
       "q1": { "question": "Est-ce que mes données sont sécurisées ?", "answer": "Absolument. Vos données sont hébergées en Tunisie sur des serveurs sécurisés avec chiffrement SSL. Nous respectons les normes de sécurité les plus strictes et ne partageons jamais vos données." },
       "q2": { "question": "Y a-t-il un engagement minimum ?", "answer": "Non, aucun engagement. Vous pouvez annuler à tout moment. L'accès gratuit est entièrement sans carte bancaire." },
-      "q3": { "question": "Puis-je essayer avant de payer ?", "answer": "Oui ! Tous les nouveaux comptes bénéficient automatiquement d'un accès gratuit complet. Vous accédez à toutes les fonctionnalités, incluant 30 requêtes IA, sans carte bancaire requise." },
+      "q3": { "question": "Puis-je essayer avant de payer ?", "answer": "Oui ! Tous les nouveaux comptes bénéficient automatiquement d'un accès gratuit complet. Vous accédez à toutes les fonctionnalités, incluant 30 requêtes IA/mois (max 5/jour), sans carte bancaire requise." },
       "q4": { "question": "Est-ce conforme aux exigences du Barreau ?", "answer": "Qadhya est conçu spécifiquement pour les avocats tunisiens et respecte les normes et procédures du Barreau de Tunisie, incluant les calculs de délais légaux." },
       "q5": { "question": "Comment fonctionne l'IA juridique ?", "answer": "Qadhya IA est alimentée par une base de plus de 3 400 documents juridiques tunisiens. Elle vous aide à rechercher la jurisprudence, structurer vos dossiers et obtenir des consultations juridiques contextualisées." },
       "q6": { "question": "Puis-je importer mes dossiers existants ?", "answer": "Oui, vous pouvez créer vos dossiers manuellement ou utiliser l'assistant IA pour les structurer automatiquement à partir d'une description en langage naturel." },

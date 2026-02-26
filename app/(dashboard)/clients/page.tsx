@@ -92,11 +92,11 @@ export default function ClientsPage() {
           }`}>
             <span>
               {level === 'danger'
-                ? `Limite atteinte — ${quota.currentClients}/${quota.maxClients} clients utilisés`
-                : `${remaining} client${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''} sur ${quota.maxClients} (essai)`}
+                ? t('limitReached', { current: quota.currentClients, max: quota.maxClients })
+                : t('remaining', { count: remaining, max: quota.maxClients })}
             </span>
             <Link href="/upgrade" className="font-semibold underline underline-offset-2 whitespace-nowrap hover:opacity-80">
-              Passer à Pro →
+              {t('upgradePrompt')}
             </Link>
           </div>
         )
@@ -208,7 +208,7 @@ export default function ClientsPage() {
             <Users className="h-7 w-7 text-muted-foreground" />
           </div>
           <p className="mt-4 text-sm font-semibold text-foreground">
-            {search ? `Aucun résultat pour "${search}"` : t('noClients')}
+            {search ? t('noResultsSearch', { search }) : t('noClients')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {!search && t('createFirstClient')}
