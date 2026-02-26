@@ -1085,7 +1085,17 @@ async function searchTargetCodeByBM25Direct(
   language: string,
   limit: number
 ): Promise<KnowledgeBaseSearchResult[]> {
+  // Fix Feb 26 v9b: utiliser la config language-aware pour le matching BM25.
+  // PROBLÈME v9: plainto_tsquery('simple', query) génère un AND sur TOUS les tokens incluant
+  // les stop words arabes (ما، هي، في، القانون...) → les chunks COC ne les contiennent pas tous → 0 résultats.
+  // FIX v9b: to_tsvector('arabic', content) @@ plainto_tsquery('arabic', query) :
+  //   - 'arabic' config : stop words AR supprimés + stemming (شروط→شرط, يشترط→شرط → MATCH ✓)
+  //   - to_tsvector() on-the-fly (pas d'index) mais filtré par title ILIKE → petit set COC (~500 chunks max)
+  // Note: 'arabic' config disponible en prod (confirmé par la fn SQL search_knowledge_base_hybrid)
+  const langConfig = language === 'ar' ? 'arabic' : language === 'fr' ? 'french' : 'simple'
+
   try {
+    // eslint-disable-next-line no-useless-escape
     const sql = `
       SELECT
         kbc.id as chunk_id,
@@ -1095,24 +1105,24 @@ async function searchTargetCodeByBM25Direct(
         kbc.metadata,
         kb.title,
         kb.category,
-        ts_rank_cd(to_tsvector('simple', kbc.content), plainto_tsquery('simple', $1)) as bm25_score
+        ts_rank_cd(to_tsvector('${langConfig}', kbc.content), plainto_tsquery('${langConfig}', $1)) as bm25_score
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
       WHERE kb.is_indexed = true
         AND kb.category = 'codes'
         AND kb.title ILIKE $2
-        AND to_tsvector('simple', kbc.content) @@ plainto_tsquery('simple', $1)
+        AND to_tsvector('${langConfig}', kbc.content) @@ plainto_tsquery('${langConfig}', $1)
       ORDER BY bm25_score DESC
       LIMIT $3`
 
     const result = await db.query(sql, [queryText, `%${titleFragment}%`, limit])
 
     if (result.rows.length === 0) {
-      logger.info(`[KB target-code-bm25] Aucun chunk BM25 pour "${titleFragment}" (query: "${queryText.substring(0, 40)}")`)
+      logger.info(`[KB target-code-bm25] Aucun chunk BM25 (${langConfig}) pour "${titleFragment}" (query: "${queryText.substring(0, 40)}")`)
       return []
     }
 
-    logger.info(`[KB target-code-bm25] ${result.rows.length} chunks BM25 directs pour "${titleFragment}"`)
+    logger.info(`[KB target-code-bm25] ${result.rows.length} chunks BM25 directs (${langConfig}) pour "${titleFragment}"`)
 
     return result.rows.map((row) => ({
       knowledgeBaseId: row.knowledge_base_id,
@@ -1129,7 +1139,7 @@ async function searchTargetCodeByBM25Direct(
       },
     }))
   } catch (err) {
-    logger.warn(`[KB target-code-bm25] Erreur pour "${titleFragment}":`, err)
+    logger.warn(`[KB target-code-bm25] Erreur (${langConfig}) pour "${titleFragment}":`, err)
     return []
   }
 }
