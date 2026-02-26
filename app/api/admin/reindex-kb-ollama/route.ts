@@ -7,7 +7,7 @@ import { aiConfig } from '@/lib/ai/config'
 /**
  * POST /api/admin/reindex-kb-ollama
  *
- * Génère et stocke les embeddings Ollama qwen3-embedding:0.6b (1024-dim)
+ * Génère et stocke les embeddings Ollama nomic-embed-text (768-dim)
  * sur les chunks existants qui n'en ont pas encore (colonne `embedding`).
  *
  * Query params:
@@ -95,15 +95,15 @@ export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
         batch.map(async (chunk) => {
           const embResult = await generateEmbedding(chunk.content, { forceOllama: true })
 
-          if (embResult.provider !== 'ollama' || embResult.embedding.length !== 1024) {
+          if (embResult.provider !== 'ollama' || embResult.embedding.length !== 768) {
             throw new Error(
-              `Embedding invalide: provider=${embResult.provider}, dims=${embResult.embedding.length} (attendu: ollama/1024)`
+              `Embedding invalide: provider=${embResult.provider}, dims=${embResult.embedding.length} (attendu: ollama/768)`
             )
           }
 
           const embStr = formatEmbeddingForPostgres(embResult.embedding)
           await db.query(
-            `UPDATE knowledge_base_chunks SET embedding = $1::vector(1024) WHERE id = $2`,
+            `UPDATE knowledge_base_chunks SET embedding = $1::vector(768) WHERE id = $2`,
             [embStr, chunk.id]
           )
 
