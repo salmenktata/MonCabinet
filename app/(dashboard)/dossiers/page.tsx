@@ -17,6 +17,7 @@ import { useDossierInfiniteList } from '@/lib/hooks/useDossiers'
 import DossierCard from '@/components/dossiers/DossierCard'
 import DossiersFilters, { type FilterState } from '@/components/dossiers/DossiersFilters'
 import { Skeleton } from '@/components/ui/skeleton'
+import { usePlanQuota, getCountAlertLevel } from '@/lib/hooks/usePlanQuota'
 
 type StatusFilter = 'all' | 'active' | 'closed' | 'archived'
 
@@ -38,6 +39,7 @@ export default function DossiersPage() {
     sortOrder: 'desc',
   })
   const deferredSearch = useDeferredValue(search)
+  const { data: quota } = usePlanQuota()
 
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -138,6 +140,29 @@ export default function DossiersPage() {
           </Link>
         </div>
       </div>
+
+      {/* Bandeau limite dossiers */}
+      {quota && quota.maxDossiers > 0 && (() => {
+        const level = getCountAlertLevel(quota.currentDossiers, quota.maxDossiers)
+        if (level === 'safe') return null
+        const remaining = quota.maxDossiers - quota.currentDossiers
+        return (
+          <div className={`rounded-xl border px-4 py-3 flex items-center justify-between gap-3 text-sm ${
+            level === 'danger'
+              ? 'bg-red-500/10 border-red-500/30 text-red-300'
+              : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300'
+          }`}>
+            <span>
+              {level === 'danger'
+                ? `Limite atteinte — ${quota.currentDossiers}/${quota.maxDossiers} dossiers utilisés`
+                : `${remaining} dossier${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''} sur ${quota.maxDossiers} (essai)`}
+            </span>
+            <Link href="/upgrade" className="font-semibold underline underline-offset-2 whitespace-nowrap hover:opacity-80">
+              Passer à Solo →
+            </Link>
+          </div>
+        )
+      })()}
 
       {/* Toolbar : search + stats chips + filtres avancés */}
       <div className="space-y-3">

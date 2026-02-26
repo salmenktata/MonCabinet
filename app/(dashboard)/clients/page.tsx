@@ -8,6 +8,7 @@ import { useClientList } from '@/lib/hooks/useClients'
 import ClientCard from '@/components/clients/ClientCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
+import { usePlanQuota, getCountAlertLevel } from '@/lib/hooks/usePlanQuota'
 
 type TypeFilter = 'all' | 'physical' | 'legal'
 
@@ -16,6 +17,7 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const deferredSearch = useDeferredValue(search)
+  const { data: quota } = usePlanQuota()
 
   const { data, isLoading, error } = useClientList({
     sortBy: 'createdAt',
@@ -76,6 +78,29 @@ export default function ClientsPage() {
           + {t('newClient')}
         </Link>
       </div>
+
+      {/* Bandeau limite clients */}
+      {quota && quota.maxClients > 0 && (() => {
+        const level = getCountAlertLevel(quota.currentClients, quota.maxClients)
+        if (level === 'safe') return null
+        const remaining = quota.maxClients - quota.currentClients
+        return (
+          <div className={`rounded-xl border px-4 py-3 flex items-center justify-between gap-3 text-sm ${
+            level === 'danger'
+              ? 'bg-red-500/10 border-red-500/30 text-red-300'
+              : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300'
+          }`}>
+            <span>
+              {level === 'danger'
+                ? `Limite atteinte — ${quota.currentClients}/${quota.maxClients} clients utilisés`
+                : `${remaining} client${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''} sur ${quota.maxClients} (essai)`}
+            </span>
+            <Link href="/upgrade" className="font-semibold underline underline-offset-2 whitespace-nowrap hover:opacity-80">
+              Passer à Solo →
+            </Link>
+          </div>
+        )
+      })()}
 
       {/* Statistiques */}
       <div className="grid gap-4 sm:grid-cols-3">

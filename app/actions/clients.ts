@@ -6,6 +6,7 @@ import { clientSchema, type ClientFormData } from '@/lib/validations/client'
 import { revalidatePath } from 'next/cache'
 import { logClientAccess } from '@/lib/audit/activity-logger'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { PLAN_LIMITS, type PlanType } from '@/lib/plans/plan-config'
 
 interface ClientData {
   user_id: string
@@ -28,6 +29,23 @@ export async function createClientAction(formData: ClientFormData) {
     const session = await getSession()
     if (!session?.user?.id) {
       return { error: 'Non authentifié' }
+    }
+
+    // Vérifier la limite de clients selon le plan
+    const planRow = await query('SELECT plan FROM users WHERE id = $1', [session.user.id])
+    const userPlan = (planRow.rows[0]?.plan ?? 'trial') as PlanType
+    const maxClients = PLAN_LIMITS[userPlan]?.maxClients ?? Infinity
+    if (maxClients !== Infinity) {
+      const countRow = await query('SELECT COUNT(*) AS count FROM clients WHERE user_id = $1', [session.user.id])
+      const current = parseInt(countRow.rows[0]?.count || '0', 10)
+      if (current >= maxClients) {
+        return {
+          error: `Limite atteinte : votre essai est limité à ${maxClients} clients.`,
+          limitReached: true as const,
+          upgradeRequired: true as const,
+          limit: maxClients,
+        }
+      }
     }
 
     // Whitelist des colonnes autorisées pour éviter SQL injection

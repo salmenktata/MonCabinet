@@ -43,11 +43,17 @@ interface UseStreamingChatOptions {
   onComplete?: (message: StreamingMessage, metadata?: StreamMetadata) => void
 }
 
+export interface QuotaExceededInfo {
+  reason: 'trial_exhausted' | 'monthly_quota' | 'no_ai' | 'expired'
+  error: string
+}
+
 export function useStreamingChat(options: UseStreamingChatOptions = {}) {
   const [messages, setMessages] = useState<StreamingMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
   const [currentMetadata, setCurrentMetadata] = useState<StreamMetadata | null>(null)
+  const [quotaExceeded, setQuotaExceeded] = useState<QuotaExceededInfo | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const sendMessage = useCallback(
@@ -89,8 +95,17 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
         })
 
         if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.error || 'Erreur réseau')
+          const errorData = await response.json()
+          // Quota IA épuisé (429) → état dédié, pas une erreur générique
+          if (response.status === 429 && errorData.upgradeRequired) {
+            setQuotaExceeded({
+              reason: errorData.reason ?? 'trial_exhausted',
+              error: errorData.error ?? 'Quota IA atteint',
+            })
+            setIsStreaming(false)
+            return
+          }
+          throw new Error(errorData.error || 'Erreur réseau')
         }
 
         // Choisir mode streaming ou JSON selon Content-Type réel de la réponse
@@ -219,6 +234,8 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
     isStreaming,
     streamingContent,
     currentMetadata,
+    quotaExceeded,
+    clearQuotaExceeded: () => setQuotaExceeded(null),
     sendMessage,
     stopStreaming,
     clearMessages,

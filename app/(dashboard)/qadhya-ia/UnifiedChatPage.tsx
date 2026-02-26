@@ -125,6 +125,8 @@ export function UnifiedChatPage({
     streamingContent,
     sendMessage: streamSend,
     stopStreaming,
+    quotaExceeded,
+    clearQuotaExceeded,
   } = useStreamingChat({
     onComplete: (_finalMessage, metadata) => {
       setPendingUserMessage(null)
@@ -402,6 +404,36 @@ export function UnifiedChatPage({
               />
             </div>
           </div>
+
+          {/* Carte upgrade quota épuisé */}
+          {quotaExceeded && (
+            <div className="px-4 md:px-8 py-3">
+              <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <span className="text-2xl flex-shrink-0">✨</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-orange-300">
+                    {quotaExceeded.reason === 'trial_exhausted' ? 'Requêtes d\'essai épuisées' : 'Quota mensuel atteint'}
+                  </p>
+                  <p className="text-xs text-orange-200/80 mt-0.5">{quotaExceeded.error}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <a
+                    href="/upgrade"
+                    className="btn-premium px-4 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap"
+                  >
+                    Passer à Solo
+                  </a>
+                  <button
+                    onClick={clearQuotaExceeded}
+                    className="text-orange-400/60 hover:text-orange-300 text-xs"
+                    aria-label="Fermer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ChatActions - Exporter/Copier conversation */}
           {messages.length > 0 && !isStreaming && (

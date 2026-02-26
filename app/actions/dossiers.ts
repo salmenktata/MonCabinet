@@ -4,6 +4,7 @@ import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { dossierSchema, type DossierFormData } from '@/lib/validations/dossier'
 import { revalidatePath } from 'next/cache'
+import { PLAN_LIMITS, type PlanType } from '@/lib/plans/plan-config'
 import type {
   StructuredDossier,
   StructuringOptions,
@@ -34,6 +35,23 @@ export async function createDossierAction(formData: DossierFormData) {
     }
 
     const userId = session.user.id
+
+    // Vérifier la limite de dossiers selon le plan
+    const planRow = await query('SELECT plan FROM users WHERE id = $1', [userId])
+    const userPlan = (planRow.rows[0]?.plan ?? 'trial') as PlanType
+    const maxDossiers = PLAN_LIMITS[userPlan]?.maxDossiers ?? Infinity
+    if (maxDossiers !== Infinity) {
+      const countRow = await query('SELECT COUNT(*) AS count FROM dossiers WHERE user_id = $1', [userId])
+      const current = parseInt(countRow.rows[0]?.count || '0', 10)
+      if (current >= maxDossiers) {
+        return {
+          error: `Limite atteinte : votre essai est limité à ${maxDossiers} dossiers.`,
+          limitReached: true as const,
+          upgradeRequired: true as const,
+          limit: maxDossiers,
+        }
+      }
+    }
 
     // Préparer les données
     const dossierData = {

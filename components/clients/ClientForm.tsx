@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslations } from 'next-intl'
 import { clientSchema, type ClientFormData } from '@/lib/validations/client'
 import { createClientAction, updateClientAction } from '@/app/actions/clients'
+import { LimitReachedModal } from '@/components/plans/LimitReachedModal'
 
 interface ClientFormProps {
   initialData?: any
@@ -19,6 +20,7 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
   const tErrors = useTranslations('errors')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [limitModal, setLimitModal] = useState(false)
 
   const {
     register,
@@ -55,7 +57,11 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
         : await createClientAction(data)
 
       if (result.error) {
-        setError(result.error)
+        if ('limitReached' in result && result.limitReached) {
+          setLimitModal(true)
+        } else {
+          setError(result.error)
+        }
         setLoading(false)
         return
       }
@@ -69,6 +75,13 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
   }
 
   return (
+    <>
+    <LimitReachedModal
+      open={limitModal}
+      onClose={() => setLimitModal(false)}
+      type="clients"
+      limit={20}
+    />
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {error && (
         <div className="rounded-md bg-red-50 p-4 text-sm text-red-800">
@@ -283,5 +296,6 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
         </button>
       </div>
     </form>
+    </>
   )
 }
