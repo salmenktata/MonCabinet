@@ -152,7 +152,7 @@ export default function EcheancesListClient({ echeances }: EcheancesListClientPr
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher…"
+            placeholder={t('searchPlaceholder')}
             className="h-8 pl-8 text-sm"
           />
         </div>
@@ -163,10 +163,10 @@ export default function EcheancesListClient({ echeances }: EcheancesListClientPr
         <div className="rounded-xl border border-dashed bg-card p-12 text-center">
           <Icons.calendar className="mx-auto h-10 w-10 text-muted-foreground/50" />
           <p className="mt-3 text-sm font-medium text-foreground">
-            {search ? 'Aucun résultat' : t('noDeadlines')}
+            {search ? t('noResults') : t('noDeadlines')}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {search ? `Aucune échéance ne correspond à "${search}"` : t('deadlinesWillAppear')}
+            {search ? t('noResultsSearch', { search }) : t('deadlinesWillAppear')}
           </p>
         </div>
       ) : (

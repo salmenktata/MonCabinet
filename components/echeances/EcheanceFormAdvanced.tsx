@@ -101,7 +101,7 @@ export function EcheanceFormAdvanced({
   // Calculer la date d'échéance
   const handleCalculer = () => {
     if (!dateDepart || !nombreJours) {
-      setError('Veuillez entrer une date de départ et un nombre de jours')
+      setError(t('validation.enterStartDateAndDays'))
       return
     }
 
@@ -121,7 +121,7 @@ export function EcheanceFormAdvanced({
       form.setValue('delai_type', typeDelai)
       setError('')
     } catch (err) {
-      setError('Erreur lors du calcul de la date')
+      setError(t('validation.calculationError'))
     }
   }
 
@@ -147,7 +147,7 @@ export function EcheanceFormAdvanced({
         router.refresh()
       }
     } catch (err) {
-      setError('Une erreur est survenue')
+      setError(t('validation.required'))
       setIsSubmitting(false)
     } finally {
       setIsSubmitting(false)
@@ -172,7 +172,7 @@ export function EcheanceFormAdvanced({
           name="type_echeance"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Type d'échéance *</FormLabel>
+              <FormLabel>{t('labels.echeanceDeadlineTypeRequired')}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -183,25 +183,25 @@ export function EcheanceFormAdvanced({
                   <SelectItem value="delai_legal">
                     <div className="flex items-center gap-2">
                       <Icons.gavel className="h-4 w-4" />
-                      <span>Délai légal</span>
+                      <span>{t('options.deadlineLegal')}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="audience">
                     <div className="flex items-center gap-2">
                       <Icons.calendar className="h-4 w-4" />
-                      <span>Audience</span>
+                      <span>{t('options.deadlineHearing')}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="delai_interne">
                     <div className="flex items-center gap-2">
                       <Icons.timeTracking className="h-4 w-4" />
-                      <span>Délai interne</span>
+                      <span>{t('options.deadlineInternal')}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="autre">
                     <div className="flex items-center gap-2">
                       <Icons.calendar className="h-4 w-4" />
-                      <span>Autre</span>
+                      <span>{t('options.deadlineOther')}</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -217,7 +217,7 @@ export function EcheanceFormAdvanced({
           name="titre"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Titre de l'échéance *</FormLabel>
+              <FormLabel>{t('labels.echeanceTitleRequired')}</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input {...field} placeholder="Ex: Dépôt conclusions" />
@@ -240,9 +240,9 @@ export function EcheanceFormAdvanced({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t('labels.description')}</FormLabel>
               <FormControl>
-                <Textarea {...field} placeholder="Détails de l'échéance..." rows={3} />
+                <Textarea {...field} placeholder={t('placeholders.deadlineDetails')} rows={3} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -256,10 +256,10 @@ export function EcheanceFormAdvanced({
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Icons.calendar className="h-5 w-5" />
-                  Calculateur de délais juridiques
+                  {t('helpers.calculatorTitle')}
                 </CardTitle>
                 <CardDescription>
-                  Calculer automatiquement la date d'échéance selon le droit tunisien
+                  {t('helpers.calculatorDesc')}
                 </CardDescription>
               </div>
               <Button
@@ -268,7 +268,7 @@ export function EcheanceFormAdvanced({
                 size="sm"
                 onClick={() => setShowCalculator(!showCalculator)}
               >
-                {showCalculator ? 'Masquer' : 'Afficher'}
+                {showCalculator ? t('buttons.hide') : t('buttons.show')}
               </Button>
             </div>
           </CardHeader>
@@ -276,7 +276,7 @@ export function EcheanceFormAdvanced({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Date de départ</label>
+                  <label className="block text-sm font-medium mb-2">{t('helpers.startDate')}</label>
                   <Input
                     type="date"
                     value={dateDepart}
@@ -284,7 +284,7 @@ export function EcheanceFormAdvanced({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Nombre de jours</label>
+                  <label className="block text-sm font-medium mb-2">{t('helpers.numberOfDays')}</label>
                   <Input
                     type="number"
                     value={nombreJours}
@@ -293,15 +293,15 @@ export function EcheanceFormAdvanced({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Type de délai</label>
+                  <label className="block text-sm font-medium mb-2">{t('helpers.delayType')}</label>
                   <Select value={typeDelai} onValueChange={(value: any) => setTypeDelai(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="jours_calendaires">Jours calendaires</SelectItem>
-                      <SelectItem value="jours_ouvrables">Jours ouvrables</SelectItem>
-                      <SelectItem value="jours_francs">Jours francs</SelectItem>
+                      <SelectItem value="jours_calendaires">{t('options.delayCalendar')}</SelectItem>
+                      <SelectItem value="jours_ouvrables">{t('options.delayWorking')}</SelectItem>
+                      <SelectItem value="jours_francs">{t('options.delayFranc')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -309,11 +309,11 @@ export function EcheanceFormAdvanced({
               <div className="flex items-center gap-4">
                 <Button type="button" onClick={handleCalculer} variant="secondary">
                   <Icons.calendar className="mr-2 h-4 w-4" />
-                  Calculer
+                  {t('buttons.calculate')}
                 </Button>
                 {dateCalculee && (
                   <div className="text-sm">
-                    Date calculée : <span className="font-semibold">{new Date(dateCalculee).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    {t('helpers.calculatedDeadline')} <span className="font-semibold">{new Date(dateCalculee).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
                   </div>
                 )}
               </div>
@@ -327,7 +327,7 @@ export function EcheanceFormAdvanced({
           name="date_echeance"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Date d'échéance *</FormLabel>
+              <FormLabel>{t('labels.deadlineRequired')}</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Icons.calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -335,7 +335,7 @@ export function EcheanceFormAdvanced({
                 </div>
               </FormControl>
               <FormDescription>
-                Vous pouvez utiliser le calculateur ci-dessus ou saisir manuellement
+                {t('labels.calculatorManualNote')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -344,7 +344,7 @@ export function EcheanceFormAdvanced({
 
         {/* Rappels */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Rappels automatiques</h3>
+          <h3 className="text-lg font-semibold">{t('helpers.autoReminders')}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <FormField
               control={form.control}
@@ -357,7 +357,7 @@ export function EcheanceFormAdvanced({
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
-                  <FormLabel className="font-normal cursor-pointer">15 jours avant</FormLabel>
+                  <FormLabel className="font-normal cursor-pointer">{t('helpers.reminder15')}</FormLabel>
                 </FormItem>
               )}
             />
@@ -372,7 +372,7 @@ export function EcheanceFormAdvanced({
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
-                  <FormLabel className="font-normal cursor-pointer">7 jours avant</FormLabel>
+                  <FormLabel className="font-normal cursor-pointer">{t('helpers.reminder7')}</FormLabel>
                 </FormItem>
               )}
             />
@@ -387,7 +387,7 @@ export function EcheanceFormAdvanced({
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
-                  <FormLabel className="font-normal cursor-pointer">3 jours avant</FormLabel>
+                  <FormLabel className="font-normal cursor-pointer">{t('helpers.reminder3')}</FormLabel>
                 </FormItem>
               )}
             />
@@ -402,7 +402,7 @@ export function EcheanceFormAdvanced({
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
-                  <FormLabel className="font-normal cursor-pointer">La veille</FormLabel>
+                  <FormLabel className="font-normal cursor-pointer">{t('helpers.reminderEve')}</FormLabel>
                 </FormItem>
               )}
             />
@@ -415,7 +415,7 @@ export function EcheanceFormAdvanced({
           name="statut"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Statut</FormLabel>
+              <FormLabel>{t('labels.status')}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -423,9 +423,9 @@ export function EcheanceFormAdvanced({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="actif">Actif</SelectItem>
-                  <SelectItem value="respecte">Respecté</SelectItem>
-                  <SelectItem value="depasse">Dépassé</SelectItem>
+                  <SelectItem value="actif">{t('options.echeanceActif')}</SelectItem>
+                  <SelectItem value="respecte">{t('options.echeanceRespected')}</SelectItem>
+                  <SelectItem value="depasse">{t('options.echeanceOverdue')}</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -439,9 +439,9 @@ export function EcheanceFormAdvanced({
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Notes internes</FormLabel>
+              <FormLabel>{t('labels.internalNotes')}</FormLabel>
               <FormControl>
-                <Textarea {...field} placeholder="Notes privées..." rows={3} />
+                <Textarea {...field} placeholder={t('placeholders.internalNotes')} rows={3} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -452,7 +452,7 @@ export function EcheanceFormAdvanced({
         <div className="flex items-center gap-4">
           <Button type="submit" disabled={isSubmitting} className="min-w-[150px]">
             {isSubmitting && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditing ? 'Mettre à jour' : 'Créer l&apos;échéance'}
+            {isEditing ? t('buttons.update') : t('buttons.createEcheance')}
           </Button>
           <Button
             type="button"
@@ -460,7 +460,7 @@ export function EcheanceFormAdvanced({
             onClick={() => router.back()}
             disabled={isSubmitting}
           >
-            Annuler
+            {t('buttons.cancel')}
           </Button>
         </div>
       </form>

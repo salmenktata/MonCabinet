@@ -1,6 +1,7 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import NotificationPreferencesForm from '@/components/parametres/NotificationPreferencesForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Bell } from 'lucide-react'
@@ -16,6 +17,8 @@ export default async function NotificationsPreferencesPage() {
   if (!session?.user?.id) {
     redirect('/login')
   }
+
+  const t = await getTranslations('settings')
 
   // Récupérer préférences actuelles (ou créer par défaut)
   const prefsResult = await query(
@@ -36,9 +39,9 @@ export default async function NotificationsPreferencesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Notifications</h1>
+        <h1 className="text-3xl font-bold">{t('notificationsTitle')}</h1>
         <p className="text-muted-foreground mt-2">
-          Gérez vos préférences de notifications et alertes par email
+          {t('notificationsSubtitle')}
         </p>
       </div>
 
@@ -47,10 +50,10 @@ export default async function NotificationsPreferencesPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              <CardTitle>Préférences de notifications</CardTitle>
+              <CardTitle>{t('notifPrefsTitle')}</CardTitle>
             </div>
             <CardDescription>
-              Personnalisez les alertes que vous souhaitez recevoir par email
+              {t('notifPrefsDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -61,31 +64,22 @@ export default async function NotificationsPreferencesPage() {
         {/* Informations */}
         <Card>
           <CardHeader>
-            <CardTitle>À propos des notifications</CardTitle>
+            <CardTitle>{t('notifAboutTitle')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <div>
-              <h4 className="font-semibold text-foreground mb-2">Email quotidien</h4>
-              <p>
-                Recevez un récapitulatif quotidien de vos échéances, actions urgentes et audiences à venir.
-                L&apos;email est envoyé tous les matins à l&apos;heure que vous avez choisie.
-              </p>
+              <h4 className="font-semibold text-foreground mb-2">{t('notifDailyEmailTitle')}</h4>
+              <p>{t('notifDailyEmailDesc')}</p>
             </div>
 
             <div>
-              <h4 className="font-semibold text-foreground mb-2">Alertes échéances</h4>
-              <p>
-                Soyez alerté automatiquement avant les échéances importantes (J-15, J-7, J-3, J-1).
-                Cela vous aide à ne jamais manquer un délai légal.
-              </p>
+              <h4 className="font-semibold text-foreground mb-2">{t('notifDeadlinesTitle')}</h4>
+              <p>{t('notifDeadlinesDesc')}</p>
             </div>
 
             <div>
-              <h4 className="font-semibold text-foreground mb-2">Délais légaux</h4>
-              <p>
-                Les alertes pour les délais légaux (appel, cassation, opposition) sont calculées automatiquement
-                selon le type de procédure :
-              </p>
+              <h4 className="font-semibold text-foreground mb-2">{t('notifLegalDelaysTitle')}</h4>
+              <p>{t('notifLegalDelaysDesc')}</p>
               <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
                 <li>Appel civil : 20 jours</li>
                 <li>Appel commercial : 10 jours ⚠️</li>
@@ -95,11 +89,8 @@ export default async function NotificationsPreferencesPage() {
             </div>
 
             <div>
-              <h4 className="font-semibold text-foreground mb-2">Factures impayées</h4>
-              <p>
-                Recevez une alerte lorsqu'une facture reste impayée au-delà du délai que vous avez défini
-                (par défaut : 30 jours).
-              </p>
+              <h4 className="font-semibold text-foreground mb-2">{t('notifUnpaidInvoicesTitle')}</h4>
+              <p>{t('notifUnpaidInvoicesDesc')}</p>
             </div>
           </CardContent>
         </Card>

@@ -80,10 +80,10 @@ interface ClientFormAdvancedProps {
 export function ClientFormAdvanced({
   initialData,
   onSubmit,
-  submitLabel = 'Enregistrer',
+  submitLabel,
 }: ClientFormAdvancedProps) {
   const router = useRouter()
-  const t = useTranslations('clients')
+  const t = useTranslations('forms')
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   const form = useForm<ClientFormValues>({
@@ -129,24 +129,24 @@ export function ClientFormAdvanced({
           name="type_client"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Type de client *</FormLabel>
+              <FormLabel>{t('labels.clientTypeRequired')}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez un type" />
+                    <SelectValue placeholder={t('options.selectType')} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="PARTICULIER">
                     <div className="flex items-center gap-2">
                       <Icons.user className="h-4 w-4" />
-                      <span>Particulier</span>
+                      <span>{t('options.particulier')}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="ENTREPRISE">
                     <div className="flex items-center gap-2">
                       <Icons.building className="h-4 w-4" />
-                      <span>Entreprise</span>
+                      <span>{t('options.entreprise')}</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -165,7 +165,7 @@ export function ClientFormAdvanced({
                 name="nom"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nom *</FormLabel>
+                    <FormLabel>{t('labels.nameRequired')}</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input {...field} placeholder="Ben Ali" />
@@ -187,7 +187,7 @@ export function ClientFormAdvanced({
                 name="prenom"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prénom *</FormLabel>
+                    <FormLabel>{t('labels.firstNameRequired')}</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input {...field} placeholder="Ahmed" />
@@ -210,11 +210,11 @@ export function ClientFormAdvanced({
               name="cin"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>CIN</FormLabel>
+                  <FormLabel>{t('labels.cin')}</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="12345678" />
                   </FormControl>
-                  <FormDescription>Numéro de carte d&apos;identité</FormDescription>
+                  <FormDescription>{t('helpers.cinDescription')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -230,7 +230,7 @@ export function ClientFormAdvanced({
               name="raison_sociale"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Raison sociale *</FormLabel>
+                  <FormLabel>{t('labels.raisonSocialeRequired')}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input {...field} placeholder="Société ABC SARL" />
@@ -253,7 +253,7 @@ export function ClientFormAdvanced({
                 name="registre_commerce"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Registre de commerce</FormLabel>
+                    <FormLabel>{t('labels.registreCommerce')}</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="B1234567" />
                     </FormControl>
@@ -267,7 +267,7 @@ export function ClientFormAdvanced({
                 name="matricule_fiscale"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Matricule fiscale</FormLabel>
+                    <FormLabel>{t('labels.fiscalId')}</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="1234567/A/M/000" />
                     </FormControl>
@@ -284,7 +284,7 @@ export function ClientFormAdvanced({
                 name="nom"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nom du contact</FormLabel>
+                    <FormLabel>{t('labels.contactName')}</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="Ben Ali" />
                     </FormControl>
@@ -298,7 +298,7 @@ export function ClientFormAdvanced({
                 name="prenom"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prénom du contact</FormLabel>
+                    <FormLabel>{t('labels.contactFirstName')}</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="Ahmed" />
                     </FormControl>
@@ -312,7 +312,7 @@ export function ClientFormAdvanced({
 
         {/* Coordonnées (commun) */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Coordonnées</h3>
+          <h3 className="text-lg font-semibold">{t('sections.contact')}</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
@@ -320,7 +320,7 @@ export function ClientFormAdvanced({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email *</FormLabel>
+                  <FormLabel>{t('labels.emailRequired')}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Icons.mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -343,7 +343,7 @@ export function ClientFormAdvanced({
               name="telephone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Téléphone</FormLabel>
+                  <FormLabel>{t('labels.phone')}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Icons.phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -362,14 +362,14 @@ export function ClientFormAdvanced({
 
         {/* Adresse (commun) */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Adresse</h3>
+          <h3 className="text-lg font-semibold">{t('sections.address')}</h3>
 
           <FormField
             control={form.control}
             name="adresse"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Adresse complète</FormLabel>
+                <FormLabel>{t('labels.fullAddress')}</FormLabel>
                 <FormControl>
                   <Textarea {...field} placeholder="12 Avenue Habib Bourguiba" rows={2} />
                 </FormControl>
@@ -384,7 +384,7 @@ export function ClientFormAdvanced({
               name="ville"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ville</FormLabel>
+                  <FormLabel>{t('labels.city')}</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Tunis" />
                   </FormControl>
@@ -398,7 +398,7 @@ export function ClientFormAdvanced({
               name="code_postal"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Code postal</FormLabel>
+                  <FormLabel>{t('labels.postalCode')}</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="1000" />
                   </FormControl>
@@ -415,16 +415,16 @@ export function ClientFormAdvanced({
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Notes</FormLabel>
+              <FormLabel>{t('labels.notes')}</FormLabel>
               <FormControl>
                 <Textarea
                   {...field}
-                  placeholder="Informations supplémentaires..."
+                  placeholder={t('helpers.additionalInfo')}
                   rows={4}
                 />
               </FormControl>
               <FormDescription>
-                Informations complémentaires sur le client
+                {t('helpers.clientAdditionalInfo')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -435,7 +435,7 @@ export function ClientFormAdvanced({
         <div className="flex items-center gap-4">
           <Button type="submit" disabled={isSubmitting} className="min-w-[150px]">
             {isSubmitting && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
-            {submitLabel}
+            {submitLabel ?? t('buttons.save')}
           </Button>
           <Button
             type="button"
@@ -443,7 +443,7 @@ export function ClientFormAdvanced({
             onClick={() => router.back()}
             disabled={isSubmitting}
           >
-            Annuler
+            {t('buttons.cancel')}
           </Button>
         </div>
       </form>

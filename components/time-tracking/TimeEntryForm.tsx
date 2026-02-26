@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -46,6 +47,8 @@ export default function TimeEntryForm({
   onSuccess,
 }: TimeEntryFormProps) {
   const router = useRouter()
+  const t = useTranslations('timeTracking')
+  const tCommon = useTranslations('common')
   const [loading, setLoading] = useState(false)
 
   const {
@@ -86,7 +89,7 @@ export default function TimeEntryForm({
         return
       }
 
-      toast.success(isEditing ? 'Entrée modifiée' : 'Entrée ajoutée')
+      toast.success(isEditing ? t('entryUpdated') : t('entryAdded'))
 
       if (onSuccess) {
         onSuccess()
@@ -95,7 +98,7 @@ export default function TimeEntryForm({
         router.refresh()
       }
     } catch {
-      toast.error('Une erreur est survenue')
+      toast.error(t('errorOccurred'))
       setLoading(false)
     }
   }
@@ -106,7 +109,7 @@ export default function TimeEntryForm({
       {!propDossierId && (
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">
-            Dossier <span className="text-destructive">*</span>
+            {t('dossierLabel')} <span className="text-destructive">*</span>
           </label>
           <select
             {...register('dossier_id')}
@@ -115,7 +118,7 @@ export default function TimeEntryForm({
               errors.dossier_id && 'border-destructive'
             )}
           >
-            <option value="">Sélectionner un dossier…</option>
+            <option value="">{t('selectDossier')}</option>
             {dossiers.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.numero}
@@ -132,11 +135,11 @@ export default function TimeEntryForm({
       {/* Description */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">
-          Description <span className="text-destructive">*</span>
+          {t('description')} <span className="text-destructive">*</span>
         </label>
         <Input
           {...register('description')}
-          placeholder="Ex : Consultation client, Rédaction mémoire…"
+          placeholder={t('descriptionPlaceholder')}
           className={cn(errors.description && 'border-destructive')}
         />
         {errors.description && (
@@ -147,7 +150,7 @@ export default function TimeEntryForm({
       {/* Date */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">
-          Date <span className="text-destructive">*</span>
+          {t('date')} <span className="text-destructive">*</span>
         </label>
         <Input
           type="date"
@@ -160,12 +163,12 @@ export default function TimeEntryForm({
       {/* Durée */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">
-          Durée <span className="text-destructive">*</span>
+          {t('duration')} <span className="text-destructive">*</span>
         </label>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Heures</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t('hours')}</label>
             <Input
               type="number"
               value={heures}
@@ -176,7 +179,7 @@ export default function TimeEntryForm({
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Minutes</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t('minutes')}</label>
             <Input
               type="number"
               value={minutes}
@@ -216,7 +219,7 @@ export default function TimeEntryForm({
 
       {/* Taux horaire */}
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-foreground">Taux horaire (TND/h)</label>
+        <label className="text-sm font-medium text-foreground">{t('hourlyRate')} (TND/h)</label>
         <Input
           type="number"
           step="0.001"
@@ -234,7 +237,7 @@ export default function TimeEntryForm({
           <div className="flex items-center gap-3">
             <Icons.dollar className="h-4 w-4 text-blue-600 shrink-0" />
             <div>
-              <div className="text-xs text-muted-foreground">Montant calculé</div>
+              <div className="text-xs text-muted-foreground">{t('calculatedAmount')}</div>
               <div className="text-xl font-bold text-blue-600">{montantCalcule.toFixed(3)} TND</div>
               <div className="text-xs text-muted-foreground mt-0.5">
                 {(dureeMinutes / 60).toFixed(2)} h × {tauxHoraire.toFixed(3)} TND/h
@@ -252,17 +255,17 @@ export default function TimeEntryForm({
             {...register('facturable')}
             className="h-4 w-4 rounded border-input accent-blue-600"
           />
-          <span className="text-sm text-foreground">Temps facturable</span>
+          <span className="text-sm text-foreground">{t('billableTime')}</span>
         </label>
       </div>
 
       {/* Notes */}
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-foreground">Notes internes</label>
+        <label className="text-sm font-medium text-foreground">{t('notesLabel')}</label>
         <textarea
           {...register('notes')}
           rows={2}
-          placeholder="Notes internes (non visibles par le client)"
+          placeholder={t('notesPlaceholder')}
           className="block w-full rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
         />
       </div>
@@ -271,10 +274,10 @@ export default function TimeEntryForm({
       <div className="flex gap-3 pt-1">
         <Button type="submit" disabled={loading}>
           {loading && <Icons.loader className="mr-1.5 h-4 w-4 animate-spin" />}
-          {isEditing ? 'Enregistrer les modifications' : "Ajouter l'entrée"}
+          {isEditing ? t('saveChanges') : t('addEntry')}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Annuler
+          {tCommon('cancel')}
         </Button>
       </div>
     </form>

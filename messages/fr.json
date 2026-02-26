@@ -57,7 +57,8 @@
     "jurisprudenceTimeline": "Timeline Jurisprudence",
     "legalReasoning": "Raisonnement IRAC",
     "pipeline": "Pipeline",
-    "webSources": "Sources Web"
+    "webSources": "Sources Web",
+    "mySubscription": "Mon abonnement"
   },
   "breadcrumbs": {
     "home": "Accueil",
@@ -229,7 +230,24 @@
     "filterAll": "Tous",
     "filterPhysical": "Personnes physiques",
     "filterLegal": "Personnes morales",
-    "errorLoading": "Erreur lors du chargement des clients"
+    "errorLoading": "Erreur lors du chargement des clients",
+    "clientColumn": "Client",
+    "emailColumn": "Email",
+    "phoneColumn": "Téléphone",
+    "typeColumn": "Type",
+    "addedColumn": "Ajouté le",
+    "viewDetails": "Voir les détails",
+    "particulier": "Particulier",
+    "entreprise": "Entreprise",
+    "newBadge": "Nouveau",
+    "searchPlaceholderFull": "Rechercher un client (nom, email, téléphone)...",
+    "noClientsFound": "Aucun client trouvé",
+    "deleteSuccess": "Client supprimé avec succès",
+    "deleteError": "Impossible de supprimer le client",
+    "confirmDeleteTitle": "Supprimer {prenom} {nom} ?",
+    "confirmDeleteEntreprise": "Cette entreprise et toutes ses données associées (dossiers, factures, documents) seront définitivement supprimées. Cette action est irréversible.",
+    "confirmDeleteParticulier": "Ce client et toutes ses données associées (dossiers, factures, documents) seront définitivement supprimés. Cette action est irréversible.",
+    "confirmDeleteBtn": "Supprimer définitivement"
   },
   "dossiers": {
     "title": "Dossiers",
@@ -473,7 +491,10 @@
     "calendarDays": "calendaires",
     "sinceDate": "depuis le {date}",
     "editTitle": "Modifier l'échéance",
-    "editSubtitle": "Modifiez les informations de l'échéance."
+    "editSubtitle": "Modifiez les informations de l'échéance.",
+    "searchPlaceholder": "Rechercher…",
+    "noResults": "Aucun résultat",
+    "noResultsSearch": "Aucune échéance ne correspond à \"{search}\""
   },
   "timeTracking": {
     "title": "Suivi du temps",
@@ -512,7 +533,21 @@
     "deleteEntryConfirm": "Supprimer cette entrée de temps ?",
     "entryDeleted": "Entrée supprimée",
     "newEntryTitle": "Nouvelle entrée de temps",
-    "newEntrySubtitle": "Enregistrez une activité sur un dossier"
+    "newEntrySubtitle": "Enregistrez une activité sur un dossier",
+    "dossierLabel": "Dossier",
+    "selectDossier": "Sélectionner un dossier…",
+    "descriptionPlaceholder": "Ex : Consultation client, Rédaction mémoire…",
+    "hours": "Heures",
+    "minutes": "Minutes",
+    "calculatedAmount": "Montant calculé",
+    "billableTime": "Temps facturable",
+    "notesLabel": "Notes internes",
+    "notesPlaceholder": "Notes internes (non visibles par le client)",
+    "saveChanges": "Enregistrer les modifications",
+    "addEntry": "Ajouter l'entrée",
+    "entryUpdated": "Entrée modifiée",
+    "entryAdded": "Entrée ajoutée",
+    "errorOccurred": "Une erreur est survenue"
   },
   "documents": {
     "title": "Documents",
@@ -658,7 +693,20 @@
       "templateContent": "Contenu du template",
       "templateContentRequired": "Contenu du template *",
       "makePublic": "Rendre ce template public (visible par tous les utilisateurs)",
-      "language": "Langue"
+      "language": "Langue",
+      "firstNameRequired": "Prénom *",
+      "emailRequired": "Email *",
+      "raisonSociale": "Raison sociale",
+      "raisonSocialeRequired": "Raison sociale *",
+      "fiscalId": "Matricule fiscale",
+      "contactName": "Nom du contact",
+      "contactFirstName": "Prénom du contact",
+      "fullAddress": "Adresse complète",
+      "postalCode": "Code postal",
+      "internalNotes": "Notes internes",
+      "echeanceTitleRequired": "Titre de l'échéance *",
+      "echeanceDeadlineTypeRequired": "Type d'échéance *",
+      "calculatorManualNote": "Vous pouvez utiliser le calculateur ci-dessus ou saisir manuellement"
     },
     "placeholders": {
       "enterName": "Ben Ahmed",
@@ -708,7 +756,13 @@
       "deadlineOther": "Autre",
       "delayCalendar": "Jours calendaires",
       "delayWorking": "Jours ouvrables",
-      "delayFranc": "Jours francs"
+      "delayFranc": "Jours francs",
+      "particulier": "Particulier",
+      "entreprise": "Entreprise",
+      "selectType": "Sélectionnez un type",
+      "echeanceActif": "Actif",
+      "echeanceRespected": "Respecté",
+      "echeanceOverdue": "Dépassé"
     },
     "buttons": {
       "save": "Enregistrer",
@@ -719,7 +773,9 @@
       "cancel": "Annuler",
       "calculate": "Calculer l'échéance",
       "show": "Afficher",
-      "hide": "Masquer"
+      "hide": "Masquer",
+      "update": "Mettre à jour",
+      "createEcheance": "Créer l'échéance"
     },
     "helpers": {
       "calculatorTitle": "Calculateur de délais légaux",
@@ -753,7 +809,13 @@
       "savingWithEmoji": "Enregistrement...",
       "updateWithEmoji": "Mettre à jour",
       "createTemplateWithEmoji": "Créer le template",
-      "createCopyWithEmoji": "📋 Créer ma copie"
+      "createCopyWithEmoji": "📋 Créer ma copie",
+      "clientAdditionalInfo": "Informations complémentaires sur le client",
+      "cinDescription": "Numéro de carte d'identité",
+      "additionalInfo": "Informations supplémentaires...",
+      "autoReminders": "Rappels automatiques",
+      "calculatorDesc": "Calculer automatiquement la date d'échéance selon le droit tunisien",
+      "reminderEve": "La veille"
     },
     "validation": {
       "required": "Ce champ est requis",
@@ -761,6 +823,10 @@
       "invalidPhone": "Téléphone invalide",
       "enterStartDateAndDays": "Veuillez renseigner une date de départ et un nombre de jours",
       "calculationError": "Erreur lors du calcul de l'échéance"
+    },
+    "sections": {
+      "contact": "Coordonnées",
+      "address": "Adresse"
     }
   },
   "errors": {
@@ -794,7 +860,29 @@
     "cloudStorageDescription": "Configuration Google Drive et synchronisation",
     "userProfile": "Profil utilisateur",
     "userProfileInfo": "Pour modifier vos informations personnelles (nom, prénom, email), rendez-vous sur la page de profil.",
-    "profilePageLink": "page de profil"
+    "profilePageLink": "page de profil",
+    "cabinetSubtitle": "Gérez les informations de votre cabinet pour les factures conformes ONAT",
+    "cabinetImportantTitle": "Informations importantes",
+    "cabinetInfo1": "Ces informations apparaîtront sur toutes vos factures PDF",
+    "cabinetInfo2": "Le logo est optionnel mais recommandé pour un aspect professionnel",
+    "cabinetInfo3": "Le numéro RNE (Registre National des Entreprises) est optionnel mais requis pour certains clients",
+    "cabinetInfo4": "Assurez-vous que votre matricule avocat ONAT est correctement renseigné (obligation légale)",
+    "notificationsSubtitle": "Gérez vos préférences de notifications et alertes par email",
+    "notifPrefsTitle": "Préférences de notifications",
+    "notifPrefsDesc": "Personnalisez les alertes que vous souhaitez recevoir par email",
+    "notifAboutTitle": "À propos des notifications",
+    "notifDailyEmailTitle": "Email quotidien",
+    "notifDailyEmailDesc": "Recevez un récapitulatif quotidien de vos échéances, actions urgentes et audiences à venir.",
+    "notifDeadlinesTitle": "Alertes échéances",
+    "notifDeadlinesDesc": "Soyez alerté automatiquement avant les échéances importantes (J-15, J-7, J-3, J-1).",
+    "notifLegalDelaysTitle": "Délais légaux",
+    "notifLegalDelaysDesc": "Les alertes pour les délais légaux sont calculées automatiquement selon le type de procédure.",
+    "notifUnpaidInvoicesTitle": "Factures impayées",
+    "notifUnpaidInvoicesDesc": "Recevez une alerte lorsqu'une facture reste impayée au-delà du délai défini (par défaut : 30 jours).",
+    "cloudStorageSubtitle": "Connectez votre Google Drive pour stocker vos documents de manière sécurisée",
+    "cloudSecurityTitle": "Sécurité et Confidentialité",
+    "cloudFolderTitle": "Structure des Dossiers",
+    "cloudSyncTitle": "Synchronisation Bidirectionnelle"
   },
   "cards": {
     "clientType": {
@@ -857,6 +945,18 @@
     "placeholders": {
       "title": "Ex: Préparer les conclusions",
       "description": "Détails de l'action..."
+    },
+    "delete": "Supprimer",
+    "statuts": {
+      "TERMINEE": "Terminée",
+      "EN_COURS": "En cours",
+      "A_FAIRE": "À faire"
+    },
+    "priorites": {
+      "BASSE": "Basse",
+      "NORMALE": "Normale",
+      "HAUTE": "Haute",
+      "URGENTE": "Urgente"
     }
   },
   "documentUpload": {
@@ -1614,7 +1714,7 @@
         "name": "Essai Gratuit",
         "description": "Découvrez toutes les fonctionnalités sans engagement",
         "badge": "Gratuit",
-        "features": ["Jusqu'à 10 dossiers", "Jusqu'à 20 clients", "30 requêtes IA incluses", "Calcul des délais", "1 utilisateur", "Support email"]
+        "features": ["Jusqu'à 10 dossiers", "Jusqu'à 20 clients", "30 req IA/mois (max 5/jour)", "Calcul des délais", "1 utilisateur", "Support email"]
       },
       "pro": {
         "name": "Pro",
@@ -1636,7 +1736,7 @@
       "ctaCabinet": "Nous contacter",
       "guarantee": "Sans carte bancaire — annulation à tout moment",
       "currency": "DT",
-      "trialNote": "30 requêtes IA incluses • Sans CB",
+      "trialNote": "30 req IA/mois (max 5/jour) • Sans CB",
       "comparison": {
         "title": "Comparer les plans en détail",
         "feature": "Fonctionnalité",
@@ -1665,7 +1765,7 @@
         "dedicated": "Dédié",
         "mb500": "500 Mo",
         "gb10": "10 Go",
-        "req30": "30 (essai)",
+        "req30": "30/mois (5/jour)",
         "req200": "200/mois",
         "included": "Incluse"
       }
@@ -1895,7 +1995,7 @@
     "trialExpiredBadge": "Essai terminé",
     "trialExpiredTitle": "Votre essai gratuit est terminé",
     "trialExpiredSubtitle": "Vous avez profité de toutes les fonctionnalités Qadhya. Choisissez un plan pour continuer.",
-    "trialActiveBadge": "Essai gratuit — {remaining}/30 requêtes IA restantes",
+    "trialActiveBadge": "Essai gratuit — {remaining}/30 req IA ce mois (max 5/jour)",
     "trialActiveTitle": "Passez à la vitesse supérieure",
     "trialActiveSubtitle": "Continuez sans interruption avec un accès IA illimité et toutes les fonctionnalités avancées.",
     "requestedPlanNotice": "Demande de passage au plan {plan} en cours de traitement",
@@ -1947,7 +2047,7 @@
     "enterpriseLabel": "Expert",
     "expiredTrialLabel": "Essai expiré",
     "freeLabel": "Gratuit (legacy)",
-    "trialAICount": "30 requêtes IA (total)",
+    "trialAICount": "30 requêtes IA/mois (max 5/jour)",
     "trialMaxDossiers": "10 dossiers",
     "trialMaxClients": "20 clients",
     "trialStorage": "500 Mo stockage",
@@ -1966,7 +2066,8 @@
     "expiresOnDate": "Expire le {date}",
     "expiresInDays": "(dans {days} jour{plural})",
     "expiredOnDate": "Expiré le {date}",
-    "aiRequestsTrial": "Requêtes IA (total)",
+    "aiRequestsTrial": "Requêtes IA ce mois",
+    "aiRequestsTrialDaily": "Requêtes IA aujourd'hui",
     "aiRequestsMonthly": "Requêtes IA ce mois",
     "aiUnlimited": "IA illimitée",
     "dossiersLabel": "Dossiers",
@@ -1993,8 +2094,10 @@
     "limitDossiersDetail": "Votre essai gratuit est limité à {limit} dossiers. Passez au plan Pro pour créer des dossiers illimités.",
     "limitClientsTitle": "Limite de clients atteinte",
     "limitClientsDetail": "Votre essai gratuit est limité à {limit} clients. Passez au plan Pro pour gérer des clients illimités.",
-    "limitIATitle": "Requêtes IA épuisées",
-    "limitIADetail": "Vous avez utilisé vos 30 requêtes d'essai. Passez au plan Pro pour accéder à 200 requêtes IA par mois.",
+    "limitIATitle": "Quota mensuel IA atteint",
+    "limitIADetail": "Vous avez utilisé vos 30 requêtes IA du mois (max 5/jour). Votre quota se réinitialise le 1er du mois prochain. Passez au plan Pro pour 200 requêtes IA par mois.",
+    "limitIADailyTitle": "Limite journalière atteinte",
+    "limitIADailyDetail": "Vous avez utilisé vos 5 requêtes IA de la journée. Revenez demain ou passez au plan Pro pour 200 requêtes IA par mois.",
     "limitIAMonthlyTitle": "Quota mensuel IA atteint",
     "limitIAMonthlyDetail": "Vous avez atteint votre limite mensuelle de requêtes IA. Votre quota se réinitialise le 1er du mois prochain, ou passez au plan Expert pour un accès illimité.",
     "upgradeToPro": "Passer au plan Pro — 89 DT/mois",
@@ -2024,6 +2127,27 @@
     "infoEmail": "La modification de l'email nécessitera une nouvelle vérification",
     "infoPassword": "Le mot de passe doit contenir au moins 6 caractères",
     "infoCabinet": "Pour les paramètres du cabinet (logo, matricule ONAT), rendez-vous dans",
-    "infoCabinetLink": "Paramètres Cabinet"
+    "infoCabinetLink": "Paramètres Cabinet",
+    "personalInfo": "Informations personnelles",
+    "firstNameLabel": "Prénom",
+    "lastNameLabel": "Nom",
+    "emailLabel": "Email",
+    "emailChangeWarning": "⚠️ La modification de l'email nécessitera une vérification",
+    "saving": "Enregistrement...",
+    "save": "Enregistrer",
+    "changePassword": "Changer le mot de passe",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPasswordLabel": "Confirmer le mot de passe",
+    "passwordMinChars": "Minimum 6 caractères",
+    "passwordRetype": "Retaper le mot de passe",
+    "changing": "Modification...",
+    "changePasswordBtn": "Changer le mot de passe",
+    "profileUpdated": "Profil mis à jour — Vos informations ont été enregistrées avec succès.",
+    "emailUpdated": "Email mis à jour",
+    "passwordChanged": "Mot de passe modifié — Votre mot de passe a été changé avec succès.",
+    "passwordMismatch": "Les mots de passe ne correspondent pas",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
+    "updateError": "Impossible de mettre à jour le profil",
+    "changePasswordError": "Impossible de changer le mot de passe"
   }
 }

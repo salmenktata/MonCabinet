@@ -1,6 +1,7 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { redirect, notFound } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import CabinetForm from '@/components/parametres/CabinetForm'
 
 export const metadata = {
@@ -14,6 +15,8 @@ export default async function CabinetParametresPage() {
   if (!session?.user?.id) {
     redirect('/login')
   }
+
+  const t = await getTranslations('settings')
 
   // Récupérer le profil avec les infos cabinet
   const result = await query(
@@ -30,9 +33,9 @@ export default async function CabinetParametresPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Paramètres du Cabinet</h1>
+        <h1 className="text-3xl font-bold">{t('cabinetTitle')}</h1>
         <p className="mt-2 text-muted-foreground">
-          Gérez les informations de votre cabinet pour les factures conformes ONAT
+          {t('cabinetSubtitle')}
         </p>
       </div>
 
@@ -41,18 +44,12 @@ export default async function CabinetParametresPage() {
       </div>
 
       <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="font-semibold text-yellow-900">ℹ️ Informations importantes</h3>
+        <h3 className="font-semibold text-yellow-900">ℹ️ {t('cabinetImportantTitle')}</h3>
         <ul className="mt-2 space-y-1 text-sm text-yellow-800">
-          <li>• Ces informations apparaîtront sur toutes vos factures PDF</li>
-          <li>• Le logo est optionnel mais recommandé pour un aspect professionnel</li>
-          <li>
-            • Le numéro RNE (Registre National des Entreprises) est optionnel mais requis pour
-            certains clients
-          </li>
-          <li>
-            • Assurez-vous que votre matricule avocat ONAT est correctement renseigné (obligation
-            légale)
-          </li>
+          <li>• {t('cabinetInfo1')}</li>
+          <li>• {t('cabinetInfo2')}</li>
+          <li>• {t('cabinetInfo3')}</li>
+          <li>• {t('cabinetInfo4')}</li>
         </ul>
       </div>
     </div>

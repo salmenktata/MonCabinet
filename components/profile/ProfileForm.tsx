@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,6 +23,7 @@ interface ProfileFormProps {
 
 export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
   const router = useRouter()
+  const t = useTranslations('profile')
 
   const [isLoading, setIsLoading] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
@@ -58,15 +60,15 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
           throw new Error(emailResult.error)
         }
 
-        toast.success(`Email mis \u00e0 jour \u2014 ${emailResult.message || 'Veuillez vous reconnecter avec votre nouvelle adresse email.'}`)
+        toast.success(`${t('emailUpdated')} \u2014 ${emailResult.message || 'Veuillez vous reconnecter avec votre nouvelle adresse email.'}`)
       }
 
-      toast.success('Profil mis \u00e0 jour \u2014 Vos informations ont \u00e9t\u00e9 enregistr\u00e9es avec succ\u00e8s.')
+      toast.success(t('profileUpdated'))
 
       router.refresh()
     } catch (error) {
       console.error('Erreur mise à jour profil:', error)
-      toast.error(getErrorMessage(error) || 'Impossible de mettre \u00e0 jour le profil')
+      toast.error(getErrorMessage(error) || t('updateError'))
     } finally {
       setIsLoading(false)
     }
@@ -76,12 +78,12 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
     e.preventDefault()
 
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error('Les mots de passe ne correspondent pas')
+      toast.error(t('passwordMismatch'))
       return
     }
 
     if (formData.newPassword.length < 6) {
-      toast.error('Le mot de passe doit contenir au moins 6 caract\u00e8res')
+      toast.error(t('passwordTooShort'))
       return
     }
 
@@ -97,7 +99,7 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
         throw new Error(result.error)
       }
 
-      toast.success('Mot de passe modifi\u00e9 \u2014 Votre mot de passe a \u00e9t\u00e9 chang\u00e9 avec succ\u00e8s.')
+      toast.success(t('passwordChanged'))
 
       // Réinitialiser les champs
       setFormData({
@@ -108,7 +110,7 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
       })
     } catch (error) {
       console.error('Erreur changement mot de passe:', error)
-      toast.error(getErrorMessage(error) || 'Impossible de changer le mot de passe')
+      toast.error(getErrorMessage(error) || t('changePasswordError'))
     } finally {
       setIsChangingPassword(false)
     }
@@ -119,10 +121,10 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
       {/* Informations personnelles */}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <h2 className="text-xl font-semibold mb-4">Informations personnelles</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('personalInfo')}</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="prenom">Prénom</Label>
+              <Label htmlFor="prenom">{t('firstNameLabel')}</Label>
               <Input
                 id="prenom"
                 value={formData.prenom}
@@ -132,7 +134,7 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="nom">Nom</Label>
+              <Label htmlFor="nom">{t('lastNameLabel')}</Label>
               <Input
                 id="nom"
                 value={formData.nom}
@@ -143,7 +145,7 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
           </div>
 
           <div className="mt-4 space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('emailLabel')}</Label>
             <Input
               id="email"
               type="email"
@@ -153,7 +155,7 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
             />
             {formData.email !== userEmail && (
               <p className="text-sm text-yellow-600">
-                ⚠️ La modification de l'email nécessitera une vérification
+                {t('emailChangeWarning')}
               </p>
             )}
           </div>
@@ -163,12 +165,12 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
           {isLoading ? (
             <>
               <Icons.loader className="mr-2 h-4 w-4 animate-spin" />
-              Enregistrement...
+              {t('saving')}
             </>
           ) : (
             <>
               <Icons.save className="mr-2 h-4 w-4" />
-              Enregistrer
+              {t('save')}
             </>
           )}
         </Button>
@@ -179,27 +181,27 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
       {/* Changement de mot de passe */}
       <form onSubmit={handlePasswordChange} className="space-y-6">
         <div>
-          <h2 className="text-xl font-semibold mb-4">Changer le mot de passe</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('changePassword')}</h2>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+              <Label htmlFor="newPassword">{t('newPassword')}</Label>
               <Input
                 id="newPassword"
                 type="password"
                 value={formData.newPassword}
                 onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                placeholder="Minimum 6 caractères"
+                placeholder={t('passwordMinChars')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+              <Label htmlFor="confirmPassword">{t('confirmPasswordLabel')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                placeholder="Retaper le mot de passe"
+                placeholder={t('passwordRetype')}
               />
             </div>
           </div>
@@ -213,12 +215,12 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
           {isChangingPassword ? (
             <>
               <Icons.loader className="mr-2 h-4 w-4 animate-spin" />
-              Modification...
+              {t('changing')}
             </>
           ) : (
             <>
               <Icons.key className="mr-2 h-4 w-4" />
-              Changer le mot de passe
+              {t('changePasswordBtn')}
             </>
           )}
         </Button>

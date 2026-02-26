@@ -36,6 +36,7 @@ interface ClientsDataTableProps {
 export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
   const router = useRouter()
   const t = useTranslations('clients')
+  const tCommon = useTranslations('common')
 
   // Fonction pour obtenir les initiales
   const getInitials = (client: Client) => {
@@ -53,7 +54,7 @@ export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
     if (diffDays < 7) {
       return (
         <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
-          Nouveau
+          {t('newBadge')}
         </Badge>
       )
     }
@@ -69,7 +70,7 @@ export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
   const columns: DataTableColumn<Client>[] = [
     {
       id: 'client',
-      header: 'Client',
+      header: t('clientColumn'),
       accessor: (client) => (
         <div className="flex items-center gap-3">
           <Avatar>
@@ -92,7 +93,7 @@ export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
     },
     {
       id: 'email',
-      header: 'Email',
+      header: t('emailColumn'),
       accessor: (client) => (
         <div className="flex items-center gap-2">
           <Icons.mail className="h-4 w-4 text-muted-foreground" />
@@ -103,7 +104,7 @@ export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
     },
     {
       id: 'telephone',
-      header: 'Téléphone',
+      header: t('phoneColumn'),
       accessor: (client) =>
         client.telephone ? (
           <div className="flex items-center gap-2">
@@ -116,18 +117,18 @@ export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
     },
     {
       id: 'type',
-      header: 'Type',
+      header: t('typeColumn'),
       accessor: (client) => (
         <Badge variant={client.type_client === 'PARTICULIER' ? 'default' : 'secondary'}>
           {client.type_client === 'PARTICULIER' ? (
             <div className="flex items-center gap-1">
               <Icons.user className="h-3 w-3" />
-              <span>Particulier</span>
+              <span>{t('particulier')}</span>
             </div>
           ) : (
             <div className="flex items-center gap-1">
               <Icons.building className="h-3 w-3" />
-              <span>Entreprise</span>
+              <span>{t('entreprise')}</span>
             </div>
           )}
         </Badge>
@@ -136,7 +137,7 @@ export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
     },
     {
       id: 'created_at',
-      header: 'Ajouté le',
+      header: t('addedColumn'),
       accessor: (client) => formatDate(client.created_at),
       sortable: true,
     },
@@ -154,13 +155,13 @@ export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
             <DropdownMenuItem asChild>
               <Link href={`/clients/${client.id}`}>
                 <Icons.eye className="mr-2 h-4 w-4" />
-                Voir les détails
+                {t('viewDetails')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href={`/clients/${client.id}/edit`}>
                 <Icons.edit className="mr-2 h-4 w-4" />
-                Modifier
+                {t('editClient')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -172,7 +173,7 @@ export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
               }}
             >
               <Icons.delete className="mr-2 h-4 w-4" />
-              Supprimer
+              {tCommon('delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -186,14 +187,14 @@ export function ClientsDataTable({ clients, onDelete }: ClientsDataTableProps) {
       data={clients}
       columns={columns}
       searchable
-      searchPlaceholder="Rechercher un client (nom, email, téléphone)..."
+      searchPlaceholder={t('searchPlaceholderFull')}
       selectable
       onSelectionChange={(selected) => {
         console.log('Clients sélectionnés:', selected)
       }}
       pageSize={25}
       pageSizeOptions={[10, 25, 50, 100]}
-      emptyMessage="Aucun client trouvé"
+      emptyMessage={t('noClientsFound')}
       onRowClick={(client) => {
         router.push(`/clients/${client.id}`)
       }}

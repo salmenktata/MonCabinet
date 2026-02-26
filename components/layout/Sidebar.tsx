@@ -212,7 +212,7 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
             )}
           >
             <Icons.creditCard className="h-5 w-5 shrink-0" />
-            <span>Mon abonnement</span>
+            <span>{t('mySubscription')}</span>
           </div>
         </Link>
 

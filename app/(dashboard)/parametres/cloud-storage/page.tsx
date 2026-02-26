@@ -1,6 +1,7 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import CloudStorageConfig from '@/components/parametres/CloudStorageConfig'
 
 export const metadata = {
@@ -19,6 +20,8 @@ export default async function CloudStorageParametresPage({
   if (!session?.user?.id) {
     redirect('/login')
   }
+
+  const t = await getTranslations('settings')
 
   // Récupérer la configuration cloud
   const result = await query(
@@ -45,9 +48,9 @@ export default async function CloudStorageParametresPage({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Stockage Cloud</h1>
+        <h1 className="text-3xl font-bold">{t('cloudStorageTitle')}</h1>
         <p className="mt-2 text-muted-foreground">
-          Connectez votre Google Drive pour stocker vos documents de manière sécurisée
+          {t('cloudStorageSubtitle')}
         </p>
       </div>
 
@@ -57,7 +60,7 @@ export default async function CloudStorageParametresPage({
       />
 
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <h3 className="font-semibold text-blue-900">🔐 Sécurité et Confidentialité</h3>
+        <h3 className="font-semibold text-blue-900">🔐 {t('cloudSecurityTitle')}</h3>
         <ul className="mt-2 space-y-1 text-sm text-blue-800">
           <li>
             • Vos documents sont stockés sur <strong>VOTRE</strong> Google Drive, pas sur nos serveurs
@@ -73,7 +76,7 @@ export default async function CloudStorageParametresPage({
       </div>
 
       <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-        <h3 className="font-semibold text-green-900">📁 Structure des Dossiers</h3>
+        <h3 className="font-semibold text-green-900">📁 {t('cloudFolderTitle')}</h3>
         <div className="mt-2 text-sm text-green-800">
           <p className="mb-2">L&apos;application crée automatiquement cette structure dans votre Google Drive :</p>
           <pre className="rounded bg-green-100 p-2 font-mono text-xs">
@@ -101,7 +104,7 @@ export default async function CloudStorageParametresPage({
       </div>
 
       <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
-        <h3 className="font-semibold text-purple-900">🔄 Synchronisation Bidirectionnelle</h3>
+        <h3 className="font-semibold text-purple-900">🔄 {t('cloudSyncTitle')}</h3>
         <ul className="mt-2 space-y-1 text-sm text-purple-800">
           <li>
             • Activez la synchronisation pour que les documents ajoutés manuellement dans Google Drive apparaissent automatiquement dans l&apos;application

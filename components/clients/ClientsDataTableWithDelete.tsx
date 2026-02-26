@@ -41,6 +41,7 @@ export function ClientsDataTableWithDelete({
 }: ClientsDataTableWithDeleteProps) {
   const router = useRouter()
   const t = useTranslations('clients')
+  const tCommon = useTranslations('common')
   const [deleteDialog, setDeleteDialog] = React.useState<{
     open: boolean
     client: Client | null
@@ -65,7 +66,7 @@ export function ClientsDataTableWithDelete({
           variant="secondary"
           className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400"
         >
-          Nouveau
+          {t('newBadge')}
         </Badge>
       )
     }
@@ -94,11 +95,11 @@ export function ClientsDataTableWithDelete({
         console.log('Client supprimé:', deleteDialog.client.id)
       }
 
-      toast.success('Client supprimé avec succès')
+      toast.success(t('deleteSuccess'))
       router.refresh()
     } catch (error) {
       console.error('Erreur lors de la suppression:', error)
-      toast.error('Impossible de supprimer le client')
+      toast.error(t('deleteError'))
       throw error // Garde le dialog ouvert en cas d'erreur
     }
   }
@@ -107,7 +108,7 @@ export function ClientsDataTableWithDelete({
   const columns: DataTableColumn<Client>[] = [
     {
       id: 'client',
-      header: 'Client',
+      header: t('clientColumn'),
       accessor: (client) => (
         <div className="flex items-center gap-3">
           <Avatar>
@@ -130,7 +131,7 @@ export function ClientsDataTableWithDelete({
     },
     {
       id: 'email',
-      header: 'Email',
+      header: t('emailColumn'),
       accessor: (client) => (
         <div className="flex items-center gap-2">
           <Icons.mail className="h-4 w-4 text-muted-foreground" />
@@ -141,7 +142,7 @@ export function ClientsDataTableWithDelete({
     },
     {
       id: 'telephone',
-      header: 'Téléphone',
+      header: t('phoneColumn'),
       accessor: (client) =>
         client.telephone ? (
           <div className="flex items-center gap-2">
@@ -154,18 +155,18 @@ export function ClientsDataTableWithDelete({
     },
     {
       id: 'type',
-      header: 'Type',
+      header: t('typeColumn'),
       accessor: (client) => (
         <Badge variant={client.type_client === 'PARTICULIER' ? 'default' : 'secondary'}>
           {client.type_client === 'PARTICULIER' ? (
             <div className="flex items-center gap-1">
               <Icons.user className="h-3 w-3" />
-              <span>Particulier</span>
+              <span>{t('particulier')}</span>
             </div>
           ) : (
             <div className="flex items-center gap-1">
               <Icons.building className="h-3 w-3" />
-              <span>Entreprise</span>
+              <span>{t('entreprise')}</span>
             </div>
           )}
         </Badge>
@@ -174,7 +175,7 @@ export function ClientsDataTableWithDelete({
     },
     {
       id: 'created_at',
-      header: 'Ajouté le',
+      header: t('addedColumn'),
       accessor: (client) => formatDate(client.created_at),
       sortable: true,
     },
@@ -192,13 +193,13 @@ export function ClientsDataTableWithDelete({
             <DropdownMenuItem asChild>
               <Link href={`/clients/${client.id}`}>
                 <Icons.eye className="mr-2 h-4 w-4" />
-                Voir les détails
+                {t('viewDetails')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href={`/clients/${client.id}/edit`}>
                 <Icons.edit className="mr-2 h-4 w-4" />
-                Modifier
+                {t('editClient')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -210,7 +211,7 @@ export function ClientsDataTableWithDelete({
               }}
             >
               <Icons.delete className="mr-2 h-4 w-4" />
-              Supprimer
+              {tCommon('delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -225,14 +226,14 @@ export function ClientsDataTableWithDelete({
         data={clients}
         columns={columns}
         searchable
-        searchPlaceholder="Rechercher un client (nom, email, téléphone)..."
+        searchPlaceholder={t('searchPlaceholderFull')}
         selectable
         onSelectionChange={(selected) => {
           console.log('Clients sélectionnés:', selected)
         }}
         pageSize={25}
         pageSizeOptions={[10, 25, 50, 100]}
-        emptyMessage="Aucun client trouvé"
+        emptyMessage={t('noClientsFound')}
         onRowClick={(client) => {
           router.push(`/clients/${client.id}`)
         }}
@@ -243,14 +244,14 @@ export function ClientsDataTableWithDelete({
       <ConfirmDialog
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, client: null })}
-        title={`Supprimer ${deleteDialog.client?.prenom} ${deleteDialog.client?.nom} ?`}
+        title={t('confirmDeleteTitle', { prenom: deleteDialog.client?.prenom ?? '', nom: deleteDialog.client?.nom ?? '' })}
         description={
           deleteDialog.client?.type_client === 'ENTREPRISE'
-            ? "Cette entreprise et toutes ses données associées (dossiers, factures, documents) seront définitivement supprimées. Cette action est irréversible."
-            : "Ce client et toutes ses données associées (dossiers, factures, documents) seront définitivement supprimés. Cette action est irréversible."
+            ? t('confirmDeleteEntreprise')
+            : t('confirmDeleteParticulier')
         }
-        confirmLabel="Supprimer définitivement"
-        cancelLabel="Annuler"
+        confirmLabel={t('confirmDeleteBtn')}
+        cancelLabel={tCommon('cancel')}
         variant="destructive"
         icon="danger"
         onConfirm={handleDeleteConfirm}

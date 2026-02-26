@@ -132,7 +132,7 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
                         prioriteColors[action.priorite]
                       }`}
                     >
-                      {action.priorite}
+                      {action.priorite ? t(`priorites.${action.priorite}`) : action.priorite}
                     </span>
 
                     {action.date_limite && (
@@ -150,7 +150,7 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
                           : 'text-muted-foreground'
                       }`}
                     >
-                      {action.statut.replace('_', ' ')}
+                      {action.statut ? t(`statuts.${action.statut}`) : action.statut}
                     </span>
                   </div>
                 </div>
