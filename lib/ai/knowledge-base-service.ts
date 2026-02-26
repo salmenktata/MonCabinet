@@ -1500,20 +1500,31 @@ export async function searchKnowledgeBaseHybrid(
         }
       }
 
-      // Fix Feb 26 v11: boost pour codes-forced-direct (vectoriel v10 ET BM25-OR v11)
-      // Tous les résultats SONT du code cible (filtré par kb.title ILIKE dans SQL).
-      // Floor 0.60 → similarity = 0.60 × 1.50 = 0.90 > JORT 0.84 → COC gagne TOUJOURS ✅
-      // BM25-OR: bm25Rank (ts_rank_cd score) sert à ordonner les chunks COC entre eux.
-      // Vectoriel: vecSim sert à ordonner les chunks COC entre eux.
+      // Fix Feb 26 v12: boost pour codes-forced-direct (vectoriel v10 ET BM25-OR v11)
+      // Correction régression ar_civil_06 : le floor 0.60 pour BM25-OR créait 25+ chunks
+      // à sim=0.90, noyant Fsl 443 (vecSim=0.45 → 0.90 vectoriel) dans le pool top-21.
+      // Fix : floor 0.60 SEULEMENT pour les chunks vectoriels. Chunks BM25-only → pas de floor.
+      //
+      // Vectoriel (vecSim > 0):
+      //   vecSim=0.45 (Fsl 443) → max(0.60, 0.45)=0.60 → 0.60×1.50=0.90 ✅ (stable)
+      // BM25-OR uniquement (vecSim=0, bm25Rank > 0):
+      //   Fsl 2 "أركان" (bm25Rank~0.30) → min(0.80, 3.0)=0.80 → 0.80×1.50=1.0 ✅
+      //   Fsl 402 "تعمير" (bm25Rank~0.25) → min(0.80, 2.5)=0.80 → 0.80×1.50=1.0 ✅
+      //   Chunk faible عقد (bm25Rank~0.03) → 0.03×10=0.30 → 0.30×1.50=0.45 < 0.90 ✅
       if (label === 'codes-forced-direct') {
         const vecSim = (r.metadata?.vectorSimilarity as number) || 0
         const bm25Rank = (r.metadata?.bm25Rank as number) || 0
-        // BM25-OR: bm25Rank=0.3 → max(0.60, min(0.80, 3.0))=0.80 → 0.80×1.50=1.0 ✅
-        // Vectoriel: vecSim=0.45 → max(0.60, 0.45)=0.60 → 0.60×1.50=0.90 ✅
-        const bm25EffSim = bm25Rank > 0 ? Math.max(0.60, Math.min(0.80, bm25Rank * 10)) : 0
-        const vecEffSim = Math.max(0.60, vecSim)
-        const effSim = Math.max(bm25EffSim, vecEffSim) // meilleur signal gagne
-        r.similarity = Math.min(1.0, effSim * CODE_PRIORITY_BOOST)
+
+        if (vecSim > 0) {
+          // Chunk vectoriel (searchTargetCodeForced): floor 0.60 pour rester > JORT (0.84)
+          const vecEffSim = Math.max(0.60, vecSim)
+          r.similarity = Math.min(1.0, vecEffSim * CODE_PRIORITY_BOOST)
+        } else {
+          // Chunk BM25-OR uniquement (searchTargetCodeByORExpansion): pas de floor
+          // → chunks forts (أركان, تعمير) dominent, chunks faibles (عقد partout) s'effacent
+          const bm25EffSim = Math.min(0.80, bm25Rank * 10)
+          r.similarity = Math.min(1.0, bm25EffSim * CODE_PRIORITY_BOOST)
+        }
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
       // Tracker les chunks issus de la recherche article-text (avant écrasement possible par codes-forced)
