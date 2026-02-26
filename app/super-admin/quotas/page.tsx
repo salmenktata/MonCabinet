@@ -247,7 +247,7 @@ export default function QuotasPage() {
               <p className="font-semibold">OpenAI embeddings (~$0.02/M tokens)</p>
               <p className="text-muted-foreground">
                 Budget actuel : $10/mois, alerte à $5. Pour 33K chunks réindexés : &lt; $0.01.
-                Gemini embeddings (768-dim) gratuits jusqu'à 1500 RPM.
+                Gemini embeddings (768-dim) gratuits jusqu'à ~100 RPM (free tier, après coupes déc 2025).
               </p>
             </div>
           </div>

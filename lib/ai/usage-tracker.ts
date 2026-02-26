@@ -76,7 +76,7 @@ export function calculateCost(
       (outputTokens / 1_000_000) * AI_COSTS.claudeOutputCostPer1MTokens
     )
   }
-  // Groq : payant si hors free tier (14 400 req/jour pour 70b)
+  // Groq : payant si hors free tier (70b : 100K tokens/jour, 1K req/jour | 8b : 500K tokens/jour, 14.4K req/jour)
   if (provider === 'groq') {
     const isSmall = model.includes('8b') || model.includes('instant')
     return isSmall

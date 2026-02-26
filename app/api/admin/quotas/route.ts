@@ -7,14 +7,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
-import { safeParseInt } from '@/lib/utils/safe-number'
 
 // Quotas providers (tier gratuit)
+// Source : https://console.groq.com/docs/rate-limits (vérifié fév 2026)
 const PROVIDER_QUOTAS = {
   gemini: {
-    tokensPerDay: 1_000_000,      // 1M tokens/jour
+    tokensPerDay: 1_000_000,      // 1M tokens/jour (embedding free tier)
     tokensPerMonth: 30_000_000,   // 30M tokens/mois
-    rpm: 15,                       // 15 requests/minute
+    rpm: 100,                      // ~100 RPM embedding free tier (après coupes déc 2025)
     costPerMTokenInput: 0.075,     // $0.075/M tokens input
     costPerMTokenOutput: 0.30,     // $0.30/M tokens output
   },
@@ -22,15 +22,18 @@ const PROVIDER_QUOTAS = {
     tokensPerDay: null,            // Pas de limite gratuite
     tokensPerMonth: null,
     rpm: null,
-    costPerMTokenInput: 0.27,      // $0.27/M tokens
-    costPerMTokenOutput: 1.10,
+    costPerMTokenInput: 0.028,     // $0.028/M tokens (cache hit system prompt — prix réel trackingé)
+    costPerMTokenOutput: 0.42,
   },
   groq: {
-    tokensPerDay: 14_400,          // Limite tier gratuit
+    // llama-3.3-70b-versatile : TPD=100K, RPD=1K, RPM=30, TPM=12K
+    // llama-3.1-8b-instant    : TPD=500K, RPD=14.4K, RPM=30, TPM=6K
+    // Le dashboard agrège les 2 modèles — affiche la limite du 70b (la plus contraignante)
+    tokensPerDay: 100_000,         // 100K tokens/jour pour llama-3.3-70b (modèle principal)
     tokensPerMonth: null,
-    rpm: 30,
-    costPerMTokenInput: 0.05,
-    costPerMTokenOutput: 0.08,
+    rpm: 30,                       // 30 RPM (identique pour les 2 modèles)
+    costPerMTokenInput: 0.59,      // $0.59/M tokens input (hors free tier)
+    costPerMTokenOutput: 0.79,
   },
   ollama: {
     tokensPerDay: null,            // Local, pas de limite

@@ -86,22 +86,25 @@ const isDev = process.env.NODE_ENV === 'development'
  * Migration Feb 25, 2026 : Ollama (latence 10-60s) → Groq tiered + Ollama batch
  * Stratégie coût minimal : modèle 70b pour qualité, 8b pour tâches simples (12× moins cher, quota indépendant)
  *
- * Free tier Groq : 500K req/jour par modèle, 1K RPM — gratuit jusqu'à ~35K DAU
+ * Free tier Groq (source : console.groq.com/docs/rate-limits, vérifié fév 2026) :
+ *   70b : 100K tokens/jour, 1K req/jour, 30 RPM, 12K TPM
+ *   8b  : 500K tokens/jour, 14.4K req/jour, 30 RPM, 6K TPM
  *
- * | Opération              | Provider  | Modèle                    | Free tier       | Coût payant     | Contexte |
- * |------------------------|-----------|---------------------------|-----------------|-----------------|----------|
- * | Assistant IA (chat)    | Groq      | llama-3.3-70b-versatile   | 500K req/jour   | $0.59/$0.79/M   | 128K     |
- * | Dossiers Assistant     | DeepSeek  | deepseek-chat             | illimité        | $0.028/$0.42/M* | 128K     |
- * | Consultations IRAC     | DeepSeek  | deepseek-chat             | illimité        | $0.028/$0.42/M* | 128K     |
- * | KB Quality Analysis    | Ollama    | qwen3:8b                  | illimité local  | $0              | 128K     |
- * | Query Classification   | Groq      | llama-3.1-8b-instant      | 500K req/jour†  | $0.05/$0.08/M   | 128K     |
- * | Query Expansion        | Groq      | llama-3.1-8b-instant      | même quota†     | $0.05/$0.08/M   | 128K     |
- * | Consolidation docs     | DeepSeek  | deepseek-chat             | illimité        | $0.028/$0.42/M* | 128K     |
- * | RAG Eval Judge         | Ollama    | qwen3:8b                  | illimité local  | $0              | 128K     |
- * | Embeddings (tout)      | OpenAI    | text-embedding-3-small    | —               | $0.02/M         | —        |
- * | Re-ranking             | Local     | ms-marco-MiniLM-L-6-v2    | illimité local  | $0              | —        |
+ * | Opération              | Provider  | Modèle                    | Free tier            | Coût payant     | Contexte |
+ * |------------------------|-----------|---------------------------|----------------------|-----------------|----------|
+ * | Assistant IA (chat)    | Groq      | llama-3.3-70b-versatile   | 100K tok/j, 1K req/j | $0.59/$0.79/M   | 128K     |
+ * | Structuration dossier  | Groq      | llama-3.3-70b-versatile   | même quota 70b       | $0.59/$0.79/M   | 128K     |
+ * | Dossiers Assistant     | DeepSeek  | deepseek-chat             | illimité             | $0.028/$0.42/M* | 128K     |
+ * | Consultations IRAC     | DeepSeek  | deepseek-chat             | illimité             | $0.028/$0.42/M* | 128K     |
+ * | KB Quality Analysis    | Ollama    | qwen3:8b                  | illimité local       | $0              | 128K     |
+ * | Query Classification   | Groq      | llama-3.1-8b-instant      | 500K tok/j†          | $0.05/$0.08/M   | 128K     |
+ * | Query Expansion        | Groq      | llama-3.1-8b-instant      | même quota†          | $0.05/$0.08/M   | 128K     |
+ * | Consolidation docs     | DeepSeek  | deepseek-chat             | illimité             | $0.028/$0.42/M* | 128K     |
+ * | RAG Eval Judge         | Groq      | llama-3.1-8b-instant      | même quota†          | $0.05/$0.08/M   | 128K     |
+ * | Embeddings (tout)      | OpenAI    | text-embedding-3-small    | —                    | $0.02/M         | —        |
+ * | Re-ranking             | Local     | ms-marco-MiniLM-L-6-v2    | illimité local       | $0              | —        |
  * (* DeepSeek cache hit sur system prompt stable — input = $0.028/M, cache miss = $0.28/M)
- * († quota partagé entre classification + expansion = même modèle 8b)
+ * († quota partagé entre classification, expansion et rag-eval-judge = même modèle 8b)
  */
 export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
@@ -135,7 +138,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 2. ASSISTANT IA (chat temps réel utilisateur)
   // ---------------------------------------------------------------------------
   'assistant-ia': {
-    model: { provider: 'groq', name: 'llama-3.3-70b-versatile' }, // Groq : 292ms, gratuit 14K req/jour
+    model: { provider: 'groq', name: 'llama-3.3-70b-versatile' }, // Groq : 292ms, gratuit 100K tok/jour, 1K req/jour
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
@@ -154,7 +157,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Chat utilisateur temps réel - Groq llama-3.3-70b (292ms, 500K req/jour gratuit)',
+    description: 'Chat utilisateur temps réel - Groq llama-3.3-70b (292ms, 100K tok/jour, 1K req/jour gratuit)',
   },
 
   // ---------------------------------------------------------------------------

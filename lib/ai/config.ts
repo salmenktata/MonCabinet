@@ -536,7 +536,7 @@ export function getRAGConfig(): {
 // COÛTS ESTIMÉS - RÉFÉRENCE HISTORIQUE
 // =============================================================================
 // NOTE: Tarifs réels Février 2026 — mode no-fallback
-// - Groq : GRATUIT (free tier 500K req/jour par modèle)
+// - Groq 70b : GRATUIT (100K tokens/jour, 1K req/jour, 30 RPM) | 8b : GRATUIT (500K tokens/jour, 14.4K req/jour, 30 RPM)
 // - Ollama : GRATUIT (local)
 // - OpenAI : $0.02/1M tokens (embeddings uniquement)
 // - DeepSeek : $0.028/1M input (cache hit system prompt) + $0.42/1M output (dossiers)

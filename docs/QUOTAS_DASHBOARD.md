@@ -9,10 +9,12 @@
 ## 🎯 Objectif
 
 Dashboard de suivi consommation quotas providers IA avec alertes automatiques :
-- **Gemini Flash** : Tier gratuit (1M tokens/jour, 30M/mois, 15 RPM)
-- **DeepSeek** : Payant (pas de limite gratuite)
-- **Groq** : Tier gratuit (14.4K tokens/jour, 30 RPM)
+- **Gemini** (embeddings) : Tier gratuit (~100 RPM, 1M tokens/jour, 30M/mois)
+- **DeepSeek** : Payant (pas de limite gratuite — $0.028/M input cache hit, $0.42/M output)
+- **Groq 70b** : Tier gratuit (100K tokens/jour, 1K req/jour, 30 RPM)
+- **Groq 8b** : Tier gratuit (500K tokens/jour, 14.4K req/jour, 30 RPM)
 - **Ollama** : Local (aucune limite)
+- **OpenAI** : Payant — embeddings uniquement ($0.02/M tokens)
 
 **Cas d'usage** : Pour 10 000 docs/mois, économie **-92%** ($113 → $9/mois) vs DeepSeek avec optimisations + Gemini Flash.
 
