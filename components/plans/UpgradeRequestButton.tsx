@@ -22,10 +22,21 @@ export function UpgradeRequestButton({ plan, highlighted, alreadyRequested }: Up
   async function handleRequest() {
     setLoading(true)
     try {
+      // Lire le code promo éventuellement saisi dans PromoCodeSection
+      let promoCode: string | undefined
+      try {
+        const stored = localStorage.getItem('qadhya_promo_code')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          const planForPromo = plan === 'solo' ? 'pro' : 'expert'
+          if (parsed?.plan === planForPromo) promoCode = parsed.code
+        }
+      } catch { /* ignore */ }
+
       const res = await fetch('/api/user/request-upgrade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, note: note || undefined }),
+        body: JSON.stringify({ plan, note: note || undefined, promoCode }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -33,6 +44,7 @@ export function UpgradeRequestButton({ plan, highlighted, alreadyRequested }: Up
         return
       }
       setDone(true)
+      localStorage.removeItem('qadhya_promo_code')
       toast.success(`Demande envoyée ! Notre équipe vous contacte sous 24h.`)
     } catch {
       toast.error('Erreur réseau, veuillez réessayer')

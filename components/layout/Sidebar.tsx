@@ -126,6 +126,7 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
   }, [isActive, t, tGroups, userRole])
 
   const settingsActive = useMemo(() => isActive('/settings'), [isActive])
+  const abonnementActive = useMemo(() => isActive('/dashboard/abonnement'), [isActive])
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r bg-card" aria-label="Navigation principale">
@@ -201,6 +202,19 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
             </div>
           </Link>
         )}
+
+        <Link href="/dashboard/abonnement" prefetch={true} onClick={onClose}>
+          <div
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              'hover:bg-accent hover:text-accent-foreground',
+              abonnementActive && 'bg-accent text-accent-foreground border-l-4 border-primary pl-[8px]'
+            )}
+          >
+            <Icons.creditCard className="h-5 w-5 shrink-0" />
+            <span>Mon abonnement</span>
+          </div>
+        </Link>
 
         <Link href="/settings" prefetch={true} onClick={onClose}>
           <div

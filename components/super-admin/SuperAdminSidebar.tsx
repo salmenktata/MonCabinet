@@ -63,6 +63,7 @@ const getNavGroups = (
         badgeVariant: 'destructive' as const,
       },
       { href: '/super-admin/plans', label: 'Plans & Abonnements', icon: 'creditCard' },
+      { href: '/super-admin/promos', label: 'Codes Promo', icon: 'tag' },
       { href: '/super-admin/waitlist', label: 'Waitlist', icon: 'mail' },
       {
         href: '/super-admin/taxonomy',

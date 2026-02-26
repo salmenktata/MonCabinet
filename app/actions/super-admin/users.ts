@@ -695,11 +695,11 @@ export async function approveUpgradeAction(userId: string) {
     const newPlan = requestedPlan === 'solo' ? 'pro' : 'enterprise'
     const oldPlan = user.plan
 
-    // Activer le plan + effacer la demande
+    // Activer le plan + effacer la demande + fixer date d'expiration
     await query(
       `UPDATE users SET
          plan = $1,
-         plan_expires_at = NULL,
+         plan_expires_at = NOW() + INTERVAL '1 month',
          upgrade_requested_plan = NULL,
          upgrade_requested_at = NULL,
          upgrade_request_note = NULL

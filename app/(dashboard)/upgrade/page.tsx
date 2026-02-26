@@ -4,6 +4,7 @@ import { query } from '@/lib/db/postgres'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { UpgradeRequestButton } from '@/components/plans/UpgradeRequestButton'
+import { PromoCodeSection } from '@/components/plans/PromoCodeSection'
 
 export const dynamic = 'force-dynamic'
 
@@ -166,6 +167,11 @@ export default async function UpgradePage() {
           alreadyRequested={requestedPlan === 'cabinet'}
         />
       </div>
+
+      {/* Code promo */}
+      {!requestedPlan && (
+        <PromoCodeSection />
+      )}
 
       {/* Garanties */}
       <Card className="bg-slate-800/50 border-slate-700">

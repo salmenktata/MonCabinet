@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
   }
 
-  const { plan, note } = await req.json()
+  const { plan, note, promoCode } = await req.json()
   if (!plan || !['solo', 'cabinet'].includes(plan)) {
     return NextResponse.json({ error: 'Plan invalide' }, { status: 400 })
   }
@@ -34,14 +34,32 @@ export async function POST(req: NextRequest) {
 
   const userName = `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || user.email
 
+  // Valider le code promo si fourni
+  let validatedPromoCode: string | null = null
+  if (promoCode) {
+    const planForPromo = plan === 'solo' ? 'pro' : 'expert'
+    const promoResult = await query(
+      `SELECT code FROM promo_codes
+       WHERE code = $1 AND is_active = true
+         AND (expires_at IS NULL OR expires_at > NOW())
+         AND (max_uses IS NULL OR used_count < max_uses)
+         AND (applies_to = 'all' OR applies_to = $2)`,
+      [promoCode.toUpperCase().trim(), planForPromo]
+    )
+    if (promoResult.rows.length > 0) {
+      validatedPromoCode = promoResult.rows[0].code
+    }
+  }
+
   // Enregistrer la demande
   await query(
     `UPDATE users
      SET upgrade_requested_plan = $1,
          upgrade_requested_at   = NOW(),
-         upgrade_request_note   = $2
-     WHERE id = $3`,
-    [plan, note || null, userId]
+         upgrade_request_note   = $2,
+         upgrade_promo_code     = $3
+     WHERE id = $4`,
+    [plan, note || null, validatedPromoCode, userId]
   )
 
   const planLabel = PLAN_LABELS[plan]
