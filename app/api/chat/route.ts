@@ -233,9 +233,9 @@ export async function POST(
     const quotaCheck = await checkAndConsumeAiQuota(userId)
     if (!quotaCheck.allowed) {
       const errorMsg = quotaCheck.reason === 'trial_exhausted'
-        ? `Vous avez utilisé vos 30 requêtes d'essai. Passez au plan Solo pour continuer.`
+        ? `Vous avez utilisé vos 30 requêtes d'essai. Passez au plan Pro pour continuer.`
         : quotaCheck.reason === 'no_ai' || quotaCheck.reason === 'expired'
-          ? `Votre plan ne donne pas accès à l'IA. Passez au plan Solo.`
+          ? `Votre plan ne donne pas accès à l'IA. Passez au plan Pro.`
           : `Quota mensuel atteint (${quotaCheck.used}/${quotaCheck.limit} requêtes). Réinitialisation le ${quotaCheck.resetDate}`
       return NextResponse.json(
         { error: errorMsg, reason: quotaCheck.reason, upgradeRequired: true },

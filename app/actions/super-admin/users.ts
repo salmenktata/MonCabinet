@@ -174,8 +174,7 @@ export async function approveUserAction(userId: string) {
       return { error: `Impossible d'approuver un utilisateur avec le status: ${user.status}` }
     }
 
-    // Mettre à jour le status + démarrer l'essai 14 jours automatiquement
-    const trialExpiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+    // Mettre à jour le status + démarrer l'essai gratuit (sans limite de temps)
     await query(
       `UPDATE users SET
         status = 'approved',
@@ -183,12 +182,12 @@ export async function approveUserAction(userId: string) {
         approved_by = $1,
         approved_at = NOW(),
         plan = 'trial',
-        plan_expires_at = $3,
+        plan_expires_at = NULL,
         trial_started_at = NOW(),
         trial_ai_uses_remaining = 30,
         referral_code = COALESCE(referral_code, generate_referral_code())
        WHERE id = $2`,
-      [authCheck.adminId, userId, trialExpiresAt]
+      [authCheck.adminId, userId]
     )
 
     // Log d'audit
@@ -200,7 +199,7 @@ export async function approveUserAction(userId: string) {
       userId,
       user.email,
       { status: 'pending' },
-      { status: 'approved', plan: 'trial', trial_expires_at: trialExpiresAt }
+      { status: 'approved', plan: 'trial' }
     )
 
     // Récupérer le referral_code généré (pour l'email J0)
@@ -214,7 +213,7 @@ export async function approveUserAction(userId: string) {
     const userName = user.prenom && user.nom ? `${user.prenom} ${user.nom}` : user.email
     await sendEmail({
       to: user.email,
-      subject: 'Bienvenue sur Qadhya — Votre essai de 14 jours commence maintenant !',
+      subject: 'Bienvenue sur Qadhya — Votre accès gratuit commence maintenant !',
       html: getJ0WelcomeEmailHtml(userName, referralCode),
       text: getJ0WelcomeEmailText(userName),
     })
@@ -561,15 +560,14 @@ export async function changeUserPlanAction(userId: string, newPlan: string, expi
 
     // Mettre à jour le plan avec gestion des colonnes trial
     if (newPlan === 'trial') {
-      const trialExpiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
       await query(
         `UPDATE users SET
            plan = $1,
-           plan_expires_at = $2,
+           plan_expires_at = NULL,
            trial_started_at = NOW(),
            trial_ai_uses_remaining = 30
-         WHERE id = $3`,
-        [newPlan, trialExpiresAt, userId]
+         WHERE id = $2`,
+        [newPlan, userId]
       )
     } else {
       await query(
@@ -728,11 +726,11 @@ export async function approveUpgradeAction(userId: string) {
     const planLabel = requestedPlan === 'solo' ? 'Solo — 89 DT/mois' : 'Cabinet — 229 DT/mois'
     await sendEmail({
       to: user.email,
-      subject: `Votre plan Qadhya ${requestedPlan === 'solo' ? 'Solo' : 'Cabinet'} est activé !`,
+      subject: `Votre plan Qadhya ${requestedPlan === 'solo' ? 'Pro' : 'Expert'} est activé !`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8f9fa;">
           <div style="background:white;border-radius:12px;padding:32px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-            <h2 style="color:#1e293b;">Bienvenue sur le plan ${requestedPlan === 'solo' ? 'Solo' : 'Cabinet'} !</h2>
+            <h2 style="color:#1e293b;">Bienvenue sur le plan ${requestedPlan === 'solo' ? 'Pro' : 'Expert'} !</h2>
             <p style="color:#475569;line-height:1.6;">Bonjour ${escapeHtml(userName)},</p>
             <p style="color:#475569;line-height:1.6;">
               Votre abonnement <strong>${planLabel}</strong> est maintenant <strong style="color:#22c55e;">actif</strong>.

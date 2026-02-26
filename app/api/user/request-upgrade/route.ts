@@ -7,8 +7,8 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('UpgradeRequest')
 
 const PLAN_LABELS: Record<string, string> = {
-  solo: 'Solo — 89 DT/mois',
-  cabinet: 'Cabinet — 229 DT/mois',
+  solo: 'Pro — 89 DT/mois',
+  cabinet: 'Expert — 229 DT/mois',
 }
 
 export async function POST(req: NextRequest) {

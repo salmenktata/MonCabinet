@@ -3,8 +3,7 @@
  *
  * J0  : Bienvenue + guide 3 étapes
  * J3  : Nudge IA (si 0 utilisation)
- * J7  : Mid-trial, récap utilisations restantes
- * J12 : 2 jours avant expiration + offre lancement
+ * J7  : Récap utilisations + conseil
  */
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://qadhya.tn'
@@ -35,7 +34,7 @@ export function getJ0WelcomeEmailHtml(userName: string, referralCode: string): s
   const safeName = userName.replace(/[<>&"']/g, '')
   return wrap(`
     <h2 style="color:#1e293b;margin-bottom:4px;">Bienvenue sur Qadhya, ${safeName} 👋</h2>
-    <p style="color:#475569;font-size:14px;margin-top:0;">Votre essai de 14 jours vient de commencer.</p>
+    <p style="color:#475569;font-size:14px;margin-top:0;">Votre accès gratuit vient de commencer.</p>
 
     <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:20px;margin:20px 0;">
       <p style="color:#0369a1;font-weight:700;margin:0 0 12px;font-size:16px;">3 étapes pour démarrer</p>
@@ -55,7 +54,7 @@ export function getJ0WelcomeEmailHtml(userName: string, referralCode: string): s
     ${btn(`${APP_URL}/dashboard`, 'Commencer maintenant')}
 
     <p style="color:#64748b;font-size:13px;text-align:center;">
-      Vous avez <strong>30 requêtes IA</strong> et <strong>14 jours</strong> pour découvrir Qadhya.
+      Vous avez <strong>30 requêtes IA</strong> pour découvrir Qadhya à votre rythme.
     </p>
   `)
 }
@@ -63,7 +62,7 @@ export function getJ0WelcomeEmailHtml(userName: string, referralCode: string): s
 export function getJ0WelcomeEmailText(userName: string): string {
   return `Bonjour ${userName},
 
-Bienvenue sur Qadhya ! Votre essai de 14 jours avec 30 requêtes IA vient de commencer.
+Bienvenue sur Qadhya ! Votre accès gratuit avec 30 requêtes IA vient de commencer.
 
 3 étapes pour démarrer :
 1. Créez votre premier dossier
@@ -82,7 +81,7 @@ export function getJ3NudgeEmailHtml(userName: string, usesRemaining: number): st
   return wrap(`
     <h2 style="color:#1e293b;">Avez-vous essayé le Chat IA, ${safeName} ?</h2>
     <p style="color:#475569;line-height:1.6;">
-      Votre essai est en cours depuis 3 jours — mais nous n'avons pas encore vu de question juridique de votre part.
+      Vous avez accès à Qadhya depuis quelques jours — mais nous n'avons pas encore vu de question juridique de votre part.
     </p>
 
     <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:20px;margin:20px 0;">
@@ -95,7 +94,7 @@ export function getJ3NudgeEmailHtml(userName: string, usesRemaining: number): st
     </div>
 
     <p style="color:#475569;">
-      Il vous reste <strong>${usesRemaining} requêtes IA</strong> et <strong>11 jours</strong> d'essai.
+      Il vous reste <strong>${usesRemaining} requêtes IA</strong> incluses dans votre accès gratuit.
     </p>
 
     ${btn(`${APP_URL}/assistant-juridique`, 'Poser ma première question', '#0369a1')}
@@ -105,7 +104,7 @@ export function getJ3NudgeEmailHtml(userName: string, usesRemaining: number): st
 export function getJ3NudgeEmailText(userName: string, usesRemaining: number): string {
   return `Bonjour ${userName},
 
-Votre essai Qadhya est en cours depuis 3 jours. Il vous reste ${usesRemaining} requêtes IA.
+Vous avez accès à Qadhya depuis quelques jours. Il vous reste ${usesRemaining} requêtes IA.
 
 Essayez de poser une question juridique :
 - Conditions de résiliation d'un bail
@@ -117,16 +116,16 @@ Accédez au Chat IA : ${APP_URL}/assistant-juridique
 L'équipe Qadhya`
 }
 
-// ─── J7 : Mid-trial ───────────────────────────────────────────────────────
+// ─── J7 : Point d'étape ───────────────────────────────────────────────────
 
 export function getJ7MidwayEmailHtml(userName: string, usesRemaining: number, usesUsed: number): string {
   const safeName = userName.replace(/[<>&"']/g, '')
   const progressPct = Math.round((usesUsed / 30) * 100)
 
   return wrap(`
-    <h2 style="color:#1e293b;">Mi-parcours, ${safeName} — comment ça se passe ?</h2>
+    <h2 style="color:#1e293b;">Votre utilisation Qadhya, ${safeName}</h2>
     <p style="color:#475569;line-height:1.6;">
-      Vous êtes à la moitié de votre essai gratuit. Voici votre utilisation jusqu'ici :
+      Voici un récap de votre utilisation depuis le début de votre accès gratuit :
     </p>
 
     <div style="background:#f8fafc;border-radius:10px;padding:20px;margin:20px 0;">
@@ -137,7 +136,7 @@ export function getJ7MidwayEmailHtml(userName: string, usesRemaining: number, us
       <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden;">
         <div style="background:#2563eb;height:8px;width:${progressPct}%;border-radius:4px;"></div>
       </div>
-      <p style="color:#64748b;font-size:12px;margin:8px 0 0;">Il vous reste <strong>${usesRemaining} requêtes</strong> et 7 jours</p>
+      <p style="color:#64748b;font-size:12px;margin:8px 0 0;">Il vous reste <strong>${usesRemaining} requêtes IA</strong> incluses</p>
     </div>
 
     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;margin:16px 0;">
@@ -146,10 +145,10 @@ export function getJ7MidwayEmailHtml(userName: string, usesRemaining: number, us
       </p>
     </div>
 
-    ${btn(`${APP_URL}/dashboard`, 'Continuer mon essai')}
+    ${btn(`${APP_URL}/dashboard`, 'Continuer sur Qadhya')}
 
     <p style="color:#94a3b8;font-size:12px;text-align:center;">
-      Passez au plan Solo à tout moment pour garder l'accès complet.
+      Passez au plan Pro à tout moment pour un accès IA illimité.
       <a href="${APP_URL}/upgrade" style="color:#2563eb;">Voir les plans →</a>
     </p>
   `)
@@ -158,7 +157,7 @@ export function getJ7MidwayEmailHtml(userName: string, usesRemaining: number, us
 export function getJ7MidwayEmailText(userName: string, usesRemaining: number): string {
   return `Bonjour ${userName},
 
-Vous êtes à mi-parcours de votre essai Qadhya. Il vous reste ${usesRemaining} requêtes IA et 7 jours.
+Voici un récap de votre utilisation Qadhya. Il vous reste ${usesRemaining} requêtes IA incluses dans votre accès gratuit.
 
 Conseil : Testez la structuration automatique d'un document — importez un contrat et demandez à Qadhya de l'analyser.
 
@@ -167,51 +166,3 @@ Continuer : ${APP_URL}/dashboard
 L'équipe Qadhya`
 }
 
-// ─── J12 : Alerte expiration ──────────────────────────────────────────────
-
-export function getJ12ExpiryWarningEmailHtml(userName: string, usesRemaining: number): string {
-  const safeName = userName.replace(/[<>&"']/g, '')
-  return wrap(`
-    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;margin-bottom:24px;text-align:center;">
-      <p style="color:#dc2626;font-weight:700;font-size:16px;margin:0;">⏰ Votre essai expire dans 2 jours</p>
-    </div>
-
-    <h2 style="color:#1e293b;">Ne perdez pas votre accès, ${safeName}</h2>
-    <p style="color:#475569;line-height:1.6;">
-      Dans 2 jours, votre essai gratuit de 14 jours se terminera. Il vous reste encore <strong>${usesRemaining} requêtes IA</strong>.
-    </p>
-
-    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:20px;margin:20px 0;">
-      <p style="color:#92400e;font-weight:700;margin:0 0 12px;">🎁 Offre de lancement — limité</p>
-      <p style="color:#78350f;margin:0 0 8px;">Souscrivez au plan <strong>Solo</strong> avant l'expiration :</p>
-      <ul style="color:#78350f;margin:0 0 12px;padding-left:20px;line-height:1.8;">
-        <li>200 requêtes IA/mois</li>
-        <li>Dossiers et clients illimités</li>
-        <li>10 Go de stockage</li>
-        <li>Support email prioritaire</li>
-      </ul>
-      <p style="color:#92400e;font-size:20px;font-weight:bold;text-align:center;margin:0;">89 DT / mois</p>
-    </div>
-
-    ${btn(`${APP_URL}/upgrade`, 'Passer au plan Solo maintenant', '#dc2626')}
-
-    <p style="color:#94a3b8;font-size:12px;text-align:center;">
-      Questions ? Répondez à cet email ou contactez <a href="mailto:contact@qadhya.tn" style="color:#2563eb;">contact@qadhya.tn</a>
-    </p>
-  `)
-}
-
-export function getJ12ExpiryWarningEmailText(userName: string, usesRemaining: number): string {
-  return `Bonjour ${userName},
-
-Votre essai Qadhya expire dans 2 jours. Il vous reste ${usesRemaining} requêtes IA.
-
-Plan Solo — 89 DT/mois :
-- 200 requêtes IA/mois
-- Dossiers et clients illimités
-- 10 Go de stockage
-
-Souscrire maintenant : ${APP_URL}/upgrade
-
-L'équipe Qadhya`
-}

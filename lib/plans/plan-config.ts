@@ -2,11 +2,11 @@
  * Configuration centralisée des plans et limites Qadhya
  *
  * Plans :
- *   trial        → Essai 14 jours (30 requêtes IA totales)
+ *   trial        → Essai gratuit (30 requêtes IA totales, sans limite de temps)
  *   pro          → Solo (affiché "Solo" en UI) — 200 req IA/mois
  *   enterprise   → Cabinet — IA illimitée
  *   free         → Ancien plan gratuit (héritage, no IA)
- *   expired_trial→ Essai expiré (accès en lecture seule, pas d'IA)
+ *   expired_trial→ Essai expiré manuellement (accès en lecture seule, pas d'IA)
  */
 
 export type PlanType = 'free' | 'trial' | 'pro' | 'enterprise' | 'expired_trial'
@@ -40,8 +40,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     hasAi: true,
     aiUsesPerMonth: null,
     aiUsesTotal: 30,
-    trialDays: 14,
-    displayName: 'Essai 14 jours',
+    trialDays: null,
+    displayName: 'Essai gratuit',
     maxUsers: 1,
   },
   pro: {
@@ -52,7 +52,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     aiUsesPerMonth: 200,
     aiUsesTotal: null,
     trialDays: null,
-    displayName: 'Solo',
+    displayName: 'Pro',
     maxUsers: 1,
   },
   enterprise: {
@@ -63,7 +63,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     aiUsesPerMonth: Infinity,
     aiUsesTotal: null,
     trialDays: null,
-    displayName: 'Cabinet',
+    displayName: 'Expert',
     maxUsers: 10,
   },
   free: {
@@ -114,15 +114,13 @@ export function canUseAi(plan: PlanType): boolean {
 }
 
 /**
- * Retourne le nombre de jours restants pour un trial
- * Retourne null si pas en trial ou si déjà expiré
+ * Retourne le nombre de jours restants pour un trial.
+ * Toujours null — le trial n'a plus de limite temporelle.
+ * @deprecated La limite de jours a été supprimée. Fonction conservée pour compatibilité.
  */
-export function getTrialDaysRemaining(trialStartedAt: Date | null): number | null {
-  if (!trialStartedAt) return null
-  const trialDuration = PLAN_LIMITS.trial.trialDays! * 24 * 60 * 60 * 1000
-  const expiresAt = new Date(trialStartedAt.getTime() + trialDuration)
-  const remaining = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  return remaining > 0 ? remaining : 0
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function getTrialDaysRemaining(_trialStartedAt: Date | null): number | null {
+  return null
 }
 
 /**

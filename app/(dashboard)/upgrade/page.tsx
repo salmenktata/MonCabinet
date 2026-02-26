@@ -138,7 +138,7 @@ export default async function UpgradePage() {
 
         {requestedPlan && (
           <div className="mt-4 inline-flex items-center gap-2 bg-blue-500/15 border border-blue-500/30 text-blue-300 text-sm px-4 py-2 rounded-full">
-            ✅ Demande de passage au plan <strong>{requestedPlan === 'solo' ? 'Solo' : 'Cabinet'}</strong> en cours de traitement
+            ✅ Demande de passage au plan <strong>{requestedPlan === 'solo' ? 'Pro' : 'Expert'}</strong> en cours de traitement
           </div>
         )}
       </div>
@@ -146,7 +146,7 @@ export default async function UpgradePage() {
       {/* Plans */}
       <div className="grid md:grid-cols-2 gap-8 mt-8">
         <PlanCard
-          name="Solo"
+          name="Pro"
           price="89 DT"
           priceNote="/mois (ou 71 DT/mois en annuel)"
           description="Pour l'avocat indépendant qui veut tout optimiser"
@@ -157,7 +157,7 @@ export default async function UpgradePage() {
           alreadyRequested={requestedPlan === 'solo'}
         />
         <PlanCard
-          name="Cabinet"
+          name="Expert"
           price="229 DT"
           priceNote="/mois (ou 183 DT/mois en annuel)"
           description="Pour les cabinets multi-associés avec besoin d'IA intensive"
@@ -196,14 +196,14 @@ export default async function UpgradePage() {
           {[
             {
               q: 'Comment fonctionne la demande ?',
-              a: "Cliquez sur \"Demander Solo\" — notre équipe vous contacte sous 24h avec les modalités de paiement (virement ou Flouci). L'activation est immédiate après confirmation.",
+              a: "Cliquez sur \"Demander Pro\" — notre équipe vous contacte sous 24h avec les modalités de paiement (virement ou Flouci). L'activation est immédiate après confirmation.",
             },
             {
               q: 'Mes données d\'essai sont-elles conservées ?',
               a: 'Oui. Tous vos dossiers, clients et documents créés pendant l\'essai sont conservés et accessibles dès l\'activation de votre plan.',
             },
             {
-              q: 'Puis-je passer du Solo au Cabinet plus tard ?',
+              q: 'Puis-je passer du Pro au Expert plus tard ?',
               a: 'Oui, vous pouvez changer de plan à tout moment. Le changement prend effet immédiatement.',
             },
           ].map((faq, i) => (

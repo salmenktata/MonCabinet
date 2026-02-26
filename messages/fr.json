@@ -1515,22 +1515,22 @@
         "features": ["Jusqu'à 10 dossiers", "Jusqu'à 20 clients", "30 requêtes IA incluses", "Calcul des délais", "1 utilisateur", "Support email"]
       },
       "pro": {
-        "name": "Solo",
-        "description": "Pour l'avocat qui veut tout optimiser",
+        "name": "Pro",
+        "description": "Pour l'avocat indépendant qui veut tout optimiser",
         "priceMonthly": "89",
         "priceAnnual": "71",
         "features": ["Dossiers illimités", "Clients illimités", "200 requêtes IA/mois", "Facturation complète", "Templates documents", "Support Email + Chat"]
       },
       "cabinet": {
-        "name": "Cabinet",
+        "name": "Expert",
         "description": "Pour les cabinets multi-associés",
         "priceMonthly": "229",
         "priceAnnual": "183",
-        "features": ["Tout dans Solo", "Jusqu'à 10 utilisateurs", "IA illimitée", "Rôles et permissions", "SLA garanti", "Support dédié", "Formation incluse"]
+        "features": ["Tout dans Pro", "Jusqu'à 10 utilisateurs", "IA illimitée", "Rôles et permissions", "SLA garanti", "Support dédié", "Formation incluse"]
       },
       "cta": "Commencer",
       "ctaTrial": "Démarrer l'essai gratuit",
-      "ctaPro": "Choisir Solo",
+      "ctaPro": "Choisir Pro",
       "ctaCabinet": "Nous contacter",
       "guarantee": "Sans carte bancaire — annulation à tout moment",
       "currency": "DT",
@@ -1572,11 +1572,11 @@
       "title": "Questions fréquentes",
       "q1": { "question": "Est-ce que mes données sont sécurisées ?", "answer": "Absolument. Vos données sont hébergées en Tunisie sur des serveurs sécurisés avec chiffrement SSL. Nous respectons les normes de sécurité les plus strictes et ne partageons jamais vos données." },
       "q2": { "question": "Y a-t-il un engagement minimum ?", "answer": "Non, aucun engagement. Vous pouvez annuler à tout moment. L'essai de 14 jours est entièrement gratuit, sans carte bancaire." },
-      "q3": { "question": "Puis-je essayer avant de payer ?", "answer": "Oui ! Tous les nouveaux comptes bénéficient automatiquement d'un essai de 14 jours complet. Vous accédez à toutes les fonctionnalités Solo, incluant 30 requêtes IA, sans carte bancaire requise." },
+      "q3": { "question": "Puis-je essayer avant de payer ?", "answer": "Oui ! Tous les nouveaux comptes bénéficient automatiquement d'un essai de 14 jours complet. Vous accédez à toutes les fonctionnalités Pro, incluant 30 requêtes IA, sans carte bancaire requise." },
       "q4": { "question": "Est-ce conforme aux exigences du Barreau ?", "answer": "Qadhya est conçu spécifiquement pour les avocats tunisiens et respecte les normes et procédures du Barreau de Tunisie, incluant les calculs de délais légaux." },
       "q5": { "question": "Comment fonctionne l'IA juridique ?", "answer": "Qadhya IA est alimentée par une base de plus de 3 400 documents juridiques tunisiens. Elle vous aide à rechercher la jurisprudence, structurer vos dossiers et obtenir des consultations juridiques contextualisées." },
       "q6": { "question": "Puis-je importer mes dossiers existants ?", "answer": "Oui, vous pouvez créer vos dossiers manuellement ou utiliser l'assistant IA pour les structurer automatiquement à partir d'une description en langage naturel." },
-      "q7": { "question": "Quel support est disponible ?", "answer": "L'essai gratuit et le plan Solo incluent le support par email. Le plan Cabinet bénéficie d'un support dédié avec formation incluse et SLA garanti." },
+      "q7": { "question": "Quel support est disponible ?", "answer": "L'essai gratuit et le plan Pro incluent le support par email. Le plan Expert bénéficie d'un support dédié avec formation incluse et SLA garanti." },
       "q8": { "question": "Les mises à jour sont-elles incluses ?", "answer": "Oui, toutes les mises à jour et nouvelles fonctionnalités sont incluses dans votre abonnement, sans frais supplémentaires." }
     },
     "featuresPage": {

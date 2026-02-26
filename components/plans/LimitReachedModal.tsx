@@ -17,22 +17,22 @@ const LIMIT_CONFIG: Record<LimitType, { icon: string; title: string; detail: (li
   dossiers: {
     icon: '📁',
     title: "Limite de dossiers atteinte",
-    detail: (limit) => `Votre essai gratuit est limité à ${limit ?? 10} dossiers. Passez au plan Solo pour créer des dossiers illimités.`,
+    detail: (limit) => `Votre essai gratuit est limité à ${limit ?? 10} dossiers. Passez au plan Pro pour créer des dossiers illimités.`,
   },
   clients: {
     icon: '👥',
     title: "Limite de clients atteinte",
-    detail: (limit) => `Votre essai gratuit est limité à ${limit ?? 20} clients. Passez au plan Solo pour gérer des clients illimités.`,
+    detail: (limit) => `Votre essai gratuit est limité à ${limit ?? 20} clients. Passez au plan Pro pour gérer des clients illimités.`,
   },
   ia: {
     icon: '✨',
     title: "Requêtes IA épuisées",
-    detail: () => `Vous avez utilisé vos 30 requêtes d'essai. Passez au plan Solo pour accéder à 200 requêtes IA par mois.`,
+    detail: () => `Vous avez utilisé vos 30 requêtes d'essai. Passez au plan Pro pour accéder à 200 requêtes IA par mois.`,
   },
   ia_monthly: {
     icon: '✨',
     title: "Quota mensuel IA atteint",
-    detail: () => `Vous avez atteint votre limite mensuelle de requêtes IA. Votre quota se réinitialise le 1er du mois prochain, ou passez au plan Cabinet pour un accès illimité.`,
+    detail: () => `Vous avez atteint votre limite mensuelle de requêtes IA. Votre quota se réinitialise le 1er du mois prochain, ou passez au plan Expert pour un accès illimité.`,
   },
 }
 
@@ -64,7 +64,7 @@ export function LimitReachedModal({ open, onClose, type, limit }: LimitReachedMo
               onClick={onClose}
             >
               <Link href="/upgrade">
-                Passer au plan Solo — 89 DT/mois
+                Passer au plan Pro — 89 DT/mois
               </Link>
             </Button>
 

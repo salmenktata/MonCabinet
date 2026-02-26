@@ -17,7 +17,7 @@ export function UpgradeRequestButton({ plan, highlighted, alreadyRequested }: Up
   const [note, setNote] = useState('')
   const [showNote, setShowNote] = useState(false)
 
-  const planLabel = plan === 'solo' ? 'Solo' : 'Cabinet'
+  const planLabel = plan === 'solo' ? 'Pro' : 'Expert'
 
   async function handleRequest() {
     setLoading(true)

@@ -124,10 +124,9 @@ export async function POST(request: NextRequest) {
     const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
 
     // 5. Déterminer le statut initial
-    // Si invitation valide → approuvé directement + trial démarré
+    // Si invitation valide → approuvé directement + trial démarré (sans limite de temps)
     // Sinon → pending (approbation manuelle)
     const isInvited = !!waitlistEntry
-    const trialExpiresAt = isInvited ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) : null
 
     // Générer un code de parrainage unique pour ce nouvel utilisateur
     const newReferralCode = crypto.randomBytes(4).toString('hex').toUpperCase() // 8 chars hex
@@ -168,7 +167,7 @@ export async function POST(request: NextRequest) {
         isInvited,
         'user',
         isInvited ? 'trial' : 'free',
-        trialExpiresAt,
+        null, // plan_expires_at — pas de limite de temps sur le trial
         isInvited ? new Date() : null,
         isInvited ? 30 : null,
         validatedData.invitationToken || null,
@@ -206,7 +205,7 @@ export async function POST(request: NextRequest) {
       const userName = `${validatedData.prenom} ${validatedData.nom}`
       sendEmail({
         to: user.email,
-        subject: 'Bienvenue sur Qadhya — Votre essai de 14 jours commence maintenant !',
+        subject: 'Bienvenue sur Qadhya — Votre accès gratuit commence maintenant !',
         html: getJ0WelcomeEmailHtml(userName, newReferralCode),
         text: getJ0WelcomeEmailText(userName),
       }).then(() =>
@@ -248,7 +247,7 @@ export async function POST(request: NextRequest) {
         isInvited,
         emailSent: emailResult.success,
         message: isInvited
-          ? 'Compte créé et activé. Votre essai de 14 jours commence maintenant !'
+          ? 'Compte créé et activé. Votre accès gratuit commence maintenant !'
           : 'Compte créé avec succès. Votre demande est en attente d\'approbation.',
         user: {
           id: user.id,

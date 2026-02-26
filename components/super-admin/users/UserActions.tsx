@@ -151,7 +151,7 @@ export function UserActions({ user }: UserActionsProps) {
       if (result.error) {
         toast.error(result.error)
       } else {
-        const planLabel = user.upgrade_requested_plan === 'solo' ? 'Solo' : 'Cabinet'
+        const planLabel = user.upgrade_requested_plan === 'solo' ? 'Pro' : 'Expert'
         toast.success(`Plan ${planLabel} activé — Email de confirmation envoyé à ${user.email}`)
         router.refresh()
       }
@@ -284,7 +284,7 @@ export function UserActions({ user }: UserActionsProps) {
             className="bg-orange-600 hover:bg-orange-500 text-white font-semibold"
           >
             <Icons.checkCircle className="h-4 w-4 mr-2" />
-            ✅ Approuver → {user.upgrade_requested_plan === 'solo' ? 'Solo' : 'Cabinet'}
+            ✅ Approuver → {user.upgrade_requested_plan === 'solo' ? 'Pro' : 'Expert'}
           </Button>
         )}
 

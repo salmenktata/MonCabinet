@@ -158,7 +158,7 @@ export default function DossiersPage() {
                 : `${remaining} dossier${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''} sur ${quota.maxDossiers} (essai)`}
             </span>
             <Link href="/upgrade" className="font-semibold underline underline-offset-2 whitespace-nowrap hover:opacity-80">
-              Passer à Solo →
+              Passer à Pro →
             </Link>
           </div>
         )

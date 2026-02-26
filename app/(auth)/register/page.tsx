@@ -264,7 +264,7 @@ export default function RegisterPage() {
         </h1>
         {isInvited ? (
           <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-sm text-emerald-400">
-            Invitation valide — Votre essai de 14 jours sera activé immédiatement.
+            Invitation valide — Votre accès gratuit sera activé immédiatement.
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">

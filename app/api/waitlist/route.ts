@@ -100,7 +100,7 @@ function getWaitlistConfirmationHtml(userName: string): string {
     <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 24px 0;">
       <p style="color: #166534; margin: 0; font-weight: 600;">Ce qui vous attend :</p>
       <ul style="color: #166534; padding-left: 20px; margin: 8px 0 0;">
-        <li>14 jours d'essai complet — sans carte bancaire</li>
+        <li>Accès gratuit complet — sans carte bancaire</li>
         <li>30 requêtes Qadhya IA juridique</li>
         <li>Base de +6 800 documents de droit tunisien</li>
         <li>Structuration automatique de dossiers par IA</li>

@@ -2,7 +2,6 @@
  * TrialBanner — Bandeau persistant affiché en haut du dashboard pour les utilisateurs en essai
  *
  * Affiche :
- * - Jours restants dans le trial
  * - Utilisation IA restante (sur 30)
  * - CTA vers /upgrade
  *
@@ -10,7 +9,7 @@
  * - safe    : vert discret
  * - warning : jaune (≤10 req IA restantes)
  * - danger  : rouge (≤3 req restantes)
- * - expired : rouge + modal upgrade
+ * - expired : rouge + CTA upgrade (quand req épuisées ou plan expired_trial)
  */
 
 import Link from 'next/link'
@@ -28,7 +27,6 @@ export async function TrialBanner() {
   if (status.plan !== 'trial' && status.plan !== 'expired_trial') return null
 
   const usesRemaining = status.trialUsesRemaining ?? 0
-  const daysRemaining = status.trialDaysRemaining ?? 0
   const alertLevel = status.plan === 'expired_trial' ? 'expired' : getTrialAlertLevel(usesRemaining)
   const isExpired = alertLevel === 'expired' || status.plan === 'expired_trial'
 
@@ -48,11 +46,14 @@ export async function TrialBanner() {
   }[alertLevel]
 
   if (isExpired) {
+    const expiredMsg = status.plan === 'expired_trial'
+      ? 'Votre accès a été suspendu.'
+      : 'Vos requêtes IA sont épuisées.'
     return (
       <div className={`w-full border-b px-4 py-2 flex items-center justify-between gap-4 ${bannerClass}`}>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Votre essai a expiré.</span>
-          <span className="text-xs opacity-80">Passez au plan Solo pour continuer à utiliser Qadhya IA.</span>
+          <span className="text-sm font-semibold">{expiredMsg}</span>
+          <span className="text-xs opacity-80">Passez au plan Pro pour continuer à utiliser Qadhya IA.</span>
         </div>
         <Link
           href="/upgrade"
@@ -67,18 +68,6 @@ export async function TrialBanner() {
   return (
     <div className={`w-full border-b px-4 py-2 flex items-center justify-between gap-4 ${bannerClass}`}>
       <div className="flex items-center gap-4 text-sm">
-        {/* Jours restants */}
-        <span className="flex items-center gap-1">
-          <svg className="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span className="font-medium">{daysRemaining}j</span>
-          <span className="opacity-70">restants</span>
-        </span>
-
-        {/* Séparateur */}
-        <span className="opacity-30">•</span>
-
         {/* Utilisations IA */}
         <span className="flex items-center gap-1">
           <svg className="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -100,7 +89,7 @@ export async function TrialBanner() {
         href="/upgrade"
         className={`shrink-0 text-xs font-bold px-4 py-1.5 rounded-lg transition-colors ${ctaClass}`}
       >
-        Passer à Solo — 89 DT/mois
+        Passer à Pro — 89 DT/mois
       </Link>
     </div>
   )

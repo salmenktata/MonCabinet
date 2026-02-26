@@ -421,7 +421,7 @@ export function UnifiedChatPage({
                     href="/upgrade"
                     className="btn-premium px-4 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap"
                   >
-                    Passer à Solo
+                    Passer à Pro
                   </a>
                   <button
                     onClick={clearQuotaExceeded}

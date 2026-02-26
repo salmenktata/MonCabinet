@@ -24,9 +24,9 @@ async function PlansStats() {
   `)
 
   const planInfo = {
-    trial: { label: 'Essai (Trial)', color: 'text-emerald-400', bg: 'bg-emerald-500/20', limits: '14 jours • 30 req IA' },
-    pro: { label: 'Solo', color: 'text-blue-400', bg: 'bg-blue-500/20', limits: '200 req IA/mois' },
-    enterprise: { label: 'Cabinet', color: 'text-purple-400', bg: 'bg-purple-500/20', limits: 'Illimité' },
+    trial: { label: 'Essai (Trial)', color: 'text-emerald-400', bg: 'bg-emerald-500/20', limits: '30 req IA (sans limite de temps)' },
+    pro: { label: 'Pro', color: 'text-blue-400', bg: 'bg-blue-500/20', limits: '200 req IA/mois' },
+    enterprise: { label: 'Expert', color: 'text-purple-400', bg: 'bg-purple-500/20', limits: 'Illimité' },
     expired_trial: { label: 'Essai expiré', color: 'text-red-400', bg: 'bg-red-500/20', limits: 'Accès limité' },
     free: { label: 'Gratuit (legacy)', color: 'text-slate-400', bg: 'bg-slate-600', limits: 'Sans IA' },
   }
@@ -132,15 +132,13 @@ async function ConversionStats() {
   )
 }
 
-// Trials en cours avec jours restants
+// Trials en cours
 async function ActiveTrials() {
   const result = await query(`
     SELECT
       id, email, nom, prenom,
       trial_started_at,
-      trial_ai_uses_remaining,
-      plan_expires_at,
-      EXTRACT(DAY FROM (trial_started_at + INTERVAL '14 days' - NOW())) AS days_remaining
+      trial_ai_uses_remaining
     FROM users
     WHERE status = 'approved' AND plan = 'trial'
     ORDER BY trial_started_at DESC
@@ -170,17 +168,15 @@ async function ActiveTrials() {
               prenom: string
               trial_started_at: Date
               trial_ai_uses_remaining: number
-              days_remaining: number
             }) => {
-              const daysLeft = Math.max(0, Math.ceil(user.days_remaining || 0))
-              const isUrgent = daysLeft <= 3
               const usesLeft = user.trial_ai_uses_remaining ?? 30
+              const isLow = usesLeft <= 5
 
               return (
                 <div
                   key={user.id}
                   className={`flex items-center justify-between p-3 rounded-lg ${
-                    isUrgent ? 'bg-orange-500/10 border border-orange-500/30' : 'bg-slate-700/50'
+                    isLow ? 'bg-orange-500/10 border border-orange-500/30' : 'bg-slate-700/50'
                   }`}
                 >
                   <div>
@@ -192,13 +188,10 @@ async function ActiveTrials() {
                   <div className="flex items-center gap-3 text-right">
                     <div>
                       <p className="text-xs text-slate-400">IA restante</p>
-                      <p className={`text-sm font-medium ${usesLeft <= 5 ? 'text-orange-400' : 'text-emerald-400'}`}>
+                      <p className={`text-sm font-medium ${isLow ? 'text-orange-400' : 'text-emerald-400'}`}>
                         {usesLeft}/30
                       </p>
                     </div>
-                    <Badge className={isUrgent ? 'bg-orange-500 text-white' : 'bg-emerald-500/20 text-emerald-400'}>
-                      {daysLeft}j
-                    </Badge>
                   </div>
                 </div>
               )
@@ -335,7 +328,7 @@ export default function PlansPage() {
               <tbody className="text-white">
                 <tr className="border-b border-slate-700/50">
                   <td className="py-3 px-4">Durée</td>
-                  <td className="text-center py-3 px-4 text-emerald-400">14 jours</td>
+                  <td className="text-center py-3 px-4 text-emerald-400">Sans limite</td>
                   <td className="text-center py-3 px-4">Illimité</td>
                   <td className="text-center py-3 px-4">Illimité</td>
                 </tr>

@@ -2,7 +2,7 @@
  * Vérification et enforcement du quota IA par plan
  *
  * Logique :
- *   trial        → décrémente trial_ai_uses_remaining sur users (global 14j)
+ *   trial        → décrémente trial_ai_uses_remaining sur users (global 30 requêtes, sans limite de temps)
  *   pro          → monthly_ai_queries_used via feature_flags (reset mensuel)
  *   enterprise   → toujours autorisé (illimité)
  *   free         → jamais autorisé (no AI)
@@ -179,17 +179,10 @@ export async function getAiQuotaStatus(userId: string): Promise<{
 
   const plan: PlanType = row.plan || 'free'
 
-  let trialDaysRemaining: number | null = null
-  if (plan === 'trial' && row.trial_started_at) {
-    const trialMs = 14 * 24 * 60 * 60 * 1000
-    const expiresAt = new Date(row.trial_started_at).getTime() + trialMs
-    trialDaysRemaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / (1000 * 60 * 60 * 24)))
-  }
-
   return {
     plan,
     trialUsesRemaining: plan === 'trial' ? (row.trial_ai_uses_remaining ?? 30) : null,
-    trialDaysRemaining,
+    trialDaysRemaining: null, // Le trial n'a plus de limite temporelle
     monthlyUsed: plan === 'pro' ? (row.monthly_ai_queries_used ?? 0) : null,
     monthlyLimit: plan === 'pro' ? (row.monthly_ai_queries_limit ?? 200) : null,
   }

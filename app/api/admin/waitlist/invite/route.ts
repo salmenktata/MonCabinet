@@ -66,7 +66,7 @@ export const POST = withAdminApiAuth(async (request) => {
         to: row.email,
         subject: 'Votre invitation Qadhya est prête — Activez votre accès',
         html: getInvitationEmailHtml(`${row.prenom} ${row.nom}`, registerUrl),
-        text: `Bonjour ${row.prenom},\n\nVotre invitation Qadhya est prête. Cliquez ici pour activer votre essai 14 jours :\n\n${registerUrl}\n\nCe lien est valable 30 jours.\n\nL'équipe Qadhya`,
+        text: `Bonjour ${row.prenom},\n\nVotre invitation Qadhya est prête. Cliquez ici pour activer votre accès gratuit :\n\n${registerUrl}\n\nCe lien est valable 30 jours.\n\nL'équipe Qadhya`,
       })
 
       if (emailResult.success) {
@@ -103,7 +103,7 @@ function getInvitationEmailHtml(userName: string, registerUrl: string): string {
 
     <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin: 24px 0;">
       <p style="color: #1e40af; font-weight: 700; margin: 0 0 12px; font-size: 16px;">
-        Votre essai gratuit de 14 jours inclut :
+        Votre accès gratuit inclut :
       </p>
       <ul style="color: #1e3a8a; padding-left: 20px; margin: 0; line-height: 2;">
         <li>30 requêtes Qadhya IA juridique</li>

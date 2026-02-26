@@ -49,7 +49,7 @@ export default function AccesAnticipePage() {
             <p className="text-emerald-300 font-semibold text-sm mb-2">Ce qui vous attend :</p>
             <ul className="text-emerald-200 text-sm space-y-1">
               {[
-                '14 jours d\'essai complet, sans CB',
+                'Accès gratuit complet, sans CB',
                 '30 requêtes IA juridique incluses',
                 '+6 800 documents de droit tunisien',
                 'Structuration automatique des dossiers',
@@ -83,7 +83,7 @@ export default function AccesAnticipePage() {
           </h1>
           <p className="text-slate-300 text-lg">
             Inscrivez-vous maintenant pour recevoir votre invitation en priorité.
-            14 jours d'essai complet, sans carte bancaire.
+            Accès gratuit complet inclus, sans carte bancaire.
           </p>
         </div>
 
