@@ -28,7 +28,7 @@ export async function POST() {
     }
 
     // Vérifier config Brevo
-    if (!isBrevoConfigured()) {
+    if (!(await isBrevoConfigured())) {
       return NextResponse.json(
         { error: 'BREVO_API_KEY non configuré' },
         { status: 500 }
