@@ -121,6 +121,51 @@ const CRON_SCRIPTS: Record<string, { script: string; description: string; estima
     description: 'Maintenance Qualité KB (fill scores + rechunk + reindex articles)',
     estimatedDuration: 900000,
   },
+  'web-crawler': {
+    script: '/opt/qadhya/scripts/cron-web-crawler.sh',
+    description: 'Crawl Sources Web (9anoun, cassation, iort)',
+    estimatedDuration: 300000,
+  },
+  'crawl-iort': {
+    script: '/opt/qadhya/scripts/cron-crawl-iort.sh',
+    description: 'Crawl JORT Officiel',
+    estimatedDuration: 300000,
+  },
+  'monitor-rag': {
+    script: '/opt/qadhya/scripts/run-monitor-rag.sh',
+    description: 'Monitoring RAG Quotidien',
+    estimatedDuration: 60000,
+  },
+  'extract-metadata-cassation': {
+    script: '/opt/qadhya/scripts/extract-metadata-cassation.sh',
+    description: 'Extraction Métadonnées Cassation',
+    estimatedDuration: 120000,
+  },
+  'expire-trials': {
+    script: 'curl -s -X POST http://localhost:3000/api/admin/cron/expire-trials -H "Authorization: Bearer $CRON_SECRET"',
+    description: 'Expiration Périodes d\'Essai',
+    estimatedDuration: 30000,
+  },
+  'trial-onboarding': {
+    script: 'curl -s -X POST http://localhost:3000/api/admin/cron/trial-onboarding -H "Authorization: Bearer $CRON_SECRET"',
+    description: 'Onboarding Utilisateurs Essai',
+    estimatedDuration: 30000,
+  },
+  'check-renewals': {
+    script: 'curl -s -X POST http://localhost:3000/api/admin/cron/check-renewals -H "Authorization: Bearer $CRON_SECRET"',
+    description: 'Vérification Renouvellements',
+    estimatedDuration: 30000,
+  },
+  'docker-cleanup': {
+    script: '/opt/qadhya/scripts/docker-cleanup.sh',
+    description: 'Nettoyage Docker Hebdomadaire',
+    estimatedDuration: 120000,
+  },
+  'watchdog-vps': {
+    script: '/opt/qadhya/scripts/watchdog.sh',
+    description: 'Watchdog VPS (santé Docker/RAM/CPU)',
+    estimatedDuration: 10000,
+  },
 }
 
 export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
