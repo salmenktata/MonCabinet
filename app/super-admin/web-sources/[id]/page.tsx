@@ -8,15 +8,15 @@ import { db, query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Icons } from '@/lib/icons'
-import { Card, CardContent } from '@/components/ui/card'
 import { WebSourceActions } from '@/components/super-admin/web-sources/WebSourceActions'
-import { WebSourceHealthSummary } from '@/components/super-admin/web-sources/WebSourceHealthSummary'
 import { WebSourceActivityTabs } from '@/components/super-admin/web-sources/WebSourceActivityTabs'
 import { CollapsibleSection } from '@/components/super-admin/web-sources/CollapsibleSection'
 import { CategoryBadge } from '@/components/super-admin/web-sources/CategoryBadge'
 import { WebSourceTreeView } from '@/components/super-admin/web-sources/WebSourceTreeView'
-import { safeParseInt } from '@/lib/utils/safe-number'
+import { formatDistanceToNow } from 'date-fns'
+import { fr } from 'date-fns/locale'
 
 interface CodeStats {
   code_name: string
@@ -43,7 +43,6 @@ interface PageProps {
 }
 
 async function getWebSourceData(id: string) {
-  // Source - avec conversion de l'interval en texte
   const sourceResult = await db.query(
     `SELECT
       id, name, base_url, description, favicon_url,
@@ -63,11 +62,8 @@ async function getWebSourceData(id: string) {
     [id]
   )
 
-  if (sourceResult.rows.length === 0) {
-    return null
-  }
+  if (sourceResult.rows.length === 0) return null
 
-  // Sérialiser les dates et objets pour les composants client
   const rawSource = sourceResult.rows[0]
   const source = {
     ...rawSource,
@@ -82,118 +78,80 @@ async function getWebSourceData(id: string) {
     updated_at: rawSource.updated_at?.toISOString() || null,
   }
 
-  // Stats des pages
-  const statsResult = await db.query(
-    `SELECT
-      COUNT(*) as total,
-      COUNT(*) FILTER (WHERE status = 'indexed') as indexed,
-      COUNT(*) FILTER (WHERE status = 'crawled') as crawled,
-      COUNT(*) FILTER (WHERE status = 'failed') as failed,
-      COALESCE(SUM(word_count), 0) as total_words,
-      COALESCE(SUM(chunks_count), 0) as total_chunks
-    FROM web_pages
-    WHERE web_source_id = $1`,
-    [id]
-  )
+  const [statsResult, metadataStatsResult, pagesResult, categoryStatsResult, treeStatsResult, logsResult] =
+    await Promise.all([
+      db.query(
+        `SELECT
+          COUNT(*) as total,
+          COUNT(*) FILTER (WHERE status = 'indexed') as indexed,
+          COUNT(*) FILTER (WHERE status = 'crawled') as crawled,
+          COUNT(*) FILTER (WHERE status = 'failed') as failed,
+          COALESCE(SUM(word_count), 0) as total_words,
+          COALESCE(SUM(chunks_count), 0) as total_chunks
+        FROM web_pages WHERE web_source_id = $1`,
+        [id]
+      ),
+      db.query(
+        `SELECT COUNT(DISTINCT wpsm.web_page_id) as pages_with_metadata
+        FROM web_pages wp
+        LEFT JOIN web_page_structured_metadata wpsm ON wp.id = wpsm.web_page_id
+        WHERE wp.web_source_id = $1`,
+        [id]
+      ),
+      db.query(
+        `SELECT id, url, title, status, is_indexed, word_count, chunks_count, last_crawled_at
+        FROM web_pages WHERE web_source_id = $1
+        ORDER BY last_crawled_at DESC NULLS LAST LIMIT 10`,
+        [id]
+      ),
+      db.query(
+        `SELECT legal_domain, COUNT(*) as count, COUNT(*) FILTER (WHERE is_indexed = true) as indexed_count
+        FROM web_pages WHERE web_source_id = $1
+        GROUP BY legal_domain ORDER BY count DESC`,
+        [id]
+      ),
+      db.query(
+        `SELECT
+          COALESCE(legal_domain,
+            CASE WHEN url ~ '/kb/codes/' THEN 'codes' ELSE 'autre' END
+          ) as legal_domain,
+          COALESCE(site_structure->>'code_slug',
+            CASE WHEN url ~ '/kb/codes/([^/]+)' THEN substring(url from '/kb/codes/([^/]+)') ELSE 'autre' END
+          ) as code_slug,
+          MIN(COALESCE(site_structure->>'code_name_ar', site_structure->>'code_name_fr', title)) as code_name,
+          COUNT(*) as total_pages,
+          COUNT(*) FILTER (WHERE status = 'pending') as pending,
+          COUNT(*) FILTER (WHERE status = 'crawled') as crawled,
+          COUNT(*) FILTER (WHERE status = 'unchanged') as unchanged,
+          COUNT(*) FILTER (WHERE status = 'failed') as failed,
+          COUNT(*) FILTER (WHERE is_indexed = true) as indexed,
+          MAX(last_crawled_at) as last_crawl_at
+        FROM web_pages WHERE web_source_id = $1
+        GROUP BY 1, 2 ORDER BY 1, total_pages DESC`,
+        [id]
+      ),
+      db.query(
+        `SELECT * FROM web_crawl_logs WHERE web_source_id = $1
+        ORDER BY started_at DESC LIMIT 5`,
+        [id]
+      ),
+    ])
 
-  // Stats métadonnées structurées
-  const metadataStatsResult = await db.query(
-    `SELECT
-      COUNT(DISTINCT wpsm.web_page_id) as pages_with_metadata
-    FROM web_pages wp
-    LEFT JOIN web_page_structured_metadata wpsm ON wp.id = wpsm.web_page_id
-    WHERE wp.web_source_id = $1`,
-    [id]
-  )
-
-  // Dernières pages
-  const pagesResult = await db.query(
-    `SELECT id, url, title, status, is_indexed, word_count, chunks_count, last_crawled_at
-     FROM web_pages
-     WHERE web_source_id = $1
-     ORDER BY last_crawled_at DESC NULLS LAST
-     LIMIT 10`,
-    [id]
-  )
-
-  // Stats par catégorie juridique
-  const categoryStatsResult = await db.query(
-    `SELECT
-      legal_domain,
-      COUNT(*) as count,
-      COUNT(*) FILTER (WHERE is_indexed = true) as indexed_count
-     FROM web_pages
-     WHERE web_source_id = $1
-     GROUP BY legal_domain
-     ORDER BY count DESC`,
-    [id]
-  )
-
-  // Stats groupées par catégorie juridique et code
-  // Dérive legal_domain et code_slug depuis l'URL quand les métadonnées sont NULL
-  // GROUP BY uniquement sur legal_domain + code_slug (pas code_name qui est unique par article)
-  const treeStatsResult = await db.query(
-    `SELECT
-      COALESCE(legal_domain,
-        CASE
-          WHEN url ~ '/kb/codes/' THEN 'codes'
-          ELSE 'autre'
-        END
-      ) as legal_domain,
-      COALESCE(site_structure->>'code_slug',
-        CASE
-          WHEN url ~ '/kb/codes/([^/]+)' THEN
-            substring(url from '/kb/codes/([^/]+)')
-          ELSE 'autre'
-        END
-      ) as code_slug,
-      MIN(COALESCE(site_structure->>'code_name_ar', site_structure->>'code_name_fr', title)) as code_name,
-      COUNT(*) as total_pages,
-      COUNT(*) FILTER (WHERE status = 'pending') as pending,
-      COUNT(*) FILTER (WHERE status = 'crawled') as crawled,
-      COUNT(*) FILTER (WHERE status = 'unchanged') as unchanged,
-      COUNT(*) FILTER (WHERE status = 'failed') as failed,
-      COUNT(*) FILTER (WHERE is_indexed = true) as indexed,
-      MAX(last_crawled_at) as last_crawl_at
-     FROM web_pages
-     WHERE web_source_id = $1
-     GROUP BY 1, 2
-     ORDER BY 1, total_pages DESC`,
-    [id]
-  )
-
-  // Derniers logs
-  const logsResult = await db.query(
-    `SELECT *
-     FROM web_crawl_logs
-     WHERE web_source_id = $1
-     ORDER BY started_at DESC
-     LIMIT 5`,
-    [id]
-  )
-
-  // Sérialiser les pages
   const pages = pagesResult.rows.map(p => ({
     ...p,
     last_crawled_at: p.last_crawled_at?.toISOString() || null,
   }))
 
-  // Sérialiser les logs
   const logs = logsResult.rows.map(l => ({
     ...l,
     started_at: l.started_at?.toISOString() || null,
     completed_at: l.completed_at?.toISOString() || null,
   }))
 
-  // Grouper les stats par catégorie juridique
   const treeGroups = treeStatsResult.rows.reduce((acc, row) => {
     const domain = row.legal_domain || 'null'
     if (!acc[domain]) {
-      acc[domain] = {
-        legal_domain: row.legal_domain,
-        total_pages: 0,
-        codes: [],
-      }
+      acc[domain] = { legal_domain: row.legal_domain, total_pages: 0, codes: [] }
     }
     acc[domain].total_pages += parseInt(row.total_pages, 10)
     acc[domain].codes.push({
@@ -210,8 +168,6 @@ async function getWebSourceData(id: string) {
     return acc
   }, {} as Record<string, CategoryGroup>)
 
-  const treeData = Object.values(treeGroups) as CategoryGroup[]
-
   return {
     source,
     stats: {
@@ -219,7 +175,7 @@ async function getWebSourceData(id: string) {
       pages_with_metadata: metadataStatsResult.rows[0]?.pages_with_metadata || 0,
     },
     categoryStats: categoryStatsResult.rows,
-    treeData,
+    treeData: Object.values(treeGroups) as CategoryGroup[],
     pages,
     logs,
   }
@@ -228,24 +184,26 @@ async function getWebSourceData(id: string) {
 export default async function WebSourceDetailPage({ params }: PageProps) {
   const { id } = await params
 
-  // Récupérer le rôle utilisateur
   const session = await getSession()
   let userRole = 'user'
   if (session?.user?.id) {
     const userResult = await query('SELECT role FROM users WHERE id = $1', [session.user.id])
     userRole = userResult.rows[0]?.role || 'user'
   }
-  const isSuperAdmin = userRole === 'super_admin'
 
   const data = await getWebSourceData(id)
+  if (!data) notFound()
 
-  if (!data) {
-    notFound()
-  }
+  const { source, stats, treeData, pages, logs } = data
 
-  const { source, stats, categoryStats, treeData, pages, logs } = data
+  const total = parseInt(stats.total, 10)
+  const failed = parseInt(stats.failed, 10)
+  const indexed = parseInt(stats.indexed, 10)
+  const withMetadata = parseInt(stats.pages_with_metadata, 10)
+  const chunks = parseInt(stats.total_chunks, 10)
+  const successRate = total > 0 ? ((total - failed) / total) * 100 : 0
 
-  const healthColors: Record<string, string> = {
+  const healthDotColor: Record<string, string> = {
     healthy: 'bg-green-500',
     degraded: 'bg-yellow-500',
     failing: 'bg-red-500',
@@ -254,23 +212,28 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4 min-w-0">
           <Link href="/super-admin/web-sources">
-            <Button variant="ghost" size="sm" className="text-slate-400">
+            <Button variant="ghost" size="sm" className="text-slate-400 shrink-0">
               <Icons.arrowLeft className="h-4 w-4 mr-2" />
               Retour
             </Button>
           </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${healthColors[source.health_status]}`} />
-              <h1 className="text-2xl font-bold text-white">{source.name}</h1>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${healthDotColor[source.health_status]}`} />
+              <h1 className="text-xl font-bold text-white">{source.name}</h1>
               <CategoryBadge category={source.category} />
               {!source.is_active && (
-                <Badge variant="outline" className="border-slate-600 text-slate-400">
+                <Badge variant="outline" className="border-slate-600 text-slate-400 text-xs">
                   Inactive
+                </Badge>
+              )}
+              {!source.rag_enabled && (
+                <Badge variant="outline" className="border-red-500/50 text-red-400 text-xs">
+                  RAG off
                 </Badge>
               )}
             </div>
@@ -278,159 +241,168 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
               href={source.base_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-1 mt-1"
+              className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-1 mt-0.5"
             >
               <Icons.externalLink className="h-3 w-3" />
               {source.base_url}
             </a>
           </div>
         </div>
-
-        <WebSourceActions source={source} readOnly={!isSuperAdmin} />
+        <WebSourceActions source={source} readOnly={userRole !== 'super_admin'} />
       </div>
 
-      {/* Stats KPI - Position #2 (priorité) */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard
-          label="Pages crawlées"
-          value={parseInt(stats.total, 10)}
-          icon={<Icons.fileText className="h-4 w-4" />}
-        />
-        <StatCard
-          label="Pages indexées"
-          value={parseInt(stats.indexed, 10)}
-          icon={<Icons.checkCircle className="h-4 w-4" />}
+      {/* ── Strip KPI + Santé (8 colonnes) ──────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        <StatCell label="Pages" value={total} icon={<Icons.fileText className="h-3.5 w-3.5" />} />
+        <StatCell
+          label="Indexées"
+          value={indexed}
+          icon={<Icons.checkCircle className="h-3.5 w-3.5" />}
           color="green"
         />
-        <StatCard
-          label="Pages organisées"
-          value={parseInt(stats.pages_with_metadata, 10)}
-          icon={<Icons.sparkles className="h-4 w-4" />}
+        <StatCell
+          label="Organisées"
+          value={withMetadata}
+          icon={<Icons.sparkles className="h-3.5 w-3.5" />}
           color="orange"
-          subtitle={`${((parseInt(stats.pages_with_metadata, 10) / parseInt(stats.total, 10)) * 100).toFixed(1)}%`}
+          subtitle={total > 0 ? `${((withMetadata / total) * 100).toFixed(0)}%` : undefined}
         />
-        <StatCard
+        <StatCell
           label="Chunks RAG"
-          value={parseInt(stats.total_chunks, 10)}
-          icon={<Icons.box className="h-4 w-4" />}
+          value={chunks}
+          icon={<Icons.box className="h-3.5 w-3.5" />}
           color="purple"
         />
-        <StatCard
-          label="En erreur"
-          value={parseInt(stats.failed, 10)}
-          icon={<Icons.alertTriangle className="h-4 w-4" />}
-          color={parseInt(stats.failed, 10) > 0 ? 'red' : 'slate'}
+        <StatCell
+          label="Erreurs"
+          value={failed}
+          icon={<Icons.alertTriangle className="h-3.5 w-3.5" />}
+          color={failed > 0 ? 'red' : 'slate'}
+        />
+        <StatCell
+          label="Dernier crawl"
+          icon={<Icons.clock className="h-3.5 w-3.5" />}
+          text={
+            source.last_crawl_at
+              ? formatDistanceToNow(new Date(source.last_crawl_at), { addSuffix: true, locale: fr })
+              : 'Jamais'
+          }
+        />
+        <StatCell
+          label="Prochain crawl"
+          icon={<Icons.calendar className="h-3.5 w-3.5" />}
+          text={
+            source.next_crawl_at
+              ? formatDistanceToNow(new Date(source.next_crawl_at), { addSuffix: true, locale: fr })
+              : 'Non planifié'
+          }
+        />
+        <StatCell
+          label="Taux succès"
+          icon={<Icons.target className="h-3.5 w-3.5" />}
+          text={`${successRate.toFixed(0)}%`}
+          color={successRate >= 90 ? 'green' : successRate >= 70 ? 'orange' : 'red'}
         />
       </div>
 
-      {/* Résumé Santé */}
-      <WebSourceHealthSummary
-        lastCrawlAt={source.last_crawl_at}
-        nextCrawlAt={source.next_crawl_at}
-        totalPages={parseInt(stats.total, 10)}
-        failedPages={parseInt(stats.failed, 10)}
-        healthStatus={source.health_status}
-      />
-
-      {/* Arbre hiérarchique - Collapsible */}
-      {treeData && treeData.length > 0 && (
-        <CollapsibleSection
-          title="Pages par catégorie et code"
-          subtitle={`${treeData.reduce((sum: number, g: any) => sum + g.total_pages, 0)} pages`}
-          defaultOpen={true}
-        >
-          <WebSourceTreeView groups={treeData} sourceId={id} />
-        </CollapsibleSection>
-      )}
-
-      {/* Activité récente - Tabs unifié */}
-      <WebSourceActivityTabs pages={pages} logs={logs} sourceId={id} />
-
-      {/* Configuration technique - Collapsible (caché par défaut) */}
-      <CollapsibleSection title="Configuration technique" subtitle="10 paramètres" defaultOpen={false}>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span className="text-slate-400">Fréquence</span>
-            <p className="text-white">{source.crawl_frequency}</p>
-          </div>
-          <div>
-            <span className="text-slate-400">Profondeur max</span>
-            <p className="text-white">{source.max_depth} niveaux</p>
-          </div>
-          <div>
-            <span className="text-slate-400">Limite pages</span>
-            <p className="text-white">{source.max_pages}</p>
-          </div>
-          <div>
-            <span className="text-slate-400">Rate limit</span>
-            <p className="text-white">{source.rate_limit_ms}ms</p>
-          </div>
-          <div>
-            <span className="text-slate-400">JavaScript</span>
-            <p className="text-white">{source.requires_javascript ? 'Oui' : 'Non'}</p>
-          </div>
-          <div>
-            <span className="text-slate-400">Téléchargement fichiers</span>
-            <p className="text-white">{source.download_files ? 'Oui' : 'Non'}</p>
-          </div>
-          <div>
-            <span className="text-slate-400">SSL strict</span>
-            <p className="text-white">{source.ignore_ssl_errors ? 'Désactivé' : 'Oui'}</p>
-          </div>
-          <div>
-            <span className="text-slate-400">Auto-indexation PDF</span>
-            <p className="text-white">{source.auto_index_files ? 'Oui' : 'Non'}</p>
-          </div>
-          <div>
-            <span className="text-slate-400">Dernier crawl</span>
-            <p className="text-white">
-              {source.last_crawl_at
-                ? new Date(source.last_crawl_at).toLocaleString('fr-FR')
-                : 'Jamais'}
-            </p>
-          </div>
-          <div>
-            <span className="text-slate-400">Prochain crawl</span>
-            <p className="text-white">
-              {source.next_crawl_at
-                ? new Date(source.next_crawl_at).toLocaleString('fr-FR')
-                : '-'}
-            </p>
-          </div>
+      {/* ── Contenu principal : 2 colonnes ─────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+        {/* Colonne gauche : TreeView */}
+        <div className="lg:col-span-3">
+          {treeData.length > 0 ? (
+            <CollapsibleSection
+              title="Pages par catégorie et code"
+              subtitle={`${treeData.reduce((s, g) => s + g.total_pages, 0)} pages`}
+              defaultOpen={true}
+            >
+              <WebSourceTreeView groups={treeData} sourceId={id} />
+            </CollapsibleSection>
+          ) : (
+            <Card className="bg-slate-800 border-slate-700">
+              <CardContent className="py-12 text-center text-slate-400">
+                <Icons.fileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">Aucune page crawlée</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      </CollapsibleSection>
+
+        {/* Colonne droite : Activité + Config */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Activité récente */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-base">Activité récente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WebSourceActivityTabs pages={pages} logs={logs} sourceId={id} />
+            </CardContent>
+          </Card>
+
+          {/* Configuration technique */}
+          <CollapsibleSection title="Configuration" subtitle="technique" defaultOpen={false}>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <ConfigItem label="Fréquence" value={source.crawl_frequency} />
+              <ConfigItem label="Profondeur max" value={`${source.max_depth} niveaux`} />
+              <ConfigItem label="Limite pages" value={String(source.max_pages)} />
+              <ConfigItem label="Rate limit" value={`${source.rate_limit_ms}ms`} />
+              <ConfigItem label="JavaScript" value={source.requires_javascript ? 'Oui' : 'Non'} />
+              <ConfigItem label="Fichiers PDF" value={source.download_files ? 'Oui' : 'Non'} />
+              <ConfigItem label="SSL strict" value={source.ignore_ssl_errors ? 'Désactivé' : 'Oui'} />
+              <ConfigItem label="Auto-index PDF" value={source.auto_index_files ? 'Oui' : 'Non'} />
+            </div>
+          </CollapsibleSection>
+        </div>
+      </div>
     </div>
   )
 }
 
-interface StatCardProps {
+// ── Composants locaux ──────────────────────────────────────────────────────────
+
+interface StatCellProps {
   label: string
-  value: number
+  value?: number
+  text?: string
   icon: React.ReactNode
   color?: 'blue' | 'green' | 'purple' | 'red' | 'slate' | 'orange'
   subtitle?: string
 }
 
-function StatCard({ label, value, icon, color = 'blue', subtitle }: StatCardProps) {
-  const colors = {
-    blue: 'text-blue-400',
-    green: 'text-green-400',
-    purple: 'text-purple-400',
-    red: 'text-red-400',
-    slate: 'text-slate-400',
-    orange: 'text-orange-400',
-  }
+const colorMap = {
+  blue: 'text-blue-400',
+  green: 'text-green-400',
+  purple: 'text-purple-400',
+  red: 'text-red-400',
+  slate: 'text-slate-400',
+  orange: 'text-orange-400',
+}
 
+function StatCell({ label, value, text, icon, color = 'blue', subtitle }: StatCellProps) {
+  const colorClass = colorMap[color]
   return (
-    <div className="bg-slate-800/50 rounded-lg p-4">
-      <div className={`flex items-center gap-2 ${colors[color]}`}>
+    <div className="bg-slate-800/50 rounded-lg p-3">
+      <div className={`flex items-center gap-1.5 mb-1 ${colorClass}`}>
         {icon}
-        <span className="text-sm text-slate-400">{label}</span>
+        <span className="text-xs text-slate-400 truncate">{label}</span>
       </div>
-      <div className="flex items-baseline gap-2 mt-1">
-        <p className="text-2xl font-bold text-white">{value}</p>
-        {subtitle && <span className="text-sm text-slate-500">{subtitle}</span>}
-      </div>
+      {value !== undefined ? (
+        <div className="flex items-baseline gap-1.5">
+          <p className="text-xl font-bold text-white">{value.toLocaleString()}</p>
+          {subtitle && <span className="text-xs text-slate-500">{subtitle}</span>}
+        </div>
+      ) : (
+        <p className={`text-sm font-medium ${colorClass} truncate`}>{text}</p>
+      )}
+    </div>
+  )
+}
+
+function ConfigItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="text-slate-400 text-xs">{label}</span>
+      <p className="text-white text-sm">{value}</p>
     </div>
   )
 }
