@@ -120,11 +120,13 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
     total: 0,
     totalPages: 0,
   })
+  const [showArchived, setShowArchived] = useState(false)
   const [stats, setStats] = useState({
     totalFiles: 0,
     totalSize: 0,
     byType: {} as Record<string, number>,
     byStatus: { pending: 0, downloaded: 0, indexed: 0, error: 0 },
+    archived: { totalFiles: 0, totalSize: 0, indexed: 0, byType: {} as Record<string, number> },
   })
 
   const fetchFiles = useCallback(async () => {
@@ -154,6 +156,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         totalSize: 0,
         byType: {},
         byStatus: { pending: 0, downloaded: 0, indexed: 0, error: 0 },
+        archived: { totalFiles: 0, totalSize: 0, indexed: 0, byType: {} },
       })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erreur chargement fichiers')
@@ -265,7 +268,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         </div>
       </div>
 
-      {/* Types breakdown */}
+      {/* Types breakdown — sources actives */}
       {Object.keys(stats.byType).length > 0 && (
         <div className="flex flex-wrap gap-2">
           {Object.entries(stats.byType).map(([type, count]) => (
@@ -277,6 +280,55 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
               {type.toUpperCase()}: {count}
             </Badge>
           ))}
+        </div>
+      )}
+
+      {/* Section fichiers archivés (sources inactives) */}
+      {stats.archived.totalFiles > 0 && (
+        <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setShowArchived(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-slate-800/30 hover:bg-slate-800/50 transition-colors text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Icons.archive className="h-4 w-4 text-slate-500" />
+              <span className="text-sm text-slate-400">
+                Fichiers archivés — sources inactives
+              </span>
+              <Badge variant="outline" className="border-slate-600 text-slate-500 text-xs">
+                {stats.archived.totalFiles} fichiers · {formatFileSize(stats.archived.totalSize)}
+              </Badge>
+              <span className="text-xs text-slate-600">Non accessibles dans le RAG</span>
+            </div>
+            {showArchived ? (
+              <Icons.chevronUp className="h-4 w-4 text-slate-500" />
+            ) : (
+              <Icons.chevronDown className="h-4 w-4 text-slate-500" />
+            )}
+          </button>
+          {showArchived && (
+            <div className="px-4 py-3 bg-slate-900/30 space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-slate-800/40 rounded p-3 border border-slate-700/30">
+                  <p className="text-xs text-slate-500 mb-1">Total</p>
+                  <p className="text-lg font-semibold text-slate-400">{stats.archived.totalFiles}</p>
+                  <p className="text-xs text-slate-600">{formatFileSize(stats.archived.totalSize)}</p>
+                </div>
+                <div className="bg-slate-800/40 rounded p-3 border border-slate-700/30">
+                  <p className="text-xs text-slate-500 mb-1">Indexés (désactivés)</p>
+                  <p className="text-lg font-semibold text-slate-400">{stats.archived.indexed}</p>
+                </div>
+                <div className="bg-slate-800/40 rounded p-3 border border-slate-700/30">
+                  <p className="text-xs text-slate-500 mb-1">Types</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {Object.entries(stats.archived.byType).map(([type, count]) => (
+                      <span key={type} className="text-xs text-slate-500">{type.toUpperCase()}: {count}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

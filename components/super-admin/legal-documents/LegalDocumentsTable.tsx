@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { bulkApproveLegalDocuments } from '@/app/actions/legal-documents'
+import { bulkApproveLegalDocuments, bulkReindexLegalDocuments } from '@/app/actions/legal-documents'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -143,6 +143,7 @@ export function LegalDocumentsTable({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
   const [approvingId, setApprovingId] = useState<string | null>(null)
+  const [reindexingId, setReindexingId] = useState<string | null>(null)
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds)
@@ -155,23 +156,53 @@ export function LegalDocumentsTable({
     setSelectedIds(selectedIds.size === docs.length ? new Set() : new Set(docs.map(d => d.id)))
   }
 
-  const handleBulkAction = async (action: 'approve' | 'revoke') => {
+  const handleBulkAction = async (action: 'approve' | 'revoke' | 'reindex') => {
     if (selectedIds.size === 0) return
     setBulkLoading(true)
     try {
-      const result = await bulkApproveLegalDocuments(action, Array.from(selectedIds))
-      if (result.error) {
-        toast.error(result.error)
+      if (action === 'reindex') {
+        const result = await bulkReindexLegalDocuments(Array.from(selectedIds))
+        if (result.error) {
+          toast.error(result.error)
+        } else {
+          const failedMsg = result.failed > 0 ? ` (${result.failed} échec(s))` : ''
+          toast.success(`${result.indexed} document(s) réindexé(s)${failedMsg}`)
+          setSelectedIds(new Set())
+          router.refresh()
+        }
       } else {
-        const label = action === 'approve' ? 'approuvé(s)' : 'révoqué(s)'
-        toast.success(`${result.count} document(s) ${label}`)
-        setSelectedIds(new Set())
-        router.refresh()
+        const result = await bulkApproveLegalDocuments(action, Array.from(selectedIds))
+        if (result.error) {
+          toast.error(result.error)
+        } else {
+          const label = action === 'approve' ? 'approuvé(s)' : 'révoqué(s)'
+          toast.success(`${result.count} document(s) ${label}`)
+          setSelectedIds(new Set())
+          router.refresh()
+        }
       }
     } catch {
       toast.error("Erreur lors de l'action groupée")
     } finally {
       setBulkLoading(false)
+    }
+  }
+
+  const handleQuickReindex = async (docId: string) => {
+    setReindexingId(docId)
+    try {
+      const res = await fetch(`/api/admin/legal-documents/${docId}/reindex`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || "Erreur lors de la réindexation")
+      } else {
+        toast.success(`Réindexé — ${data.chunksCreated ?? 0} chunks créés`)
+        router.refresh()
+      }
+    } catch {
+      toast.error('Erreur réseau')
+    } finally {
+      setReindexingId(null)
     }
   }
 
@@ -183,7 +214,7 @@ export function LegalDocumentsTable({
       if (!res.ok) {
         toast.error(data.error || "Erreur lors de l'approbation")
       } else {
-        toast.success(`Approuvé — ${data.chunks_count ?? 0} chunks indexés`)
+        toast.success(`Approuvé — ${data.indexing?.chunksCreated ?? 0} chunks indexés`)
         router.refresh()
       }
     } catch {
@@ -236,6 +267,22 @@ export function LegalDocumentsTable({
             </Button>
             <Button
               size="sm"
+              variant="outline"
+              onClick={() => handleBulkAction('reindex')}
+              disabled={bulkLoading}
+              className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 h-7 text-xs"
+            >
+              {bulkLoading ? (
+                <Icons.loader className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <>
+                  <Icons.database className="h-3.5 w-3.5 mr-1" />
+                  Réindexer
+                </>
+              )}
+            </Button>
+            <Button
+              size="sm"
               variant="ghost"
               onClick={() => setSelectedIds(new Set())}
               className="text-slate-400 h-7 text-xs"
@@ -281,7 +328,9 @@ export function LegalDocumentsTable({
             ) : (
               docs.map((doc) => {
                 const canQuickApprove = doc.consolidation_status === 'complete' && !doc.is_approved
+                const canQuickReindex = doc.is_approved && !doc.is_abrogated
                 const isApproving = approvingId === doc.id
+                const isReindexing = reindexingId === doc.id
                 const stalenessRatio = doc.staleness_threshold > 0
                   ? Math.min((doc.staleness_days ?? 0) / doc.staleness_threshold, 1)
                   : 0
@@ -482,6 +531,22 @@ export function LegalDocumentsTable({
                               <Icons.loader className="h-3.5 w-3.5 animate-spin" />
                             ) : (
                               <Icons.checkCircle className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
+                        {canQuickReindex && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleQuickReindex(doc.id)}
+                            disabled={isReindexing}
+                            className="h-7 w-7 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                            title={parseInt(doc.chunks_count) === 0 ? 'Indexer (première indexation)' : 'Réindexer (re-chunking + re-embedding)'}
+                          >
+                            {isReindexing ? (
+                              <Icons.loader className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Icons.database className="h-3.5 w-3.5" />
                             )}
                           </Button>
                         )}

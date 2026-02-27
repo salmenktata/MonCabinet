@@ -37,6 +37,56 @@ async function checkAdminAccess(): Promise<{ userId: string } | { error: string 
   return { userId: session.user.id }
 }
 
+export async function bulkReindexLegalDocuments(
+  documentIds: string[]
+): Promise<{ success: boolean; indexed: number; failed: number; error?: string }> {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { success: false, indexed: 0, failed: 0, error: authCheck.error }
+    }
+
+    if (!documentIds.length) {
+      return { success: false, indexed: 0, failed: 0, error: 'Aucun document sélectionné' }
+    }
+
+    const eligibleResult = await db.query<{ id: string }>(
+      `SELECT id FROM legal_documents
+       WHERE id = ANY($1::uuid[])
+         AND is_approved = true
+         AND consolidation_status = 'complete'`,
+      [documentIds]
+    )
+
+    if (eligibleResult.rows.length === 0) {
+      return { success: false, indexed: 0, failed: 0, error: 'Aucun document éligible (approuvé + consolidé)' }
+    }
+
+    const results = await Promise.allSettled(
+      eligibleResult.rows.map(r => indexLegalDocument(r.id))
+    )
+
+    let indexed = 0
+    let failed = 0
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value.success) indexed++
+      else failed++
+    }
+
+    revalidatePath('/super-admin/legal-documents')
+
+    return { success: indexed > 0, indexed, failed }
+  } catch (error) {
+    console.error('Erreur bulk reindex legal documents:', error)
+    return {
+      success: false,
+      indexed: 0,
+      failed: 0,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    }
+  }
+}
+
 export async function bulkApproveLegalDocuments(
   action: 'approve' | 'revoke',
   documentIds: string[]
@@ -58,6 +108,15 @@ export async function bulkApproveLegalDocuments(
          SET is_approved = true, approved_at = NOW(), approved_by = $1, updated_at = NOW()
          WHERE id = ANY($2::uuid[]) AND consolidation_status = 'complete'`,
         [authCheck.userId, documentIds]
+      )
+      // Restaurer la visibilité KB pour les docs qui avaient été révoqués précédemment
+      await db.query(
+        `UPDATE knowledge_base SET is_active = true, updated_at = NOW()
+         WHERE id IN (
+           SELECT knowledge_base_id FROM legal_documents
+           WHERE id = ANY($1::uuid[]) AND knowledge_base_id IS NOT NULL
+         )`,
+        [documentIds]
       )
       // Déclencher l'indexation pour les docs approuvés sans entrée KB
       const toIndex = await db.query<{ id: string }>(

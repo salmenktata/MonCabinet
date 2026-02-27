@@ -51,6 +51,12 @@ interface WebFilesStats {
     indexed: number
     error: number
   }
+  archived: {
+    totalFiles: number
+    totalSize: number
+    indexed: number
+    byType: Record<string, number>
+  }
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -164,28 +170,57 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       [...params, limit, offset]
     )
 
-    // Calculer les stats globales (sans filtres de pagination)
+    // Calculer les stats des sources actives (rag_enabled=true)
     const statsResult = await db.query(
       `SELECT
         COUNT(*) as total_files,
-        COALESCE(SUM(file_size), 0) as total_size,
-        COUNT(*) FILTER (WHERE is_downloaded = false AND download_error IS NULL) as pending,
-        COUNT(*) FILTER (WHERE is_downloaded = true AND is_indexed = false AND parse_error IS NULL) as downloaded,
-        COUNT(*) FILTER (WHERE is_indexed = true) as indexed,
-        COUNT(*) FILTER (WHERE download_error IS NOT NULL OR parse_error IS NOT NULL) as error
-      FROM web_files`
+        COALESCE(SUM(wf.file_size), 0) as total_size,
+        COUNT(*) FILTER (WHERE wf.is_downloaded = false AND wf.download_error IS NULL) as pending,
+        COUNT(*) FILTER (WHERE wf.is_downloaded = true AND wf.is_indexed = false AND wf.parse_error IS NULL) as downloaded,
+        COUNT(*) FILTER (WHERE wf.is_indexed = true) as indexed,
+        COUNT(*) FILTER (WHERE wf.download_error IS NOT NULL OR wf.parse_error IS NOT NULL) as error
+      FROM web_files wf
+      JOIN web_sources ws ON ws.id = wf.web_source_id
+      WHERE ws.rag_enabled = true`
     )
 
     const typeStatsResult = await db.query(
-      `SELECT file_type, COUNT(*) as count
-       FROM web_files
-       GROUP BY file_type
+      `SELECT wf.file_type, COUNT(*) as count
+       FROM web_files wf
+       JOIN web_sources ws ON ws.id = wf.web_source_id
+       WHERE ws.rag_enabled = true
+       GROUP BY wf.file_type
+       ORDER BY count DESC`
+    )
+
+    // Stats des fichiers archivés (sources inactives, rag_enabled=false)
+    const archivedStatsResult = await db.query(
+      `SELECT
+        COUNT(*) as total_files,
+        COALESCE(SUM(wf.file_size), 0) as total_size,
+        COUNT(*) FILTER (WHERE wf.is_indexed = true) as indexed
+      FROM web_files wf
+      JOIN web_sources ws ON ws.id = wf.web_source_id
+      WHERE ws.rag_enabled = false`
+    )
+
+    const archivedTypeStatsResult = await db.query(
+      `SELECT wf.file_type, COUNT(*) as count
+       FROM web_files wf
+       JOIN web_sources ws ON ws.id = wf.web_source_id
+       WHERE ws.rag_enabled = false
+       GROUP BY wf.file_type
        ORDER BY count DESC`
     )
 
     const byType: Record<string, number> = {}
     for (const row of typeStatsResult.rows) {
       byType[row.file_type] = parseInt(row.count, 10)
+    }
+
+    const archivedByType: Record<string, number> = {}
+    for (const row of archivedTypeStatsResult.rows) {
+      archivedByType[row.file_type] = parseInt(row.count, 10)
     }
 
     const stats: WebFilesStats = {
@@ -197,6 +232,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         downloaded: parseInt(statsResult.rows[0].downloaded, 10),
         indexed: parseInt(statsResult.rows[0].indexed, 10),
         error: parseInt(statsResult.rows[0].error, 10),
+      },
+      archived: {
+        totalFiles: parseInt(archivedStatsResult.rows[0].total_files, 10),
+        totalSize: parseInt(archivedStatsResult.rows[0].total_size, 10),
+        indexed: parseInt(archivedStatsResult.rows[0].indexed, 10),
+        byType: archivedByType,
       },
     }
 

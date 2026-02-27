@@ -321,6 +321,35 @@ export async function getContradictions(options?: {
 }
 
 /**
+ * Résout une contradiction (version admin — récupère la session en interne)
+ */
+export async function resolveContradictionByAdmin(
+  contradictionId: string,
+  resolution: {
+    status: 'resolved' | 'dismissed'
+    notes: string
+    action?: string
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { getSession } = await import('@/lib/auth/session')
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return { success: false, error: 'Non authentifié' }
+    }
+    await resolveContradiction(contradictionId, session.user.id, resolution)
+    revalidatePath('/super-admin/contradictions')
+    revalidatePath(`/super-admin/contradictions/${contradictionId}`)
+    return { success: true }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    }
+  }
+}
+
+/**
  * Résout une contradiction
  */
 export async function resolveContradictionAction(

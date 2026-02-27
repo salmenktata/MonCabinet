@@ -60,6 +60,14 @@ export async function POST(
     // Approuver
     await approveDocument(id, session.user.id)
 
+    // Restaurer la visibilité KB si elle avait été révoquée précédemment
+    if (doc.knowledgeBaseId) {
+      await db.query(
+        `UPDATE knowledge_base SET is_active = true, updated_at = NOW() WHERE id = $1`,
+        [doc.knowledgeBaseId]
+      )
+    }
+
     // Déclencher indexation RAG automatiquement après approbation
     let indexingResult = null
     try {
