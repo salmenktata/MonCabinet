@@ -771,31 +771,77 @@ async function crawlFormResults(
     return []
   }
 
-  const { tokens } = csrfResult
+  const { tokens, sessionCookies } = csrfResult
   const allLinks: string[] = []
+  const baseOrigin = new URL(pageUrl).origin
+
+  // Headers communs pour toutes les requêtes (POST + GET pagination)
+  const commonHeaders: Record<string, string> = {
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'ar,fr;q=0.9,en;q=0.8',
+    'Referer': pageUrl,
+    'Origin': baseOrigin,
+  }
+  // Transmettre le cookie de session TYPO3 (requis pour pagination)
+  if (sessionCookies) {
+    commonHeaders['Cookie'] = sessionCookies
+  }
+
+  // Extrait les liens de détail depuis un HTML parsé (helper interne)
+  function extractDecisionLinks(html: string): string[] {
+    const $page = cheerio.load(html)
+    const links: string[] = []
+    $page('.tx-upload-example a[href]').each((_, el) => {
+      const href = $page(el).attr('href')
+      if (!href) return
+      const absoluteUrl = href.startsWith('http')
+        ? href
+        : `${baseOrigin}${href.startsWith('/') ? '' : '/'}${href}`
+      if (
+        absoluteUrl.startsWith(baseOrigin) &&
+        !absoluteUrl.includes('#') &&
+        !absoluteUrl.toLowerCase().endsWith('.pdf')
+      ) {
+        links.push(absoluteUrl)
+      }
+    })
+    return links
+  }
+
+  // Extrait toutes les URLs de pagination TYPO3 (f3-widget-paginator)
+  function extractPaginationUrls(html: string): string[] {
+    const $page = cheerio.load(html)
+    const urls: string[] = []
+    $page('ul.f3-widget-paginator a[href], .f3-widget-paginator a[href]').each((_, el) => {
+      const href = $page(el).attr('href')
+      if (!href) return
+      const abs = href.startsWith('http')
+        ? href
+        : `${baseOrigin}${href.startsWith('/') ? '' : '/'}${href}`
+      // Garder uniquement les liens de pagination (contiennent currentPage)
+      if (abs.includes('currentPage') || abs.includes('@widget')) {
+        urls.push(abs)
+      }
+    })
+    // Dédupliquer
+    return [...new Set(urls)]
+  }
 
   // Déterminer les thèmes à crawler
   const themeCodes = config.themes || Object.keys(CASSATION_THEMES)
 
-  console.log(`[Crawler] Formulaire TYPO3: ${themeCodes.length} thèmes à crawler`)
+  console.log(`[Crawler] Formulaire TYPO3: ${themeCodes.length} thèmes à crawler (pagination activée)`)
 
   for (const themeCode of themeCodes) {
     try {
-      // Construire le body POST pour ce thème
+      // POST de recherche — page 1
       const body = buildSearchPostBody(tokens, { theme: themeCode })
-
-      // POST de recherche
       const result = await fetchHtml(tokens.formAction, {
         method: 'POST',
         body,
         ignoreSSLErrors,
         stealthMode: true,
-        headers: {
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'ar,fr;q=0.9,en;q=0.8',
-          'Referer': pageUrl,
-          'Origin': new URL(pageUrl).origin,
-        },
+        headers: commonHeaders,
       })
 
       if (!result.success || !result.html) {
@@ -803,32 +849,27 @@ async function crawlFormResults(
         continue
       }
 
-      // Parser les résultats
-      const $ = cheerio.load(result.html)
-      const baseOrigin = new URL(pageUrl).origin
+      // Extraire liens page 1
+      const page1Links = extractDecisionLinks(result.html)
+      allLinks.push(...page1Links)
 
-      // Extraire les liens de détail dans le conteneur de résultats
-      $('.tx-upload-example a[href]').each((_, el) => {
-        const href = $(el).attr('href')
-        if (!href) return
-
-        const absoluteUrl = href.startsWith('http')
-          ? href
-          : `${baseOrigin}${href.startsWith('/') ? '' : '/'}${href}`
-
-        // Exclure les liens externes, les ancres et les PDFs
-        if (
-          absoluteUrl.startsWith(baseOrigin) &&
-          !absoluteUrl.includes('#') &&
-          !absoluteUrl.toLowerCase().endsWith('.pdf')
-        ) {
-          allLinks.push(absoluteUrl)
+      // Pagination : suivre toutes les pages supplémentaires
+      const paginationUrls = extractPaginationUrls(result.html)
+      if (paginationUrls.length > 0) {
+        console.log(`[Crawler] Thème ${themeCode}: pagination détectée (${paginationUrls.length} pages)`)
+        for (const pageUrl2 of paginationUrls) {
+          if (rateLimitMs > 0) await sleep(rateLimitMs)
+          const pageResult = await fetchHtml(pageUrl2, {
+            ignoreSSLErrors,
+            stealthMode: true,
+            headers: commonHeaders,
+          })
+          if (pageResult.success && pageResult.html) {
+            const pageLinks = extractDecisionLinks(pageResult.html)
+            allLinks.push(...pageLinks)
+          }
         }
-      })
-
-      // NOTE: On ne collecte PAS les liens PDF ici.
-      // Les PDFs seront découverts naturellement quand processPage()
-      // crawlera les pages de détail, et downloadLinkedFiles() les gérera.
+      }
 
       const themeName = CASSATION_THEMES[themeCode]?.fr || themeCode
       const themeIdx = themeCodes.indexOf(themeCode) + 1
@@ -838,7 +879,7 @@ async function crawlFormResults(
       console.error(`[Crawler] Erreur thème ${themeCode}:`, themeError instanceof Error ? themeError.message : themeError)
     }
 
-    // Rate limiting entre chaque POST
+    // Rate limiting entre chaque thème
     if (rateLimitMs > 0) {
       await sleep(rateLimitMs)
     }
