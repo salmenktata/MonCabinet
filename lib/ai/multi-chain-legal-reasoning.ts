@@ -840,7 +840,7 @@ async function executeChain3(
 
 function getChain3SystemPrompt(language: 'fr' | 'ar'): string {
   if (language === 'ar') {
-    return `أنت محامٍ تونسي خبير في البناء الجدلي القانوني.
+    return `أنت خبير قانوني تونسي متخصص في البناء الجدلي القانوني.
 
 قدم تحليلاً جدليًا كاملاً:
 1. الأطروحة: الحجج لصالح الموقف الرئيسي
@@ -851,7 +851,7 @@ function getChain3SystemPrompt(language: 'fr' | 'ar'): string {
 كل حجة يجب أن تكون مصدرها وثقتها واضحة.`
   }
 
-  return `Tu es un avocat tunisien expert en construction argumentaire juridique dialectique.
+  return `Tu es un expert juridique tunisien spécialisé en construction argumentaire juridique dialectique.
 
 Fournis une analyse dialectique complète :
 1. Thèse : Arguments en faveur de la position principale
