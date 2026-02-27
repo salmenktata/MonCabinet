@@ -260,7 +260,7 @@ async function DashboardOnboarding({ userId }: { userId: string }) {
   const [clientsResult, dossiersResult, convsResult] = await Promise.all([
     query('SELECT id FROM clients WHERE user_id = $1 LIMIT 1', [userId]),
     query('SELECT id FROM dossiers WHERE user_id = $1 LIMIT 1', [userId]),
-    query('SELECT id FROM conversations WHERE user_id = $1 LIMIT 1', [userId]),
+    query('SELECT id FROM chat_conversations WHERE user_id = $1 LIMIT 1', [userId]),
   ])
 
   const hasClients = clientsResult.rows.length > 0
