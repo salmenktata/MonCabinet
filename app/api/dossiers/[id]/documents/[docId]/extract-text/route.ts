@@ -1,7 +1,7 @@
 /**
  * API Route - Extraction de texte d'un document client (MinIO)
  *
- * GET /api/dossiers/[dossierId]/documents/[docId]/extract-text
+ * GET /api/dossiers/[id]/documents/[docId]/extract-text
  *
  * Télécharge le fichier depuis MinIO et extrait le texte (PDF, DOCX).
  * Utilisé pour la fonctionnalité "Lire le texte" dans les dossiers clients.
@@ -35,7 +35,7 @@ function getMimeFileType(mimeType: string): string {
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ dossierId: string; docId: string }> }
+  { params }: { params: Promise<{ id: string; docId: string }> }
 ) {
   try {
     const session = await getSession()
@@ -43,7 +43,7 @@ export async function GET(
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    const { dossierId, docId } = await params
+    const { id: dossierId, docId } = await params
 
     // Récupérer le document + vérifier propriété
     const docResult = await query(
