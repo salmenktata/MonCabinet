@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import { getStalenessThreshold } from '@/lib/legal-documents/freshness-service'
 import { LegalDocumentsTable } from '@/components/super-admin/legal-documents/LegalDocumentsTable'
+import { LegalHierarchyNav } from '@/components/super-admin/legal-documents/LegalHierarchyNav'
 import { ImportLegalDocumentsDialog } from '@/components/super-admin/legal-documents/ImportLegalDocumentsDialog'
 import { normalizeLegalCategory, LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
 import { safeParseInt } from '@/lib/utils/safe-number'
@@ -21,6 +22,7 @@ interface PageProps {
     category?: string
     type?: string
     status?: string
+    norm_level?: string
   }>
 }
 
@@ -63,7 +65,7 @@ const CONSOLIDATION_LABELS: Record<string, string> = {
 }
 
 function buildFilterParams(
-  current: { category?: string; type?: string; status?: string },
+  current: { category?: string; type?: string; status?: string; norm_level?: string },
   override: Record<string, string | undefined>
 ): string {
   const merged = { ...current, ...override, page: '1' }
@@ -76,13 +78,14 @@ function buildFilterParams(
 }
 
 function buildPaginationParams(
-  filters: { category?: string; type?: string; status?: string },
+  filters: { category?: string; type?: string; status?: string; norm_level?: string },
   page: number
 ): string {
   const params = new URLSearchParams()
   if (filters.category) params.set('category', filters.category)
   if (filters.type) params.set('type', filters.type)
   if (filters.status) params.set('status', filters.status)
+  if (filters.norm_level) params.set('norm_level', filters.norm_level)
   params.set('page', String(page))
   return `?${params.toString()}`
 }
@@ -96,6 +99,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   const categoryFilter = params.category ? normalizeLegalCategory(params.category) : null
   const typeFilter = params.type || null
   const statusFilter = params.status || null
+  const normLevelFilter = params.norm_level || null
 
   // Build dynamic WHERE conditions
   const conditions: string[] = []
@@ -120,10 +124,17 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   } else if (statusFilter === 'pending') {
     conditions.push(`ld.is_approved = false AND ld.consolidation_status != 'complete'`)
   }
+  if (normLevelFilter && normLevelFilter !== 'null') {
+    conditions.push(`ld.norm_level = $${paramIndex}::norm_level`)
+    queryParams.push(normLevelFilter)
+    paramIndex++
+  } else if (normLevelFilter === 'null') {
+    conditions.push(`ld.norm_level IS NULL`)
+  }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-  const [statsResult, docsResult, countResult, categoriesResult, typesResult, sourcesResult] = await Promise.all([
+  const [statsResult, docsResult, countResult, categoriesResult, typesResult, sourcesResult, normLevelCountsResult] = await Promise.all([
     // Stats globales (non filtrées)
     db.query<{
       total_docs: string
@@ -145,6 +156,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       citation_key: string
       document_type: string
       primary_category: string | null
+      norm_level: string | null
       official_title_ar: string | null
       official_title_fr: string | null
       consolidation_status: string
@@ -190,6 +202,12 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       WHERE is_active = true
       ORDER BY name
     `),
+    // Counts par niveau hiérarchique (pour le nav)
+    db.query<{ norm_level: string; count: string }>(`
+      SELECT COALESCE(norm_level::text, 'null') as norm_level, COUNT(*)::TEXT as count
+      FROM legal_documents
+      GROUP BY norm_level
+    `),
   ])
 
   const stats = statsResult.rows[0]
@@ -203,11 +221,20 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   const types = typesResult.rows.map(r => r.document_type)
   const sources = sourcesResult.rows
 
-  const hasFilters = categoryFilter || typeFilter || statusFilter
+  // Construire le Record<normLevel, count> pour LegalHierarchyNav
+  const normLevelCounts: Record<string, number> = {}
+  for (const row of normLevelCountsResult.rows) {
+    normLevelCounts[row.norm_level] = parseInt(row.count, 10)
+  }
+
+  const totalDocsCount = parseInt(stats.total_docs, 10)
+
+  const hasFilters = categoryFilter || typeFilter || statusFilter || normLevelFilter
   const currentFilters = {
     category: categoryFilter || undefined,
     type: typeFilter || undefined,
     status: statusFilter || undefined,
+    norm_level: normLevelFilter || undefined,
   }
 
   // Pre-compute freshness data server-side for the client component
@@ -225,6 +252,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       citation_key: doc.citation_key,
       document_type: doc.document_type,
       primary_category: doc.primary_category,
+      norm_level: doc.norm_level || null,
       official_title_ar: doc.official_title_ar,
       official_title_fr: doc.official_title_fr,
       consolidation_status: doc.consolidation_status,
@@ -259,7 +287,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           label="Total documents"
-          value={parseInt(stats.total_docs, 10)}
+          value={totalDocsCount}
           icon={Icons.scale}
           color="text-slate-400"
         />
@@ -286,6 +314,16 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
           value={parseInt(stats.total_amendments, 10)}
           icon={Icons.alertTriangle}
           color="text-orange-400"
+        />
+      </div>
+
+      {/* Navigation hiérarchique */}
+      <div className="p-4 bg-slate-900/50 border border-slate-700 rounded-lg">
+        <LegalHierarchyNav
+          normLevelCounts={normLevelCounts}
+          selectedNormLevel={normLevelFilter}
+          buildHref={(normLevel) => buildFilterParams(currentFilters, { norm_level: normLevel })}
+          totalCount={totalDocsCount}
         />
       </div>
 

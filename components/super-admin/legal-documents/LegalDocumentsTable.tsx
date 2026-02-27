@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Icons } from '@/lib/icons'
 import { toast } from 'sonner'
+import { NORM_LEVEL_CONFIG, type NormLevel } from '@/lib/categories/norm-levels'
 import {
   Table,
   TableBody,
@@ -18,11 +19,36 @@ import {
 } from '@/components/ui/table'
 import { bulkApproveLegalDocuments } from '@/app/actions/legal-documents'
 
+// Couleurs dark-theme pour les badges norm_level dans la table
+const NORM_LEVEL_DARK_BADGE: Record<string, string> = {
+  constitution:         'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  traite_international: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  loi_organique:        'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  loi_ordinaire:        'bg-sky-500/20 text-sky-300 border-sky-500/30',
+  marsoum:              'bg-green-500/20 text-green-300 border-green-500/30',
+  ordre_reglementaire:  'bg-teal-500/20 text-teal-300 border-teal-500/30',
+  arrete_ministeriel:   'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  acte_local:           'bg-slate-500/20 text-slate-300 border-slate-500/30',
+}
+
+// Labels courts pour la table
+const NORM_LEVEL_SHORT: Record<string, string> = {
+  constitution:         'Constitution',
+  traite_international: 'Traité int.',
+  loi_organique:        'Loi org.',
+  loi_ordinaire:        'Loi / Code',
+  marsoum:              'Marsoum',
+  ordre_reglementaire:  'Réglementaire',
+  arrete_ministeriel:   'Arrêté',
+  acte_local:           'Acte local',
+}
+
 interface LegalDoc {
   id: string
   citation_key: string
   document_type: string
   primary_category: string | null
+  norm_level: string | null
   official_title_ar: string | null
   official_title_fr: string | null
   consolidation_status: string
@@ -194,6 +220,7 @@ export function LegalDocumentsTable({
               <TableHead className="text-slate-400">Citation Key</TableHead>
               <TableHead className="text-slate-400">Type</TableHead>
               <TableHead className="text-slate-400">Catégorie</TableHead>
+              <TableHead className="text-slate-400">Hiérarchie</TableHead>
               <TableHead className="text-slate-400">Titre (AR)</TableHead>
               <TableHead className="text-slate-400">Consolidation</TableHead>
               <TableHead className="text-slate-400 text-center">Articles</TableHead>
@@ -207,7 +234,7 @@ export function LegalDocumentsTable({
           <TableBody>
             {docs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="text-center py-8 text-slate-400">
+                <TableCell colSpan={13} className="text-center py-8 text-slate-400">
                   <Icons.scale className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   {hasFilters ? 'Aucun document ne correspond aux filtres' : 'Aucun document juridique'}
                 </TableCell>
@@ -243,6 +270,15 @@ export function LegalDocumentsTable({
                     {doc.primary_category ? (
                       <Badge variant="outline" className={CATEGORY_COLORS[doc.primary_category] || CATEGORY_COLORS.autre}>
                         {CATEGORY_LABELS[doc.primary_category] || doc.primary_category}
+                      </Badge>
+                    ) : (
+                      <span className="text-slate-600 text-sm">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {doc.norm_level ? (
+                      <Badge variant="outline" className={NORM_LEVEL_DARK_BADGE[doc.norm_level] || 'bg-slate-500/20 text-slate-400 border-slate-500/30'}>
+                        {NORM_LEVEL_SHORT[doc.norm_level] || doc.norm_level}
                       </Badge>
                     ) : (
                       <span className="text-slate-600 text-sm">—</span>
