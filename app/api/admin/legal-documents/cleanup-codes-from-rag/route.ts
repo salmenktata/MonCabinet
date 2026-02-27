@@ -31,7 +31,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
        FROM web_pages wp
        JOIN web_pages_documents wpd ON wp.id = wpd.web_page_id
        JOIN legal_documents ld ON wpd.legal_document_id = ld.id
-       WHERE ld.primary_category = 'codes'
+       WHERE ld.primary_category IN ('codes', 'code')
          AND wp.knowledge_base_id IS NOT NULL
          AND wp.knowledge_base_id != ALL(
            SELECT COALESCE(knowledge_base_id, '00000000-0000-0000-0000-000000000000'::uuid)
@@ -91,7 +91,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
               COALESCE(SUM(kb.chunk_count), 0) as chunks
        FROM legal_documents ld
        JOIN knowledge_base kb ON ld.knowledge_base_id = kb.id
-       WHERE ld.primary_category = 'codes'
+       WHERE ld.primary_category IN ('codes', 'code')
          AND ld.is_approved = true`
     )
     const legalDocsIndexed = parseInt(legalDocsIndexedResult.rows[0].count, 10)
@@ -100,7 +100,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
     // Compter les legal_documents codes NON encore indexés (à indexer après cleanup)
     const legalDocsPendingResult = await db.query<{ count: string }>(
       `SELECT COUNT(*) as count FROM legal_documents
-       WHERE primary_category = 'codes'
+       WHERE primary_category IN ('codes', 'code')
          AND consolidation_status = 'complete'
          AND knowledge_base_id IS NULL`
     )
