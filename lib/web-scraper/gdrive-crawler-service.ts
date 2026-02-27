@@ -59,6 +59,7 @@ export async function crawlGoogleDriveFolder(
     pagesNew: 0,
     pagesChanged: 0,
     pagesFailed: 0,
+    pagesSkipped: 0,
     filesDownloaded: 0,
     errors: [],
   }
