@@ -47,24 +47,87 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     switch (action) {
       case 'cleanup_insufficient': {
-        // Archiver les pages avec contenu insuffisant
+        // Archiver les pages avec contenu insuffisant (< min_word_count de la source, défaut 30)
         const result = await db.query(
-          `UPDATE web_pages
+          `UPDATE web_pages wp
            SET
              status = 'removed',
-             error_message = 'Contenu insuffisant pour indexation (<100 caractères)',
+             error_message = 'Contenu insuffisant pour indexation (< ' ||
+               COALESCE((SELECT min_word_count FROM web_sources WHERE id = wp.web_source_id), 30)::text
+               || ' mots)',
              updated_at = NOW()
-           WHERE web_source_id = $1
-           AND status = 'crawled'
-           AND is_indexed = false
-           AND (LENGTH(extracted_text) < 100 OR extracted_text IS NULL)
-           RETURNING id`,
+           WHERE wp.web_source_id = $1
+           AND wp.status IN ('crawled', 'pending')
+           AND wp.is_indexed = false
+           AND (
+             wp.word_count < COALESCE((SELECT min_word_count FROM web_sources WHERE id = wp.web_source_id), 30)
+             OR wp.extracted_text IS NULL
+           )
+           RETURNING wp.id`,
           [sourceId]
         )
 
         return NextResponse.json({
           success: true,
           action: 'cleanup_insufficient',
+          pagesArchived: result.rowCount,
+        })
+      }
+
+      case 'cleanup_thin_pages': {
+        // Nettoyage global : toutes les sources, respecte min_word_count par source
+        const dryRun = options.dryRun !== false // default: true (sécurité)
+        const minWordCountOverride: number | null = options.minWordCount ?? null
+
+        const countResult = await db.query(
+          `SELECT COUNT(*) as count
+           FROM web_pages wp
+           JOIN web_sources ws ON ws.id = wp.web_source_id
+           WHERE wp.status IN ('crawled', 'pending')
+           AND wp.is_indexed = false
+           AND (
+             wp.word_count < COALESCE($1, ws.min_word_count, 30)
+             OR wp.extracted_text IS NULL
+           )
+           ${sourceId ? 'AND wp.web_source_id = $2' : ''}`,
+          sourceId ? [minWordCountOverride, sourceId] : [minWordCountOverride]
+        )
+
+        const affected = parseInt(countResult.rows[0].count)
+
+        if (dryRun) {
+          return NextResponse.json({
+            success: true,
+            action: 'cleanup_thin_pages',
+            dryRun: true,
+            pagesAffected: affected,
+            message: `${affected} pages seraient archivées (dryRun=true, passer dryRun:false pour exécuter)`,
+          })
+        }
+
+        const result = await db.query(
+          `UPDATE web_pages wp
+           SET
+             status = 'removed',
+             error_message = 'Contenu insuffisant: ' || COALESCE(wp.word_count, 0)::text || ' mots',
+             updated_at = NOW()
+           WHERE wp.status IN ('crawled', 'pending')
+           AND wp.is_indexed = false
+           AND (
+             wp.word_count < COALESCE($1, (SELECT min_word_count FROM web_sources WHERE id = wp.web_source_id), 30)
+             OR wp.extracted_text IS NULL
+           )
+           ${sourceId ? 'AND wp.web_source_id = $2' : ''}
+           RETURNING wp.id`,
+          sourceId ? [minWordCountOverride, sourceId] : [minWordCountOverride]
+        )
+
+        console.log(`[WebMaintenance] cleanup_thin_pages: ${result.rowCount} pages archivées`)
+
+        return NextResponse.json({
+          success: true,
+          action: 'cleanup_thin_pages',
+          dryRun: false,
           pagesArchived: result.rowCount,
         })
       }
