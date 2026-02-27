@@ -68,6 +68,26 @@ vi.mock('@/lib/metrics/rag-metrics', () => ({
   recordRAGMetric: vi.fn(),
 }))
 
+// Redis → null pour éviter les tentatives de connexion (timeouts) en test
+vi.mock('@/lib/cache/redis', () => ({
+  getRedisClient: vi.fn(async () => null),
+}))
+
+// Legal router → fallback heuristique immédiat (évite appel LLM + Redis)
+vi.mock('@/lib/ai/legal-router-service', () => ({
+  routeQuery: vi.fn(async () => ({
+    classification: { categories: [], domains: [], confidence: 0.5 },
+    tracks: [],
+    source: 'heuristic',
+    allowedBranches: undefined,
+    forbiddenBranches: undefined,
+  })),
+  computeBranchesFromDomains: vi.fn(() => ({
+    allowedBranches: undefined,
+    forbiddenBranches: undefined,
+  })),
+}))
+
 // =============================================================================
 // FIXTURES
 // =============================================================================
@@ -237,9 +257,10 @@ describe('RAG Chat Service - buildContextFromSources', () => {
 
     const result = await buildContextFromSources(longSources)
 
-    // Devrait tronquer à ~4000 tokens (env. 16000 chars)
-    // Avec overhead formatting, on s'attend à <20000 chars
-    expect(result.length).toBeLessThan(20000)
+    // Avec RAG_MAX_CONTEXT_TOKENS=6000 et gpt-tokenizer (BPE, ~6 chars/token pour 'Lorem ipsum'),
+    // la limite équivaut à ~36000 chars. Le résultat doit être bien en-dessous du total brut (50 × 6000 = 300000 chars)
+    expect(result.length).toBeLessThan(50_000)
+    expect(result.length).toBeLessThan(longSources.reduce((acc, s) => acc + s.chunkContent.length, 0))
   })
 })
 
@@ -301,7 +322,8 @@ describe('RAG Chat Service - searchRelevantContext', () => {
     })
 
     const options: ChatOptions = { dossierId: 'dossier-456' }
-    await searchRelevantContext('Question', 'user-123', options)
+    // UUID valide requis — sinon le code saute document_embeddings (SELECT 1 WHERE false)
+    await searchRelevantContext('Question', '550e8400-e29b-41d4-a716-446655440000', options)
 
     const queryCall = vi.mocked(db.query).mock.calls[0]
     expect(queryCall[0]).toContain('d.dossier_id = $3')

@@ -144,13 +144,13 @@ describe('KB Quality Analyzer - analyzeKBDocumentQuality', () => {
     expect(llmFallbackService.callLLMWithFallback).not.toHaveBeenCalled()
   })
 
-  it('devrait tronquer contenu long (>6000 chars) avant appel LLM', async () => {
+  it('devrait tronquer contenu long (>12000 chars) avant appel LLM', async () => {
     const longDoc = {
       rows: [
         {
           id: 'kb-long',
           title: 'Document très long',
-          full_text: 'x'.repeat(10000), // 10K chars
+          full_text: 'x'.repeat(15000), // 15K chars — dépasse la limite truncateContent(content, 12000)
           category: 'test',
           language: 'fr',
           created_at: new Date(),
@@ -180,7 +180,8 @@ describe('KB Quality Analyzer - analyzeKBDocumentQuality', () => {
     const messages = llmCall[0]
     const userMessage = messages.find(m => m.role === 'user')
 
-    expect(userMessage?.content.length).toBeLessThan(7000) // Devrait être tronqué
+    // truncateContent(content, 12000) : content tronqué à 12000 chars + overhead template (~300 chars)
+    expect(userMessage?.content.length).toBeLessThan(13000) // Devrait être tronqué à <12000 + template
   })
 
   it('devrait throw error si document non trouvé', async () => {
