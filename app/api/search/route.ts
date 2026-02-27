@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     const searchQuery = searchParams.get('q')
 
     if (!searchQuery || searchQuery.length < 2) {
-      return NextResponse.json({ results: { clients: [], dossiers: [], factures: [], documents: [] } })
+      return NextResponse.json({ results: { clients: [], dossiers: [], factures: [], documents: [], echeances: [], templates: [] } })
     }
 
     const session = await getSession()
@@ -64,34 +64,47 @@ export async function GET(request: NextRequest) {
     }
 
     // Recherche parallèle dans toutes les tables
-    const [clients, dossiers, factures, documents] = await Promise.all([
+    const [clients, dossiers, factures, documents, echeances, templates] = await Promise.all([
       // Clients
       query(
-        `SELECT id, nom, prenom, type_client
+        `SELECT id, nom, prenom, type_client, email,
+                COALESCE(denomination, '') as denomination
          FROM clients
          WHERE user_id = $1 AND (
            nom ILIKE $2 OR
-           prenom ILIKE $2
+           prenom ILIKE $2 OR
+           denomination ILIKE $2 OR
+           email ILIKE $2
          )
          LIMIT 5`,
         [userId, searchTerm]
       ),
-      // Dossiers
+      // Dossiers (avec nom client)
       query(
-        `SELECT id, numero, objet, statut
-         FROM dossiers
-         WHERE user_id = $1 AND (
-           numero ILIKE $2 OR
-           objet ILIKE $2
+        `SELECT d.id, d.numero, d.objet, d.statut, d.type_procedure,
+                COALESCE(
+                  NULLIF(TRIM(COALESCE(c.prenom,'') || ' ' || COALESCE(c.nom,'')), ''),
+                  c.denomination
+                ) AS client_nom
+         FROM dossiers d
+         LEFT JOIN clients c ON d.client_id = c.id
+         WHERE d.user_id = $1 AND (
+           d.numero ILIKE $2 OR
+           d.objet ILIKE $2
          )
          LIMIT 5`,
         [userId, searchTerm]
       ),
-      // Factures
+      // Factures (avec nom client)
       query(
-        `SELECT id, numero, objet, montant_ttc, statut
-         FROM factures
-         WHERE user_id = $1 AND numero ILIKE $2
+        `SELECT f.id, f.numero, f.montant_ttc::float AS montant_ttc, f.statut,
+                COALESCE(
+                  NULLIF(TRIM(COALESCE(c.prenom,'') || ' ' || COALESCE(c.nom,'')), ''),
+                  c.denomination, 'Client'
+                ) AS client_nom
+         FROM factures f
+         LEFT JOIN clients c ON f.client_id = c.id
+         WHERE f.user_id = $1 AND (f.numero ILIKE $2)
          LIMIT 5`,
         [userId, searchTerm]
       ),
@@ -102,14 +115,33 @@ export async function GET(request: NextRequest) {
          WHERE user_id = $1 AND nom ILIKE $2
          LIMIT 5`,
         [userId, searchTerm]
-      )
+      ),
+      // Échéances actives non terminées
+      query(
+        `SELECT id, titre, TO_CHAR(date_echeance,'DD/MM/YYYY') AS date_echeance_fmt, statut
+         FROM echeances
+         WHERE user_id = $1 AND titre ILIKE $2
+           AND terminee = false AND statut = 'actif'
+         LIMIT 5`,
+        [userId, searchTerm]
+      ),
+      // Templates
+      query(
+        `SELECT id, nom, description, langue
+         FROM templates
+         WHERE user_id = $1 AND (nom ILIKE $2 OR description ILIKE $2)
+         LIMIT 5`,
+        [userId, searchTerm]
+      ),
     ])
 
     const results = {
       clients: clients.rows || [],
       dossiers: dossiers.rows || [],
       factures: factures.rows || [],
-      documents: documents.rows || []
+      documents: documents.rows || [],
+      echeances: echeances.rows || [],
+      templates: templates.rows || [],
     }
 
     // Mettre en cache
