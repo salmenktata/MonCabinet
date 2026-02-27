@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { SuperAdminSidebar } from './SuperAdminSidebar'
 import { SuperAdminTopbar } from './SuperAdminTopbar'
 import { useSidebarCollapse } from '@/hooks/use-sidebar-collapse'
@@ -36,14 +37,16 @@ export function SuperAdminLayout({
       )}
 
       {/* Sidebar */}
-      <SuperAdminSidebar
-        pendingCount={pendingCount}
-        pendingTaxonomySuggestions={pendingTaxonomySuggestions}
-        isCollapsed={isCollapsed}
-        onToggleCollapse={toggle}
-        isMobileOpen={isMobileOpen}
-        onCloseMobile={closeMobile}
-      />
+      <Suspense fallback={null}>
+        <SuperAdminSidebar
+          pendingCount={pendingCount}
+          pendingTaxonomySuggestions={pendingTaxonomySuggestions}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={toggle}
+          isMobileOpen={isMobileOpen}
+          onCloseMobile={closeMobile}
+        />
+      </Suspense>
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300">

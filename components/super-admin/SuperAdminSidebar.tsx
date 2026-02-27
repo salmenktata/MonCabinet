@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Separator } from '@/components/ui/separator'
@@ -89,6 +89,8 @@ const getNavGroups = (
         badge: pendingContradictions || undefined,
         badgeVariant: 'secondary' as const,
       },
+      { href: '/super-admin/monitoring?tab=rag-health', label: 'Santé RAG', icon: 'activity' },
+      { href: '/super-admin/monitoring?tab=kb-quality', label: 'Qualité KB', icon: 'checkCircle' },
     ],
   },
   {
@@ -191,12 +193,22 @@ function SuperAdminSidebarComponent({
   onCloseMobile,
 }: SuperAdminSidebarProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   const isActive = useCallback(
     (href: string) => {
+      const [hrefPath, hrefQuery] = href.split('?')
+      if (hrefQuery) {
+        const hrefParams = new URLSearchParams(hrefQuery)
+        if (pathname !== hrefPath) return false
+        for (const [key, value] of hrefParams.entries()) {
+          if (searchParams.get(key) !== value) return false
+        }
+        return true
+      }
       return pathname === href || pathname?.startsWith(href + '/')
     },
-    [pathname]
+    [pathname, searchParams]
   )
 
   const navGroups = useMemo(
