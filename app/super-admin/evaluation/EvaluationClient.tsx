@@ -29,12 +29,15 @@ import type {
   CompareResult,
   QuestionDiff,
 } from '@/lib/ai/rag-eval-types'
+import { KnowledgeGapsTab } from './components/KnowledgeGapsTab'
+import { ReviewQueueTab } from './components/ReviewQueueTab'
+import { SilverDatasetTab } from './components/SilverDatasetTab'
 
 // =============================================================================
 // COMPOSANT PRINCIPAL
 // =============================================================================
 
-type TabId = 'scorecard' | 'history' | 'breakdown' | 'compare'
+type TabId = 'scorecard' | 'history' | 'breakdown' | 'compare' | 'quality'
 
 export function EvaluationClient() {
   const [runs, setRuns] = useState<RunSummary[]>([])
@@ -293,6 +296,7 @@ export function EvaluationClient() {
           { id: 'history', label: 'Historique' },
           { id: 'breakdown', label: 'Breakdown' },
           { id: 'compare', label: 'Comparaison A/B' },
+          { id: 'quality', label: 'Qualité IA' },
         ] as const).map(tab => (
           <button
             key={tab.id}
@@ -698,6 +702,49 @@ export function EvaluationClient() {
           )}
         </div>
       )}
+
+      {/* ==================== ONGLET QUALITÉ IA ==================== */}
+      {activeTab === 'quality' && (
+        <div className="space-y-8">
+          {/* Sous-navigation */}
+          <QualitySubTabs />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
+// ONGLET QUALITÉ IA — Sous-onglets
+// =============================================================================
+
+function QualitySubTabs() {
+  const [sub, setSub] = useState<'gaps' | 'review' | 'silver'>('gaps')
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 border-b">
+        {([
+          { id: 'gaps', label: 'Lacunes KB' },
+          { id: 'review', label: 'File de Relecture' },
+          { id: 'silver', label: 'Silver Dataset' },
+        ] as const).map(s => (
+          <button
+            key={s.id}
+            onClick={() => setSub(s.id)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              sub === s.id
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      {sub === 'gaps' && <KnowledgeGapsTab />}
+      {sub === 'review' && <ReviewQueueTab />}
+      {sub === 'silver' && <SilverDatasetTab />}
     </div>
   )
 }

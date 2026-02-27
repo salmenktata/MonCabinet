@@ -39,6 +39,7 @@ export type RiskSignalType =
   | 'sensitive_topic'
   | 'citation_warning'
   | 'quality_gate'
+  | 'cross_legal_code'
 
 export interface RiskSignal {
   type: RiskSignalType
@@ -159,6 +160,17 @@ export function computeRiskScore(input: RiskScoringInput): RiskScore | null {
       type: 'quality_gate',
       weight,
       detail: 'Quality gate déclenché — sources sous le seuil de confiance',
+    })
+    totalWeight += weight
+  }
+
+  // Signal 8: Confusion de code juridique (ex : م.أ.ش citée pour question de procédure civile)
+  if (hasCrossLegalCode(input.question, input.sources)) {
+    const weight = 0.25
+    signals.push({
+      type: 'cross_legal_code',
+      weight,
+      detail: 'Sources issues d\'une مجلة différente du domaine détecté (ex: م.أ.ش pour عقلة تحفظية)',
     })
     totalWeight += weight
   }
@@ -343,4 +355,31 @@ function isSensitiveTopic(question: string): boolean {
     /كيف أتصرف|ما هو الحل|نصيحة/,
   ]
   return sensitivePatterns.some(p => p.test(question))
+}
+
+/**
+ * Détecte une confusion de مجلة : question procédurale civile mais sources
+ * venant de مجلة الأحوال الشخصية ou d'autres مجلات non-procédurales.
+ *
+ * Exemples détectés :
+ * - Question sur عقلة/حجز → sources de م.أ.ش → cross_legal_code signal
+ * - Question sur التنفيذ/نفاذ → sources de مجلة التجارية uniquement → cross_legal_code signal
+ */
+function hasCrossLegalCode(question: string, sources: ChatSource[]): boolean {
+  if (sources.length === 0) return false
+
+  // Mots-clés procédure civile et exécution forcée
+  const PROCEDURAL_KEYWORDS = /عقلة|حجز|تنفيذ|نفاذ|إجراءات مدنية|مرافعات|استئناف قرار|تحفظي|بيد الغير/
+
+  if (!PROCEDURAL_KEYWORDS.test(question)) return false
+
+  // Si la question est procédurale, vérifier si toutes les sources viennent de مجلة غير إجرائية
+  const NON_PROCEDURAL_CODES = /أحوال شخصية|الأحوال الشخصية|م\.أ\.ش|مجلة الأسرة/i
+
+  const allFromNonProcedural = sources.every(s => {
+    const title: string = (s as any).documentName || (s as any).metadata?.source_title || ''
+    return NON_PROCEDURAL_CODES.test(title)
+  })
+
+  return allFromNonProcedural
 }
