@@ -140,6 +140,27 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     [pageId]
   )
 
+  // Gate enforcement : pages codes (9anoun.tn/kb/codes/*) sans liaison legal_document
+  // → skip immédiat pour éviter l'indexation directe hors pipeline legal_documents
+  if (docLink.rows.length === 0) {
+    const pageUrlResult = await db.query<{ url: string }>(
+      `SELECT url FROM web_pages WHERE id = $1`,
+      [pageId]
+    )
+    const pageUrl = pageUrlResult.rows[0]?.url || ''
+    if (pageUrl && detectCategoryFromUrl(pageUrl) === 'codes') {
+      console.warn(
+        `[WebIndexer] BLOCKED page codes ${pageId} (${pageUrl}) — ` +
+        `non liée à un legal_document. Doit passer par le pipeline legal_documents.`
+      )
+      return {
+        success: false,
+        chunksCreated: 0,
+        error: 'Page codes bloquée — pipeline legal_documents requis',
+      }
+    }
+  }
+
   if (docLink.rows.length > 0) {
     const doc = docLink.rows[0]
 
