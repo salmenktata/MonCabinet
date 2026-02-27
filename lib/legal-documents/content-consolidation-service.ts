@@ -367,24 +367,25 @@ export async function consolidateCollection(
 
   const pagesWithContent = pages.filter(p => p.extractedText && p.extractedText.trim().length > 10)
 
-  // Générer un texte consolidé type "index"
-  // Format : titre du document + liste des items (titre + extrait 200 chars)
-  const lines: string[] = []
-  lines.push(document.officialTitleFr || document.officialTitleAr || document.citationKey)
-  lines.push('')
-
+  // Générer le texte consolidé complet (même modèle que consolidateDocument)
+  // Format : titre + séparateur + texte complet de chaque page
   let totalWords = 0
+  const titleLine = document.officialTitleFr || document.officialTitleAr || document.citationKey
+  const separator = '─'.repeat(60)
+  const sections: string[] = [titleLine, separator, '']
+
   for (const page of pagesWithContent) {
     const title = page.title || page.url
-    const excerpt = (page.extractedText || '').substring(0, 200).replace(/\n/g, ' ').trim()
     const ref = page.articleNumber ? ` [${page.articleNumber}]` : ''
-    lines.push(`• ${title}${ref}`)
-    if (excerpt) lines.push(`  ${excerpt}...`)
-    lines.push('')
-    totalWords += countWords(page.extractedText || '')
+    const content = cleanArticleText(page.extractedText || '')
+    sections.push(`${title}${ref}`)
+    sections.push(separator)
+    sections.push(content)
+    sections.push('')
+    totalWords += countWords(content)
   }
 
-  const consolidatedText = lines.join('\n')
+  const consolidatedText = sections.join('\n')
 
   // Structure simplifiée (1 livre, 1 chapitre, pas d'articles)
   const structure: DocumentStructure = {
