@@ -6,6 +6,7 @@ import { StatCard } from '@/components/dashboard/StatCard'
 import { UrgentActions } from '@/components/dashboard/UrgentActions'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { QuickActions } from '@/components/dashboard/QuickActions'
+import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist'
 import { Icons } from '@/lib/icons'
 import { getTranslations, getLocale } from 'next-intl/server'
 import dynamic from 'next/dynamic'
@@ -254,6 +255,30 @@ async function DashboardActivity({ userId }: { userId: string }) {
   return <RecentActivity activities={activities} />
 }
 
+// Composant onboarding pour les nouveaux utilisateurs
+async function DashboardOnboarding({ userId }: { userId: string }) {
+  const [clientsResult, dossiersResult, convsResult] = await Promise.all([
+    query('SELECT id FROM clients WHERE user_id = $1 LIMIT 1', [userId]),
+    query('SELECT id FROM dossiers WHERE user_id = $1 LIMIT 1', [userId]),
+    query('SELECT id FROM conversations WHERE user_id = $1 LIMIT 1', [userId]),
+  ])
+
+  const hasClients = clientsResult.rows.length > 0
+  const hasDossiers = dossiersResult.rows.length > 0
+  const hasConversations = convsResult.rows.length > 0
+
+  // N'affiche le widget que si l'utilisateur n'a encore rien fait
+  if (hasClients && hasDossiers && hasConversations) return null
+
+  return (
+    <OnboardingChecklist
+      hasClients={hasClients}
+      hasDossiers={hasDossiers}
+      hasConversations={hasConversations}
+    />
+  )
+}
+
 // Composant pour les documents non classés
 async function DashboardDocumentsWidgets({ userId }: { userId: string }) {
   const result = await query(
@@ -298,7 +323,12 @@ export default async function DashboardPage() {
         <QuickActions />
       </div>
 
-      {/* Row 2 : KPI Cards */}
+      {/* Row 2 : Onboarding (conditionnel — nouveaux utilisateurs) */}
+      <Suspense fallback={null}>
+        <DashboardOnboarding userId={userId} />
+      </Suspense>
+
+      {/* Row 3 : KPI Cards */}
       <Suspense fallback={<StatsGridSkeleton />}>
         <DashboardStats userId={userId} />
       </Suspense>
