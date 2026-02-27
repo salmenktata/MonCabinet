@@ -1516,6 +1516,9 @@ export async function searchKnowledgeBaseHybrid(
       // Nullité (AR + FR)
       // v15: +64 (استحالة موضوع) +119 (شرط باطل)
       [/بطلان.*مطلق|بطلان.*نسبي|بطلان.*عقد|nullité.*contrat|nullité.*absol|nullité.*relat/i, [64, 119, 325, 327]],
+      // Extinction des obligations (FR + AR) — FIX fr_civil_01 (R@5=0, retrieval cross-langue)
+      // v17: pattern FR pour injecter Fsl 339(انقضاء)/340(أداء)/345(تعذر)/351(إبراء)/359(تجديد)/370(مقاصة)
+      [/extinction.*obligation|modes.*extinction|انقضاء.*الالتزام|تنقضي.*الالتزام/i, [339, 340, 345, 351, 359, 370]],
     ]
     // Fallback COC si targetCodeFragment null (ex: ar_civil_07 "الضرر المعنوي" n'est pas dans regex COC)
     const cocTitleFrag = (targetCodeFragment && targetCodeFragment.includes('الالتزامات'))
