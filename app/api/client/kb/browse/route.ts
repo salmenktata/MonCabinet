@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   // Construire les filtres dynamiques
   const whereParams: unknown[] = []
-  const whereClauses: string[] = ['kb.is_indexed = true', 'kb.is_active = true']
+  const whereClauses: string[] = ['kb.is_indexed = true', 'kb.is_active = true', 'kb.rag_enabled = true']
 
   if (category) {
     whereParams.push(category)

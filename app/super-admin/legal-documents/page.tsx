@@ -169,13 +169,18 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       articles_count: string
       chunks_count: string
       staleness_days: number | null
+      kb_is_active: boolean | null
+      kb_rag_enabled: boolean | null
     }>(`
       SELECT ld.*,
         (SELECT COUNT(*) FROM web_pages_documents wpd WHERE wpd.legal_document_id = ld.id)::TEXT as linked_pages,
         (SELECT COUNT(*) FROM web_pages_documents wpd WHERE wpd.legal_document_id = ld.id AND wpd.contribution_type IN ('article', 'section'))::TEXT as articles_count,
         (SELECT COUNT(*) FROM knowledge_base_chunks kbc WHERE kbc.knowledge_base_id = ld.knowledge_base_id)::TEXT as chunks_count,
-        EXTRACT(DAY FROM NOW() - COALESCE(ld.last_verified_at, ld.created_at))::INTEGER as staleness_days
+        EXTRACT(DAY FROM NOW() - COALESCE(ld.last_verified_at, ld.created_at))::INTEGER as staleness_days,
+        kb.is_active AS kb_is_active,
+        kb.rag_enabled AS kb_rag_enabled
       FROM legal_documents ld
+      LEFT JOIN knowledge_base kb ON kb.id = ld.knowledge_base_id
       ${whereClause}
       ORDER BY ld.citation_key ASC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -267,6 +272,8 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       staleness_days: doc.staleness_days,
       staleness_threshold: threshold,
       freshness_color: freshnessColor,
+      kb_is_active: doc.kb_is_active ?? null,
+      kb_rag_enabled: doc.kb_rag_enabled ?? null,
     }
   })
 

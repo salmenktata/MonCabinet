@@ -19,6 +19,7 @@ import {
   extractCitationKeyFromCodeSlug,
 } from '@/lib/legal-documents/citation-key-extractor'
 import { NINEANOUN_CODE_DOMAINS } from '@/lib/web-scraper/9anoun-code-domains'
+import { indexLegalDocument } from '@/lib/web-scraper/web-indexer-service'
 
 async function checkAdminAccess(): Promise<{ userId: string } | { error: string }> {
   const session = await getSession()
@@ -58,11 +59,29 @@ export async function bulkApproveLegalDocuments(
          WHERE id = ANY($2::uuid[]) AND consolidation_status = 'complete'`,
         [authCheck.userId, documentIds]
       )
+      // Déclencher l'indexation pour les docs approuvés sans entrée KB
+      const toIndex = await db.query<{ id: string }>(
+        `SELECT id FROM legal_documents
+         WHERE id = ANY($1::uuid[]) AND is_approved = true AND knowledge_base_id IS NULL`,
+        [documentIds]
+      )
+      if (toIndex.rows.length > 0) {
+        await Promise.allSettled(toIndex.rows.map(r => indexLegalDocument(r.id)))
+      }
     } else {
       result = await db.query(
         `UPDATE legal_documents
          SET is_approved = false, approved_at = NULL, approved_by = NULL, updated_at = NOW()
          WHERE id = ANY($1::uuid[])`,
+        [documentIds]
+      )
+      // Masquer les entrées KB liées côté client
+      await db.query(
+        `UPDATE knowledge_base SET is_active = false, updated_at = NOW()
+         WHERE id IN (
+           SELECT knowledge_base_id FROM legal_documents
+           WHERE id = ANY($1::uuid[]) AND knowledge_base_id IS NOT NULL
+         )`,
         [documentIds]
       )
     }

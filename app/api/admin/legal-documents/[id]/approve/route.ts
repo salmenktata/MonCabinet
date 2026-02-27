@@ -111,6 +111,14 @@ export async function DELETE(
 
     await revokeApproval(id)
 
+    // Masquer l'entrée KB liée côté client
+    if (doc.knowledgeBaseId) {
+      await db.query(
+        `UPDATE knowledge_base SET is_active = false, updated_at = NOW() WHERE id = $1`,
+        [doc.knowledgeBaseId]
+      )
+    }
+
     return NextResponse.json({
       success: true,
       message: `Approbation révoquée pour ${doc.citationKey}`,

@@ -257,12 +257,27 @@ async function generateEmbeddingsBatchWithOpenAI(
         totalTokens += response.usage.total_tokens
         break
       } catch (error: unknown) {
-        const isTokenOverflow = error instanceof Error && error.message?.includes('maximum context length')
+        const msg = error instanceof Error ? error.message : String(error)
+        const isTokenOverflow = msg.includes('maximum context length')
+        const isBatchTokenLimit = msg.includes('max 300000') || msg.includes('tokens per request')
+
         if (isTokenOverflow && attempt < 2) {
           // Réduire chaque texte de 30%
           batch = batch.map(t => t.substring(0, Math.floor(t.length * 0.7)))
           logger.warn(`[Embeddings] Token overflow batch OpenAI, retry avec textes réduits (tentative ${attempt + 2}/3)`)
           continue
+        }
+        if (isBatchTokenLimit && batch.length > 1) {
+          // Split en 2 sous-batches récursifs (auto-adaptatif jusqu'à rentrer dans la limite)
+          logger.warn(`[Embeddings] Batch token limit dépassé (${batch.length} textes), split en 2 sous-batches`)
+          const mid = Math.floor(batch.length / 2)
+          const [r1, r2] = await Promise.all([
+            generateEmbeddingsBatchWithOpenAI(batch.slice(0, mid)),
+            generateEmbeddingsBatchWithOpenAI(batch.slice(mid)),
+          ])
+          allEmbeddings.push(...r1.embeddings, ...r2.embeddings)
+          totalTokens += r1.totalTokens + r2.totalTokens
+          break
         }
         throw error
       }
