@@ -1511,8 +1511,8 @@ export async function searchKnowledgeBaseHybrid(
       // Préjudice moral (AR + FR)
       [/ضرر.*معنوي|الضرر.*معنوي|تعويض.*معنوي|préjudice.*moral|dommage.*moral/i, [82, 83]],
       // Résolution du contrat (AR + FR)
-      // v15: +44 (جهل) +51 (إكراه)
-      [/فسخ.*عقد|انفساخ.*عقد|résiliation.*contrat|résolution.*contrat/i, [44, 51, 273, 274, 330]],
+      // v15: +44 (جهل) +51 (إكراه) | v17: +61 (غبن) +346 (فسخ جزئي)
+      [/فسخ.*عقد|انفساخ.*عقد|résiliation.*contrat|résolution.*contrat/i, [44, 51, 61, 273, 274, 330, 346]],
       // Nullité (AR + FR)
       // v15: +64 (استحالة موضوع) +119 (شرط باطل)
       [/بطلان.*مطلق|بطلان.*نسبي|بطلان.*عقد|nullité.*contrat|nullité.*absol|nullité.*relat/i, [64, 119, 325, 327]],

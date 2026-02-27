@@ -30,16 +30,12 @@
     },
     "intentType": "factual",
     "goldChunkIds": [
-      "78d20225-5839-4624-859b-9ddd3e7dc3cd"
+      "10a25764-1aff-419d-a633-5503a907d5d0"
     ],
     "goldDocumentIds": [
-      "790f4102-5b61-445c-9a62-6df71fbd62c1",
-      "276f9d26-3df4-4102-bb34-73c04d67d3f8",
-      "de6e88da-a701-4006-98df-21165904347c",
-      "1b4b4028-f94f-4ec7-9030-b7048708d6f2",
-      "233a4e28-793e-4452-9235-65196c39a39b"
+      "bf174d97-a899-4a28-b714-dae3ee706ac9"
     ],
-    "_annotationFix": "Feb 25 2026 (P0): df71e730 (code fiscal enregistrement — 10 ans WRONG) → 78d20225 (art 402 COC — 15 ans prescription civile générale). Note: chunk fiscal était en position 1 (KB-1), LLM répondait 10 ans au lieu de 15 ans."
+    "_annotationFix": "Feb 27 2026 (P0): 78d20225 absent en DB (COC art 402 non indexé). goldDocumentIds pointaient vers Note-commune fiscale (erreur). 10a25764 = seul chunk disponible citant الفصل 402 م.ا.ع (prescription 15 ans) en contexte jurisprudentiel."
   },
   {
     "id": "civil_easy_02",
@@ -387,20 +383,12 @@
       "consensus": 0
     },
     "goldChunkIds": [
-      "78d20225-5839-4624-859b-9ddd3e7dc3cd",
-      "10a25764-1aff-419d-a633-5503a907d5d0",
-      "4467caf5-28e3-4b0c-b73f-a28336c988f1",
-      "18279a17-7ff4-4bed-88cc-388d53c7f504",
-      "fc072f3e-9a10-47ae-a8e0-a470d5d09398",
-      "306e3834-dc4e-497f-8fee-c66848eefd43"
+      "10a25764-1aff-419d-a633-5503a907d5d0"
     ],
     "goldDocumentIds": [
-      "f0d28e55-0507-41dd-b782-483cf28c39df",
-      "f1f50202-f1a8-46cd-b6ae-a40f20c15241",
-      "bf174d97-a899-4a28-b714-dae3ee706ac9",
-      "27dd998c-c26c-4bdd-9996-e787bfe936f4"
+      "bf174d97-a899-4a28-b714-dae3ee706ac9"
     ],
-    "_annotationFix": "Feb 25 2026 (P2): ajout fc072f3e (art 401 — حساب المدة) et 306e3834 (art 408 — تقادم 5 سنوات اداءات راتبة)"
+    "_annotationFix": "Feb 27 2026 (P0): 78d20225/fc072f3e/306e3834 absents en DB (COC art 401-408 non indexés). 4467caf5/18279a17 = docs admin court non pertinents. Seul chunk disponible: 10a25764 (jurisprudence citant الفصل 402 م.ا.ع — prescription 15 ans)."
   },
   {
     "id": "ar_civil_03",
@@ -716,19 +704,17 @@
       "consensus": 0
     },
     "goldChunkIds": [
-      "7db4f4a7-694b-40f4-87d3-fd6922fdf9b3",
-      "c5b61607-7a4b-4f61-9c69-9f3d7d09e15b",
-      "05d04b93-ca45-43ce-9772-1fce3d95241d",
-      "94469802-82ab-4cb5-82e3-4c1f38b7b288",
-      "8f35dbee-2153-4b10-905f-b878263402a4"
+      "7b54c197-e4c8-47c2-9bce-8ef616fb0db9",
+      "8ab6f8e1-a272-4476-9dc8-9610e36de9a9",
+      "42c3bad1-ec1e-44cc-a168-84cd4470c016",
+      "43e65a5e-80a3-4ce9-a9c7-a175e2b83569",
+      "ed49e54a-b1ef-4e9f-a9b0-0f478c5a89d8",
+      "29ba9b7e-caa7-4ba6-9f72-e4416b40c11a"
     ],
     "goldDocumentIds": [
-      "432b678c-79ac-47bc-893c-8cdec8ef1b1b",
-      "f4f73ecc-3c7f-4c25-90ff-9db2d1ff2c60",
-      "1aead0f1-538a-49f3-bba7-a938b71b3adb",
-      "9b5dfec3-2b8a-4ccb-be2f-75f9725220b0",
-      "de6e88da-a701-4006-98df-21165904347c"
-    ]
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ],
+    "_annotationFix": "Feb 27 2026 (P0): 5 chunks fiscaux erronés remplacés par chunks COC extinction obligations — Fsl 339(تنقضي الالتزامات)/340(الأداء/paiement)/345(تعذر الوفاء/impossibilité)/351(الإبراء/remise)/359(تجديد/novation)/370(مقاصة/compensation). goldDocumentIds corrigé: COC principal 764fb3c5."
   },
   {
     "id": "fr_civil_02",
