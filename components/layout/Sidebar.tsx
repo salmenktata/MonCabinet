@@ -196,14 +196,24 @@ function SidebarComponent({ userRole, onClose }: SidebarProps) {
       <div className="border-t p-4 space-y-1">
         {/* Lien Super Admin pour les super_admin */}
         {userRole === 'super_admin' && (
-          <Link href="/super-admin/dashboard" prefetch={true} onClick={onClose}>
-            <div
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
-            >
-              <Icons.shield className="h-5 w-5 shrink-0" />
-              <span>Super Admin</span>
-            </div>
-          </Link>
+          <>
+            <Link href="/super-admin/dashboard" prefetch={true} onClick={onClose}>
+              <div
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
+              >
+                <Icons.shield className="h-5 w-5 shrink-0" />
+                <span>Super Admin</span>
+              </div>
+            </Link>
+            <Link href="/super-admin/compare-llm" prefetch={true} onClick={onClose}>
+              <div
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <Icons.columns className="h-5 w-5 shrink-0" />
+                <span>Comparer LLMs</span>
+              </div>
+            </Link>
+          </>
         )}
 
         <Link href="/dashboard/abonnement" prefetch={true} onClick={onClose}>
