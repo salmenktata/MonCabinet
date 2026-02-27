@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/table'
 import { getStalenessThreshold } from '@/lib/legal-documents/freshness-service'
 import { ApprovalActions } from './approval-actions'
+import { CollapsibleSection } from './collapsible-section'
+import { ConsolidatedTextViewer } from './consolidated-text-viewer'
 
 export const dynamic = 'force-dynamic'
 
@@ -366,17 +368,88 @@ export default async function LegalDocumentDetailPage({ params }: PageProps) {
         </InfoCard>
       )}
 
+      {/* ── Amendements ───────────────────────────────────────────────── */}
+      {amendments.length > 0 && (
+        <section className="rounded-lg border border-slate-700 overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-700 bg-slate-900/60">
+            <Icons.history className="h-4 w-4 text-orange-400" />
+            <h2 className="text-sm font-semibold text-white">Amendements</h2>
+            <span className="text-xs text-slate-500 tabular-nums">({amendments.length})</span>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-slate-700 hover:bg-transparent bg-slate-900/40">
+                <TableHead className="text-slate-400 text-xs uppercase tracking-wide">Référence</TableHead>
+                <TableHead className="text-slate-400 text-xs uppercase tracking-wide">Date</TableHead>
+                <TableHead className="text-slate-400 text-xs uppercase tracking-wide">Portée</TableHead>
+                <TableHead className="text-slate-400 text-xs uppercase tracking-wide">Articles</TableHead>
+                <TableHead className="text-slate-400 text-xs uppercase tracking-wide">Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {amendments.map((a) => (
+                <TableRow key={a.id} className="border-slate-700/50 hover:bg-slate-800/30">
+                  <TableCell className="text-sm text-white font-medium">
+                    {a.amending_law_reference || <span className="text-slate-600">—</span>}
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-300 tabular-nums whitespace-nowrap">
+                    {a.amendment_date ? fmtDate(a.amendment_date) : <span className="text-slate-600">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    {a.amendment_scope ? (
+                      <Badge variant="outline" className="bg-orange-500/15 text-orange-300 border-orange-500/25 text-xs">
+                        {a.amendment_scope}
+                      </Badge>
+                    ) : <span className="text-slate-600 text-sm">—</span>}
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-400 max-w-[160px] truncate">
+                    {a.affected_articles?.join(', ') || <span className="text-slate-600">—</span>}
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-400 max-w-xs truncate">
+                    {a.description || <span className="text-slate-600">—</span>}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </section>
+      )}
+
+      {/* ── Texte consolidé ───────────────────────────────────────────── */}
+      {doc.consolidated_text && (
+        <section className="rounded-lg border border-slate-700 overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-700 bg-slate-900/60">
+            <Icons.bookOpen className="h-4 w-4 text-slate-400" />
+            <h2 className="text-sm font-semibold text-white">Texte consolidé</h2>
+          </div>
+          <ConsolidatedTextViewer
+            text={doc.consolidated_text}
+            totalArticles={structure?.totalArticles}
+            totalWords={structure?.totalWords}
+          />
+        </section>
+      )}
+
       {/* ── Pages liées ───────────────────────────────────────────────── */}
-      <section className="rounded-lg border border-slate-700 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-700 bg-slate-900/60">
-          <div className="flex items-center gap-2">
+      <CollapsibleSection
+        defaultOpen={false}
+        header={
+          <>
             <Icons.link className="h-4 w-4 text-slate-400" />
             <h2 className="text-sm font-semibold text-white">Pages liées</h2>
             <span className="text-xs text-slate-500 tabular-nums">
               ({pages.length}{linkedPagesCount > 50 ? ` / ${linkedPagesCount}` : ''})
             </span>
-          </div>
-        </div>
+          </>
+        }
+        footer={
+          linkedPagesCount > 50 ? (
+            <div className="px-5 py-3 text-xs text-slate-500 border-t border-slate-700 bg-slate-900/30">
+              Affichage limité à 50 pages sur {linkedPagesCount}
+            </div>
+          ) : undefined
+        }
+      >
         <Table>
           <TableHeader>
             <TableRow className="border-slate-700 hover:bg-transparent bg-slate-900/40">
@@ -428,88 +501,7 @@ export default async function LegalDocumentDetailPage({ params }: PageProps) {
             )}
           </TableBody>
         </Table>
-        {linkedPagesCount > 50 && (
-          <div className="px-5 py-3 text-xs text-slate-500 border-t border-slate-700 bg-slate-900/30">
-            Affichage limité à 50 pages sur {linkedPagesCount}
-          </div>
-        )}
-      </section>
-
-      {/* ── Amendements ───────────────────────────────────────────────── */}
-      {amendments.length > 0 && (
-        <section className="rounded-lg border border-slate-700 overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-700 bg-slate-900/60">
-            <Icons.history className="h-4 w-4 text-orange-400" />
-            <h2 className="text-sm font-semibold text-white">Amendements</h2>
-            <span className="text-xs text-slate-500 tabular-nums">({amendments.length})</span>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-slate-700 hover:bg-transparent bg-slate-900/40">
-                <TableHead className="text-slate-400 text-xs uppercase tracking-wide">Référence</TableHead>
-                <TableHead className="text-slate-400 text-xs uppercase tracking-wide">Date</TableHead>
-                <TableHead className="text-slate-400 text-xs uppercase tracking-wide">Portée</TableHead>
-                <TableHead className="text-slate-400 text-xs uppercase tracking-wide">Articles</TableHead>
-                <TableHead className="text-slate-400 text-xs uppercase tracking-wide">Description</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {amendments.map((a) => (
-                <TableRow key={a.id} className="border-slate-700/50 hover:bg-slate-800/30">
-                  <TableCell className="text-sm text-white font-medium">
-                    {a.amending_law_reference || <span className="text-slate-600">—</span>}
-                  </TableCell>
-                  <TableCell className="text-sm text-slate-300 tabular-nums whitespace-nowrap">
-                    {a.amendment_date ? fmtDate(a.amendment_date) : <span className="text-slate-600">—</span>}
-                  </TableCell>
-                  <TableCell>
-                    {a.amendment_scope ? (
-                      <Badge variant="outline" className="bg-orange-500/15 text-orange-300 border-orange-500/25 text-xs">
-                        {a.amendment_scope}
-                      </Badge>
-                    ) : <span className="text-slate-600 text-sm">—</span>}
-                  </TableCell>
-                  <TableCell className="text-xs text-slate-400 max-w-[160px] truncate">
-                    {a.affected_articles?.join(', ') || <span className="text-slate-600">—</span>}
-                  </TableCell>
-                  <TableCell className="text-sm text-slate-400 max-w-xs truncate">
-                    {a.description || <span className="text-slate-600">—</span>}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </section>
-      )}
-
-      {/* ── Texte consolidé ───────────────────────────────────────────── */}
-      {doc.consolidated_text && (
-        <section className="rounded-lg border border-slate-700 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-700 bg-slate-900/60">
-            <div className="flex items-center gap-2">
-              <Icons.bookOpen className="h-4 w-4 text-slate-400" />
-              <h2 className="text-sm font-semibold text-white">Texte consolidé</h2>
-            </div>
-            <div className="flex items-center gap-4 text-xs text-slate-500">
-              {structure?.totalArticles > 0 && (
-                <span>{structure.totalArticles} articles</span>
-              )}
-              {structure?.totalWords && (
-                <span>{structure.totalWords.toLocaleString('fr-FR')} mots</span>
-              )}
-              <span>{doc.consolidated_text.length.toLocaleString('fr-FR')} car.</span>
-            </div>
-          </div>
-          <div className="p-5">
-            <div
-              className="text-sm text-slate-300 whitespace-pre-wrap max-h-[70vh] overflow-y-auto bg-slate-950 rounded-lg p-5 border border-slate-800 leading-relaxed"
-              dir="rtl"
-            >
-              {doc.consolidated_text}
-            </div>
-          </div>
-        </section>
-      )}
+      </CollapsibleSection>
     </div>
   )
 }
