@@ -13,7 +13,7 @@ interface DossierWithUserId {
 }
 
 /**
- * Upload document vers Google Drive via Storage Manager
+ * Upload document vers MinIO (stockage VPS) via Storage Manager
  */
 export async function uploadDocumentAction(formData: FormData) {
   try {
@@ -47,24 +47,11 @@ export async function uploadDocumentAction(formData: FormData) {
       return { error: 'Dossier introuvable ou accès refusé' }
     }
 
-    // Vérifier que Google Drive est connecté
-    const cloudConfigResult = await query(
-      `SELECT id FROM cloud_providers_config
-       WHERE user_id = $1 AND provider = $2 AND enabled = true`,
-      [userId, 'google_drive']
-    )
-
-    if (cloudConfigResult.rows.length === 0) {
-      return {
-        error: 'Google Drive non connecté. Veuillez configurer le stockage cloud dans les paramètres.',
-      }
-    }
-
     // Convertir File en Buffer
     const arrayBuffer = await file.arrayBuffer()
     const fileBuffer = Buffer.from(arrayBuffer)
 
-    // Uploader via Storage Manager
+    // Uploader via Storage Manager (MinIO VPS)
     const storageManager = createStorageManager()
     const uploadResult = await storageManager.uploadDocument({
       userId: userId,
@@ -78,7 +65,7 @@ export async function uploadDocumentAction(formData: FormData) {
     })
 
     if (!uploadResult.success) {
-      return { error: 'Erreur lors de l\'upload du fichier vers Google Drive' }
+      return { error: "Erreur lors de l'upload du fichier" }
     }
 
     // Récupérer le document créé
@@ -97,30 +84,8 @@ export async function uploadDocumentAction(formData: FormData) {
     return { success: true, data: documentResult.rows[0] }
   } catch (error) {
     console.error('Erreur upload:', error)
-
-    // Messages d'erreur spécifiques
-    const errorCode = error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : null
-
-    if (errorCode === 'TOKEN_EXPIRED') {
-      return {
-        error: 'Token Google Drive expiré. Veuillez vous reconnecter dans les paramètres.',
-      }
-    }
-
-    if (errorCode === 'QUOTA_EXCEEDED') {
-      return {
-        error: 'Quota Google Drive dépassé. Veuillez libérer de l\'espace sur votre Drive.',
-      }
-    }
-
-    if (errorCode === 'CONFIG_NOT_FOUND') {
-      return {
-        error: 'Configuration Google Drive non trouvée. Veuillez reconnecter votre compte.',
-      }
-    }
-
     return {
-      error: getErrorMessage(error) || 'Une erreur est survenue lors de l\'upload',
+      error: getErrorMessage(error) || "Une erreur est survenue lors de l'upload",
     }
   }
 }
@@ -155,7 +120,19 @@ export async function deleteDocumentAction(id: string) {
       return { error: 'Accès refusé' }
     }
 
-    // Si document stocké sur Google Drive
+    // Si document stocké sur MinIO (VPS)
+    if (document.storage_provider === 'minio' && document.minio_path) {
+      try {
+        const storageManager = createStorageManager()
+        await storageManager.deleteDocument(document.minio_path)
+        console.log(`[deleteDocumentAction] Fichier supprimé de MinIO: ${document.minio_path}`)
+      } catch (error) {
+        console.error('[deleteDocumentAction] Erreur suppression MinIO:', error)
+        // Continue pour supprimer l'entrée en base même si le fichier MinIO est introuvable
+      }
+    }
+
+    // Si document stocké sur Google Drive (rétrocompatibilité)
     if (document.storage_provider === 'google_drive' && document.external_file_id) {
       try {
         // Récupérer config cloud
@@ -182,7 +159,6 @@ export async function deleteDocumentAction(id: string) {
       } catch (error) {
         console.error('[deleteDocumentAction] Erreur suppression Google Drive:', error)
         // Continue quand même pour supprimer l'entrée en base
-        // (le fichier peut déjà être supprimé manuellement de Drive)
       }
     }
 
@@ -228,7 +204,14 @@ export async function getDocumentUrlAction(id: string) {
       return { error: 'Accès refusé' }
     }
 
-    // Si document sur Google Drive, retourner lien partageable
+    // Si document sur MinIO (VPS) — générer presigned URL (7 jours)
+    if (document.storage_provider === 'minio' && document.minio_path) {
+      const storageManager = createStorageManager()
+      const url = await storageManager.getDocumentUrl(document.minio_path)
+      return { success: true, url, provider: 'minio' }
+    }
+
+    // Si document sur Google Drive (rétrocompatibilité) — retourner lien partageable
     if (document.storage_provider === 'google_drive' && document.external_sharing_link) {
       return {
         success: true,
@@ -366,7 +349,19 @@ export async function downloadDocumentAction(id: string) {
       return { error: 'Accès refusé' }
     }
 
-    // Si document sur Google Drive
+    // Si document sur MinIO (VPS)
+    if (document.storage_provider === 'minio' && document.minio_path) {
+      const storageManager = createStorageManager()
+      const buffer = await storageManager.downloadDocument(document.minio_path)
+      return {
+        success: true,
+        buffer,
+        fileName: document.nom_fichier,
+        mimeType: document.type_fichier,
+      }
+    }
+
+    // Si document sur Google Drive (rétrocompatibilité)
     if (document.storage_provider === 'google_drive' && document.external_file_id) {
       // Récupérer config cloud
       const cloudConfigResult = await query(

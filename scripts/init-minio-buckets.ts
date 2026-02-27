@@ -29,6 +29,11 @@ const REQUIRED_BUCKETS = [
     description: 'Uploads temporaires et fichiers utilisateurs',
     public: false,
   },
+  {
+    name: 'dossiers',
+    description: 'Documents des dossiers clients (PDFs, DOCX, etc.) — stockage VPS',
+    public: false,
+  },
 ]
 
 async function initializeBuckets() {
