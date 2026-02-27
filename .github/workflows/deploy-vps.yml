@@ -334,7 +334,7 @@ jobs:
       - name: Build Next.js
         run: npx next build
         env:
-          NODE_OPTIONS: "--max-old-space-size=6144 --require ./scripts/polyfill-file.js"
+          NODE_OPTIONS: "--max-old-space-size=4096 --expose-gc --require ./scripts/polyfill-file.js"
           DATABASE_URL: "postgresql://build:build@localhost:5432/build"
           NEXTAUTH_SECRET: "build-secret-not-used-in-production"
           NEXTAUTH_URL: "http://localhost:3000"
