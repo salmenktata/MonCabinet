@@ -37,6 +37,7 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
       { href: '/clients', label: 'clients', icon: 'clients' },
       { href: '/dossiers', label: 'dossiers', icon: 'dossiers' },
       { href: '/echeances', label: 'deadlines', icon: 'deadlines' },
+      { href: '/agenda', label: 'agenda', icon: 'calendar' },
       { href: '/recherche', label: 'globalSearch', icon: 'search' },
     ],
   },
