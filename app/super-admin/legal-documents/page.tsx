@@ -11,6 +11,7 @@ import { LegalDocumentsTable } from '@/components/super-admin/legal-documents/Le
 import { LegalHierarchyNav } from '@/components/super-admin/legal-documents/LegalHierarchyNav'
 import { LegalDocumentsFiltersBar } from '@/components/super-admin/legal-documents/LegalDocumentsFiltersBar'
 import { ImportLegalDocumentsDialog } from '@/components/super-admin/legal-documents/ImportLegalDocumentsDialog'
+import { KnowledgeBaseUploadDialog } from '@/components/super-admin/knowledge-base/KnowledgeBaseUploadDialog'
 import { normalizeLegalCategory } from '@/lib/categories/legal-categories'
 
 export const dynamic = 'force-dynamic'
@@ -276,7 +277,8 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
             Gestion de la couche document — consolidation, approbation et indexation KB
           </p>
         </div>
-        <div className="shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          <KnowledgeBaseUploadDialog />
           <ImportLegalDocumentsDialog sources={sources} />
         </div>
       </div>
