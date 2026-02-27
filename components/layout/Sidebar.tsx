@@ -54,6 +54,7 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     items: [
       { href: '/factures', label: 'factures', icon: 'invoices' },
       { href: '/time-tracking', label: 'timeTracking', icon: 'timeTracking' },
+      { href: '/recap-semaine', label: 'weeklyRecap', icon: 'calendar' },
     ],
   },
   {
