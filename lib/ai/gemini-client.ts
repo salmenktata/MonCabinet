@@ -43,12 +43,13 @@ export interface GeminiResponse {
 // CONFIGURATION
 // =============================================================================
 
-// Paid Tier 1 Gemini : 300 RPM pour gemini-2.5-flash
+// Free Tier Gemini : 15 RPM pour gemini-2.0-flash
 // Source: https://ai.google.dev/gemini-api/docs/rate-limits
-const PAID_TIER1_RPM_LIMIT = 300
+// Configurable via env GEMINI_RPM_LIMIT (défaut 15 pour free tier, 300 pour Paid Tier 1)
+const FREE_TIER_RPM_LIMIT = parseInt(process.env.GEMINI_RPM_LIMIT || '15', 10)
 
-// Seuil de sécurité Redis (marge de 50 pour éviter les races cross-instance)
-const REDIS_RATE_LIMIT_THRESHOLD = 250
+// Seuil de sécurité Redis (marge de 2 pour éviter les races cross-instance)
+const REDIS_RATE_LIMIT_THRESHOLD = Math.max(1, FREE_TIER_RPM_LIMIT - 2)
 
 // Compteur in-memory pour les stats de monitoring (approximation locale)
 let requestsThisMinute = 0
@@ -82,8 +83,8 @@ async function checkGeminiRateLimitRedis(): Promise<void> {
 
     if (!client) {
       // Redis indisponible → vérification in-memory uniquement
-      if (requestsThisMinute > PAID_TIER1_RPM_LIMIT) {
-        throw new Error(`429: Gemini rate limit atteint (${requestsThisMinute}/${PAID_TIER1_RPM_LIMIT} RPM in-memory)`)
+      if (requestsThisMinute > FREE_TIER_RPM_LIMIT) {
+        throw new Error(`429: Gemini rate limit atteint (${requestsThisMinute}/${FREE_TIER_RPM_LIMIT} RPM in-memory)`)
       }
       return
     }
@@ -102,7 +103,7 @@ async function checkGeminiRateLimitRedis(): Promise<void> {
     requestsThisMinute = count
 
     if (count > REDIS_RATE_LIMIT_THRESHOLD) {
-      throw new Error(`429: Gemini rate limit atteint (${count}/${PAID_TIER1_RPM_LIMIT} RPM Redis)`)
+      throw new Error(`429: Gemini rate limit atteint (${count}/${FREE_TIER_RPM_LIMIT} RPM Redis)`)
     }
   } catch (error) {
     // Re-throw les erreurs de rate limit (429)
@@ -126,8 +127,8 @@ export function getGeminiRPMStats(): {
   resetRPMCounterIfNeeded()
   return {
     requestsThisMinute,
-    limit: PAID_TIER1_RPM_LIMIT,
-    availableSlots: Math.max(0, PAID_TIER1_RPM_LIMIT - requestsThisMinute),
+    limit: FREE_TIER_RPM_LIMIT,
+    availableSlots: Math.max(0, FREE_TIER_RPM_LIMIT - requestsThisMinute),
     minuteTimestamp: currentMinuteTimestamp,
   }
 }
@@ -480,6 +481,6 @@ export function getGeminiInfo(): {
     costInput: '$0.075/M',
     costOutput: '$0.30/M',
     freeTier: true,
-    rpmLimit: PAID_TIER1_RPM_LIMIT,
+    rpmLimit: FREE_TIER_RPM_LIMIT,
   }
 }

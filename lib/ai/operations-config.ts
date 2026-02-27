@@ -138,7 +138,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 2. ASSISTANT IA (chat temps réel utilisateur)
   // ---------------------------------------------------------------------------
   'assistant-ia': {
-    model: { provider: 'groq', name: 'llama-3.3-70b-versatile' }, // Groq : 292ms, gratuit 100K tok/jour, 1K req/jour
+    model: { provider: 'gemini', name: 'gemini-2.0-flash' }, // Gemini : free tier 15 RPM, 1M tok/jour, multilingue AR/FR
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
@@ -146,8 +146,8 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     timeouts: {
       embedding: 3000,
-      chat: 15000,  // Groq très rapide (~292ms → marge 15s)
-      total: 20000,
+      chat: 45000,  // Gemini free tier ~2-15s → marge 45s
+      total: 55000,
     },
 
     llmConfig: {
@@ -157,7 +157,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Chat utilisateur temps réel - Groq llama-3.3-70b (292ms, 100K tok/jour, 1K req/jour gratuit)',
+    description: 'Chat utilisateur temps réel - Gemini 2.0 Flash (free tier 15 RPM, 1M tok/jour, multilingue AR/FR)',
   },
 
   // ---------------------------------------------------------------------------
@@ -194,11 +194,11 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'dossiers-structuration': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'groq', name: 'llama-3.3-70b-versatile' }, // Groq : ~3-5s vs DeepSeek 15-30s
+      : { provider: 'gemini', name: 'gemini-2.0-flash' }, // Gemini : free tier, bon support JSON structuré
 
     timeouts: {
-      chat: 30000,  // Groq très rapide, marge 30s
-      total: 45000,
+      chat: 60000,  // Gemini free tier, marge 60s pour JSON complexe
+      total: 75000,
     },
 
     llmConfig: {
@@ -208,7 +208,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Structuration narratif → JSON - Groq llama-3.3-70b (rapide ~3-5s, temps réel)',
+    description: 'Structuration narratif → JSON - Gemini 2.0 Flash (free tier, 1M ctx, JSON structuré)',
   },
 
   // ---------------------------------------------------------------------------
@@ -263,11 +263,11 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 6. QUERY CLASSIFICATION (pré-filtrage KB)
   // ---------------------------------------------------------------------------
   'query-classification': {
-    model: { provider: 'groq', name: 'llama-3.1-8b-instant' }, // 8b : JSON fiable, quota séparé, 12× moins cher que 70b
+    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama : gratuit, déjà sur prod, tâche légère
 
     timeouts: {
-      chat: 5000,  // 8b encore plus rapide ~150ms
-      total: 8000,
+      chat: 20000,  // Ollama VPS 12GB ~2-5s → marge 20s
+      total: 25000,
     },
 
     llmConfig: {
@@ -276,18 +276,18 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'Classification query KB - Groq llama-3.1-8b-instant ($0.05/$0.08/M, quota indépendant)',
+    description: 'Classification query KB - Ollama qwen3:8b (gratuit, local, VPS 12GB RAM)',
   },
 
   // ---------------------------------------------------------------------------
   // 7. QUERY EXPANSION (reformulation requêtes courtes)
   // ---------------------------------------------------------------------------
   'query-expansion': {
-    model: { provider: 'groq', name: 'llama-3.1-8b-instant' }, // 8b : reformulation simple, 12× moins cher
+    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama : gratuit, reformulation simple
 
     timeouts: {
-      chat: 5000,  // 8b rapide ~150ms
-      total: 8000,
+      chat: 20000,  // Ollama VPS 12GB ~2-5s → marge 20s
+      total: 25000,
     },
 
     llmConfig: {
@@ -296,7 +296,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'Expansion queries courtes <50 chars - Groq llama-3.1-8b-instant',
+    description: 'Expansion queries courtes <50 chars - Ollama qwen3:8b (gratuit, local)',
   },
 
   // ---------------------------------------------------------------------------
@@ -325,11 +325,11 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 9. RAG EVAL JUDGE (évaluation fidélité réponses)
   // ---------------------------------------------------------------------------
   'rag-eval-judge': {
-    model: { provider: 'groq', name: 'llama-3.1-8b-instant' }, // Groq rapide + fiable (Ollama timeout 20q back-to-back)
+    model: { provider: 'gemini', name: 'gemini-2.0-flash' }, // Gemini : meilleure qualité pour judge (Ollama timeout 20q back-to-back)
 
     timeouts: {
-      chat: 15000,
-      total: 20000,
+      chat: 30000,  // Gemini free tier ~2-10s → marge 30s
+      total: 40000,
     },
 
     llmConfig: {
@@ -338,7 +338,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'LLM judge fidélité réponse RAG - Groq llama-3.1-8b-instant (rapide, fiable pour batch)',
+    description: 'LLM judge fidélité réponse RAG - Gemini 2.0 Flash (free tier, fiable pour batch eval)',
   },
 }
 
