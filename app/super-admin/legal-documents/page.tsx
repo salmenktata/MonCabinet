@@ -5,14 +5,13 @@
 
 import Link from 'next/link'
 import { db } from '@/lib/db/postgres'
-import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import { getStalenessThreshold } from '@/lib/legal-documents/freshness-service'
 import { LegalDocumentsTable } from '@/components/super-admin/legal-documents/LegalDocumentsTable'
 import { LegalHierarchyNav } from '@/components/super-admin/legal-documents/LegalHierarchyNav'
+import { LegalDocumentsFiltersBar } from '@/components/super-admin/legal-documents/LegalDocumentsFiltersBar'
 import { ImportLegalDocumentsDialog } from '@/components/super-admin/legal-documents/ImportLegalDocumentsDialog'
-import { normalizeLegalCategory, LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
-import { safeParseInt } from '@/lib/utils/safe-number'
+import { normalizeLegalCategory } from '@/lib/categories/legal-categories'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,49 +22,12 @@ interface PageProps {
     type?: string
     status?: string
     norm_level?: string
+    q?: string
   }>
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  code: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  loi: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  decret: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  arrete: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-  circulaire: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
-  jurisprudence: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  doctrine: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
-  guide: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  formulaire: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-  autre: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  code: 'Code',
-  loi: 'Loi',
-  decret: 'Décret',
-  arrete: 'Arrêté',
-  circulaire: 'Circulaire',
-  jurisprudence: 'Jurisprudence',
-  doctrine: 'Doctrine',
-  guide: 'Guide',
-  formulaire: 'Formulaire',
-  autre: 'Autre',
-}
-
-const CONSOLIDATION_COLORS: Record<string, string> = {
-  pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  partial: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  complete: 'bg-green-500/20 text-green-400 border-green-500/30',
-}
-
-const CONSOLIDATION_LABELS: Record<string, string> = {
-  pending: 'En attente',
-  partial: 'Partiel',
-  complete: 'Complet',
-}
-
 function buildFilterParams(
-  current: { category?: string; type?: string; status?: string; norm_level?: string },
+  current: { category?: string; type?: string; status?: string; norm_level?: string; q?: string },
   override: Record<string, string | undefined>
 ): string {
   const merged = { ...current, ...override, page: '1' }
@@ -78,7 +40,7 @@ function buildFilterParams(
 }
 
 function buildPaginationParams(
-  filters: { category?: string; type?: string; status?: string; norm_level?: string },
+  filters: { category?: string; type?: string; status?: string; norm_level?: string; q?: string },
   page: number
 ): string {
   const params = new URLSearchParams()
@@ -86,8 +48,21 @@ function buildPaginationParams(
   if (filters.type) params.set('type', filters.type)
   if (filters.status) params.set('status', filters.status)
   if (filters.norm_level) params.set('norm_level', filters.norm_level)
+  if (filters.q) params.set('q', filters.q)
   params.set('page', String(page))
   return `?${params.toString()}`
+}
+
+function buildPageNumbers(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '…')[] = [1]
+  if (current > 3) pages.push('…')
+  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
+    pages.push(p)
+  }
+  if (current < total - 2) pages.push('…')
+  pages.push(total)
+  return pages
 }
 
 export default async function LegalDocumentsPage({ searchParams }: PageProps) {
@@ -100,6 +75,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   const typeFilter = params.type || null
   const statusFilter = params.status || null
   const normLevelFilter = params.norm_level || null
+  const searchQuery = params.q?.trim() || null
 
   // Build dynamic WHERE conditions
   const conditions: string[] = []
@@ -130,6 +106,15 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
     paramIndex++
   } else if (normLevelFilter === 'null') {
     conditions.push(`ld.norm_level IS NULL`)
+  }
+  if (searchQuery) {
+    conditions.push(`(
+      ld.citation_key ILIKE $${paramIndex}
+      OR ld.official_title_ar ILIKE $${paramIndex}
+      OR ld.official_title_fr ILIKE $${paramIndex}
+    )`)
+    queryParams.push(`%${searchQuery}%`)
+    paramIndex++
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
@@ -233,13 +218,16 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   }
 
   const totalDocsCount = parseInt(stats.total_docs, 10)
+  const totalConsolidated = parseInt(stats.consolidated, 10)
+  const totalApproved = parseInt(stats.approved, 10)
 
-  const hasFilters = categoryFilter || typeFilter || statusFilter || normLevelFilter
+  const hasFilters = !!(categoryFilter || typeFilter || statusFilter || normLevelFilter || searchQuery)
   const currentFilters = {
     category: categoryFilter || undefined,
     type: typeFilter || undefined,
     status: statusFilter || undefined,
     norm_level: normLevelFilter || undefined,
+    q: searchQuery || undefined,
   }
 
   // Pre-compute freshness data server-side for the client component
@@ -278,53 +266,60 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   })
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+
+      {/* ── Header ───────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Documents Juridiques</h1>
-          <p className="text-slate-400 mt-1">
-            Couche document juridique - consolidation, fraicheur et liens KB
+          <p className="text-slate-400 mt-1 text-sm">
+            Gestion de la couche document — consolidation, approbation et indexation KB
           </p>
         </div>
-        <ImportLegalDocumentsDialog sources={sources} />
+        <div className="shrink-0">
+          <ImportLegalDocumentsDialog sources={sources} />
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* ── Stats ────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <StatCard
-          label="Total documents"
+          label="Total"
           value={totalDocsCount}
           icon={Icons.scale}
-          color="text-slate-400"
+          iconColor="text-slate-400"
         />
         <StatCard
           label="Consolidés"
-          value={parseInt(stats.consolidated, 10)}
-          icon={Icons.check}
-          color="text-blue-400"
+          value={totalConsolidated}
+          total={totalDocsCount}
+          icon={Icons.checkCircle}
+          iconColor="text-blue-400"
+          barColor="bg-blue-500"
         />
         <StatCard
           label="Approuvés"
-          value={parseInt(stats.approved, 10)}
+          value={totalApproved}
+          total={totalDocsCount}
           icon={Icons.check}
-          color="text-green-400"
+          iconColor="text-green-400"
+          barColor="bg-green-500"
         />
         <StatCard
           label="Pages liées"
           value={parseInt(stats.total_pages, 10)}
           icon={Icons.fileText}
-          color="text-blue-400"
+          iconColor="text-sky-400"
         />
         <StatCard
           label="Amendements"
           value={parseInt(stats.total_amendments, 10)}
           icon={Icons.alertTriangle}
-          color="text-orange-400"
+          iconColor="text-orange-400"
         />
       </div>
 
-      {/* Navigation hiérarchique */}
+      {/* ── Navigation hiérarchique ──────────────────────────────────── */}
       <div className="p-4 bg-slate-900/50 border border-slate-700 rounded-lg">
         <LegalHierarchyNav
           normLevelCounts={normLevelCounts}
@@ -334,92 +329,52 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
         />
       </div>
 
-      {/* Filtres */}
-      <div className="flex flex-wrap items-center gap-3 p-4 bg-slate-900/50 border border-slate-700 rounded-lg">
-        <Icons.filter className="h-4 w-4 text-slate-400" />
-
-        {/* Filtre catégorie */}
-        <FilterSelect
-          label="Catégorie"
-          value={categoryFilter}
-          options={categories.map(c => ({
-            value: c,
-            label: LEGAL_CATEGORY_TRANSLATIONS[c]?.fr || c,
-          }))}
-          buildHref={(val) => buildFilterParams(currentFilters, { category: val })}
-        />
-
-        {/* Filtre type */}
-        <FilterSelect
-          label="Type"
-          value={typeFilter}
-          options={types.map(t => ({
-            value: t,
-            label: TYPE_LABELS[t] || t,
-          }))}
-          buildHref={(val) => buildFilterParams(currentFilters, { type: val })}
-        />
-
-        {/* Filtre statut */}
-        <FilterSelect
-          label="Statut"
-          value={statusFilter}
-          options={[
-            { value: 'approved', label: 'Approuvés' },
-            { value: 'complete', label: 'Consolidés' },
-            { value: 'pending', label: 'En attente' },
-          ]}
-          buildHref={(val) => buildFilterParams(currentFilters, { status: val })}
-        />
-
-        {hasFilters && (
-          <Link
-            href="?"
-            className="ml-2 text-xs text-slate-400 hover:text-white transition-colors"
-          >
-            Réinitialiser
-          </Link>
-        )}
-
-        {hasFilters && (
-          <span className="ml-auto text-sm text-slate-400">
-            {filteredCount} résultat{filteredCount !== 1 ? 's' : ''}
-          </span>
-        )}
-      </div>
-
-      {/* Table avec sélection bulk */}
-      <LegalDocumentsTable
-        docs={serializedDocs}
-        hasFilters={!!hasFilters}
-        typeColors={TYPE_COLORS}
-        consolidationColors={CONSOLIDATION_COLORS}
-        consolidationLabels={CONSOLIDATION_LABELS}
+      {/* ── Filtres + Recherche ──────────────────────────────────────── */}
+      <LegalDocumentsFiltersBar
+        categories={categories}
+        types={types}
+        currentCategory={categoryFilter}
+        currentType={typeFilter}
+        currentStatus={statusFilter}
+        currentSearch={searchQuery}
+        filteredCount={filteredCount}
+        hasFilters={hasFilters}
       />
 
-      {/* Pagination */}
+      {/* ── Table ────────────────────────────────────────────────────── */}
+      <LegalDocumentsTable
+        docs={serializedDocs}
+        hasFilters={hasFilters}
+      />
+
+      {/* ── Pagination ───────────────────────────────────────────────── */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <div className="text-sm text-slate-400">
-            Page {page} sur {totalPages} ({filteredCount} documents)
-          </div>
-          <div className="flex gap-2">
-            <Link
-              href={buildPaginationParams(currentFilters, page - 1)}
-              className={page <= 1 ? 'pointer-events-none opacity-50' : ''}
-            >
-              <Button variant="outline" size="sm" disabled={page <= 1}>
-                <Icons.chevronLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link
-              href={buildPaginationParams(currentFilters, page + 1)}
-              className={page >= totalPages ? 'pointer-events-none opacity-50' : ''}
-            >
-              <Button variant="outline" size="sm" disabled={page >= totalPages}>
-                <Icons.chevronRight className="h-4 w-4" />
-              </Button>
-            </Link>
+          <p className="text-sm text-slate-500">
+            Page <span className="text-slate-300">{page}</span> sur{' '}
+            <span className="text-slate-300">{totalPages}</span>
+            {' '}— {filteredCount.toLocaleString('fr-FR')} document{filteredCount !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-1">
+            <PaginationLink href={buildPaginationParams(currentFilters, page - 1)} disabled={page <= 1}>
+              <Icons.chevronLeft className="h-4 w-4" />
+            </PaginationLink>
+            {buildPageNumbers(page, totalPages).map((item, i) =>
+              item === '…' ? (
+                <span key={`ellipsis-${i}`} className="px-1 text-slate-600 text-sm select-none">…</span>
+              ) : (
+                <PaginationLink
+                  key={item}
+                  href={buildPaginationParams(currentFilters, item as number)}
+                  active={(item as number) === page}
+                >
+                  {item}
+                </PaginationLink>
+              )
+            )}
+            <PaginationLink href={buildPaginationParams(currentFilters, page + 1)} disabled={page >= totalPages}>
+              <Icons.chevronRight className="h-4 w-4" />
+            </PaginationLink>
           </div>
         </div>
       )}
@@ -427,67 +382,77 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   )
 }
 
-function FilterSelect({
+function StatCard({
   label,
   value,
-  options,
-  buildHref,
+  total,
+  icon: Icon,
+  iconColor,
+  barColor,
 }: {
   label: string
-  value: string | null
-  options: { value: string; label: string }[]
-  buildHref: (val: string | undefined) => string
+  value: number
+  total?: number
+  icon: React.ComponentType<{ className?: string }>
+  iconColor: string
+  barColor?: string
 }) {
+  const pct = total && total > 0 ? Math.round((value / total) * 100) : null
+
   return (
-    <div className="relative inline-flex items-center gap-1.5">
-      <span className="text-xs text-slate-500">{label}:</span>
-      <div className="flex flex-wrap gap-1">
-        <Link
-          href={buildHref(undefined)}
-          className={`px-2 py-0.5 rounded text-xs transition-colors ${
-            !value
-              ? 'bg-slate-600 text-white'
-              : 'text-slate-400 hover:text-white hover:bg-slate-700'
-          }`}
-        >
-          Tous
-        </Link>
-        {options.map((opt) => (
-          <Link
-            key={opt.value}
-            href={buildHref(opt.value)}
-            className={`px-2 py-0.5 rounded text-xs transition-colors ${
-              value === opt.value
-                ? 'bg-slate-600 text-white'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            {opt.label}
-          </Link>
-        ))}
+    <div className="p-4 bg-slate-900/50 border border-slate-700 rounded-lg space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-slate-400 font-medium">{label}</span>
+        <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
       </div>
+      <div className="flex items-end justify-between gap-2">
+        <span className="text-2xl font-bold text-white tabular-nums">
+          {value.toLocaleString('fr-FR')}
+        </span>
+        {pct !== null && (
+          <span className="text-sm text-slate-400 tabular-nums mb-0.5">{pct}%</span>
+        )}
+      </div>
+      {pct !== null && barColor && (
+        <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${barColor}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
     </div>
   )
 }
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  color,
+function PaginationLink({
+  href,
+  children,
+  disabled,
+  active,
 }: {
-  label: string
-  value: number
-  icon: React.ComponentType<{ className?: string }>
-  color: string
+  href: string
+  children: React.ReactNode
+  disabled?: boolean
+  active?: boolean
 }) {
+  if (disabled) {
+    return (
+      <span className="inline-flex items-center justify-center h-8 min-w-8 px-2 rounded text-sm text-slate-600 cursor-not-allowed select-none">
+        {children}
+      </span>
+    )
+  }
   return (
-    <div className="p-4 bg-slate-900/50 border border-slate-700 rounded-lg">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-400">{label}</span>
-        <Icon className={`h-4 w-4 ${color}`} />
-      </div>
-      <div className="text-2xl font-bold text-white mt-1">{value}</div>
-    </div>
+    <Link
+      href={href}
+      className={`inline-flex items-center justify-center h-8 min-w-8 px-2 rounded text-sm transition-colors select-none ${
+        active
+          ? 'bg-slate-600 text-white font-medium'
+          : 'text-slate-400 hover:text-white hover:bg-slate-700/60'
+      }`}
+    >
+      {children}
+    </Link>
   )
 }
