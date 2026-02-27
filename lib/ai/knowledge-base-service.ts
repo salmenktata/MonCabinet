@@ -1010,7 +1010,7 @@ function getTargetCodeTitleFragment(queryText: string, lang: string): string | n
     return 'مجلة الإجراءات الجزائية'
   }
   // Penal Code — المجلة الجزائية ou termes pénaux (sans "الجزائي" seul qui est trop ambigu)
-  if (/المجلة الجزائية|الجريمة|عقوبة|جنحة|سرقة|قتل|الجنائي/.test(queryText)) {
+  if (/المجلة الجزائية|الجريمة|عقوبة|جنحة|سرقة|قتل|الجنائي|دفاع.*شرع|شرع.*دفاع|الدفاع الشرعي/.test(queryText)) {
     return 'المجلة الجزائية'
   }
   // Labor
@@ -1503,6 +1503,31 @@ export async function searchKnowledgeBaseHybrid(
           providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
         }
         break // Un seul pattern par query (premier match gagne)
+      }
+    }
+  }
+
+  // PENAL_IMPLICIT_ARTICLE_MAP — symétrique au COC mais pour المجلة الجزائية
+  // Déclenche article-text search (sim=1.05) pour les questions interprétatives sans numéro d'article
+  // Ex: "شروط الدفاع الشرعي" → الفصل 39 + الفصل 40 (non trouvés par recherche vectorielle seule)
+  if (detectedLang === 'ar') {
+    const penalTitleFrag = getTargetCodeTitleFragment(queryText, 'ar')
+    if (penalTitleFrag === 'المجلة الجزائية') {
+      const PENAL_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
+        [/دفاع.*شرع|شرع.*دفاع|شروط.*دفاع|حالة.*دفاع|الدفاع الشرعي/, [39, 40]],
+        [/قتل.*عمد|اغتيال|القتل العمد/, [201, 202, 203]],
+        [/سرقة|جريمة.*سرقة/, [233, 234, 235]],
+        [/تزوير|تزييف.*وثيق/, [172, 173, 174]],
+        [/رشوة|اختلاس.*مال|اختلاس.*عمومي/, [83, 84, 85]],
+      ]
+      for (const [pattern, articles] of PENAL_IMPLICIT_ARTICLE_MAP) {
+        if (pattern.test(queryText)) {
+          for (const artNum of articles) {
+            searchPromises.push(searchArticleByTextMatch(String(artNum), penalTitleFrag))
+            providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+          }
+          break // Un seul pattern par query (premier match gagne)
+        }
       }
     }
   }

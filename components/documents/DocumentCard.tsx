@@ -4,6 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { deleteDocumentAction, getDocumentUrlAction } from '@/app/actions/documents'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 
 interface DocumentCardProps {
   document: any
@@ -26,6 +32,11 @@ export default function DocumentCard({ document }: DocumentCardProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showActions, setShowActions] = useState(false)
+  const [textViewerOpen, setTextViewerOpen] = useState(false)
+  const [textContent, setTextContent] = useState<string | null>(null)
+  const [textLoading, setTextLoading] = useState(false)
+  const [textError, setTextError] = useState('')
+  const [textMeta, setTextMeta] = useState<{ wordCount?: number; pageCount?: number; language?: string } | null>(null)
 
   const categorieLabels: Record<string, string> = {
     contrat: t('contrat'),
@@ -53,6 +64,40 @@ export default function DocumentCard({ document }: DocumentCardProps) {
     }
 
     setLoading(false)
+  }
+
+  const canExtractText = () => {
+    const mime = document.type_fichier || ''
+    const ext = (document.nom_fichier || '').split('.').pop()?.toLowerCase()
+    return (
+      document.storage_provider === 'minio' &&
+      (mime.includes('pdf') || mime.includes('word') || mime.includes('text') ||
+        ext === 'pdf' || ext === 'docx' || ext === 'doc' || ext === 'txt')
+    )
+  }
+
+  const handleReadText = async () => {
+    setTextViewerOpen(true)
+    if (textContent !== null) return // déjà chargé
+
+    setTextLoading(true)
+    setTextError('')
+    try {
+      const res = await fetch(
+        `/api/dossiers/${document.dossier_id}/documents/${document.id}/extract-text`
+      )
+      const data = await res.json()
+      if (!res.ok) {
+        setTextError(data.error || 'Erreur lors de l\'extraction')
+      } else {
+        setTextContent(data.text)
+        setTextMeta({ wordCount: data.wordCount, pageCount: data.pageCount, language: data.language })
+      }
+    } catch {
+      setTextError('Erreur réseau lors de l\'extraction')
+    } finally {
+      setTextLoading(false)
+    }
   }
 
   const handleDelete = async () => {
@@ -180,7 +225,7 @@ export default function DocumentCard({ document }: DocumentCardProps) {
       )}
 
       {showActions && (
-        <div className="mt-3 flex gap-2 border-t pt-3">
+        <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
           <button
             onClick={handleDownload}
             disabled={loading}
@@ -188,6 +233,16 @@ export default function DocumentCard({ document }: DocumentCardProps) {
           >
             {loading ? '⏳' : '📥'} {loading ? tCommon('loading') : 'Télécharger'}
           </button>
+
+          {canExtractText() && (
+            <button
+              onClick={handleReadText}
+              disabled={loading}
+              className="rounded-md border border-slate-300 bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
+            >
+              📄 Lire le texte
+            </button>
+          )}
 
           <button
             onClick={handleDelete}
@@ -198,6 +253,46 @@ export default function DocumentCard({ document }: DocumentCardProps) {
           </button>
         </div>
       )}
+
+      {/* Viewer de texte extrait */}
+      <Sheet open={textViewerOpen} onOpenChange={setTextViewerOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="text-base font-semibold truncate pr-4">
+              📄 {document.nom_fichier}
+            </SheetTitle>
+            {textMeta && (
+              <p className="text-xs text-muted-foreground">
+                {textMeta.wordCount?.toLocaleString()} mots
+                {textMeta.pageCount ? ` • ${textMeta.pageCount} pages` : ''}
+                {textMeta.language ? ` • ${textMeta.language.toUpperCase()}` : ''}
+              </p>
+            )}
+          </SheetHeader>
+
+          <div className="mt-4">
+            {textLoading && (
+              <div className="flex items-center justify-center py-16 text-muted-foreground">
+                <span className="animate-spin mr-2">⏳</span>
+                Extraction en cours...
+              </div>
+            )}
+            {textError && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
+                {textError}
+              </div>
+            )}
+            {!textLoading && !textError && textContent !== null && (
+              <div
+                className="whitespace-pre-wrap text-sm text-foreground leading-relaxed"
+                dir={textMeta?.language === 'ar' ? 'rtl' : 'ltr'}
+              >
+                {textContent || 'Aucun texte extrait'}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

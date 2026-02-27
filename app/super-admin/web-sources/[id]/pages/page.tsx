@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import WebPagesConsolidationPanel from '@/components/super-admin/web-sources/WebPagesConsolidationPanel'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +39,7 @@ async function getSourcePages(
 ) {
   // Vérifier que la source existe
   const sourceResult = await db.query(
-    `SELECT id, name, base_url FROM web_sources WHERE id = $1`,
+    `SELECT id, name, base_url, category FROM web_sources WHERE id = $1`,
     [sourceId]
   )
 
@@ -79,6 +80,7 @@ async function getSourcePages(
       id, url, title, status, is_indexed,
       word_count, chunks_count, language_detected,
       error_message, error_count,
+      knowledge_base_id,
       crawl_depth, freshness_score,
       first_seen_at, last_crawled_at, last_indexed_at
     FROM web_pages
@@ -187,18 +189,13 @@ export default async function WebSourcePagesPage({
           <CardTitle className="text-white text-lg">Pages crawlées</CardTitle>
         </CardHeader>
         <CardContent>
-          {pages.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
-              <Icons.fileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Aucune page trouvée</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {pages.map((pageItem) => (
-                <PageRow key={pageItem.id} page={pageItem} />
-              ))}
-            </div>
-          )}
+          <WebPagesConsolidationPanel
+            pages={pages}
+            sourceId={id}
+            sourceName={source.name}
+            sourceCategory={source.category}
+            sourceBaseUrl={source.base_url}
+          />
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
@@ -259,89 +256,3 @@ function FilterBadge({ href, active, count, label }: FilterBadgeProps) {
   )
 }
 
-interface PageRowProps {
-  page: {
-    id: string
-    url: string
-    title: string | null
-    status: string
-    is_indexed: boolean
-    word_count: number
-    chunks_count: number
-    language_detected: string | null
-    error_message: string | null
-    error_count: number
-    crawl_depth: number
-    freshness_score: number
-    first_seen_at: string | null
-    last_crawled_at: string | null
-    last_indexed_at: string | null
-  }
-}
-
-function PageRow({ page }: PageRowProps) {
-  const statusInfo = STATUS_LABELS[page.status] || {
-    label: page.status,
-    color: 'bg-slate-500',
-  }
-
-  return (
-    <div className="bg-slate-700/50 rounded-lg p-4 hover:bg-slate-700/70 transition-colors">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Badge className={`${statusInfo.color} text-white text-xs`}>
-              {statusInfo.label}
-            </Badge>
-            {page.is_indexed && (
-              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                <Icons.checkCircle className="h-3 w-3 mr-1" />
-                Indexée
-              </Badge>
-            )}
-            {page.language_detected && (
-              <Badge
-                variant="outline"
-                className="text-xs border-slate-600 text-slate-400"
-              >
-                {page.language_detected.toUpperCase()}
-              </Badge>
-            )}
-          </div>
-          <h3 className="text-white font-medium truncate">
-            {page.title || 'Sans titre'}
-          </h3>
-          <a
-            href={page.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-slate-400 text-sm hover:text-blue-400 truncate block"
-          >
-            {page.url}
-          </a>
-          {page.error_message && (
-            <p className="text-red-400 text-xs mt-1 truncate">
-              <Icons.alertTriangle className="h-3 w-3 inline mr-1" />
-              {page.error_message}
-            </p>
-          )}
-        </div>
-        <div className="text-right text-sm text-slate-400 shrink-0">
-          <div className="flex items-center gap-4">
-            {page.word_count > 0 && (
-              <span title="Mots">{page.word_count.toLocaleString()} mots</span>
-            )}
-            {page.chunks_count > 0 && (
-              <span title="Chunks RAG">{page.chunks_count} chunks</span>
-            )}
-          </div>
-          {page.last_crawled_at && (
-            <p className="text-xs mt-1">
-              Crawlé {new Date(page.last_crawled_at).toLocaleDateString('fr-FR')}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}

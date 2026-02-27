@@ -12,7 +12,10 @@ import {
   linkPageToDocument,
   getDocumentByCitationKey,
 } from '@/lib/legal-documents/document-service'
-import { consolidateDocument } from '@/lib/legal-documents/content-consolidation-service'
+import {
+  consolidateDocument,
+  consolidateCollection,
+} from '@/lib/legal-documents/content-consolidation-service'
 import {
   getCodeMetadata,
   extractArticleNumberFromUrl,
@@ -364,6 +367,104 @@ async function import9anounCode(sourceId: string, slug: string): Promise<void> {
 
   // Consolider
   await consolidateDocument(document.id)
+}
+
+// =============================================================================
+// CONSOLIDATION MANUELLE DE PAGES WEB SÉLECTIONNÉES
+// =============================================================================
+
+export async function consolidateSelectedWebPages(
+  pageIds: string[],
+  sourceId: string,
+  docData: {
+    citationKey: string
+    documentType:
+      | 'code'
+      | 'loi'
+      | 'decret'
+      | 'arrete'
+      | 'circulaire'
+      | 'jurisprudence'
+      | 'doctrine'
+      | 'guide'
+      | 'formulaire'
+      | 'autre'
+    titleAr?: string
+    titleFr?: string
+    contributionType: string
+    sourceCategory: string
+  }
+): Promise<{
+  success: boolean
+  documentId?: string
+  totalPages?: number
+  error?: string
+}> {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { success: false, error: authCheck.error }
+    }
+
+    if (!pageIds.length) {
+      return { success: false, error: 'Aucune page sélectionnée' }
+    }
+
+    // Vérifier que la source existe
+    const sourceResult = await db.query<{ category: string }>(
+      `SELECT category FROM web_sources WHERE id = $1`,
+      [sourceId]
+    )
+    if (sourceResult.rows.length === 0) {
+      return { success: false, error: 'Source non trouvée' }
+    }
+
+    const primaryCategory = docData.sourceCategory || sourceResult.rows[0].category
+
+    // Créer ou récupérer le document
+    const document = await findOrCreateDocument({
+      citationKey: docData.citationKey,
+      documentType: docData.documentType,
+      officialTitleAr: docData.titleAr || undefined,
+      officialTitleFr: docData.titleFr || undefined,
+      primaryCategory,
+      canonicalSourceId: sourceId,
+    })
+
+    // Lier les pages sélectionnées
+    for (let i = 0; i < pageIds.length; i++) {
+      try {
+        await linkPageToDocument(
+          pageIds[i],
+          document.id,
+          null,
+          i + 1,
+          docData.contributionType,
+          i === 0
+        )
+      } catch {
+        // Page déjà liée, on continue
+      }
+    }
+
+    // Consolider (format collection — fonctionne pour tous types de pages)
+    const result = await consolidateCollection(document.id)
+
+    revalidatePath('/super-admin/legal-documents')
+    revalidatePath(`/super-admin/web-sources/${sourceId}/pages`)
+
+    return {
+      success: true,
+      documentId: document.id,
+      totalPages: result.totalPages,
+    }
+  } catch (error) {
+    console.error('Erreur consolidateSelectedWebPages:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    }
+  }
 }
 
 async function importGenericGroup(sourceId: string, slug: string): Promise<void> {

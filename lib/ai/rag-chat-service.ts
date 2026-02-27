@@ -533,6 +533,7 @@ function inferBranchFromTitle(docName: string): string | undefined {
   // Civil — COC
   if (
     n.includes('الالتزامات والعقود') || n.includes('م.ا.ع') ||
+    n.includes('مجلة الالتزامات') ||
     n.includes(' coc') || n.includes('(coc)') ||
     n.includes('code des obligations et des contrats')
   ) {
@@ -541,7 +542,8 @@ function inferBranchFromTitle(docName: string): string | undefined {
 
   // Pénal
   if (
-    n.includes('مجلة الإجراءات الجزائية') || n.includes('مجلة الجزائية') ||
+    n.includes('مجلة الإجراءات الجزائية') || n.includes('المجلة الجزائية') ||
+    n.includes('مجلة الجزائية') ||
     n.includes('code pénal') || n.includes('code de procédures pénales')
   ) {
     return 'pénal'
