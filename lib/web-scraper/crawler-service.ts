@@ -45,7 +45,7 @@ interface CrawlOptions {
 
 interface CrawlState {
   visited: Set<string>
-  queue: Array<{ url: string; depth: number }>
+  queue: Array<{ url: string; depth: number; extraStructuredData?: Record<string, unknown> }>
   pagesProcessed: number
   pagesNew: number
   pagesChanged: number
@@ -278,7 +278,7 @@ export async function crawlSource(
   // Boucle principale de crawl (par batch concurrent)
   while (state.queue.length > 0 && state.pagesProcessed < maxPages && !shutdownRequested) {
     // Collecter un batch de pages à traiter (jusqu'à effectiveConcurrency)
-    const batch: Array<{ url: string; depth: number }> = []
+    const batch: Array<{ url: string; depth: number; extraStructuredData?: Record<string, unknown> }> = []
     while (batch.length < effectiveConcurrency && state.queue.length > 0) {
       const item = state.queue.shift()!
       if (item.depth > maxDepth) continue
@@ -292,7 +292,7 @@ export async function crawlSource(
       if (excludePatterns.some((p: RegExp) => p.test(item.url))) continue
       if (!isSeed && includePatterns.length > 0 && !includePatterns.some((p: RegExp) => p.test(item.url))) continue
       state.visited.add(urlHash)
-      batch.push(item)
+      batch.push({ url: item.url, depth: item.depth, extraStructuredData: item.extraStructuredData })
     }
 
     if (batch.length === 0) continue
@@ -312,11 +312,11 @@ export async function crawlSource(
 
     // Traiter le batch en parallèle (chaque worker gère ses propres erreurs)
     const batchResults = await Promise.all(
-      filteredBatch.map(async ({ url, depth }) => {
+      filteredBatch.map(async ({ url, depth, extraStructuredData: itemExtraStructuredData }) => {
         const isSeedUrl = seedUrlSet.has(url)
         try {
           const result = await withRetry(
-            () => processPage(source, url, depth, state, { downloadFiles, incrementalMode, isSeedUrl }),
+            () => processPage(source, url, depth, state, { downloadFiles, incrementalMode, isSeedUrl, extraStructuredData: itemExtraStructuredData }),
             (error) => {
               const statusCode = error instanceof Error && 'statusCode' in error
                 ? (error as any).statusCode
@@ -350,13 +350,13 @@ export async function crawlSource(
         state.pagesProcessed++
 
         // Ajouter les liens découverts avec priorisation (nouvelles URLs en premier)
-        const addLinkToQueue = (link: string, parentDepth: number) => {
+        const addLinkToQueue = (link: string, parentDepth: number, extra?: Record<string, unknown>) => {
           const linkHash = hashUrl(link)
           if (!state.visited.has(linkHash) && isUrlInScope(link, sourceBaseUrl)) {
             if (existingUrlHashes.has(linkHash)) {
-              state.queue.push({ url: link, depth: parentDepth + 1 })   // Existante → fin
+              state.queue.push({ url: link, depth: parentDepth + 1, extraStructuredData: extra })   // Existante → fin
             } else {
-              state.queue.unshift({ url: link, depth: parentDepth + 1 }) // Nouvelle → début
+              state.queue.unshift({ url: link, depth: parentDepth + 1, extraStructuredData: extra }) // Nouvelle → début
             }
           }
         }
@@ -385,7 +385,10 @@ export async function crawlSource(
               effectiveRateLimit,
             )
             for (const link of formLinks) {
-              addLinkToQueue(link, result.depth)
+              // Pour les liens avec thème (cassation.tn), passer le thème en extraStructuredData
+              const linkUrl = typeof link === 'string' ? link : link.url
+              const linkTheme = typeof link === 'string' ? undefined : link.theme
+              addLinkToQueue(linkUrl, result.depth, linkTheme ? { theme: linkTheme } : undefined)
             }
             console.log(`[Crawler] Formulaire: ${formLinks.length} liens découverts depuis ${result.url}`)
           } catch (formError) {
@@ -496,7 +499,7 @@ async function processPage(
   url: string,
   depth: number,
   state: CrawlState,
-  options: { downloadFiles: boolean; incrementalMode: boolean; isSeedUrl?: boolean }
+  options: { downloadFiles: boolean; incrementalMode: boolean; isSeedUrl?: boolean; extraStructuredData?: Record<string, unknown> }
 ): Promise<{ success: boolean; links?: string[]; fetchResult?: import('./types').FetchResult }> {
   // Support snake_case (DB) et camelCase (types)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -622,11 +625,19 @@ async function processPage(
     state.filesDownloaded += downloadedFiles.filter(f => f.downloaded).length
   }
 
+  // Fusionner extraStructuredData dans le contenu (ex: theme cassation)
+  const mergedContent = options.extraStructuredData
+    ? {
+        ...content,
+        structuredData: { ...(content.structuredData || {}), ...options.extraStructuredData },
+      }
+    : content
+
   // Sauvegarder ou mettre à jour la page
   let savedPageId: string
   if (existingPage) {
     await updatePage(existingPage.id, {
-      content,
+      content: mergedContent,
       contentHash,
       files: downloadedFiles,
       fetchResult: scrapeResult.fetchResult,
@@ -636,7 +647,7 @@ async function processPage(
     console.log(`[Crawler] Page mise à jour: ${url}`)
   } else {
     savedPageId = await insertPage(sourceId, url, urlHash, depth, {
-      content,
+      content: mergedContent,
       contentHash,
       files: downloadedFiles,
       fetchResult: scrapeResult.fetchResult,
@@ -745,14 +756,15 @@ async function downloadLinkedFiles(
 
 /**
  * Crawle les résultats d'un formulaire POST (ex: TYPO3 cassation.tn)
- * Soumet le formulaire pour chaque thème et collecte les liens de détail
+ * Soumet le formulaire pour chaque thème et collecte les liens de détail.
+ * Retourne des objets {url, theme} pour préserver l'association thème→URL (cassation.tn).
  */
 async function crawlFormResults(
   config: FormCrawlConfig,
   pageUrl: string,
   ignoreSSLErrors: boolean,
   rateLimitMs: number,
-): Promise<string[]> {
+): Promise<Array<{url: string, theme?: string}>> {
   if (config.type === 'webdev-iort') {
     console.log('[Crawler] Type webdev-iort: utiliser scripts/crawl-iort.ts pour le crawl IORT')
     return []
@@ -774,7 +786,7 @@ async function crawlFormResults(
   }
 
   const { tokens, sessionCookies } = csrfResult
-  const allLinks: string[] = []
+  const allLinks: Array<{url: string, theme?: string}> = []
   const baseOrigin = new URL(pageUrl).origin
 
   // Headers communs pour toutes les requêtes (POST + GET pagination)
@@ -851,9 +863,9 @@ async function crawlFormResults(
         continue
       }
 
-      // Extraire liens page 1
+      // Extraire liens page 1 (avec thème associé)
       const page1Links = extractDecisionLinks(result.html)
-      allLinks.push(...page1Links)
+      allLinks.push(...page1Links.map(url => ({ url, theme: themeCode })))
 
       // Pagination : suivre toutes les pages supplémentaires
       const paginationUrls = extractPaginationUrls(result.html)
@@ -868,7 +880,7 @@ async function crawlFormResults(
           })
           if (pageResult.success && pageResult.html) {
             const pageLinks = extractDecisionLinks(pageResult.html)
-            allLinks.push(...pageLinks)
+            allLinks.push(...pageLinks.map(url => ({ url, theme: themeCode })))
           }
         }
       }
@@ -887,8 +899,15 @@ async function crawlFormResults(
     }
   }
 
-  // Dédupliquer les liens
-  const uniqueLinks = [...new Set(allLinks)]
+  // Dédupliquer les liens (garder le premier thème rencontré pour chaque URL)
+  const seenUrls = new Set<string>()
+  const uniqueLinks: Array<{url: string, theme?: string}> = []
+  for (const link of allLinks) {
+    if (!seenUrls.has(link.url)) {
+      seenUrls.add(link.url)
+      uniqueLinks.push(link)
+    }
+  }
   console.log(`[Crawler] Formulaire: ${uniqueLinks.length} liens uniques découverts (total brut: ${allLinks.length})`)
 
   return uniqueLinks

@@ -8,8 +8,10 @@ import type { WebPage, WebSource } from './types'
 import { isSemanticSearchEnabled, aiConfig, KB_ARABIC_ONLY, EMBEDDING_TURBO_CONFIG } from '@/lib/ai/config'
 import { normalizeText, detectTextLanguage } from './content-extractor'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
-import { getDocumentAbsoluteUrl } from '@/lib/legal-documents/document-service'
+import { getDocumentAbsoluteUrl, findOrCreateDocument, linkPageToDocument, updateConsolidationStatus } from '@/lib/legal-documents/document-service'
 import { NINEANOUN_KB_SECTIONS, NINEANOUN_CODE_DOMAINS, NINEANOUN_OTHER_SECTIONS } from './9anoun-code-domains'
+import { CASSATION_DOCUMENT_DOMAINS, CASSATION_BASE_URLS } from '@/lib/legal-documents/cassation-document-domains'
+import { IORT_DOCUMENT_DOMAINS, IORT_BASE_URLS } from '@/lib/legal-documents/iort-document-domains'
 
 // Concurrence pour l'indexation de pages (1 = séquentiel, safe pour Ollama)
 const WEB_INDEXING_CONCURRENCY = parseInt(process.env.WEB_INDEXING_CONCURRENCY || '1', 10)
@@ -117,6 +119,101 @@ export interface IndexingResult {
 }
 
 // =============================================================================
+// AUTO-LINKING
+// =============================================================================
+
+/**
+ * Tente de lier automatiquement une page web à un legal_document
+ * pour les sources cassation.tn et iort.gov.tn.
+ *
+ * Conditions :
+ * - cassation.tn : page doit avoir structured_data.theme (TA/TB/...)
+ * - iort.gov.tn  : page doit avoir structured_data.textType (قانون/مرسوم/...)
+ *
+ * Ne bloque pas l'indexation en cas d'erreur (try/catch silencieux).
+ */
+async function autoLinkToLegalDocument(pageId: string): Promise<boolean> {
+  try {
+    // Récupérer la page avec sa source et structured_data
+    const result = await db.query<any>(
+      `SELECT wp.id, wp.structured_data, wp.url, wp.title,
+              ws.id as source_id, ws.base_url as source_base_url
+       FROM web_pages wp
+       JOIN web_sources ws ON wp.web_source_id = ws.id
+       WHERE wp.id = $1`,
+      [pageId]
+    )
+
+    if (result.rows.length === 0) return false
+    const row = result.rows[0]
+    const structuredData = row.structured_data || {}
+    const sourceBaseUrl: string = row.source_base_url || ''
+
+    // === Cassation.tn ===
+    const isCassation = CASSATION_BASE_URLS.some(base =>
+      sourceBaseUrl.toLowerCase().includes(base.replace('https://', '').replace('http://', '').replace('www.', ''))
+    )
+    if (isCassation && structuredData.theme) {
+      const themeCode = structuredData.theme as string
+      const def = CASSATION_DOCUMENT_DOMAINS[themeCode]
+      if (!def) return false
+
+      const doc = await findOrCreateDocument({
+        citationKey: def.citationKey,
+        documentType: 'jurisprudence',
+        officialTitleAr: def.titleAr,
+        officialTitleFr: def.titleFr,
+        primaryCategory: def.primaryCategory,
+        secondaryCategories: ['jurisprudence', 'cassation'],
+        tags: def.tags,
+        legalDomains: [def.domain],
+        canonicalSourceId: row.source_id,
+        sourceUrls: ['http://www.cassation.tn'],
+      })
+
+      await linkPageToDocument(pageId, doc.id, null, null, 'full_document', false)
+      await updateConsolidationStatus(doc.id, 'partial')
+      console.log(`[WebIndexer] Auto-link cassation: page ${pageId} → ${def.citationKey} (thème ${themeCode})`)
+      return true
+    }
+
+    // === IORT.gov.tn ===
+    const isIort = IORT_BASE_URLS.some(base =>
+      sourceBaseUrl.toLowerCase().includes(base.replace('https://', '').replace('http://', '').replace('www.', ''))
+    )
+    if (isIort && structuredData.textType) {
+      const textType = structuredData.textType as string
+      const def = IORT_DOCUMENT_DOMAINS[textType]
+      if (!def) return false
+
+      const doc = await findOrCreateDocument({
+        citationKey: def.citationKey,
+        documentType: def.documentType as any,
+        officialTitleAr: def.titleAr,
+        officialTitleFr: def.titleFr,
+        primaryCategory: def.primaryCategory,
+        secondaryCategories: ['legislation', 'jort', 'officiel'],
+        tags: def.tags,
+        legalDomains: [def.domain],
+        canonicalSourceId: row.source_id,
+        sourceUrls: ['http://www.iort.gov.tn'],
+      })
+
+      await linkPageToDocument(pageId, doc.id, null, null, 'full_document', false)
+      await updateConsolidationStatus(doc.id, 'partial')
+      console.log(`[WebIndexer] Auto-link IORT: page ${pageId} → ${def.citationKey} (type ${textType})`)
+      return true
+    }
+
+    return false
+  } catch (err) {
+    // Ne pas bloquer l'indexation en cas d'erreur de linking
+    console.warn(`[WebIndexer] Auto-link échoué pour page ${pageId}:`, err instanceof Error ? err.message : err)
+    return false
+  }
+}
+
+// =============================================================================
 // INDEXATION
 // =============================================================================
 
@@ -141,8 +238,33 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   )
 
   // Gate enforcement : pages codes (9anoun.tn/kb/codes/*) sans liaison legal_document
-  // → skip immédiat pour éviter l'indexation directe hors pipeline legal_documents
+  // → skip immédiat pour éviter l'indexation directe hors pipeline legal_documents.
+  // Pour cassation.tn et iort.gov.tn : auto-linking si structured_data disponible.
   if (docLink.rows.length === 0) {
+    // Tenter l'auto-linking (cassation.tn / iort.gov.tn)
+    const linked = await autoLinkToLegalDocument(pageId)
+    if (linked) {
+      // Re-fetch le docLink après auto-linking
+      const newDocLink = await db.query(
+        `SELECT wpd.legal_document_id, ld.consolidation_status, ld.citation_key
+         FROM web_pages_documents wpd
+         JOIN legal_documents ld ON wpd.legal_document_id = ld.id
+         WHERE wpd.web_page_id = $1`,
+        [pageId]
+      )
+      if (newDocLink.rows.length > 0) {
+        // Déléguer au flux document-level (CAS 2 : partial → skip individuel)
+        const doc = newDocLink.rows[0]
+        console.log(`[WebIndexer] SKIP page ${pageId} → auto-liée au document ${doc.citation_key} (${doc.consolidation_status})`)
+        return {
+          success: true,
+          chunksCreated: 0,
+          error: `Page auto-liée à ${doc.citation_key} (${doc.consolidation_status}) - indexation via consolidation`,
+        }
+      }
+    }
+
+    // Gate pour pages codes 9anoun.tn sans liaison
     const pageUrlResult = await db.query<{ url: string }>(
       `SELECT url FROM web_pages WHERE id = $1`,
       [pageId]

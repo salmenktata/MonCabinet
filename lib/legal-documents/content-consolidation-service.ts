@@ -325,3 +325,102 @@ function cleanArticleText(text: string): string {
 function countWords(text: string): number {
   return text.split(/\s+/).filter(w => w.length > 0).length
 }
+
+// =============================================================================
+// CONSOLIDATION "COLLECTION" (cassation.tn / IORT)
+// =============================================================================
+
+/**
+ * Consolider un document de type "collection" (jurisprudence, JORT)
+ *
+ * Stratégie différente de consolidateDocument() (hiérarchique pour codes) :
+ * - Pas de structure livre/chapitre
+ * - Texte consolidé = index des décisions/textes liés (titre + extrait court)
+ * - Toutes les pages liées sont référencées
+ * - consolidation_status = 'complete'
+ *
+ * Utilisé par :
+ * - scripts/process-cassation-themes.ts
+ * - scripts/process-iort-types.ts
+ */
+export async function consolidateCollection(
+  documentId: string
+): Promise<ConsolidationResult> {
+  const errors: string[] = []
+
+  const docData = await getDocumentWithPages(documentId)
+  if (!docData) {
+    return {
+      success: false,
+      documentId,
+      totalPages: 0,
+      totalArticles: 0,
+      totalWords: 0,
+      consolidatedTextLength: 0,
+      structure: { books: [], totalArticles: 0, totalWords: 0, consolidatedAt: new Date().toISOString() },
+      errors: [`Document ${documentId} non trouvé`],
+    }
+  }
+
+  const { document, pages } = docData
+  log.info(`Consolidation (collection) de ${document.citationKey}: ${pages.length} pages`)
+
+  const pagesWithContent = pages.filter(p => p.extractedText && p.extractedText.trim().length > 10)
+
+  // Générer un texte consolidé type "index"
+  // Format : titre du document + liste des items (titre + extrait 200 chars)
+  const lines: string[] = []
+  lines.push(document.officialTitleFr || document.officialTitleAr || document.citationKey)
+  lines.push('')
+
+  let totalWords = 0
+  for (const page of pagesWithContent) {
+    const title = page.title || page.url
+    const excerpt = (page.extractedText || '').substring(0, 200).replace(/\n/g, ' ').trim()
+    const ref = page.articleNumber ? ` [${page.articleNumber}]` : ''
+    lines.push(`• ${title}${ref}`)
+    if (excerpt) lines.push(`  ${excerpt}...`)
+    lines.push('')
+    totalWords += countWords(page.extractedText || '')
+  }
+
+  const consolidatedText = lines.join('\n')
+
+  // Structure simplifiée (1 livre, 1 chapitre, pas d'articles)
+  const structure: DocumentStructure = {
+    books: [{
+      number: 1,
+      titleAr: document.officialTitleAr || null,
+      titleFr: document.officialTitleFr || null,
+      chapters: [{
+        number: 1,
+        titleAr: null,
+        articles: pagesWithContent.map((p, i) => ({
+          number: p.articleNumber || String(i + 1),
+          text: p.extractedText || '',
+          sourcePageId: p.webPageId,
+          isModified: false,
+          wordCount: countWords(p.extractedText || ''),
+        })),
+      }],
+    }],
+    totalArticles: pagesWithContent.length,
+    totalWords,
+    consolidatedAt: new Date().toISOString(),
+  }
+
+  await updateConsolidation(documentId, consolidatedText, structure, pagesWithContent.length)
+
+  log.info(`Consolidation (collection) terminée: ${pagesWithContent.length} items, ${totalWords} mots`)
+
+  return {
+    success: true,
+    documentId,
+    totalPages: pagesWithContent.length,
+    totalArticles: pagesWithContent.length,
+    totalWords,
+    consolidatedTextLength: consolidatedText.length,
+    structure,
+    errors,
+  }
+}

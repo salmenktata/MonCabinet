@@ -240,6 +240,19 @@ export async function updateConsolidation(
 }
 
 /**
+ * Mettre à jour le statut de consolidation (ex: 'partial' après liaison de pages)
+ */
+export async function updateConsolidationStatus(
+  documentId: string,
+  status: 'pending' | 'partial' | 'complete'
+): Promise<void> {
+  await db.query(
+    `UPDATE legal_documents SET consolidation_status = $2, updated_at = NOW() WHERE id = $1`,
+    [documentId, status]
+  )
+}
+
+/**
  * Marquer un document comme abrogé
  */
 export async function markAsAbrogated(
