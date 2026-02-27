@@ -194,7 +194,9 @@ async function runBenchmarkAsync(runId: string, goldCases: GoldEvalCase[], runMo
         try {
           const answerStart = Date.now()
 
-          const chatResponse = await answerQuestion(evalCase.question, 'eval-system', {})
+          const chatResponse = await answerQuestion(evalCase.question, 'eval-system', {
+            operationName: 'assistant-ia', // Explicit: Gemini 2.0 Flash (évite routing via Groq circuit ouvert)
+          })
 
           answerLatencyMs = Date.now() - answerStart
           actualAnswer = chatResponse.answer

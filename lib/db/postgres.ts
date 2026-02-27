@@ -20,9 +20,9 @@ export function getPool(): Pool {
   if (!pool) {
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      max: 20, // Maximum 20 connexions
-      idleTimeoutMillis: 10000, // Fermer connexions inactives après 10s (réduit de 30s)
-      connectionTimeoutMillis: 5000, // Timeout connexion 5s (fail fast)
+      max: 50, // Maximum 50 connexions (VPS 12GB — était 20, trop petit pour eval+chat concurrents)
+      idleTimeoutMillis: 30000, // Fermer connexions inactives après 30s (était 10s)
+      connectionTimeoutMillis: 15000, // Timeout connexion 15s (était 5s — fail fast trop agressif)
       // Phase 4.2: Timeouts augmentés pour opérations longues (indexation KB, recherche hybride)
       statement_timeout: 30000, // Timeout statements SQL 30s (était 10s)
       query_timeout: 60000, // Timeout queries totales 60s (était 10s)

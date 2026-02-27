@@ -325,11 +325,11 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 9. RAG EVAL JUDGE (évaluation fidélité réponses)
   // ---------------------------------------------------------------------------
   'rag-eval-judge': {
-    model: { provider: 'gemini', name: 'gemini-2.0-flash' }, // Gemini : meilleure qualité pour judge (Ollama timeout 20q back-to-back)
+    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama : évite compétition quota Gemini avec assistant-ia (VPS 12GB, stable)
 
     timeouts: {
-      chat: 30000,  // Gemini free tier ~2-10s → marge 30s
-      total: 40000,
+      chat: 60000,  // Ollama VPS 12GB ~5-15s pour judge JSON court → marge 60s
+      total: 75000,
     },
 
     llmConfig: {
@@ -338,7 +338,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'LLM judge fidélité réponse RAG - Gemini 2.0 Flash (free tier, fiable pour batch eval)',
+    description: 'LLM judge fidélité réponse RAG - Ollama qwen3:8b (gratuit, quota Gemini préservé pour chat)',
   },
 }
 
