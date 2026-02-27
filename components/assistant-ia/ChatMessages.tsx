@@ -217,7 +217,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
         )}
 
         {/* Indicateur de chargement */}
-        {isLoading && !streamingContent && <LoadingIndicator />}
+        {isLoading && !streamingContent && <LoadingIndicator progressSteps={progressSteps} />}
       </div>
     )
   }
@@ -271,7 +271,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <LoadingIndicator />
+          <LoadingIndicator progressSteps={progressSteps} />
         </motion.div>
       )}
 
@@ -287,7 +287,7 @@ const LOADING_STEPS = [
   { icon: 'loader' as const, text: 'Finalisation en cours...' },
 ]
 
-function LoadingIndicator() {
+function LoadingIndicator({ progressSteps }: { progressSteps?: ProgressStep[] }) {
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
@@ -310,55 +310,60 @@ function LoadingIndicator() {
       </div>
 
       <div className="flex-1 max-w-[95%]">
-        {/* Header avec timer bien visible */}
+        {/* Header */}
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             Qadhya IA
           </span>
-          <span className="text-xs font-mono font-medium text-muted-foreground/80 tabular-nums bg-muted/50 px-1.5 py-0.5 rounded">
-            {elapsed}s
-          </span>
+          {!progressSteps?.length && (
+            <span className="text-xs font-mono font-medium text-muted-foreground/80 tabular-nums bg-muted/50 px-1.5 py-0.5 rounded">
+              {elapsed}s
+            </span>
+          )}
         </div>
 
-        {/* Card avec toutes les étapes */}
-        <div className="rounded-2xl rounded-tl-md bg-card/80 border border-border/50 px-4 py-3 space-y-2">
-          {LOADING_STEPS.map((step, i) => {
-            const StepIcon = Icons[step.icon]
-            const isDone = i < stepIndex
-            const isCurrent = i === stepIndex
-            const isPending = i > stepIndex
+        {/* Card : ThinkingLog réel si progress events reçus, sinon timer statique */}
+        <div className="rounded-2xl rounded-tl-md bg-card/80 border border-border/50 px-4 py-3">
+          {progressSteps && progressSteps.length > 0 ? (
+            <ThinkingLog steps={progressSteps} />
+          ) : (
+            <div className="space-y-2">
+              {LOADING_STEPS.map((step, i) => {
+                const StepIcon = Icons[step.icon]
+                const isDone = i < stepIndex
+                const isCurrent = i === stepIndex
+                const isPending = i > stepIndex
 
-            return (
-              <div
-                key={i}
-                className={cn(
-                  'flex items-center gap-2.5 text-sm transition-all duration-300',
-                  isDone && 'text-muted-foreground/50',
-                  isCurrent && 'text-foreground',
-                  isPending && 'text-muted-foreground/25'
-                )}
-              >
-                {/* Icône d'état */}
-                {isDone ? (
-                  <Icons.check className="h-3.5 w-3.5 text-primary/60 shrink-0" />
-                ) : isCurrent ? (
-                  <motion.div
-                    animate={{ opacity: [1, 0.4, 1] }}
-                    transition={{ repeat: Infinity, duration: 1.2 }}
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      'flex items-center gap-2.5 text-sm transition-all duration-300',
+                      isDone && 'text-muted-foreground/50',
+                      isCurrent && 'text-foreground',
+                      isPending && 'text-muted-foreground/25'
+                    )}
                   >
-                    <StepIcon className="h-3.5 w-3.5 text-primary shrink-0" />
-                  </motion.div>
-                ) : (
-                  <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/20 shrink-0" />
-                )}
-
-                {/* Libellé */}
-                <span className={cn('text-sm', isCurrent && 'font-medium')}>
-                  {step.text}
-                </span>
-              </div>
-            )
-          })}
+                    {isDone ? (
+                      <Icons.check className="h-3.5 w-3.5 text-primary/60 shrink-0" />
+                    ) : isCurrent ? (
+                      <motion.div
+                        animate={{ opacity: [1, 0.4, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.2 }}
+                      >
+                        <StepIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                      </motion.div>
+                    ) : (
+                      <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/20 shrink-0" />
+                    )}
+                    <span className={cn('text-sm', isCurrent && 'font-medium')}>
+                      {step.text}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
