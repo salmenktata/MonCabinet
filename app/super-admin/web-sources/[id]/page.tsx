@@ -54,7 +54,7 @@ async function getWebSourceData(id: string) {
       requires_javascript, user_agent, rate_limit_ms, timeout_ms,
       respect_robots_txt, custom_headers, sitemap_url, rss_feed_url, use_sitemap,
       ignore_ssl_errors, auto_index_files,
-      is_active, health_status, consecutive_failures,
+      is_active, rag_enabled, health_status, consecutive_failures,
       last_crawl_at, last_successful_crawl_at, next_crawl_at,
       total_pages_discovered, total_pages_indexed,
       avg_pages_per_crawl, avg_crawl_duration_ms,

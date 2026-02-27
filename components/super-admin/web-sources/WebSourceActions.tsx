@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { SplitButton } from '@/components/ui/split-button'
 import { Icons } from '@/lib/icons'
 import { toast } from 'sonner'
@@ -29,6 +30,7 @@ interface WebSource {
   id: string
   name: string
   is_active: boolean
+  rag_enabled: boolean
 }
 
 interface WebSourceActionsProps {
@@ -40,14 +42,28 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
   const router = useRouter()
 
   const [loading, setLoading] = useState<string | null>(null)
-  const [showDelete, setShowDelete] = useState(false)
+
+  // Delete flow
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletePreview, setDeletePreview] = useState<{
+    webPages: number
+    knowledgeBaseDocs: number
+  } | null>(null)
+
+  // Organize flow
   const [showOrganize, setShowOrganize] = useState(false)
   const [organizeStats, setOrganizeStats] = useState<{
     totalPages: number
     pagesWithMetadata: number
     pagesWithoutMetadata: number
     estimatedTime: string
+    estimatedCost: string
   } | null>(null)
+
+  // Deactivate confirmation
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false)
+
+  // ─── Crawler ─────────────────────────────────────────────────────────────────
 
   const handleCrawl = async (jobType: 'incremental' | 'full_crawl') => {
     setLoading('crawl')
@@ -55,22 +71,25 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const res = await fetch(`/api/admin/web-sources/${source.id}/crawl`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobType, async: false, indexAfterCrawl: true }),
+        body: JSON.stringify({ jobType, async: true }),
       })
       const data = await res.json()
 
       if (!res.ok) {
-        toast.error(data.error || 'Erreur lors du crawl')
+        toast.error(data.error || 'Erreur lors du lancement du crawl')
       } else {
-        toast.success(`Crawl termin\u00e9 \u2014 ${data.crawl?.pagesProcessed || 0} pages trait\u00e9es, ${data.crawl?.pagesNew || 0} nouvelles`)
+        const label = jobType === 'full_crawl' ? 'Crawl complet' : 'Crawl incrémental'
+        toast.success(`${label} démarré en arrière-plan — consultez les logs pour le suivi`)
         router.refresh()
       }
     } catch {
-      toast.error('Erreur lors du crawl')
+      toast.error('Erreur lors du lancement du crawl')
     } finally {
       setLoading(null)
     }
   }
+
+  // ─── Indexer ──────────────────────────────────────────────────────────────────
 
   const handleIndex = async (reindex: boolean = false) => {
     setLoading('index')
@@ -83,13 +102,15 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const data = await res.json()
 
       if (!res.ok) {
-        toast.error(data.error || 'Erreur lors de l\'indexation')
+        toast.error(data.error || "Erreur lors de l'indexation")
       } else {
-        toast.success(`Indexation termin\u00e9e \u2014 ${data.succeeded}/${data.processed} pages index\u00e9es${data.remaining > 0 ? ` (${data.remaining} restantes)` : ''}`)
+        toast.success(
+          `Indexation terminée — ${data.succeeded}/${data.processed} pages indexées${data.remaining > 0 ? ` (${data.remaining} restantes)` : ''}`
+        )
         router.refresh()
       }
     } catch {
-      toast.error('Erreur lors de l\'indexation')
+      toast.error("Erreur lors de l'indexation")
     } finally {
       setLoading(null)
     }
@@ -106,17 +127,21 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const data = await res.json()
 
       if (!res.ok) {
-        toast.error(data.error || 'Erreur lors de l\'indexation des fichiers')
+        toast.error(data.error || "Erreur lors de l'indexation des fichiers")
       } else {
-        toast.success(`Fichiers trait\u00e9s \u2014 ${data.indexed} index\u00e9s, ${data.downloaded} t\u00e9l\u00e9charg\u00e9s${data.failed > 0 ? `, ${data.failed} \u00e9chou\u00e9s` : ''}`)
+        toast.success(
+          `Fichiers traités — ${data.indexed} indexés, ${data.downloaded} téléchargés${data.failed > 0 ? `, ${data.failed} échoués` : ''}`
+        )
         router.refresh()
       }
     } catch {
-      toast.error('Erreur lors de l\'indexation des fichiers')
+      toast.error("Erreur lors de l'indexation des fichiers")
     } finally {
       setLoading(null)
     }
   }
+
+  // ─── Désactiver / Activer ─────────────────────────────────────────────────────
 
   const handleToggleActive = async () => {
     setLoading('toggle')
@@ -129,13 +154,80 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
 
       if (!res.ok) {
         const data = await res.json()
-        toast.error(data.error || 'Erreur lors de la mise \u00e0 jour')
+        toast.error(data.error || 'Erreur lors de la mise à jour')
       } else {
-        toast.success(source.is_active ? 'Source d\u00e9sactiv\u00e9e' : 'Source activ\u00e9e')
+        toast.success(source.is_active ? `"${source.name}" désactivée` : `"${source.name}" activée`)
         router.refresh()
       }
     } catch {
-      toast.error('Erreur lors de la mise \u00e0 jour')
+      toast.error('Erreur lors de la mise à jour')
+    } finally {
+      setLoading(null)
+      setShowDeactivateConfirm(false)
+    }
+  }
+
+  const handleClickToggleActive = () => {
+    if (source.is_active) {
+      // Désactivation → confirmation obligatoire
+      setShowDeactivateConfirm(true)
+    } else {
+      // Activation → direct
+      handleToggleActive()
+    }
+  }
+
+  // ─── Toggle RAG enabled ───────────────────────────────────────────────────────
+
+  const handleToggleRag = async () => {
+    setLoading('rag')
+    try {
+      const res = await fetch(`/api/admin/web-sources/${source.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ragEnabled: !source.rag_enabled }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        toast.error(data.error || 'Erreur lors de la mise à jour RAG')
+      } else {
+        toast.success(
+          source.rag_enabled
+            ? `RAG désactivé pour "${source.name}" — les pages ne seront plus retournées dans les recherches`
+            : `RAG activé pour "${source.name}"`
+        )
+        router.refresh()
+      }
+    } catch {
+      toast.error('Erreur lors de la mise à jour RAG')
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  // ─── Supprimer (flow 2 étapes) ────────────────────────────────────────────────
+
+  const handleOpenDelete = async () => {
+    setLoading('delete-preview')
+    try {
+      const res = await fetch(`/api/admin/web-sources/${source.id}?preview=true`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast.error(data.message || data.error || 'Erreur lors de la récupération des stats')
+        return
+      }
+
+      setDeletePreview({
+        webPages: data.stats?.webPages ?? 0,
+        knowledgeBaseDocs: data.stats?.knowledgeBaseDocs ?? 0,
+      })
+      setShowDeleteConfirm(true)
+    } catch {
+      toast.error('Erreur lors de la récupération des stats')
     } finally {
       setLoading(null)
     }
@@ -151,29 +243,26 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const data = await res.json()
 
       if (!res.ok) {
-        // Afficher le message d'erreur détaillé
         const errorMessage = data.message || data.error || 'Erreur lors de la suppression'
         const details = data.details?.length > 0 ? data.details.join(' | ') : undefined
-
-        toast.error(details ? `${errorMessage} \u2014 ${details}` : errorMessage, { duration: 10000 })
+        toast.error(details ? `${errorMessage} — ${details}` : errorMessage, { duration: 10000 })
       } else {
-        // Succès
         const stats = data.stats
         const statsMessage = stats
           ? `${stats.webPages} pages, ${stats.knowledgeBaseDocs} docs KB supprimés`
           : undefined
-
-        toast.success(statsMessage ? `Source supprim\u00e9e \u2014 ${statsMessage}` : 'Source supprim\u00e9e')
-
+        toast.success(statsMessage ? `Source supprimée — ${statsMessage}` : 'Source supprimée')
         router.push('/super-admin/web-sources')
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression')
     } finally {
       setLoading(null)
-      setShowDelete(false)
+      setShowDeleteConfirm(false)
     }
   }
+
+  // ─── Organiser ────────────────────────────────────────────────────────────────
 
   const handleOpenOrganize = async () => {
     setLoading('organize-stats')
@@ -182,7 +271,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const data = await res.json()
 
       if (!res.ok) {
-        toast.error(data.error || 'Erreur lors de la r\u00e9cup\u00e9ration des stats')
+        toast.error(data.error || 'Erreur lors de la récupération des stats')
         return
       }
 
@@ -192,15 +281,21 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
           ? `${estimatedMinutes} min`
           : `${Math.floor(estimatedMinutes / 60)}h ${estimatedMinutes % 60}m`
 
+      const estimatedCostUsd =
+        data.estimatedCost != null
+          ? `~$${Number(data.estimatedCost).toFixed(2)} USD`
+          : '~$0.40 USD'
+
       setOrganizeStats({
         totalPages: data.totalPages,
         pagesWithMetadata: data.pagesWithMetadata,
         pagesWithoutMetadata: data.pagesWithoutMetadata,
         estimatedTime,
+        estimatedCost: estimatedCostUsd,
       })
       setShowOrganize(true)
     } catch {
-      toast.error('Erreur lors de la r\u00e9cup\u00e9ration des stats')
+      toast.error('Erreur lors de la récupération des stats')
     } finally {
       setLoading(null)
     }
@@ -209,7 +304,6 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
   const handleOrganize = async () => {
     setLoading('organize')
     try {
-      // Lancer l'extraction bulk en arrière-plan
       const res = await fetch(`/api/admin/web-sources/${source.id}/organize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -218,18 +312,20 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
       const data = await res.json()
 
       if (!res.ok) {
-        toast.error(data.error || 'Erreur lors de l\'organisation')
+        toast.error(data.error || "Erreur lors de l'organisation")
       } else {
-        toast.success(`Organisation lanc\u00e9e \u2014 Extraction et classification en cours... ${data.message || ''}`)
+        toast.success(`Organisation lancée — Extraction et classification en cours... ${data.message || ''}`)
         setShowOrganize(false)
         router.refresh()
       }
     } catch {
-      toast.error('Erreur lors de l\'organisation')
+      toast.error("Erreur lors de l'organisation")
     } finally {
       setLoading(null)
     }
   }
+
+  // ─── Read-only ────────────────────────────────────────────────────────────────
 
   if (readOnly) {
     return (
@@ -240,15 +336,28 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
     )
   }
 
+  const isRAGDisabled = !source.rag_enabled
+
   return (
     <>
       <div className="flex items-center gap-2">
+        {/* Badge RAG désactivé */}
+        {isRAGDisabled && (
+          <Badge
+            variant="outline"
+            className="border-red-500/50 text-red-400 text-xs px-2 py-0.5"
+            title="Cette source est exclue des recherches RAG"
+          >
+            RAG off
+          </Badge>
+        )}
+
         {/* Split Button Crawler */}
         <SplitButton
           label="Crawler"
           icon={<Icons.refresh className="h-4 w-4" />}
           onClick={() => handleCrawl('incremental')}
-          disabled={loading !== null || !source.is_active}
+          disabled={loading !== null || !source.is_active || isRAGDisabled}
           loading={loading === 'crawl'}
           className="bg-blue-600 hover:bg-blue-700"
           options={[
@@ -256,14 +365,14 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
               label: 'Crawl incrémental',
               icon: <Icons.refresh className="h-4 w-4" />,
               onClick: () => handleCrawl('incremental'),
-              disabled: !source.is_active,
+              disabled: !source.is_active || isRAGDisabled,
               badge: 'Par défaut',
             },
             {
               label: 'Crawl complet',
               icon: <Icons.refresh className="h-4 w-4" />,
               onClick: () => handleCrawl('full_crawl'),
-              disabled: !source.is_active,
+              disabled: !source.is_active || isRAGDisabled,
               className: 'text-blue-400',
             },
           ]}
@@ -275,7 +384,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
           icon={<Icons.box className="h-4 w-4" />}
           onClick={() => handleIndex(false)}
           disabled={loading !== null}
-          loading={loading === 'index'}
+          loading={loading === 'index' || loading === 'files'}
           variant="outline"
           className="border-purple-500 text-purple-400 hover:bg-purple-500/20"
           options={[
@@ -295,7 +404,6 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
               label: 'Indexer les PDF',
               icon: <Icons.fileText className="h-4 w-4" />,
               onClick: handleIndexFiles,
-              disabled: loading === 'files',
               className: 'text-orange-400',
             },
           ]}
@@ -319,8 +427,16 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
         {/* Menu Actions Secondaires */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="border-slate-600 text-slate-300">
-              <Icons.moreVertical className="h-4 w-4" />
+            <Button
+              variant="outline"
+              className="border-slate-600 text-slate-300"
+              disabled={loading === 'delete-preview'}
+            >
+              {loading === 'delete-preview' ? (
+                <Icons.loader className="h-4 w-4 animate-spin" />
+              ) : (
+                <Icons.moreVertical className="h-4 w-4" />
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
@@ -344,10 +460,34 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-slate-700" />
             <DropdownMenuItem
-              onClick={handleToggleActive}
-              className={source.is_active
-                ? "text-yellow-400 hover:bg-slate-700 cursor-pointer"
-                : "text-green-400 hover:bg-slate-700 cursor-pointer"
+              onClick={handleToggleRag}
+              disabled={loading !== null}
+              className={
+                source.rag_enabled
+                  ? 'text-red-400 hover:bg-slate-700 cursor-pointer'
+                  : 'text-green-400 hover:bg-slate-700 cursor-pointer'
+              }
+            >
+              {source.rag_enabled ? (
+                <>
+                  <Icons.eyeOff className="h-4 w-4 mr-2" />
+                  Désactiver RAG
+                </>
+              ) : (
+                <>
+                  <Icons.eye className="h-4 w-4 mr-2" />
+                  Activer RAG
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-slate-700" />
+            <DropdownMenuItem
+              onClick={handleClickToggleActive}
+              disabled={loading !== null}
+              className={
+                source.is_active
+                  ? 'text-yellow-400 hover:bg-slate-700 cursor-pointer'
+                  : 'text-green-400 hover:bg-slate-700 cursor-pointer'
               }
             >
               {source.is_active ? (
@@ -363,7 +503,8 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
               )}
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => setShowDelete(true)}
+              onClick={handleOpenDelete}
+              disabled={loading !== null}
               className="text-red-400 hover:bg-red-500/10 cursor-pointer"
             >
               <Icons.trash className="h-4 w-4 mr-2" />
@@ -373,16 +514,74 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
         </DropdownMenu>
       </div>
 
-      <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+      {/* Dialog confirmation désactivation */}
+      <AlertDialog open={showDeactivateConfirm} onOpenChange={setShowDeactivateConfirm}>
         <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer la source ?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Icons.pause className="h-5 w-5 text-yellow-400" />
+              Désactiver la source ?
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-slate-400">
-              Cette action est irréversible. La source "{source.name}" et toutes ses pages crawlées seront supprimées.
+              La source &quot;{source.name}&quot; ne sera plus crawlée automatiquement. Les pages déjà
+              indexées restent accessibles.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">
+            <AlertDialogCancel
+              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
+              disabled={loading === 'toggle'}
+            >
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleToggleActive}
+              className="bg-yellow-600 hover:bg-yellow-700"
+              disabled={loading === 'toggle'}
+            >
+              {loading === 'toggle' && <Icons.loader className="h-4 w-4 animate-spin mr-2" />}
+              Désactiver
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog suppression (2 étapes) */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Icons.trash className="h-5 w-5 text-red-400" />
+              Supprimer la source ?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              Cette action est irréversible. La source &quot;{source.name}&quot; et toutes ses données
+              associées seront supprimées définitivement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {deletePreview && (
+            <div className="grid grid-cols-2 gap-3 py-2">
+              <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-red-400">
+                  {deletePreview.webPages.toLocaleString()}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">pages web</p>
+              </div>
+              <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-red-400">
+                  {deletePreview.knowledgeBaseDocs.toLocaleString()}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">docs KB + chunks</p>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
+              disabled={loading === 'delete'}
+            >
               Annuler
             </AlertDialogCancel>
             <AlertDialogAction
@@ -391,12 +590,13 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
               disabled={loading === 'delete'}
             >
               {loading === 'delete' && <Icons.loader className="h-4 w-4 animate-spin mr-2" />}
-              Supprimer
+              Supprimer définitivement
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Dialog organisation */}
       <AlertDialog open={showOrganize} onOpenChange={setShowOrganize}>
         <AlertDialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
           <AlertDialogHeader>
@@ -440,9 +640,12 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
                       <li>Validation stricte contre listes de référence</li>
                     </ul>
                     <p className="text-slate-400 text-xs mt-2">
-                      ⏱️ Temps estimé : <span className="text-white font-medium">{organizeStats.estimatedTime}</span>
+                      ⏱️ Temps estimé :{' '}
+                      <span className="text-white font-medium">{organizeStats.estimatedTime}</span>
                       <br />
-                      💰 Coût estimé : <span className="text-white font-medium">~0.40 USD</span> (Ollama gratuit prioritaire)
+                      💰 Coût estimé :{' '}
+                      <span className="text-white font-medium">{organizeStats.estimatedCost}</span>{' '}
+                      (Ollama gratuit prioritaire)
                     </p>
                   </div>
                 </div>
@@ -452,7 +655,8 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
                 <div className="flex items-start gap-2">
                   <Icons.alertTriangle className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-yellow-300">
-                    L'opération s'exécute en arrière-plan. Vous pouvez fermer cette fenêtre et revenir plus tard.
+                    L&apos;opération s&apos;exécute en arrière-plan. Vous pouvez fermer cette fenêtre et
+                    revenir plus tard.
                   </p>
                 </div>
               </div>
@@ -472,7 +676,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
               disabled={loading === 'organize'}
             >
               {loading === 'organize' && <Icons.loader className="h-4 w-4 animate-spin mr-2" />}
-              Lancer l'organisation
+              Lancer l&apos;organisation
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
