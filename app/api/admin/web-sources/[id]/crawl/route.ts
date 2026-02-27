@@ -20,6 +20,7 @@ import {
   crawlSinglePage,
 } from '@/lib/web-scraper'
 import { indexSourcePages } from '@/lib/web-scraper/web-indexer-service'
+import { reconsolidateSourceDocuments } from '@/lib/legal-documents/content-consolidation-service'
 
 export const POST = withAdminApiAuth(
   async (
@@ -112,6 +113,17 @@ export const POST = withAdminApiAuth(
         indexingResult = await indexSourcePages(id, { limit: 500 })
       }
 
+      // Re-consolider automatiquement les legal_documents liés à cette source
+      let reconsolidationResult = null
+      if (crawlResult.pagesNew + crawlResult.pagesChanged > 0) {
+        reconsolidationResult = await reconsolidateSourceDocuments(id)
+        if (reconsolidationResult.processed > 0) {
+          console.log(
+            `[crawl] Re-consolidation auto: ${reconsolidationResult.succeeded}/${reconsolidationResult.processed} docs pour source ${id}`
+          )
+        }
+      }
+
       return NextResponse.json({
         message: crawlResult.success ? 'Crawl terminé avec succès' : 'Crawl terminé avec erreurs',
         crawl: {
@@ -127,6 +139,13 @@ export const POST = withAdminApiAuth(
             processed: indexingResult.processed,
             succeeded: indexingResult.succeeded,
             failed: indexingResult.failed,
+          }
+        } : {}),
+        ...(reconsolidationResult && reconsolidationResult.processed > 0 ? {
+          reconsolidation: {
+            processed: reconsolidationResult.processed,
+            succeeded: reconsolidationResult.succeeded,
+            failed: reconsolidationResult.failed,
           }
         } : {}),
       })

@@ -43,6 +43,9 @@ cat > /tmp/qadhya-crontab << 'CRONTAB'
 # Réindexation progressive OpenAI embeddings - Quotidien à 5h
 0 5 * * * /opt/qadhya/scripts/cron-reindex-kb-openai.sh >> /var/log/qadhya/reindex-kb-openai.log 2>&1
 
+# Re-consolidation documents juridiques stale - Quotidien à 2h
+0 2 * * * /opt/qadhya/scripts/cron-reconsolidate-legal-docs.sh >> /var/log/qadhya/reconsolidate-legal-docs.log 2>&1
+
 # Cleanup old cron executions - Quotidien à 4h
 0 4 * * * docker exec 275ce01791bf_qadhya-postgres psql -U moncabinet -d qadhya -c "SELECT cleanup_old_cron_executions();" >> /var/log/qadhya/cleanup.log 2>&1
 

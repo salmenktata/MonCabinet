@@ -454,3 +454,104 @@ export async function consolidateCollection(
     errors,
   }
 }
+
+// =============================================================================
+// RE-CONSOLIDATION BATCH
+// =============================================================================
+
+/**
+ * Re-consolide tous les legal_documents liés à une source web.
+ * Appelé automatiquement après chaque crawl si des pages ont changé.
+ */
+export async function reconsolidateSourceDocuments(
+  sourceId: string
+): Promise<{ processed: number; succeeded: number; failed: number }> {
+  const docs = await db.query<{ id: string; document_type: string; citation_key: string }>(
+    `SELECT id, document_type, citation_key
+     FROM legal_documents
+     WHERE canonical_source_id = $1
+       AND consolidation_status != 'pending'`,
+    [sourceId]
+  )
+
+  let succeeded = 0
+  let failed = 0
+
+  for (const doc of docs.rows) {
+    try {
+      if (doc.document_type === 'code') {
+        await consolidateDocument(doc.id)
+      } else {
+        await consolidateCollection(doc.id)
+      }
+      succeeded++
+      log.info(`Re-consolidation OK: ${doc.citation_key}`)
+    } catch (err) {
+      log.error(`Re-consolidation échouée pour ${doc.citation_key}:`, err)
+      failed++
+    }
+  }
+
+  return { processed: docs.rows.length, succeeded, failed }
+}
+
+/**
+ * Re-consolide les legal_documents dont les pages liées ont été
+ * crawlées après la dernière consolidation (documents "stale").
+ * Utilisé par le cron nocturne.
+ */
+export async function reconsolidateStaleDocs(
+  batchSize = 20
+): Promise<{ processed: number; succeeded: number; failed: number; remaining: number }> {
+  const stale = await db.query<{ id: string; document_type: string; citation_key: string }>(
+    `SELECT ld.id, ld.document_type, ld.citation_key
+     FROM legal_documents ld
+     WHERE ld.consolidation_status != 'pending'
+       AND EXISTS (
+         SELECT 1 FROM web_pages_documents wpd
+         JOIN web_pages wp ON wpd.web_page_id = wp.id
+         WHERE wpd.legal_document_id = ld.id
+           AND wp.last_crawled_at > ld.updated_at
+       )
+     LIMIT $1`,
+    [batchSize]
+  )
+
+  const remaining = await db.query<{ count: string }>(
+    `SELECT COUNT(*) as count
+     FROM legal_documents ld
+     WHERE ld.consolidation_status != 'pending'
+       AND EXISTS (
+         SELECT 1 FROM web_pages_documents wpd
+         JOIN web_pages wp ON wpd.web_page_id = wp.id
+         WHERE wpd.legal_document_id = ld.id
+           AND wp.last_crawled_at > ld.updated_at
+       )`
+  )
+  const totalStale = parseInt(remaining.rows[0]?.count || '0', 10)
+
+  let succeeded = 0
+  let failed = 0
+
+  for (const doc of stale.rows) {
+    try {
+      if (doc.document_type === 'code') {
+        await consolidateDocument(doc.id)
+      } else {
+        await consolidateCollection(doc.id)
+      }
+      succeeded++
+      log.info(`Re-consolidation stale OK: ${doc.citation_key}`)
+    } catch (err) {
+      log.error(`Re-consolidation stale échouée pour ${doc.citation_key}:`, err)
+      failed++
+    }
+  }
+
+  return {
+    processed: stale.rows.length,
+    succeeded,
+    failed,
+    remaining: Math.max(0, totalStale - succeeded),
+  }
+}
