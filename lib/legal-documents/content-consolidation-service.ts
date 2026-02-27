@@ -11,6 +11,7 @@ import { createLogger } from '@/lib/logger'
 import {
   getDocumentWithPages,
   updateConsolidation,
+  updateConsolidationStatus,
   type LinkedPage,
 } from './document-service'
 
@@ -99,6 +100,20 @@ export async function consolidateDocument(
   })
 
   log.info(`Pages avec contenu: ${pagesWithContent.length}/${pages.length}`)
+
+  if (pagesWithContent.length === 0) {
+    await updateConsolidationStatus(documentId, 'partial')
+    return {
+      success: false,
+      documentId,
+      totalPages: 0,
+      totalArticles: 0,
+      totalWords: 0,
+      consolidatedTextLength: 0,
+      structure: { books: [], totalArticles: 0, totalWords: 0, consolidatedAt: new Date().toISOString() },
+      errors: [...errors, 'Aucune page avec contenu suffisant — consolidation partielle'],
+    }
+  }
 
   // Organiser en structure hiérarchique
   const structure = buildStructure(pagesWithContent, document.citationKey)
@@ -366,6 +381,20 @@ export async function consolidateCollection(
   log.info(`Consolidation (collection) de ${document.citationKey}: ${pages.length} pages`)
 
   const pagesWithContent = pages.filter(p => p.extractedText && p.extractedText.trim().length > 10)
+
+  if (pagesWithContent.length === 0) {
+    await updateConsolidationStatus(documentId, 'partial')
+    return {
+      success: false,
+      documentId,
+      totalPages: 0,
+      totalArticles: 0,
+      totalWords: 0,
+      consolidatedTextLength: 0,
+      structure: { books: [], totalArticles: 0, totalWords: 0, consolidatedAt: new Date().toISOString() },
+      errors: ['Aucune page avec contenu suffisant — consolidation partielle'],
+    }
+  }
 
   // Générer le texte consolidé complet (même modèle que consolidateDocument)
   // Format : titre + séparateur + texte complet de chaque page
