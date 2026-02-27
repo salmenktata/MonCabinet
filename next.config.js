@@ -103,7 +103,12 @@ const nextConfig = {
   serverExternalPackages: ['canvas', 'pdf-to-img', 'tesseract.js', 'pdf-parse', 'pdfjs-dist'],
 
   // Exclure les polyfills Node.js côté client pour réduire le bundle
-  webpack: (config, { isServer, webpack }) => {
+  webpack: (config, { isServer, webpack, dev }) => {
+    // Limiter le parallélisme webpack en CI pour éviter l'OOM
+    if (!dev) {
+      config.parallelism = 1
+    }
+
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
