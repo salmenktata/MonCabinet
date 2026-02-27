@@ -14,6 +14,7 @@ import { AbrogationAlerts } from '@/components/chat/abrogation-alert' // Phase 3
 import { MessageFeedback } from '@/components/chat/MessageFeedback'
 import type { AbrogationAlert } from '@/types/abrogation-alerts' // Phase 3.4
 import type { ModeConfig } from '@/app/(dashboard)/qadhya-ia/mode-config'
+import type { ProgressStep } from '@/lib/hooks/useStreamingChat'
 
 const MarkdownMessage = dynamic(
   () => import('./MarkdownMessage').then(mod => mod.MarkdownMessage),
@@ -51,6 +52,7 @@ interface ChatMessagesProps {
   isLoading?: boolean
   streamingContent?: string
   currentMetadata?: { sources?: unknown[]; model?: string } | null
+  progressSteps?: ProgressStep[]
   modeConfig?: ModeConfig
   renderEnriched?: (message: ChatMessage) => React.ReactNode
   onSendExample?: (text: string) => void
@@ -58,7 +60,7 @@ interface ChatMessagesProps {
   onResendMessage?: (content: string) => void
 }
 
-export function ChatMessages({ messages, isLoading, streamingContent, currentMetadata, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false, onResendMessage }: ChatMessagesProps) {
+export function ChatMessages({ messages, isLoading, streamingContent, currentMetadata, progressSteps, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false, onResendMessage }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
   const tMode = useTranslations('qadhyaIA.modes')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -196,16 +198,9 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
         {/* Message en cours de streaming */}
         {streamingContent && (
           <div className="pb-4">
-            {/* Badge sources trouvées (avant que le texte commence) */}
+            {/* Source title chips (avant que le texte commence, après metadata reçu) */}
             {!streamingContent.trim() && (currentMetadata?.sources?.length ?? 0) > 0 && (
-              <div className="flex items-center gap-1.5 ms-11 mb-1.5 text-xs text-muted-foreground/60">
-                <Icons.bookOpen className="h-3 w-3" />
-                <span>
-                {currentMetadata!.sources!.length === 1
-                  ? '1 source juridique consultée'
-                  : `${currentMetadata!.sources!.length} sources juridiques consultées`}
-              </span>
-              </div>
+              <SourceChips sources={currentMetadata!.sources as unknown[]} />
             )}
             <MessageBubble
               message={{
@@ -215,6 +210,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
                 createdAt: new Date(),
                 isStreaming: true,
               }}
+              progressSteps={progressSteps}
               renderEnriched={renderEnriched}
             />
           </div>
@@ -250,16 +246,9 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Badge sources trouvées (avant que le texte commence) */}
+          {/* Source title chips (avant que le texte commence, après metadata reçu) */}
           {!streamingContent.trim() && (currentMetadata?.sources?.length ?? 0) > 0 && (
-            <div className="flex items-center gap-1.5 ms-11 mb-1.5 text-xs text-muted-foreground/60">
-              <Icons.bookOpen className="h-3 w-3" />
-              <span>
-                {currentMetadata!.sources!.length === 1
-                  ? '1 source juridique consultée'
-                  : `${currentMetadata!.sources!.length} sources juridiques consultées`}
-              </span>
-            </div>
+            <SourceChips sources={currentMetadata!.sources as unknown[]} />
           )}
           <MessageBubble
             message={{
@@ -269,6 +258,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
               createdAt: new Date(),
               isStreaming: true,
             }}
+            progressSteps={progressSteps}
             renderEnriched={renderEnriched}
           />
         </motion.div>
@@ -377,12 +367,13 @@ function LoadingIndicator() {
 
 interface MessageBubbleProps {
   message: ChatMessage
+  progressSteps?: ProgressStep[]
   renderEnriched?: (message: ChatMessage) => React.ReactNode
   canProvideFeedback?: boolean
   onResendMessage?: (content: string) => void
 }
 
-const MessageBubble = memo(function MessageBubble({ message, renderEnriched, canProvideFeedback = false, onResendMessage }: MessageBubbleProps) {
+const MessageBubble = memo(function MessageBubble({ message, progressSteps, renderEnriched, canProvideFeedback = false, onResendMessage }: MessageBubbleProps) {
   const t = useTranslations('assistantIA')
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
@@ -524,13 +515,17 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched, can
         {/* Carte réponse */}
         <div className="group rounded-2xl rounded-tl-md bg-card/80 border border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
           <div className="px-5 py-4">
-            {/* Streaming sans contenu textuel réel → dots d'attente */}
+            {/* Streaming sans contenu textuel réel → ThinkingLog ou dots */}
             {message.isStreaming && !message.content?.trim() ? (
-              <div className="flex items-center gap-1 py-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
-                <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1.4s' }} />
-                <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1.4s' }} />
-              </div>
+              progressSteps && progressSteps.length > 0
+                ? <ThinkingLog steps={progressSteps} />
+                : (
+                  <div className="flex items-center gap-1 py-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1.4s' }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1.4s' }} />
+                  </div>
+                )
             ) : renderEnriched ? (
               renderEnriched(message)
             ) : (
@@ -596,7 +591,124 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched, can
     prevProps.message.sources?.length === nextProps.message.sources?.length &&
     prevProps.renderEnriched === nextProps.renderEnriched &&
     prevProps.canProvideFeedback === nextProps.canProvideFeedback &&
-    prevProps.onResendMessage === nextProps.onResendMessage
+    prevProps.onResendMessage === nextProps.onResendMessage &&
+    prevProps.progressSteps?.length === nextProps.progressSteps?.length
   )
 })
+
+// --- ThinkingLog : étapes réelles du pipeline RAG en temps réel ---
+
+const THINKING_STEPS = [
+  {
+    key: 'searching' as const,
+    icon: 'search' as const,
+    label: () => 'Recherche dans la base juridique',
+  },
+  {
+    key: 'sources_found' as const,
+    icon: 'bookOpen' as const,
+    label: (step: ProgressStep) =>
+      step.count != null
+        ? `${step.count} source${step.count !== 1 ? 's' : ''} trouvée${step.count !== 1 ? 's' : ''} · ${step.avgSimilarity ?? 0}% de pertinence`
+        : 'Analyse des sources...',
+  },
+  {
+    key: 'generating' as const,
+    icon: 'scale' as const,
+    label: () => 'Rédaction de la réponse juridique',
+  },
+]
+
+function ThinkingLog({ steps }: { steps: ProgressStep[] }) {
+  const completedKeys = steps.map((s) => s.step)
+  const lastKey = completedKeys[completedKeys.length - 1]
+
+  return (
+    <div className="py-1 space-y-2">
+      {THINKING_STEPS.map((config) => {
+        const matchingStep = steps.find((s) => s.step === config.key)
+        const isDone = completedKeys.includes(config.key) && config.key !== lastKey
+        const isCurrent = config.key === lastKey
+        const isPending = !completedKeys.includes(config.key)
+        const StepIcon = Icons[config.icon]
+        const labelText = matchingStep
+          ? config.label(matchingStep)
+          : config.label({ step: config.key, timestamp: 0 })
+
+        return (
+          <motion.div
+            key={config.key}
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.25 }}
+            className={cn(
+              'flex items-center gap-2.5 text-sm transition-all duration-300',
+              isDone && 'text-muted-foreground/40',
+              isCurrent && 'text-foreground',
+              isPending && 'text-muted-foreground/20'
+            )}
+          >
+            {isDone ? (
+              <Icons.check className="h-3.5 w-3.5 text-primary/50 shrink-0" />
+            ) : isCurrent ? (
+              <motion.div
+                animate={{ opacity: [1, 0.35, 1] }}
+                transition={{ repeat: Infinity, duration: 1.2 }}
+              >
+                <StepIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+              </motion.div>
+            ) : (
+              <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/15 shrink-0" />
+            )}
+            <span className={cn(isCurrent && 'font-medium')}>{labelText}</span>
+          </motion.div>
+        )
+      })}
+    </div>
+  )
+}
+
+// --- SourceChips : titre des 3 premières sources avant que le texte commence ---
+
+function SourceChips({ sources }: { sources: unknown[] }) {
+  const count = sources.length
+  if (count === 0) return null
+
+  const top3 = sources.slice(0, 3) as Array<Record<string, unknown>>
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="ms-11 mb-2 space-y-1"
+    >
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
+        <Icons.bookOpen className="h-3 w-3" />
+        <span>{count} source{count !== 1 ? 's' : ''} consultée{count !== 1 ? 's' : ''}</span>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {top3.map((src, i) => {
+          const title =
+            (src.title as string | undefined) ??
+            (src.documentName as string | undefined) ??
+            'Source'
+          return (
+            <span
+              key={i}
+              className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/8 border border-primary/15 text-[11px] text-muted-foreground/70 max-w-[200px] truncate"
+            >
+              {title}
+            </span>
+          )
+        })}
+        {count > 3 && (
+          <span className="text-[11px] text-muted-foreground/40 self-center">
+            +{count - 3}
+          </span>
+        )}
+      </div>
+    </motion.div>
+  )
+}
 

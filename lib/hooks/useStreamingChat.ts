@@ -27,8 +27,16 @@ interface StreamMetadata {
   model: string
 }
 
+export interface ProgressStep {
+  step: 'searching' | 'sources_found' | 'generating'
+  count?: number
+  avgSimilarity?: number
+  quality?: string
+  timestamp: number
+}
+
 interface StreamChunk {
-  type: 'metadata' | 'content' | 'done' | 'error' | 'thinking'
+  type: 'metadata' | 'content' | 'done' | 'error' | 'thinking' | 'progress'
   content?: string
   conversationId?: string
   sources?: ChatSource[]
@@ -36,6 +44,11 @@ interface StreamChunk {
   tokensUsed?: { input: number; output: number; total: number }
   error?: string
   abrogationAlerts?: AbrogationAlert[] // Phase 3.4
+  // progress fields
+  step?: 'searching' | 'sources_found' | 'generating'
+  count?: number
+  avgSimilarity?: number
+  quality?: string
 }
 
 interface UseStreamingChatOptions {
@@ -53,6 +66,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
   const [currentMetadata, setCurrentMetadata] = useState<StreamMetadata | null>(null)
+  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([])
   const [quotaExceeded, setQuotaExceeded] = useState<QuotaExceededInfo | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -74,6 +88,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
       // Réinitialiser l'état
       setStreamingContent('')
       setCurrentMetadata(null)
+      setProgressSteps([])
       setIsStreaming(true)
 
       // Créer un AbortController pour pouvoir annuler la requête
@@ -207,6 +222,21 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
                 // Confirmation de réception de la requête — pas d'action UI nécessaire
                 break
 
+              case 'progress':
+                if (chunk.step) {
+                  setProgressSteps((prev) => [
+                    ...prev,
+                    {
+                      step: chunk.step!,
+                      count: chunk.count,
+                      avgSimilarity: chunk.avgSimilarity,
+                      quality: chunk.quality,
+                      timestamp: Date.now(),
+                    },
+                  ])
+                }
+                break
+
               case 'error':
                 throw new Error(chunk.error || 'Erreur streaming')
             }
@@ -231,6 +261,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
     setMessages([])
     setStreamingContent('')
     setCurrentMetadata(null)
+    setProgressSteps([])
   }, [])
 
   return {
@@ -238,6 +269,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
     isStreaming,
     streamingContent,
     currentMetadata,
+    progressSteps,
     quotaExceeded,
     clearQuotaExceeded: () => setQuotaExceeded(null),
     sendMessage,

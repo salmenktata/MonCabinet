@@ -2628,6 +2628,7 @@ export type StreamChunk =
   | { type: 'chunk'; text: string }
   | { type: 'done'; tokensUsed: { input: number; output: number; total: number } }
   | { type: 'error'; message: string }
+  | { type: 'progress'; step: 'searching' | 'sources_found' | 'generating'; count?: number; avgSimilarity?: number; quality?: string }
 
 /**
  * Répond à une question en streaming natif Gemini.
@@ -2653,6 +2654,7 @@ export async function* answerQuestionStream(
   }
 
   // 1. Phase RAG (non-streaming)
+  yield { type: 'progress', step: 'searching' }
   let sources: ChatSource[] = []
   let streamSearchResult: SearchResult | null = null
   try {
@@ -2690,8 +2692,15 @@ export async function* answerQuestionStream(
   }
 
   // 2. Construire le contexte RAG
-  const context = await buildContextFromSources(sources, questionLang)
   const qualityMetrics = computeSourceQualityMetrics(sources)
+  yield {
+    type: 'progress',
+    step: 'sources_found',
+    count: sources.length,
+    avgSimilarity: Math.round((qualityMetrics.averageSimilarity ?? 0) * 100),
+    quality: qualityMetrics.qualityLevel,
+  }
+  const context = await buildContextFromSources(sources, questionLang)
 
   // B1: Abstention progressive en streaming — quality gate à 3 niveaux (zone grise 0.30-0.40)
   const streamAvg = qualityMetrics.averageSimilarity
@@ -2779,6 +2788,7 @@ export async function* answerQuestionStream(
   }
 
   // 6. Stream LLM → yield chunks (Groq ou Gemini selon operations-config)
+  yield { type: 'progress', step: 'generating' }
   const promptConfig = PROMPT_CONFIG[contextType]
   let fullText = ''
   const streamUsage: StreamTokenUsage = { input: 0, output: 0, total: 0 }

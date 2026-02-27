@@ -125,6 +125,7 @@ export function UnifiedChatPage({
     isStreaming,
     streamingContent,
     currentMetadata,
+    progressSteps,
     sendMessage: streamSend,
     stopStreaming,
     quotaExceeded,
@@ -400,6 +401,7 @@ export function UnifiedChatPage({
                 isLoading={isLoadingMessages && !isStreaming}
                 streamingContent={isStreaming ? (streamingContent || ' ') : undefined}
                 currentMetadata={isStreaming ? currentMetadata : undefined}
+                progressSteps={isStreaming ? progressSteps : undefined}
                 modeConfig={modeConfig}
                 renderEnriched={(message) => <EnrichedMessage message={message} />}
                 onSendExample={(text) => handleSendMessage(text)}
