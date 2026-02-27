@@ -118,7 +118,7 @@ const CRON_SCRIPTS: Record<string, { script: string; description: string; estima
   },
   'kb-quality-maintenance': {
     script: '/opt/qadhya/scripts/kb-quality-maintenance.sh',
-    description: 'Maintenance Qualité KB (fill scores + rechunk + reindex articles)',
+    description: 'Maintenance Qualité KB (qualité, rechunk, metadata, nettoyage pages courtes)',
     estimatedDuration: 900000,
   },
   'web-crawler': {

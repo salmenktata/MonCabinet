@@ -11,6 +11,7 @@
 #   5. enrich-metadata       — 3×10 docs/jour (completeness < 70)
 #   6. deactivate-short-docs — 1×200 docs/jour (full_text < 50 chars)
 #   7. detect-contradictions — 2×3  pages/jour (non encore vérifiées)
+#   8. cleanup-thin-pages    — 1×global/jour   (pages web < min_word_count mots, défaut 30)
 #
 
 API_URL="${APP_URL:-http://localhost:3000}"
@@ -320,12 +321,31 @@ done
 
 log "  [P7] Total contradictions détectées: $CONTRA_TOTAL"
 
+# ─── Phase 8 : Nettoyage pages web trop courtes ──────────────────────────────
+
+log ""
+log "── Phase 8 : Nettoyage pages web trop courtes (< min_word_count) ──"
+
+RESP=$(curl -sf -m 60 \
+  -X POST "$API_URL/api/admin/web-sources/maintenance" \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"cleanup_thin_pages","options":{"dryRun":false}}')
+
+CLEANUP_ARCHIVED=0
+if echo "$RESP" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+  CLEANUP_ARCHIVED=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('pagesArchived',0))" 2>/dev/null || echo "0")
+  log "  [P8] Pages archivées (contenu insuffisant): $CLEANUP_ARCHIVED"
+else
+  log "  [P8] Réponse non-JSON — skip"
+fi
+
 # ─── Enregistrer fin en DB ───────────────────────────────────────────────────
 
 END_TS=$(date +%s)
 DURATION_MS=$(( (END_TS - START_TS) * 1000 ))
 
-OUTPUT="Phase1: ${TOTAL_SUCCESS} quality-scored | Phase2: ${RECHUNK_TOTAL} rechunked | Phase4: ${META_TOTAL} metadata | Phase5: ${ENRICH_TOTAL} enriched | Phase6: ${DEACTIVATED} deactivated | Phase7: ${CONTRA_TOTAL} contradictions"
+OUTPUT="Phase1: ${TOTAL_SUCCESS} quality-scored | Phase2: ${RECHUNK_TOTAL} rechunked | Phase4: ${META_TOTAL} metadata | Phase5: ${ENRICH_TOTAL} enriched | Phase6: ${DEACTIVATED} deactivated | Phase7: ${CONTRA_TOTAL} contradictions | Phase8: ${CLEANUP_ARCHIVED} thin-archived"
 
 curl -sf -X POST "$API_URL/api/admin/monitoring/cron-executions" \
   -H "Authorization: Bearer $CRON_SECRET" \
