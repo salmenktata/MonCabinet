@@ -30,6 +30,7 @@ import { isChatEnabled, getChatProvider } from '@/lib/ai/config'
 import { triggerSummaryGenerationIfNeeded } from '@/lib/ai/conversation-summary-service'
 import { createAIStream } from '@/lib/ai/streaming-service'
 import { scheduleHallucinationCheck } from '@/lib/ai/hallucination-monitor-service'
+import { scheduleQueryLog } from '@/lib/ai/query-log-service'
 import { trackConversationCost } from '@/lib/ai/conversation-cost-service'
 import { detectAbrogations, type AbrogationAlert } from '@/lib/legal/abrogation-detector-service'
 import { structurerDossier } from '@/lib/ai/dossier-structuring-service'
@@ -142,6 +143,8 @@ async function handleChatAction(
     excludeCategories,
   })
 
+  const chatLatencyMs = Date.now() - startTime
+
   // Instrumentation métriques comparatives pipeline
   recordPipelineMetric({
     pipeline: 'chat',
@@ -149,9 +152,24 @@ async function handleChatAction(
     cacheHit: false, // Pas de cache pour la génération LLM
     sourcesCount: response.sources?.length ?? 0,
     avgSimilarity: response.averageSimilarity ?? 0,
-    latencyMs: Date.now() - startTime,
+    latencyMs: chatLatencyMs,
     qualityGateTriggered: response.abstentionReason === 'quality_gate',
     routerFailed: false,
+  })
+
+  // Data flywheel : persister la requête pour gap analysis + silver generation
+  scheduleQueryLog({
+    conversationId,
+    question,
+    avgSimilarity: response.averageSimilarity,
+    sourcesCount: response.sources?.length ?? 0,
+    qualityGateTriggered: response.abstentionReason === 'quality_gate',
+    abstentionReason: response.abstentionReason,
+    answerLength: response.answer?.length,
+    qualityIndicator: response.qualityIndicator,
+    latencyMs: chatLatencyMs,
+    retrievedChunkIds: response.sources?.map(s => (s as any).chunkId).filter(Boolean),
+    retrievedScores: response.sources?.map(s => (s as any).similarity).filter(Boolean),
   })
 
   return {
@@ -683,6 +701,7 @@ async function handleStreamingResponse(
             controller.close()
 
             // Instrumentation métriques comparatives pipeline (streaming)
+            const streamLatencyMs = Date.now() - streamStartTime
             const streamAvgSim = savedSources.length > 0
               ? savedSources.reduce((s, r) => s + ((r as any).similarity ?? 0), 0) / savedSources.length
               : 0
@@ -692,9 +711,23 @@ async function handleStreamingResponse(
               cacheHit: false,
               sourcesCount: savedSources.length,
               avgSimilarity: streamAvgSim,
-              latencyMs: Date.now() - streamStartTime,
+              latencyMs: streamLatencyMs,
               qualityGateTriggered: false,
               routerFailed: false,
+            })
+
+            // Data flywheel : persister la requête pour gap analysis + silver generation
+            scheduleQueryLog({
+              conversationId,
+              question,
+              avgSimilarity: streamAvgSim,
+              sourcesCount: savedSources.length,
+              qualityGateTriggered: false,
+              abstentionReason: (!fullAnswer || fullAnswer.trim().length === 0) ? 'no_answer' : undefined,
+              answerLength: fullAnswer?.length,
+              latencyMs: streamLatencyMs,
+              retrievedChunkIds: savedSources.map(s => (s as any).chunkId).filter(Boolean),
+              retrievedScores: savedSources.map(s => (s as any).similarity).filter(Boolean),
             })
 
             // Post-stream : sauvegarder la réponse complète

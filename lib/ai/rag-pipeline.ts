@@ -57,6 +57,7 @@ import {
   type AbrogationWarning,
 } from './abrogation-detector-service'
 import { recordRAGMetric } from '@/lib/metrics/rag-metrics'
+import { scheduleRiskScoring } from './risk-scoring-service'
 import { buildContextFromSources, sanitizeCitations, computeSourceQualityMetrics } from './rag-context-builder'
 import {
   searchRelevantContext,
@@ -861,6 +862,18 @@ export async function answerQuestion(
     abrogationWarnings: abrogationWarnings.length,
     requestId: logger.getRequestId(),
   })
+
+  // Risk scoring asynchrone (fire-and-forget) — alimente l'expert review queue
+  if (options.conversationId && modelUsed !== 'abstained' && modelUsed !== 'degraded') {
+    scheduleRiskScoring(options.conversationId, {
+      question,
+      answer,
+      sources,
+      avgSimilarity: qualityMetrics.averageSimilarity,
+      citationWarnings: citationWarnings.length > 0 ? citationWarnings : undefined,
+      qualityGateTriggered: false,
+    })
+  }
 
   return {
     answer,
