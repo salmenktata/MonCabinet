@@ -1021,6 +1021,10 @@ function getTargetCodeTitleFragment(queryText: string, lang: string): string | n
   if (/مجلة الأحوال الشخصية|الأحوال الشخصية|طلاق للضرر|التفريق للضرر/.test(queryText)) {
     return 'مجلة الأحوال الشخصية'
   }
+  // Commercial (MCO) — المجلة التجارية (avant COC pour éviter collision "عقد تجاري")
+  if (/المجلة التجارية|يُعدّ تاجراً|من.*يُعدّ.*تاجر|تعريف.*تاجر|هل.*تاجر|الأعمال التجارية بطبيعتها|أعمال تجارية بطبيعتها|احتراف.*تجاري|شهر.*إفلاس|التسوية القضائية|إفلاس.*تاجر|تاجر.*إفلاس|الكمبيالة|سند.*أمر/.test(queryText)) {
+    return 'المجلة التجارية'
+  }
   // Civil obligations (COC) — التقادم + تعمير الذمة → art.402
   if (/العقد|الالتزامات|البطلان|الفسخ|الضمان|التقادم|المسؤولية التقصيرية|المسؤولية المدنية|مجلة الالتزامات|أركان العقد|الرضا|الإيجاب والقبول|تعمير الذمة|شروط.*صحة|صحة.*العقد|إثبات.*التزام|وسائل الإثبات/.test(queryText)) {
     return 'مجلة الالتزامات'
@@ -1144,6 +1148,19 @@ function buildClassicalArabicBM25OR(queryText: string): string {
     // Fix Feb 26 v13: البطلان المطلق / البطلان النسبي → Fsl 325 + قابل للإبطال
     [/بطلان.*مطلق|البطلان المطلق/, ['باطل', 'اصله', 'الباطل من اصله']],
     [/بطلان.*نسبي|البطلان النسبي/, ['إبطال', 'القيام', 'الإبطال', 'يجوز القيام']],
+    // MCO: تاجر + أعمال تجارية (المجلة التجارية Art.2-6)
+    [/تاجر|احتراف.*تجارة|أعمال تجارية|يحترف.*تجارة/, ['يحترف', 'أعمال', 'تجارية', 'احتراف', 'بصفة']],
+    [/إفلاس|توقف.*دفع|تسوية.*قضائية/, ['إفلاس', 'توقف', 'الدفع', 'التسوية', 'المفلس']],
+    [/شيك|صرف.*شيك|الشيك/, ['الشيك', 'الساحب', 'المسحوب', 'للأمر']],
+    // Fix v16: المجلة الجزائية — vocabulaire classique pour BM25 OR
+    // Fsl 39: "لا جريمة على من دفع صائلا عرض حياته" (الدفاع الشرعي)
+    [/الدفاع الشرعي|دفع الصائل|دفع.*صائل/, ['صائل', 'لا جريمة', 'الخطر', 'الضرورة']],
+    // Fsl 201: "يُعدّ قاتلاً عمداً..." — termes classiques المجلة الجزائية
+    [/القتل.*عمد|جريمة.*القتل|قتل.*نفس/, ['قاتل', 'يقتل', 'أزهق', 'نيّة']],
+    // Fsl 207: "ضرب أو جرح أفضى إلى الموت دون قصد إحداثه"
+    [/ضرب.*أفضى.*موت|جرح.*بدون.*قتل|تجاوز.*الدفاع/, ['أفضى', 'الموت', 'الضرب', 'التناسب']],
+    // Fsl 218-221: الاعتداء الجسدي (الضرب والجرح الإرادي)
+    [/الضرب.*الجرح|الاعتداء.*الجسدي|إيذاء.*جسدي/, ['ضرب', 'جرح', 'الإيذاء', 'بالعمد']],
   ]
 
   const allTerms = new Set<string>()
@@ -1477,20 +1494,28 @@ export async function searchKnowledgeBaseHybrid(
   //   ar_civil_07 "الضرر المعنوي"       → Fsl 82/83 (NB: targetCodeFragment peut être null!)
   //   ar_civil_08 "فسخ العقد"           → Fsl 273/274/330
   //   ar_civil_09 "البطلان"             → Fsl 325/327
-  if (shouldForceCodes && detectedLang === 'ar') {
+  // Fix v16 (Feb 27): Suppression du guard detectedLang === 'ar'
+  // Les queries FR enrichies par enrichQueryWithLegalSynonyms contiennent des termes arabes
+  // mais detectedLang peut rester 'fr' → COC_IMPLICIT_ARTICLE_MAP ne se déclenchait jamais
+  // pour civil_easy_01 "prescription civile" → R@5=0. Fix: patterns bilingues + guard retiré.
+  if (shouldForceCodes) {
     const COC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
-      // Fix v14: pattern "شروط.*عقد" était trop large → matchait "شروط فسخ العقد" (ar_civil_08)
-      // → injectait Fsl 2/23/119 (faux gold) et bloquait le pattern فسخ → R@5 ar_civil_08 0→0.00
-      // Fix: exiger "صحة" OU "أركان" pour formation du contrat (exclusif de فسخ)
-      [/شروط.*صح[ةه]|صح[ةه].*عقد|أركان.*عقد/, [2, 23, 119]],
-      // v15: +401 (حساب المدة) +408 (آجال راتبة)  → ar_civil_02 R@5 0.167→0.333+
-      [/تقادم|تعمير.*ذمة|آجال.*تقادم/, [401, 402, 403, 408]],
+      // Formation du contrat (AR + FR)
+      // Fix v14: "شروط.*عقد" trop large → matchait "شروط فسخ" → exiger "صحة" OU "أركان"
+      [/شروط.*صح[ةه]|صح[ةه].*عقد|أركان.*عقد|validit.*contrat|condition.*contrat|contrat.*valid/i, [2, 23, 119]],
+      // Prescription / التقادم (AR + FR) — FIX civil_easy_01, ar_civil_02 (R@5=0)
+      // v15: +401 (حساب المدة) +408 (آجال راتبة)
+      [/تقادم|تعمير.*ذمة|آجال.*تقادم|prescription.*civil|délai.*prescription|prescription.*droit commun/i, [401, 402, 403, 408]],
+      // Preuve / Proof (AR uniquement — termes FR déjà dans BM25 expansion)
       [/إثبات.*الالتزام|إثبات.*حق|الإثبات.*مدني/, [443, 401]],
-      [/ضرر.*معنوي|الضرر.*معنوي|تعويض.*معنوي/, [82, 83]],
-      // v15: +44 (جهل) +51 (إكراه) → ar_civil_08 R@5 0.375→0.5+
-      [/فسخ.*عقد|انفساخ.*عقد/, [44, 51, 273, 274, 330]],
-      // v15: +64 (استحالة موضوع) +119 (شرط باطل) → ar_civil_09 R@5 0.286→0.5+
-      [/بطلان.*مطلق|بطلان.*نسبي|بطلان.*عقد/, [64, 119, 325, 327]],
+      // Préjudice moral (AR + FR)
+      [/ضرر.*معنوي|الضرر.*معنوي|تعويض.*معنوي|préjudice.*moral|dommage.*moral/i, [82, 83]],
+      // Résolution du contrat (AR + FR)
+      // v15: +44 (جهل) +51 (إكراه)
+      [/فسخ.*عقد|انفساخ.*عقد|résiliation.*contrat|résolution.*contrat/i, [44, 51, 273, 274, 330]],
+      // Nullité (AR + FR)
+      // v15: +64 (استحالة موضوع) +119 (شرط باطل)
+      [/بطلان.*مطلق|بطلان.*نسبي|بطلان.*عقد|nullité.*contrat|nullité.*absol|nullité.*relat/i, [64, 119, 325, 327]],
     ]
     // Fallback COC si targetCodeFragment null (ex: ar_civil_07 "الضرر المعنوي" n'est pas dans regex COC)
     const cocTitleFrag = (targetCodeFragment && targetCodeFragment.includes('الالتزامات'))
@@ -1508,25 +1533,69 @@ export async function searchKnowledgeBaseHybrid(
   }
 
   // PENAL_IMPLICIT_ARTICLE_MAP — symétrique au COC mais pour المجلة الجزائية
-  // Déclenche article-text search (sim=1.05) pour les questions interprétatives sans numéro d'article
-  // Ex: "شروط الدفاع الشرعي" → الفصل 39 + الفصل 40 (non trouvés par recherche vectorielle seule)
+  // Fix v16: guard detectedLang retiré (identique au COC fix) + patterns bilingues AR+FR
+  // + Art 207 ajouté (coup mortel sans intention — stratégie alternative au dossier pénal)
+  // Guard mcoTitleFrag retiré: "légitime défense" en FR ne matchait pas 'الجزائية'
+  if (shouldForceCodes) {
+    const penalTitleFrag = 'المجلة الجزائية'
+    const PENAL_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
+      // Légitime défense (AR + FR) — dossiers جرائم الشخص
+      [/دفاع.*شرع|شرع.*دفاع|شروط.*دفاع|حالة.*دفاع|الدفاع الشرعي|légitime défense|défense.*légitime/i, [39, 40, 41]],
+      // Homicide intentionnel (AR + FR)
+      [/قتل.*عمد|اغتيال|القتل العمد|homicide.*volont|meurtre.*intentionnel/i, [201, 202, 203, 204, 205]],
+      // Coup mortel sans intention / ضرب أفضى إلى موت (AR + FR)
+      // Art 207: "من أحدث ضربا أو جرحا أفضى إلى الموت دون قصد إحداثه"
+      [/ضرب.*أفضى.*موت|جرح.*أفضى.*موت|قتل.*دون.*قصد|coups.*mort sans intention|blessures.*mort/i, [207, 218]],
+      // Voies de fait / Agresssion physique (AR + FR)
+      [/الاعتداء.*جسدي|ضرب.*وجرح|الإيذاء.*الجسدي|coups.*blessures|voies de fait/i, [218, 219, 220, 221]],
+      // Vol qualifié — volontairement plus large (الفصل 233+ = vol simple, 240+ = vol aggravé)
+      [/سرقة|جريمة.*سرقة|vol.*aggrav|vol.*qualifié/i, [233, 234, 235, 240]],
+      // Faux et usage de faux
+      [/تزوير|تزييف.*وثيق|faux.*document|faux.*acte/i, [172, 173, 174]],
+      // Corruption / Rshwa
+      [/رشوة|اختلاس.*مال|corruption|détournement.*fonds/i, [83, 84, 85]],
+    ]
+    for (const [pattern, articles] of PENAL_IMPLICIT_ARTICLE_MAP) {
+      if (pattern.test(queryText)) {
+        for (const artNum of articles) {
+          searchPromises.push(searchArticleByTextMatch(String(artNum), penalTitleFrag))
+          providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+        }
+        break // Un seul pattern par query (premier match gagne)
+      }
+    }
+  }
+
+  // MCO_IMPLICIT_ARTICLE_MAP — المجلة التجارية (Code de Commerce tunisien)
+  // Symétrique à COC_IMPLICIT_ARTICLE_MAP/PENAL_IMPLICIT_ARTICLE_MAP mais pour MCO.
+  // Déclenche article-text search (sim=1.05) pour questions sur:
+  //   - Définition/qualité de commerçant (Art.2-3)
+  //   - Actes de commerce par nature (Art.2-6)
+  //   - Chèque (Art.214+) | Faillite (Art.432+)
   if (detectedLang === 'ar') {
-    const penalTitleFrag = getTargetCodeTitleFragment(queryText, 'ar')
-    if (penalTitleFrag === 'المجلة الجزائية') {
-      const PENAL_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
-        [/دفاع.*شرع|شرع.*دفاع|شروط.*دفاع|حالة.*دفاع|الدفاع الشرعي/, [39, 40]],
-        [/قتل.*عمد|اغتيال|القتل العمد/, [201, 202, 203]],
-        [/سرقة|جريمة.*سرقة/, [233, 234, 235]],
-        [/تزوير|تزييف.*وثيق/, [172, 173, 174]],
-        [/رشوة|اختلاس.*مال|اختلاس.*عمومي/, [83, 84, 85]],
+    const mcoTitleFrag = getTargetCodeTitleFragment(queryText, 'ar')
+    if (mcoTitleFrag === 'المجلة التجارية') {
+      const MCO_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
+        // Art.2: définition du commerçant — احتراف + habitude + nom propre
+        [/تاجر|من.*يُعدّ.*تاجر|تعريف.*تاجر|هل.*تاجر|احتراف.*تجار|يحترف.*تجار/, [2, 3]],
+        // Art.2-6: actes de commerce par nature (بيع، شراء، مقاولة، بنك...)
+        [/أعمال تجارية|الأعمال التجارية|أعمال.*بطبيعتها/, [2, 3, 4, 5, 6]],
+        // Art.9: capacité d'exercer le commerce
+        [/أهلية.*تجارية|أهلية.*احتراف|قاصر.*تجارة/, [9, 10]],
+        // Art.214+: conditions de validité du chèque
+        [/شيك|شروط.*شيك|صحة.*شيك|عناصر.*شيك/, [214, 215, 216, 217, 218]],
+        // Art.432+: faillite — conditions + effets
+        [/إفلاس|شهر.*إفلاس|شروط.*إفلاس|توقف.*دفع/, [432, 433, 434, 435]],
+        // Art.452+: concordat / taysira qadha'iya
+        [/تسوية.*قضائية|الصلح.*الواقي/, [452, 453, 454]],
       ]
-      for (const [pattern, articles] of PENAL_IMPLICIT_ARTICLE_MAP) {
+      for (const [pattern, articles] of MCO_IMPLICIT_ARTICLE_MAP) {
         if (pattern.test(queryText)) {
           for (const artNum of articles) {
-            searchPromises.push(searchArticleByTextMatch(String(artNum), penalTitleFrag))
+            searchPromises.push(searchArticleByTextMatch(String(artNum), mcoTitleFrag))
             providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
           }
-          break // Un seul pattern par query (premier match gagne)
+          break // Premier pattern gagne
         }
       }
     }

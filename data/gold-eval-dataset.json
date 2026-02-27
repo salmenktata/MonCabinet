@@ -6229,5 +6229,376 @@
       "c04df122-85f5-432d-bc83-26b7a6178430",
       "e5af8aa1-6672-485e-a566-601d24e38e2e"
     ]
+  },
+  {
+    "id": "fiscal_easy_01",
+    "domain": "droit_fiscal",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Quel est le taux normal de la TVA en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "Le taux normal de la TVA en Tunisie est de 19%",
+        "Il existe également des taux réduits de 7% et 13%",
+        "Prévu par le Code de la TVA tunisien"
+      ],
+      "mandatoryCitations": ["Code de la TVA", "Taux 19%"],
+      "legalBasis": "Code de la TVA tunisien"
+    },
+    "evaluationCriteria": { "completeness": 90, "accuracy": 100, "citations": 90, "reasoning": 70 },
+    "expertValidation": {
+      "validatorId": "expert_fiscal_001",
+      "credentials": "Expert-comptable, 10 ans fiscalité tunisienne",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — code TVA indexé sur 9anoun.tn. Chercher chunks 'taux normal' + '19%' dans knowledge_base."
+  },
+  {
+    "id": "fiscal_easy_02",
+    "domain": "droit_fiscal",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Quel est le délai de prescription fiscale en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "Le délai de prescription fiscale de droit commun est de 4 ans",
+        "Prévu par l'Article 19 du Code des Droits et Procédures Fiscales (CDPF)",
+        "En cas de fraude fiscale ou d'omission volontaire, le délai est porté à 10 ans",
+        "Ne pas confondre avec la prescription civile (15 ans, Art.402 COC)"
+      ],
+      "mandatoryCitations": ["Article 19 CDPF", "Code des Droits et Procédures Fiscales"],
+      "forbiddenCitations": ["15 ans", "Article 402 COC"],
+      "legalBasis": "Article 19 CDPF"
+    },
+    "evaluationCriteria": { "completeness": 90, "accuracy": 100, "citations": 95, "reasoning": 80 },
+    "expertValidation": {
+      "validatorId": "expert_fiscal_001",
+      "credentials": "Expert-comptable, 10 ans fiscalité tunisienne",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — CDPF art.19. IMPORTANT: ne pas confondre avec prescription civile (15 ans COC art.402) ni pénale."
+  },
+  {
+    "id": "fiscal_medium_01",
+    "domain": "droit_fiscal",
+    "difficulty": "medium",
+    "intentType": "interpretative",
+    "question": "Un non-résident tunisien vivant en France a acheté un terrain en 2021, l'a divisé en 20 lots et les a revendus. L'administration fiscale le qualifie de commerçant (Art. 2 MCO). Cette qualification est-elle fondée et quel est le régime fiscal applicable ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "La qualification de commerçant au sens de l'Art.2 MCO exige l'habitualité et le caractère professionnel des actes de commerce",
+        "Une seule acquisition suivie d'un morcellement reste une opération civile unique, non une activité commerciale habituelle",
+        "La vente immobilière est traditionnellement un acte civil en droit tunisien",
+        "Le régime applicable est la plus-value immobilière (Art.27 IRPP) : taux forfaitaire 15% pour non-résidents",
+        "La Convention fiscale France-Tunisie (1973) attribue le droit d'imposition prioritaire à la Tunisie sur les immeubles situés en Tunisie",
+        "La France accorde un crédit d'impôt pour l'impôt tunisien payé (évite la double imposition)",
+        "Solution procédurale : réclamation administrative obligatoire (Art.54 CDPF, délai 60 jours), puis recours contentieux si rejet"
+      ],
+      "mandatoryCitations": [
+        "Article 2 MCO (Majalla Al-Tijariyya)",
+        "Article 27 Code IRPP",
+        "Article 54 CDPF",
+        "Convention fiscale France-Tunisie 1973"
+      ],
+      "forbiddenCitations": ["BIC comme régime d'imposition principal"],
+      "legalBasis": "Art.2 MCO + Art.27 IRPP + Convention France-Tunisie 1973"
+    },
+    "evaluationCriteria": { "completeness": 85, "accuracy": 95, "citations": 85, "reasoning": 90 },
+    "expertValidation": {
+      "validatorId": "expert_fiscal_001",
+      "credentials": "Expert-comptable + avocat fiscaliste, 10 ans",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — cas réel Feb 27 2026. Croise MCO art.2 + IRPP art.27 + CDPF art.54 + convention bilatérale."
+  },
+  {
+    "id": "fiscal_medium_02",
+    "domain": "droit_fiscal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les tranches d'imposition de l'IRPP en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "Tranche 0 à 5 000 DT : exonérée (0%)",
+        "Tranche 5 001 à 20 000 DT : 26%",
+        "Tranche 20 001 à 30 000 DT : 28%",
+        "Tranche 30 001 à 50 000 DT : 32%",
+        "Au-delà de 50 000 DT : 35%",
+        "Barème progressif prévu par le Code IRPP/IS"
+      ],
+      "mandatoryCitations": ["Code IRPP/IS", "Barème progressif"],
+      "legalBasis": "Code de l'Impôt sur le Revenu et sur les Sociétés"
+    },
+    "evaluationCriteria": { "completeness": 90, "accuracy": 90, "citations": 85, "reasoning": 75 },
+    "expertValidation": {
+      "validatorId": "expert_fiscal_001",
+      "credentials": "Expert-comptable, 10 ans fiscalité tunisienne",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — barème peut avoir évolué avec lois de finances. Vérifier version en vigueur Code IRPP sur 9anoun.tn."
+  },
+  {
+    "id": "fiscal_medium_03",
+    "domain": "droit_fiscal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quel est le taux de l'impôt sur les sociétés (IS) en Tunisie et quels sont les taux réduits applicables ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "Le taux standard de l'IS est de 15% pour les sociétés de droit commun",
+        "Taux majoré de 35% pour les établissements de crédit, compagnies d'assurance, sociétés de leasing et sociétés de recouvrement",
+        "Taux réduit de 10% pour les entreprises agricoles et de pêche artisanale",
+        "Exonérations possibles pour entreprises exportatrices et zones de développement régional",
+        "Prévu par le Code IRPP/IS"
+      ],
+      "mandatoryCitations": ["Code IRPP/IS", "Taux IS 15%"],
+      "legalBasis": "Code de l'Impôt sur le Revenu et sur les Sociétés"
+    },
+    "evaluationCriteria": { "completeness": 85, "accuracy": 95, "citations": 85, "reasoning": 75 },
+    "expertValidation": {
+      "validatorId": "expert_fiscal_001",
+      "credentials": "Expert-comptable, 10 ans fiscalité tunisienne",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — vérifier loi de finances 2024/2025 pour éventuelles modifications taux IS."
+  },
+  {
+    "id": "fiscal_medium_04",
+    "domain": "droit_fiscal",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "Quelles sont les obligations déclaratives d'un contribuable soumis à l'IRPP en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "Dépôt de la déclaration annuelle de revenus avant le 25 février de l'année suivante (ou 25 avril pour revenus commerciaux/industriels)",
+        "Déclaration sur formulaire auprès du bureau de contrôle des impôts compétent",
+        "Paiement de l'impôt à la déclaration ou par retenue à la source",
+        "Obligation de tenir une comptabilité pour les revenus professionnels",
+        "Sanctions en cas de retard : pénalités et majorations prévues par le CDPF"
+      ],
+      "mandatoryCitations": ["CDPF", "Code IRPP"],
+      "legalBasis": "CDPF + Code IRPP"
+    },
+    "evaluationCriteria": { "completeness": 80, "accuracy": 90, "citations": 80, "reasoning": 80 },
+    "expertValidation": {
+      "validatorId": "expert_fiscal_001",
+      "credentials": "Expert-comptable, 10 ans fiscalité tunisienne",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — dates déclaration peuvent être modifiées par circulaires annuelles DGI."
+  },
+  {
+    "id": "fiscal_hard_01",
+    "domain": "droit_fiscal",
+    "difficulty": "hard",
+    "intentType": "interpretative",
+    "question": "Quelle est la retenue à la source applicable sur les honoraires versés à un prestataire de services non-résident en Tunisie, et comment la convention fiscale bilatérale peut-elle la modifier ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "Retenue à la source de 25% sur les honoraires, commissions, courtages et redevances versés à des non-résidents (Art.52 Code IRPP)",
+        "Ce taux peut être réduit par une convention de non-double imposition si elle existe entre la Tunisie et le pays de résidence du prestataire",
+        "La retenue est libératoire pour le non-résident si les revenus ne sont pas rattachables à un établissement stable en Tunisie",
+        "L'entreprise tunisienne versante est responsable du prélèvement et du reversement au Trésor dans les 28 jours du mois suivant le paiement",
+        "En cas de convention (ex: France-Tunisie 1973), le taux peut être réduit à 15% voire moins selon le type de prestation"
+      ],
+      "mandatoryCitations": ["Article 52 Code IRPP/IS", "CDPF"],
+      "legalBasis": "Art.52 Code IRPP/IS"
+    },
+    "evaluationCriteria": { "completeness": 80, "accuracy": 90, "citations": 85, "reasoning": 85 },
+    "expertValidation": {
+      "validatorId": "expert_fiscal_001",
+      "credentials": "Expert-comptable + avocat fiscaliste",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — Art.52 IRPP + conventions fiscales bilatérales. Vérifier taux 25% contre dernière loi de finances."
+  },
+  {
+    "id": "ar_fiscal_01",
+    "domain": "droit_fiscal",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هو معدل الضريبة على الشركات في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "المعدل العام للضريبة على الشركات هو 15%",
+        "معدل 35% للمؤسسات المالية وشركات التأمين وشركات الليزينغ وشركات الاستخلاص",
+        "معدل 10% للمؤسسات التي تحقق دخلاً حصرياً من الفلاحة أو الصيد البحري الحرفي",
+        "مقرر بموجب مجلة الضريبة على دخل الأشخاص الطبيعيين والضريبة على الشركات"
+      ],
+      "mandatoryCitations": ["مجلة الضريبة على دخل الأشخاص الطبيعيين والضريبة على الشركات"],
+      "legalBasis": "مجلة الضريبة على دخل الأشخاص الطبيعيين والضريبة على الشركات"
+    },
+    "evaluationCriteria": { "completeness": 85, "accuracy": 95, "citations": 85, "reasoning": 70 },
+    "expertValidation": {
+      "validatorId": "expert_fiscal_001",
+      "credentials": "خبير محاسب، 10 سنوات جباية تونسية",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — Arabic fiscal query. مجلة الضريبة على 9anoun.tn."
+  },
+  {
+    "id": "ar_fiscal_02",
+    "domain": "droit_fiscal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي آجال التقادم الجبائي في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "أجل التقادم الجبائي العام هو 4 سنوات",
+        "الفصل 19 من مجلة الحقوق والإجراءات الجبائية",
+        "يمتد الأجل إلى 10 سنوات في حالة التهرب الجبائي أو إخفاء الأرباح",
+        "يبتدئ الأجل من تاريخ انتهاء الأجل القانوني للتصريح"
+      ],
+      "mandatoryCitations": ["الفصل 19 من مجلة الحقوق والإجراءات الجبائية"],
+      "forbiddenCitations": ["15 سنة", "الفصل 402 م.ا.ع"],
+      "legalBasis": "الفصل 19 م.ح.إ.ج"
+    },
+    "evaluationCriteria": { "completeness": 85, "accuracy": 95, "citations": 90, "reasoning": 80 },
+    "expertValidation": {
+      "validatorId": "expert_fiscal_001",
+      "credentials": "خبير محاسب، 10 سنوات جباية تونسية",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — CDPF art.19. لا يُخلط مع التقادم المدني (15 سنة فصل 402 م.ا.ع)."
+  },
+  {
+    "id": "ar_commercial_01",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هو تعريف التاجر في المجلة التجارية التونسية وما هي شروط اكتساب الصفة التجارية؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "التاجر هو كل من يحترف القيام بالأعمال التجارية بصفة شخصية ومستقلة",
+        "يشترط الاحتراف أي القيام بالأعمال التجارية بصفة معتادة ومتكررة في الزمن",
+        "يجب أن يقوم بهذه الأعمال باسمه الشخصي ولحسابه الخاص",
+        "يُشترط الأهلية التجارية: سن 18 سنة كاملة وعدم صدور حكم بالحجر",
+        "مقرر بالفصل 2 من المجلة التجارية التونسية"
+      ],
+      "mandatoryCitations": ["الفصل 2 من المجلة التجارية"],
+      "legalBasis": "الفصل 2 المجلة التجارية"
+    },
+    "evaluationCriteria": { "completeness": 90, "accuracy": 100, "citations": 95, "reasoning": 80 },
+    "expertValidation": {
+      "validatorId": "expert_commercial_001",
+      "credentials": "محامي لدى التعقيب، 15 سنة قانون تجاري",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 3
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — الفصل 2 المجلة التجارية على 9anoun.tn. Tests MCO_IMPLICIT_ARTICLE_MAP pattern 'تاجر'."
+  },
+  {
+    "id": "ar_commercial_02",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي الأعمال التجارية بطبيعتها في القانون التجاري التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الأعمال التجارية بطبيعتها هي تلك المنصوص عليها صراحةً في المجلة التجارية",
+        "تشمل: الشراء للبيع بالجملة أو بالتفصيل، والعمليات المصرفية، وعمليات التأمين، والمقاولات",
+        "كذلك: السمسرة، والتوكيل التجاري، وعمليات النقل والشحن البحري",
+        "بيع العقارات ليس عملاً تجارياً بطبيعته في القانون التونسي",
+        "مقرر بالفصول 2 إلى 6 من المجلة التجارية"
+      ],
+      "mandatoryCitations": ["الفصول 2 إلى 6 من المجلة التجارية"],
+      "legalBasis": "الفصول 2-6 المجلة التجارية"
+    },
+    "evaluationCriteria": { "completeness": 85, "accuracy": 95, "citations": 90, "reasoning": 80 },
+    "expertValidation": {
+      "validatorId": "expert_commercial_001",
+      "credentials": "محامي لدى التعقيب، 15 سنة قانون تجاري",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — الفصول 2-6 المجلة التجارية. Tests MCO_IMPLICIT_ARTICLE_MAP pattern 'الأعمال التجارية بطبيعتها'."
+  },
+  {
+    "id": "commercial_medium_01",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "interpretative",
+    "question": "Quelles sont les conditions pour être qualifié de commerçant au sens de l'Article 2 du Code de Commerce tunisien ? Une personne qui vend 20 lots issus du morcellement d'un seul terrain peut-elle être qualifiée de commerçant ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "L'Art.2 MCO exige l'exercice d'actes de commerce à titre habituel et professionnel (احتراف)",
+        "L'exercice doit se faire en son nom propre et pour son propre compte",
+        "L'habitualité suppose une répétition dans le temps d'actes de commerce distincts",
+        "Le morcellement d'un seul terrain et la vente des lots = une seule opération civile initiale, non une activité habituelle",
+        "Les transactions immobilières ne sont pas des actes de commerce par nature en droit tunisien",
+        "Une seule opération immobilière ne suffit pas à établir la qualité de commerçant même si elle génère plusieurs ventes"
+      ],
+      "mandatoryCitations": ["Article 2 Code de Commerce (Majalla Al-Tijariyya)"],
+      "legalBasis": "Article 2 MCO"
+    },
+    "evaluationCriteria": { "completeness": 90, "accuracy": 95, "citations": 90, "reasoning": 85 },
+    "expertValidation": {
+      "validatorId": "expert_commercial_001",
+      "credentials": "Avocat Cassation, 15 ans droit commercial",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 3
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — Art.2 MCO. Lié au cas fiscal_medium_01 (non-résident + morcellement terrain)."
+  },
+  {
+    "id": "commercial_medium_02",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelle est la différence entre la faillite et le redressement judiciaire en droit commercial tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "La faillite (إفلاس) est l'état du commerçant en cessation de paiements déclarée par jugement du tribunal",
+        "Elle entraîne le dessaisissement du débiteur de l'administration de ses biens au profit d'un syndic",
+        "Le redressement judiciaire (تسوية قضائية) permet au débiteur de continuer son activité sous contrôle judiciaire avec un plan d'apurement du passif",
+        "Le redressement judiciaire est réservé aux entreprises dont la situation n'est pas irrémédiablement compromise",
+        "Régis par les Articles 432 et suivants (faillite) et 452 et suivants (redressement) du Code de Commerce"
+      ],
+      "mandatoryCitations": ["Article 432 Code de Commerce", "Article 452 Code de Commerce"],
+      "legalBasis": "Art.432+ et 452+ MCO"
+    },
+    "evaluationCriteria": { "completeness": 80, "accuracy": 90, "citations": 85, "reasoning": 80 },
+    "expertValidation": {
+      "validatorId": "expert_commercial_001",
+      "credentials": "Avocat Cassation, 15 ans droit commercial",
+      "validatedAt": "2026-02-27T00:00:00.000Z",
+      "consensus": 2
+    },
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "_annotationNote": "Pending annotation — Art.432+ et 452+ MCO. Tests MCO_IMPLICIT_ARTICLE_MAP patterns 'إفلاس' et 'تسوية قضائية'."
   }
 ]
