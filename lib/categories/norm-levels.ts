@@ -1,6 +1,6 @@
 /**
  * Hiérarchie des normes juridiques tunisiennes (pyramide de Kelsen)
- * 7 niveaux, du plus haut (Constitution) au plus bas (Actes locaux)
+ * 8 niveaux selon la Circulaire n°8/2017 — distinction مرسوم (Fsl.70) vs أوامر (Fsl.94)
  */
 
 // =============================================================================
@@ -12,7 +12,8 @@ export type NormLevel =
   | 'traite_international'
   | 'loi_organique'
   | 'loi_ordinaire'
-  | 'decret_presidentiel'
+  | 'marsoum'               // مرسوم — Fsl.70 : domaine législatif délégué (force de loi)
+  | 'ordre_reglementaire'   // أوامر — Fsl.94 : pouvoir réglementaire ordinaire
   | 'arrete_ministeriel'
   | 'acte_local'
 
@@ -67,18 +68,27 @@ export const NORM_LEVEL_CONFIG: Record<NormLevel, NormLevelConfig> = {
     badgeColor: 'bg-sky-100 text-sky-800 border-sky-300',
     description: 'Lois ordinaires, codes et législation générale',
   },
-  decret_presidentiel: {
-    value: 'decret_presidentiel',
+  marsoum: {
+    value: 'marsoum',
     order: 5,
-    labelAr: 'مرسوم / أمر رئاسي',
-    labelFr: 'Décret présidentiel',
+    labelAr: 'مرسوم',
+    labelFr: 'Marsoum (force de loi)',
     color: 'text-green-800',
     badgeColor: 'bg-green-100 text-green-800 border-green-300',
-    description: 'Décrets et ordres présidentiels',
+    description: 'Décrets dans le domaine législatif (Fsl.70) — force de loi, ratification parlementaire requise',
+  },
+  ordre_reglementaire: {
+    value: 'ordre_reglementaire',
+    order: 6,
+    labelAr: 'أوامر / نصوص ترتيبية',
+    labelFr: 'Ordre réglementaire',
+    color: 'text-teal-800',
+    badgeColor: 'bg-teal-100 text-teal-800 border-teal-300',
+    description: 'Ordres présidentiels et gouvernementaux + textes des organes constitutionnels (Fsl.94)',
   },
   arrete_ministeriel: {
     value: 'arrete_ministeriel',
-    order: 6,
+    order: 7,
     labelAr: 'قرار وزاري',
     labelFr: 'Arrêté ministériel',
     color: 'text-orange-800',
@@ -87,7 +97,7 @@ export const NORM_LEVEL_CONFIG: Record<NormLevel, NormLevelConfig> = {
   },
   acte_local: {
     value: 'acte_local',
-    order: 7,
+    order: 8,
     labelAr: 'قرار ترابي',
     labelFr: 'Acte local',
     color: 'text-gray-700',
@@ -105,13 +115,14 @@ export const NORM_LEVELS_ORDERED: NormLevelConfig[] = Object.values(NORM_LEVEL_C
 // =============================================================================
 
 export const NORM_LEVEL_RAG_BOOSTS: Record<NormLevel, number> = {
-  constitution: 1.25,
-  traite_international: 1.20,
-  loi_organique: 1.15,
-  loi_ordinaire: 1.10,
-  decret_presidentiel: 1.05,
-  arrete_ministeriel: 1.02,
-  acte_local: 1.00,
+  constitution: 1.35,
+  traite_international: 1.30,
+  loi_organique: 1.24,
+  loi_ordinaire: 1.19,
+  marsoum: 1.15,             // Force de loi (Fsl.70) — rehaussé vs ancien decret_presidentiel
+  ordre_reglementaire: 1.10, // Pouvoir réglementaire (Fsl.94)
+  arrete_ministeriel: 1.07,
+  acte_local: 1.04,
 }
 
 // =============================================================================
@@ -128,8 +139,12 @@ export const SUBCATEGORY_TO_NORM_LEVEL: Record<string, NormLevel> = {
   csp: 'loi_ordinaire',
   code_fiscal: 'loi_ordinaire',
   code_article: 'loi_ordinaire',
-  decret_loi: 'decret_presidentiel',
-  decret: 'decret_presidentiel',
+  // Niveau 5 — مرسوم (Fsl.70, domaine législatif délégué)
+  decret_loi: 'marsoum',
+  decret: 'marsoum',
+  // Niveau 6 — أوامر (Fsl.94, pouvoir réglementaire ordinaire)
+  decret_gouvernemental: 'ordre_reglementaire',
+  ordre_presidentiel: 'ordre_reglementaire',
   arrete: 'arrete_ministeriel',
   circulaire: 'arrete_ministeriel',
 }

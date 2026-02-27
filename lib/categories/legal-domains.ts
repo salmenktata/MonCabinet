@@ -91,7 +91,7 @@ export const LEGAL_DOMAINS: LegalDomain[] = [
     icon: 'FileText',
     description: 'Lois ordinaires, décrets, arrêtés ministériels',
     categories: ['legislation', 'jort'],
-    normLevels: ['loi_ordinaire', 'decret_presidentiel', 'arrete_ministeriel', 'acte_local'],
+    normLevels: ['loi_ordinaire', 'marsoum', 'ordre_reglementaire', 'arrete_ministeriel', 'acte_local'],
   },
 ]
 
