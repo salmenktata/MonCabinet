@@ -236,6 +236,7 @@ export interface WebSource {
   // État
   isActive: boolean
   ragEnabled: boolean
+  minWordCount: number
   healthStatus: HealthStatus
   consecutiveFailures: number
 
@@ -336,6 +337,7 @@ export interface WebCrawlJob {
   pagesNew: number
   pagesChanged: number
   pagesFailed: number
+  pagesSkipped: number
   filesDownloaded: number
   errors: CrawlError[]
   errorMessage: string | null
@@ -475,6 +477,7 @@ export interface CrawlResult {
   pagesNew: number
   pagesChanged: number
   pagesFailed: number
+  pagesSkipped: number
   filesDownloaded: number
   errors: CrawlError[]
 }
@@ -560,6 +563,7 @@ export interface UpdateWebSourceInput {
   extractionConfig?: ExtractionConfig
   isActive?: boolean
   ragEnabled?: boolean
+  minWordCount?: number
   ignoreSSLErrors?: boolean
   seedUrls?: string[]
   formCrawlConfig?: FormCrawlConfig | null

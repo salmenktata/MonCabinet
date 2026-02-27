@@ -33,6 +33,30 @@ const CRAWL_CONCURRENCY_STATIC = parseInt(process.env.CRAWLER_CONCURRENCY_STATIC
 const CRAWL_CONCURRENCY_DYNAMIC = parseInt(process.env.CRAWLER_CONCURRENCY_DYNAMIC || '4', 10)  // Playwright multi-browser
 const CRAWL_CONCURRENCY = parseInt(process.env.CRAWLER_CONCURRENCY || '15', 10)                 // Défaut (legacy)
 
+// Seuil minimum de mots pour qu'une page soit sauvegardée (pages navigation, pagination, recherche, templates vides)
+const MIN_CONTENT_WORDS = 30
+
+// 🚫 Patterns universellement exclus sur TOUTES les sources (contact, navigation, auth, pagination)
+const GLOBAL_EXCLUDED_PATTERNS: RegExp[] = [
+  /\/contact([-_/]|$)/i,
+  /\/about([-_/]|$)/i,
+  /\/login([-_/]|$)/i,
+  /\/logout([-_/]|$)/i,
+  /\/register([-_/]|$)/i,
+  /\/signup([-_/]|$)/i,
+  /\/profile([-_/]|$)/i,
+  /\/account([-_/]|$)/i,
+  /\/search(\?|$)/i,
+  /\/sitemap(\.xml)?([-_/]|$)/i,
+  /\/feed(\.xml|\.rss)?([-_/]|$)/i,
+  /\/rss(\.xml)?([-_/]|$)/i,
+  /\/tag\/|\/tags\//i,
+  /\/author\//i,
+  /\/page\/\d+/i,
+  /[?&](page|p)=\d+/i,
+  /\.(css|js|json|xml|ico|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)(\?|$)/i,
+]
+
 interface CrawlOptions {
   maxPages?: number
   maxDepth?: number
@@ -50,6 +74,7 @@ interface CrawlState {
   pagesNew: number
   pagesChanged: number
   pagesFailed: number
+  pagesSkipped: number
   filesDownloaded: number
   errors: CrawlError[]
   status?: 'running' | 'banned' | 'completed' | 'failed'
@@ -147,9 +172,12 @@ export async function crawlSource(
     includePatterns = sourceUrlPatterns.flatMap((p: string) => {
       try { return [new RegExp(p)] } catch { console.warn(`[Crawler] Pattern inclus invalide ignoré: "${p}"`); return [] }
     }),
-    excludePatterns = sourceExcludedPatterns.flatMap((p: string) => {
-      try { return [new RegExp(p)] } catch { console.warn(`[Crawler] Pattern exclu invalide ignoré: "${p}"`); return [] }
-    }),
+    excludePatterns = [
+      ...GLOBAL_EXCLUDED_PATTERNS,
+      ...sourceExcludedPatterns.flatMap((p: string) => {
+        try { return [new RegExp(p)] } catch { console.warn(`[Crawler] Pattern exclu invalide ignoré: "${p}"`); return [] }
+      }),
+    ],
     downloadFiles = sourceDownloadFiles,
     incrementalMode = true,
   } = options
@@ -205,6 +233,7 @@ export async function crawlSource(
     pagesNew: 0,
     pagesChanged: 0,
     pagesFailed: 0,
+    pagesSkipped: 0,
     filesDownloaded: 0,
     errors: [],
     status: 'running',
@@ -250,6 +279,7 @@ export async function crawlSource(
       pagesNew: 0,
       pagesChanged: 0,
       pagesFailed: 0,
+      pagesSkipped: 0,
       filesDownloaded: 0,
       errors: [{
         url: sourceBaseUrl,
@@ -476,7 +506,7 @@ export async function crawlSource(
       ? `ARRÊT GRACIEUX après ${state.pagesProcessed} pages en ${durationSec}s`
       : isEmptyIncremental
         ? `Aucune page nouvelle à crawler (incrémental, ${durationSec}s)`
-        : `Terminé: ${state.pagesProcessed} pages, ${state.pagesNew} nouvelles, ${state.pagesChanged} modifiées, ${state.pagesFailed} erreurs en ${durationSec}s`
+        : `Terminé: ${state.pagesProcessed} pages, ${state.pagesNew} nouvelles, ${state.pagesChanged} modifiées, ${state.pagesFailed} erreurs, ${state.pagesSkipped} ignorées en ${durationSec}s`
 
   console.log(`[Crawler] ${statusMessage}`)
 
@@ -486,6 +516,7 @@ export async function crawlSource(
     pagesNew: state.pagesNew,
     pagesChanged: state.pagesChanged,
     pagesFailed: state.pagesFailed,
+    pagesSkipped: state.pagesSkipped,
     filesDownloaded: state.filesDownloaded,
     errors: state.errors,
   }
@@ -580,6 +611,19 @@ async function processPage(
 
   const content = scrapeResult.content
   const contentHash = hashContent(content.content)
+
+  // Filtrer les pages avec contenu trop court (navigation, pagination, recherche, templates vides)
+  // Les seed URLs sont exclues du filtre (elles servent à la découverte de liens et aux form crawls)
+  if (!options.isSeedUrl) {
+    const minWords = s.min_word_count ?? MIN_CONTENT_WORDS
+    const contentWordCount = countWords(content.content)
+    if (contentWordCount < minWords) {
+      console.log(`[Crawler] Skip (${contentWordCount} mots < ${minWords}): ${url}`)
+      state.pagesSkipped++
+      // Retourner les liens pour continuer la découverte d'URLs
+      return { success: true, links: content.links, fetchResult: scrapeResult.fetchResult }
+    }
+  }
 
   // Vérifier si le contenu a vraiment changé
   if (existingPage && existingPage.contentHash === contentHash) {

@@ -344,6 +344,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
        ws.category as source_category,
        ws.name as source_name,
        ws.rag_enabled as source_rag_enabled,
+       COALESCE(ws.min_word_count, 30) as source_min_word_count,
        lc.primary_category,
        lc.confidence_score,
        lc.signals_used
@@ -366,8 +367,10 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
 
   const row = pageResult.rows[0]
 
-  if (!row.extracted_text || row.extracted_text.length < 50) {
-    return { success: false, chunksCreated: 0, error: 'Contenu insuffisant pour indexation' }
+  const wordCount = row.extracted_text?.trim().split(/\s+/).filter(Boolean).length ?? 0
+  const minWordCount: number = row.source_min_word_count ?? 30
+  if (!row.extracted_text || wordCount < minWordCount) {
+    return { success: false, chunksCreated: 0, error: `Contenu insuffisant pour indexation (${wordCount} mots < ${minWordCount})` }
   }
 
   // Extraire la classification IA (si disponible)
