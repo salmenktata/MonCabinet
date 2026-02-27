@@ -27,6 +27,9 @@ export type OperationName =
   | 'query-expansion'
   | 'document-consolidation'
   | 'rag-eval-judge'
+  | 'compare-gemini'
+  | 'compare-openai'
+  | 'compare-ollama'
 
 /**
  * Sévérité d'alerte en cas d'échec
@@ -138,7 +141,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 2. ASSISTANT IA (chat temps réel utilisateur)
   // ---------------------------------------------------------------------------
   'assistant-ia': {
-    model: { provider: 'gemini', name: 'gemini-2.0-flash' }, // Gemini : free tier 15 RPM, 1M tok/jour, multilingue AR/FR
+    model: { provider: 'gemini', name: 'gemini-2.5-flash' }, // Gemini : free tier 15 RPM, 1M tok/jour, multilingue AR/FR
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
@@ -194,7 +197,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'dossiers-structuration': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'gemini', name: 'gemini-2.0-flash' }, // Gemini : free tier, bon support JSON structuré
+      : { provider: 'gemini', name: 'gemini-2.5-flash' }, // Gemini : free tier, bon support JSON structuré
 
     timeouts: {
       chat: 60000,  // Gemini free tier, marge 60s pour JSON complexe
@@ -341,6 +344,40 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     alerts: { onFailure: 'log', severity: 'info' },
     description: 'LLM judge fidélité réponse RAG - DeepSeek deepseek-chat (prod, ~$0.001/eval, quota indépendant de Gemini et Ollama)',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10. COMPARAISON PROVIDERS (test admin : même question, 3 providers)
+  // ---------------------------------------------------------------------------
+  'compare-gemini': {
+    model: { provider: 'gemini', name: 'gemini-2.5-flash' },
+    embeddings: isDev
+      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
+      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
+    timeouts: { chat: 45000, total: 55000 },
+    llmConfig: { temperature: 0.1, maxTokens: 2048 },
+    alerts: { onFailure: 'log', severity: 'warning' },
+    description: 'Test comparaison providers - Gemini 2.5 Flash',
+  },
+
+  'compare-openai': {
+    model: { provider: 'openai', name: 'gpt-4o' },
+    embeddings: isDev
+      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
+      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
+    timeouts: { chat: 45000, total: 55000 },
+    llmConfig: { temperature: 0.1, maxTokens: 2048 },
+    alerts: { onFailure: 'log', severity: 'warning' },
+    description: 'Test comparaison providers - OpenAI GPT-4o',
+  },
+
+  'compare-ollama': {
+    model: { provider: 'ollama', name: 'qwen3:8b' },
+    embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 },
+    timeouts: { chat: 120000, total: 135000 },
+    llmConfig: { temperature: 0.1, maxTokens: 2048 },
+    alerts: { onFailure: 'log', severity: 'warning' },
+    description: 'Test comparaison providers - Ollama qwen3:8b (local)',
   },
 }
 

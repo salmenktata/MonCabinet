@@ -71,7 +71,7 @@ function createGeminiModel() {
   const apiKey = process.env.GOOGLE_API_KEY
   if (!apiKey) throw new Error('GOOGLE_API_KEY non configuré')
   const genAI = new GoogleGenerativeAI(apiKey)
-  return genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 }
 
 // =============================================================================

@@ -37,6 +37,9 @@ const OPERATION_LABELS: Record<OperationName, string> = {
   'query-expansion': 'Expansion Requête',
   'document-consolidation': 'Consolidation Documents',
   'rag-eval-judge': 'Eval RAG Judge',
+  'compare-gemini': 'Comparer Gemini',
+  'compare-openai': 'Comparer OpenAI',
+  'compare-ollama': 'Comparer Ollama',
 }
 
 // Coût estimé par opération (en prod)
@@ -51,6 +54,9 @@ const COST_ESTIMATES: Record<OperationName, string> = {
   'query-expansion': 'Gratuit',
   'document-consolidation': 'Gratuit',
   'rag-eval-judge': 'Gratuit',
+  'compare-gemini': 'Gratuit',
+  'compare-openai': '~$0.03/requête',
+  'compare-ollama': 'Gratuit',
 }
 
 // Tous les providers connus

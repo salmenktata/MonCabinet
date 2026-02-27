@@ -98,6 +98,7 @@ const getNavGroups = (
     items: [
       { href: '/super-admin/feedbacks', label: 'Feedbacks', icon: 'messageSquare' },
       { href: '/super-admin/evaluation', label: 'Évaluation RAG', icon: 'checkCircle' },
+      { href: '/super-admin/compare-llm', label: 'Comparer LLMs', icon: 'columns' },
       { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
       { href: '/super-admin/rag-workflow', label: 'Workflow RAG', icon: 'gitBranch' },
       { href: '/super-admin/classification', label: 'Classification', icon: 'tag' },

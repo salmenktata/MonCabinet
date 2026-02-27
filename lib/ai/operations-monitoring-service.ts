@@ -206,6 +206,9 @@ function estimateCost(tokens: number, operationName: OperationName): number {
     'query-expansion': 0, // Groq gratuit
     'document-consolidation': 0, // Gemini gratuit
     'rag-eval-judge': 0, // Groq gratuit
+    'compare-gemini': 0, // Gemini gratuit
+    'compare-openai': 0.000015, // OpenAI gpt-4o ~$15/1M tokens
+    'compare-ollama': 0, // Ollama local gratuit
   }
 
   return tokens * pricePerToken[operationName]

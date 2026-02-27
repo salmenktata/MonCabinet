@@ -129,6 +129,18 @@ export const OPERATION_LABELS: Record<OperationName, { fr: string; ar: string }>
     fr: 'Évaluation RAG',
     ar: 'تقييم RAG',
   },
+  'compare-gemini': {
+    fr: 'Comparer Gemini',
+    ar: 'مقارنة Gemini',
+  },
+  'compare-openai': {
+    fr: 'Comparer OpenAI',
+    ar: 'مقارنة OpenAI',
+  },
+  'compare-ollama': {
+    fr: 'Comparer Ollama',
+    ar: 'مقارنة Ollama',
+  },
 }
 
 /**
@@ -145,6 +157,9 @@ export const OPERATION_DESCRIPTIONS: Record<OperationName, string> = {
   'query-expansion': 'Reformulation et expansion de requêtes courtes',
   'document-consolidation': 'Consolidation documents multi-pages en documents juridiques unifiés',
   'rag-eval-judge': 'LLM judge pour évaluer la fidélité des réponses RAG',
+  'compare-gemini': 'Test comparaison providers - Gemini 2.5 Flash',
+  'compare-openai': 'Test comparaison providers - OpenAI GPT-4o',
+  'compare-ollama': 'Test comparaison providers - Ollama qwen3:8b',
 }
 
 /**
