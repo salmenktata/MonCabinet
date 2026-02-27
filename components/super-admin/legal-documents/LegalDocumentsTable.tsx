@@ -39,6 +39,36 @@ interface LegalDoc {
   freshness_color: string
 }
 
+const CATEGORY_COLORS: Record<string, string> = {
+  codes:         'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  code:          'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  legislation:   'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  jurisprudence: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  doctrine:      'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+  constitution:  'bg-red-500/20 text-red-400 border-red-500/30',
+  jort:          'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  lexique:       'bg-teal-500/20 text-teal-400 border-teal-500/30',
+  conventions:   'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  actualites:    'bg-slate-500/20 text-slate-400 border-slate-500/30',
+  procedures:    'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  autre:         'bg-slate-500/20 text-slate-400 border-slate-500/30',
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  codes:         'Code',
+  code:          'Code',
+  legislation:   'Législation',
+  jurisprudence: 'Jurisprudence',
+  doctrine:      'Doctrine',
+  constitution:  'Constitution',
+  jort:          'JORT',
+  lexique:       'Lexique',
+  conventions:   'Conventions',
+  actualites:    'Actualités',
+  procedures:    'Procédures',
+  autre:         'Autre',
+}
+
 interface LegalDocumentsTableProps {
   docs: LegalDoc[]
   hasFilters: boolean
@@ -163,6 +193,7 @@ export function LegalDocumentsTable({
               </TableHead>
               <TableHead className="text-slate-400">Citation Key</TableHead>
               <TableHead className="text-slate-400">Type</TableHead>
+              <TableHead className="text-slate-400">Catégorie</TableHead>
               <TableHead className="text-slate-400">Titre (AR)</TableHead>
               <TableHead className="text-slate-400">Consolidation</TableHead>
               <TableHead className="text-slate-400 text-center">Articles</TableHead>
@@ -176,7 +207,7 @@ export function LegalDocumentsTable({
           <TableBody>
             {docs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-8 text-slate-400">
+                <TableCell colSpan={12} className="text-center py-8 text-slate-400">
                   <Icons.scale className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   {hasFilters ? 'Aucun document ne correspond aux filtres' : 'Aucun document juridique'}
                 </TableCell>
@@ -206,6 +237,15 @@ export function LegalDocumentsTable({
                       <Badge variant="outline" className="ml-1 bg-red-500/20 text-red-400 border-red-500/30">
                         Abrogé
                       </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {doc.primary_category ? (
+                      <Badge variant="outline" className={CATEGORY_COLORS[doc.primary_category] || CATEGORY_COLORS.autre}>
+                        {CATEGORY_LABELS[doc.primary_category] || doc.primary_category}
+                      </Badge>
+                    ) : (
+                      <span className="text-slate-600 text-sm">—</span>
                     )}
                   </TableCell>
                   <TableCell className="max-w-xs">
