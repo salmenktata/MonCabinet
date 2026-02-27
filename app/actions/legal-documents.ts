@@ -37,6 +37,63 @@ async function checkAdminAccess(): Promise<{ userId: string } | { error: string 
   return { userId: session.user.id }
 }
 
+export async function indexAllPendingLegalDocuments(
+  limit = 30
+): Promise<{ success: boolean; indexed: number; failed: number; remaining: number; error?: string }> {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { success: false, indexed: 0, failed: 0, remaining: 0, error: authCheck.error }
+    }
+
+    // Docs approuvés + consolidés sans chunks KB
+    const eligibleResult = await db.query<{ id: string }>(`
+      SELECT ld.id
+      FROM legal_documents ld
+      WHERE ld.is_approved = true
+        AND ld.consolidation_status = 'complete'
+        AND ld.is_abrogated = false
+        AND (
+          ld.knowledge_base_id IS NULL
+          OR (SELECT COUNT(*) FROM knowledge_base_chunks kbc WHERE kbc.knowledge_base_id = ld.knowledge_base_id) = 0
+        )
+      ORDER BY ld.citation_key ASC
+    `)
+
+    const allIds = eligibleResult.rows.map(r => r.id)
+    const remaining = Math.max(0, allIds.length - limit)
+    const toProcess = allIds.slice(0, limit)
+
+    if (toProcess.length === 0) {
+      return { success: true, indexed: 0, failed: 0, remaining: 0 }
+    }
+
+    const results = await Promise.allSettled(
+      toProcess.map(id => indexLegalDocument(id))
+    )
+
+    let indexed = 0
+    let failed = 0
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value.success) indexed++
+      else failed++
+    }
+
+    revalidatePath('/super-admin/legal-documents')
+
+    return { success: indexed > 0, indexed, failed, remaining }
+  } catch (error) {
+    console.error('Erreur indexAllPendingLegalDocuments:', error)
+    return {
+      success: false,
+      indexed: 0,
+      failed: 0,
+      remaining: 0,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    }
+  }
+}
+
 export async function bulkReindexLegalDocuments(
   documentIds: string[]
 ): Promise<{ success: boolean; indexed: number; failed: number; error?: string }> {

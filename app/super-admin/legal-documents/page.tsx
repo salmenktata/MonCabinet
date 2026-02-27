@@ -12,6 +12,7 @@ import { LegalHierarchyNav } from '@/components/super-admin/legal-documents/Lega
 import { LegalDocumentsFiltersBar } from '@/components/super-admin/legal-documents/LegalDocumentsFiltersBar'
 import { ImportLegalDocumentsDialog } from '@/components/super-admin/legal-documents/ImportLegalDocumentsDialog'
 import { KnowledgeBaseUploadDialog } from '@/components/super-admin/knowledge-base/KnowledgeBaseUploadDialog'
+import { IndexPendingButton } from '@/components/super-admin/legal-documents/IndexPendingButton'
 import { normalizeLegalCategory } from '@/lib/categories/legal-categories'
 
 export const dynamic = 'force-dynamic'
@@ -120,7 +121,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-  const [statsResult, docsResult, countResult, categoriesResult, typesResult, sourcesResult, normLevelCountsResult] = await Promise.all([
+  const [statsResult, docsResult, countResult, categoriesResult, typesResult, sourcesResult, normLevelCountsResult, pendingIndexResult] = await Promise.all([
     // Stats globales (non filtrées)
     db.query<{
       total_docs: string
@@ -199,11 +200,24 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       FROM legal_documents
       GROUP BY norm_level
     `),
+    // Docs approuvés + consolidés sans chunks KB (à indexer)
+    db.query<{ count: string }>(`
+      SELECT COUNT(*)::TEXT as count
+      FROM legal_documents ld
+      WHERE ld.is_approved = true
+        AND ld.consolidation_status = 'complete'
+        AND ld.is_abrogated = false
+        AND (
+          ld.knowledge_base_id IS NULL
+          OR (SELECT COUNT(*) FROM knowledge_base_chunks kbc WHERE kbc.knowledge_base_id = ld.knowledge_base_id) = 0
+        )
+    `),
   ])
 
   const stats = statsResult.rows[0]
   const docs = docsResult.rows
   const filteredCount = parseInt(countResult.rows[0].count, 10)
+  const pendingIndexCount = parseInt(pendingIndexResult.rows[0]?.count || '0', 10)
   const totalPages = Math.ceil(filteredCount / pageSize)
   // Normaliser et dédupliquer les catégories (ex: code → codes)
   const categoriesRaw = categoriesResult.rows.map(r => r.primary_category)
@@ -278,6 +292,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <IndexPendingButton pendingCount={pendingIndexCount} />
           <KnowledgeBaseUploadDialog />
           <ImportLegalDocumentsDialog sources={sources} />
         </div>
