@@ -28,7 +28,7 @@ interface StreamMetadata {
 }
 
 interface StreamChunk {
-  type: 'metadata' | 'content' | 'done' | 'error'
+  type: 'metadata' | 'content' | 'done' | 'error' | 'thinking'
   content?: string
   conversationId?: string
   sources?: ChatSource[]
@@ -202,6 +202,10 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
                 options.onComplete?.(finalMessage, metadata || undefined)
                 break
               }
+
+              case 'thinking':
+                // Confirmation de réception de la requête — pas d'action UI nécessaire
+                break
 
               case 'error':
                 throw new Error(chunk.error || 'Erreur streaming')

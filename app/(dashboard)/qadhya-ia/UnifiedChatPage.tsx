@@ -124,6 +124,7 @@ export function UnifiedChatPage({
   const {
     isStreaming,
     streamingContent,
+    currentMetadata,
     sendMessage: streamSend,
     stopStreaming,
     quotaExceeded,
@@ -398,6 +399,7 @@ export function UnifiedChatPage({
                 messages={messages}
                 isLoading={isLoadingMessages && !isStreaming}
                 streamingContent={isStreaming ? (streamingContent || ' ') : undefined}
+                currentMetadata={isStreaming ? currentMetadata : undefined}
                 modeConfig={modeConfig}
                 renderEnriched={(message) => <EnrichedMessage message={message} />}
                 onSendExample={(text) => handleSendMessage(text)}

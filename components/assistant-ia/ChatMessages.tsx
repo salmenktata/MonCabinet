@@ -50,6 +50,7 @@ interface ChatMessagesProps {
   messages: ChatMessage[]
   isLoading?: boolean
   streamingContent?: string
+  currentMetadata?: { sources?: unknown[]; model?: string } | null
   modeConfig?: ModeConfig
   renderEnriched?: (message: ChatMessage) => React.ReactNode
   onSendExample?: (text: string) => void
@@ -57,7 +58,7 @@ interface ChatMessagesProps {
   onResendMessage?: (content: string) => void
 }
 
-export function ChatMessages({ messages, isLoading, streamingContent, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false, onResendMessage }: ChatMessagesProps) {
+export function ChatMessages({ messages, isLoading, streamingContent, currentMetadata, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false, onResendMessage }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
   const tMode = useTranslations('qadhyaIA.modes')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -195,6 +196,17 @@ export function ChatMessages({ messages, isLoading, streamingContent, modeConfig
         {/* Message en cours de streaming */}
         {streamingContent && (
           <div className="pb-4">
+            {/* Badge sources trouvées (avant que le texte commence) */}
+            {!streamingContent.trim() && (currentMetadata?.sources?.length ?? 0) > 0 && (
+              <div className="flex items-center gap-1.5 ms-11 mb-1.5 text-xs text-muted-foreground/60">
+                <Icons.bookOpen className="h-3 w-3" />
+                <span>
+                {currentMetadata!.sources!.length === 1
+                  ? '1 source juridique consultée'
+                  : `${currentMetadata!.sources!.length} sources juridiques consultées`}
+              </span>
+              </div>
+            )}
             <MessageBubble
               message={{
                 id: 'streaming',
@@ -238,6 +250,17 @@ export function ChatMessages({ messages, isLoading, streamingContent, modeConfig
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
+          {/* Badge sources trouvées (avant que le texte commence) */}
+          {!streamingContent.trim() && (currentMetadata?.sources?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-1.5 ms-11 mb-1.5 text-xs text-muted-foreground/60">
+              <Icons.bookOpen className="h-3 w-3" />
+              <span>
+                {currentMetadata!.sources!.length === 1
+                  ? '1 source juridique consultée'
+                  : `${currentMetadata!.sources!.length} sources juridiques consultées`}
+              </span>
+            </div>
+          )}
           <MessageBubble
             message={{
               id: 'streaming',
@@ -501,7 +524,14 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched, can
         {/* Carte réponse */}
         <div className="group rounded-2xl rounded-tl-md bg-card/80 border border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
           <div className="px-5 py-4">
-            {renderEnriched ? (
+            {/* Streaming sans contenu textuel réel → dots d'attente */}
+            {message.isStreaming && !message.content?.trim() ? (
+              <div className="flex items-center gap-1 py-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1.4s' }} />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1.4s' }} />
+              </div>
+            ) : renderEnriched ? (
               renderEnriched(message)
             ) : (
               <>
@@ -512,13 +542,6 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched, can
                   />
                   {message.isStreaming && (
                     <span className="inline-block w-0.5 h-5 ml-1 bg-primary animate-blink" />
-                  )}
-                  {message.isStreaming && !message.content && (
-                    <div className="flex items-center gap-1 py-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1.4s' }} />
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1.4s' }} />
-                    </div>
                   )}
                 </div>
               </>

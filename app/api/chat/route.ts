@@ -657,6 +657,8 @@ async function handleStreamingResponse(
 
   const stream = new ReadableStream({
     async start(controller) {
+      // Confirmer réception immédiatement (avant RAG) pour feedback visuel rapide
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'thinking' })}\n\n`))
       try {
         for await (const event of generator) {
           if (event.type === 'metadata') {
