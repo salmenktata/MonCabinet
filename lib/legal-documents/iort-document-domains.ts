@@ -59,7 +59,7 @@ export const IORT_DOCUMENT_DOMAINS: Record<string, IortDocumentDef> = {
   'قرار': {
     citationKey: 'jort-decisions',
     domain: 'administratif',
-    documentType: 'arrete_ministeriel',
+    documentType: 'arrete',
     titleAr: 'الرائد الرسمي للجمهورية التونسية - قرارات',
     titleFr: 'JORT - Décisions',
     primaryCategory: 'legislation',
@@ -69,7 +69,7 @@ export const IORT_DOCUMENT_DOMAINS: Record<string, IortDocumentDef> = {
     // NB: valeur exacte du site iort.gov.tn (orthographe non standard)
     citationKey: 'jort-avis',
     domain: 'administratif',
-    documentType: 'avis',
+    documentType: 'autre',
     titleAr: 'الرائد الرسمي للجمهورية التونسية - آراء',
     titleFr: 'JORT - Avis',
     primaryCategory: 'legislation',
