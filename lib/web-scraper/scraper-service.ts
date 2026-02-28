@@ -510,9 +510,9 @@ const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> 
       '.loading',
       '.skeleton',
     ],
-    postLoadDelayMs: 500,   // 🚀 OPTIMISÉ : 1500 → 500ms (-67%)
+    postLoadDelayMs: 1500,  // Constitution/codes : attendre rendu Livewire complet
     scrollToLoad: true,
-    scrollCount: 1,         // 🚀 OPTIMISÉ : 2 → 1 scroll (-50%)
+    scrollCount: 3,         // Scroll multiple pour déclencher le lazy-loading des articles
     waitUntil: 'load',      // 'networkidle' bloque sur sites Livewire (WebSocket/polling)
     dynamicTimeoutMs: 10000,
   },
@@ -1136,7 +1136,7 @@ async function waitForContentToLoad(
 ): Promise<{ contentLength: number; ready: boolean }> {
   const startTime = Date.now()
   const minContentLength = 300  // Réduit de 500 à 300 pour sortir plus vite
-  const goodContentLength = 1000  // Suffisant pour sortir immédiatement
+  const goodContentLength = 8000  // Augmenté : 1000 insuffisant pour pages Livewire (constitution/codes)
   const checkInterval = 400  // Réduit de 800 à 400ms
 
   // Textes indicateurs de chargement en cours

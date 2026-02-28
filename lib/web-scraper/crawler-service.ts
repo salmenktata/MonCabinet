@@ -564,7 +564,11 @@ async function processPage(
   // Optimisation: les pages non-seed (articles) utilisent le mode auto-adaptatif
   // (fetch statique ~200ms d'abord, Playwright ~8s seulement si nécessaire)
   // Les seed URLs gardent requiresJavascript pour la découverte de liens via Livewire
-  const effectiveSource = options.isSeedUrl ? source : {
+  // Exception: pages /kb/ de 9anoun.tn — contenu chargé dynamiquement par Livewire,
+  // le fetch statique retourne un conteneur vide (290-801 mots au lieu de 50KB+)
+  const isLivewireContent = source.requiresJavascript &&
+    (url.includes('/kb/constitutions/') || url.includes('/kb/codes/') || url.includes('/kb/'))
+  const effectiveSource = (options.isSeedUrl || isLivewireContent) ? source : {
     ...source,
     requiresJavascript: false, // Force le fetch statique (articles SSR par Laravel)
     requires_javascript: false,
