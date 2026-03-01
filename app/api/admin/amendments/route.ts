@@ -84,8 +84,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       SELECT
         sm.amended_code_slug     AS code_slug,
         COUNT(DISTINCT sm.knowledge_base_id) AS jort_count,
-        COUNT(DISTINCT unnest(sm.amended_articles)) AS article_count
+        COUNT(DISTINCT a.v) AS article_count
       FROM kb_structured_metadata sm
+      LEFT JOIN LATERAL unnest(sm.amended_articles) AS a(v) ON true
       WHERE sm.is_jort_amendment = true
         AND sm.amended_code_slug IS NOT NULL
       GROUP BY sm.amended_code_slug

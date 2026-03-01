@@ -81,7 +81,6 @@ const getNavGroups = (
       { href: '/super-admin/pipeline', label: 'Pipeline', icon: 'merge' },
       { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
       { href: '/super-admin/web-files', label: 'Fichiers Web', icon: 'fileText' },
-      { href: '/super-admin/legal-documents', label: 'Documents Juridiques', icon: 'scale' },
       {
         href: '/super-admin/contradictions',
         label: 'Contradictions',

@@ -10,7 +10,6 @@ import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { safeParseInt } from '@/lib/utils/safe-number'
-import WebPagesConsolidationPanel from '@/components/super-admin/web-sources/WebPagesConsolidationPanel'
 import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 import { Breadcrumb } from '@/components/super-admin/shared/Breadcrumb'
 
@@ -185,13 +184,7 @@ export default async function WebSourcePagesPage({
           <CardTitle className="text-white text-lg">Pages crawlées</CardTitle>
         </CardHeader>
         <CardContent>
-          <WebPagesConsolidationPanel
-            pages={pages}
-            sourceId={id}
-            sourceName={source.name}
-            sourceCategory={source.categories?.[0] ?? source.category ?? 'autre'}
-            sourceBaseUrl={source.base_url}
-          />
+          <PagesList pages={pages} />
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
@@ -225,6 +218,70 @@ export default async function WebSourcePagesPage({
           )}
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+function PagesList({ pages }: { pages: ReturnType<typeof Object.assign>[] }) {
+  if (pages.length === 0) {
+    return (
+      <div className="text-center py-8 text-slate-400">
+        <Icons.fileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>Aucune page trouvée</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {pages.map((page: any) => {
+        const statusInfo = STATUS_LABELS[page.status] || { label: page.status, color: 'bg-slate-500' }
+        return (
+          <div key={page.id} className="rounded-lg p-4 bg-slate-700/50">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <Badge className={`${statusInfo.color} text-white text-xs`}>{statusInfo.label}</Badge>
+                  {page.is_indexed && (
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                      <Icons.checkCircle className="h-3 w-3 mr-1" />Indexée
+                    </Badge>
+                  )}
+                  {page.knowledge_base_id && (
+                    <a
+                      href={`/super-admin/knowledge-base/${page.knowledge_base_id}`}
+                      className="text-xs text-blue-400 hover:text-blue-300 underline"
+                    >
+                      Voir KB
+                    </a>
+                  )}
+                </div>
+                <h3 className="text-white font-medium truncate">{page.title || 'Sans titre'}</h3>
+                <a
+                  href={page.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-400 text-sm hover:text-blue-400 truncate block"
+                >
+                  {page.url}
+                </a>
+                {page.error_message && (
+                  <p className="text-red-400 text-xs mt-1 truncate">
+                    <Icons.alertTriangle className="h-3 w-3 inline mr-1" />{page.error_message}
+                  </p>
+                )}
+              </div>
+              <div className="text-right text-sm text-slate-400 shrink-0">
+                {page.word_count > 0 && <div>{page.word_count.toLocaleString()} mots</div>}
+                {page.chunks_count > 0 && <div>{page.chunks_count} chunks</div>}
+                {page.last_crawled_at && (
+                  <p className="text-xs mt-1">{new Date(page.last_crawled_at).toLocaleDateString('fr-FR')}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
