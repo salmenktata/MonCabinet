@@ -115,7 +115,7 @@ Exemples:
 - مدني → civil
 - تجاري/شركات → commercial, societes
 - إداري → administratif
-- شغل/عمل → travail
+- شغل/عمل/convention collective/اتفاقية جماعية/عقد شغل → travail
 - أسرة/أحوال شخصية → famille
 - عقاري/عقار → immobilier
 - ضرائب/ضريبة/جبائي → fiscal
@@ -367,7 +367,7 @@ export function classifyQueryKeywords(query: string): QueryClassification {
     domains.push('commercial', 'societes')
   }
 
-  if (/عمل|شغل|travail/i.test(query)) {
+  if (/عمل|شغل|travail|convention collective|اتفاقية جماعية|اتفاقية مشتركة|عقد شغل|contrat de travail/i.test(query)) {
     domains.push('travail')
   }
 

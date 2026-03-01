@@ -60,7 +60,7 @@ const DOMAIN_TO_BRANCHES: Array<{ keywords: string[]; branches: string[] }> = [
     branches: ['marchés_publics', 'administratif'],
   },
   {
-    keywords: ['travail', 'droit du travail', 'شغل', 'عمال', 'عمل', 'licenciement', 'إضراب', 'طرد تعسفي', 'عامل'],
+    keywords: ['travail', 'droit du travail', 'شغل', 'عمال', 'عمل', 'licenciement', 'إضراب', 'طرد تعسفي', 'عامل', 'convention collective', 'اتفاقية جماعية', 'اتفاقية مشتركة', 'عقد شغل', 'contrat de travail', 'salaire', 'أجر', 'congé', 'عطلة'],
     branches: ['travail'],
   },
   {
