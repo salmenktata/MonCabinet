@@ -681,7 +681,7 @@ export async function extractStructuredMetadata(
   }>(
     `SELECT wp.id, wp.url, wp.title, wp.extracted_text,
             ws.name as source_name,
-            ws.category as source_category
+            (ws.categories)[1] as source_category
      FROM web_pages wp
      JOIN web_sources ws ON wp.web_source_id = ws.id
      WHERE wp.id = $1`,

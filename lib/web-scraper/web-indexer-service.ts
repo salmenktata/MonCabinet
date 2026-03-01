@@ -178,7 +178,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   const pageResult = await db.query(
     `SELECT
        wp.*,
-       ws.category as source_category,
+       (ws.categories)[1] as source_category,
        ws.name as source_name,
        ws.base_url as source_base_url,
        ws.rag_enabled as source_rag_enabled,
