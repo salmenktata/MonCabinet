@@ -1104,6 +1104,9 @@ export async function indexLegalDocument(documentId: string): Promise<IndexingRe
 
   try {
     await client.query('BEGIN')
+    // Désactiver statement_timeout pour cette transaction : l'index HNSW (embedding_openai)
+    // rend les inserts massifs lents (> 30s pour de grands documents comme les codes)
+    await client.query('SET LOCAL statement_timeout = 0')
 
     let knowledgeBaseId = doc.knowledge_base_id
 
