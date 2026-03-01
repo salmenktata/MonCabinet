@@ -14,6 +14,8 @@ import {
   updateConsolidationStatus,
   type LinkedPage,
 } from './document-service'
+import { trackDocumentVersion } from '@/lib/kb/document-version-tracker'
+import { processAbrogations } from '@/lib/legal-documents/abrogation-cascade-service'
 
 const log = createLogger('ContentConsolidation')
 
@@ -128,6 +130,20 @@ export async function consolidateDocument(
     structure,
     pagesWithContent.length
   )
+
+  // Tracking version (ne bloque jamais la consolidation)
+  try {
+    await trackDocumentVersion(documentId, consolidatedText)
+  } catch (e) {
+    log.error('[Consolidation] Version tracking erreur:', e)
+  }
+
+  // Détection amendements/abrogations (ne bloque jamais la consolidation)
+  try {
+    await processAbrogations(consolidatedText, document.citationKey)
+  } catch (e) {
+    log.error('[Consolidation] Amendement detection erreur:', e)
+  }
 
   const result: ConsolidationResult = {
     success: true,

@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { getStalenessThreshold } from '@/lib/legal-documents/freshness-service'
+import { getDocumentVersionHistory } from '@/lib/kb/document-version-tracker'
 import { ApprovalActions } from './approval-actions'
 import { CollapsibleSection } from './collapsible-section'
 import { ConsolidatedTextViewer } from './consolidated-text-viewer'
@@ -65,6 +66,21 @@ const CONSOLIDATION_BADGE: Record<string, string> = {
   complete: 'bg-green-500/20 text-green-400 border-green-500/30',
 }
 
+const AMENDMENT_SCOPE_BADGE: Record<string, string> = {
+  abrogation_totale:   'bg-red-500/20 text-red-300 border-red-500/30',
+  modification:        'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  modification_partielle: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  addition:            'bg-green-500/20 text-green-300 border-green-500/30',
+  ajout:               'bg-green-500/20 text-green-300 border-green-500/30',
+}
+
+const CHANGE_TYPE_BADGE: Record<string, string> = {
+  major:      'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  minor:      'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  abrogation: 'bg-red-500/20 text-red-300 border-red-500/30',
+  initial:    'bg-slate-500/20 text-slate-300 border-slate-500/30',
+}
+
 const CONTRIBUTION_BADGE: Record<string, string> = {
   article:   'bg-blue-500/20 text-blue-300 border-blue-500/30',
   section:   'bg-purple-500/20 text-purple-300 border-purple-500/30',
@@ -78,7 +94,7 @@ const CONTRIBUTION_BADGE: Record<string, string> = {
 export default async function LegalDocumentDetailPage({ params }: PageProps) {
   const { id } = await params
 
-  const [docResult, pagesResult, amendmentsResult] = await Promise.all([
+  const [docResult, pagesResult, amendmentsResult, versions] = await Promise.all([
     db.query<any>(
       `SELECT ld.*,
         ws.name as source_name, ws.base_url as source_url,
@@ -121,6 +137,7 @@ export default async function LegalDocumentDetailPage({ params }: PageProps) {
       ORDER BY amendment_date DESC NULLS LAST`,
       [id]
     ),
+    getDocumentVersionHistory(id, 20).catch(() => []),
   ])
 
   if (docResult.rows.length === 0) notFound()
@@ -397,7 +414,7 @@ export default async function LegalDocumentDetailPage({ params }: PageProps) {
                   </TableCell>
                   <TableCell>
                     {a.amendment_scope ? (
-                      <Badge variant="outline" className="bg-orange-500/15 text-orange-300 border-orange-500/25 text-xs">
+                      <Badge variant="outline" className={`text-xs ${AMENDMENT_SCOPE_BADGE[a.amendment_scope] ?? 'bg-slate-500/20 text-slate-300 border-slate-500/30'}`}>
                         {a.amendment_scope}
                       </Badge>
                     ) : <span className="text-slate-600 text-sm">—</span>}
@@ -413,6 +430,50 @@ export default async function LegalDocumentDetailPage({ params }: PageProps) {
             </TableBody>
           </Table>
         </section>
+      )}
+
+      {/* ── Historique des versions ───────────────────────────────────── */}
+      {versions.length > 0 && (
+        <CollapsibleSection
+          defaultOpen={false}
+          header={
+            <>
+              <Icons.clock className="h-4 w-4 text-slate-400" />
+              <h2 className="text-sm font-semibold text-white">Historique des versions</h2>
+              <span className="text-xs text-slate-500 tabular-nums">({versions.length})</span>
+            </>
+          }
+        >
+          <div className="px-5 py-4 space-y-3 bg-slate-900/30">
+            {versions.map((v, i) => (
+              <div key={v.versionId} className="flex items-start gap-3">
+                {/* Timeline dot + line */}
+                <div className="flex flex-col items-center shrink-0 pt-0.5">
+                  <div className={`h-2.5 w-2.5 rounded-full border-2 ${i === 0 ? 'bg-blue-400 border-blue-400' : 'bg-slate-700 border-slate-500'}`} />
+                  {i < versions.length - 1 && <div className="w-px h-full min-h-[28px] bg-slate-700 mt-1" />}
+                </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0 space-y-1 pb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-mono text-slate-400">v{v.version}</span>
+                    <Badge variant="outline" className={`text-xs ${CHANGE_TYPE_BADGE[v.changeType] ?? 'bg-slate-500/20 text-slate-300 border-slate-500/30'}`}>
+                      {v.changeType}
+                    </Badge>
+                    <span className="text-xs text-slate-500">
+                      {fmtDate(v.changedAt)}
+                    </span>
+                    {v.changedBy && v.changedBy !== 'system' && (
+                      <span className="text-xs text-slate-600">{v.changedBy}</span>
+                    )}
+                  </div>
+                  {v.changeReason && (
+                    <p className="text-xs text-slate-400 leading-relaxed">{v.changeReason}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CollapsibleSection>
       )}
 
       {/* ── Texte consolidé ───────────────────────────────────────────── */}
