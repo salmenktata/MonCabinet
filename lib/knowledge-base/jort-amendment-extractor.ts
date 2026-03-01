@@ -82,21 +82,25 @@ const REGEX_MIN_CONFIDENCE = 0.65
  * Patterns pour détecter les clauses de modification/abrogation en arabe
  */
 const AR_MODIFICATION_PATTERNS: RegExp[] = [
-  // يُنقَّح الفصل X من مجلة ... / تُنقَّح أحكام الفصل X
-  /(?:يُنقَّح|تُنقَّح|نُقِّح|يُعدَّل|تُعدَّل|عُدِّل)\s+(?:أحكام\s+)?(?:الفصل|الفصول)\s+([\d\u060c,\s]+(?:[\u0648و]\s*\d+)*)\s+(?:من|بـ|من\s+مجلة)/gmu,
-  // الفصل X من مجلة الالتزامات يُنقَّح كالآتي
-  /(?:الفصل|الفصول)\s+([\d\u060c,\s]+)\s+(?:من\s+مجل[ةه]\s+[\u0600-\u06FF\s]+?)\s+(?:يُنقَّح|تُنقَّح|يُعدَّل)/gmu,
-  // تُستبدل أحكام الفصل X
-  /(?:تُستبدل|يُستبدل|استُبدِل)\s+(?:أحكام\s+)?(?:الفصل|الفصول)\s+([\d\u060c,\s]+)/gmu,
-  // يُضاف إلى مجلة ... فصل جديد
-  /(?:يُضاف|تُضاف|أُضيف)\s+(?:إلى\s+مجل[ةه]\s+[\u0600-\u06FF\s]+?)\s+(?:فصل|أحكام)/gmu,
+  // ينقح / تنقح / يعدل الفصل X من ... (avec ou sans diacritiques)
+  /(?:ينقح|تنقح|نقح|يعدل|تعدل|عدل)\s+(?:احكام\s+)?(?:الفصل|الفصول)\s+([\d،,\s]+(?:[و\u0648]\s*\d+)*)\s+(?:من|بـ)/gmu,
+  // الفصل X من مجلة ... ينقح كالآتي / كما يلي
+  /(?:الفصل|الفصول)\s+([\d،,\s]+)\s+(?:من\s+مجل[ةه]\s+[\u0600-\u06FF\s]+?)\s+(?:ينقح|تنقح|يعدل)/gmu,
+  // تستبدل / يستبدل أحكام الفصل X
+  /(?:تستبدل|يستبدل|استبدل)\s+(?:احكام\s+)?(?:الفصل|الفصول)\s+([\d،,\s]+)/gmu,
+  // يعوض / تعوض الفصل X
+  /(?:يعوض|تعوض|عوض)\s+(?:احكام\s+)?(?:الفصل|الفصول)\s+([\d،,\s]+)/gmu,
+  // تضاف / يضاف [مطة/فقرة/أحكام] إلى الفقرة/الفصل/مجلة
+  /(?:يضاف|تضاف|اضيف|يضم|تضم)\s+[\u0600-\u06FF\s]{0,40}?(?:الى|إلى)\s+(?:الفقرة|الفصل|مجل[ةه])/gmu,
+  // الفصل الأول ـ ينقح / تضاف / يلغى (dispositif direct)
+  /الفصل\s+(?:الاول|الأول|1)\s+[ـ\-]\s+(?:ينقح|تنقح|يلغى|تلغى|يضاف|تضاف|يعوض|تعوض|تستبدل|يستبدل)/gmu,
 ]
 
 const AR_ABROGATION_PATTERNS: RegExp[] = [
-  // يُلغى الفصل X من مجلة ... / تُلغى أحكام الفصل X
-  /(?:يُلغى|تُلغى|أُلغي|يُلغ[ىي])\s+(?:أحكام\s+)?(?:الفصل|الفصول)\s+([\d\u060c,\s]+(?:[\u0648و]\s*\d+)*)\s+(?:من|بـ)/gmu,
+  // يلغى / تلغى أحكام الفصل X من ...
+  /(?:يلغى|تلغى|الغي|يلغ[ىي])\s+(?:احكام\s+)?(?:الفصل|الفصول)\s+([\d،,\s]+(?:[و\u0648]\s*\d+)*)\s+(?:من|بـ)/gmu,
   // إلغاء الفصل X
-  /إلغاء\s+(?:أحكام\s+)?(?:الفصل|الفصول)\s+([\d\u060c,\s]+)\s+(?:من)/gmu,
+  /الغاء\s+(?:احكام\s+)?(?:الفصل|الفصول)\s+([\d،,\s]+)\s+(?:من)/gmu,
 ]
 
 /**
@@ -131,13 +135,17 @@ interface RegexDetectionResult {
 }
 
 /**
- * Supprime les diacritiques arabes (tashkeel) pour normaliser le texte PDF.
- * Les PDFs tunisiens n'ont généralement pas de tashkeel, mais les patterns regex en ont.
+ * Normalise le texte arabe pour permettre le matching regex sur textes PDF.
+ *
+ * Les PDFs IORT utilisent deux formes problématiques :
+ * 1. Tashkeel (diacritiques) : يُنقَّح → ينقح
+ * 2. Formes de présentation Unicode (ligatures PDF) : اﻷول (U+FEF7) → الأول
+ *    Les ligatures comme ﻷ (lam+alef-hamza) doivent être décomposées via NFKC.
  */
 function stripArabicDiacritics(text: string): string {
-  // U+064B–U+065F = fathah, dammah, kasrah, tanwin, shadda, sukun, etc.
-  // U+0670 = alef superscript (مدة صغيرة)
-  return text.replace(/[\u064B-\u065F\u0670]/g, '')
+  return text
+    .normalize('NFKC') // Décompose les formes de présentation (ﻷ→لأ, ﻻ→لا, etc.)
+    .replace(/[\u064B-\u065F\u0670]/g, '') // Supprime tashkeel résiduel
 }
 
 /**
@@ -349,6 +357,28 @@ interface LLMAmendmentResult {
 }
 
 /**
+ * Extrait la section "dispositif" du texte JORT (الفصل الأول ـ ...).
+ * Les clauses d'amendement sont dans le dispositif, pas dans le préambule.
+ * Skipping les références légales du préambule ("وعلى القانون عدد X...").
+ */
+function extractDispositif(text: string): string {
+  const normalized = stripArabicDiacritics(text)
+  // Chercher le début du dispositif : "الفصل الأول ـ" ou "الفصل 1 ـ"
+  const match = normalized.match(/الفصل\s+(?:الاول|الأول|1)\s+[ـ\-]/)
+  if (match?.index) {
+    const start = Math.max(0, match.index - 150) // un peu de contexte avant
+    return text.slice(start, start + 4500) // 4500 chars couvre la plupart des dispositifs
+  }
+  // Fallback : si pas de الفصل الأول, chercher juste après le dernier "وعلى"
+  const lastWaala = normalized.lastIndexOf('وعلى')
+  if (lastWaala > 200) {
+    const afterRefs = lastWaala + 200
+    return text.slice(afterRefs, afterRefs + 4500)
+  }
+  return text.slice(0, 3500)
+}
+
+/**
  * Extrait les amendements via LLM (Ollama qwen3:8b).
  * Plus précis mais plus lent (~5-15s).
  */
@@ -357,8 +387,8 @@ async function detectAmendmentsByLLM(
   documentTitle?: string
 ): Promise<{ result: LLMAmendmentResult; success: boolean }> {
   try {
-    // Limiter à 3000 chars (début du document = clauses modificatives)
-    const truncated = text.slice(0, 3000)
+    // Extraire le dispositif (section des articles d'amendement, pas le préambule)
+    const truncated = extractDispositif(text)
 
     const prompt = `${LLM_AMENDMENT_PROMPT}
 
@@ -593,23 +623,46 @@ export async function extractAmendmentsFromJORT(
 
 /**
  * Vérifie rapidement si un document IORT est susceptible d'être modificatif.
- * Test léger basé sur les indicateurs textuels de surface.
  *
- * Permet de skip l'analyse complète pour les JORT non-modificatifs (>60% des cas).
+ * Stratégie en 3 niveaux :
+ * 1. Exclure immédiatement les docs où "تنقيح" n'apparaît QUE dans le préambule
+ *    (pattern "كما تم تنقيحه" = référence à une loi précédemment modifiée, pas d'amendement)
+ * 2. Indicateurs FORTS : dispositif "الفصل الأول ـ [verbe d'action]"
+ * 3. Indicateurs complémentaires : verbes d'amendement directs
  */
 export function isLikelyAmendingDocument(text: string): boolean {
-  const indicators = [
-    // Arabe
-    'يُنقَّح', 'تُنقَّح', 'يُعدَّل', 'تُعدَّل', 'يُلغى', 'تُلغى', 'يُضاف', 'تُضاف', 'تُستبدل',
-    'تنقيح', 'إلغاء الفصل', 'إضافة فصل',
+  const normalized = stripArabicDiacritics(text)
+
+  // ─── Exclure immédiatement les rectifications de données cadastrales (expropriation)
+  // "تنقح البيانات المتعلقة بقطعة" = correction de coordonnées d'emprise foncière, pas un amendement législatif
+  if (/تنقح\s+البيانات\s+المتعلقة\s+بقطع|تنقح\s+البيانات\s+المتعلقة\s+بالقطع/u.test(normalized)) {
+    return false
+  }
+
+  // ─── Niveau 1 : Dispositif direct (الفصل الأول ـ ينقح / تضاف / يلغى...)
+  // C'est l'indicateur le plus fiable d'un texte modificatif
+  if (/الفصل\s+(?:الاول|الاول|1)\s+[ـ\-]\s+(?:ينقح|تنقح|يلغى|تلغى|يضاف|تضاف|يعوض|تعوض|تستبدل|يستبدل)/u.test(normalized)) {
+    return true
+  }
+
+  // ─── Niveau 2 : Titre explicite "يتعلق بتنقيح" ou "تنقيح مجلة / إلغاء أحكام"
+  if (/يتعلق\s+بتنقيح|تنقيح\s+مجل[ةه]|تعديل\s+مجل[ةه]|الغاء\s+احكام\s+الفصل/u.test(normalized)) {
+    return true
+  }
+
+  // ─── Niveau 3 : Verbes d'amendement sans être dans "كما تم تنقيحه" (faux positif préambule)
+  // Exclure le pattern "كما تم تنقيحه / تنقيحها" qui = référence à une loi antérieurement modifiée
+  const falsePositivePattern = /كما\s+تم\s+تنقيحه|كما\s+تم\s+تنقيحها|كما\s+نقحته|كما\s+نقحتها/gu
+  const withoutFalsePositives = normalized.replace(falsePositivePattern, '')
+
+  const directVerbs = [
+    'ينقح', 'تنقح', 'يلغى', 'تلغى', 'إلغاء الفصل', 'الغاء الفصل',
     // Français
     'est modifié', 'est abrogé', 'sont modifiés', 'sont abrogés',
     'modifie l\'article', 'abroge l\'article', 'il est ajouté',
     'ainsi rédigé', 'modifié comme suit', 'remplacé comme suit',
-    // Bilingue
-    'كالآتي:', 'comme suit :', 'كما يلي:',
   ]
 
-  const textLower = text.toLowerCase()
-  return indicators.some((ind) => textLower.includes(ind.toLowerCase()))
+  const lower = withoutFalsePositives.toLowerCase()
+  return directVerbs.some((v) => lower.includes(v.toLowerCase()))
 }
