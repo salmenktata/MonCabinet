@@ -36,7 +36,7 @@ const ContradictionFilters = nextDynamic(
 
 const DetectionTriggerButton = nextDynamic(
   () => import('@/components/super-admin/contradictions/DetectionTriggerButton').then(mod => mod.DetectionTriggerButton),
-  { ssr: false }
+  { loading: () => <Skeleton className="h-9 w-32" /> }
 )
 
 interface PageProps {
