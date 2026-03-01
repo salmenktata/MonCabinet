@@ -167,6 +167,36 @@ function getSourceId(source: ChatSource): string {
 
 type HierarchyClass = 'norme' | 'jurisprudence' | 'doctrine' | 'modeles' | 'autre'
 
+// =============================================================================
+// FIABILITÉ SOURCE — Boost différentiel par origine officielle
+// =============================================================================
+
+/**
+ * Boost de fiabilité par origine de la source.
+ * IORT = source officielle de l'État (publication au JORT) → priorité maximale.
+ * Appliqué en plus du boost catégorie (codes, jurisprudence…).
+ */
+const SOURCE_RELIABILITY_BOOST: Record<string, number> = {
+  iort_gov_tn: 1.20,    // Source officielle état — publication JORT
+  cassation_tn: 1.12,   // Jurisprudence officielle Cour de Cassation
+  '9anoun_tn': 1.08,    // Compilation vérifiée mais non-officielle
+  google_drive: 1.0,    // Documents internes — fiabilité variable
+  autre: 1.0,
+}
+
+/**
+ * Boost/malus qualitatif graduel basé sur quality_score (0-100).
+ * Remplace le malus binaire <40 → ×0.5 par une courbe plus douce.
+ */
+function getQualityBoost(qualityScore: number | undefined): number {
+  if (qualityScore === undefined || qualityScore === null) return 1.0
+  if (qualityScore >= 80) return 1.10
+  if (qualityScore >= 60) return 1.05
+  if (qualityScore >= 40) return 1.0
+  if (qualityScore >= 20) return 0.85
+  return 0.60
+}
+
 const HIERARCHY_CLASS_BOOST: Record<HierarchyClass, number> = {
   norme: 1.08,
   jurisprudence: 1.04,
@@ -560,13 +590,22 @@ async function rerankSources(
       log.info(`[RAG Rerank] Malus OCR 0.85× sur "${s.documentName}" (conf=${(_meta.ocr_page_confidence as number | undefined)?.toFixed(0) ?? '?'}%)`)
     }
 
-    // Malus qualité faible document : sources avec quality_score bas pénalisées 0.5×
-    // Le quality_score (0-100) est stocké dans metadata et reflète la fiabilité du contenu.
-    // Seuil 40 = cohérent avec MIN_QUALITY_SCORE_FOR_INDEXING. Soft (×0.5) plutôt que hard exclusion.
+    // Boost/malus qualité graduel : quality_score 0-100 → courbe progressive
+    // (remplace le malus binaire <40 → ×0.5 par une courbe plus fine)
     const qualityScore = _meta?.quality_score as number | undefined
-    if (qualityScore !== undefined && qualityScore < 40) {
-      boost *= 0.5
-      log.info(`[RAG Rerank] Malus qualité 0.5× sur "${s.documentName}" (quality_score=${qualityScore})`)
+    const qBoost = getQualityBoost(qualityScore)
+    if (qBoost !== 1.0) {
+      boost *= qBoost
+      if (qBoost < 1.0) {
+        log.info(`[RAG Rerank] Malus qualité ${qBoost}× sur "${s.documentName}" (quality_score=${qualityScore})`)
+      }
+    }
+
+    // Boost fiabilité source : IORT (officiel) > cassation (officiel) > 9anoun.tn (vérifié)
+    const sourceOrigin = (_meta?.sourceOrigin as string | undefined) || 'autre'
+    const reliabilityBoost = SOURCE_RELIABILITY_BOOST[sourceOrigin] ?? 1.0
+    if (reliabilityBoost !== 1.0) {
+      boost *= reliabilityBoost
     }
 
     // P4 fix Feb 25, 2026 : boost spécifique مجلة الالتزامات والعقود (COC)

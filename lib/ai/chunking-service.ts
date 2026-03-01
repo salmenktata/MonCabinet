@@ -284,7 +284,7 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
   // Phase 3: Router selon stratégie
   if (strategy === 'article') {
     // Vérifier si applicable (codes/legislation)
-    const isLegalCode = ['codes', 'legislation', 'constitution', 'code'].includes(category || '')
+    const isLegalCode = ['codes', 'legislation', 'constitution', 'code', 'jort'].includes(category || '')
     if (isLegalCode) {
       const articleChunks = chunkTextByArticles(cleanedText, {
         language,

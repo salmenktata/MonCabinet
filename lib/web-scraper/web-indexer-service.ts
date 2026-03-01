@@ -12,9 +12,50 @@ import { getDocumentAbsoluteUrl, findOrCreateDocument, linkPageToDocument, updat
 import { NINEANOUN_KB_SECTIONS, NINEANOUN_CODE_DOMAINS, NINEANOUN_OTHER_SECTIONS } from './9anoun-code-domains'
 import { CASSATION_DOCUMENT_DOMAINS, CASSATION_BASE_URLS } from '@/lib/legal-documents/cassation-document-domains'
 import { IORT_DOCUMENT_DOMAINS, IORT_BASE_URLS } from '@/lib/legal-documents/iort-document-domains'
+import type { NormLevel } from '@/lib/categories/norm-levels'
 
 // Concurrence pour l'indexation de pages (1 = séquentiel, safe pour Ollama)
 const WEB_INDEXING_CONCURRENCY = parseInt(process.env.WEB_INDEXING_CONCURRENCY || '1', 10)
+
+// =============================================================================
+// FIABILITÉ SOURCE — Dérivation de l'origine et du niveau normatif
+// =============================================================================
+
+/**
+ * Dérive l'identifiant d'origine de la source à partir de l'URL de base.
+ * Stocké dans metadata.sourceOrigin pour le re-ranking RAG.
+ */
+export function deriveSourceOrigin(baseUrl: string): string {
+  const url = (baseUrl || '').toLowerCase()
+  if (url.includes('iort.gov.tn')) return 'iort_gov_tn'
+  if (url.includes('9anoun.tn')) return '9anoun_tn'
+  if (url.includes('cassation.tn')) return 'cassation_tn'
+  if (url.includes('google')) return 'google_drive'
+  return 'autre'
+}
+
+/**
+ * Mapping textType IORT (arabe) → norm_level de la pyramide de Kelsen.
+ * Utilisé pour enrichir les métadonnées KB lors de l'indexation.
+ */
+const IORT_TEXTTYPE_TO_NORM_LEVEL: Record<string, NormLevel> = {
+  'قانون أساسي': 'loi_organique',
+  'قانون': 'loi_ordinaire',
+  'مجلة': 'loi_ordinaire',
+  'مرسوم': 'marsoum',
+  'أمر': 'ordre_reglementaire',
+  'قرار': 'arrete_ministeriel',
+  'رإي': 'arrete_ministeriel',   // avis à niveau arreté par défaut
+}
+
+/**
+ * Dérive le norm_level à partir du textType IORT stocké dans structured_data.
+ * Retourne null si inconnu ou non-IORT.
+ */
+export function deriveNormLevelFromIortTextType(textType: string | undefined): NormLevel | null {
+  if (!textType) return null
+  return IORT_TEXTTYPE_TO_NORM_LEVEL[textType] ?? null
+}
 
 // =============================================================================
 // TYPES POUR CLASSIFICATION
@@ -343,6 +384,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
        wp.*,
        ws.category as source_category,
        ws.name as source_name,
+       ws.base_url as source_base_url,
        ws.rag_enabled as source_rag_enabled,
        COALESCE(ws.min_word_count, 30) as source_min_word_count,
        lc.primary_category,
@@ -407,6 +449,15 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   // Déterminer la catégorie KB (IA → URL pattern → "autre")
   const { category: kbCategory, source: classificationSource } = determineCategoryForKB(classification, row.url)
 
+  // Dériver l'origine de la source (pour boost fiabilité RAG)
+  const sourceOrigin = deriveSourceOrigin(row.source_base_url || '')
+
+  // Dériver le norm_level si source IORT (structured_data.textType)
+  const iortStructuredData = row.structured_data || {}
+  const normLevel = sourceOrigin === 'iort_gov_tn'
+    ? deriveNormLevelFromIortTextType(iortStructuredData.textType as string | undefined)
+    : null
+
   // Normaliser le texte
   const normalizedText = normalizeText(row.extracted_text)
   const detectedLang = row.language_detected || detectTextLanguage(normalizedText) || 'fr'
@@ -453,12 +504,15 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   const overlap = getOverlapForCategory(kbCategory)
 
   // Découper en chunks selon la catégorie KB
+  // IORT : stratégie article-aware pour détecter "الفصل X" / "Article X" comme séparateurs
+  const chunkingStrategy = sourceOrigin === 'iort_gov_tn' ? 'article' : 'adaptive'
   const chunks = chunkText(normalizedText, {
     chunkSize: aiConfig.rag.chunkSize,
     overlap,
     preserveParagraphs: true,
     preserveSentences: true,
     category: kbCategory, // Catégorie basée sur le contenu (classification IA)
+    strategy: chunkingStrategy,
   })
 
   if (chunks.length === 0) {
@@ -505,6 +559,8 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
             source: 'web_scraper',
             sourceId: row.web_source_id,
             sourceName: row.source_name,
+            sourceOrigin,               // 'iort_gov_tn' | '9anoun_tn' | 'cassation_tn' | ...
+            ...(normLevel ? { normLevel } : {}), // Niveau normatif IORT (si détecté)
             pageId: pageId,
             url: row.url,
             author: row.meta_author,
@@ -561,6 +617,8 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
           JSON.stringify({
             lastCrawledAt: row.last_crawled_at,
             updatedAt: new Date().toISOString(),
+            sourceOrigin,               // Mise à jour si source change
+            ...(normLevel ? { normLevel } : {}),
             // Tracking classification (mise à jour si classification changée)
             classification_source: classificationSource,
             classification_confidence: classification?.confidence_score || null,
@@ -600,6 +658,8 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
         wordCount: chunks[i].metadata.wordCount,
         charCount: chunks[i].metadata.charCount,
         sourceUrl: row.url,
+        sourceOrigin,
+        ...(normLevel ? { normLevel } : {}),
       })
 
       await client.query(

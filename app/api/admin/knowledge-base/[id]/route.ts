@@ -113,7 +113,23 @@ export async function PATCH(
     const { id } = await params
     const body = await request.json()
 
-    const { title, description, category, metadata, is_abroge, abroge_suspected } = body
+    const { title, description, category, metadata, is_abroge, abroge_suspected, rag_enabled } = body
+
+    // Toggle rag_enabled (contrôle manuel par document — ex: Google Drive)
+    if (rag_enabled !== undefined) {
+      await db.query(
+        `UPDATE knowledge_base SET rag_enabled = $1, updated_at = NOW() WHERE id = $2`,
+        [Boolean(rag_enabled), id]
+      )
+      const updated = await db.query(
+        `SELECT id, title, rag_enabled FROM knowledge_base WHERE id = $1`,
+        [id]
+      )
+      return NextResponse.json({
+        message: `Document ${rag_enabled ? 'activé' : 'désactivé'} pour le RAG`,
+        document: updated.rows[0] || null,
+      })
+    }
 
     // Validation catégorie si fournie
     if (category) {
