@@ -347,12 +347,42 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
   // Filtrer les chunks trop petits SAUF le dernier chunk (pour éviter perte de contenu en fin de doc)
   // Fix Feb 24, 2026 : seuil réduit de 100 → 40 mots pour préserver les dispositions légales courtes
   // (articles, définitions, alinéas) qui étaient silencieusement perdus
+  // Fix Mar 01, 2026 : détection chunks sans contenu utile (articles abrogés, artifacts tableaux)
   const MIN_CHUNK_WORDS = 40
+
+  /**
+   * Retourne true si le chunk ne contient aucun contenu juridique utile :
+   * 1. Artifact de tableau markdown : uniquement `| |`, `|---|`, cellules vides
+   * 2. Header-only article de code abrogé : format `{titre} | الفصل N | [codes]\n---\nالفصل N`
+   *    sans corps de texte après l'entête (article abrogé sur 9anoun.tn)
+   */
+  function isContentlessChunk(content: string): boolean {
+    // Cas 1 : artifact tableau — uniquement pipes, tirets, espaces
+    if (/^[\s|─═\-*]+$/.test(content.trim())) {
+      return true
+    }
+    // Cas 2 : header-only article de code
+    // Pattern : "X | الفصل N | [codes]\n---\nالفصل N [suffixe optionnel]"
+    // Le corps après "---\n" est juste le numéro d'article répété → aucun texte légal
+    const headerOnlyPattern = /^.+\|\s*الفصل\s+[\d\s]+\s*\|\s*\[codes\]\s*\n---\n(الفصل|Article)\s+[\d\s\w]*$/
+    if (headerOnlyPattern.test(content.trim())) {
+      return true
+    }
+    return false
+  }
+
   const filteredChunks = chunks.filter((chunk, idx) => {
     const wordCount = chunk.metadata.wordCount
+    const isLast = idx === chunks.length - 1
 
-    // Garder le dernier chunk même s'il est petit
-    if (idx === chunks.length - 1) {
+    // Toujours filtrer les chunks sans contenu utile, même le dernier
+    if (isContentlessChunk(chunk.content)) {
+      console.log(`[Chunking] Chunk ${idx} filtré (contenu vide/header-only) — "${chunk.content.substring(0, 60).replace(/\n/g, ' ')}..."`)
+      return false
+    }
+
+    // Garder le dernier chunk même s'il est petit (sauf si contentless ci-dessus)
+    if (isLast) {
       return true
     }
 

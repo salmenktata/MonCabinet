@@ -516,6 +516,13 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
                           <DropdownMenuItem
+                            onClick={() => router.push(`/super-admin/web-files/${file.id}`)}
+                            className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                          >
+                            <Icons.eye className="h-4 w-4 mr-2" />
+                            Voir les détails
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             onClick={() => handleDownload(file)}
                             className="text-slate-200 hover:bg-slate-700 cursor-pointer"
                           >
