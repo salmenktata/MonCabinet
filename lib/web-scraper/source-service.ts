@@ -14,6 +14,7 @@ import type {
   UpdateWebSourceInput,
   CssSelectors,
   HealthStatus,
+  CategoryRule,
 } from './types'
 
 /** Convert pg interval (object or string) to a plain string */
@@ -349,6 +350,11 @@ export async function updateWebSource(
   if (input.ragEnabled !== undefined) {
     setClauses.push(`rag_enabled = $${paramIndex++}`)
     params.push(input.ragEnabled)
+  }
+
+  if (input.categoryRules !== undefined) {
+    setClauses.push(`category_rules = $${paramIndex++}`)
+    params.push(JSON.stringify(input.categoryRules) as unknown as string)
   }
 
   if (setClauses.length === 0) {
@@ -914,6 +920,7 @@ export async function getWebSourcesListData(params: {
     drive_config: Record<string, unknown> | null
     files_count: number
     indexed_files_count: number
+    category_rules: CategoryRule[]
   }
 
   const serializedSources: SerializedSource[] = sourcesResult.rows.map((source: Record<string, unknown>) => ({
@@ -941,6 +948,7 @@ export async function getWebSourcesListData(params: {
     drive_config: (source.drive_config as Record<string, unknown>) || null,
     files_count: Number(source.files_count) || 0,
     indexed_files_count: Number(source.indexed_files_count) || 0,
+    category_rules: (source.category_rules as CategoryRule[]) || [],
   }))
 
   return {
@@ -1012,6 +1020,7 @@ function mapRowToWebSource(row: Record<string, unknown>): WebSource {
     autoIndexFiles: (row.auto_index_files as boolean) || false,
     allowedPdfDomains: (row.allowed_pdf_domains as string[]) || [],
     driveConfig: (row.drive_config as any) || null, // ✅ Fix: Google Drive config mapping
+    categoryRules: (row.category_rules as any) || [],
     createdBy: row.created_by as string | null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
@@ -1042,6 +1051,7 @@ function mapRowToWebPage(row: Record<string, unknown>): WebPage {
     status: row.status as WebPage['status'],
     errorMessage: row.error_message as string | null,
     errorCount: row.error_count as number,
+    detectedCategory: row.detected_category as string | null,
     knowledgeBaseId: row.knowledge_base_id as string | null,
     isIndexed: row.is_indexed as boolean,
     chunksCount: row.chunks_count as number,

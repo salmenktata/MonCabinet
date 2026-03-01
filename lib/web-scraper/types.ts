@@ -4,6 +4,9 @@
 
 import type { WebSourceCategory } from '@/lib/categories/legal-categories'
 import { LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
+import type { CategoryRule } from './category-detector'
+
+export type { CategoryRule }
 
 // Re-export pour rétrocompatibilité
 export type { WebSourceCategory }
@@ -220,6 +223,9 @@ export interface WebSource {
   // Configuration d'extraction personnalisée (patterns de bruit, sélecteurs)
   extractionConfig: ExtractionConfig | null
 
+  // Règles de détection de catégorie par URL (Option B)
+  categoryRules: CategoryRule[]
+
   // Google Drive configuration (null pour sources web)
   driveConfig?: {
     folderId: string
@@ -292,6 +298,9 @@ export interface WebPage {
   status: PageStatus
   errorMessage: string | null
   errorCount: number
+
+  // Catégorie détectée (Option A/B)
+  detectedCategory: string | null
 
   // Intégration KB
   knowledgeBaseId: string | null
@@ -569,6 +578,7 @@ export interface UpdateWebSourceInput {
   formCrawlConfig?: FormCrawlConfig | null
   autoIndexFiles?: boolean
   allowedPdfDomains?: string[]
+  categoryRules?: CategoryRule[]
 }
 
 // ============================================================================

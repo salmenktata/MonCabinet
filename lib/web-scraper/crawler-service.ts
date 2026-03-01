@@ -21,6 +21,7 @@ import { uploadFile } from '@/lib/storage/minio'
 import { withRetry, isRetryableError, DEFAULT_RETRY_CONFIG } from './retry-utils'
 import { getRandomDelay, shouldAddLongPause, detectBan } from './anti-ban-utils'
 import { recordCrawlMetric, markSourceAsBanned, canSourceCrawl } from './monitoring-service'
+import { detectPageCategory } from './category-detector'
 
 // Configuration du crawl
 const WEB_FILES_BUCKET = 'web-files'
@@ -655,9 +656,9 @@ async function processPage(
 
       // Auto-indexation si activée
       if (sourceAutoIndex && newlyDownloaded.length > 0) {
-        const sourceCategory = (s.categories && s.categories.length > 0 ? s.categories[0] : s.category) || 'autre'
+        const pageCategory = detectPageCategory(url, s.categories || [], s.categoryRules || s.category_rules || [])
         const sName = s.name || 'Unknown'
-        await autoIndexFilesForPage(existingPage.id, newlyDownloaded, sourceId, sName, sourceCategory)
+        await autoIndexFilesForPage(existingPage.id, newlyDownloaded, sourceId, sName, pageCategory)
       }
     } else {
       console.log(`[Crawler] Contenu identique: ${url}`)
@@ -708,9 +709,11 @@ async function processPage(
   // Auto-indexation des fichiers si activée (D3)
   const sourceAutoIndex = s.autoIndexFiles ?? s.auto_index_files ?? false
   if (sourceAutoIndex && savedPageId && downloadedFiles.length > 0) {
-    const sourceCategory = (s.categories && s.categories.length > 0 ? s.categories[0] : s.category) || 'autre'
+    const pageCategory = detectPageCategory(url, s.categories || [], s.categoryRules || s.category_rules || [])
     const sName = s.name || 'Unknown'
-    await autoIndexFilesForPage(savedPageId, downloadedFiles, sourceId, sName, sourceCategory)
+    // Sauvegarder detected_category sur web_pages
+    await db.query('UPDATE web_pages SET detected_category = $1 WHERE id = $2', [pageCategory, savedPageId])
+    await autoIndexFilesForPage(savedPageId, downloadedFiles, sourceId, sName, pageCategory)
   }
 
   return { success: true, links: content.links, fetchResult: scrapeResult.fetchResult }
@@ -1205,6 +1208,7 @@ function mapRowToWebPage(row: Record<string, unknown>): WebPage {
     status: row.status as PageStatus,
     errorMessage: row.error_message as string | null,
     errorCount: row.error_count as number,
+    detectedCategory: row.detected_category as string | null,
     knowledgeBaseId: row.knowledge_base_id as string | null,
     isIndexed: row.is_indexed as boolean,
     chunksCount: row.chunks_count as number,
@@ -1321,7 +1325,6 @@ export async function scrapeUrlList(
   const sourceRateLimit = s.rateLimitMs ?? s.rate_limit_ms ?? 1000
   const sourceDownloadFiles = options.downloadFiles ?? (s.downloadFiles ?? s.download_files ?? false)
   const sourceAutoIndex = options.indexAfterScrape ?? (s.autoIndexFiles ?? s.auto_index_files ?? false)
-  const sourceCategory = (s.categories && s.categories.length > 0 ? s.categories[0] : s.category) || 'autre'
 
   const {
     concurrency = 5,
@@ -1393,7 +1396,9 @@ export async function scrapeUrlList(
 
           // Auto-indexation des fichiers si activée
           if (sourceAutoIndex && savedPageId && downloadedFiles.length > 0) {
-            await autoIndexFilesForPage(savedPageId, downloadedFiles, sourceId, sourceName, sourceCategory)
+            const pageCategory = detectPageCategory(url, s.categories || [], s.categoryRules || s.category_rules || [])
+            await db.query('UPDATE web_pages SET detected_category = $1 WHERE id = $2', [pageCategory, savedPageId])
+            await autoIndexFilesForPage(savedPageId, downloadedFiles, sourceId, sourceName, pageCategory)
           }
 
           return { url, success: true, isNew, filesDownloaded }

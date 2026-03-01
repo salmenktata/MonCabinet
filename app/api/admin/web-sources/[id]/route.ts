@@ -148,6 +148,7 @@ export async function PUT(
     if (body.ragEnabled !== undefined) input.ragEnabled = body.ragEnabled
     if (body.ignoreSSLErrors !== undefined) input.ignoreSSLErrors = body.ignoreSSLErrors
     if (body.autoIndexFiles !== undefined) input.autoIndexFiles = body.autoIndexFiles
+    if (body.categoryRules !== undefined) input.categoryRules = body.categoryRules
 
     const source = await updateWebSource(id, input)
 

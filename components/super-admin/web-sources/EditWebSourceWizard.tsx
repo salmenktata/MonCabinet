@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 import { CATEGORY_COLORS, getCategoryLabel } from '@/lib/web-scraper/category-labels'
 import { useLocale } from 'next-intl'
+import type { CategoryRule } from '@/lib/web-scraper/category-detector'
 
 interface FormData {
   name: string
@@ -47,6 +48,7 @@ interface FormData {
   urlPatterns: string
   excludedPatterns: string
   isActive: boolean
+  categoryRules: CategoryRule[]
 }
 
 interface EditWebSourceWizardProps {
@@ -105,6 +107,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
       urlPatterns: formData.urlPatterns ? formData.urlPatterns.split('\n').filter(Boolean) : [],
       excludedPatterns: formData.excludedPatterns ? formData.excludedPatterns.split('\n').filter(Boolean) : [],
       isActive: formData.isActive,
+      categoryRules: formData.categoryRules,
     }
   }
 
@@ -455,6 +458,91 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                   rows={3}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Règles de catégorie par URL */}
+          <Card className="bg-slate-800 border-slate-700 mt-4">
+            <CardHeader>
+              <CardTitle className="text-white text-sm">Règles de catégorie par URL</CardTitle>
+              <CardDescription>
+                Associer automatiquement une catégorie aux pages selon leur URL.
+                Priorité : ces règles &gt; auto-détection &gt; catégorie par défaut de la source.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {formData.categoryRules.map((rule, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <Input
+                    value={rule.pattern}
+                    onChange={(e) => {
+                      const rules = [...formData.categoryRules]
+                      rules[idx] = { ...rules[idx], pattern: e.target.value }
+                      updateField('categoryRules', rules)
+                    }}
+                    placeholder="Ex: /kb/codes/ ou /modeles/"
+                    className="flex-1 bg-slate-900 border-slate-600 text-white text-xs"
+                  />
+                  <Select
+                    value={rule.type}
+                    onValueChange={(v) => {
+                      const rules = [...formData.categoryRules]
+                      rules[idx] = { ...rules[idx], type: v as CategoryRule['type'] }
+                      updateField('categoryRules', rules)
+                    }}
+                  >
+                    <SelectTrigger className="w-32 bg-slate-900 border-slate-600 text-white text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contains">Contient</SelectItem>
+                      <SelectItem value="prefix">Préfixe</SelectItem>
+                      <SelectItem value="regex">Regex</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={rule.category}
+                    onValueChange={(v) => {
+                      const rules = [...formData.categoryRules]
+                      rules[idx] = { ...rules[idx], category: v }
+                      updateField('categoryRules', rules)
+                    }}
+                  >
+                    <SelectTrigger className="w-36 bg-slate-900 border-slate-600 text-white text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-400 hover:text-red-300 px-2"
+                    onClick={() => {
+                      updateField('categoryRules', formData.categoryRules.filter((_, i) => i !== idx))
+                    }}
+                  >
+                    <Icons.trash className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-slate-600 text-slate-300 text-xs"
+                onClick={() => updateField('categoryRules', [
+                  ...formData.categoryRules,
+                  { pattern: '', type: 'contains', category: formData.categories[0] || 'legislation' },
+                ])}
+              >
+                <Icons.add className="h-3 w-3 mr-1" />
+                Ajouter une règle
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

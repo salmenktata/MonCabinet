@@ -3,9 +3,9 @@
  * Types sérialisés (dates en string) pour les composants client
  */
 
-import type { WebSourceCategory, WebSourceLanguage, HealthStatus } from '@/lib/web-scraper/types'
+import type { WebSourceCategory, WebSourceLanguage, HealthStatus, CategoryRule } from '@/lib/web-scraper/types'
 
-export type { WebSourceCategory, WebSourceLanguage, HealthStatus }
+export type { WebSourceCategory, WebSourceLanguage, HealthStatus, CategoryRule }
 
 /**
  * Source web sérialisée pour les composants client (dates en string, noms snake_case SQL)
@@ -35,6 +35,7 @@ export interface WebSourceListItem {
   drive_config: Record<string, unknown> | null
   files_count: number
   indexed_files_count: number
+  category_rules?: CategoryRule[]
 }
 
 /**

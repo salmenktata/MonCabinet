@@ -54,6 +54,7 @@ function webSourceToFormData(source: WebSource) {
     urlPatterns: source.urlPatterns?.join('\n') || '',
     excludedPatterns: source.excludedPatterns?.join('\n') || '',
     isActive: source.isActive,
+    categoryRules: source.categoryRules || [],
   }
 }
 

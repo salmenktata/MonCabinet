@@ -118,8 +118,14 @@ function detectCategoryFromUrl(url: string): LegalCategory | null {
  */
 function determineCategoryForKB(
   classification: PageClassification | null,
-  pageUrl?: string
+  pageUrl?: string,
+  detectedCategory?: string | null
 ): { category: LegalCategory; source: string } {
+  // Cas 0 : Catégorie détectée par Option A/B (URL patterns crawl-time)
+  if (detectedCategory) {
+    return { category: detectedCategory as LegalCategory, source: 'detected' }
+  }
+
   // Cas 1 : Classification IA disponible → utiliser primary_category
   if (classification?.primary_category) {
     return { category: classification.primary_category, source: 'ai' }
@@ -446,8 +452,8 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       }
     : null
 
-  // Déterminer la catégorie KB (IA → URL pattern → "autre")
-  const { category: kbCategory, source: classificationSource } = determineCategoryForKB(classification, row.url)
+  // Déterminer la catégorie KB (detected_category → IA → URL pattern → "autre")
+  const { category: kbCategory, source: classificationSource } = determineCategoryForKB(classification, row.url, row.detected_category)
 
   // Dériver l'origine de la source (pour boost fiabilité RAG)
   const sourceOrigin = deriveSourceOrigin(row.source_base_url || '')
