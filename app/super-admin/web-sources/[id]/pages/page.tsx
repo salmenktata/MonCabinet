@@ -11,6 +11,8 @@ import { Icons } from '@/lib/icons'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { safeParseInt } from '@/lib/utils/safe-number'
 import WebPagesConsolidationPanel from '@/components/super-admin/web-sources/WebPagesConsolidationPanel'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
+import { Breadcrumb } from '@/components/super-admin/shared/Breadcrumb'
 
 export const dynamic = 'force-dynamic'
 
@@ -146,23 +148,17 @@ export default async function WebSourcePagesPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href={`/super-admin/web-sources/${id}`}>
-            <Button variant="ghost" size="sm" className="text-slate-400">
-              <Icons.arrowLeft className="h-4 w-4 mr-2" />
-              Retour
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-white">
-              Pages de {source.name}
-            </h1>
-            <p className="text-slate-400 text-sm">{pagination.total} pages</p>
-          </div>
-        </div>
-      </div>
+      {/* Breadcrumb + Header */}
+      <Breadcrumb items={[
+        { label: 'Sources Web', href: '/super-admin/web-sources' },
+        { label: source.name, href: `/super-admin/web-sources/${id}` },
+        { label: 'Pages' },
+      ]} />
+      <PageHeader
+        title={`Pages de ${source.name}`}
+        description={`${pagination.total} pages`}
+        backHref={`/super-admin/web-sources/${id}`}
+      />
 
       {/* Stats par status */}
       <div className="flex flex-wrap gap-2">

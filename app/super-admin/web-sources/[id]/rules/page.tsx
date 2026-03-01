@@ -6,11 +6,10 @@
 import { Suspense } from 'react'
 import nextDynamic from 'next/dynamic'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import { db } from '@/lib/db/postgres'
-import { Button } from '@/components/ui/button'
-import { Icons } from '@/lib/icons'
 import { RulesStats } from '@/components/super-admin/web-sources/RulesStats'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
+import { Breadcrumb } from '@/components/super-admin/shared/Breadcrumb'
 
 // Lazy load du gestionnaire de règles (833 lignes) pour alléger le bundle
 const RulesManager = nextDynamic(
@@ -140,32 +139,17 @@ export default async function RulesPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-slate-400 text-sm mb-1">
-            <Link href="/super-admin/web-sources" className="hover:text-white">
-              Sources Web
-            </Link>
-            <Icons.chevronRight className="h-4 w-4" />
-            <Link href={`/super-admin/web-sources/${data.source.id}`} className="hover:text-white">
-              {data.source.name}
-            </Link>
-            <Icons.chevronRight className="h-4 w-4" />
-            <span className="text-white">Règles</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white">Règles de classification</h1>
-          <p className="text-slate-400 mt-1">
-            Configurez les règles de mapping automatique pour {data.source.name}
-          </p>
-        </div>
-        <Link href={`/super-admin/web-sources/${data.source.id}`}>
-          <Button variant="outline">
-            <Icons.arrowLeft className="h-4 w-4 mr-2" />
-            Retour à la source
-          </Button>
-        </Link>
-      </div>
+      {/* Breadcrumb + Header */}
+      <Breadcrumb items={[
+        { label: 'Sources Web', href: '/super-admin/web-sources' },
+        { label: data.source.name, href: `/super-admin/web-sources/${data.source.id}` },
+        { label: 'Règles' },
+      ]} />
+      <PageHeader
+        title="Règles de classification"
+        description={`Configurez les règles de mapping automatique pour ${data.source.name}`}
+        backHref={`/super-admin/web-sources/${data.source.id}`}
+      />
 
       {/* Statistiques */}
       <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>

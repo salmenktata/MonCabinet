@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import { WebSourceFiles } from '@/components/super-admin/web-sources/WebSourceFiles'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
+import { Breadcrumb } from '@/components/super-admin/shared/Breadcrumb'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,36 +74,24 @@ export default async function WebSourceFilesPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <Link href={`/super-admin/web-sources/${id}`}>
-            <Button variant="ghost" size="sm" className="text-slate-400">
-              <Icons.arrowLeft className="h-4 w-4 mr-2" />
-              Retour
+      {/* Breadcrumb + Header */}
+      <Breadcrumb items={[
+        { label: 'Sources Web', href: '/super-admin/web-sources' },
+        { label: source.name, href: `/super-admin/web-sources/${id}` },
+        { label: 'Fichiers' },
+      ]} />
+      <PageHeader
+        title={`Fichiers - ${source.name}`}
+        backHref={`/super-admin/web-sources/${id}`}
+        action={
+          <Link href="/super-admin/web-files">
+            <Button variant="outline" className="border-slate-600 text-slate-300">
+              <Icons.globe className="h-4 w-4 mr-2" />
+              Vue globale
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Fichiers - {source.name}</h1>
-            <a
-              href={source.base_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-1 mt-1"
-            >
-              <Icons.externalLink className="h-3 w-3" />
-              {source.base_url}
-            </a>
-          </div>
-        </div>
-
-        <Link href="/super-admin/web-files">
-          <Button variant="outline" className="border-slate-600 text-slate-300">
-            <Icons.globe className="h-4 w-4 mr-2" />
-            Vue globale
-          </Button>
-        </Link>
-      </div>
+        }
+      />
 
       {/* Stats résumé */}
       <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
