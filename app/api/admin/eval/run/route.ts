@@ -60,6 +60,8 @@ export async function POST(request: NextRequest) {
     const mode = body.mode || 'quick'
     const runMode: RunMode = body.runMode || 'retrieval'
     const label: string | undefined = body.label
+    // A/B testing Jina : skipJinaRerank=true → compare R@5 sans Jina vs avec Jina (défaut)
+    const skipJinaRerank: boolean = body.skipJinaRerank === true
 
     // Chargement depuis DB (fallback JSON si table vide)
     let goldCases: GoldEvalCase[] = await loadGoldDatasetFromDB()
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
     activeRuns.set(runId, { status: 'running', progress: 0, total: goldCases.length })
 
     // Lancer en background
-    runBenchmarkAsync(runId, goldCases, runMode, label).catch(err => {
+    runBenchmarkAsync(runId, goldCases, runMode, label, skipJinaRerank).catch(err => {
       console.error(`[Eval Run ${runId}] Erreur fatale:`, err)
       activeRuns.set(runId, { status: 'error', progress: 0, total: goldCases.length, error: err.message })
     })
@@ -141,7 +143,7 @@ export async function GET(request: NextRequest) {
 // BACKGROUND RUNNER
 // =============================================================================
 
-async function runBenchmarkAsync(runId: string, goldCases: GoldEvalCase[], runMode: RunMode, label?: string) {
+async function runBenchmarkAsync(runId: string, goldCases: GoldEvalCase[], runMode: RunMode, label?: string, skipJinaRerank = false) {
   for (let i = 0; i < goldCases.length; i++) {
     const evalCase = goldCases[i]
 
@@ -154,6 +156,7 @@ async function runBenchmarkAsync(runId: string, goldCases: GoldEvalCase[], runMo
       const searchResults = await searchKnowledgeBaseHybrid(enrichedQuestion, {
         limit: 30, // P1 fix Feb 25: 10→30 — KB a grandi de 33K→45K chunks, pool élargi pour meilleur recall@5/10
         operationName: 'assistant-ia',
+        skipJinaRerank,  // A/B testing: false=avec Jina (prod), true=sans Jina (baseline)
       })
 
       const retrievalLatencyMs = Date.now() - retrievalStart

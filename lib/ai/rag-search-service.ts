@@ -22,10 +22,13 @@ import {
   RAG_DIVERSITY,
 } from './config'
 import {
-  getCachedSearchResults,
-  setCachedSearchResults,
   SearchScope,
 } from '@/lib/cache/search-cache'
+import {
+  getEnhancedCachedResults,
+  setEnhancedCachedResults,
+  type EnhancedSearchQuery,
+} from '@/lib/cache/enhanced-search-cache'
 import {
   detectLanguage,
   getOppositeLanguage,
@@ -751,10 +754,12 @@ function computeAdaptiveQualityGate(
   //   - Abstention dure seulement si TOUTES les sources < 0.25 (FR) ou < 0.22 (AR)
   //   - Sources dans la zone 0.25-0.40 = acceptées (borderline mais utiles)
   //   - Sources ≥ 0.40 = normales
-  // Mar 2026: AR vector 0.18→0.22, AR BM25-only 0.22→0.25 (seuil 0.18 trop permissif → bruit)
+  // Mar 2026 (v19 rollback): AR vector 0.22→0.20, AR BM25-only 0.25→0.22.
+  // Le relèvement 0.18→0.22 causait des abstentions injustifiées sur sources AR modérément
+  // pertinentes (sim 0.18-0.22) et contribuait à la régression R@5 (0.547→0.403).
   let base = lang === 'ar'
-    ? (hasVectorResults ? 0.22 : 0.25)  // AR: seuils relevés (0.18 retournait trop de bruit)
-    : (hasVectorResults ? 0.25 : 0.30)  // FR: base 0.25 << seuil SQL 0.35 (marge de sécurité)
+    ? (hasVectorResults ? 0.20 : 0.22)  // AR: rollback (compromis bruit vs recall)
+    : (hasVectorResults ? 0.25 : 0.30)  // FR: inchangé
 
   // Ajustement selon complexité query (proxy : longueur en mots)
   const queryWords = query.trim().split(/\s+/).length
@@ -881,12 +886,17 @@ export async function searchRelevantContext(
   })
   const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
 
-  // Vérifier le cache de recherche
+  // Vérifier le cache de recherche (L1 exact + L2 semantic + L3 domain)
   const searchScope: SearchScope = { userId, dossierId }
-  const cachedResults = await getCachedSearchResults(queryEmbedding.embedding, searchScope)
-  if (cachedResults) {
-    log.info(`[RAG Search] Cache HIT - ${cachedResults.length} sources (${Date.now() - startTime}ms)`)
-    return { sources: cachedResults as ChatSource[], cacheHit: true }
+  const enhancedQuery: EnhancedSearchQuery = {
+    query: embeddingQuestion,
+    embedding: queryEmbedding.embedding,
+    scope: searchScope,
+  }
+  const cachedResult = await getEnhancedCachedResults(enhancedQuery)
+  if (cachedResult) {
+    log.info(`[RAG Search] Cache ${cachedResult.metadata.level} HIT - ${cachedResult.results.length} sources (${Date.now() - startTime}ms)`)
+    return { sources: cachedResult.results as ChatSource[], cacheHit: true }
   }
 
   const allSources: ChatSource[] = []
@@ -1270,9 +1280,9 @@ export async function searchRelevantContext(
     }))
   }
 
-  // Mettre en cache les résultats
+  // Mettre en cache les résultats (L1 + L2 + L3 si domaine disponible)
   if (finalSources.length > 0) {
-    await setCachedSearchResults(queryEmbedding.embedding, finalSources, searchScope)
+    await setEnhancedCachedResults(enhancedQuery, finalSources)
   }
 
   // Appliquer le filtre d'amendements JORT (Mar 2026)

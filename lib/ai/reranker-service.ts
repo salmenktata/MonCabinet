@@ -202,6 +202,7 @@ export async function rerankDocuments(
   topK?: number,
   options: {
     useCrossEncoder?: boolean  // ✨ NOUVEAU Sprint 3
+    skipJinaRerank?: boolean   // A/B testing : mesure impact Jina sans modifier l'env
   } = {}
 ): Promise<RerankerResult[]> {
   if (!RERANKER_ENABLED || documents.length <= 1) {
@@ -217,7 +218,8 @@ export async function rerankDocuments(
 
   // Priorité 1 : Jina Reranker v2 multilingue via HTTP (arabe + français natifs)
   // Activé si JINA_API_KEY configuré — pas de build step, simple HTTP
-  if (JINA_API_KEY) {
+  // skipJinaRerank=true : utilisé pour A/B testing (mesure impact Jina dans eval)
+  if (JINA_API_KEY && !options.skipJinaRerank) {
     const jinaResults = await rerankWithJina(query, documents, topK)
     if (jinaResults) {
       return topK ? jinaResults.slice(0, topK) : jinaResults

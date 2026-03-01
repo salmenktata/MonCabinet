@@ -406,6 +406,7 @@ export function UnifiedChatPage({
                 renderEnriched={(message) => <EnrichedMessage message={message} />}
                 onSendExample={(text) => handleSendMessage(text)}
                 onResendMessage={(content) => handleSendMessage(content)}
+                canProvideFeedback={true}
               />
             </div>
           </div>

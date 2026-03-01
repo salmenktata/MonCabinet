@@ -1349,6 +1349,7 @@ export async function searchKnowledgeBaseHybrid(
     limit?: number
     threshold?: number
     operationName?: string
+    skipJinaRerank?: boolean  // A/B testing : comparer R@5 avec/sans Jina reranker
   } = {}
 ): Promise<KnowledgeBaseSearchResult[]> {
   if (!isSemanticSearchEnabled()) {
@@ -1364,6 +1365,7 @@ export async function searchKnowledgeBaseHybrid(
     limit = aiConfig.rag.maxResults,
     threshold = aiConfig.rag.similarityThreshold - 0.20, // SQL vector_threshold permissif (0.35) ; le HARD_QUALITY_GATE (0.50) filtre ensuite
     operationName,
+    skipJinaRerank = false,
   } = options
 
   // Normaliser docTypes en array unique
@@ -1529,10 +1531,15 @@ export async function searchKnowledgeBaseHybrid(
     // v18 (Mar 2026): collecte TOUS les patterns correspondants (suppression break).
     // Une query multi-domaine (ex: "nullité pour prescription") déclenche les 2 sets d'articles.
     // Déduplication par clé "artNum:titleFrag" pour éviter les doubles requêtes DB.
+    // v19 cap: max 8 articles simultanés par map — évite l'explosion combinatoire qui noyait
+    // les vrais résultats sous des chunks sim=1.05 non pertinents (régression R@5 Mar 2026).
+    const COC_MAX_ARTICLES = 8
     const cocQueuedArticles = new Set<string>()
     for (const [pattern, articles] of COC_IMPLICIT_ARTICLE_MAP) {
+      if (cocQueuedArticles.size >= COC_MAX_ARTICLES) break
       if (pattern.test(queryText)) {
         for (const artNum of articles) {
+          if (cocQueuedArticles.size >= COC_MAX_ARTICLES) break
           const key = `${artNum}:${cocTitleFrag}`
           if (!cocQueuedArticles.has(key)) {
             cocQueuedArticles.add(key)
@@ -1567,10 +1574,13 @@ export async function searchKnowledgeBaseHybrid(
       // Corruption / Rshwa
       [/رشوة|اختلاس.*مال|corruption|détournement.*fonds/i, [83, 84, 85]],
     ]
+    const PENAL_MAX_ARTICLES = 6
     const penalQueuedArticles = new Set<string>()
     for (const [pattern, articles] of PENAL_IMPLICIT_ARTICLE_MAP) {
+      if (penalQueuedArticles.size >= PENAL_MAX_ARTICLES) break
       if (pattern.test(queryText)) {
         for (const artNum of articles) {
+          if (penalQueuedArticles.size >= PENAL_MAX_ARTICLES) break
           const key = `${artNum}:${penalTitleFrag}`
           if (!penalQueuedArticles.has(key)) {
             penalQueuedArticles.add(key)
@@ -1605,10 +1615,13 @@ export async function searchKnowledgeBaseHybrid(
         // Art.452+: concordat / taysira qadha'iya
         [/تسوية.*قضائية|الصلح.*الواقي/, [452, 453, 454]],
       ]
+      const MCO_MAX_ARTICLES = 6
       const mcoQueuedArticles = new Set<string>()
       for (const [pattern, articles] of MCO_IMPLICIT_ARTICLE_MAP) {
+        if (mcoQueuedArticles.size >= MCO_MAX_ARTICLES) break
         if (pattern.test(queryText)) {
           for (const artNum of articles) {
+            if (mcoQueuedArticles.size >= MCO_MAX_ARTICLES) break
             const key = `${artNum}:${mcoTitleFrag}`
             if (!mcoQueuedArticles.has(key)) {
               mcoQueuedArticles.add(key)
@@ -1766,6 +1779,22 @@ export async function searchKnowledgeBaseHybrid(
 
   const providerSummary = Object.entries(countByProvider).map(([p, c]) => `${c} ${p}`).join(' + ')
   logger.info(`[KB Hybrid Search] Dual-parallel: ${providerSummary} → ${results.length} total après dédup (pool=${sqlCandidatePool})`)
+
+  // Jina Reranking post-hybrid (si configuré et non désactivé)
+  // Aligne les métriques eval sur le pipeline prod réel (qui utilise Jina dans rag-search-service)
+  if (!skipJinaRerank && process.env.JINA_API_KEY && results.length > 1) {
+    try {
+      const { rerankDocuments } = await import('./reranker-service')
+      const docsToRerank = results.map(r => ({
+        content: r.chunkContent,
+        originalScore: r.similarity,
+      }))
+      const reranked = await rerankDocuments(query, docsToRerank, results.length, { skipJinaRerank: false })
+      return reranked.map(r => ({ ...results[r.index], similarity: r.score }))
+    } catch (err) {
+      logger.warn('[KB Hybrid Search] Jina reranking échoué, résultats non-reranked retournés:', err)
+    }
+  }
 
   return results
 }

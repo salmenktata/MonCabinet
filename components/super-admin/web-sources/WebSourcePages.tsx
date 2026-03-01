@@ -16,6 +16,7 @@ interface Page {
   last_crawled_at: string | null
   has_metadata?: boolean
   version_count?: number
+  detected_category?: string | null
 }
 
 interface WebSourcePagesProps {
@@ -72,6 +73,11 @@ export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata
               <Badge className={statusInfo.color + ' text-xs'}>
                 {statusInfo.label}
               </Badge>
+              {page.detected_category && (
+                <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-xs" title="Catégorie auto-détectée">
+                  {page.detected_category}
+                </Badge>
+              )}
               {page.has_metadata && (
                 <Badge
                   className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs cursor-pointer"
