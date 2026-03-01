@@ -1172,6 +1172,186 @@ export async function crawlYearType(
 }
 
 // =============================================================================
+// SCRAPING CONSTITUTION (M4)
+// =============================================================================
+
+/**
+ * Navigue vers la page Constitution du site IORT via le lien M4 de la homepage.
+ * Doit être appelé depuis la homepage (après init() ou recover()).
+ */
+export async function navigateToConstitutionPage(session: IortSessionManager): Promise<void> {
+  const page = session.getPage()
+
+  console.log('[IORT Constitution] Navigation vers la homepage...')
+  await page.goto(IORT_BASE_URL, { waitUntil: 'load', timeout: IORT_RATE_CONFIG.navigationTimeout })
+  await sleep(3000)
+
+  console.log('[IORT Constitution] Clic sur M4 (دستور الجمهورية التونسية)...')
+  await page.evaluate(() => {
+    // @ts-expect-error WebDev global function
+    _JSL(_PAGE_, 'M4', '_self', '', '')
+  })
+  await page.waitForLoadState('load')
+  await sleep(3000)
+
+  console.log('[IORT Constitution] Page constitution atteinte')
+}
+
+/**
+ * Télécharge le PDF de la constitution depuis la page IORT.
+ * Déclenche l'action A7 (تحميل PDF) sur la page active.
+ */
+async function downloadConstitutionPdfViaA7(page: import('playwright').Page): Promise<{ buffer: Buffer; filename: string } | null> {
+  try {
+    // Sur la page constitution, A7 est un download direct (pas de A4.value)
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 60000 }),
+      page.evaluate(() => {
+        // @ts-expect-error WebDev global function
+        _JSL(_PAGE_, 'A7', '_self', '', '')
+      }),
+    ])
+
+    const filename = download.suggestedFilename() || 'constitution-tunisienne.pdf'
+    const path = await download.path()
+    if (!path) {
+      console.warn('[IORT Constitution] PDF download path null')
+      return null
+    }
+
+    const fs = await import('fs')
+    const buffer = fs.readFileSync(path)
+    await page.waitForLoadState('load').catch(() => {})
+    await sleep(2000)
+
+    console.log(`[IORT Constitution] PDF téléchargé: ${filename} (${Math.round(buffer.length / 1024)} KB)`)
+    return { buffer, filename }
+  } catch (err) {
+    console.warn('[IORT Constitution] Échec download PDF A7:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
+/**
+ * Extrait le contenu textuel de la page constitution IORT.
+ */
+async function extractConstitutionText(page: import('playwright').Page): Promise<{ title: string; content: string; issueNumber: string | null; date: string | null }> {
+  const html = await page.content()
+  const { load } = await import('cheerio')
+  const $ = load(html)
+
+  // Supprimer le bruit WebDev
+  $('script, style, form[name="_WD_FORM_"]').remove()
+
+  // Titre de la page
+  let title = $('title').text().trim() || 'دستور الجمهورية التونسية'
+  title = title.replace(/IORT.*$/i, '').trim() || 'دستور الجمهورية التونسية'
+
+  // Contenu principal
+  let content = ''
+  for (const sel of ['.contenu', '.texte', 'td.texte', 'td.contenu', '#contenu', 'div.content']) {
+    const el = $(sel)
+    if (el.length > 0 && el.text().trim().length > 100) {
+      content = el.text().trim()
+      break
+    }
+  }
+  if (!content) {
+    content = await page.evaluate(() => document.body.innerText.substring(0, 50000))
+    content = content.replace(/WD_ACTION_\w+/g, '').replace(/\s{3,}/g, '\n\n').trim()
+  }
+
+  // Numéro JORT et date
+  const issueMatch = content.match(/عدد\s+(\d+)/) || html.match(/عدد\s+(\d+)/)
+  const dateMatch = content.match(/مؤرخ في\s+(\d{1,2}\s+\S+\s+\d{4})/) || html.match(/(\d{1,2}\s+جويلية\s+2022)/)
+
+  return {
+    title,
+    content: content.substring(0, 100000),
+    issueNumber: issueMatch ? issueMatch[1] : null,
+    date: dateMatch ? dateMatch[1] : null,
+  }
+}
+
+/**
+ * Point d'entrée principal : crawle la page Constitution IORT (M4),
+ * extrait le texte, télécharge le PDF et sauvegarde en DB avec
+ * norm_level=constitution et sourceOrigin=iort_gov_tn.
+ */
+export async function downloadConstitutionFromIort(
+  session: IortSessionManager,
+  sourceId: string,
+): Promise<{ saved: boolean; title: string; pdfSize?: number; pageId?: string }> {
+  const page = session.getPage()
+
+  await navigateToConstitutionPage(session)
+
+  // Extraire texte
+  const extracted = await extractConstitutionText(page)
+  console.log(`[IORT Constitution] Titre: ${extracted.title}, contenu: ${extracted.content.length} chars`)
+
+  // Télécharger PDF
+  const pdfResult = await downloadConstitutionPdfViaA7(page)
+
+  // Sauvegarder PDF dans MinIO
+  let pdfInfo: { minioPath: string; size: number } | null = null
+  if (pdfResult) {
+    pdfInfo = await uploadIortPdf(sourceId, extracted.title, pdfResult.buffer, pdfResult.filename)
+  }
+
+  // URL canonique fixe (pas session-based)
+  const constitutionUrl = `${IORT_BASE_URL}/jort/constitution/2022`
+  const urlHash = hashUrl(constitutionUrl)
+
+  // Upsert en DB
+  const existing = await db.query('SELECT id FROM web_pages WHERE url_hash = $1', [urlHash])
+
+  const contentHash = hashContent(extracted.content)
+
+  let pageId: string
+  if (existing.rows.length > 0) {
+    pageId = existing.rows[0].id as string
+    await db.query(
+      `UPDATE web_pages SET
+        title = $2, extracted_text = $3, content_hash = $4, word_count = $5,
+        last_crawled_at = NOW(), updated_at = NOW(),
+        linked_files = CASE WHEN $6::text IS NOT NULL
+          THEN jsonb_build_array(jsonb_build_object('url', $7, 'type', 'pdf', 'minioPath', $6, 'size', $8, 'contentType', 'application/pdf'))
+          ELSE linked_files END
+       WHERE id = $1`,
+      [pageId, extracted.title, extracted.content, contentHash,
+       extracted.content.split(/\s+/).length,
+       pdfInfo?.minioPath ?? null, constitutionUrl, pdfInfo?.size ?? 0],
+    )
+    console.log(`[IORT Constitution] Page mise à jour (id=${pageId})`)
+  } else {
+    const insertResult = await db.query(
+      `INSERT INTO web_pages (
+        web_source_id, url, url_hash, canonical_url, title,
+        extracted_text, content_hash, word_count, language_detected,
+        meta_date, status, structured_data, linked_files,
+        last_crawled_at, created_at, updated_at
+      ) VALUES ($1,$2,$3,$2,$4,$5,$6,$7,'ar',$8,'crawled',$9,$10,NOW(),NOW(),NOW())
+      RETURNING id`,
+      [
+        sourceId, constitutionUrl, urlHash, extracted.title,
+        extracted.content, contentHash,
+        extracted.content.split(/\s+/).length,
+        extracted.date ? new Date(extracted.date).toISOString().split('T')[0] : null,
+        JSON.stringify({ source: 'iort', textType: 'دستور', year: 2022, issueNumber: extracted.issueNumber, norm_level: 'constitution' }),
+        pdfInfo
+          ? JSON.stringify([{ url: constitutionUrl, type: 'pdf', minioPath: pdfInfo.minioPath, size: pdfInfo.size, contentType: 'application/pdf' }])
+          : '[]',
+      ],
+    )
+    pageId = insertResult.rows[0].id as string
+    console.log(`[IORT Constitution] Page créée (id=${pageId})`)
+  }
+
+  return { saved: true, title: extracted.title, pdfSize: pdfInfo?.size, pageId }
+}
+
+// =============================================================================
 // UTILITAIRES
 // =============================================================================
 
