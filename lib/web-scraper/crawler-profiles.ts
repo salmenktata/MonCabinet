@@ -61,8 +61,8 @@ export const BLOGGER_PROFILE: CrawlerProfile = {
     '\\.html\\?showComment=',  // Formulaires de commentaires
     '/search/label/',          // Pages de catégories (contenu dupliqué)
   ],
-  concurrency: 3, // Blogger supporte bien la concurrence
-  rateLimit: 500, // 500ms entre requêtes
+  concurrency: 5, // Blogger HTML statique : 5 pages parallèles safe
+  rateLimit: 300, // 300ms entre requêtes (Blogger CDN résistant au crawl)
   fetchStrategy: 'static',
   contentSelectors: {
     main: ['.post-body', 'article', '.entry-content'],

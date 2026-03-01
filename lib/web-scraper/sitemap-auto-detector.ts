@@ -136,16 +136,21 @@ export async function detectAndParseSitemap(
 /**
  * Récupère les URLs des articles depuis le feed Atom Blogger
  * Fallback quand le sitemap est absent ou incomplet
- * Gère la pagination (max 500 résultats par appel)
+ *
+ * Utilise le lien `rel="next"` de l'Atom feed pour paginer correctement
+ * (Blogger peut retourner moins de max-results → l'ancienne approche start-index cassait la pagination)
  */
 async function fetchBloggerAtomFeed(baseUrl: string): Promise<string[]> {
   const urls: string[] = []
-  let startIndex = 1
-  const maxResults = 500
+  const MAX_PAGES = 30 // Sécurité : max 30 pages × 500 = 15 000 articles
+  let pagesVisited = 0
 
-  while (true) {
-    const feedUrl = `${baseUrl}/feeds/posts/default?start-index=${startIndex}&max-results=${maxResults}`
-    const response = await fetchText(feedUrl)
+  // Page initiale avec max-results=500 (maximum supporté par l'API Blogger v1)
+  let nextUrl: string | null = `${baseUrl}/feeds/posts/default?start-index=1&max-results=500`
+
+  while (nextUrl && pagesVisited < MAX_PAGES) {
+    pagesVisited++
+    const response = await fetchText(nextUrl)
 
     if (!response.success || !response.text) break
     if (!response.text.includes('<feed') && !response.text.includes('<?xml')) break
@@ -159,6 +164,7 @@ async function fetchBloggerAtomFeed(baseUrl: string): Promise<string[]> {
       const entries = parsed?.feed?.entry
       if (!entries || entries.length === 0) break
 
+      // Extraire les URLs des articles (lien rel="alternate")
       for (const entry of entries) {
         const links: Array<{ $: { rel?: string; href?: string } }> = entry.link || []
         for (const link of links) {
@@ -168,15 +174,36 @@ async function fetchBloggerAtomFeed(baseUrl: string): Promise<string[]> {
         }
       }
 
-      // Arrêter si dernière page
-      if (entries.length < maxResults) break
-      startIndex += maxResults
-      if (startIndex > 5000) break // Sécurité : max 10 appels
+      // Chercher le lien "next" pour la pagination (méthode officielle Blogger API)
+      nextUrl = null
+      const feedLinks: Array<{ $: { rel?: string; href?: string; type?: string } }> =
+        parsed?.feed?.link || []
+      for (const link of feedLinks) {
+        if (link.$?.rel === 'next' && link.$?.href) {
+          nextUrl = link.$.href
+          break
+        }
+      }
+
+      // Log progression
+      if (pagesVisited === 1) {
+        const total = parseInt(
+          parsed?.feed?.['openSearch:totalResults']?.[0]?._ ||
+          parsed?.feed?.['openSearch:totalResults']?.[0] ||
+          '?',
+          10
+        )
+        if (!isNaN(total)) {
+          console.log(`[BloggerFeed] Total déclaré: ${total} articles`)
+        }
+      }
+
     } catch {
       break
     }
   }
 
+  console.log(`[BloggerFeed] ${urls.length} URLs récupérées en ${pagesVisited} page(s)`)
   return urls
 }
 
