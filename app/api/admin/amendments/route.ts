@@ -205,7 +205,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
          AND is_indexed = true
          AND is_active = true
          AND jort_amendments_extracted_at IS NULL
-       ORDER BY created_at DESC
+       ORDER BY
+         -- Prioriser les docs avec indicateurs d'amendements (تنقيح)
+         (full_text ILIKE '%تنقيح%' OR full_text ILIKE '%ينقح%' OR full_text ILIKE '%يلغى%') DESC,
+         created_at DESC
        LIMIT $1`,
       [batchSize]
     )

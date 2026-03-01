@@ -131,6 +131,16 @@ interface RegexDetectionResult {
 }
 
 /**
+ * Supprime les diacritiques arabes (tashkeel) pour normaliser le texte PDF.
+ * Les PDFs tunisiens n'ont généralement pas de tashkeel, mais les patterns regex en ont.
+ */
+function stripArabicDiacritics(text: string): string {
+  // U+064B–U+065F = fathah, dammah, kasrah, tanwin, shadda, sukun, etc.
+  // U+0670 = alef superscript (مدة صغيرة)
+  return text.replace(/[\u064B-\u065F\u0670]/g, '')
+}
+
+/**
  * Tente de détecter les amendements par regex seuls.
  * Retourne confiance 0 si aucun pattern ne correspond.
  */
@@ -138,8 +148,11 @@ function detectAmendmentsByRegex(text: string): RegexDetectionResult {
   const rawMatches: string[] = []
   const amendments: Partial<ArticleAmendment>[] = []
 
+  // Normaliser le texte : supprimer les diacritiques pour matcher les PDFs sans tashkeel
+  const normalizedText = stripArabicDiacritics(text)
+
   // Détecter les codes présents dans le texte
-  const codeMatches = detectCodesInText(text)
+  const codeMatches = detectCodesInText(normalizedText)
 
   if (codeMatches.length === 0) {
     // Pas de code référencé → document très probablement non modificatif
@@ -153,10 +166,10 @@ function detectAmendmentsByRegex(text: string): RegexDetectionResult {
     const pattern = new RegExp(code.detectionPattern.source, code.detectionPattern.flags)
     let contextMatch: RegExpExecArray | null
 
-    while ((contextMatch = pattern.exec(text)) !== null) {
+    while ((contextMatch = pattern.exec(normalizedText)) !== null) {
       const start = Math.max(0, contextMatch.index - 300)
-      const end = Math.min(text.length, contextMatch.index + 500)
-      const excerpt = text.slice(start, end)
+      const end = Math.min(normalizedText.length, contextMatch.index + 500)
+      const excerpt = normalizedText.slice(start, end)
 
       // Tester patterns arabe — modification
       for (const arPat of AR_MODIFICATION_PATTERNS) {
