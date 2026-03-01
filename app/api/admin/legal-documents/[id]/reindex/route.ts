@@ -20,15 +20,12 @@ export const maxDuration = 300
  */
 export const POST = withAdminApiAuth(
   async (
-    request: NextRequest,
-    ctx?: { params?: unknown }
+    _request: NextRequest,
+    ctx: { params?: Promise<Record<string, string>> }
   ): Promise<NextResponse> => {
     try {
-      const params = ctx?.params as Promise<{ id: string }> | { id: string } | undefined
-      const resolved = params && 'then' in (params as object)
-        ? await (params as Promise<{ id: string }>)
-        : (params as { id: string } | undefined)
-      const id = resolved?.id
+      const params = ctx.params ? await ctx.params : {}
+      const id = params.id
 
       if (!id) {
         return NextResponse.json({ error: 'ID document manquant' }, { status: 400 })
