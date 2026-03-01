@@ -545,8 +545,9 @@ async function processPage(
 
   // Smart skip: pour les pages non-seed existantes, vérifier via HEAD si changement
   // En full_crawl, les seed URLs sont toujours traitées (pour découvrir les liens)
-  // En mode incrémental, toutes les pages existantes non-seed sont vérifiées
-  if (existingPage && !options.isSeedUrl) {
+  // En mode incrémental, toutes les pages existantes non-seed sont vérifiées via ETag
+  // En full_crawl, on scrape toujours pour extraire les liens et découvrir les nouvelles sous-pages
+  if (existingPage && !options.isSeedUrl && options.incrementalMode) {
     const changeCheck = await checkForChanges(url, {
       etag: existingPage.etag || undefined,
       lastModified: existingPage.lastModified || undefined,
