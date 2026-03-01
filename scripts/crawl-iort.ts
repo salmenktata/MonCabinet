@@ -28,6 +28,7 @@ import {
   type IortTextType,
   type IortCrawlStats,
 } from '@/lib/web-scraper/iort-scraper-utils'
+import { indexSourcePages } from '@/lib/web-scraper/web-indexer-service'
 
 // =============================================================================
 // ARGUMENT PARSING
@@ -254,6 +255,19 @@ async function main() {
     console.log('───────────────────────────────────────────────')
     console.log(`  TOTAL: ${totalCrawled} nouveaux, ${totalUpdated} mis à jour, ${totalSkipped} inchangés, ${totalErrors} erreurs`)
     console.log('═══════════════════════════════════════════════\n')
+
+    // Indexer automatiquement les nouvelles pages en KB
+    if (totalCrawled + totalUpdated > 0) {
+      console.log(`[IORT] Lancement indexation KB pour ${totalCrawled + totalUpdated} pages nouvelles/modifiées...`)
+      try {
+        const indexResult = await indexSourcePages(sourceId, { limit: 1000, reindex: false })
+        console.log(`[IORT] Indexation KB terminée: ${indexResult.indexed} indexés, ${indexResult.skipped} ignorés, ${indexResult.errors} erreurs`)
+      } catch (indexErr) {
+        console.error('[IORT] Erreur indexation KB:', indexErr instanceof Error ? indexErr.message : indexErr)
+      }
+    } else {
+      console.log('[IORT] Aucune page nouvelle/modifiée — indexation KB ignorée')
+    }
 
     await closePool()
   }
