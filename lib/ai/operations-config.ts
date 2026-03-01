@@ -148,7 +148,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
       : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
 
     timeouts: {
-      embedding: 3000,
+      embedding: 8000,  // Augmenté 3s→8s (Mar 2026) : Ollama VPS peut prendre 8-10s
       chat: 45000,  // Gemini free tier ~2-15s → marge 45s
       total: 55000,
     },

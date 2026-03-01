@@ -373,6 +373,28 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     return { success: false, chunksCreated: 0, error: `Contenu insuffisant pour indexation (${wordCount} mots < ${minWordCount})` }
   }
 
+  // Guard : articles abrogés sur 9anoun.tn (P3.4 Mar 2026)
+  // Pages dont le titre ou le contenu indique explicitement l'abrogation → skip indexation.
+  // Évite de créer des chunks "header-only" qui seront de toute façon filtrés lors du chunking.
+  const ABROGATION_TITLE_PATTERNS = [
+    /\bملغى\b/,           // "ملغى" dans le titre arabe
+    /\(abrogé\)/i,        // "(abrogé)" dans le titre français
+    /\[abrogé\]/i,
+    /\bابrogé\b/i,
+  ]
+  const ABROGATION_CONTENT_PATTERNS = [
+    /^(الفصل|Article)\s+\d+\s*[\r\n]+\s*ملغى\s*\.?\s*$/m,   // Article X\nملغى
+    /^(الفصل|Article)\s+\d+\s*:\s*ملغى\s*\.?\s*$/m,         // Article X: ملغى
+  ]
+  const rawPageTitle = row.title || ''
+  const rawPageText = row.extracted_text || ''
+  const isTitleAbrogated = ABROGATION_TITLE_PATTERNS.some(p => p.test(rawPageTitle))
+  const isContentAbrogated = ABROGATION_CONTENT_PATTERNS.some(p => p.test(rawPageText.slice(0, 500)))
+  if (isTitleAbrogated || isContentAbrogated) {
+    console.log(`[WebIndexer] Skip page abrogée ${pageId} (${row.url}) — titre="${rawPageTitle.slice(0, 60)}"`)
+    return { success: true, chunksCreated: 0, error: 'Article abrogé — indexation ignorée' }
+  }
+
   // Extraire la classification IA (si disponible)
   const classification: PageClassification | null = row.primary_category
     ? {

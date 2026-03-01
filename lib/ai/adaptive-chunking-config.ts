@@ -43,18 +43,21 @@ export const ADAPTIVE_CHUNK_CONFIG: Record<KnowledgeCategory, ChunkConfig> = {
   // Jurisprudence : décisions longues, contexte important
   jurisprudence: {
     size: 1800,
-    overlap: 200,
+    overlap: 300, // Augmenté 200→300 (Mar 2026) : transitions faits/motifs/dispositif longues
     preserveParagraphs: true,
     rationale:
-      'Décisions longues nécessitent chunks larges pour conserver contexte (faits + motifs + dispositif)',
+      'Décisions longues nécessitent chunks larges pour conserver contexte (faits + motifs + dispositif). '
+      + 'Overlap 300 pour ne pas couper les transitions structurelles des arrêts.',
   },
 
   // Codes : articles courts, précision maximale
   codes: {
-    size: 600,
-    overlap: 100,
+    size: 900, // Augmenté 600→900 (Mar 2026) : articles bilingues AR+FR > 600 chars → split mid-article
+    overlap: 120, // Augmenté 100→120
     preserveSentences: true,
-    rationale: 'Articles courts (100-400 chars) nécessitent chunks courts pour éviter noise',
+    rationale:
+      'Articles bilingues AR+FR nécessitent 900 chars pour garder 1 article = 1 chunk. '
+      + '600 chars coupait les articles longs au milieu du corps FR ou AR.',
   },
 
   // Législation : textes moyens

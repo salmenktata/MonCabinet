@@ -707,11 +707,12 @@ function computeAdaptiveQualityGate(
   // IMPORTANT: ce seuil doit être STRICTEMENT INFÉRIEUR au seuil SQL (p_threshold=0.35 par défaut).
   // Si gate >= threshold SQL, les sources qui passent juste le SQL threshold seront toutes rejetées.
   // Comportement attendu (gate progressif Feb 23):
-  //   - Abstention dure seulement si TOUTES les sources < 0.25 (FR) ou < 0.18 (AR)
+  //   - Abstention dure seulement si TOUTES les sources < 0.25 (FR) ou < 0.22 (AR)
   //   - Sources dans la zone 0.25-0.40 = acceptées (borderline mais utiles)
   //   - Sources ≥ 0.40 = normales
+  // Mar 2026: AR vector 0.18→0.22, AR BM25-only 0.22→0.25 (seuil 0.18 trop permissif → bruit)
   let base = lang === 'ar'
-    ? (hasVectorResults ? 0.18 : 0.22)  // AR: seuils bas (embeddings arabes scoring plus faible)
+    ? (hasVectorResults ? 0.22 : 0.25)  // AR: seuils relevés (0.18 retournait trop de bruit)
     : (hasVectorResults ? 0.25 : 0.30)  // FR: base 0.25 << seuil SQL 0.35 (marge de sécurité)
 
   // Ajustement selon complexité query (proxy : longueur en mots)

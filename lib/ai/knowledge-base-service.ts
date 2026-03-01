@@ -1401,14 +1401,16 @@ export async function searchKnowledgeBaseHybrid(
   const sqlCandidatePool = Math.min(limit * 3, 100)
 
   // 1. Générer les 2 embeddings en parallèle
-  // ✨ FIX C (TTFT): Timeout 3s sur Ollama — CPU-bound, peut prendre 8-10s pour 0 résultats en prod
+  // ✨ FIX C (TTFT): Timeout 8s sur Ollama — CPU-bound, peut prendre 8-10s en prod
+  // Augmenté de 3s → 8s (Mar 2026) : timeout 3s trop court sur VPS → fallback OpenAI systématique
+  const ollamaTimeoutMs = parseInt(process.env.OLLAMA_EMBEDDING_TIMEOUT_MS || '8000', 10)
   const ollamaWithTimeout = Promise.race([
     generateEmbedding(query, { forceOllama: true }),
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Ollama embedding timeout (3s)')), 3000)),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Ollama embedding timeout (${ollamaTimeoutMs}ms)`)), ollamaTimeoutMs)),
   ])
   const [openaiEmbResult, ollamaEmbResult] = await Promise.allSettled([
     generateEmbedding(query, { operationName: operationName as any }),       // OpenAI (1536-dim)
-    ollamaWithTimeout,                                                        // Ollama (768-dim nomic, timeout 3s)
+    ollamaWithTimeout,                                                        // Ollama (768-dim nomic, timeout configurable)
   ])
 
   // Log providers disponibles
@@ -1524,13 +1526,20 @@ export async function searchKnowledgeBaseHybrid(
     const cocTitleFrag = (targetCodeFragment && targetCodeFragment.includes('الالتزامات'))
       ? targetCodeFragment
       : 'مجلة الالتزامات'
+    // v18 (Mar 2026): collecte TOUS les patterns correspondants (suppression break).
+    // Une query multi-domaine (ex: "nullité pour prescription") déclenche les 2 sets d'articles.
+    // Déduplication par clé "artNum:titleFrag" pour éviter les doubles requêtes DB.
+    const cocQueuedArticles = new Set<string>()
     for (const [pattern, articles] of COC_IMPLICIT_ARTICLE_MAP) {
       if (pattern.test(queryText)) {
         for (const artNum of articles) {
-          searchPromises.push(searchArticleByTextMatch(String(artNum), cocTitleFrag))
-          providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+          const key = `${artNum}:${cocTitleFrag}`
+          if (!cocQueuedArticles.has(key)) {
+            cocQueuedArticles.add(key)
+            searchPromises.push(searchArticleByTextMatch(String(artNum), cocTitleFrag))
+            providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+          }
         }
-        break // Un seul pattern par query (premier match gagne)
       }
     }
   }
@@ -1558,13 +1567,17 @@ export async function searchKnowledgeBaseHybrid(
       // Corruption / Rshwa
       [/رشوة|اختلاس.*مال|corruption|détournement.*fonds/i, [83, 84, 85]],
     ]
+    const penalQueuedArticles = new Set<string>()
     for (const [pattern, articles] of PENAL_IMPLICIT_ARTICLE_MAP) {
       if (pattern.test(queryText)) {
         for (const artNum of articles) {
-          searchPromises.push(searchArticleByTextMatch(String(artNum), penalTitleFrag))
-          providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+          const key = `${artNum}:${penalTitleFrag}`
+          if (!penalQueuedArticles.has(key)) {
+            penalQueuedArticles.add(key)
+            searchPromises.push(searchArticleByTextMatch(String(artNum), penalTitleFrag))
+            providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+          }
         }
-        break // Un seul pattern par query (premier match gagne)
       }
     }
   }
@@ -1592,13 +1605,17 @@ export async function searchKnowledgeBaseHybrid(
         // Art.452+: concordat / taysira qadha'iya
         [/تسوية.*قضائية|الصلح.*الواقي/, [452, 453, 454]],
       ]
+      const mcoQueuedArticles = new Set<string>()
       for (const [pattern, articles] of MCO_IMPLICIT_ARTICLE_MAP) {
         if (pattern.test(queryText)) {
           for (const artNum of articles) {
-            searchPromises.push(searchArticleByTextMatch(String(artNum), mcoTitleFrag))
-            providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+            const key = `${artNum}:${mcoTitleFrag}`
+            if (!mcoQueuedArticles.has(key)) {
+              mcoQueuedArticles.add(key)
+              searchPromises.push(searchArticleByTextMatch(String(artNum), mcoTitleFrag))
+              providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+            }
           }
-          break // Premier pattern gagne
         }
       }
     }

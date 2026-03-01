@@ -36,6 +36,8 @@ export interface DriftMetrics {
     avgFeedbackRating: number | null
     satisfactionRate: number | null
     totalConversations: number
+    /** Recall@5 moyen depuis les runs eval RAG (P4.4 Mar 2026) */
+    avgRecallAt5: number | null
     /** Ventilation par domaine juridique (P2 fix Feb 24, 2026) */
     byDomain?: DriftMetricsByDomain[]
   }
@@ -73,6 +75,10 @@ const DRIFT_THRESHOLDS = {
   HALLUCINATION_WARNING: 5,
   /** Baisse satisfaction warning (points de %) */
   SATISFACTION_WARNING: 10,
+  /** Baisse Recall@5 warning (points absolus — P4.4 Mar 2026) */
+  RECALL_AT5_WARNING: 0.05,
+  /** Baisse Recall@5 critique (points absolus) */
+  RECALL_AT5_CRITICAL: 0.10,
 }
 
 // =============================================================================
@@ -150,7 +156,26 @@ async function collectMetrics(fromDate: string, toDate: string): Promise<DriftMe
     // Table peut ne pas exister
   }
 
-  // 4. Total conversations
+  // 4. Recall@5 moyen depuis les runs d'évaluation RAG (P4.4 Mar 2026)
+  // Utilise la table rag_eval_results (mode retrieval et e2e) pour détecter
+  // la dégradation du retrieval pur, invisible dans les métriques chat.
+  let avgRecallAt5: number | null = null
+  try {
+    const recallResult = await db.query(
+      `SELECT ROUND(AVG(recall_at_5)::numeric, 4) as avg_r5
+       FROM rag_eval_results
+       WHERE created_at >= $1::date AND created_at < $2::date
+         AND recall_at_5 IS NOT NULL`,
+      [fromDate, toDate]
+    )
+    if (recallResult.rows.length > 0 && recallResult.rows[0].avg_r5) {
+      avgRecallAt5 = parseFloat(recallResult.rows[0].avg_r5)
+    }
+  } catch {
+    // Table ou colonne peut ne pas exister
+  }
+
+  // 5. Total conversations
   let totalConversations = 0
   try {
     const convResult = await db.query(
@@ -202,6 +227,7 @@ async function collectMetrics(fromDate: string, toDate: string): Promise<DriftMe
     avgFeedbackRating,
     satisfactionRate,
     totalConversations,
+    avgRecallAt5,
     byDomain,
   }
 }
@@ -278,6 +304,22 @@ function computeAlerts(current: DriftMetrics['metrics'], previous: DriftMetrics[
         changePercent: -diff,
         severity: diff >= DRIFT_THRESHOLDS.SATISFACTION_WARNING * 2 ? 'critical' : 'warning',
         message: `Satisfaction en baisse: ${previous.satisfactionRate.toFixed(1)}% → ${current.satisfactionRate.toFixed(1)}% (-${diff.toFixed(1)} pts)`,
+      })
+    }
+  }
+
+  // Recall@5 : baisse = dégradation retrieval (P4.4 Mar 2026)
+  // Utilise points absolus (0.05 = 5 points) plutôt que % car R@5 ∈ [0,1]
+  if (current.avgRecallAt5 != null && previous.avgRecallAt5 != null) {
+    const diff = previous.avgRecallAt5 - current.avgRecallAt5
+    if (diff >= DRIFT_THRESHOLDS.RECALL_AT5_WARNING) {
+      alerts.push({
+        metric: 'avgRecallAt5',
+        current: current.avgRecallAt5,
+        previous: previous.avgRecallAt5,
+        changePercent: -diff * 100,
+        severity: diff >= DRIFT_THRESHOLDS.RECALL_AT5_CRITICAL ? 'critical' : 'warning',
+        message: `Recall@5 en baisse: ${previous.avgRecallAt5.toFixed(3)} → ${current.avgRecallAt5.toFixed(3)} (-${(diff * 100).toFixed(1)} pts)`,
       })
     }
   }
