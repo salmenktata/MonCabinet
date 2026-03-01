@@ -295,6 +295,17 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
     } else if (sourceType === 'knowledge_base') {
       let enrichedHeader = `[KB-${i + 1}] ${source.documentName} (${relevanceLabel} - ${relevancePct})\n`
 
+      // Badge source officielle JORT
+      if (meta?.sourceOrigin === 'iort_gov_tn') {
+        enrichedHeader += lang === 'ar' ? '📜 [نص رسمي - الرائد الرسمي]\n' : '📜 [TEXTE OFFICIEL - JORT]\n'
+      }
+
+      // Badge document draft/projet
+      const docName = source.documentName || ''
+      if (docName.includes('مشروع') || docName.includes('اقتراح')) {
+        enrichedHeader += lang === 'ar' ? '📋 [مشروع / صيغة أولية - غير نهائي]\n' : '📋 [PROJET - version non définitive]\n'
+      }
+
       // Ajouter métadonnées structurées KB si disponibles
       if (structuredMeta) {
         if (structuredMeta.author) {
