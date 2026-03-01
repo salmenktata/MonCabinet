@@ -559,8 +559,22 @@ export async function reconsolidateStaleDocs(
       } else {
         await consolidateCollection(doc.id)
       }
+      log.info(`Re-consolidation stale OK: ${doc.citation_key} — lancement réindexation KB`)
+
+      // Re-indexer la KB après consolidation (met à jour les chunks + embeddings)
+      try {
+        const { indexLegalDocument } = await import('@/lib/web-scraper/web-indexer-service')
+        const indexResult = await indexLegalDocument(doc.id)
+        if (indexResult.success) {
+          log.info(`Réindexation KB OK: ${doc.citation_key} — ${indexResult.chunksCreated} chunks`)
+        } else {
+          log.warn(`Réindexation KB échouée pour ${doc.citation_key}: ${indexResult.error}`)
+        }
+      } catch (indexErr) {
+        log.warn(`Réindexation KB non critique pour ${doc.citation_key}:`, indexErr)
+      }
+
       succeeded++
-      log.info(`Re-consolidation stale OK: ${doc.citation_key}`)
     } catch (err) {
       log.error(`Re-consolidation stale échouée pour ${doc.citation_key}:`, err)
       failed++
