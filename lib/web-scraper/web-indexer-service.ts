@@ -726,6 +726,42 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       }
     }
 
+    // Extraction d'amendements JORT (si source IORT — post-indexation)
+    if (sourceOrigin === 'iort_gov_tn' && knowledgeBaseId) {
+      try {
+        const { isLikelyAmendingDocument, extractAmendmentsFromJORT } = await import('@/lib/knowledge-base/jort-amendment-extractor')
+        const { linkAmendmentToKB } = await import('@/lib/knowledge-base/amendment-linker')
+
+        // Test léger avant analyse complète (~60% des JORT ne modifient pas de codes)
+        if (isLikelyAmendingDocument(normalizedText)) {
+          const { getKnowledgeDocument } = await import('@/lib/ai/knowledge-base-service')
+          const kbDoc = await getKnowledgeDocument(knowledgeBaseId)
+          if (kbDoc) {
+            const extraction = await extractAmendmentsFromJORT(kbDoc)
+            if (extraction.isAmendingDocument && extraction.amendments.length > 0) {
+              const linking = await linkAmendmentToKB(extraction)
+              console.log(
+                `[WebIndexer] Amendements JORT: ${extraction.amendments.length} détectés, ` +
+                `${linking.relationsCreated} liaisons, ` +
+                `${linking.originalChunksMarked} chunks originaux marqués`
+              )
+            } else {
+              // Marquer quand même que l'extraction a été faite
+              await import('@/lib/db/postgres').then(({ db: _db }) =>
+                _db.query(
+                  `UPDATE knowledge_base SET jort_amendments_extracted_at = NOW() WHERE id = $1`,
+                  [knowledgeBaseId]
+                )
+              )
+            }
+          }
+        }
+      } catch (amendErr) {
+        // Ne jamais bloquer l'indexation si l'extraction d'amendements échoue
+        console.warn(`[WebIndexer] Extraction amendements JORT échouée pour ${knowledgeBaseId}:`, amendErr)
+      }
+    }
+
     // Notification admin si c'était une mise à jour
     if (wasUpdate) {
       try {

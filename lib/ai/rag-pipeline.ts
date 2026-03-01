@@ -144,6 +144,8 @@ export interface ChatResponse {
   conversationId?: string
   citationWarnings?: string[] // Phase 2.2 - Citations non vérifiées
   abrogationWarnings?: import('./abrogation-detector-service').AbrogationWarning[] // Phase 2.3 - Lois abrogées
+  /** Mar 2026 — Avertissements amendements JORT : articles modifiés depuis la version originale */
+  amendmentWarnings?: import('./rag-amendment-filter').AmendmentWarning[]
   qualityIndicator?: 'high' | 'medium' | 'low'
   averageSimilarity?: number
   abstentionReason?: string // Sprint 1 B1 - Raison de l'abstention si sources insuffisantes
@@ -292,6 +294,9 @@ export async function answerQuestion(
     sources = []
     searchTimeMs = Date.now() - startSearch
   }
+
+  // Extraire les warnings d'amendements JORT depuis le résultat de recherche
+  const searchAmendmentWarnings = lastSearchResult?.amendmentWarnings ?? []
 
   // 2. Si la recherche a réussi mais n'a trouvé aucune source pertinente,
   // retourner un message clair au lieu d'appeler le LLM (évite les hallucinations)
@@ -883,6 +888,7 @@ export async function answerQuestion(
     conversationId: options.conversationId,
     citationWarnings: citationWarnings.length > 0 ? citationWarnings : undefined,
     abrogationWarnings: abrogationWarnings.length > 0 ? abrogationWarnings : undefined,
+    amendmentWarnings: searchAmendmentWarnings.length > 0 ? searchAmendmentWarnings : undefined,
     qualityIndicator: qualityMetrics.qualityLevel,
     averageSimilarity: qualityMetrics.averageSimilarity,
     wasRegenerated: wasRegenerated || undefined,

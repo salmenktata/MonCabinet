@@ -8,17 +8,20 @@ import { Button } from '@/components/ui/button'
 import { SourceCard } from './SourceCard'
 import { SourceTypeFilter, type SourceType } from './SourceTypeFilter'
 import type { ChatSource } from './ChatMessages'
+import type { AmendmentWarning } from '@/lib/ai/rag-amendment-filter'
 
 interface SourcesPanelProps {
   sources: ChatSource[]
   className?: string
   onViewDocument?: (documentId: string) => void
   qualityIndicator?: 'high' | 'medium' | 'low'
+  /** Warnings d'amendements JORT (Mar 2026) */
+  amendmentWarnings?: AmendmentWarning[]
 }
 
 type SortOption = 'relevance' | 'name'
 
-export function SourcesPanel({ sources, className, onViewDocument, qualityIndicator }: SourcesPanelProps) {
+export function SourcesPanel({ sources, className, onViewDocument, qualityIndicator, amendmentWarnings }: SourcesPanelProps) {
   const t = useTranslations('assistantIA')
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeFilter, setActiveFilter] = useState<SourceType>('all')
@@ -115,6 +118,31 @@ export function SourcesPanel({ sources, className, onViewDocument, qualityIndica
       {/* Contenu expandable */}
       {isExpanded && (
         <div className="px-3.5 pb-3 pt-1 space-y-3 animate-fade-in">
+          {/* Banner Amendements JORT */}
+          {amendmentWarnings && amendmentWarnings.length > 0 && (
+            <div className="rounded-lg border border-amber-300/60 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700/40 p-3">
+              <div className="flex items-start gap-2">
+                <Icons.alertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                    Mises à jour législatives détectées
+                  </p>
+                  <ul className="space-y-1">
+                    {amendmentWarnings.map((w, i) => (
+                      <li key={i} className="text-[11px] text-amber-700 dark:text-amber-400">
+                        {w.warningLevel === 'critical' ? '🚨' : '⚠️'}{' '}
+                        <span className="font-medium">{w.articleRef}</span> —{' '}
+                        {w.amendmentType === 'abrogation' ? 'abrogé' :
+                         w.amendmentType === 'addition' ? 'complété' :
+                         w.amendmentType === 'replacement' ? 'remplacé' : 'modifié'}
+                        {w.amendmentDate && <> le {w.amendmentDate.slice(0, 10)}</>} par {w.amendingJortRef}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Filtres et tri */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <SourceTypeFilter

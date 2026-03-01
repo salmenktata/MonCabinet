@@ -160,6 +160,33 @@ export function SourceCard({ source, index, onViewDocument }: SourceCardProps) {
         )}
       </div>
 
+      {/* Badges Amendements JORT */}
+      {source.metadata && (() => {
+        const meta = source.metadata as Record<string, unknown>
+        const isAmendment = meta.is_amendment === true
+        const hasAmendment = meta.has_amendment === true
+        if (!isAmendment && !hasAmendment) return null
+
+        return (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {isAmendment && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
+                <Icons.edit className="h-3 w-3" />
+                Texte modifié par JORT
+                {!!meta.jort_date && <> · {String(meta.jort_date).slice(0, 10)}</>}
+              </span>
+            )}
+            {hasAmendment && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
+                <Icons.alertTriangle className="h-3 w-3" />
+                Version originale — modifiée
+                {!!meta.amendment_date && <> · {String(meta.amendment_date).slice(0, 10)}</>}
+              </span>
+            )}
+          </div>
+        )
+      })()}
+
       {/* Métadonnées */}
       {source.metadata && (() => {
         const metadata = source.metadata as Record<string, unknown>

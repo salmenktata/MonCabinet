@@ -132,6 +132,8 @@ export interface SearchResult {
   reason?: 'quality_gate' | 'no_results' | 'error' | 'cache_hit'
   /** Query réellement utilisée pour l'embedding (peut différer de la question originale si condensation/expansion) */
   embeddingQuestion?: string
+  /** Warnings d'amendements JORT : articles dont une version plus récente existe (Mar 2026) */
+  amendmentWarnings?: import('./rag-amendment-filter').AmendmentWarning[]
 }
 
 // =============================================================================
@@ -1273,7 +1275,22 @@ export async function searchRelevantContext(
     await setCachedSearchResults(queryEmbedding.embedding, finalSources, searchScope)
   }
 
-  return { sources: finalSources, cacheHit: false, embeddingQuestion }
+  // Appliquer le filtre d'amendements JORT (Mar 2026)
+  let amendmentWarnings: import('./rag-amendment-filter').AmendmentWarning[] | undefined
+  if (finalSources.length > 0) {
+    try {
+      const { applyAmendmentIntelligence } = await import('./rag-amendment-filter')
+      const enriched = await applyAmendmentIntelligence(finalSources)
+      if (enriched.amendmentWarnings.length > 0) {
+        amendmentWarnings = enriched.amendmentWarnings
+        return { sources: enriched.sources, cacheHit: false, embeddingQuestion, amendmentWarnings }
+      }
+    } catch (amendErr) {
+      log.warn('[RAG Search] Filtre amendements JORT échoué (non bloquant):', amendErr)
+    }
+  }
+
+  return { sources: finalSources, cacheHit: false, embeddingQuestion, amendmentWarnings }
 }
 
 /**

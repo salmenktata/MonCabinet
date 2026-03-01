@@ -89,6 +89,7 @@ const getNavGroups = (
         badge: pendingContradictions || undefined,
         badgeVariant: 'secondary' as const,
       },
+      { href: '/super-admin/amendments', label: 'Amendements JORT', icon: 'gavel' },
     ],
   },
   {
