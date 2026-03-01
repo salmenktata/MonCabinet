@@ -63,10 +63,10 @@ export default function DossierDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <Link href="/dossiers" className="text-muted-foreground hover:text-foreground">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link href="/dossiers" className="text-muted-foreground hover:text-foreground shrink-0">
               <svg
                 className="h-5 w-5"
                 fill="none"
@@ -81,7 +81,7 @@ export default function DossierDetailPage() {
                 />
               </svg>
             </Link>
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               {dossier.numero}
             </h1>
             <span
@@ -103,7 +103,7 @@ export default function DossierDetailPage() {
             </span>
           </div>
           <p className="mt-2 text-muted-foreground">{dossier.objet}</p>
-          <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <span>{t('clientLabel')} {clientName}</span>
             {dossier.tribunal && <span>{t('tribunalLabel')} {dossier.tribunal}</span>}
           </div>

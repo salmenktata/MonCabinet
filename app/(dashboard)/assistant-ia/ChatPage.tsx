@@ -176,7 +176,7 @@ export function ChatPage({ userId }: ChatPageProps) {
         onClick: () => router.push('/dashboard')
       }}
     >
-      <div className="h-[calc(100vh-4rem)] flex">
+      <div className="h-[calc(100dvh-3rem-4rem)] lg:h-[calc(100dvh-4rem)] flex">
         {/* Sidebar - Desktop */}
         <div className="hidden md:flex w-80 border-r bg-card flex-col">
           {SidebarContent}

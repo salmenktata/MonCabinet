@@ -284,15 +284,15 @@ export default function DossierCard({ dossier }: DossierCardProps) {
         </div>
       </Link>
 
-      {/* Menu actions rapides */}
+      {/* Menu actions rapides — visible en permanence sur mobile (touch), au hover sur desktop */}
       <div
-        className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-3 right-3 z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
         onClick={(e) => e.stopPropagation()}
       >
         <DropdownMenu>
           <DropdownMenuTrigger
             disabled={isUpdating}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-background/80 backdrop-blur-sm border shadow-sm text-muted-foreground hover:text-foreground hover:bg-background transition-colors focus:outline-none"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-background/80 backdrop-blur-sm border shadow-sm text-muted-foreground hover:text-foreground hover:bg-background transition-colors focus:outline-none"
           >
             <MoreHorizontal className="h-4 w-4" />
           </DropdownMenuTrigger>

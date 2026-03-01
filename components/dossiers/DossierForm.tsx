@@ -136,7 +136,7 @@ export default function DossierForm({
       </div>
 
       {/* Informations principales */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-foreground">
             {t('labels.dossierNumberRequired')}
@@ -207,7 +207,7 @@ export default function DossierForm({
       </div>
 
       {/* Parties et tribunal */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-foreground">
             {t('labels.adverseParty')}
@@ -231,7 +231,7 @@ export default function DossierForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-foreground">
             {t('labels.tribunal')}
@@ -256,7 +256,7 @@ export default function DossierForm({
       </div>
 
       {/* Date et montant */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-foreground">
             {t('labels.openingDate')}
@@ -283,7 +283,7 @@ export default function DossierForm({
       </div>
 
       {/* Statut et étape */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-foreground">
             {t('labels.statusRequired')}

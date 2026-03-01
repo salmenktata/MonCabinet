@@ -55,7 +55,7 @@ export default async function DocumentsPage() {
     <div className="space-y-6">
       {/* En-tête */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {t('subtitle')}
         </p>

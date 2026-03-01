@@ -87,7 +87,7 @@ export default function FactureForm({
       )}
 
       {/* Client et Dossier */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-foreground">
             {t('labels.clientRequired')}
@@ -148,7 +148,7 @@ export default function FactureForm({
       </div>
 
       {/* Montants */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-foreground">
             {t('labels.amountHTRequired')}
@@ -183,7 +183,7 @@ export default function FactureForm({
 
       {/* Calcul automatique */}
       <div className="rounded-lg bg-blue-50 p-4">
-        <div className="grid grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div>
             <span className="text-muted-foreground">{t('helpers.amountHTLabel')}</span>
             <p className="font-semibold text-foreground">
@@ -206,7 +206,7 @@ export default function FactureForm({
       </div>
 
       {/* Dates */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-foreground">
             {t('labels.issueDateRequired')}

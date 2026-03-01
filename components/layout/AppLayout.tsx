@@ -1,9 +1,9 @@
 'use client'
 
-import { memo, useState, useEffect, useCallback } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { MobileBottomNav } from './MobileBottomNav'
 import { cn } from '@/lib/utils'
 
 interface AppLayoutProps {
@@ -43,11 +43,7 @@ function useIsMobile(breakpoint = 1024, delay = 150) {
 }
 
 function AppLayoutComponent({ children, user }: AppLayoutProps) {
-  const [mobileOpen, setMobileOpen] = useState(false)
   const isMobile = useIsMobile()
-
-  const closeMobile = useCallback(() => setMobileOpen(false), [])
-  const openMobile = useCallback(() => setMobileOpen(true), [])
 
   return (
     <div className="relative flex min-h-[100dvh]">
@@ -56,29 +52,23 @@ function AppLayoutComponent({ children, user }: AppLayoutProps) {
         <Sidebar userRole={user.role} />
       )}
 
-      {/* Mobile Drawer */}
-      {isMobile === true && (
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="p-0 w-64">
-            <Sidebar userRole={user.role} onClose={closeMobile} />
-          </SheetContent>
-        </Sheet>
-      )}
-
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        <Topbar
-          user={user}
-          onMenuClick={openMobile}
-          showMenuButton={isMobile === true}
-        />
+        <Topbar user={user} />
         <main className={cn(
           'flex-1 overflow-y-auto',
-          'px-4 py-6 sm:px-6 lg:px-8'
+          'px-4 py-6 sm:px-6 lg:px-8',
+          // Espace pour la bottom nav mobile (h-16 + safe-area iOS)
+          'pb-safe-bottom-nav lg:pb-6'
         )}>
           {children}
         </main>
       </div>
+
+      {/* Bottom Navigation mobile uniquement */}
+      {isMobile === true && (
+        <MobileBottomNav userRole={user.role} />
+      )}
     </div>
   )
 }

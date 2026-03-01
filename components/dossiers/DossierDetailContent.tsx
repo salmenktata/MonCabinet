@@ -102,20 +102,20 @@ export default function DossierDetailContent({
 
   return (
     <div className="space-y-6">
-      {/* Onglets */}
+      {/* Onglets — scroll horizontal sur mobile */}
       <div className="border-b border">
-        <nav className="-mb-px flex gap-2">
+        <nav className="-mb-px flex gap-1 overflow-x-auto scrollbar-none">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`shrink-0 px-3 sm:px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-accent'
               }`}
             >
-              <span className="mr-2">{tab.icon}</span>
+              <span className="mr-1.5">{tab.icon}</span>
               {tab.label}
             </button>
           ))}

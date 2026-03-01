@@ -24,7 +24,7 @@ export default async function NewDossierPage({ searchParams }: NewDossierPagePro
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">{t('newDossier')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('newDossier')}</h1>
         <p className="mt-2 text-muted-foreground">
           {t('createNewDossier')}
         </p>

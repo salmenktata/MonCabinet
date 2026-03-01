@@ -155,6 +155,24 @@
   }
 
   /* ============================================
+     MOBILE SAFE AREAS (iOS Dynamic Island / Notch)
+     ============================================ */
+
+  /* Padding bottom = bottom nav (4rem) + safe area inset */
+  .pb-safe-bottom-nav {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Masquer la scrollbar horizontale (onglets sur mobile) */
+  .scrollbar-none {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  /* ============================================
      ANIMATIONS PREMIUM
      ============================================ */
 

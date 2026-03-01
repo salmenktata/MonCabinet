@@ -36,11 +36,9 @@ interface TopbarProps {
     nom?: string
     prenom?: string
   }
-  onMenuClick?: () => void
-  showMenuButton?: boolean
 }
 
-export function Topbar({ user, onMenuClick, showMenuButton = false }: TopbarProps) {
+export function Topbar({ user }: TopbarProps) {
   const t = useTranslations('common')
   const router = useRouter()
 
@@ -63,20 +61,7 @@ export function Topbar({ user, onMenuClick, showMenuButton = false }: TopbarProp
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center justify-between px-4 sm:px-6">
-        {/* Bouton menu mobile */}
-        {showMenuButton && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onMenuClick}
-            className="mr-2 lg:hidden shrink-0"
-            aria-label="Ouvrir le menu"
-          >
-            <Icons.menu className="h-5 w-5" />
-          </Button>
-        )}
-
+      <div className="flex h-12 lg:h-16 items-center justify-between px-4 sm:px-6">
         {/* Breadcrumb à gauche */}
         <div className="flex-1 min-w-0">
           <Breadcrumbs />
@@ -95,8 +80,8 @@ export function Topbar({ user, onMenuClick, showMenuButton = false }: TopbarProp
           {/* Theme Toggle */}
           <ThemeToggle />
 
-          {/* Notifications - TODO: implémenter */}
-          <Button variant="ghost" size="icon" aria-label="Notifications">
+          {/* Notifications - caché sur mobile (bottom nav) */}
+          <Button variant="ghost" size="icon" className="hidden lg:flex" aria-label="Notifications">
             <Icons.bell className="h-5 w-5" />
           </Button>
 

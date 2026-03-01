@@ -61,14 +61,14 @@ export default async function TimeTrackingPage() {
   return (
     <div className="space-y-6">
       {/* En-tête */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {t('subtitle')}
           </p>
         </div>
-        <Button asChild size="sm">
+        <Button asChild size="sm" className="self-start sm:self-auto">
           <Link href="/time-tracking/new">
             <Icons.add className="mr-1.5 h-4 w-4" />
             {t('newEntry')}

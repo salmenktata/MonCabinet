@@ -35,9 +35,9 @@ export default async function TemplatesPage() {
   return (
     <div className="space-y-6">
       {/* En-tête */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {t('subtitle')}
           </p>
@@ -45,7 +45,7 @@ export default async function TemplatesPage() {
 
         <Link
           href="/templates/new"
-          className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="self-start sm:self-auto inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
           ➕ {t('newTemplate')}
         </Link>
