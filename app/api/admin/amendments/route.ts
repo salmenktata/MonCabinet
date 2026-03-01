@@ -63,6 +63,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           OR kb.metadata->>'sourceName' ILIKE '%9anoun%'
           OR kb.title ILIKE '%الرائد الرسمي%'
           OR kb.title ILIKE '%جريدة رسمية%'
+          OR kb.title ~* 'Ja[0-9]{3}[0-9]{4}'
         ) AND kb.is_indexed = true) AS total_iort_docs,
         COUNT(*) FILTER (
           WHERE (
@@ -70,6 +71,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             OR kb.metadata->>'sourceName' ILIKE '%9anoun%'
             OR kb.title ILIKE '%الرائد الرسمي%'
             OR kb.title ILIKE '%جريدة رسمية%'
+            OR kb.title ~* 'Ja[0-9]{3}[0-9]{4}'
           )
             AND kb.is_indexed = true
             AND kb.jort_amendments_extracted_at IS NULL
@@ -189,7 +191,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const batchSize = Math.min(parseInt(body.batchSize ?? '10', 10), 50)
     const dryRun = body.dryRun === true
 
-    // Récupérer les JORT non traités (sourceOrigin iort_gov_tn OU 9anoun.tn JORT)
+    // Récupérer les JORT non traités (sourceOrigin iort_gov_tn OU 9anoun.tn OU PDFs IORT Ja[num][année])
     const pendingResult = await db.query(
       `SELECT id, title
        FROM knowledge_base
@@ -198,6 +200,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
          OR metadata->>'sourceName' ILIKE '%9anoun%'
          OR title ILIKE '%الرائد الرسمي%'
          OR title ILIKE '%جريدة رسمية%'
+         OR title ~* 'Ja[0-9]{3}[0-9]{4}'
        )
          AND is_indexed = true
          AND is_active = true
