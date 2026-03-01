@@ -32,6 +32,7 @@ import type {
 import { KnowledgeGapsTab } from './components/KnowledgeGapsTab'
 import { ReviewQueueTab } from './components/ReviewQueueTab'
 import { SilverDatasetTab } from './components/SilverDatasetTab'
+import { GoldDatasetTab } from './components/GoldDatasetTab'
 
 // =============================================================================
 // COMPOSANT PRINCIPAL
@@ -719,7 +720,7 @@ export function EvaluationClient() {
 // =============================================================================
 
 function QualitySubTabs() {
-  const [sub, setSub] = useState<'gaps' | 'review' | 'silver'>('gaps')
+  const [sub, setSub] = useState<'gaps' | 'review' | 'silver' | 'gold'>('gaps')
 
   return (
     <div className="space-y-4">
@@ -728,6 +729,7 @@ function QualitySubTabs() {
           { id: 'gaps', label: 'Lacunes KB' },
           { id: 'review', label: 'File de Relecture' },
           { id: 'silver', label: 'Silver Dataset' },
+          { id: 'gold', label: 'Gold Dataset' },
         ] as const).map(s => (
           <button
             key={s.id}
@@ -745,6 +747,7 @@ function QualitySubTabs() {
       {sub === 'gaps' && <KnowledgeGapsTab />}
       {sub === 'review' && <ReviewQueueTab />}
       {sub === 'silver' && <SilverDatasetTab />}
+      {sub === 'gold' && <GoldDatasetTab />}
     </div>
   )
 }

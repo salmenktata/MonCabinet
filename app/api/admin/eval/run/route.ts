@@ -18,6 +18,7 @@ import { db } from '@/lib/db/postgres'
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
+import { loadGoldDatasetFromDB } from '@/lib/ai/gold-dataset-service'
 import { searchKnowledgeBaseHybrid } from '@/lib/ai/knowledge-base-service'
 import { answerQuestion } from '@/lib/ai/rag-chat-service'
 import { enrichQueryWithLegalSynonyms } from '@/lib/ai/query-expansion-service'
@@ -60,12 +61,11 @@ export async function POST(request: NextRequest) {
     const runMode: RunMode = body.runMode || 'retrieval'
     const label: string | undefined = body.label
 
-    const goldPath = path.join(process.cwd(), 'data', 'gold-eval-dataset.json')
-    if (!fs.existsSync(goldPath)) {
-      return NextResponse.json({ error: 'Gold dataset non trouvé' }, { status: 404 })
+    // Chargement depuis DB (fallback JSON si table vide)
+    let goldCases: GoldEvalCase[] = await loadGoldDatasetFromDB()
+    if (goldCases.length === 0) {
+      return NextResponse.json({ error: 'Gold dataset vide — seedez la table rag_gold_dataset' }, { status: 404 })
     }
-
-    let goldCases: GoldEvalCase[] = JSON.parse(fs.readFileSync(goldPath, 'utf-8'))
 
     if (mode === 'quick') {
       goldCases = goldCases.slice(0, 20)
