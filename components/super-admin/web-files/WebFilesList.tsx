@@ -31,6 +31,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useTableFilters } from '@/hooks/super-admin/useTableFilters'
+import { useDialog } from '@/hooks/super-admin/useDialog'
 
 interface WebFile {
   id: string
@@ -104,15 +106,17 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
   const [files, setFiles] = useState<WebFile[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [deleteFile, setDeleteFile] = useState<WebFile | null>(null)
 
-  // Filters
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
+  const { filters, setFilter, page, setPage, resetFilters, buildParams } = useTableFilters({
+    source_id: '',
+    file_type: '',
+    status: '',
+  })
+  const deleteDialog = useDialog<WebFile>()
+
+  // Search with debounce (separate from filters to support debounce)
   const [searchInput, setSearchInput] = useState('')
-  const [sourceFilter, setSourceFilter] = useState<string>('')
-  const [typeFilter, setTypeFilter] = useState<string>('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [search, setSearch] = useState('')
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -132,14 +136,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
   const fetchFiles = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '20',
-      })
-
-      if (sourceFilter) params.set('source_id', sourceFilter)
-      if (typeFilter) params.set('file_type', typeFilter)
-      if (statusFilter) params.set('status', statusFilter)
+      const params = buildParams({ limit: '20' })
       if (search) params.set('search', search)
 
       const res = await fetch(`/api/admin/web-files?${params}`)
@@ -163,7 +160,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
     } finally {
       setLoading(false)
     }
-  }, [page, sourceFilter, typeFilter, statusFilter, search])
+  }, [buildParams, search])
 
   useEffect(() => {
     fetchFiles()
@@ -176,7 +173,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
       setPage(1)
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchInput])
+  }, [searchInput, setPage])
 
   const handleReindex = async (file: WebFile) => {
     setActionLoading(file.id)
@@ -200,11 +197,11 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
   }
 
   const handleDelete = async () => {
-    if (!deleteFile) return
+    if (!deleteDialog.item) return
 
-    setActionLoading(deleteFile.id)
+    setActionLoading(deleteDialog.item.id)
     try {
-      const res = await fetch(`/api/admin/web-files/${deleteFile.id}`, {
+      const res = await fetch(`/api/admin/web-files/${deleteDialog.item.id}`, {
         method: 'DELETE',
       })
 
@@ -219,7 +216,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
       toast.error(error instanceof Error ? error.message : 'Erreur suppression')
     } finally {
       setActionLoading(null)
-      setDeleteFile(null)
+      deleteDialog.close()
     }
   }
 
@@ -228,15 +225,12 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
   }
 
   const clearFilters = () => {
-    setSourceFilter('')
-    setTypeFilter('')
-    setStatusFilter('')
+    resetFilters()
     setSearchInput('')
     setSearch('')
-    setPage(1)
   }
 
-  const hasFilters = sourceFilter || typeFilter || statusFilter || search
+  const hasFilters = filters.source_id || filters.file_type || filters.status || search
 
   return (
     <div className="space-y-6">
@@ -344,7 +338,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
           />
         </div>
 
-        <Select value={sourceFilter || 'all'} onValueChange={(v) => { setSourceFilter(v === 'all' ? '' : v); setPage(1); }}>
+        <Select value={filters.source_id || 'all'} onValueChange={(v) => setFilter('source_id', v === 'all' ? '' : v)}>
           <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par source">
             <SelectValue placeholder="Toutes les sources" />
           </SelectTrigger>
@@ -358,7 +352,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
           </SelectContent>
         </Select>
 
-        <Select value={typeFilter || 'all'} onValueChange={(v) => { setTypeFilter(v === 'all' ? '' : v); setPage(1); }}>
+        <Select value={filters.file_type || 'all'} onValueChange={(v) => setFilter('file_type', v === 'all' ? '' : v)}>
           <SelectTrigger className="w-[140px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par type">
             <SelectValue placeholder="Tous types" />
           </SelectTrigger>
@@ -370,7 +364,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
           </SelectContent>
         </Select>
 
-        <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
+        <Select value={filters.status || 'all'} onValueChange={(v) => setFilter('status', v === 'all' ? '' : v)}>
           <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par état">
             <SelectValue placeholder="Tous états" />
           </SelectTrigger>
@@ -546,7 +540,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
-                            onClick={() => setDeleteFile(file)}
+                            onClick={() => deleteDialog.openWith(file)}
                             className="text-red-400 hover:bg-red-500/10 cursor-pointer"
                           >
                             <Icons.trash className="h-4 w-4 mr-2" />
@@ -573,7 +567,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
+              onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1 || loading}
               className="border-slate-600"
               aria-label="Page précédente"
@@ -583,7 +577,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+              onClick={() => setPage(Math.min(pagination.totalPages, page + 1))}
               disabled={page === pagination.totalPages || loading}
               className="border-slate-600"
               aria-label="Page suivante"
@@ -595,12 +589,12 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
       )}
 
       {/* Delete Dialog */}
-      <AlertDialog open={!!deleteFile} onOpenChange={() => setDeleteFile(null)}>
+      <AlertDialog open={deleteDialog.open} onOpenChange={(o) => !o && deleteDialog.close()}>
         <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le fichier ?</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-400">
-              Le fichier "{deleteFile?.filename}" sera supprimé du stockage et de l'index.
+              Le fichier "{deleteDialog.item?.filename}" sera supprimé du stockage et de l'index.
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -611,9 +605,9 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
-              disabled={actionLoading === deleteFile?.id}
+              disabled={actionLoading === deleteDialog.item?.id}
             >
-              {actionLoading === deleteFile?.id && (
+              {actionLoading === deleteDialog.item?.id && (
                 <Icons.loader className="h-4 w-4 animate-spin mr-2" />
               )}
               Supprimer

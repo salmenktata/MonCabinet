@@ -8,6 +8,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { RefreshCw } from 'lucide-react'
 import { PipelineFunnel } from './PipelineFunnel'
 import { PipelineStageTab } from './PipelineStageTab'
+import { PipelineStatsCards, PipelineStatsCardsSkeleton } from './PipelineStatsCards'
+import { PipelineThroughputStats } from './PipelineThroughputStats'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 
 const CATEGORIES = getCategoriesForContext('knowledge_base').map(c => c.value)
@@ -100,7 +102,6 @@ export function PipelineDashboard() {
   const [isLoadingDocs, setIsLoadingDocs] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
-  // Fetch funnel stats
   const fetchFunnel = useCallback(async () => {
     setIsLoadingFunnel(true)
     try {
@@ -117,7 +118,6 @@ export function PipelineDashboard() {
     }
   }, [])
 
-  // Fetch sources list
   const fetchSources = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/pipeline/sources')
@@ -130,7 +130,6 @@ export function PipelineDashboard() {
     }
   }, [])
 
-  // Fetch documents for active tab
   const fetchDocs = useCallback(async () => {
     setIsLoadingDocs(true)
     try {
@@ -167,7 +166,6 @@ export function PipelineDashboard() {
     fetchDocs()
   }, [fetchDocs])
 
-  // Reset page when changing tab or filters
   useEffect(() => {
     setPage(1)
   }, [activeTab, search, sourceId, category, language])
@@ -213,7 +211,6 @@ export function PipelineDashboard() {
     }
   }
 
-  // Debounce search
   const [searchInput, setSearchInput] = useState('')
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 300)
@@ -222,7 +219,7 @@ export function PipelineDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header avec bouton refresh */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Pipeline KB</h1>
@@ -249,51 +246,13 @@ export function PipelineDashboard() {
       </div>
 
       {/* Stats cards */}
-      {funnelData ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Total Documents</CardDescription>
-              <CardTitle className="text-3xl">{funnelData.funnel.total.toLocaleString()}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>RAG Actif</CardDescription>
-              <CardTitle className="text-3xl text-green-600">
-                {funnelData.funnel.stages.find(s => s.stage === 'rag_active')?.count.toLocaleString() ?? '0'}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>En Validation</CardDescription>
-              <CardTitle className="text-3xl text-amber-600">
-                {funnelData.funnel.pendingValidation.toLocaleString()}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>À réviser / Rejetés</CardDescription>
-              <CardTitle className="text-3xl text-red-600">
-                {(funnelData.funnel.needsRevision + funnelData.funnel.rejected).toLocaleString()}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </div>
-      ) : isLoadingFunnel ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-lg border bg-card p-6 animate-pulse">
-              <div className="h-3 w-24 bg-muted rounded mb-3" />
-              <div className="h-8 w-16 bg-muted rounded" />
-            </div>
-          ))}
-        </div>
+      {isLoadingFunnel && !funnelData ? (
+        <PipelineStatsCardsSkeleton />
+      ) : funnelData ? (
+        <PipelineStatsCards funnel={funnelData.funnel} />
       ) : null}
 
-      {/* Funnel avec skeleton */}
+      {/* Funnel */}
       {isLoadingFunnel ? (
         <div className="rounded-lg border bg-card p-6 space-y-3 animate-pulse">
           <div className="h-4 w-32 bg-muted rounded" />
@@ -312,72 +271,12 @@ export function PipelineDashboard() {
         />
       ) : null}
 
-      {/* Stats enrichies */}
+      {/* Throughput + avg time */}
       {funnelData?.throughput && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Throughput 7j */}
-          <div className="rounded-lg border bg-card p-4">
-            <p className="text-sm font-medium text-muted-foreground mb-2">Throughput 7j</p>
-            <div className="space-y-1">
-              {funnelData.throughput.dailyAdvanced.length > 0 ? (
-                funnelData.throughput.dailyAdvanced.slice(0, 7).map(d => (
-                  <div key={d.date} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{new Date(d.date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' })}</span>
-                    <span className="font-medium">{d.count} docs</span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">Aucune activité</p>
-              )}
-            </div>
-          </div>
-
-          {/* SLA Breaches */}
-          <div className="rounded-lg border bg-card p-4">
-            <p className="text-sm font-medium text-muted-foreground mb-2">SLA ({'>'}3j sans avancer)</p>
-            <p className={`text-3xl font-bold ${funnelData.throughput.slaBreaches > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {funnelData.throughput.slaBreaches}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">documents en attente</p>
-          </div>
-
-          {/* Taux rejet par source */}
-          <div className="rounded-lg border bg-card p-4">
-            <p className="text-sm font-medium text-muted-foreground mb-2">Taux rejet par source</p>
-            <div className="space-y-1">
-              {funnelData.throughput.rejectionsBySource.length > 0 ? (
-                funnelData.throughput.rejectionsBySource.slice(0, 5).map(s => (
-                  <div key={s.source_name} className="flex justify-between text-sm">
-                    <span className="truncate max-w-[140px] text-muted-foreground">{s.source_name}</span>
-                    <span className={`font-medium ${s.rate > 20 ? 'text-red-600' : s.rate > 10 ? 'text-amber-600' : 'text-green-600'}`}>
-                      {s.rate}%
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">Aucune donnée</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Temps moyen par transition */}
-      {funnelData?.avgTimePerStage && funnelData.avgTimePerStage.length > 0 && (
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-sm font-medium text-muted-foreground mb-3">Temps moyen par transition</p>
-          <div className="flex flex-wrap gap-3">
-            {funnelData.avgTimePerStage.map(t => (
-              <div key={t.stage} className="rounded-md bg-muted/50 px-3 py-1.5 text-sm">
-                <span className="text-muted-foreground">{t.stage}</span>
-                <span className="ml-2 font-medium">
-                  {t.avgHours < 1 ? `${Math.round(t.avgHours * 60)}min` : t.avgHours < 24 ? `${t.avgHours}h` : `${Math.round(t.avgHours / 24)}j`}
-                </span>
-                <span className="ml-1 text-xs text-muted-foreground">({t.count})</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <PipelineThroughputStats
+          throughput={funnelData.throughput}
+          avgTimePerStage={funnelData.avgTimePerStage}
+        />
       )}
 
       {/* Tabs par étape */}

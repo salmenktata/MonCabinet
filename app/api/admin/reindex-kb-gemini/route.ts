@@ -51,43 +51,16 @@ export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
     console.log('[ReindexGemini] Démarrage réindexation', { batchSize, concurrency, category })
 
     // Récupérer les chunks sans embedding_gemini
-    let query = `
-      SELECT
-        kbc.id,
-        kbc.content,
-        kbc.chunk_index,
-        kb.category,
-        kb.title
-      FROM knowledge_base_chunks kbc
-      INNER JOIN knowledge_base kb ON kb.id = kbc.knowledge_base_id
-      WHERE kbc.embedding_gemini IS NULL
-        AND kb.is_active = true
-    `
-    const params: (string | number)[] = []
-    let paramIndex = 1
-
-    if (category) {
-      query += ` AND kb.category = $${paramIndex++}`
-      params.push(category)
-    }
-
-    query += ` ORDER BY kbc.id ASC LIMIT $${paramIndex++}`
-    params.push(batchSize)
-
-    const chunksResult = await db.query(query, params)
-    const chunks = chunksResult.rows
+    const chunks = await fetchChunksToIndex({ nullColumn: 'embedding_gemini', batchSize, category })
 
     if (chunks.length === 0) {
-      const statsResult = await db.query(
-        `SELECT COUNT(*) as total, COUNT(embedding_gemini) as gemini_indexed FROM knowledge_base_chunks`
-      )
-      const s = statsResult.rows[0]
+      const stats = await getEmbeddingStats()
       return NextResponse.json({
         success: true,
         message: 'Tous les chunks ont déjà un embedding Gemini',
         progress: {
-          total: parseInt(s.total),
-          gemini_indexed: parseInt(s.gemini_indexed),
+          total: stats.total,
+          gemini_indexed: stats.gemini.indexed,
           remaining: 0,
           percentage: 100,
         },
@@ -96,78 +69,34 @@ export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
 
     console.log(`[ReindexGemini] ${chunks.length} chunks à traiter (concurrency=${concurrency})`)
 
-    // Traitement par lots avec concurrence
-    let indexed = 0
-    let errors = 0
-    const errorDetails: Array<{ id: string; error: string }> = []
-
-    for (let i = 0; i < chunks.length; i += concurrency) {
-      const batch = chunks.slice(i, i + concurrency)
-
-      const results = await Promise.allSettled(
-        batch.map(async (chunk) => {
-          const embResult = await generateEmbedding(chunk.content, { forceGemini: true })
-
-          if (embResult.provider !== 'gemini' || embResult.embedding.length !== 768) {
-            throw new Error(
-              `Embedding invalide: provider=${embResult.provider}, dims=${embResult.embedding.length} (attendu: gemini/768)`
-            )
-          }
-
-          const embStr = formatEmbeddingForPostgres(embResult.embedding)
-          await db.query(
-            `UPDATE knowledge_base_chunks SET embedding_gemini = $1::vector(768) WHERE id = $2`,
-            [embStr, chunk.id]
+    const batchResult = await processConcurrentBatch(
+      chunks,
+      async (chunk) => {
+        const embResult = await generateEmbedding(chunk.content, { forceGemini: true })
+        if (embResult.provider !== 'gemini' || embResult.embedding.length !== 768) {
+          throw new Error(
+            `Embedding invalide: provider=${embResult.provider}, dims=${embResult.embedding.length} (attendu: gemini/768)`
           )
-
-          return chunk.id
-        })
-      )
-
-      for (let j = 0; j < results.length; j++) {
-        const r = results[j]
-        if (r.status === 'fulfilled') {
-          indexed++
-        } else {
-          errors++
-          const errMsg = r.reason instanceof Error ? r.reason.message : String(r.reason)
-          errorDetails.push({ id: batch[j].id, error: errMsg })
-          console.error(`[ReindexGemini] Erreur chunk ${batch[j].id}:`, errMsg)
         }
-      }
+        await updateChunkEmbedding(chunk.id, 'embedding_gemini', embResult.embedding, 768)
+      },
+      concurrency,
+      '[ReindexGemini]'
+    )
 
-      if ((i + concurrency) % 50 === 0 || i + concurrency >= chunks.length) {
-        console.log(`[ReindexGemini] Progression: ${Math.min(i + concurrency, chunks.length)}/${chunks.length}`)
-      }
-    }
+    const stats = await getEmbeddingStats()
+    const remaining = stats.total - stats.gemini.indexed
 
-    // Stats finales
-    const statsResult = await db.query(`
-      SELECT
-        COUNT(*) as total,
-        COUNT(embedding_gemini) FILTER (WHERE embedding_gemini IS NOT NULL) as gemini_indexed
-      FROM knowledge_base_chunks
-    `)
-    const s = statsResult.rows[0]
-    const total = parseInt(s.total)
-    const geminiIndexed = parseInt(s.gemini_indexed)
-    const remaining = total - geminiIndexed
-
-    console.log(`[ReindexGemini] Batch terminé: ${indexed} indexés, ${errors} erreurs`)
+    console.log(`[ReindexGemini] Batch terminé: ${batchResult.indexed} indexés, ${batchResult.errors} erreurs`)
 
     return NextResponse.json({
       success: true,
-      batch: {
-        processed: chunks.length,
-        indexed,
-        errors,
-        errorDetails: errorDetails.slice(0, 5),
-      },
+      batch: batchResult,
       progress: {
-        total,
-        gemini_indexed: geminiIndexed,
+        total: stats.total,
+        gemini_indexed: stats.gemini.indexed,
         remaining,
-        percentage: Math.round((geminiIndexed / total) * 100),
+        percentage: stats.gemini.pct,
       },
       next: remaining > 0
         ? { message: `Relancer pour continuer (${remaining} chunks restants)`, endpoint: req.url }
@@ -186,37 +115,23 @@ export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
  * GET /api/admin/reindex-kb-gemini
  * Statut de la réindexation Gemini
  */
-export const GET = withAdminApiAuth(async (req, _ctx, _session) => {
+export const GET = withAdminApiAuth(async (_req, _ctx, _session) => {
   try {
-    const statsResult = await db.query(`
-      SELECT
-        COUNT(*) as total,
-        COUNT(embedding) FILTER (WHERE embedding IS NOT NULL) as ollama_indexed,
-        COUNT(embedding_openai) FILTER (WHERE embedding_openai IS NOT NULL) as openai_indexed,
-        COUNT(embedding_gemini) FILTER (WHERE embedding_gemini IS NOT NULL) as gemini_indexed
-      FROM knowledge_base_chunks
-    `)
-
-    const s = statsResult.rows[0]
-    const total = parseInt(s.total)
-    const geminiIndexed = parseInt(s.gemini_indexed)
-    const remaining = total - geminiIndexed
-
-    // Estimation temps restant (5 chunks/seconde avec concurrency=5)
+    const stats = await getEmbeddingStats()
+    const remaining = stats.total - stats.gemini.indexed
     const chunksPerSecond = 5
-    const estimatedSeconds = Math.round(remaining / chunksPerSecond)
-    const estimatedMinutes = Math.round(estimatedSeconds / 60)
+    const estimatedMinutes = Math.round(remaining / chunksPerSecond / 60)
 
     return NextResponse.json({
-      total,
+      total: stats.total,
       embeddings: {
-        ollama: { indexed: parseInt(s.ollama_indexed), pct: Math.round(parseInt(s.ollama_indexed) / total * 100) },
-        openai: { indexed: parseInt(s.openai_indexed), pct: Math.round(parseInt(s.openai_indexed) / total * 100) },
-        gemini: { indexed: geminiIndexed, remaining, pct: Math.round(geminiIndexed / total * 100) },
+        ollama:  { indexed: stats.ollama.indexed,  pct: stats.ollama.pct },
+        openai:  { indexed: stats.openai.indexed,  pct: stats.openai.pct },
+        gemini:  { indexed: stats.gemini.indexed,  remaining, pct: stats.gemini.pct },
       },
       geminiAvailable: !!aiConfig.gemini.apiKey,
       estimatedTime: remaining > 0
-        ? `~${estimatedMinutes} min (${remaining} chunks × ${1 / chunksPerSecond}s/chunk)`
+        ? `~${estimatedMinutes} min (${remaining} chunks)`
         : 'Terminé',
     })
   } catch (error) {
