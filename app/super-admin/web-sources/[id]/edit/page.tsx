@@ -3,12 +3,11 @@
  */
 
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import { getWebSource } from '@/lib/web-scraper/source-service'
-import { Button } from '@/components/ui/button'
-import { Icons } from '@/lib/icons'
 import { EditWebSourceWizard } from '@/components/super-admin/web-sources/EditWebSourceWizard'
 import type { WebSource } from '@/lib/web-scraper/types'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
+import { Breadcrumb } from '@/components/super-admin/shared/Breadcrumb'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,21 +69,17 @@ export default async function EditWebSourcePage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={`/super-admin/web-sources/${id}`}>
-          <Button variant="ghost" size="sm" className="text-slate-400">
-            <Icons.arrowLeft className="h-4 w-4 mr-2" />
-            Retour
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-white">Modifier {source.name}</h1>
-          <p className="text-slate-400 mt-1">
-            Modifiez la configuration de la source
-          </p>
-        </div>
-      </div>
+      {/* Breadcrumb + Header */}
+      <Breadcrumb items={[
+        { label: 'Sources Web', href: '/super-admin/web-sources' },
+        { label: source.name, href: `/super-admin/web-sources/${id}` },
+        { label: 'Modifier' },
+      ]} />
+      <PageHeader
+        title={`Modifier ${source.name}`}
+        description="Modifiez la configuration de la source"
+        backHref={`/super-admin/web-sources/${id}`}
+      />
 
       {/* Wizard en mode édition */}
       <EditWebSourceWizard initialData={formData} sourceId={id} />
