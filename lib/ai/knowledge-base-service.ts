@@ -736,11 +736,6 @@ export async function indexPendingDocuments(limit: number = 10): Promise<{
        WHERE wp.knowledge_base_id = kb.id
          AND ws.rag_enabled = false
      )
-     -- Seuls les docs liés à un legal_document consolidé
-     AND EXISTS (
-       SELECT 1 FROM legal_documents ld
-       WHERE ld.knowledge_base_id = kb.id
-     )
      ORDER BY
        -- Priorité 1: Catégories critiques
        CASE
