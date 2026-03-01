@@ -46,7 +46,7 @@ async function getWebSourceData(id: string) {
   const sourceResult = await db.query(
     `SELECT
       id, name, base_url, description, favicon_url,
-      category, language, priority,
+      categories, language, priority,
       crawl_frequency::text as crawl_frequency,
       adaptive_frequency, css_selectors, url_patterns, excluded_patterns,
       max_depth, max_pages, follow_links, download_files,
