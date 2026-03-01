@@ -52,7 +52,8 @@ ALTER TABLE kb_legal_relations
     'applies',            -- Application d''une règle
     'interprets',         -- Interprétation d''un texte
     'amends',             -- NEW: JORT modifie un article d''un code tunisien
-    'amended_by'          -- NEW: Inverse — code/article modifié par JORT
+    'amended_by',         -- NEW: Inverse — code/article modifié par JORT
+    'similar_to'          -- Similarité sémantique (utilisé par le système de relations)
   ));
 
 -- Index partiel dédié aux amendements (lookup rapide en RAG)
