@@ -254,6 +254,21 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     ? deriveNormLevelFromIortTextType(iortStructuredData.textType as string | undefined)
     : null
 
+  // Guard : قرارات وزارية de bruit (nominations, concours, mutations) → rag_enabled=false
+  // Ces décisions n'ont aucune valeur juridique pour un avocat mais polluent le RAG.
+  const IORT_QRARAT_NOISE_PATTERNS = [
+    /\b(تعيين|تسمية)\b/,                     // nominations de fonctionnaires
+    /\b(تنقيل|إنهاء مهام)\b/,                // mutations / fin de fonctions
+    /\b(إحالة على التقاعد)\b/,               // retraites
+    /\b(مناظرة|توظيف|انتداب|استقطاب)\b/,    // concours / recrutement
+    /\b(ترقية بالاختيار|ترقية في الرتبة)\b/, // promotions administratives
+  ]
+  const isIortQrarat = sourceOrigin === 'iort_gov_tn' && iortStructuredData.textType === 'قرار'
+  const isNoise = isIortQrarat && IORT_QRARAT_NOISE_PATTERNS.some(p => p.test(rawPageTitle))
+  if (isNoise) {
+    console.log(`[WebIndexer] قرار bruit IORT — rag_enabled=false: "${rawPageTitle.slice(0, 80)}"`)
+  }
+
   // Normaliser le texte
   const normalizedText = normalizeText(row.extracted_text)
   const detectedLang = row.language_detected || detectTextLanguage(normalizedText) || 'fr'
@@ -342,8 +357,8 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
         `INSERT INTO knowledge_base (
           category, subcategory, language, title, description,
           metadata, tags, full_text, source_file, is_indexed,
-          pipeline_stage, pipeline_stage_updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, 'crawled', NOW())
+          rag_enabled, pipeline_stage, pipeline_stage_updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, $10, 'crawled', NOW())
         RETURNING id`,
         [
           kbCategory, // ← Classification IA pure (pas de fallback source)
@@ -371,6 +386,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
           row.meta_keywords || [],
           normalizedText,
           row.url,
+          !isNoise, // rag_enabled = false pour قرارات bruit (nominations, concours, mutations)
         ]
       )
       knowledgeBaseId = kbResult.rows[0].id
