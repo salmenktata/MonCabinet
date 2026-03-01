@@ -1337,7 +1337,7 @@ export async function downloadConstitutionFromIort(
         sourceId, constitutionUrl, urlHash, extracted.title,
         extracted.content, contentHash,
         extracted.content.split(/\s+/).length,
-        extracted.date ? new Date(extracted.date).toISOString().split('T')[0] : null,
+        parseArabicDate(extracted.date),
         JSON.stringify({ source: 'iort', textType: 'دستور', year: 2022, issueNumber: extracted.issueNumber, norm_level: 'constitution' }),
         pdfInfo
           ? JSON.stringify([{ url: constitutionUrl, type: 'pdf', minioPath: pdfInfo.minioPath, size: pdfInfo.size, contentType: 'application/pdf' }])
