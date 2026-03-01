@@ -132,10 +132,13 @@ export async function consolidateDocument(
   )
 
   // Tracking version (ne bloque jamais la consolidation)
-  try {
-    await trackDocumentVersion(documentId, consolidatedText)
-  } catch (e) {
-    log.error('[Consolidation] Version tracking erreur:', e)
+  // Le tracker opère sur knowledge_base (pas legal_documents)
+  if (document.knowledgeBaseId) {
+    try {
+      await trackDocumentVersion(document.knowledgeBaseId, consolidatedText)
+    } catch (e) {
+      log.error('[Consolidation] Version tracking erreur:', e)
+    }
   }
 
   // Détection amendements/abrogations (ne bloque jamais la consolidation)

@@ -212,7 +212,7 @@ export async function getDocumentVersionHistory(
   const result = await db.query(
     `SELECT id, version, change_type, change_reason, changed_by, changed_at
      FROM knowledge_base_versions
-     WHERE document_id = $1
+     WHERE knowledge_base_id = $1
      ORDER BY version DESC
      LIMIT $2`,
     [documentId, limit]
