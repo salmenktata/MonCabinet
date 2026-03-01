@@ -29,15 +29,11 @@ import {
 import { getSourceIndexingStats } from '@/lib/web-scraper/web-indexer-service'
 import { deleteWebSourceComplete, getDeletePreview } from '@/lib/web-scraper/delete-service'
 import type { UpdateWebSourceInput } from '@/lib/web-scraper'
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
 // =============================================================================
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role; return role === 'admin' || role === 'super_admin'
-}
 
 // =============================================================================
 // GET: Détails d'une source

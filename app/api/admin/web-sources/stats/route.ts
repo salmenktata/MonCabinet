@@ -16,15 +16,11 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { getWebSourcesStats } from '@/lib/web-scraper'
 import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
 // =============================================================================
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role; return role === 'admin' || role === 'super_admin'
-}
 
 // =============================================================================
 // GET: Statistiques globales

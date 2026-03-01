@@ -1,6 +1,7 @@
 'use server'
 
 import { getSession } from '@/lib/auth/session'
+import { checkAdminAccessAction } from '@/lib/auth/check-admin-access'
 import { db } from '@/lib/db/postgres'
 import { revalidatePath } from 'next/cache'
 import {
@@ -24,27 +25,12 @@ import {
 import { NINEANOUN_CODE_DOMAINS } from '@/lib/web-scraper/9anoun-code-domains'
 import { indexLegalDocument } from '@/lib/web-scraper/web-indexer-service'
 
-async function checkAdminAccess(): Promise<{ userId: string } | { error: string }> {
-  const session = await getSession()
-  if (!session?.user?.id) {
-    return { error: 'Non authentifié' }
-  }
-
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [session.user.id])
-  const role = result.rows[0]?.role
-
-  if (role !== 'admin' && role !== 'super_admin') {
-    return { error: 'Accès réservé aux administrateurs' }
-  }
-
-  return { userId: session.user.id }
-}
 
 export async function indexAllPendingLegalDocuments(
   limit = 30
 ): Promise<{ success: boolean; indexed: number; failed: number; remaining: number; error?: string }> {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { success: false, indexed: 0, failed: 0, remaining: 0, error: authCheck.error }
     }
@@ -101,7 +87,7 @@ export async function bulkReindexLegalDocuments(
   documentIds: string[]
 ): Promise<{ success: boolean; indexed: number; failed: number; error?: string }> {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { success: false, indexed: 0, failed: 0, error: authCheck.error }
     }
@@ -152,7 +138,7 @@ export async function bulkApproveLegalDocuments(
   documentIds: string[]
 ): Promise<{ success: boolean; count: number; error?: string }> {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { success: false, count: 0, error: authCheck.error }
     }
@@ -226,7 +212,7 @@ export async function detectDocumentGroupsAction(
   sourceId: string
 ): Promise<{ groups: DocumentGroup[]; error?: string }> {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { groups: [], error: authCheck.error }
     }
@@ -250,7 +236,7 @@ export async function importLegalDocumentsAction(
   let imported = 0
 
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { success: false, imported: 0, errors: [authCheck.error] }
     }
@@ -401,7 +387,7 @@ export async function consolidateSelectedWebPages(
   error?: string
 }> {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { success: false, error: authCheck.error }
     }

@@ -2,6 +2,7 @@
 
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
+import { checkAdminAccessAction } from '@/lib/auth/check-admin-access'
 import { revalidatePath } from 'next/cache'
 import type { KnowledgeCategory, KnowledgeSubcategory } from '@/lib/categories/legal-categories'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
@@ -17,27 +18,6 @@ export type { KnowledgeCategory, KnowledgeSubcategory }
 export type KnowledgeBaseLanguage = 'ar' | 'fr'
 
 // =============================================================================
-// VÉRIFICATION ADMIN
-// =============================================================================
-
-async function checkAdminAccess(): Promise<{ userId: string } | { error: string }> {
-  const session = await getSession()
-  if (!session?.user?.id) {
-    return { error: 'Non authentifié' }
-  }
-
-  const result = await query('SELECT role FROM users WHERE id = $1', [session.user.id])
-  const role = result.rows[0]?.role
-
-  // Accepter admin ou super_admin
-  if (role !== 'admin' && role !== 'super_admin') {
-    return { error: 'Accès réservé aux administrateurs' }
-  }
-
-  return { userId: session.user.id }
-}
-
-// =============================================================================
 // ACTIONS
 // =============================================================================
 
@@ -46,7 +26,7 @@ async function checkAdminAccess(): Promise<{ userId: string } | { error: string 
  */
 export async function uploadKnowledgeDocumentAction(formData: FormData) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -157,7 +137,7 @@ export async function uploadKnowledgeDocumentAction(formData: FormData) {
  */
 export async function indexKnowledgeDocumentAction(documentId: string) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -188,7 +168,7 @@ export async function indexKnowledgeDocumentAction(documentId: string) {
  */
 export async function deleteKnowledgeDocumentAction(documentId: string) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -227,7 +207,7 @@ export async function updateKnowledgeDocumentAction(
   }
 ) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -255,7 +235,7 @@ export async function updateKnowledgeDocumentAction(
  */
 export async function getKnowledgeBaseStatsAction() {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -285,7 +265,7 @@ export async function listKnowledgeDocumentsAction(options: {
   offset?: number
 }) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -315,7 +295,7 @@ export async function listKnowledgeDocumentsAction(options: {
  */
 export async function getKnowledgeDocumentAction(documentId: string) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -344,7 +324,7 @@ export async function updateKnowledgeDocumentContentAction(
   formData: FormData
 ) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -409,7 +389,7 @@ export async function getKnowledgeDocumentVersionsAction(
   options?: { limit?: number; offset?: number }
 ) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -435,7 +415,7 @@ export async function restoreKnowledgeDocumentVersionAction(
   reason?: string
 ) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -469,7 +449,7 @@ export async function restoreKnowledgeDocumentVersionAction(
  */
 export async function getKnowledgeCategoriesAction() {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -494,7 +474,7 @@ export async function getKnowledgeCategoriesAction() {
  */
 export async function analyzeKBDocumentQualityAction(documentId: string) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -519,7 +499,7 @@ export async function getKBDocumentsRequiringReviewAction(options?: {
   offset?: number
 }) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }
@@ -561,7 +541,7 @@ export async function bulkKnowledgeDocumentAction(
   options?: { category?: KnowledgeCategory; subcategory?: string }
 ) {
   try {
-    const authCheck = await checkAdminAccess()
+    const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
       return { error: authCheck.error }
     }

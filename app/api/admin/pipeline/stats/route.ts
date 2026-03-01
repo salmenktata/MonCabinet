@@ -10,11 +10,7 @@ export const dynamic = 'force-dynamic'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { getPipelineFunnelStats, getBottlenecks, getAverageTimePerStage, getThroughputStats } from '@/lib/pipeline/pipeline-stats-service'
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  return ['admin', 'super_admin'].includes(result.rows[0]?.role)
-}
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 export async function GET(): Promise<NextResponse> {
   try {

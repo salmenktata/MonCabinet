@@ -18,12 +18,7 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { downloadPageFiles } from '@/lib/web-scraper/file-indexer-service'
 import type { LinkedFile } from '@/lib/web-scraper/types'
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role
-  return role === 'admin' || role === 'super_admin'
-}
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {

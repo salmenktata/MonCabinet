@@ -34,8 +34,28 @@ import { db } from '@/lib/db/postgres'
 const GDRIVE_BASE_URL = 'gdrive://1y1lh3G4Dwvg7QobpcyiOfQ2YZsNYDitS'
 
 // Seuils de qualité
-const MIN_TEXT_LENGTH = 100  // < 100 chars = inutilisable
+const MIN_TEXT_LENGTH = 500  // < 500 chars = trop court pour être utile en RAG
 const MIN_TITLE_LENGTH = 3   // titre trop court
+
+// Patterns de titres de documents structurels (sans valeur juridique)
+const STRUCTURAL_TITLE_PATTERNS = [
+  /إهداء/,               // dédicaces arabes
+  /الاهداء/,
+  /اهداء/,
+  /شكر/,                 // remerciements arabes
+  /garde/i,              // pages de garde (FR)
+  /biblio/i,             // bibliographies
+  /référence/i,          // références
+  /قائمة المراجع/,       // liste des références arabes
+  /مختصرات/,             // abréviations arabes
+  /اختصارات/,
+  /table de mat/i,       // table des matières
+  /table of cont/i,
+]
+
+function isStructuralDoc(title: string): boolean {
+  return STRUCTURAL_TITLE_PATTERNS.some(p => p.test(title))
+}
 
 // Patterns de titres corrompus (réutilisés depuis web-indexer-service.ts:467-471)
 function isCorruptedTitle(title: string): boolean {
@@ -118,10 +138,17 @@ async function listDocs(sourceId: string): Promise<GDriveKBDoc[]> {
     const title = row.title as string
 
     // Détecter si le doc est inutilisable
-    const isUseless = textLen < MIN_TEXT_LENGTH && chunkCount === 0
-    const uselessReason = isUseless
-      ? (textLen === 0 ? 'Contenu vide' : `Contenu trop court (${textLen} chars) et non indexé`)
-      : null
+    const tooShort = textLen < MIN_TEXT_LENGTH
+    const structural = isStructuralDoc(title)
+    const isUseless = tooShort || structural
+    let uselessReason: string | null = null
+    if (structural && tooShort) {
+      uselessReason = `Document structurel + trop court (${textLen} chars)`
+    } else if (structural) {
+      uselessReason = `Document structurel (dédicace/remerciements/garde/biblio/etc.)`
+    } else if (tooShort) {
+      uselessReason = textLen === 0 ? 'Contenu vide' : `Contenu trop court (${textLen} chars)`
+    }
 
     // Détecter si le titre doit être corrigé
     const needsRenameFlag = needsRename(title)

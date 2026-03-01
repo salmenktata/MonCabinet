@@ -8,6 +8,7 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { reindexLongDocuments } from '@/lib/web-scraper/reindex-long-documents'
 import { indexSourcePages } from '@/lib/web-scraper/web-indexer-service'
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 600 // 10 minutes
@@ -15,12 +16,6 @@ export const maxDuration = 600 // 10 minutes
 // =============================================================================
 // VÉRIFICATION ADMIN
 // =============================================================================
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role
-  return role === 'super_admin'
-}
 
 // =============================================================================
 // POST: Exécuter une action de maintenance

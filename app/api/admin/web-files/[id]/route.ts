@@ -15,12 +15,7 @@ import { downloadWebFile, deleteWebFile } from '@/lib/web-scraper/storage-adapte
 import { parseFile, isTextExtractable } from '@/lib/web-scraper/file-parser-service'
 import { normalizeText, detectTextLanguage } from '@/lib/web-scraper/content-extractor'
 import { isSemanticSearchEnabled, aiConfig } from '@/lib/ai/config'
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role
-  return role === 'admin' || role === 'super_admin'
-}
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 // =============================================================================
 // GET: Détail d'un fichier

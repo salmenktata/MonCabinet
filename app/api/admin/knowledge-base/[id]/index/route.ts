@@ -16,15 +16,11 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { indexKnowledgeDocument } from '@/lib/ai/knowledge-base-service'
 import { isSemanticSearchEnabled } from '@/lib/ai/config'
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
 // =============================================================================
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  return result.rows[0]?.role === 'admin'
-}
 
 // =============================================================================
 // POST: Indexer un document

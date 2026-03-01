@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role
-  return role === 'admin' || role === 'super_admin'
-}
 
 interface BulkExtractionStats {
   totalPages: number

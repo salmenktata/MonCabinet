@@ -15,14 +15,9 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { approveDocument, revokeApproval, getDocumentById } from '@/lib/legal-documents/document-service'
 import { indexLegalDocument } from '@/lib/web-scraper/web-indexer-service'
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 export const dynamic = 'force-dynamic'
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role
-  return role === 'admin' || role === 'super_admin'
-}
 
 /**
  * POST: Approuver le document + déclencher indexation RAG

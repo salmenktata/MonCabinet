@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 import {
   getWebSource,
   listWebPages,
@@ -23,11 +24,6 @@ import {
 // =============================================================================
 // VÉRIFICATION ADMIN
 // =============================================================================
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role; return role === 'admin' || role === 'super_admin'
-}
 
 // =============================================================================
 // GET: Liste des pages

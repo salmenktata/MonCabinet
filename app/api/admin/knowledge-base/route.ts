@@ -29,15 +29,11 @@ import {
 import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
 // =============================================================================
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  return result.rows[0]?.role === 'admin'
-}
 
 // =============================================================================
 // GET: Liste des documents

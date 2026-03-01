@@ -3,6 +3,7 @@ import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { db } from '@/lib/db/postgres'
 import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { getEmbeddingStats, fetchChunksToIndex, updateChunkEmbedding } from '@/lib/ai/embedding-batch-service'
 
 /**
  * POST /api/admin/reindex-kb-openai
@@ -91,13 +92,7 @@ export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
         }
 
         // Mettre à jour le chunk avec l'embedding OpenAI
-        const embeddingStr = formatEmbeddingForPostgres(embedding)
-        await db.query(
-          `UPDATE knowledge_base_chunks
-           SET embedding_openai = $1::vector(1536)
-           WHERE id = $2`,
-          [embeddingStr, chunk.id]
-        )
+        await updateChunkEmbedding(chunk.id, 'embedding_openai', embedding, 1536)
 
         indexed++
 
@@ -170,57 +165,29 @@ export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
  *
  * Retourne le statut de la réindexation
  */
-export const GET = withAdminApiAuth(async (req, _ctx, _session) => {
+export const GET = withAdminApiAuth(async (_req, _ctx, _session) => {
   try {
-    // Récupérer les statistiques
-    const statsResult = await db.query(`
-      SELECT
-        COUNT(*) as total,
-        COUNT(embedding) FILTER (WHERE embedding IS NOT NULL) as ollama_indexed,
-        COUNT(embedding_openai) FILTER (WHERE embedding_openai IS NOT NULL) as openai_indexed,
-        COUNT(content_tsvector) FILTER (WHERE content_tsvector IS NOT NULL) as tsvector_indexed
-      FROM knowledge_base_chunks
-    `)
-
-    const stats = statsResult.rows[0]
-    const total = parseInt(stats.total, 10)
-    const ollamaIndexed = parseInt(stats.ollama_indexed, 10)
-    const openaiIndexed = parseInt(stats.openai_indexed, 10)
-    const tsvectorIndexed = parseInt(stats.tsvector_indexed, 10)
-
-    const openaiProgress = Math.round((openaiIndexed / total) * 100)
-    const remaining = total - openaiIndexed
+    const stats = await getEmbeddingStats()
+    const remaining = stats.total - stats.openai.indexed
 
     return NextResponse.json({
-      total,
+      total: stats.total,
       embeddings: {
-        ollama: {
-          indexed: ollamaIndexed,
-          percentage: Math.round((ollamaIndexed / total) * 100),
-        },
-        openai: {
-          indexed: openaiIndexed,
-          remaining,
-          percentage: openaiProgress,
-        },
+        ollama:  { indexed: stats.ollama.indexed,  percentage: stats.ollama.pct },
+        openai:  { indexed: stats.openai.indexed,  remaining, percentage: stats.openai.pct },
+        gemini:  { indexed: stats.gemini.indexed,  percentage: stats.gemini.pct },
       },
-      tsvector: {
-        indexed: tsvectorIndexed,
-        percentage: Math.round((tsvectorIndexed / total) * 100),
-      },
+      tsvector: { indexed: stats.tsvector.indexed, percentage: stats.tsvector.pct },
       estimatedCost: {
         perBatch: '$0.001',
         remaining: `$${(remaining * 0.00002).toFixed(4)}`,
-        total: `$${(total * 0.00002).toFixed(4)}`,
+        total:    `$${(stats.total * 0.00002).toFixed(4)}`,
       },
     })
   } catch (error) {
     console.error('[ReindexOpenAI] Erreur récupération stats:', error)
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

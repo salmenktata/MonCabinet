@@ -10,12 +10,7 @@ export const dynamic = 'force-dynamic'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { safeParseInt } from '@/lib/utils/safe-number'
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role
-  return role === 'admin' || role === 'super_admin'
-}
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 interface WebFileRow {
   id: string

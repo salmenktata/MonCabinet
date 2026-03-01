@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
-import { db } from '@/lib/db/postgres'
-import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
+import { generateEmbedding } from '@/lib/ai/embeddings-service'
 import { aiConfig } from '@/lib/ai/config'
+import {
+  getEmbeddingStats,
+  fetchChunksToIndex,
+  processConcurrentBatch,
+  updateChunkEmbedding,
+} from '@/lib/ai/embedding-batch-service'
 
 /**
  * POST /api/admin/reindex-kb-gemini

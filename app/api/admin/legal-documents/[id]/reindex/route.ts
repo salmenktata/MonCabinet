@@ -11,14 +11,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { indexLegalDocument } from '@/lib/web-scraper/web-indexer-service'
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 export const dynamic = 'force-dynamic'
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role
-  return role === 'admin' || role === 'super_admin'
-}
 
 /**
  * POST: Réindexer un document juridique (force re-chunking + re-embedding)

@@ -4,6 +4,7 @@
  */
 
 export { getSession } from './session'
+export { checkAdminAccess, checkAdminAccessAction } from './check-admin-access'
 export type { Session } from 'next-auth'
 
 // Stub authOptions pour compatibilité (non utilisé avec getSession)

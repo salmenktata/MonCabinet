@@ -18,16 +18,11 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { getWebSource } from '@/lib/web-scraper'
 import { scrapeUrlList } from '@/lib/web-scraper/crawler-service'
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
 // =============================================================================
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  const role = result.rows[0]?.role
-  return role === 'admin' || role === 'super_admin'
-}
 
 // =============================================================================
 // POST: Scrape une liste d'URLs

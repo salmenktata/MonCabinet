@@ -11,11 +11,7 @@ export const dynamic = 'force-dynamic'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { bulkAdvance } from '@/lib/pipeline/document-pipeline-service'
-
-async function checkAdminAccess(userId: string): Promise<boolean> {
-  const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  return ['admin', 'super_admin'].includes(result.rows[0]?.role)
-}
+import { checkAdminAccess } from '@/lib/auth/check-admin-access'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {

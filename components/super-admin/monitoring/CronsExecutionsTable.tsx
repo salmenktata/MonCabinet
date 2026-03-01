@@ -7,7 +7,7 @@
  * QW3: Export CSV avec filtres appliqués
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Card,
   CardContent,
@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/select'
 import { ChevronLeft, ChevronRight, Eye, RefreshCw, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { CronExecutionDetailsModal } from './CronExecutionDetailsModal'
+import { useTableFilters } from '@/hooks/super-admin/useTableFilters'
+import { useDialog } from '@/hooks/super-admin/useDialog'
 
 interface Execution {
   id: string
@@ -54,33 +56,22 @@ type SortDirection = 'asc' | 'desc' | null
 export function CronsExecutionsTable() {
   const [executions, setExecutions] = useState<Execution[]>([])
   const [loading, setLoading] = useState(true)
-  const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [cronNameFilter, setCronNameFilter] = useState<string>('all')
-  const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null)
 
-  // QW2: États pour tri
+  const { filters, setFilter, page, setPage, buildParams } = useTableFilters({
+    status: 'all',
+    cronName: 'all',
+  })
+  const executionDialog = useDialog<Execution>()
+
+  // QW2: États pour tri (client-side, non envoyés à l'API)
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
 
-  const fetchExecutions = async () => {
+  const fetchExecutions = useCallback(async () => {
     try {
       setLoading(true)
-
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '50',
-      })
-
-      if (statusFilter !== 'all') {
-        params.set('status', statusFilter)
-      }
-
-      if (cronNameFilter !== 'all') {
-        params.set('cronName', cronNameFilter)
-      }
-
+      const params = buildParams({ limit: '50' })
       const response = await fetch(`/api/admin/cron-executions/list?${params}`)
       const data = await response.json()
 
@@ -93,11 +84,11 @@ export function CronsExecutionsTable() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [buildParams])
 
   useEffect(() => {
     fetchExecutions()
-  }, [page, statusFilter, cronNameFilter])
+  }, [fetchExecutions])
 
   // Récupérer liste unique des cron names
   const uniqueCronNames = Array.from(
@@ -251,7 +242,7 @@ export function CronsExecutionsTable() {
 
           {/* Filtres */}
           <div className="flex gap-4 mt-4">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={filters.status} onValueChange={(v) => setFilter('status', v)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
@@ -264,7 +255,7 @@ export function CronsExecutionsTable() {
               </SelectContent>
             </Select>
 
-            <Select value={cronNameFilter} onValueChange={setCronNameFilter}>
+            <Select value={filters.cronName} onValueChange={(v) => setFilter('cronName', v)}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Cron" />
               </SelectTrigger>
@@ -355,7 +346,7 @@ export function CronsExecutionsTable() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setSelectedExecution(exec)}
+                        onClick={() => executionDialog.openWith(exec)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -372,7 +363,7 @@ export function CronsExecutionsTable() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1 || loading}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -384,7 +375,7 @@ export function CronsExecutionsTable() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
                 disabled={page === totalPages || loading}
               >
                 Suivant
@@ -397,9 +388,9 @@ export function CronsExecutionsTable() {
 
       {/* S1.1 : Modal Détails Enrichi */}
       <CronExecutionDetailsModal
-        execution={selectedExecution}
-        open={!!selectedExecution}
-        onClose={() => setSelectedExecution(null)}
+        execution={executionDialog.item}
+        open={executionDialog.open}
+        onClose={executionDialog.close}
       />
     </>
   )

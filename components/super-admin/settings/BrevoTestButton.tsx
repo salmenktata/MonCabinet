@@ -1,36 +1,21 @@
 'use client'
 
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import { toast } from 'sonner'
+import { useFetchAction } from '@/hooks/super-admin/useFetchAction'
 
 export function BrevoTestButton() {
-  const [loading, setLoading] = useState(false)
-
-  const handleTest = async () => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/admin/test-brevo', { method: 'POST' })
-      const data = await res.json()
-
-      if (data.success) {
-        toast.success('Test réussi — Email de test envoyé avec succès.')
-      } else {
-        toast.error(data.error || 'Échec du test Brevo')
-      }
-    } catch {
-      toast.error('Erreur de connexion au serveur')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { trigger, loading } = useFetchAction('/api/admin/test-brevo', {
+    method: 'POST',
+    successMessage: 'Test réussi — Email de test envoyé avec succès.',
+    errorMessage: 'Échec du test Brevo',
+  })
 
   return (
     <Button
       size="sm"
       variant="outline"
-      onClick={handleTest}
+      onClick={() => trigger()}
       disabled={loading}
       className="border-slate-600 text-slate-300 hover:bg-slate-700"
     >
