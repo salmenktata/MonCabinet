@@ -1,5 +1,6 @@
 const createNextIntlPlugin = require('next-intl/plugin')
 const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts')
+const { version } = require('./package.json')
 
 // Bundle Analyzer - Usage: ANALYZE=true npm run build
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
@@ -18,6 +19,12 @@ const nextConfig = {
   },
   // Mode standalone requis pour Docker production
   output: 'standalone',
+
+  // Injecter la version au build time
+  env: {
+    APP_VERSION: version,
+    NEXT_PUBLIC_APP_VERSION: version,
+  },
 
   // Compression activée
   compress: true,
