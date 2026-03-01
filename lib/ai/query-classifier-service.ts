@@ -124,6 +124,7 @@ Exemples:
 - تبييض أموال/غسيل أموال/blanchiment → penal
 - خيانة أمانة/abus de confiance → penal
 - دستور/constitution/دستوري/constitutionnel/حقوق أساسية/droits fondamentaux → administratif
+- معاهدة دولية/اتفاقية دولية/convention internationale/traité international → administratif
 
 **Confiance**:
 - 0.9+ : Question très claire, mots-clés explicites
@@ -375,7 +376,7 @@ export function classifyQueryKeywords(query: string): QueryClassification {
     domains.push('famille')
   }
 
-  if (/إداري|administratif/i.test(query)) {
+  if (/إداري|administratif|convention internationale|معاهدة دولية|اتفاقية دولية|traité international|قانون دولي|مصادقة/i.test(query)) {
     if (!domains.includes('administratif')) domains.push('administratif')
   }
 

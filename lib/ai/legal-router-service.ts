@@ -84,7 +84,7 @@ const DOMAIN_TO_BRANCHES: Array<{ keywords: string[]; branches: string[] }> = [
     branches: ['fiscal'],
   },
   {
-    keywords: ['administratif', 'droit administratif', 'إداري', 'administration', 'المحكمة الإدارية'],
+    keywords: ['administratif', 'droit administratif', 'إداري', 'administration', 'المحكمة الإدارية', 'convention internationale', 'معاهدة دولية', 'اتفاقية دولية', 'traité international', 'droit international', 'قانون دولي', 'مصادقة', 'ratification'],
     branches: ['administratif'],
   },
   {
