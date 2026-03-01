@@ -29,7 +29,7 @@ import { TUNISIAN_CODES } from '@/lib/knowledge-base/tunisian-codes-registry'
 
 async function checkAdminAccess(userId: string): Promise<boolean> {
   const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  return result.rows[0]?.role === 'admin'
+  return ['admin', 'super_admin'].includes(result.rows[0]?.role)
 }
 
 // =============================================================================
@@ -54,9 +54,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       SELECT
         COUNT(*) FILTER (WHERE sm.is_jort_amendment = true)       AS total_amendments,
         COUNT(DISTINCT sm.amended_code_slug) FILTER (WHERE sm.is_jort_amendment = true) AS codes_covered,
-        COUNT(*) FILTER (WHERE kb.metadata->>'sourceOrigin' = 'iort_gov_tn' AND kb.is_indexed = true) AS total_iort_docs,
+        COUNT(*) FILTER (WHERE (
+          kb.metadata->>'sourceOrigin' = 'iort_gov_tn'
+          OR kb.metadata->>'sourceName' ILIKE '%9anoun%'
+          OR kb.title ILIKE '%الرائد الرسمي%'
+          OR kb.title ILIKE '%جريدة رسمية%'
+        ) AND kb.is_indexed = true) AS total_iort_docs,
         COUNT(*) FILTER (
-          WHERE kb.metadata->>'sourceOrigin' = 'iort_gov_tn'
+          WHERE (
+            kb.metadata->>'sourceOrigin' = 'iort_gov_tn'
+            OR kb.metadata->>'sourceName' ILIKE '%9anoun%'
+            OR kb.title ILIKE '%الرائد الرسمي%'
+            OR kb.title ILIKE '%جريدة رسمية%'
+          )
             AND kb.is_indexed = true
             AND kb.jort_amendments_extracted_at IS NULL
         ) AS pending_extraction
@@ -168,11 +178,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const batchSize = Math.min(parseInt(body.batchSize ?? '10', 10), 50)
     const dryRun = body.dryRun === true
 
-    // Récupérer les JORT non traités
+    // Récupérer les JORT non traités (sourceOrigin iort_gov_tn OU 9anoun.tn JORT)
     const pendingResult = await db.query(
       `SELECT id, title
        FROM knowledge_base
-       WHERE metadata->>'sourceOrigin' = 'iort_gov_tn'
+       WHERE (
+         metadata->>'sourceOrigin' = 'iort_gov_tn'
+         OR metadata->>'sourceName' ILIKE '%9anoun%'
+         OR title ILIKE '%الرائد الرسمي%'
+         OR title ILIKE '%جريدة رسمية%'
+       )
          AND is_indexed = true
          AND is_active = true
          AND jort_amendments_extracted_at IS NULL
