@@ -21,6 +21,7 @@ interface NavItem {
   icon: keyof typeof Icons
   badge?: number
   badgeVariant?: 'default' | 'destructive' | 'secondary'
+  superAdminOnly?: boolean
 }
 
 interface NavGroup {
@@ -36,6 +37,7 @@ interface SuperAdminSidebarProps {
   onToggleCollapse?: () => void
   isMobileOpen?: boolean
   onCloseMobile?: () => void
+  userRole?: string
 }
 
 // Navigation Super Admin - 5 groupes, 23 items (26 initial - 3 doublons/docs)
@@ -96,7 +98,7 @@ const getNavGroups = (
     items: [
       { href: '/super-admin/feedbacks', label: 'Feedbacks', icon: 'messageSquare' },
       { href: '/super-admin/evaluation', label: 'Évaluation RAG', icon: 'checkCircle' },
-      { href: '/super-admin/compare-llm', label: 'Comparer LLMs', icon: 'columns' },
+      { href: '/super-admin/compare-llm', label: 'Comparer LLMs', icon: 'columns', superAdminOnly: true },
       { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
       { href: '/super-admin/classification', label: 'Classification', icon: 'tag' },
       { href: '/super-admin/notifications', label: 'Notifications', icon: 'bell' },
@@ -189,9 +191,11 @@ function SuperAdminSidebarComponent({
   onToggleCollapse,
   isMobileOpen = false,
   onCloseMobile,
+  userRole,
 }: SuperAdminSidebarProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const isSuperAdmin = userRole === 'super_admin'
 
   const isActive = useCallback(
     (href: string) => {
@@ -222,12 +226,14 @@ function SuperAdminSidebarComponent({
   const groupsWithState = useMemo(() => {
     return navGroups.map((group) => ({
       ...group,
-      items: group.items.map((item) => ({
-        ...item,
-        isActive: isActive(item.href),
-      })),
+      items: group.items
+        .filter((item) => !item.superAdminOnly || isSuperAdmin)
+        .map((item) => ({
+          ...item,
+          isActive: isActive(item.href),
+        })),
     }))
-  }, [isActive, navGroups])
+  }, [isActive, navGroups, isSuperAdmin])
 
   const ToggleIcon = isCollapsed ? Icons.panelLeftOpen : Icons.panelLeftClose
 

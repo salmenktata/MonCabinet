@@ -12,6 +12,7 @@ interface SuperAdminLayoutProps {
     email: string
     nom?: string
     prenom?: string
+    role?: string
   }
   pendingCount?: number
   pendingTaxonomySuggestions?: number
@@ -45,6 +46,7 @@ export function SuperAdminLayout({
           onToggleCollapse={toggle}
           isMobileOpen={isMobileOpen}
           onCloseMobile={closeMobile}
+          userRole={user.role}
         />
       </Suspense>
 

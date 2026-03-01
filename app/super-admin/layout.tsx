@@ -71,6 +71,7 @@ export default async function SuperAdminRootLayout({
           email: user.email,
           nom: user.nom,
           prenom: user.prenom,
+          role: user.role,
         }}
         pendingCount={pendingCount}
         pendingTaxonomySuggestions={pendingTaxonomySuggestions}

@@ -35,9 +35,9 @@ interface ProviderResult {
 // =============================================================================
 
 export async function POST(request: NextRequest) {
-  // Auth : session admin uniquement
+  // Auth : session super_admin uniquement
   const session = await getSession()
-  if (!session?.user?.id || (session.user.role !== 'admin' && session.user.role !== 'super_admin')) {
+  if (!session?.user?.id || session.user.role !== 'super_admin') {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
