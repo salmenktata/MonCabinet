@@ -209,7 +209,7 @@ export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) 
                                 <div>
                                   <span className="text-slate-500">Dernier crawl : </span>
                                   <span className="text-slate-300">
-                                    {new Date(code.last_crawl_at).toLocaleString('fr-FR')}
+                                    {new Date(code.last_crawl_at).toLocaleString('fr-FR', { timeZone: 'Africa/Tunis' })}
                                   </span>
                                 </div>
                               )}

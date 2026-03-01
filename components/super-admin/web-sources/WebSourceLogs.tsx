@@ -47,7 +47,7 @@ export function WebSourceLogs({ logs }: WebSourceLogsProps) {
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-slate-300">
-                {new Date(log.started_at).toLocaleString('fr-FR')}
+                {new Date(log.started_at).toLocaleString('fr-FR', { timeZone: 'Africa/Tunis' })}
               </span>
               <Badge className={statusColors[log.status] || statusColors.running}>
                 {log.status === 'completed' ? 'Terminé' :
