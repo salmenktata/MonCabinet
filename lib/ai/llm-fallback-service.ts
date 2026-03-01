@@ -773,7 +773,12 @@ export async function callLLMWithFallback(
     try {
       const response = await callProvider(provider, messages, options)
       recordProviderSuccess(provider)
-      // Tracking daily Groq (fire-and-forget — ne bloque pas la réponse)
+      // Tracking daily usage (fire-and-forget — ne bloque pas la réponse)
+      if (provider === 'deepseek' && response.tokensUsed) {
+        import('./deepseek-usage-tracker').then(({ trackDeepSeekUsage }) =>
+          trackDeepSeekUsage(response.modelUsed || 'unknown', response.tokensUsed.input, response.tokensUsed.output)
+        ).catch(() => {/* silencieux */})
+      }
       if (provider === 'groq' && response.tokensUsed) {
         import('./groq-usage-tracker').then(({ trackGroqUsage }) =>
           trackGroqUsage(response.modelUsed || 'unknown', response.tokensUsed.input, response.tokensUsed.output)

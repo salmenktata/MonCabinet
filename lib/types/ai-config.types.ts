@@ -129,9 +129,9 @@ export const OPERATION_LABELS: Record<OperationName, { fr: string; ar: string }>
     fr: 'Évaluation RAG',
     ar: 'تقييم RAG',
   },
-  'compare-gemini': {
-    fr: 'Comparer Gemini',
-    ar: 'مقارنة Gemini',
+  'compare-deepseek': {
+    fr: 'Comparer DeepSeek',
+    ar: 'مقارنة DeepSeek',
   },
   'compare-openai': {
     fr: 'Comparer OpenAI',
@@ -150,14 +150,14 @@ export const OPERATION_DESCRIPTIONS: Record<OperationName, string> = {
   'assistant-ia': 'Chat utilisateur en temps réel avec recherche RAG (performance critique)',
   'indexation': 'Indexation documents KB en batch (background processing)',
   'dossiers-assistant': 'Analyse approfondie de dossiers juridiques (qualité prioritaire)',
-  'dossiers-structuration': 'Structuration narratif → JSON structuré (Groq, temps réel)',
+  'dossiers-structuration': 'Structuration narratif → JSON structuré (DeepSeek, temps réel)',
   'dossiers-consultation': 'Génération de consultation juridique formelle IRAC',
   'kb-quality-analysis': 'Analyse qualité documents KB (OpenAI gpt-4o-mini)',
   'query-classification': 'Classification automatique de la requête utilisateur',
   'query-expansion': 'Reformulation et expansion de requêtes courtes',
   'document-consolidation': 'Consolidation documents multi-pages en documents juridiques unifiés',
   'rag-eval-judge': 'LLM judge pour évaluer la fidélité des réponses RAG',
-  'compare-gemini': 'Test comparaison providers - Gemini 2.5 Flash',
+  'compare-deepseek': 'Test comparaison providers - DeepSeek deepseek-chat (provider prod)',
   'compare-openai': 'Test comparaison providers - OpenAI GPT-4o',
   'compare-ollama': 'Test comparaison providers - Ollama qwen3:8b',
 }

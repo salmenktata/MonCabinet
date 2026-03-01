@@ -4,7 +4,7 @@
  * POST /api/admin/compare-llm
  *   Body: { question: string }
  *
- * Appelle answerQuestion en parallèle avec Gemini, OpenAI et Ollama,
+ * Appelle answerQuestion en parallèle avec DeepSeek (prod), OpenAI et Ollama,
  * et retourne les 3 réponses avec latence et métadonnées.
  *
  * @module app/api/admin/compare-llm/route
@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
   const userId = `compare-admin-${session.user.id}`
 
   // Appels en parallèle aux 3 providers
-  const [geminiResult, openaiResult, ollamaResult] = await Promise.allSettled([
-    callProvider('compare-gemini', question, userId),
+  const [deepseekResult, openaiResult, ollamaResult] = await Promise.allSettled([
+    callProvider('compare-deepseek', question, userId),
     callProvider('compare-openai', question, userId),
     callProvider('compare-ollama', question, userId),
   ])
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     success: true,
     question,
     results: {
-      gemini: settledToResult(geminiResult),
+      deepseek: settledToResult(deepseekResult),
       openai: settledToResult(openaiResult),
       ollama: settledToResult(ollamaResult),
     },
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 // =============================================================================
 
 async function callProvider(
-  operationName: 'compare-gemini' | 'compare-openai' | 'compare-ollama',
+  operationName: 'compare-deepseek' | 'compare-openai' | 'compare-ollama',
   question: string,
   userId: string
 ): Promise<ProviderResult> {

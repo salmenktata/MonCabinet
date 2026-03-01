@@ -11,11 +11,11 @@
  * Réponse:
  * {
  *   "operations": [
- *     { "name": "assistant-ia", "label": "Assistant IA", "provider": "gemini", "model": "gemini-2.5-flash", ... },
+ *     { "name": "assistant-ia", "label": "Assistant IA", "provider": "groq", "model": "llama-3.3-70b-versatile", ... },
  *     ...
  *   ],
- *   "activeProviders": ["gemini", "openai", "groq", "ollama"],
- *   "inactiveProviders": ["deepseek", "anthropic"],
+ *   "activeProviders": ["openai", "groq", "ollama", "deepseek"],
+ *   "inactiveProviders": ["gemini", "anthropic"],
  *   "mode": "no-fallback",
  *   "env": "production"
  * }
@@ -37,26 +37,26 @@ const OPERATION_LABELS: Record<OperationName, string> = {
   'query-expansion': 'Expansion Requête',
   'document-consolidation': 'Consolidation Documents',
   'rag-eval-judge': 'Eval RAG Judge',
-  'compare-gemini': 'Comparer Gemini',
+  'compare-deepseek': 'Comparer DeepSeek',
   'compare-openai': 'Comparer OpenAI',
   'compare-ollama': 'Comparer Ollama',
 }
 
-// Coût estimé par opération (en prod)
+// Coût estimé par opération (en prod — tarifs DeepSeek vérifiés mars 2026)
 const COST_ESTIMATES: Record<OperationName, string> = {
-  'indexation': '~$2-5/mois (embeddings)',
-  'assistant-ia': 'Gratuit',
-  'dossiers-assistant': 'Gratuit',
-  'dossiers-structuration': 'Gratuit',
-  'dossiers-consultation': 'Gratuit',
-  'kb-quality-analysis': '~$3/mois',
-  'query-classification': 'Gratuit',
-  'query-expansion': 'Gratuit',
-  'document-consolidation': 'Gratuit',
-  'rag-eval-judge': 'Gratuit',
-  'compare-gemini': 'Gratuit',
-  'compare-openai': '~$0.03/requête',
-  'compare-ollama': 'Gratuit',
+  'indexation': '~$2-5/mois (OpenAI embeddings)',
+  'assistant-ia': '~$0.028/M tokens (DeepSeek cache hit)',
+  'dossiers-assistant': '~$0.028/M tokens (DeepSeek cache hit)',
+  'dossiers-structuration': '~$0.028/M tokens (DeepSeek cache hit)',
+  'dossiers-consultation': '~$0.028/M tokens (DeepSeek cache hit)',
+  'kb-quality-analysis': 'Gratuit (Ollama local)',
+  'query-classification': 'Gratuit (Ollama local)',
+  'query-expansion': 'Gratuit (Ollama local)',
+  'document-consolidation': '~$0.028/M tokens (DeepSeek cache hit)',
+  'rag-eval-judge': '~$0.028/M tokens (DeepSeek cache hit)',
+  'compare-deepseek': '~$0.028/M tokens (DeepSeek cache hit)',
+  'compare-openai': '~$0.03/requête (OpenAI GPT-4o)',
+  'compare-ollama': 'Gratuit (Ollama local)',
 }
 
 // Tous les providers connus

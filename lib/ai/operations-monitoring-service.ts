@@ -186,27 +186,28 @@ export function getAllOperationsStats(timeWindowHours: number = 24): OperationSt
 /**
  * Estime le coût en euros pour un nombre de tokens donné
  *
- * Prix approximatifs (février 2026) :
- * - Groq : Gratuit
- * - Gemini : Gratuit (sous quota)
- * - DeepSeek : ~$0.14/M tokens ($0.00000014/token)
+ * Prix approximatifs (mars 2026) :
+ * - Groq : Gratuit (free tier 100K tok/j 70b, 500K tok/j 8b)
+ * - DeepSeek : ~$0.028/M tokens input cache hit ($0.00000003/token)
  * - Anthropic : ~$3/M tokens ($0.000003/token)
  * - OpenAI : ~$0.02/M tokens embeddings ($0.00000002/token)
+ * - Ollama : Gratuit (local VPS)
+ * - Gemini : NON UTILISÉ depuis Mar 1 2026
  */
 function estimateCost(tokens: number, operationName: OperationName): number {
   // Prix moyens par opération (basé sur les providers configurés)
   const pricePerToken: Record<OperationName, number> = {
-    'indexation': 0, // Ollama uniquement (gratuit)
-    'assistant-ia': 0, // Groq gratuit
-    'dossiers-assistant': 0.00000002, // OpenAI embeddings seulement (~$0.02/1M tokens)
-    'dossiers-structuration': 0, // Groq gratuit
-    'dossiers-consultation': 0.00000002, // OpenAI embeddings seulement
-    'kb-quality-analysis': 0, // Gemini gratuit
-    'query-classification': 0, // Groq gratuit
-    'query-expansion': 0, // Groq gratuit
-    'document-consolidation': 0, // Gemini gratuit
-    'rag-eval-judge': 0, // Groq gratuit
-    'compare-gemini': 0, // Gemini gratuit
+    'indexation': 0.00000002, // OpenAI embeddings text-embedding-3-small (~$0.02/1M tokens)
+    'assistant-ia': 0.000000028, // DeepSeek cache hit ($0.028/M input)
+    'dossiers-assistant': 0.000000028, // DeepSeek cache hit ($0.028/M input)
+    'dossiers-structuration': 0.000000028, // DeepSeek cache hit ($0.028/M input)
+    'dossiers-consultation': 0.00000003, // DeepSeek cache hit
+    'kb-quality-analysis': 0, // Ollama local gratuit
+    'query-classification': 0, // Ollama local gratuit
+    'query-expansion': 0, // Ollama local gratuit
+    'document-consolidation': 0.00000003, // DeepSeek cache hit (~$0.028/M input)
+    'rag-eval-judge': 0.00000003, // DeepSeek cache hit
+    'compare-deepseek': 0.000000028, // DeepSeek cache hit ($0.028/M input)
     'compare-openai': 0.000015, // OpenAI gpt-4o ~$15/1M tokens
     'compare-ollama': 0, // Ollama local gratuit
   }

@@ -128,7 +128,6 @@ function TabVueGlobale() {
 ┌─────────────────────────────────────────────────────────┐
 │  7. GÉNÉRATION LLM                                       │
 │     ├─ Groq  llama-3.3-70b-versatile  (streaming)      │
-│     ├─ Fallback → Gemini → DeepSeek → Ollama            │
 │     └─ Timeout wrapper  44s → HTTP 504                  │
 └─────────────────────────────────────────────────────────┘
     │

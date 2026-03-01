@@ -23,18 +23,18 @@ interface ProviderResult {
 }
 
 interface CompareResults {
-  gemini: ProviderResult
+  deepseek: ProviderResult
   openai: ProviderResult
   ollama: ProviderResult
 }
 
 const PROVIDERS = [
   {
-    key: 'gemini' as const,
-    label: 'Gemini',
-    model: 'gemini-2.5-flash',
-    color: 'text-blue-700 bg-blue-50 border-blue-200',
-    badge: 'bg-blue-100 text-blue-800',
+    key: 'deepseek' as const,
+    label: 'DeepSeek (prod)',
+    model: 'deepseek-chat',
+    color: 'text-purple-700 bg-purple-50 border-purple-200',
+    badge: 'bg-purple-100 text-purple-800',
   },
   {
     key: 'openai' as const,
@@ -109,7 +109,7 @@ export function CompareLLMClient() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Comparaison LLM</h1>
         <p className="text-muted-foreground mt-1">
-          Testez la même question en parallèle sur Gemini, OpenAI et Ollama avec le pipeline RAG complet.
+          Testez la même question en parallèle sur Groq (prod), OpenAI et Ollama avec le pipeline RAG complet.
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export function CompareLLMClient() {
         <CardHeader>
           <CardTitle>Question juridique</CardTitle>
           <CardDescription>
-            Le pipeline RAG complet (embeddings + BM25 + reranking) sera exécuté pour chaque provider.
+            Le pipeline RAG complet (embeddings + BM25 + reranking) sera exécuté pour DeepSeek (prod), OpenAI et Ollama.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

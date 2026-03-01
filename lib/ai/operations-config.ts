@@ -4,7 +4,7 @@
  * Chaque opération utilise UN SEUL modèle fixe (pas de cascade).
  * Si le provider échoue → throw + alerte email (pas de dégradation silencieuse).
  *
- * Configuration définitive RAG Haute Qualité (Février 2026)
+ * Configuration définitive RAG Haute Qualité (Mars 2026 — zéro Groq)
  */
 
 import type { LLMProvider } from './llm-fallback-service'
@@ -27,7 +27,7 @@ export type OperationName =
   | 'query-expansion'
   | 'document-consolidation'
   | 'rag-eval-judge'
-  | 'compare-gemini'
+  | 'compare-deepseek'
   | 'compare-openai'
   | 'compare-ollama'
 
@@ -86,28 +86,24 @@ const isDev = process.env.NODE_ENV === 'development'
 /**
  * Configuration centralisée - 1 modèle fixe par opération, 0 fallback
  *
- * Migration Feb 25, 2026 : Ollama (latence 10-60s) → Groq tiered + Ollama batch
- * Stratégie coût minimal : modèle 70b pour qualité, 8b pour tâches simples (12× moins cher, quota indépendant)
+ * Migration Mar 1, 2026 : Gemini → Groq (économie €84/mois GCP)
+ * Migration Mar 6, 2026 : Groq → DeepSeek + Ollama (Groq TAAS facturait $39.85 en 6 jours)
+ * Stratégie coût minimal : DeepSeek pour LLM chat (cache hit $0.028/M in, $0.42/M out), Ollama pour tâches locales
  *
- * Free tier Groq (source : console.groq.com/docs/rate-limits, vérifié fév 2026) :
- *   70b : 100K tokens/jour, 1K req/jour, 30 RPM, 12K TPM
- *   8b  : 500K tokens/jour, 14.4K req/jour, 30 RPM, 6K TPM
- *
- * | Opération              | Provider  | Modèle                    | Free tier            | Coût payant     | Contexte |
- * |------------------------|-----------|---------------------------|----------------------|-----------------|----------|
- * | Assistant IA (chat)    | Groq      | llama-3.3-70b-versatile   | 100K tok/j, 1K req/j | $0.59/$0.79/M   | 128K     |
- * | Structuration dossier  | Groq      | llama-3.3-70b-versatile   | même quota 70b       | $0.59/$0.79/M   | 128K     |
- * | Dossiers Assistant     | DeepSeek  | deepseek-chat             | illimité             | $0.028/$0.42/M* | 128K     |
- * | Consultations IRAC     | DeepSeek  | deepseek-chat             | illimité             | $0.028/$0.42/M* | 128K     |
- * | KB Quality Analysis    | Ollama    | qwen3:8b                  | illimité local       | $0              | 128K     |
- * | Query Classification   | Groq      | llama-3.1-8b-instant      | 500K tok/j†          | $0.05/$0.08/M   | 128K     |
- * | Query Expansion        | Groq      | llama-3.1-8b-instant      | même quota†          | $0.05/$0.08/M   | 128K     |
- * | Consolidation docs     | DeepSeek  | deepseek-chat             | illimité             | $0.028/$0.42/M* | 128K     |
- * | RAG Eval Judge         | Groq      | llama-3.1-8b-instant      | même quota†          | $0.05/$0.08/M   | 128K     |
- * | Embeddings (tout)      | OpenAI    | text-embedding-3-small    | —                    | $0.02/M         | —        |
- * | Re-ranking             | Local     | ms-marco-MiniLM-L-6-v2    | illimité local       | $0              | —        |
- * (* DeepSeek cache hit sur system prompt stable — input = $0.028/M, cache miss = $0.28/M)
- * († quota partagé entre classification, expansion et rag-eval-judge = même modèle 8b)
+ * | Opération              | Provider  | Modèle                    | Coût              | Contexte |
+ * |------------------------|-----------|---------------------------|-------------------|----------|
+ * | Assistant IA (chat)    | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
+ * | Structuration dossier  | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
+ * | Dossiers Assistant     | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
+ * | Consultations IRAC     | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
+ * | KB Quality Analysis    | Ollama    | qwen3:8b                  | $0 (local)        | 128K     |
+ * | Query Classification   | Ollama    | qwen3:8b                  | $0 (local)        | 128K     |
+ * | Query Expansion        | Ollama    | qwen3:8b                  | $0 (local)        | 128K     |
+ * | Consolidation docs     | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
+ * | RAG Eval Judge         | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
+ * | Embeddings (tout)      | OpenAI    | text-embedding-3-small    | $0.02/M           | —        |
+ * | Re-ranking             | Jina v2   | jina-reranker-v2-base-multilingual | $0.002/1K | —     |
+ * (DeepSeek cache hit sur system prompt stable — input = $0.028/M, output = $0.42/M, cache miss = $0.28/M)
  */
 export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
@@ -141,15 +137,15 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 2. ASSISTANT IA (chat temps réel utilisateur)
   // ---------------------------------------------------------------------------
   'assistant-ia': {
-    model: { provider: 'gemini', name: 'gemini-2.5-flash' }, // Gemini : free tier 15 RPM, 1M tok/jour, multilingue AR/FR
+    model: { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/M (cache hit), multilingue AR/FR, 128K ctx
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
       : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
 
     timeouts: {
-      embedding: 8000,  // Augmenté 3s→8s (Mar 2026) : Ollama VPS peut prendre 8-10s
-      chat: 45000,  // Gemini free tier ~2-15s → marge 45s
+      embedding: 8000,
+      chat: 45000,  // DeepSeek ~1-8s → marge 45s
       total: 55000,
     },
 
@@ -160,7 +156,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Chat utilisateur temps réel - Gemini 2.0 Flash (free tier 15 RPM, 1M tok/jour, multilingue AR/FR)',
+    description: 'Chat utilisateur temps réel - DeepSeek deepseek-chat (cache hit $0.028/M in, $0.42/M out, multilingue AR/FR, 128K ctx)',
   },
 
   // ---------------------------------------------------------------------------
@@ -177,7 +173,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     timeouts: {
       embedding: 5000,
-      chat: 90000,  // DeepSeek plus lent que Gemini sur longs contextes
+      chat: 90000,  // DeepSeek ~3-10s sur longs contextes → marge 90s
       total: 105000,
     },
 
@@ -195,23 +191,21 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 3b. STRUCTURATION DOSSIER (narratif → JSON structuré, temps réel)
   // ---------------------------------------------------------------------------
   'dossiers-structuration': {
-    model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'gemini', name: 'gemini-2.5-flash' }, // Gemini : free tier, bon support JSON structuré
+    model: { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/M (cache hit), excellent support JSON, 128K ctx
 
     timeouts: {
-      chat: 60000,  // Gemini free tier, marge 60s pour JSON complexe
-      total: 75000,
+      chat: 45000,  // DeepSeek ~1-8s, marge pour JSON complexe
+      total: 60000,
     },
 
     llmConfig: {
       temperature: 0.3,
-      maxTokens: 6000, // Augmenté 4000→6000 : cas pénaux complexes (7 phases) peuvent dépasser 4000 tokens
+      maxTokens: 6000,
       systemPromptType: 'chat',
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Structuration narratif → JSON - Gemini 2.0 Flash (free tier, 1M ctx, JSON structuré)',
+    description: 'Structuration narratif → JSON - DeepSeek deepseek-chat (cache hit $0.028/M in, JSON structuré, 128K ctx)',
   },
 
   // ---------------------------------------------------------------------------
@@ -330,7 +324,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'rag-eval-judge': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : évite compétition Gemini (15 RPM) ET Ollama (saturé par indexation KB)
+      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : évite compétition quota Groq (100K tok/j 70b) ET Ollama (saturé par indexation KB)
 
     timeouts: {
       chat: 30000,  // DeepSeek rapide ~1-3s → marge 30s
@@ -343,21 +337,21 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'LLM judge fidélité réponse RAG - DeepSeek deepseek-chat (prod, ~$0.001/eval, quota indépendant de Gemini et Ollama)',
+    description: 'LLM judge fidélité réponse RAG - DeepSeek deepseek-chat (prod, ~$0.001/eval, quota indépendant de Groq et Ollama)',
   },
 
   // ---------------------------------------------------------------------------
   // 10. COMPARAISON PROVIDERS (test admin : même question, 3 providers)
   // ---------------------------------------------------------------------------
-  'compare-gemini': {
-    model: { provider: 'gemini', name: 'gemini-2.5-flash' },
+  'compare-deepseek': {
+    model: { provider: 'deepseek', name: 'deepseek-chat' },
     embeddings: isDev
       ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
       : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
     timeouts: { chat: 45000, total: 55000 },
     llmConfig: { temperature: 0.1, maxTokens: 2048 },
     alerts: { onFailure: 'log', severity: 'warning' },
-    description: 'Test comparaison providers - Gemini 2.5 Flash',
+    description: 'Test comparaison providers - DeepSeek deepseek-chat (provider prod)',
   },
 
   'compare-openai': {

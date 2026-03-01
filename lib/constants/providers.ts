@@ -26,26 +26,25 @@ export interface ProviderConfig {
 
 /**
  * Configuration complète de tous les providers
- * Mode no-fallback (Feb 2026) — 1 provider fixe par opération :
- * - Groq llama-3.3-70b   : assistant-ia (chat utilisateur)
- * - Groq llama-3.1-8b    : query-classification, query-expansion (routing, 12× moins cher)
- * - DeepSeek deepseek-chat: dossiers-assistant, dossiers-consultation, document-consolidation
- * - Ollama qwen3:8b      : indexation, kb-quality-analysis, rag-eval-judge (batch local gratuit)
+ * Mode no-fallback (Mar 2026) — 1 provider fixe par opération :
+ * - DeepSeek deepseek-chat: assistant-ia, dossiers-structuration, dossiers-assistant, dossiers-consultation, document-consolidation, rag-eval-judge
+ * - Ollama qwen3:8b      : indexation, kb-quality-analysis, query-classification, query-expansion (batch/routing local gratuit)
  * - OpenAI text-emb-3-sm : embeddings prod (1536-dim)
- * - Gemini text-emb-004  : embeddings secondaires (768-dim) — plus utilisé comme LLM
+ * - Groq               : NON UTILISÉ depuis Mar 6 2026 (TAAS facturait $39.85 en 6 jours)
+ * - Gemini             : NON UTILISÉ depuis Mar 1 2026 (migration LLM → Groq, économie €84/mois GCP)
  * La priorité ci-dessous = ordre d'affichage dans les tableaux admin uniquement.
  */
 export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
   groq: {
     id: 'groq',
-    name: 'Groq',
+    name: 'Groq (inactif)',
     icon: '⚡',
     color: 'yellow',
     colorClass: 'text-yellow-400 border-yellow-500',
-    priority: 1, // LLM principal : chat 70b + routing 8b
-    tier: 'free',
-    hasQuotas: true,
-    hasMonitoring: true,
+    priority: 5, // NON UTILISÉ depuis Mar 6 2026 — TAAS facturait $39.85 en 6 jours
+    tier: 'paid',
+    hasQuotas: false,
+    hasMonitoring: false,
   },
   deepseek: {
     id: 'deepseek',
@@ -53,7 +52,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     icon: '💜',
     color: 'purple',
     colorClass: 'text-purple-400 border-purple-500',
-    priority: 2, // Dossiers juridiques (cache hit $0.028/M)
+    priority: 1, // LLM principal depuis Mar 6 2026 : assistant-ia + dossiers-* (cache hit ~$0.007/M)
     tier: 'paid',
     hasQuotas: true,
     hasMonitoring: true,
@@ -64,7 +63,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     icon: '🦙',
     color: 'green',
     colorClass: 'text-green-400 border-green-500',
-    priority: 3, // Batch local gratuit (indexation, qualité, eval)
+    priority: 2, // Batch local gratuit (indexation, qualité, classif, expansion)
     tier: 'local',
     hasQuotas: true,
     hasMonitoring: true,
@@ -75,21 +74,21 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     icon: '🤖',
     color: 'cyan',
     colorClass: 'text-cyan-400 border-cyan-500',
-    priority: 4, // Embeddings prod (text-embedding-3-small, 1536-dim)
+    priority: 3, // Embeddings prod (text-embedding-3-small, 1536-dim)
     tier: 'paid',
     hasQuotas: true,
     hasMonitoring: true,
   },
   gemini: {
     id: 'gemini',
-    name: 'Gemini (Embeddings)',
+    name: 'Gemini (inactif)',
     icon: '✨',
     color: 'blue',
     colorClass: 'text-blue-400 border-blue-500',
-    priority: 5, // Embeddings secondaires uniquement (text-embedding-004, 768-dim)
+    priority: 6, // NON UTILISÉ depuis Mar 1 2026 — migré vers Groq puis DeepSeek (économie €84/mois GCP)
     tier: 'free',
-    hasQuotas: true,
-    hasMonitoring: true,
+    hasQuotas: false,
+    hasMonitoring: false,
   },
   anthropic: {
     id: 'anthropic',
@@ -139,12 +138,12 @@ export function isValidProvider(id: string): id is ProviderId {
  * Ordre de priorité pour mapping (legacy)
  */
 export const PROVIDER_PRIORITY: Record<string, number> = {
-  groq: 1,       // LLM principal (chat 70b + routing 8b)
-  deepseek: 2,   // Dossiers juridiques
-  ollama: 3,     // Batch local (indexation, qualité, eval)
-  openai: 4,     // Embeddings prod (1536-dim)
-  gemini: 5,     // Embeddings secondaires uniquement (768-dim)
-  anthropic: 6,  // Non utilisé en prod
+  deepseek: 1,   // LLM principal (assistant-ia + dossiers-*, Mar 2026)
+  ollama: 2,     // Batch local gratuit (indexation, qualité, classif, expansion)
+  openai: 3,     // Embeddings prod (1536-dim)
+  anthropic: 4,  // Non utilisé en prod
+  groq: 5,       // NON UTILISÉ depuis Mar 6 2026 (TAAS payant)
+  gemini: 6,     // NON UTILISÉ depuis Mar 1 2026
 }
 
 /**

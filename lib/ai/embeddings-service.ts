@@ -444,23 +444,14 @@ export async function generateEmbeddingsBatch(
   if (options?.forceGemini) return await generateEmbeddingsBatchWithGemini(texts)
   if (options?.forceOllama) return await generateEmbeddingsBatchWithOllama(texts)
 
-  // Fallback en cascade : OpenAI → Gemini → Ollama
-  if (provider === 'openai' || provider === 'gemini') {
+  // Fallback en cascade : OpenAI → Ollama (Gemini retiré Mar 2026 — économie €7/mois GCP)
+  if (provider === 'openai') {
     // Essai OpenAI en premier (production)
     if (aiConfig.openai.apiKey) {
       try {
         return await generateEmbeddingsBatchWithOpenAI(texts)
       } catch (error) {
-        logger.warn(`[Embeddings] OpenAI batch échoué, fallback Gemini: ${error instanceof Error ? error.message : error}`)
-      }
-    }
-
-    // Fallback Gemini
-    if (aiConfig.gemini.apiKey) {
-      try {
-        return await generateEmbeddingsBatchWithGemini(texts)
-      } catch (error) {
-        logger.warn(`[Embeddings] Gemini batch échoué, fallback Ollama: ${error instanceof Error ? error.message : error}`)
+        logger.warn(`[Embeddings] OpenAI batch échoué, fallback Ollama: ${error instanceof Error ? error.message : error}`)
       }
     }
   }

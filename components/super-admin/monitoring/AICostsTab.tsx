@@ -67,16 +67,33 @@ interface GroqStats {
   thresholds: { freeTier70bPerDay: number; alertThreshold70b: number }
 }
 
+interface DeepSeekStats {
+  stats: Array<{
+    date: string
+    totalCalls: number
+    byModel: Record<string, { calls: number; tokensIn: number; tokensOut: number; estimatedCostUsd: number }>
+  }>
+  totals: {
+    totalCalls: number
+    totalTokensIn: number
+    totalTokensOut: number
+    estimatedCostUsd: number
+  }
+  thresholds: { dailyCostAlertUsd: number; pricePerMTokenInCache: number; pricePerMTokenOut: number }
+}
+
 export function AICostsTab() {
   const [stats, setStats] = useState<CostsStats | null>(null)
   const [geminiCosts, setGeminiCosts] = useState<GeminiCosts | null>(null)
   const [groqStats, setGroqStats] = useState<GroqStats | null>(null)
+  const [deepseekStats, setDeepSeekStats] = useState<DeepSeekStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchCosts()
     fetchGeminiCosts()
     fetchGroqStats()
+    fetchDeepSeekStats()
   }, [])
 
   async function fetchCosts() {
@@ -114,6 +131,18 @@ export function AICostsTab() {
       }
     } catch (error) {
       console.error('Error fetching Groq stats:', error)
+    }
+  }
+
+  async function fetchDeepSeekStats() {
+    try {
+      const response = await fetch('/api/admin/monitoring/deepseek-stats')
+      const data = await response.json()
+      if (data.status === 'ok') {
+        setDeepSeekStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching DeepSeek stats:', error)
     }
   }
 
@@ -236,8 +265,8 @@ export function AICostsTab() {
       {geminiCosts && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-lg font-semibold">Coûts Gemini Embeddings (7 derniers jours)</h3>
-            <p className="text-sm text-muted-foreground">Tracking Redis — Embeddings uniquement (text-embedding-004, 768-dim) depuis migration Feb 25</p>
+            <h3 className="text-lg font-semibold">Suivi Gemini (7 derniers jours)</h3>
+            <p className="text-sm text-muted-foreground">Tracking Redis — Gemini non utilisé depuis Mar 1 2026 (migration LLM → Groq). LLM calls et embedding calls devraient être 0.</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-4">
@@ -255,8 +284,8 @@ export function AICostsTab() {
                 <CardTitle className="text-sm font-medium">Appels LLM Gemini (7j)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{geminiCosts.costs.totals.llmCalls}</div>
-                <p className="text-xs text-muted-foreground">Devrait être ~0 depuis migration Feb 25 (Gemini = embeddings uniquement)</p>
+                <div className={`text-2xl font-bold ${geminiCosts.costs.totals.llmCalls > 0 ? 'text-red-500' : 'text-green-500'}`}>{geminiCosts.costs.totals.llmCalls}</div>
+                <p className="text-xs text-muted-foreground">Doit être 0 depuis migration → Groq (Mar 1 2026)</p>
               </CardContent>
             </Card>
             <Card>
@@ -307,13 +336,99 @@ export function AICostsTab() {
         </div>
       )}
 
-      {/* Groq Usage (Redis tracking) */}
+      {/* DeepSeek Usage (Redis tracking) */}
+      {deepseekStats && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Usage DeepSeek (7 derniers jours)</h3>
+            <p className="text-sm text-muted-foreground">
+              Tracking Redis — deepseek-chat (assistant-ia + dossiers-*) · Cache hit : $0.028/M input, $0.42/M output
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Appels totaux (7j)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{deepseekStats.totals.totalCalls.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">deepseek-chat (assistant + dossiers)</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Tokens in (7j)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {((deepseekStats.totals.totalTokensIn) / 1000).toFixed(0)}K
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {(deepseekStats.totals.totalTokensOut / 1000).toFixed(0)}K out
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Coût estimé (7j)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${deepseekStats.totals.estimatedCostUsd > deepseekStats.thresholds.dailyCostAlertUsd * 7 ? 'text-orange-500' : 'text-green-500'}`}>
+                  ${deepseekStats.totals.estimatedCostUsd.toFixed(4)}
+                </div>
+                <p className="text-xs text-muted-foreground">{formatTND(deepseekStats.totals.estimatedCostUsd)} TND</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Seuil alerte/jour</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${deepseekStats.thresholds.dailyCostAlertUsd}</div>
+                <p className="text-xs text-muted-foreground">Alerte Redis si dépassé</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {deepseekStats.stats.some(d => d.totalCalls > 0) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Détail par jour</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {deepseekStats.stats.filter(d => d.totalCalls > 0).map((day) => {
+                    const dayModel = day.byModel['deepseek-chat']
+                    const dayTokens = dayModel ? dayModel.tokensIn + dayModel.tokensOut : 0
+                    const dayCost = dayModel?.estimatedCostUsd ?? 0
+                    return (
+                      <div key={day.date} className="flex items-center justify-between border-b pb-2 last:border-0">
+                        <span className="text-sm font-medium">{new Date(day.date).toLocaleDateString('fr-FR')}</span>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{day.totalCalls} appels</span>
+                          <span>{(dayTokens / 1000).toFixed(0)}K tokens</span>
+                          <Badge variant={dayCost > deepseekStats.thresholds.dailyCostAlertUsd ? 'destructive' : 'secondary'}>
+                            ${dayCost.toFixed(4)}
+                          </Badge>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Groq Usage (Redis tracking — inactif depuis Mar 6 2026) */}
       {groqStats && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-lg font-semibold">Usage Groq (7 derniers jours)</h3>
+            <h3 className="text-lg font-semibold">Usage Groq <span className="text-sm text-red-500 font-normal">(inactif depuis Mar 6 2026 — TAAS $39.85 en 6 jours)</span></h3>
             <p className="text-sm text-muted-foreground">
-              Tracking Redis — llama-3.3-70b (assistant-ia) + llama-3.1-8b (classif/expansion) · Free tier 70b : 14 400 req/jour
+              Tracking Redis — tous les appels doivent être 0. Groq remplacé par DeepSeek.
             </p>
           </div>
 
