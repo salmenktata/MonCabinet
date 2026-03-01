@@ -316,7 +316,8 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
 
   // Découper en chunks selon la catégorie KB
   // IORT : stratégie article-aware pour détecter "الفصل X" / "Article X" comme séparateurs
-  const chunkingStrategy = sourceOrigin === 'iort_gov_tn' ? 'article' : 'adaptive'
+  const chunkingStrategy = (sourceOrigin === 'iort_gov_tn' || ['codes', 'legislation', 'constitution'].includes(kbCategory))
+    ? 'article' : 'adaptive'
   const chunks = chunkText(normalizedText, {
     chunkSize: aiConfig.rag.chunkSize,
     overlap,

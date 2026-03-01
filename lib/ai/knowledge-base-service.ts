@@ -481,7 +481,8 @@ export async function indexKnowledgeDocument(
   const chunkConfig = getChunkConfig(category)
 
   // ✨ PHASE 3: Déterminer stratégie de chunking
-  const strategy = options.strategy || 'adaptive'
+  const strategy = options.strategy ||
+    (['codes', 'legislation', 'constitution'].includes(category) ? 'article' : 'adaptive')
 
   const chunkingOptions = {
     chunkSize: chunkConfig.size,

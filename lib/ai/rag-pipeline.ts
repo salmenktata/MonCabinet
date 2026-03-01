@@ -266,7 +266,9 @@ export async function answerQuestion(
     throw new Error('Chat IA désactivé (activer OLLAMA_ENABLED ou configurer GROQ_API_KEY)')
   }
 
-  const provider = getChatProvider()
+  const provider = options.operationName
+    ? getOperationProvider(options.operationName)
+    : getChatProvider()
   logger.addContext('provider', provider)
 
   // Métriques RAG
