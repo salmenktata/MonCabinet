@@ -127,7 +127,9 @@ function PipelineSourceCard({ source }: { source: SourcePipelineStats }) {
           <HealthBadge status={source.health_status} consecutiveFailures={source.consecutive_failures} size="sm" />
         </div>
         <div className="flex flex-wrap gap-1.5 mt-2">
-          <CategoryBadge category={source.category} />
+          {(source.categories || []).map((cat) => (
+            <CategoryBadge key={cat} category={cat} />
+          ))}
           {source.is_active ? (
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/10 text-green-400 border border-green-500/20">
               Actif

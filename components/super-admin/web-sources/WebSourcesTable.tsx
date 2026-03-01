@@ -408,9 +408,13 @@ export function WebSourcesTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={`${CATEGORY_COLORS[source.category] || CATEGORY_COLORS.autre} text-[11px]`}>
-                      {getCategoryLabel(source.category as WebSourceCategory, locale)}
-                    </Badge>
+                    <div className="flex flex-wrap gap-1">
+                      {(source.categories || []).map((cat) => (
+                        <Badge key={cat} className={`${CATEGORY_COLORS[cat] || CATEGORY_COLORS.autre} text-[11px]`}>
+                          {getCategoryLabel(cat as WebSourceCategory, locale)}
+                        </Badge>
+                      ))}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-0.5">

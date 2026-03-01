@@ -36,7 +36,7 @@ function webSourceToFormData(source: WebSource) {
     name: source.name,
     baseUrl: source.baseUrl,
     description: source.description || '',
-    category: source.category,
+    categories: source.categories || [],
     language: source.language,
     crawlFrequency: normalizeCrawlFrequency(source.crawlFrequency),
     maxDepth: source.maxDepth,

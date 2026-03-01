@@ -15,17 +15,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
+import { CATEGORY_COLORS, getCategoryLabel } from '@/lib/web-scraper/category-labels'
+import { useLocale } from 'next-intl'
 
 interface FormData {
   name: string
   baseUrl: string
   description: string
-  category: string
+  categories: string[]
   language: string
   crawlFrequency: string
   maxDepth: number
@@ -63,6 +67,7 @@ const FREQUENCIES = [
 
 export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWizardProps) {
   const router = useRouter()
+  const locale = useLocale() as 'fr' | 'ar'
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialData)
 
@@ -83,7 +88,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
       name: formData.name,
       baseUrl: formData.baseUrl,
       description: formData.description,
-      category: formData.category,
+      categories: formData.categories,
       language: formData.language,
       crawlFrequency: formData.crawlFrequency,
       maxDepth: formData.maxDepth,
@@ -129,7 +134,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
     }
   }
 
-  const isValid = formData.name && formData.baseUrl && formData.category
+  const isValid = formData.name && formData.baseUrl && formData.categories.length > 0
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -198,22 +203,33 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-300">Catégorie RAG *</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(v) => updateField('category', v)}
-                  >
-                    <SelectTrigger className="mt-1 bg-slate-900 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700">
-                      {CATEGORIES.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value} className="text-white">
-                          {cat.label}
-                        </SelectItem>
+                  <Label className="text-slate-300">Catégories RAG *</Label>
+                  <div className="mt-1 p-2 bg-slate-900 border border-slate-600 rounded-md max-h-44 overflow-y-auto space-y-1">
+                    {CATEGORIES.map((cat) => (
+                      <label key={cat.value} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-slate-800 cursor-pointer">
+                        <Checkbox
+                          checked={formData.categories.includes(cat.value)}
+                          onCheckedChange={(checked) => {
+                            const next = checked
+                              ? [...formData.categories, cat.value]
+                              : formData.categories.filter((c) => c !== cat.value)
+                            updateField('categories', next)
+                          }}
+                          className="border-slate-500"
+                        />
+                        <span className="text-sm text-slate-200">{cat.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {formData.categories.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {formData.categories.map((c) => (
+                        <Badge key={c} className={`${CATEGORY_COLORS[c] || CATEGORY_COLORS.autre} text-[10px]`}>
+                          {getCategoryLabel(c as Parameters<typeof getCategoryLabel>[0], locale)}
+                        </Badge>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
                 </div>
 
                 <div>

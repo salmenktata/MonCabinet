@@ -50,7 +50,7 @@ export async function listWebSources(options: {
   let paramIndex = 1
 
   if (category) {
-    whereClause += ` AND category = $${paramIndex++}`
+    whereClause += ` AND $${paramIndex++} = ANY(categories)`
     params.push(category)
   }
 
@@ -154,7 +154,7 @@ export async function createWebSource(
 
   const result = await db.query(
     `INSERT INTO web_sources (
-      name, base_url, description, category, language, priority,
+      name, base_url, description, categories, language, priority,
       crawl_frequency, max_depth, max_pages, requires_javascript,
       css_selectors, url_patterns, excluded_patterns,
       sitemap_url, rss_feed_url, use_sitemap, download_files,
@@ -175,7 +175,7 @@ export async function createWebSource(
       input.name,
       normalizedUrl,
       input.description || null,
-      input.category,
+      input.categories,
       input.language || 'fr',
       input.priority || 5,
       input.crawlFrequency || '24 hours',
@@ -231,9 +231,9 @@ export async function updateWebSource(
     params.push(input.description)
   }
 
-  if (input.category !== undefined) {
-    setClauses.push(`category = $${paramIndex++}`)
-    params.push(input.category)
+  if (input.categories !== undefined) {
+    setClauses.push(`categories = $${paramIndex++}`)
+    params.push(input.categories)
   }
 
   if (input.language !== undefined) {
@@ -734,7 +734,7 @@ export async function getWebSourcesListData(params: {
   let paramIndex = 1
 
   if (params.category) {
-    whereClause += ` AND ws.category = $${paramIndex++}`
+    whereClause += ` AND $${paramIndex++} = ANY(ws.categories)`
     queryParams.push(params.category)
   }
 
@@ -783,7 +783,7 @@ export async function getWebSourcesListData(params: {
       ws.name,
       ws.base_url,
       ws.description,
-      ws.category,
+      ws.categories,
       ws.language,
       ws.priority,
       ws.is_active,
@@ -894,7 +894,7 @@ export async function getWebSourcesListData(params: {
     name: string
     base_url: string
     description: string | null
-    category: string
+    categories: string[]
     language: string
     priority: number
     is_active: boolean
@@ -921,7 +921,7 @@ export async function getWebSourcesListData(params: {
     name: source.name as string,
     base_url: source.base_url as string,
     description: source.description as string | null,
-    category: source.category as string,
+    categories: (source.categories as string[]) || [],
     language: source.language as string,
     priority: source.priority as number,
     is_active: source.is_active as boolean,
@@ -971,7 +971,7 @@ function mapRowToWebSource(row: Record<string, unknown>): WebSource {
     baseUrl: row.base_url as string,
     description: row.description as string | null,
     faviconUrl: row.favicon_url as string | null,
-    category: row.category as WebSource['category'],
+    categories: (row.categories as WebSource['categories']) || [],
     language: row.language as WebSource['language'],
     priority: row.priority as number,
     crawlFrequency: stringifyInterval(row.crawl_frequency),

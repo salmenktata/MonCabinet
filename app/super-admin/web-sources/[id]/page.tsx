@@ -225,7 +225,9 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
             <div className="flex items-center gap-2 flex-wrap">
               <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${healthDotColor[source.health_status]}`} />
               <h1 className="text-xl font-bold text-white">{source.name}</h1>
-              <CategoryBadge category={source.category} />
+              {(source.categories || []).map((cat: string) => (
+                <CategoryBadge key={cat} category={cat} />
+              ))}
               {!source.is_active && (
                 <Badge variant="outline" className="border-slate-600 text-slate-400 text-xs">
                   Inactive

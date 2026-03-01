@@ -15,7 +15,7 @@ export interface WebSourceListItem {
   name: string
   base_url: string
   description: string | null
-  category: string
+  categories: string[]
   language: string
   priority: number
   is_active: boolean

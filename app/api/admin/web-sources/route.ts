@@ -113,10 +113,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log('[DEBUG] POST /api/admin/web-sources - Body reçu:', JSON.stringify(body, null, 2))
 
     // Validation
-    if (!body.name || !body.baseUrl || !body.category) {
-      console.log('[DEBUG] Validation échouée - champs manquants:', { name: body.name, baseUrl: body.baseUrl, category: body.category })
+    if (!body.name || !body.baseUrl || !body.categories) {
+      console.log('[DEBUG] Validation échouée - champs manquants:', { name: body.name, baseUrl: body.baseUrl, categories: body.categories })
       return NextResponse.json(
-        { error: 'Nom, URL de base et catégorie requis' },
+        { error: 'Nom, URL de base et catégories requises' },
         { status: 400 }
       )
     }
@@ -140,21 +140,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       'modeles', 'procedures', 'formulaires',
       'guides', 'lexique', 'google_drive', 'autre'
     ]
-    if (!validCategories.includes(body.category)) {
-      console.log('[DEBUG] Catégorie invalide:', body.category)
+    const categories: WebSourceCategory[] = Array.isArray(body.categories) ? body.categories : [body.categories]
+    if (categories.length === 0) {
       return NextResponse.json(
-        { error: `Catégorie invalide. Valeurs acceptées: ${validCategories.join(', ')}` },
+        { error: 'Au moins une catégorie est requise' },
+        { status: 400 }
+      )
+    }
+    const invalidCat = categories.find((c: string) => !validCategories.includes(c as WebSourceCategory))
+    if (invalidCat) {
+      console.log('[DEBUG] Catégorie invalide:', invalidCat)
+      return NextResponse.json(
+        { error: `Catégorie invalide: "${invalidCat}". Valeurs acceptées: ${validCategories.join(', ')}` },
         { status: 400 }
       )
     }
 
-    console.log('[DEBUG] Validation OK - Création de la source avec input:', { name: body.name, baseUrl: body.baseUrl, category: body.category, driveConfig: body.driveConfig })
+    console.log('[DEBUG] Validation OK - Création de la source avec input:', { name: body.name, baseUrl: body.baseUrl, categories, driveConfig: body.driveConfig })
 
     const input: CreateWebSourceInput = {
       name: body.name,
       baseUrl: body.baseUrl,
       description: body.description,
-      category: body.category,
+      categories,
       language: body.language || 'fr',
       priority: body.priority || 5,
       crawlFrequency: body.crawlFrequency || '24 hours',

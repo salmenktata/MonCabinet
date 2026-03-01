@@ -127,7 +127,7 @@ export async function PUT(
     if (body.name !== undefined) input.name = body.name
     if (body.baseUrl !== undefined) input.baseUrl = body.baseUrl
     if (body.description !== undefined) input.description = body.description
-    if (body.category !== undefined) input.category = body.category
+    if (body.categories !== undefined) input.categories = body.categories
     if (body.language !== undefined) input.language = body.language
     if (body.priority !== undefined) input.priority = body.priority
     if (body.crawlFrequency !== undefined) input.crawlFrequency = body.crawlFrequency

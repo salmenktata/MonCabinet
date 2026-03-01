@@ -58,10 +58,10 @@ export async function reindexLongDocuments(
 
     // Récupérer la catégorie réelle de la web_source (pas 'google_drive' hardcodé)
     const sourceResult = await db.query(
-      `SELECT category FROM web_sources WHERE id = $1`,
+      `SELECT categories FROM web_sources WHERE id = $1`,
       [sourceId]
     )
-    const sourceCategory: string = sourceResult.rows[0]?.category ?? 'autre'
+    const sourceCategory: string = (sourceResult.rows[0]?.categories?.[0]) ?? 'autre'
 
     for (const page of pages) {
       result.processed++

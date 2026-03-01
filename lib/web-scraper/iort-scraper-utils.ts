@@ -1224,7 +1224,7 @@ export async function getOrCreateIortSource(): Promise<string> {
       name: 'IORT - Journal Officiel de la République Tunisienne',
       baseUrl: IORT_BASE_URL,
       description: 'Site officiel de l\'Imprimerie Officielle (IORT) - Journal Officiel (JORT). 204,775 textes depuis 1956.',
-      category: 'jort',
+      categories: ['jort'],
       language: 'ar',
       priority: 9,
       requiresJavascript: true,

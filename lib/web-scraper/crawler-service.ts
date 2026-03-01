@@ -655,7 +655,7 @@ async function processPage(
 
       // Auto-indexation si activée
       if (sourceAutoIndex && newlyDownloaded.length > 0) {
-        const sourceCategory = s.category || 'autre'
+        const sourceCategory = (s.categories && s.categories.length > 0 ? s.categories[0] : s.category) || 'autre'
         const sName = s.name || 'Unknown'
         await autoIndexFilesForPage(existingPage.id, newlyDownloaded, sourceId, sName, sourceCategory)
       }
@@ -708,7 +708,7 @@ async function processPage(
   // Auto-indexation des fichiers si activée (D3)
   const sourceAutoIndex = s.autoIndexFiles ?? s.auto_index_files ?? false
   if (sourceAutoIndex && savedPageId && downloadedFiles.length > 0) {
-    const sourceCategory = s.category || 'autre'
+    const sourceCategory = (s.categories && s.categories.length > 0 ? s.categories[0] : s.category) || 'autre'
     const sName = s.name || 'Unknown'
     await autoIndexFilesForPage(savedPageId, downloadedFiles, sourceId, sName, sourceCategory)
   }
@@ -1321,7 +1321,7 @@ export async function scrapeUrlList(
   const sourceRateLimit = s.rateLimitMs ?? s.rate_limit_ms ?? 1000
   const sourceDownloadFiles = options.downloadFiles ?? (s.downloadFiles ?? s.download_files ?? false)
   const sourceAutoIndex = options.indexAfterScrape ?? (s.autoIndexFiles ?? s.auto_index_files ?? false)
-  const sourceCategory = s.category || 'autre'
+  const sourceCategory = (s.categories && s.categories.length > 0 ? s.categories[0] : s.category) || 'autre'
 
   const {
     concurrency = 5,

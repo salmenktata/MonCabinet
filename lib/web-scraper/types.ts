@@ -171,7 +171,7 @@ export interface WebSource {
   faviconUrl: string | null
 
   // Classification
-  category: WebSourceCategory
+  categories: WebSourceCategory[]
   language: WebSourceLanguage
   priority: number
 
@@ -505,7 +505,7 @@ export interface CreateWebSourceInput {
   name: string
   baseUrl: string
   description?: string
-  category: WebSourceCategory
+  categories: WebSourceCategory[]
   language?: WebSourceLanguage
   priority?: number
   crawlFrequency?: string
@@ -542,7 +542,7 @@ export interface UpdateWebSourceInput {
   name?: string
   baseUrl?: string
   description?: string
-  category?: WebSourceCategory
+  categories?: WebSourceCategory[]
   language?: WebSourceLanguage
   priority?: number
   crawlFrequency?: string

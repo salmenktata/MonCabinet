@@ -115,7 +115,7 @@ async function getRulesData(webSourceId: string) {
       id: source.id,
       name: source.name,
       baseUrl: source.base_url,
-      category: source.category,
+      categories: source.categories,
     },
     rules,
     globalRules,

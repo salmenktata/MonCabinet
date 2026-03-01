@@ -19,7 +19,7 @@ export interface SourcePipelineStats {
   id: string
   name: string
   base_url: string
-  category: string
+  categories: string[]
   language: string
   is_active: boolean
   rag_enabled: boolean
@@ -73,7 +73,7 @@ export const GET = withAdminApiAuth(async (request: NextRequest) => {
   let paramIdx = 1
 
   if (category) {
-    conditions.push(`ws.category = $${paramIdx++}`)
+    conditions.push(`$${paramIdx++} = ANY(ws.categories)`)
     params.push(category)
   }
   if (search) {
@@ -93,7 +93,7 @@ export const GET = withAdminApiAuth(async (request: NextRequest) => {
       ws.id,
       ws.name,
       ws.base_url,
-      ws.category,
+      ws.categories,
       ws.language,
       ws.is_active,
       ws.rag_enabled,
@@ -167,7 +167,7 @@ export const GET = withAdminApiAuth(async (request: NextRequest) => {
       id: row.id,
       name: row.name,
       base_url: row.base_url,
-      category: row.category,
+      categories: row.categories || [],
       language: row.language,
       is_active: row.is_active,
       rag_enabled: row.rag_enabled,

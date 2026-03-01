@@ -189,7 +189,7 @@ export default async function WebSourcePagesPage({
             pages={pages}
             sourceId={id}
             sourceName={source.name}
-            sourceCategory={source.category}
+            sourceCategory={source.categories?.[0] ?? source.category ?? 'autre'}
             sourceBaseUrl={source.base_url}
           />
 

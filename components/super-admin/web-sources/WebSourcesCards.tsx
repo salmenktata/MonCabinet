@@ -214,9 +214,11 @@ export function WebSourcesCards({
                   >
                     {source.name}
                   </Link>
-                  <Badge className={CATEGORY_COLORS[source.category] || CATEGORY_COLORS.autre}>
-                    {getCategoryLabel(source.category as WebSourceCategory, locale)}
-                  </Badge>
+                  {(source.categories || []).map((cat) => (
+                    <Badge key={cat} className={CATEGORY_COLORS[cat] || CATEGORY_COLORS.autre}>
+                      {getCategoryLabel(cat as WebSourceCategory, locale)}
+                    </Badge>
+                  ))}
                   {!source.is_active && (
                     <Badge variant="outline" className="border-slate-600 text-slate-400">Inactive</Badge>
                   )}

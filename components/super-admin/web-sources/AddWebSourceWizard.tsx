@@ -16,9 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 import { toast } from 'sonner'
 import { getAllCategoryOptions } from '@/lib/web-scraper/category-labels'
+import { CATEGORY_COLORS } from '@/lib/web-scraper/category-labels'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 interface FormData {
@@ -29,7 +32,7 @@ interface FormData {
   name: string
   baseUrl: string
   description: string
-  category: string
+  categories: string[]
   language: string
 
   // Google Drive spécifique
@@ -103,7 +106,7 @@ export function AddWebSourceWizard() {
     name: '',
     baseUrl: '',
     description: '',
-    category: 'legislation',
+    categories: ['legislation'],
     language: 'ar',
     gdriveFolderId: '',
     gdriveRecursive: true,
@@ -267,7 +270,7 @@ export function AddWebSourceWizard() {
         name: formData.name,
         baseUrl: `gdrive://${folderId}`,
         description: formData.description || undefined,
-        category: formData.category,
+        categories: formData.categories,
         language: formData.language,
         crawlFrequency: formData.crawlFrequency,
         maxPages: formData.maxPages,
@@ -295,7 +298,7 @@ export function AddWebSourceWizard() {
       name: formData.name,
       baseUrl: formData.baseUrl,
       description: formData.description || undefined,
-      category: formData.category,
+      categories: formData.categories,
       language: formData.language,
       crawlFrequency: formData.crawlFrequency,
       maxDepth: formData.maxDepth,
@@ -343,7 +346,7 @@ export function AddWebSourceWizard() {
     }
   }
 
-  const isStep1Valid = formData.name && formData.category &&
+  const isStep1Valid = formData.name && formData.categories.length > 0 &&
     (formData.sourceType === 'web'
       ? formData.baseUrl
       : formData.gdriveFolderId)
@@ -556,22 +559,33 @@ export function AddWebSourceWizard() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-slate-300">Catégorie RAG *</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(v) => updateField('category', v)}
-                >
-                  <SelectTrigger className="mt-1 bg-slate-900 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value} className="text-white">
-                        {cat.label}
-                      </SelectItem>
+                <Label className="text-slate-300">Catégories RAG *</Label>
+                <div className="mt-1 p-2 bg-slate-900 border border-slate-600 rounded-md max-h-44 overflow-y-auto space-y-1">
+                  {categories.map((cat) => (
+                    <label key={cat.value} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-slate-800 cursor-pointer">
+                      <Checkbox
+                        checked={formData.categories.includes(cat.value)}
+                        onCheckedChange={(checked) => {
+                          const next = checked
+                            ? [...formData.categories, cat.value]
+                            : formData.categories.filter((c) => c !== cat.value)
+                          updateField('categories', next)
+                        }}
+                        className="border-slate-500"
+                      />
+                      <span className="text-sm text-slate-200">{cat.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {formData.categories.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {formData.categories.map((c) => (
+                      <Badge key={c} className={`${CATEGORY_COLORS[c] || CATEGORY_COLORS.autre} text-[10px]`}>
+                        {categories.find((cat) => cat.value === c)?.label || c}
+                      </Badge>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </div>
+                )}
               </div>
 
               <div>
