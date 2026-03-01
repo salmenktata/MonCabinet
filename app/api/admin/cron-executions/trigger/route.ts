@@ -166,6 +166,11 @@ const CRON_SCRIPTS: Record<string, { script: string; description: string; estima
     description: 'Watchdog VPS (santé Docker/RAM/CPU)',
     estimatedDuration: 10000,
   },
+  'detect-contradictions': {
+    script: 'curl -s -X POST http://localhost:3000/api/admin/kb/detect-contradictions -H "X-Cron-Secret: $CRON_SECRET" -H "Content-Type: application/json" -d \'{"batchSize":5}\'',
+    description: 'Détection Contradictions Juridiques',
+    estimatedDuration: 300000,
+  },
 }
 
 export const POST = withAdminApiAuth(async (req, _ctx, _session) => {

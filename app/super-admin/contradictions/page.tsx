@@ -34,6 +34,11 @@ const ContradictionFilters = nextDynamic(
   { loading: () => <Skeleton className="h-12 w-full" /> }
 )
 
+const DetectionTriggerButton = nextDynamic(
+  () => import('@/components/super-admin/contradictions/DetectionTriggerButton').then(mod => mod.DetectionTriggerButton),
+  { ssr: false }
+)
+
 interface PageProps {
   searchParams: Promise<{
     status?: string
@@ -126,6 +131,7 @@ export default async function ContradictionsPage({ searchParams }: PageProps) {
       <PageHeader
         title="Contradictions"
         description="Gérez les contradictions détectées entre les contenus juridiques"
+        action={<DetectionTriggerButton />}
       />
 
       {/* Statistiques rapides */}
