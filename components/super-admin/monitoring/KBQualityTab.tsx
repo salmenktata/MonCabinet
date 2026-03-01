@@ -41,6 +41,7 @@ import {
   Sparkles,
   FileText,
 } from 'lucide-react'
+import { GDriveQualityPanel } from '@/components/super-admin/monitoring/GDriveQualityPanel'
 
 interface MonitoringMetrics {
   timestamp: string
@@ -573,6 +574,9 @@ export function KBQualityTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Google Drive — Gestion Qualité Sélective */}
+      <GDriveQualityPanel />
 
       {/* Statistiques Globales */}
       <Card>
