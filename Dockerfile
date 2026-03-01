@@ -123,6 +123,14 @@ COPY --from=builder /app/messages ./messages
 # Copier les browsers Playwright depuis le builder
 COPY --from=builder /app/.playwright ./.playwright
 
+# Copier sources TypeScript pour scripts CLI (crawl-iort, index-iort-pdfs, etc.)
+# Nécessaire pour exécuter npx tsx scripts/*.ts directement dans le container
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/node_modules/tsx ./node_modules/tsx
+COPY --from=builder /app/node_modules/@esbuild ./node_modules/@esbuild
+
 # Copier modules natifs et externes depuis builder
 # Next.js standalone ne bundle pas les modules natifs utilisés uniquement dans scripts
 COPY --from=builder /app/node_modules/canvas ./node_modules/canvas
