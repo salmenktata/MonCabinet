@@ -55,9 +55,9 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
     const sourceResult = await db.query<{
       id: string
       name: string
-      category: string
+      categories: string[]
     }>(
-      `SELECT id, name, category FROM web_sources
+      `SELECT id, name, categories FROM web_sources
        WHERE id::text = $1 OR name ILIKE '%' || $1 || '%' OR base_url ILIKE '%' || $1 || '%'
        LIMIT 1`,
       [sourceFilter]
@@ -123,7 +123,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
       return NextResponse.json({
         success: true,
         dryRun: true,
-        source: { id: source.id, name: source.name, category: source.category },
+        source: { id: source.id, name: source.name, categories: source.categories },
         summary: {
           filesToIndex: pages.length,
           needsRedownload: files.filter(f => f.needsRedownload).length,
@@ -230,7 +230,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
           page.page_id,
           source.id,
           source.name,
-          source.category
+          source.categories?.[0] || ''
         )
 
         const durationMs = Date.now() - fileStart
@@ -278,7 +278,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
 
     return NextResponse.json({
       success: errorCount === 0,
-      source: { id: source.id, name: source.name, category: source.category },
+      source: { id: source.id, name: source.name, categories: source.categories },
       summary: {
         filesIndexed: successCount,
         filesFailed: errorCount,

@@ -128,7 +128,7 @@ export const GET = withAdminApiAuth(async (request: NextRequest) => {
     LEFT JOIN web_files wf ON wf.web_source_id = ws.id
     ${whereClause}
     GROUP BY
-      ws.id, ws.name, ws.base_url, ws.category, ws.language,
+      ws.id, ws.name, ws.base_url, ws.categories, ws.language,
       ws.is_active, ws.rag_enabled, ws.health_status, ws.consecutive_failures,
       ws.last_crawl_at, ws.next_crawl_at, ws.priority
     ORDER BY ws.priority DESC, ws.name ASC

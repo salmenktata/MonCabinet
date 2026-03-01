@@ -576,7 +576,7 @@ export async function indexSourceFiles(
 
   // Récupérer la source
   const sourceResult = await db.query(
-    `SELECT name, category FROM web_sources WHERE id = $1`,
+    `SELECT name, categories FROM web_sources WHERE id = $1`,
     [sourceId]
   )
 
@@ -584,7 +584,8 @@ export async function indexSourceFiles(
     return { ...result, errors: ['Source non trouvée'] }
   }
 
-  const { name: sourceName, category } = sourceResult.rows[0]
+  const { name: sourceName, categories } = sourceResult.rows[0]
+  const category = categories?.[0] || ''
 
   // Récupérer les pages avec des fichiers non indexés
   const pagesResult = await db.query(

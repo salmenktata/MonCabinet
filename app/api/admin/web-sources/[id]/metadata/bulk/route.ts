@@ -110,7 +110,7 @@ export async function POST(
     // Récupérer les pages à traiter
     let query = `
       SELECT wp.id, wp.url, wp.title, wp.extracted_text,
-             ws.category as source_category
+             ws.categories[1] as source_category
       FROM web_pages wp
       JOIN web_sources ws ON wp.web_source_id = ws.id
       WHERE wp.web_source_id = $1
@@ -125,7 +125,7 @@ export async function POST(
     }
 
     if (onlyCategory) {
-      query += ` AND ws.category = $${queryParams.length + 1}`
+      query += ` AND $${queryParams.length + 1} = ANY(ws.categories)`
       queryParams.push(onlyCategory)
     }
 

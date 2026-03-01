@@ -56,7 +56,7 @@ export async function POST(
 
     // Vérifier que la source existe
     const sourceResult = await db.query(
-      'SELECT id, name, category FROM web_sources WHERE id = $1',
+      'SELECT id, name, categories FROM web_sources WHERE id = $1',
       [id]
     )
 
