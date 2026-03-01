@@ -17,6 +17,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 min pour le batch
 
 import { getSession } from '@/lib/auth/session'
+import { verifyCronSecret } from '@/lib/auth/verify-cron-secret'
 import { db } from '@/lib/db/postgres'
 import { getKnowledgeDocument } from '@/lib/ai/knowledge-base-service'
 import { extractAmendmentsFromJORT, isLikelyAmendingDocument } from '@/lib/knowledge-base/jort-amendment-extractor'
@@ -168,11 +169,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getSession()
-    if (!session?.user?.id) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    // Accepter CRON_SECRET pour les tests curl et les crons futurs
+    const authHeader = request.headers.get('authorization')
+    const isCron = verifyCronSecret(authHeader)
 
-    const isAdmin = await checkAdminAccess(session.user.id)
-    if (!isAdmin) return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    if (!isCron) {
+      const session = await getSession()
+      if (!session?.user?.id) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
+      const isAdmin = await checkAdminAccess(session.user.id)
+      if (!isAdmin) return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    }
 
     const body = await request.json().catch(() => ({}))
     const batchSize = Math.min(parseInt(body.batchSize ?? '10', 10), 50)
