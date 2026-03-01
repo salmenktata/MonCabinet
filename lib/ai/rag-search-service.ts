@@ -493,6 +493,15 @@ function inferBranchFromTitle(docName: string): string | undefined {
     return 'commercial'
   }
 
+  // Constitution / droit public
+  if (
+    n.includes('الدستور') || n.includes('دستور') ||
+    n.includes('constitution tunisienne') || n.includes('constitution de la') ||
+    n.includes('constitutions')
+  ) {
+    return 'administratif'
+  }
+
   return undefined
 }
 

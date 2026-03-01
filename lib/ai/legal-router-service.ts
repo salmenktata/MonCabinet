@@ -95,6 +95,10 @@ const DOMAIN_TO_BRANCHES: Array<{ keywords: string[]; branches: string[] }> = [
     keywords: ['immobilier', 'droit immobilier', 'عقار', 'عقارات', 'immobilier', 'عقد بيع'],
     branches: ['immobilier'],
   },
+  {
+    keywords: ['constitution', 'دستور', 'دستوري', 'constitutionnel', 'droits fondamentaux', 'حقوق أساسية', 'السلطة التشريعية', 'السلطة التنفيذية', 'السلطة القضائية', 'حقوق وحريات'],
+    branches: ['administratif'],
+  },
 ]
 
 /**

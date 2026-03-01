@@ -123,6 +123,7 @@ Exemples:
 - صفقات عمومية/marchés publics → penal, administratif
 - تبييض أموال/غسيل أموال/blanchiment → penal
 - خيانة أمانة/abus de confiance → penal
+- دستور/constitution/دستوري/constitutionnel/حقوق أساسية/droits fondamentaux → administratif
 
 **Confiance**:
 - 0.9+ : Question très claire, mots-clés explicites
@@ -386,6 +387,11 @@ export function classifyQueryKeywords(query: string): QueryClassification {
   // Fiscal
   if (/ضرائب|ضريب|جبائي|fiscal|impôt/i.test(query)) {
     domains.push('fiscal')
+  }
+
+  // Constitution / droit public
+  if (/دستور|دستوري|constitution|constitutionnel|حقوق أساسية|droits fondamentaux/i.test(query)) {
+    if (!domains.includes('administratif')) domains.push('administratif')
   }
 
   // Si aucune catégorie détectée, fallback global
