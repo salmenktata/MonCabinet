@@ -39,11 +39,14 @@ async function checkAdminAccess(userId: string): Promise<boolean> {
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getSession()
-    if (!session?.user?.id) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    const authHeader = request.headers.get('authorization')
+    if (!verifyCronSecret(authHeader)) {
+      const session = await getSession()
+      if (!session?.user?.id) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const isAdmin = await checkAdminAccess(session.user.id)
-    if (!isAdmin) return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+      const isAdmin = await checkAdminAccess(session.user.id)
+      if (!isAdmin) return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    }
 
     const { searchParams } = new URL(request.url)
     const codeFilter = searchParams.get('code')
