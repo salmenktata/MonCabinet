@@ -9,6 +9,7 @@ import { db } from '@/lib/db/postgres'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Icons } from '@/lib/icons'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 
 // Dynamic imports pour réduire le bundle initial
 const TaxonomyManager = nextDynamic(
@@ -119,13 +120,10 @@ export default async function TaxonomyPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Taxonomie Juridique</h1>
-        <p className="text-slate-400 mt-1">
-          Gérez la classification des documents juridiques tunisiens
-        </p>
-      </div>
+      <PageHeader
+        title="Taxonomie Juridique"
+        description="Gérez la classification des documents juridiques tunisiens"
+      />
 
       {/* Statistiques */}
       <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>

@@ -13,7 +13,7 @@ import { ArrowLeft, Database } from 'lucide-react'
 
 export function MaintenancePageClient() {
   const router = useRouter()
-  const [sources, setSources] = useState<Array<{ id: string; name: string; category: string }>>([])
+  const [sources, setSources] = useState<Array<{ id: string; name: string; category: string; rag_enabled: boolean }>>([])
   const [selectedSourceId, setSelectedSourceId] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
@@ -30,12 +30,12 @@ export function MaintenancePageClient() {
       if (data.sources) {
         setSources(data.sources)
 
-        // Sélectionner automatiquement Google Drive si disponible
-        const gdriveSource = data.sources.find(
-          (s: any) => s.category === 'google_drive'
+        // Prioriser les sources rag_enabled=true (impact RAG direct)
+        const ragSource = data.sources.find(
+          (s: any) => s.rag_enabled === true && s.category !== 'google_drive'
         )
-        if (gdriveSource) {
-          setSelectedSourceId(gdriveSource.id)
+        if (ragSource) {
+          setSelectedSourceId(ragSource.id)
         } else if (data.sources.length > 0) {
           setSelectedSourceId(data.sources[0].id)
         }
@@ -90,7 +90,7 @@ export function MaintenancePageClient() {
             ) : (
               sources.map((source) => (
                 <option key={source.id} value={source.id}>
-                  {source.name} ({source.category})
+                  {source.name} ({source.category}){source.rag_enabled ? ' ✓ RAG' : ' — RAG désactivé'}
                 </option>
               ))
             )}

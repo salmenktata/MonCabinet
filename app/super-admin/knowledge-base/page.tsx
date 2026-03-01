@@ -1,5 +1,0 @@
-import { redirect } from 'next/navigation'
-
-export default function KnowledgeBasePage() {
-  redirect('/super-admin/legal-documents')
-}

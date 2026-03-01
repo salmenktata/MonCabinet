@@ -1,5 +1,6 @@
 import { query } from '@/lib/db/postgres'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { PromoAdminActions } from './PromoAdminActions'
 import { CreatePromoForm } from './CreatePromoForm'
@@ -26,16 +27,16 @@ export default async function PromosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Codes Promo</h2>
-          <p className="text-slate-400">Gérer les codes promotionnels</p>
-        </div>
-        <div className="flex gap-4 text-sm text-slate-400">
-          <span>{activeCount} actif{activeCount > 1 ? 's' : ''}</span>
-          <span>{totalUses} utilisation{totalUses > 1 ? 's' : ''} total</span>
-        </div>
-      </div>
+      <PageHeader
+        title="Codes Promo"
+        description="Gérer les codes promotionnels"
+        action={
+          <div className="flex gap-4 text-sm text-slate-400">
+            <span>{activeCount} actif{activeCount > 1 ? 's' : ''}</span>
+            <span>{totalUses} utilisation{totalUses > 1 ? 's' : ''} total</span>
+          </div>
+        }
+      />
 
       {/* Formulaire de création */}
       <Card className="bg-slate-800 border-slate-700">

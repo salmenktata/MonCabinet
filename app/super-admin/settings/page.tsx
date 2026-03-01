@@ -1,5 +1,6 @@
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Icons } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
@@ -44,10 +45,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white">Paramètres</h2>
-        <p className="text-slate-400">Configuration globale de la plateforme</p>
-      </div>
+      <PageHeader title="Paramètres" description="Configuration globale de la plateforme" />
 
       <Tabs defaultValue="ai-architecture" className="w-full">
         <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700">

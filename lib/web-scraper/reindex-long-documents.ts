@@ -56,6 +56,13 @@ export async function reindexLongDocuments(
 
     console.log(`[ReindexLong] Found ${pages.length} long documents to process`)
 
+    // Récupérer la catégorie réelle de la web_source (pas 'google_drive' hardcodé)
+    const sourceResult = await db.query(
+      `SELECT category FROM web_sources WHERE id = $1`,
+      [sourceId]
+    )
+    const sourceCategory: string = sourceResult.rows[0]?.category ?? 'autre'
+
     for (const page of pages) {
       result.processed++
 
@@ -87,6 +94,9 @@ export async function reindexLongDocuments(
         try {
           await client.query('BEGIN')
 
+          let firstKbId: string | null = null
+          let pageChunksCreated = 0
+
           for (const section of splitResult.sections) {
             // Métadonnées de section
             const sectionMetadata = generateSectionMetadata(
@@ -104,7 +114,7 @@ export async function reindexLongDocuments(
               ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
               RETURNING id`,
               [
-                'google_drive',
+                sourceCategory,
                 `${page.title} - ${section.title}`,
                 `Section ${section.index + 1}/${splitResult.totalSections}`,
                 section.content,
@@ -119,6 +129,9 @@ export async function reindexLongDocuments(
             )
 
             const kbId = kbResult.rows[0].id
+            if (firstKbId === null) {
+              firstKbId = kbId
+            }
 
             // Créer chunks pour cette section
             const chunkSize = 400 // mots
@@ -151,6 +164,7 @@ export async function reindexLongDocuments(
               )
             }
 
+            pageChunksCreated++
             result.sectionsCreated++
 
             console.log(
@@ -159,18 +173,19 @@ export async function reindexLongDocuments(
             )
           }
 
-          // Mettre à jour la page source
+          // Mettre à jour la page source avec le bon KB link et chunks_count per-page
           await client.query(
             `UPDATE web_pages SET
               status = 'indexed',
               is_indexed = true,
+              knowledge_base_id = $3,
               chunks_count = $2,
               last_indexed_at = NOW(),
               error_message = NULL,
               error_count = 0,
               updated_at = NOW()
             WHERE id = $1`,
-            [page.id, result.sectionsCreated]
+            [page.id, pageChunksCreated, firstKbId]
           )
 
           await client.query('COMMIT')

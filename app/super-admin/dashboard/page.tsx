@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { query } from '@/lib/db/postgres'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -348,10 +349,7 @@ async function RecentActivity() {
 export default function SuperAdminDashboard() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white">Dashboard Super Admin</h2>
-        <p className="text-slate-400">Vue d'ensemble de la plateforme</p>
-      </div>
+      <PageHeader title="Dashboard Super Admin" description="Vue d'ensemble de la plateforme" />
 
       {/* Stats utilisateurs */}
       <Suspense fallback={<div className="h-32 bg-slate-800 animate-pulse rounded-lg" />}>

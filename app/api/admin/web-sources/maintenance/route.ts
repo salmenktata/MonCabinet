@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { reindexLongDocuments } from '@/lib/web-scraper/reindex-long-documents'
+import { indexSourcePages } from '@/lib/web-scraper/web-indexer-service'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 600 // 10 minutes
@@ -217,11 +218,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
              error_message = NULL,
              error_count = 0,
              updated_at = NOW()
-           WHERE web_source_id = $1
-           AND status = 'failed'
-           AND error_count < 3
-           ORDER BY last_crawled_at DESC
-           LIMIT $2
+           WHERE id IN (
+             SELECT id FROM web_pages
+             WHERE web_source_id = $1
+             AND status = 'failed'
+             AND error_count < 3
+             ORDER BY last_crawled_at DESC
+             LIMIT $2
+           )
            RETURNING id`,
           [sourceId, limit]
         )
@@ -229,6 +233,49 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         return NextResponse.json({
           success: true,
           action: 'retry_failed',
+          pagesReset: result.rowCount,
+        })
+      }
+
+      case 'index_pending': {
+        // Déclencher l'indexation RAG des pages prêtes (crawled + sufficient content)
+        // indexSourcePages contient son propre guard rag_enabled
+        const limit = options.limit || 50
+        const indexResult = await indexSourcePages(sourceId, { limit, reindex: false })
+
+        return NextResponse.json({
+          success: true,
+          action: 'index_pending',
+          processed: indexResult.processed,
+          succeeded: indexResult.succeeded,
+          failed: indexResult.failed,
+        })
+      }
+
+      case 'reset_stuck': {
+        // Réinitialiser les pages bloquées définitivement (error_count >= 3)
+        const result = await db.query(
+          `UPDATE web_pages
+           SET
+             status = 'pending',
+             error_message = NULL,
+             error_count = 0,
+             updated_at = NOW()
+           WHERE id IN (
+             SELECT id FROM web_pages
+             WHERE web_source_id = $1
+             AND status = 'failed'
+             AND error_count >= 3
+             ORDER BY last_crawled_at ASC
+             LIMIT 100
+           )
+           RETURNING id`,
+          [sourceId]
+        )
+
+        return NextResponse.json({
+          success: true,
+          action: 'reset_stuck',
           pagesReset: result.rowCount,
         })
       }
@@ -293,7 +340,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       [sourceId]
     )
 
-    // Totaux
+    // Totaux + compteurs précis par action (en une seule query)
     const total = await db.query(
       `SELECT
          COUNT(*) as total_pages,
@@ -301,36 +348,102 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
          SUM(chunks_count) as total_chunks,
          COUNT(*) FILTER (WHERE status = 'failed') as total_failed,
          COUNT(*) FILTER (WHERE status = 'removed') as total_removed,
-         COUNT(*) FILTER (WHERE status = 'crawled' AND is_indexed = false) as pending_index
-       FROM web_pages
-       WHERE web_source_id = $1`,
+         -- pages prêtes à indexer (crawled/unchanged + non indexées + contenu suffisant)
+         COUNT(*) FILTER (
+           WHERE status IN ('crawled', 'unchanged')
+           AND is_indexed = false
+           AND word_count >= COALESCE(
+             (SELECT min_word_count FROM web_sources WHERE id = wp.web_source_id), 30
+           )
+           AND extracted_text IS NOT NULL
+         ) as pending_index,
+         -- pages avec contenu insuffisant (à archiver)
+         COUNT(*) FILTER (
+           WHERE status IN ('crawled', 'pending', 'unchanged')
+           AND is_indexed = false
+           AND (
+             word_count < COALESCE(
+               (SELECT min_word_count FROM web_sources WHERE id = wp.web_source_id), 30
+             )
+             OR extracted_text IS NULL
+           )
+         ) as cleanup_insufficient_count,
+         -- fichiers temporaires Word (~$*)
+         COUNT(*) FILTER (
+           WHERE status = 'crawled'
+           AND is_indexed = false
+           AND (title LIKE '~$%' OR url LIKE '%/~$%')
+         ) as cleanup_temp_files_count,
+         -- documents failed avec erreur "trop long"
+         COUNT(*) FILTER (
+           WHERE status = 'failed'
+           AND error_message LIKE '%trop long%'
+           AND LENGTH(extracted_text) > 50000
+         ) as reindex_long_count,
+         -- pages bloquées définitivement (error_count >= 3)
+         COUNT(*) FILTER (
+           WHERE status = 'failed'
+           AND error_count >= 3
+         ) as stuck_count
+       FROM web_pages wp
+       WHERE wp.web_source_id = $1`,
       [sourceId]
     )
 
-    // Actions disponibles
+    // Chunks RAG actifs pour cette source (2 chemins de liaison possibles)
+    const ragChunksResult = await db.query(
+      `SELECT COUNT(kbc.id) as active_rag_chunks
+       FROM knowledge_base_chunks kbc
+       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+       WHERE kb.is_indexed = true
+       AND (
+         kb.metadata->>'web_source_id' = $1
+         OR kb.id IN (
+           SELECT knowledge_base_id FROM web_pages
+           WHERE web_source_id = $1 AND knowledge_base_id IS NOT NULL
+         )
+       )`,
+      [sourceId]
+    )
+    const activeRagChunks = parseInt(ragChunksResult.rows[0]?.active_rag_chunks ?? '0', 10)
+
+    const totals = total.rows[0]
+
+    // Actions disponibles avec compteurs corrects
     const actions = {
       cleanup_insufficient: {
-        available: total.rows[0].pending_index > 0,
-        count: total.rows[0].pending_index,
+        available: parseInt(totals.cleanup_insufficient_count, 10) > 0,
+        count: parseInt(totals.cleanup_insufficient_count, 10),
       },
       reindex_long_documents: {
-        available: total.rows[0].total_failed > 0,
-        count: total.rows[0].total_failed,
+        available: parseInt(totals.reindex_long_count, 10) > 0,
+        count: parseInt(totals.reindex_long_count, 10),
       },
       cleanup_temp_files: {
-        available: true,
-        count: 0, // Calculé dynamiquement
+        available: parseInt(totals.cleanup_temp_files_count, 10) > 0,
+        count: parseInt(totals.cleanup_temp_files_count, 10),
       },
       retry_failed: {
-        available: total.rows[0].total_failed > 0,
-        count: total.rows[0].total_failed,
+        available: parseInt(totals.total_failed, 10) > 0,
+        count: parseInt(totals.total_failed, 10),
+      },
+      index_pending: {
+        available: parseInt(totals.pending_index, 10) > 0,
+        count: parseInt(totals.pending_index, 10),
+      },
+      reset_stuck: {
+        available: parseInt(totals.stuck_count, 10) > 0,
+        count: parseInt(totals.stuck_count, 10),
       },
     }
 
     return NextResponse.json({
       success: true,
       byStatus: stats.rows,
-      totals: total.rows[0],
+      totals: {
+        ...totals,
+        active_rag_chunks: activeRagChunks,
+      },
       actions,
     })
   } catch (error) {

@@ -6,6 +6,8 @@ import { Icons } from '@/lib/icons'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { UserActions } from '@/components/super-admin/users/UserActions'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
+import { Breadcrumb } from '@/components/super-admin/shared/Breadcrumb'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -82,26 +84,21 @@ export default async function UserDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/super-admin/users">
-            <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
-              <Icons.arrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h2 className="text-2xl font-bold text-white">
-              {user.prenom} {user.nom}
-            </h2>
-            <p className="text-slate-400">{user.email}</p>
+      <Breadcrumb items={[
+        { label: 'Utilisateurs', href: '/super-admin/users' },
+        { label: `${user.prenom} ${user.nom}` },
+      ]} />
+      <PageHeader
+        title={`${user.prenom} ${user.nom}`}
+        description={user.email}
+        backHref="/super-admin/users"
+        action={
+          <div className="flex items-center gap-2">
+            {getStatusBadge(user.status)}
+            {getPlanBadge(user.plan)}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {getStatusBadge(user.status)}
-          {getPlanBadge(user.plan)}
-        </div>
-      </div>
+        }
+      />
 
       {/* Bandeau demande d'upgrade */}
       {user.upgrade_requested_plan && (

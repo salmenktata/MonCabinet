@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Database,
 } from 'lucide-react'
 
 interface MaintenanceStats {
@@ -32,12 +33,19 @@ interface MaintenanceStats {
     total_failed: number
     total_removed: number
     pending_index: number
+    cleanup_insufficient_count: number
+    cleanup_temp_files_count: number
+    reindex_long_count: number
+    stuck_count: number
+    active_rag_chunks: number
   }
   actions: {
     cleanup_insufficient: { available: boolean; count: number }
     reindex_long_documents: { available: boolean; count: number }
     cleanup_temp_files: { available: boolean; count: number }
     retry_failed: { available: boolean; count: number }
+    index_pending: { available: boolean; count: number }
+    reset_stuck: { available: boolean; count: number }
   }
 }
 
@@ -108,6 +116,12 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
           case 'retry_failed':
             message = `${data.pagesReset} pages réinitialisées pour retry`
             break
+          case 'index_pending':
+            message = `${data.succeeded}/${data.processed} pages indexées avec succès`
+            break
+          case 'reset_stuck':
+            message = `${data.pagesReset} pages débloquées et remises en attente`
+            break
           default:
             message = 'Action terminée'
         }
@@ -157,7 +171,7 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
   return (
     <div className="space-y-6">
       {/* Statistiques globales */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="p-4 bg-slate-800 border-slate-700">
           <div className="text-sm text-slate-400">Total Pages</div>
           <div className="text-2xl font-bold text-white">
@@ -170,7 +184,7 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
           <div className="text-2xl font-bold text-green-500">
             {stats.totals.total_indexed}
             <span className="text-sm text-slate-400 ml-2">
-              ({Math.round((stats.totals.total_indexed / stats.totals.total_pages) * 100)}%)
+              ({stats.totals.total_pages > 0 ? Math.round((stats.totals.total_indexed / stats.totals.total_pages) * 100) : 0}%)
             </span>
           </div>
         </Card>
@@ -187,6 +201,14 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
           <div className="text-2xl font-bold text-red-500">
             {stats.totals.total_failed}
           </div>
+        </Card>
+
+        <Card className="p-4 bg-slate-800 border-slate-700 border-l-4 border-l-emerald-500">
+          <div className="text-sm text-slate-400">Chunks RAG Actifs</div>
+          <div className="text-2xl font-bold text-emerald-400">
+            {stats.totals.active_rag_chunks?.toLocaleString() || 0}
+          </div>
+          <div className="text-xs text-slate-500 mt-1">Impact RAG direct</div>
         </Card>
       </div>
 
@@ -228,8 +250,7 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
                 Archiver Pages Insuffisantes
               </h3>
               <p className="text-sm text-slate-400 mb-4">
-                Archiver les pages avec contenu &lt;100 caractères (fichiers vides,
-                temporaires)
+                Archiver les pages avec contenu insuffisant (sous le seuil min_word_count de la source)
               </p>
               <div className="flex items-center justify-between">
                 <div className="text-sm text-slate-300">
@@ -316,7 +337,12 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
               </p>
               <div className="flex items-center justify-between">
                 <div className="text-sm text-slate-300">
-                  {stats.totals.total_failed} documents en erreur
+                  {stats.actions.reindex_long_documents.count} docs trop longs
+                  {stats.totals.total_failed > stats.actions.reindex_long_documents.count && (
+                    <span className="text-xs text-slate-500 ml-1">
+                      ({stats.totals.total_failed} failed total)
+                    </span>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -401,6 +427,93 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
                     <>
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Retry (20)
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+        {/* Indexer pages prêtes */}
+        <Card className="p-6 bg-slate-800 border-slate-700">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-emerald-900/30 rounded-lg">
+              <Database className="h-6 w-6 text-emerald-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-white mb-1">
+                Indexer Pages Prêtes
+              </h3>
+              <p className="text-sm text-slate-400 mb-4">
+                Lancer l&apos;indexation RAG des pages crawlées avec contenu suffisant
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-slate-300">
+                  {stats.actions.index_pending.count} pages prêtes
+                </div>
+                <Button
+                  onClick={() => executeAction('index_pending', { limit: 50 })}
+                  disabled={
+                    !stats.actions.index_pending.available ||
+                    actionLoading !== null
+                  }
+                  size="sm"
+                  variant="outline"
+                  className="border-emerald-700 hover:bg-emerald-900/20"
+                >
+                  {actionLoading === 'index_pending' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      En cours...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="h-4 w-4 mr-2" />
+                      Indexer (50)
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Débloquer pages bloquées */}
+        <Card className="p-6 bg-slate-800 border-slate-700">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-rose-900/30 rounded-lg">
+              <XCircle className="h-6 w-6 text-rose-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-white mb-1">
+                Débloquer Pages Bloquées
+              </h3>
+              <p className="text-sm text-slate-400 mb-4">
+                Réinitialiser les pages avec 3+ erreurs (bloquées définitivement)
+              </p>
+              <div className="flex items-center justify-between">
+                <div className={`text-sm ${stats.totals.stuck_count > 0 ? 'text-rose-400' : 'text-slate-300'}`}>
+                  {stats.totals.stuck_count} pages bloquées
+                </div>
+                <Button
+                  onClick={() => executeAction('reset_stuck')}
+                  disabled={
+                    !stats.actions.reset_stuck.available ||
+                    actionLoading !== null
+                  }
+                  size="sm"
+                  variant="outline"
+                  className="border-rose-700 hover:bg-rose-900/20"
+                >
+                  {actionLoading === 'reset_stuck' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      En cours...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Débloquer
                     </>
                   )}
                 </Button>

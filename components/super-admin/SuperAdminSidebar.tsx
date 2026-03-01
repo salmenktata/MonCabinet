@@ -38,7 +38,7 @@ interface SuperAdminSidebarProps {
   onCloseMobile?: () => void
 }
 
-// Navigation Super Admin - 5 groupes, 21 items
+// Navigation Super Admin - 5 groupes, 23 items (26 initial - 3 doublons/docs)
 const getNavGroups = (
   pendingCount: number,
   pendingContradictions: number,
@@ -89,8 +89,6 @@ const getNavGroups = (
         badge: pendingContradictions || undefined,
         badgeVariant: 'secondary' as const,
       },
-      { href: '/super-admin/monitoring?tab=rag-health', label: 'Santé RAG', icon: 'activity' },
-      { href: '/super-admin/monitoring?tab=kb-quality', label: 'Qualité KB', icon: 'checkCircle' },
     ],
   },
   {
@@ -100,7 +98,6 @@ const getNavGroups = (
       { href: '/super-admin/evaluation', label: 'Évaluation RAG', icon: 'checkCircle' },
       { href: '/super-admin/compare-llm', label: 'Comparer LLMs', icon: 'columns' },
       { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
-      { href: '/super-admin/rag-workflow', label: 'Workflow RAG', icon: 'gitBranch' },
       { href: '/super-admin/classification', label: 'Classification', icon: 'tag' },
       { href: '/super-admin/notifications', label: 'Notifications', icon: 'bell' },
     ],

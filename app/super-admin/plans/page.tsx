@@ -3,6 +3,7 @@ import { query } from '@/lib/db/postgres'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 
 // Métriques revenus
 async function RevenueStats() {
@@ -452,10 +453,7 @@ async function PaidPlans() {
 export default function PlansPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white">Plans & Abonnements</h2>
-        <p className="text-slate-400">Gérer les plans utilisateurs et suivre les conversions</p>
-      </div>
+      <PageHeader title="Plans & Abonnements" description="Gérer les plans utilisateurs et suivre les conversions" />
 
       {/* Métriques revenus */}
       <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>

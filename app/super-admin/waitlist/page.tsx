@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { query } from '@/lib/db/postgres'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { WaitlistActions, WaitlistInviteButton } from './WaitlistActions'
@@ -142,18 +143,16 @@ async function WaitlistTable() {
 export default function WaitlistPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Liste d'attente (Beta)</h2>
-          <p className="text-slate-400">Gérer les invitations — Phase 1 &amp; 2</p>
-        </div>
-        <div className="text-sm text-slate-400">
-          URL publique :{' '}
-          <code className="text-blue-400 bg-slate-800 px-2 py-1 rounded">
-            /acces-anticipe
-          </code>
-        </div>
-      </div>
+      <PageHeader
+        title="Liste d'attente (Beta)"
+        description="Gérer les invitations — Phase 1 & 2"
+        action={
+          <div className="text-sm text-slate-400">
+            URL publique :{' '}
+            <code className="text-blue-400 bg-slate-800 px-2 py-1 rounded">/acces-anticipe</code>
+          </div>
+        }
+      />
 
       <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>
         <WaitlistStats />

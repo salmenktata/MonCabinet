@@ -6,8 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import Link from 'next/link'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
+import { PaginationControls } from '@/components/super-admin/shared/PaginationControls'
+import { EmptyState } from '@/components/super-admin/shared/EmptyState'
+import { buildDynamicWhere } from '@/lib/db/query-builder'
 
-// Dynamic import pour réduire le bundle initial
 const AuditLogsFilters = dynamic(
   () => import('@/components/super-admin/AuditLogsFilters').then(m => ({ default: m.AuditLogsFilters })),
   { loading: () => <div className="h-16 bg-slate-800 animate-pulse rounded-lg" /> }
@@ -31,51 +34,24 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
   const limit = 50
   const offset = (page - 1) * limit
 
-  // Construire la requête avec filtres
-  let whereClause = 'WHERE 1=1'
-  const queryParams: (string | number)[] = []
-  let paramIndex = 1
+  const { whereClause, params: queryParams, nextIndex } = buildDynamicWhere([
+    { condition: action !== 'all', sql: 'action_type = ?', value: action },
+    { condition: target !== 'all', sql: 'target_type = ?', value: target },
+    { condition: admin !== 'all', sql: 'admin_id = ?', value: admin },
+  ])
 
-  if (action !== 'all') {
-    whereClause += ` AND action_type = $${paramIndex}`
-    queryParams.push(action)
-    paramIndex++
-  }
+  const [countResult, logsResult, adminsResult] = await Promise.all([
+    query(`SELECT COUNT(*) as count FROM admin_audit_logs ${whereClause}`, queryParams),
+    query(
+      `SELECT * FROM admin_audit_logs ${whereClause} ORDER BY created_at DESC LIMIT $${nextIndex} OFFSET $${nextIndex + 1}`,
+      [...queryParams, limit, offset]
+    ),
+    query(`SELECT DISTINCT admin_id, admin_email FROM admin_audit_logs ORDER BY admin_email`),
+  ])
 
-  if (target !== 'all') {
-    whereClause += ` AND target_type = $${paramIndex}`
-    queryParams.push(target)
-    paramIndex++
-  }
-
-  if (admin !== 'all') {
-    whereClause += ` AND admin_id = $${paramIndex}`
-    queryParams.push(admin)
-    paramIndex++
-  }
-
-  // Compter le total
-  const countResult = await query(
-    `SELECT COUNT(*) as count FROM admin_audit_logs ${whereClause}`,
-    queryParams
-  )
   const total = safeParseInt(countResult.rows[0]?.count, 0, 0)
-
-  // Récupérer les logs
-  const logsResult = await query(
-    `SELECT * FROM admin_audit_logs
-     ${whereClause}
-     ORDER BY created_at DESC
-     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
-    [...queryParams, limit, offset]
-  )
-
-  // Récupérer les admins pour le filtre
-  const adminsResult = await query(
-    `SELECT DISTINCT admin_id, admin_email FROM admin_audit_logs ORDER BY admin_email`
-  )
-
   const totalPages = Math.ceil(total / limit)
+  const filterQS = `action=${action}&target=${target}&admin=${admin}`
 
   const getActionBadge = (actionType: string) => {
     const colors: Record<string, string> = {
@@ -93,7 +69,6 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
       impersonation_stop: 'bg-orange-500/20 text-orange-500 border-orange-500/30',
       impersonation_expired: 'bg-red-500/20 text-red-500 border-red-500/30',
     }
-
     const labels: Record<string, string> = {
       user_approved: 'Approbation',
       user_rejected: 'Rejet',
@@ -109,7 +84,6 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
       impersonation_stop: '🔐 Impersonation arrêtée',
       impersonation_expired: '⏱️ Impersonation expirée',
     }
-
     return (
       <Badge className={colors[actionType] || 'bg-slate-500/20 text-slate-400'}>
         {labels[actionType] || actionType}
@@ -132,18 +106,12 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white">Audit Logs</h2>
-        <p className="text-slate-400">Historique des actions administratives</p>
-      </div>
+      <PageHeader title="Audit Logs" description="Historique des actions administratives" />
 
-      {/* Filtres */}
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-4 items-center">
             <AuditLogsFilters currentAction={action} currentTarget={target} />
-
-            {/* Clear */}
             {(action !== 'all' || target !== 'all') && (
               <Link href="/super-admin/audit-logs">
                 <Button variant="ghost" className="text-slate-400">
@@ -152,28 +120,19 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
                 </Button>
               </Link>
             )}
-
-            <div className="ml-auto text-sm text-slate-400">
-              {total} entrées
-            </div>
+            <div className="ml-auto text-sm text-slate-400">{total} entrées</div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Liste des logs */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white">Logs ({total})</CardTitle>
-          <CardDescription className="text-slate-400">
-            Page {page} sur {totalPages || 1}
-          </CardDescription>
+          <CardDescription className="text-slate-400">Page {page} sur {totalPages || 1}</CardDescription>
         </CardHeader>
         <CardContent>
           {logsResult.rows.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">
-              <Icons.shield className="h-12 w-12 mx-auto mb-4" />
-              <p>Aucun log d'audit</p>
-            </div>
+            <EmptyState icon="shield" message="Aucun log d'audit" />
           ) : (
             <div className="space-y-3">
               {logsResult.rows.map((log: {
@@ -205,21 +164,15 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
                       <span className="text-slate-400">Par</span> {log.admin_email}
                     </p>
                     {log.target_identifier && (
-                      <p className="text-sm text-slate-400">
-                        Cible: {log.target_identifier}
-                      </p>
+                      <p className="text-sm text-slate-400">Cible: {log.target_identifier}</p>
                     )}
                     {(log.old_value || log.new_value) && (
                       <div className="mt-2 text-xs text-slate-400 font-mono bg-slate-800 rounded p-2 overflow-x-auto">
                         {log.old_value && (
-                          <div>
-                            <span className="text-red-400">-</span> {JSON.stringify(log.old_value)}
-                          </div>
+                          <div><span className="text-red-400">-</span> {JSON.stringify(log.old_value)}</div>
                         )}
                         {log.new_value && (
-                          <div>
-                            <span className="text-green-400">+</span> {JSON.stringify(log.new_value)}
-                          </div>
+                          <div><span className="text-green-400">+</span> {JSON.stringify(log.new_value)}</div>
                         )}
                       </div>
                     )}
@@ -240,42 +193,12 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
             </div>
           )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <Link
-                href={`/super-admin/audit-logs?action=${action}&target=${target}&page=${Math.max(1, page - 1)}`}
-                aria-label="Page précédente"
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  className="border-slate-600 text-slate-300"
-                >
-                  <Icons.chevronLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-
-              <span className="text-sm text-slate-400">
-                Page {page} / {totalPages}
-              </span>
-
-              <Link
-                href={`/super-admin/audit-logs?action=${action}&target=${target}&page=${Math.min(totalPages, page + 1)}`}
-                aria-label="Page suivante"
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  className="border-slate-600 text-slate-300"
-                >
-                  <Icons.chevronRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          )}
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            prevHref={`/super-admin/audit-logs?${filterQS}&page=${Math.max(1, page - 1)}`}
+            nextHref={`/super-admin/audit-logs?${filterQS}&page=${Math.min(totalPages, page + 1)}`}
+          />
         </CardContent>
       </Card>
     </div>

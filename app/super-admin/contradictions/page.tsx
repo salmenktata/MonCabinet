@@ -24,6 +24,8 @@ import {
 } from '@/app/actions/super-admin/content-review'
 import type { ContradictionStatus, ContradictionSeverity } from '@/lib/web-scraper/types'
 import { safeParseInt } from '@/lib/utils/safe-number'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
+import { PaginationControls } from '@/components/super-admin/shared/PaginationControls'
 
 export const dynamic = 'force-dynamic'
 
@@ -121,15 +123,10 @@ export default async function ContradictionsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Contradictions</h1>
-          <p className="text-slate-400 mt-1">
-            Gérez les contradictions détectées entre les contenus juridiques
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Contradictions"
+        description="Gérez les contradictions détectées entre les contenus juridiques"
+      />
 
       {/* Statistiques rapides */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -252,32 +249,12 @@ export default async function ContradictionsPage({ searchParams }: PageProps) {
         </Table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-slate-400">
-            Page {page} sur {totalPages}
-          </div>
-          <div className="flex gap-2">
-            <Link
-              href={`?page=${page - 1}${params.status ? `&status=${params.status}` : ''}${params.severity ? `&severity=${params.severity}` : ''}`}
-              className={page <= 1 ? 'pointer-events-none opacity-50' : ''}
-            >
-              <Button variant="outline" size="sm" disabled={page <= 1}>
-                <Icons.chevronLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link
-              href={`?page=${page + 1}${params.status ? `&status=${params.status}` : ''}${params.severity ? `&severity=${params.severity}` : ''}`}
-              className={page >= totalPages ? 'pointer-events-none opacity-50' : ''}
-            >
-              <Button variant="outline" size="sm" disabled={page >= totalPages}>
-                <Icons.chevronRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        prevHref={`/super-admin/contradictions?page=${Math.max(1, page - 1)}${params.status ? `&status=${params.status}` : ''}${params.severity ? `&severity=${params.severity}` : ''}`}
+        nextHref={`/super-admin/contradictions?page=${Math.min(totalPages, page + 1)}${params.status ? `&status=${params.status}` : ''}${params.severity ? `&severity=${params.severity}` : ''}`}
+      />
     </div>
   )
 }

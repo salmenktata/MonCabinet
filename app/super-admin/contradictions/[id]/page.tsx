@@ -9,6 +9,7 @@ import { db } from '@/lib/db/postgres'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
+import { Breadcrumb } from '@/components/super-admin/shared/Breadcrumb'
 import { ResolutionForm } from './resolution-form'
 import type { ContradictionStatus, ContradictionSeverity, ContradictionType } from '@/lib/web-scraper/types'
 
@@ -141,16 +142,10 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/super-admin/contradictions" className="hover:text-slate-300 transition-colors">
-          Contradictions
-        </Link>
-        <Icons.chevronRight className="h-3.5 w-3.5" />
-        <span className="text-slate-400">
-          {TYPE_LABELS[c.contradiction_type] || c.contradiction_type}
-        </span>
-      </div>
+      <Breadcrumb items={[
+        { label: 'Contradictions', href: '/super-admin/contradictions' },
+        { label: TYPE_LABELS[c.contradiction_type] || c.contradiction_type },
+      ]} />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">

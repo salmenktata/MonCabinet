@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation'
 import { db } from '@/lib/db/postgres'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
+import { Breadcrumb } from '@/components/super-admin/shared/Breadcrumb'
 import {
   Table,
   TableBody,
@@ -164,15 +165,10 @@ export default async function LegalDocumentDetailPage({ params }: PageProps) {
 
       {/* ── Breadcrumb + Header ──────────────────────────────────────── */}
       <div className="space-y-3">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-xs text-slate-500">
-          <Link href="/super-admin/legal-documents" className="hover:text-slate-300 transition-colors flex items-center gap-1">
-            <Icons.scale className="h-3.5 w-3.5" />
-            Documents Juridiques
-          </Link>
-          <Icons.chevronRight className="h-3 w-3" />
-          <span className="text-slate-400 font-mono">{doc.citation_key}</span>
-        </nav>
+        <Breadcrumb items={[
+          { label: 'Documents Juridiques', href: '/super-admin/legal-documents' },
+          { label: doc.citation_key },
+        ]} />
 
         {/* Header principal */}
         <div className="flex items-start justify-between gap-4">

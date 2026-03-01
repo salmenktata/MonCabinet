@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 
 const BackupsManager = dynamic(
   () => import('@/components/super-admin/backups/BackupsManager'),
@@ -23,13 +24,10 @@ export default async function BackupsPage() {
 
   return (
     <div className="space-y-6">
-      {/* En-tête */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Sauvegardes Système</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Gérez les backups PostgreSQL, MinIO et code source
-        </p>
-      </div>
+      <PageHeader
+        title="Sauvegardes Système"
+        description="Gérez les backups PostgreSQL, MinIO et code source"
+      />
 
       {/* Gestionnaire de backups */}
       <BackupsManager />

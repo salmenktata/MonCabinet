@@ -6,6 +6,7 @@
 import Link from 'next/link'
 import { db } from '@/lib/db/postgres'
 import { Icons } from '@/lib/icons'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 import { getStalenessThreshold } from '@/lib/legal-documents/freshness-service'
 import { LegalDocumentsTable } from '@/components/super-admin/legal-documents/LegalDocumentsTable'
 import { LegalHierarchyNav } from '@/components/super-admin/legal-documents/LegalHierarchyNav'
@@ -283,20 +284,17 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-5">
 
-      {/* ── Header ───────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Documents Juridiques</h1>
-          <p className="text-slate-400 mt-1 text-sm">
-            Gestion de la couche document — consolidation, approbation et indexation KB
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <IndexPendingButton pendingCount={pendingIndexCount} />
-          <KnowledgeBaseUploadDialog />
-          <ImportLegalDocumentsDialog sources={sources} />
-        </div>
-      </div>
+      <PageHeader
+        title="Documents Juridiques"
+        description="Gestion de la couche document — consolidation, approbation et indexation KB"
+        action={
+          <div className="flex items-center gap-2">
+            <IndexPendingButton pendingCount={pendingIndexCount} />
+            <KnowledgeBaseUploadDialog />
+            <ImportLegalDocumentsDialog sources={sources} />
+          </div>
+        }
+      />
 
       {/* ── Stats ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
