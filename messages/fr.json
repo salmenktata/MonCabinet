@@ -1130,7 +1130,8 @@
     "newConversation": "Nouvelle conversation",
     "placeholders": {
       "chat": "Posez votre question juridique...",
-      "structure": "Décrivez les faits du dossier : parties, dates, événements clés..."
+      "structure": "Décrivez les faits du dossier : parties, dates, événements clés...",
+      "ariida": "Décrivez les faits : demandeur, défendeur, faits, ce que vous réclamez..."
     },
     "actions": {
       "chat": {
@@ -1140,6 +1141,10 @@
       "structure": {
         "label": "Structurer un dossier",
         "description": "Analyser un narratif et créer un dossier"
+      },
+      "ariida": {
+        "label": "Requête introductive",
+        "description": "Rédiger une عريضة دعوى tunisienne complète"
       }
     },
     "enriched": {
@@ -1160,6 +1165,21 @@
         "error": "Erreur",
         "dossierCreated": "Dossier créé avec succès",
         "createError": "Impossible de créer le dossier"
+      },
+      "ariida": {
+        "title": "Requête introductive d'instance",
+        "tribunal": "Tribunal compétent",
+        "parties": "Parties",
+        "demandeur": "Demandeur",
+        "defendeur": "Défendeur",
+        "qualification": "Qualification juridique",
+        "faits": "Exposé des faits",
+        "fondements": "Fondements juridiques",
+        "pretentions": "Demandes (Petitum)",
+        "pieces": "Pièces à produire",
+        "copy": "Copier la requête",
+        "copied": "Copié !",
+        "parseError": "Erreur lors de l'analyse de la requête"
       }
     },
     "modes": {
@@ -1176,6 +1196,13 @@
         "welcomeMessage": "Décrivez les faits d'une affaire et l'IA structurera automatiquement un dossier juridique complet.",
         "exampleQuestions": "Exemples de descriptions :",
         "examples": { "ex1": "Litige bail commercial", "ex2": "Accident de circulation", "ex3": "Conflit de travail" }
+      },
+      "ariida": {
+        "label": "Requête introductive",
+        "welcomeTitle": "Rédaction de requête introductive d'instance",
+        "welcomeMessage": "Décrivez les faits, les parties et vos prétentions. L'IA générera une عريضة دعوى tunisienne complète et qualifiée juridiquement.",
+        "exampleQuestions": "Exemples de cas :",
+        "examples": { "ex1": "Résiliation bail et expulsion", "ex2": "Responsabilité délictuelle", "ex3": "Recouvrement créance commerciale" }
       }
     },
     "errors": {

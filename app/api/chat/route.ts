@@ -34,6 +34,7 @@ import { scheduleQueryLog } from '@/lib/ai/query-log-service'
 import { trackConversationCost } from '@/lib/ai/conversation-cost-service'
 import { detectAbrogations, type AbrogationAlert } from '@/lib/legal/abrogation-detector-service'
 import { structurerDossier } from '@/lib/ai/dossier-structuring-service'
+import { genererAriida } from '@/lib/ai/ariida-generation-service'
 import { RateLimiter } from '@/lib/rate-limiter'
 import { acquireChatSemaphore, releaseChatSemaphore } from '@/lib/ai/chat-semaphore'
 import { checkAndConsumeAiQuota } from '@/lib/plans/check-ai-quota'
@@ -55,7 +56,7 @@ interface ChatRequestBody {
   includeJurisprudence?: boolean
   stream?: boolean // Activer le streaming
   usePremiumModel?: boolean // Mode Premium: cloud providers au lieu d'Ollama
-  actionType?: 'chat' | 'structure' // Nouveau: type d'action pour interface unifiée
+  actionType?: 'chat' | 'structure' | 'ariida' // Nouveau: type d'action pour interface unifiée
   docType?: DocumentType // Nouveau: filtrer recherche KB par type de document
   stance?: LegalStance // Mode Avocat Stratège : défense / attaque / neutre
   excludeCategories?: string[] // Exclure des catégories de sources (ex: ['google_drive'])
@@ -114,6 +115,29 @@ async function handleStructureAction(
     tokensUsed: { input: 0, output: 0, total: 0 },
     model: 'structuration',
     metadata: { actionType: 'structure' },
+  }
+}
+
+/**
+ * Handler pour action 'ariida' - Génération عريضة الدعوى
+ */
+async function handleAriidaAction(
+  narratif: string,
+  userId: string,
+  _conversationId: string
+) {
+  const ariida = await genererAriida(narratif, userId)
+  const sources = ariida.sources ?? []
+
+  // Détacher sources du JSON sauvegardé (stockées séparément)
+  const { sources: _srcs, ...ariidaWithoutSources } = ariida
+
+  return {
+    answer: JSON.stringify(ariidaWithoutSources, null, 2),
+    sources,
+    tokensUsed: { input: 0, output: 0, total: 0 },
+    model: 'ariida',
+    metadata: { actionType: 'ariida' },
   }
 }
 
@@ -358,6 +382,13 @@ export async function POST(
             handleStructureAction(question, userId, activeConversationId),
             ACTION_TIMEOUT_MS,
             'structure'
+          )
+          break
+        case 'ariida':
+          response = await withTimeout(
+            handleAriidaAction(question, userId, activeConversationId),
+            ACTION_TIMEOUT_MS,
+            'ariida'
           )
           break
         default:

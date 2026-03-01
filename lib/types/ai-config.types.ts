@@ -141,6 +141,10 @@ export const OPERATION_LABELS: Record<OperationName, { fr: string; ar: string }>
     fr: 'Comparer Ollama',
     ar: 'مقارنة Ollama',
   },
+  'ariida-generation': {
+    fr: 'Génération Requête (عريضة)',
+    ar: 'إنشاء عريضة الدعوى',
+  },
 }
 
 /**
@@ -160,6 +164,7 @@ export const OPERATION_DESCRIPTIONS: Record<OperationName, string> = {
   'compare-deepseek': 'Test comparaison providers - DeepSeek deepseek-chat (provider prod)',
   'compare-openai': 'Test comparaison providers - OpenAI GPT-4o',
   'compare-ollama': 'Test comparaison providers - Ollama qwen3:8b',
+  'ariida-generation': 'Génération عريضة دعوى tunisienne structurée - DeepSeek deepseek-chat',
 }
 
 /**

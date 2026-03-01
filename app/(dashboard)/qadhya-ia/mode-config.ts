@@ -1,14 +1,14 @@
 import type { ActionType } from '@/components/qadhya-ia/ActionButtons'
 
 export interface ModeConfig {
-  icon: 'messageSquare' | 'edit'
-  accentColor: 'blue' | 'amber'
+  icon: 'messageSquare' | 'edit' | 'fileText'
+  accentColor: 'blue' | 'amber' | 'violet'
   iconBgClass: string
   iconTextClass: string
   badgeClass: string
   gradientClass: string
   ringClass: string
-  translationKey: 'chat' | 'structure'
+  translationKey: 'chat' | 'structure' | 'ariida'
 }
 
 export const MODE_CONFIGS: Record<ActionType, ModeConfig> = {
@@ -31,5 +31,15 @@ export const MODE_CONFIGS: Record<ActionType, ModeConfig> = {
     gradientClass: 'from-background via-background to-amber-50/30 dark:to-amber-950/20',
     ringClass: 'focus-visible:ring-amber-500',
     translationKey: 'structure',
+  },
+  ariida: {
+    icon: 'fileText',
+    accentColor: 'violet',
+    iconBgClass: 'bg-violet-100 dark:bg-violet-900/30',
+    iconTextClass: 'text-violet-600 dark:text-violet-400',
+    badgeClass: 'border-violet-200 text-violet-700 dark:border-violet-800 dark:text-violet-300',
+    gradientClass: 'from-background via-background to-violet-50/30 dark:to-violet-950/20',
+    ringClass: 'focus-visible:ring-violet-500',
+    translationKey: 'ariida',
   },
 }

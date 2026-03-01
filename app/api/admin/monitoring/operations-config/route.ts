@@ -40,6 +40,7 @@ const OPERATION_LABELS: Record<OperationName, string> = {
   'compare-deepseek': 'Comparer DeepSeek',
   'compare-openai': 'Comparer OpenAI',
   'compare-ollama': 'Comparer Ollama',
+  'ariida-generation': 'Génération Requête (عريضة)',
 }
 
 // Coût estimé par opération (en prod — tarifs DeepSeek vérifiés mars 2026)
@@ -57,6 +58,7 @@ const COST_ESTIMATES: Record<OperationName, string> = {
   'compare-deepseek': '~$0.028/M tokens (DeepSeek cache hit)',
   'compare-openai': '~$0.03/requête (OpenAI GPT-4o)',
   'compare-ollama': 'Gratuit (Ollama local)',
+  'ariida-generation': '~$0.028/M tokens (DeepSeek cache hit)',
 }
 
 // Tous les providers connus

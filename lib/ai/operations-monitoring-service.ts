@@ -210,6 +210,7 @@ function estimateCost(tokens: number, operationName: OperationName): number {
     'compare-deepseek': 0.000000028, // DeepSeek cache hit ($0.028/M input)
     'compare-openai': 0.000015, // OpenAI gpt-4o ~$15/1M tokens
     'compare-ollama': 0, // Ollama local gratuit
+    'ariida-generation': 0.000000028, // DeepSeek cache hit ($0.028/M input)
   }
 
   return tokens * pricePerToken[operationName]

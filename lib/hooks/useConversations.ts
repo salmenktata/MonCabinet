@@ -62,7 +62,7 @@ export interface ConversationListParams {
   sortOrder?: 'asc' | 'desc'
   category?: string
   language?: 'fr' | 'ar'
-  actionType?: 'chat' | 'structure' | 'consult'
+  actionType?: 'chat' | 'structure' | 'consult' | 'ariida'
 }
 
 export interface ConversationListResult {
@@ -76,7 +76,7 @@ export interface SendMessageParams {
   message: string
   usePremiumModel?: boolean
   maxDepth?: number
-  actionType?: 'chat' | 'structure' | 'consult' // Nouveau: type d'action pour interface unifiée
+  actionType?: 'chat' | 'structure' | 'consult' | 'ariida' // Nouveau: type d'action pour interface unifiée
 }
 
 // =============================================================================

@@ -30,6 +30,7 @@ export type OperationName =
   | 'compare-deepseek'
   | 'compare-openai'
   | 'compare-ollama'
+  | 'ariida-generation'
 
 /**
  * Sévérité d'alerte en cas d'échec
@@ -372,6 +373,28 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     llmConfig: { temperature: 0.1, maxTokens: 2048 },
     alerts: { onFailure: 'log', severity: 'warning' },
     description: 'Test comparaison providers - Ollama qwen3:8b (local)',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 11. GÉNÉRATION ARIIDA (عريضة الدعوى — requête introductive d'instance)
+  // ---------------------------------------------------------------------------
+  'ariida-generation': {
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'deepseek', name: 'deepseek-chat' },
+
+    timeouts: {
+      chat: 45000,
+      total: 60000,
+    },
+
+    llmConfig: {
+      temperature: 0.2,
+      maxTokens: 3000,
+    },
+
+    alerts: { onFailure: 'log', severity: 'warning' },
+    description: 'Génération عريضة دعوى tunisienne structurée - DeepSeek deepseek-chat',
   },
 }
 

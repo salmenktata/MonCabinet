@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 
-export type ActionType = 'chat' | 'structure'
+export type ActionType = 'chat' | 'structure' | 'ariida'
 
 interface ActionButtonsProps {
   selected: ActionType
@@ -29,6 +29,11 @@ export function ActionButtons({ selected, onSelect, disabled }: ActionButtonsPro
       type: 'structure',
       label: t('structure.label'),
       icon: 'edit',
+    },
+    {
+      type: 'ariida',
+      label: t('ariida.label'),
+      icon: 'fileText',
     },
   ]
 
