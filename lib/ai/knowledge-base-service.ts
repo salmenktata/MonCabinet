@@ -1605,8 +1605,14 @@ export async function searchKnowledgeBaseHybrid(
     const articleExplicitMatch = queryText.match(/الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
     if (articleExplicitMatch) {
       const artNum = articleExplicitMatch[1].replace(/[أإآ]/g, 'ا')
-      searchPromises.push(searchArticleByTextMatch(artNum, targetCodeFragment))
-      providerLabels.push('article-text')
+      // Fix Mar 2 2026 (régression): ordinals sans code cible → 93 faux positifs toutes catégories.
+      // N'appliquer le match ordinal que si: chiffre (safe) OU code identifié (targetCodeFragment).
+      // "الفصل الأول من الدستور" → targetCodeFragment=null → skip ici, géré par constExplicitMatch.
+      // "الفصل الأول من مجلة الشغل" → targetCodeFragment='شغل' → filtre OK.
+      if (/^\d+$/.test(artNum) || targetCodeFragment) {
+        searchPromises.push(searchArticleByTextMatch(artNum, targetCodeFragment))
+        providerLabels.push('article-text')
+      }
     }
   }
 
