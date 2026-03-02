@@ -556,9 +556,13 @@ export async function indexKnowledgeDocument(
   }
 
   // Générer les embeddings en parallèle pour OpenAI + Ollama (Gemini supprimé — coût €44/mois)
+  // En TURBO mode (OpenAI batch rapide), skip Ollama pour éviter blocage (backfill séparé)
+  const isTurboMode = process.env.EMBEDDING_TURBO_MODE === 'true'
   const [embeddingsResult, ollamaEmbeddingsResult] = await Promise.allSettled([
     generateEmbeddingsBatch(chunks.map((c) => c.content)),
-    generateEmbeddingsBatch(chunks.map((c) => c.content), { forceOllama: true }),
+    isTurboMode
+      ? Promise.reject(new Error('TURBO mode - Ollama skippé (backfill séparé)'))
+      : generateEmbeddingsBatch(chunks.map((c) => c.content), { forceOllama: true }),
   ])
 
   if (embeddingsResult.status === 'rejected') {
