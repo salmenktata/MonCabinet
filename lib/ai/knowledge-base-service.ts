@@ -1606,15 +1606,14 @@ export async function searchKnowledgeBaseHybrid(
   // Fix Mar 2 2026: Article-text match dédié constitution — "الفصل X من الدستور"
   // searchArticleByTextMatch filtre category='codes' par défaut → manque les chunks constitution.
   // Déclenchement uniquement si query mentionne explicitement الفصل ET دستور.
-  // Fix Mar 2 2026 (ordinals): Support ordinals arabes (الأول→1, الثاني→2...) en plus des chiffres.
+  // Fix Mar 2 2026 (ordinals): Support ordinals arabes (الأول→الاول, الثاني...) en plus des chiffres.
+  // Fix Mar 2 2026 (hamza): 9anoun.tn stocke "الاول" sans hamza → normaliser أ→ا avant SQL regex.
   if (isConstitutionQuery) {
-    // Fix Mar 2 2026 (ordinals SQL): capture chiffres ET ordinals arabes (الأول, الثاني...).
-    // La constitution stocke ses fsl avec ordinal arabe ("الفصل الأول : تونس..."),
-    // pas en chiffre → passer rawMatch directement à searchArticleByTextMatch.
-    // La regex SQL devient "الفصل الأول([^0-9]|$)" qui matche "الفصل الأول : تونس..." ✅
-    const constExplicitMatch = queryText.match(/الفصل\s+(\d+|الأول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
+    // Capture chiffres ET ordinals arabes (الأول, الثاني...) depuis la query (avec ou sans hamza).
+    const constExplicitMatch = queryText.match(/الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
     if (constExplicitMatch) {
-      const rawMatch = constExplicitMatch[1]
+      // Normaliser hamza : "الأول" (query) → "الاول" (stocké dans DB sans hamza sur alif)
+      const rawMatch = constExplicitMatch[1].replace(/[أإآ]/g, 'ا')
       searchPromises.push(searchArticleByTextMatch(rawMatch, null, ['constitution', 'legislation']))
       providerLabels.push('article-text')
     }
