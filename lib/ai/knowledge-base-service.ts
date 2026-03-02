@@ -1455,6 +1455,7 @@ export async function searchKnowledgeBaseHybrid(
     threshold?: number
     operationName?: string
     skipJinaRerank?: boolean  // A/B testing : comparer R@5 avec/sans Jina reranker
+    originalQuery?: string  // Query originale avant expansion LLM — utilisée pour article-text pattern matching
   } = {}
 ): Promise<KnowledgeBaseSearchResult[]> {
   if (!isSemanticSearchEnabled()) {
@@ -1471,6 +1472,7 @@ export async function searchKnowledgeBaseHybrid(
     threshold = aiConfig.rag.similarityThreshold - 0.20, // SQL vector_threshold permissif (0.35) ; le HARD_QUALITY_GATE (0.50) filtre ensuite
     operationName,
     skipJinaRerank = false,
+    originalQuery,
   } = options
 
   // Normaliser docTypes en array unique
@@ -1484,9 +1486,12 @@ export async function searchKnowledgeBaseHybrid(
   const { generateEmbedding, formatEmbeddingForPostgres } =
     await getEmbeddingsService()
 
-  // Préparer query texte pour BM25 (supprimer ponctuation + diacritiques arabes tashkeel)
+  // Préparer query texte pour BM25 + article-text pattern matching.
   // FIX (Feb 16, 2026): Préserver les accents français/latins pour BM25
-  const queryText = query
+  // FIX (Mar 2 2026): Utiliser originalQuery (avant expansion LLM) pour les regex de type "الفصل الأول".
+  // L'expansion LLM peut omettre "الفصل X" → constExplicitMatch/articleExplicitMatch échouent.
+  // On garde `query` (enrichie) uniquement pour l'embedding vectoriel.
+  const queryText = (originalQuery ?? query)
     .replace(/[\u064B-\u065F\u0670]/g, '') // Strip tashkeel/diacritiques arabes
     .replace(/[^\w\s\u0600-\u06FF\u00C0-\u017F]/g, ' ') // Garde lettres latines étendues (à-ÿ, accents FR)
     .trim()
@@ -1594,10 +1599,12 @@ export async function searchKnowledgeBaseHybrid(
   // Fix Feb 26 v8: Recherche textuelle directe pour queries "ماذا ينص الفصل X من مجلة Y"
   // Contourne le threshold vectoriel (0.15) qui peut exclure l'article exact si sim embedding < seuil.
   // Pattern "الفصل X " (espace après) évite les faux positifs sur الفصل X0, الفصل X1...
+  // Fix Mar 2 2026 (ordinals+hamza): support ordinals arabes (الأول→الاول...) en plus des chiffres.
+  // 9anoun.tn stocke "الاول" sans hamza → normaliser أ→ا avant SQL regex.
   if (shouldForceCodes) {
-    const articleExplicitMatch = queryText.match(/الفصل\s+(\d+)/)
+    const articleExplicitMatch = queryText.match(/الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
     if (articleExplicitMatch) {
-      const artNum = articleExplicitMatch[1]
+      const artNum = articleExplicitMatch[1].replace(/[أإآ]/g, 'ا')
       searchPromises.push(searchArticleByTextMatch(artNum, targetCodeFragment))
       providerLabels.push('article-text')
     }

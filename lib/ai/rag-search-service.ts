@@ -1077,6 +1077,7 @@ export async function searchRelevantContext(
             limit: 5,
             threshold: globalThreshold,
             operationName: options.operationName,
+            originalQuery: question,
           }),
         ])
         // Merge: dédupliquer par chunkId, garder meilleure similarité
@@ -1106,6 +1107,7 @@ export async function searchRelevantContext(
           threshold: globalThreshold,
           operationName: options.operationName,
           docType: options.docType,
+          originalQuery: question,
         })
       }
 
@@ -1120,6 +1122,7 @@ export async function searchRelevantContext(
             limit: 3,
             threshold: globalThreshold * 0.8, // Seuil 20% plus permissif pour la jurisprudence
             operationName: options.operationName,
+            originalQuery: question,
           })
           if (jurisResults.length > 0) {
             // Dédup via knowledgeBaseId+contenu (kbResults n'a pas de chunkId dans son type inline)
