@@ -78,7 +78,7 @@ export async function getUserConversations(
   userId: string,
   dossierId?: string,
   limit: number = 20,
-  actionType?: 'chat' | 'structure' | 'consult'
+  actionType?: 'chat' | 'structure' | 'consult' | 'ariida'
 ): Promise<
   Array<{
     id: string
@@ -126,7 +126,7 @@ export async function getUserConversations(
         )
       )`
     } else {
-      // Modes 'structure'/'consult' : filtre strict
+      // Modes 'structure'/'consult'/'ariida' : filtre strict
       sql += ` AND EXISTS (
         SELECT 1 FROM chat_messages cm
         WHERE cm.conversation_id = c.id

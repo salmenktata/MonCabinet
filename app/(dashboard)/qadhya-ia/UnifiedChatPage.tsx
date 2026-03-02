@@ -44,11 +44,12 @@ import { useStreamingChat } from '@/lib/hooks/useStreamingChat'
 import type { DocumentType } from '@/lib/categories/doc-types'
 import { useStance } from '@/contexts/StanceContext'
 
-const STORAGE_KEY = 'qadhya_last_conversation'
+// Clé localStorage par type d'action pour éviter la contamination croisée entre pages
+const getStorageKey = (action: ActionType) => `qadhya_last_conversation_${action}`
 
 interface UnifiedChatPageProps {
   userId: string
-  initialAction?: ActionType  // 'chat' | 'structure' | 'consult'
+  initialAction?: ActionType  // 'chat' | 'structure' | 'ariida'
   hideActionButtons?: boolean // Masquer les boutons si page dédiée
 }
 
@@ -65,7 +66,7 @@ export function UnifiedChatPage({
   // State
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem(STORAGE_KEY)
+      return localStorage.getItem(getStorageKey(initialAction))
     }
     return null
   })
@@ -89,14 +90,15 @@ export function UnifiedChatPage({
   // Clé pour déclencher l'auto-focus du textarea
   const [inputFocusKey, setInputFocusKey] = useState(0)
 
-  // Persistance de la conversation sélectionnée en localStorage
+  // Persistance de la conversation sélectionnée en localStorage (clé par action type)
   useEffect(() => {
+    const key = getStorageKey(initialAction)
     if (selectedConversationId) {
-      localStorage.setItem(STORAGE_KEY, selectedConversationId)
+      localStorage.setItem(key, selectedConversationId)
     } else {
-      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(key)
     }
-  }, [selectedConversationId])
+  }, [selectedConversationId, initialAction])
 
   // Mode config dérivée de l'action courante
   const modeConfig = useMemo(() => MODE_CONFIGS[currentAction], [currentAction])

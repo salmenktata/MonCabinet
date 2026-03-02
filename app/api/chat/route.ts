@@ -317,8 +317,9 @@ export async function POST(
       }
     }
 
-    // Sauvegarder la question utilisateur
-    await saveMessage(activeConversationId, 'user', question)
+    // Sauvegarder la question utilisateur (avec actionType pour filtrage historique)
+    const userMsgMetadata = actionType && actionType !== 'chat' ? { actionType } : undefined
+    await saveMessage(activeConversationId, 'user', question, undefined, undefined, undefined, userMsgMetadata)
 
     // Phase 3.4 : Détecter les références à des lois abrogées dans la question
     let abrogationAlerts: AbrogationAlert[] = []
@@ -508,7 +509,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const searchParams = request.nextUrl.searchParams
     const dossierId = searchParams.get('dossierId')
     const conversationId = searchParams.get('conversationId')
-    const actionType = searchParams.get('actionType') as 'chat' | 'structure' | null
+    const actionType = searchParams.get('actionType') as 'chat' | 'structure' | 'ariida' | null
 
     // Si conversationId fourni, retourner les messages de cette conversation
     if (conversationId) {
