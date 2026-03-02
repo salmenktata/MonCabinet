@@ -1455,6 +1455,7 @@ export async function searchKnowledgeBaseHybrid(
     threshold?: number
     operationName?: string
     skipJinaRerank?: boolean  // A/B testing : comparer R@5 avec/sans Jina reranker
+    originalQuery?: string  // Query originale avant expansion LLM — utilisée pour article-text pattern matching
   } = {}
 ): Promise<KnowledgeBaseSearchResult[]> {
   if (!isSemanticSearchEnabled()) {
@@ -1471,6 +1472,7 @@ export async function searchKnowledgeBaseHybrid(
     threshold = aiConfig.rag.similarityThreshold - 0.20, // SQL vector_threshold permissif (0.35) ; le HARD_QUALITY_GATE (0.50) filtre ensuite
     operationName,
     skipJinaRerank = false,
+    originalQuery,
   } = options
 
   // Normaliser docTypes en array unique
@@ -1484,9 +1486,12 @@ export async function searchKnowledgeBaseHybrid(
   const { generateEmbedding, formatEmbeddingForPostgres } =
     await getEmbeddingsService()
 
-  // Préparer query texte pour BM25 (supprimer ponctuation + diacritiques arabes tashkeel)
+  // Préparer query texte pour BM25 + article-text pattern matching.
   // FIX (Feb 16, 2026): Préserver les accents français/latins pour BM25
-  const queryText = query
+  // FIX (Mar 2 2026): Utiliser originalQuery (avant expansion LLM) pour les regex de type "الفصل الأول".
+  // L'expansion LLM peut omettre "الفصل X" → constExplicitMatch/articleExplicitMatch échouent.
+  // On garde `query` (enrichie) uniquement pour l'embedding vectoriel.
+  const queryText = (originalQuery ?? query)
     .replace(/[\u064B-\u065F\u0670]/g, '') // Strip tashkeel/diacritiques arabes
     .replace(/[^\w\s\u0600-\u06FF\u00C0-\u017F]/g, ' ') // Garde lettres latines étendues (à-ÿ, accents FR)
     .trim()
