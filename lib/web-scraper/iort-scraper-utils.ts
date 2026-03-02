@@ -1234,8 +1234,14 @@ async function downloadConstitutionPdfViaA7(page: import('playwright').Page): Pr
 
 /**
  * Extrait le contenu textuel de la page constitution IORT.
+ * Fix Mar 2 2026 : pdfBuffer optionnel — si le HTML IORT ne contient pas
+ * d'articles (page = viewer WebDev sans texte), on extrait depuis le PDF
+ * via pdf-parse pour garantir les marqueurs "الفصل X" nécessaires au chunking article-level.
  */
-async function extractConstitutionText(page: import('playwright').Page): Promise<{ title: string; content: string; issueNumber: string | null; date: string | null }> {
+async function extractConstitutionText(
+  page: import('playwright').Page,
+  pdfBuffer?: Buffer,
+): Promise<{ title: string; content: string; issueNumber: string | null; date: string | null }> {
   const html = await page.content()
   const { load } = await import('cheerio')
   const $ = load(html)
@@ -1247,7 +1253,7 @@ async function extractConstitutionText(page: import('playwright').Page): Promise
   let title = $('title').text().trim() || 'دستور الجمهورية التونسية'
   title = title.replace(/IORT.*$/i, '').trim() || 'دستور الجمهورية التونسية'
 
-  // Contenu principal
+  // Contenu principal (HTML)
   let content = ''
   for (const sel of ['.contenu', '.texte', 'td.texte', 'td.contenu', '#contenu', 'div.content']) {
     const el = $(sel)
@@ -1259,6 +1265,22 @@ async function extractConstitutionText(page: import('playwright').Page): Promise
   if (!content) {
     content = await page.evaluate(() => document.body.innerText.substring(0, 50000))
     content = content.replace(/WD_ACTION_\w+/g, '').replace(/\s{3,}/g, '\n\n').trim()
+  }
+
+  // Fallback PDF : si le HTML ne contient pas d'articles (viewer WebDev vide)
+  const hasArticles = /الفصل\s+\d+/.test(content)
+  if ((!hasArticles || content.length < 5000) && pdfBuffer) {
+    console.log('[IORT Constitution] HTML sans articles constitutionnels — fallback extraction PDF')
+    try {
+      const pdfParse = (await import('pdf-parse')).default
+      const pdfData = await pdfParse(pdfBuffer)
+      if (pdfData.text && pdfData.text.length > content.length) {
+        content = pdfData.text
+        console.log(`[IORT Constitution] PDF extrait: ${content.length} chars, pages: ${pdfData.numpages}`)
+      }
+    } catch (pdfErr) {
+      console.warn('[IORT Constitution] Échec extraction PDF:', pdfErr instanceof Error ? pdfErr.message : pdfErr)
+    }
   }
 
   // Numéro JORT et date
@@ -1286,12 +1308,13 @@ export async function downloadConstitutionFromIort(
 
   await navigateToConstitutionPage(session)
 
-  // Extraire texte
-  const extracted = await extractConstitutionText(page)
-  console.log(`[IORT Constitution] Titre: ${extracted.title}, contenu: ${extracted.content.length} chars`)
-
-  // Télécharger PDF
+  // Télécharger PDF EN PREMIER pour le passer en fallback à extractConstitutionText
+  // (la page M4 IORT peut être un viewer WebDev sans texte HTML articulé)
   const pdfResult = await downloadConstitutionPdfViaA7(page)
+
+  // Extraire texte (HTML + fallback PDF si HTML vide)
+  const extracted = await extractConstitutionText(page, pdfResult?.buffer)
+  console.log(`[IORT Constitution] Titre: ${extracted.title}, contenu: ${extracted.content.length} chars, hasArticles: ${/الفصل\s+\d+/.test(extracted.content)}`)
 
   // Sauvegarder PDF dans MinIO
   let pdfInfo: { minioPath: string; size: number } | null = null
