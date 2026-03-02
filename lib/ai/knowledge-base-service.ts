@@ -1594,10 +1594,12 @@ export async function searchKnowledgeBaseHybrid(
   // Fix Feb 26 v8: Recherche textuelle directe pour queries "ماذا ينص الفصل X من مجلة Y"
   // Contourne le threshold vectoriel (0.15) qui peut exclure l'article exact si sim embedding < seuil.
   // Pattern "الفصل X " (espace après) évite les faux positifs sur الفصل X0, الفصل X1...
+  // Fix Mar 2 2026 (ordinals+hamza): support ordinals arabes (الأول→الاول...) en plus des chiffres.
+  // 9anoun.tn stocke "الاول" sans hamza → normaliser أ→ا avant SQL regex.
   if (shouldForceCodes) {
-    const articleExplicitMatch = queryText.match(/الفصل\s+(\d+)/)
+    const articleExplicitMatch = queryText.match(/الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
     if (articleExplicitMatch) {
-      const artNum = articleExplicitMatch[1]
+      const artNum = articleExplicitMatch[1].replace(/[أإآ]/g, 'ا')
       searchPromises.push(searchArticleByTextMatch(artNum, targetCodeFragment))
       providerLabels.push('article-text')
     }
