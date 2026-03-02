@@ -75,4 +75,4 @@ export const POST = withAdminApiAuth(async (_request: NextRequest) => {
 
     return NextResponse.json({ error: errMsg }, { status: 500 })
   }
-})
+}, { allowCronSecret: true })
