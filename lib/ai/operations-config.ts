@@ -41,7 +41,16 @@ export type OperationName =
 export type AlertSeverity = 'critical' | 'warning' | 'info'
 
 /**
- * Configuration IA pour une opération spécifique - Mode No-Fallback
+ * Provider de fallback avec modèle optionnel
+ */
+export interface FallbackProviderEntry {
+  provider: LLMProvider
+  /** Override du modèle pour ce provider (ex: 'llama-3.3-70b-versatile', 'gemini-2.0-flash-lite') */
+  model?: string
+}
+
+/**
+ * Configuration IA pour une opération spécifique
  */
 export interface OperationAIConfig {
   // Modèle unique fixe pour cette opération
@@ -49,6 +58,13 @@ export interface OperationAIConfig {
     provider: LLMProvider
     name: string
   }
+
+  /**
+   * Chaîne de fallback ordonnée pour les erreurs récupérables (rate limit, context exceeded, timeout).
+   * Si définie, remplace FALLBACK_ORDER global pour cette opération.
+   * Cascade : primary → fallbackChain[0] → fallbackChain[1] → ...
+   */
+  fallbackChain?: FallbackProviderEntry[]
 
   // Configuration embeddings (si applicable)
   embeddings?: {
@@ -149,6 +165,13 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'assistant-ia': {
     model: { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/M (cache hit), multilingue AR/FR, 128K ctx
 
+    fallbackChain: [
+      { provider: 'groq', model: 'llama-3.3-70b-versatile' }, // Free 1K RPD/12K TPM
+      { provider: 'gemini', model: 'gemini-2.0-flash-lite' }, // Paid Tier1, ~€0.05/mois en fallback
+      { provider: 'openai', model: 'gpt-4.1-mini' },          // Budget $10/mois, filet sécurité
+      { provider: 'ollama' },                                   // Local, toujours disponible
+    ],
+
     embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
 
     timeouts: {
@@ -175,6 +198,13 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
       ? { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
+    fallbackChain: isDev ? [] : [
+      { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+      { provider: 'gemini', model: 'gemini-2.0-flash-lite' },
+      { provider: 'openai', model: 'gpt-4.1-mini' },
+      { provider: 'ollama' },
+    ],
+
     embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
 
     timeouts: {
@@ -198,6 +228,13 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
   'dossiers-structuration': {
     model: { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/M (cache hit), excellent support JSON, 128K ctx
+
+    fallbackChain: [
+      { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+      { provider: 'gemini', model: 'gemini-2.0-flash-lite' },
+      { provider: 'openai', model: 'gpt-4.1-mini' },
+      { provider: 'ollama' },
+    ],
 
     timeouts: {
       chat: 45000,  // DeepSeek ~1-8s, marge pour JSON complexe
@@ -241,6 +278,13 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     model: isDev
       ? { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
+
+    fallbackChain: isDev ? [] : [
+      { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+      { provider: 'gemini', model: 'gemini-2.0-flash-lite' },
+      { provider: 'openai', model: 'gpt-4.1-mini' },
+      { provider: 'ollama' },
+    ],
 
     embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
 
@@ -307,6 +351,13 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     model: isDev
       ? { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
+
+    fallbackChain: isDev ? [] : [
+      { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+      { provider: 'gemini', model: 'gemini-2.0-flash-lite' },
+      { provider: 'openai', model: 'gpt-4.1-mini' },
+      { provider: 'ollama' },
+    ],
 
     timeouts: {
       chat: 90000,

@@ -26,6 +26,8 @@ export interface GeminiOptions {
   temperature?: number
   maxTokens?: number
   systemInstruction?: string
+  /** Override du modèle Gemini (ex: 'gemini-2.0-flash-lite' pour fallback économique) */
+  model?: string
 }
 
 export interface GeminiResponse {
@@ -336,7 +338,7 @@ export async function callGemini(
 
   const client = getGeminiClient()
   const model = client.getGenerativeModel({
-    model: aiConfig.gemini.model,
+    model: options.model || aiConfig.gemini.model,
     systemInstruction: options.systemInstruction,
   })
 
@@ -397,7 +399,7 @@ export async function* callGeminiStream(
 
   const client = getGeminiClient()
   const model = client.getGenerativeModel({
-    model: aiConfig.gemini.model,
+    model: options.model || aiConfig.gemini.model,
     systemInstruction: options.systemInstruction,
   })
 

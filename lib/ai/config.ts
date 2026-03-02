@@ -89,7 +89,7 @@ export const aiConfig: AIConfig = {
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
     embeddingDimensions: 1536, // text-embedding-3-small dimensions par défaut (qualité maximale)
-    chatModel: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+    chatModel: process.env.OPENAI_CHAT_MODEL || 'gpt-4.1-mini',
   },
 
   ollama: {
@@ -115,7 +115,7 @@ export const aiConfig: AIConfig = {
 
   gemini: {
     apiKey: process.env.GOOGLE_API_KEY || '',
-    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite',
     maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '4000', 10),
     embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
     embeddingDimensions: 768, // gemini-embedding-001 avec outputDimensionality=768

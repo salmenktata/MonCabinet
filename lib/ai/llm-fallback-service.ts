@@ -48,6 +48,8 @@ export interface LLMOptions {
   context?: AIContext
   /** Type d'opération pour configuration fixe (1 provider, pas de fallback) */
   operationName?: OperationName
+  /** Override du modèle pour un appel spécifique (utilisé dans fallbackChain) */
+  modelOverride?: string
 }
 
 export interface LLMResponse {
@@ -70,8 +72,8 @@ export interface LLMResponse {
 /** Kill switch d'urgence: réactive le mode cascade legacy si true */
 const LLM_FALLBACK_ENABLED = process.env.LLM_FALLBACK_ENABLED === 'true'
 
-/** Ordre de fallback pour les réponses chat : Gemini → OpenAI → Ollama */
-const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'openai', 'ollama']
+/** Ordre de fallback global (quand aucun fallbackChain n'est défini dans operations-config) */
+const FALLBACK_ORDER: LLMProvider[] = ['groq', 'gemini', 'openai', 'ollama']
 
 // =============================================================================
 // CIRCUIT BREAKER
@@ -378,6 +380,31 @@ export function isServerOrTimeoutError(error: unknown): boolean {
 }
 
 /**
+ * Vérifie si l'erreur est due à un dépassement de la fenêtre de contexte (context_length_exceeded).
+ * Ces erreurs sont récupérables en passant à un provider avec un contexte plus grand.
+ */
+export function isContextLengthExceeded(error: unknown): boolean {
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase()
+    return (
+      msg.includes('context_length_exceeded') ||
+      msg.includes('maximum context length') ||
+      msg.includes('context window') ||
+      msg.includes('too many tokens') ||
+      msg.includes('reduce the length') ||
+      msg.includes('input is too long') ||
+      msg.includes('tokens in the messages') ||
+      (msg.includes('400') && msg.includes('token'))
+    )
+  }
+  if (typeof error === 'object' && error !== null) {
+    const err = error as { code?: string }
+    return err.code === 'context_length_exceeded'
+  }
+  return false
+}
+
+/**
  * Retourne la liste des providers disponibles (avec clé API configurée)
  * Note: vérifie uniquement la présence de clé — utiliser checkProviderHealth() pour un ping réel
  */
@@ -519,7 +546,7 @@ async function callProvider(
     case 'gemini': {
       const geminiResponse: GeminiResponse = await callGemini(
         [{ role: 'system', content: systemPrompt }, ...userMessages],
-        { temperature, maxTokens, systemInstruction: systemPrompt }
+        { temperature, maxTokens, systemInstruction: systemPrompt, model: options.modelOverride }
       )
 
       return {
@@ -533,8 +560,9 @@ async function callProvider(
 
     case 'groq': {
       const client = getGroqClient()
+      const model = options.modelOverride || aiConfig.groq.model
       const response = await client.chat.completions.create({
-        model: aiConfig.groq.model,
+        model,
         max_tokens: maxTokens,
         messages: [{ role: 'system', content: systemPrompt }, ...userMessages],
         temperature,
@@ -547,7 +575,7 @@ async function callProvider(
           output: response.usage?.completion_tokens || 0,
           total: response.usage?.total_tokens || 0,
         },
-        modelUsed: aiConfig.groq.model,
+        modelUsed: model,
         provider: 'groq',
         fallbackUsed: false,
       }
@@ -577,7 +605,7 @@ async function callProvider(
 
     case 'openai': {
       const client = getOpenAIClient()
-      const model = aiConfig.openai?.chatModel || 'gpt-4o-mini'
+      const model = options.modelOverride || aiConfig.openai?.chatModel || 'gpt-4.1-mini'
       const response = await client.chat.completions.create({
         model,
         max_tokens: maxTokens,
@@ -788,21 +816,37 @@ export async function callLLMWithFallback(
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error))
 
-      // Sur erreur récupérable (429 rate-limit, 5xx serveur, timeout) → enregistrer + cascade fallback
-      const isRecoverable = isRateLimitError(error) || isServerOrTimeoutError(error)
+      // Sur erreur récupérable (429, context_length_exceeded, 5xx, timeout) → cascade fallback
+      const isRecoverable = isRateLimitError(error) || isServerOrTimeoutError(error) || isContextLengthExceeded(error)
       if (isRecoverable) {
         recordProviderFailure(provider)
-        const reason = isRateLimitError(error) ? 'rate-limité' : 'erreur serveur/timeout'
+        const reason = isRateLimitError(error) ? 'rate-limité'
+          : isContextLengthExceeded(error) ? 'context-dépassé'
+          : 'erreur serveur/timeout'
         logger.warn(
           `[LLM] ⚠️ ${provider} ${reason} pour ${options.operationName || 'default'}, cascade fallback...`
         )
-        // Trouver les providers alternatifs disponibles avec circuit fermé
-        const available = getAvailableProviders().filter(p => p !== provider && isProviderCircuitClosed(p))
-        for (const fallbackProvider of available) {
+
+        // Utiliser fallbackChain de la config opération si disponible, sinon FALLBACK_ORDER global
+        const fallbackEntries = (operationConfig?.fallbackChain && operationConfig.fallbackChain.length > 0)
+          ? operationConfig.fallbackChain
+              .filter(fb => isProviderCircuitClosed(fb.provider))
+              .map(fb => ({ provider: fb.provider, modelOverride: fb.model }))
+          : getAvailableProviders()
+              .filter(p => p !== provider && isProviderCircuitClosed(p))
+              .map(p => ({ provider: p, modelOverride: undefined }))
+
+        for (const { provider: fallbackProvider, modelOverride } of fallbackEntries) {
           try {
-            const response = await callProvider(fallbackProvider, messages, options)
+            const fallbackOptions = modelOverride ? { ...options, modelOverride } : options
+            const response = await callProvider(fallbackProvider, messages, fallbackOptions)
             recordProviderSuccess(fallbackProvider)
-            logger.info(`[LLM] ✓ Fallback réussi: ${provider} → ${fallbackProvider} (${reason})`)
+            if (fallbackProvider === 'groq' && response.tokensUsed) {
+              import('./groq-usage-tracker').then(({ trackGroqUsage }) =>
+                trackGroqUsage(response.modelUsed || 'unknown', response.tokensUsed.input, response.tokensUsed.output)
+              ).catch(() => {/* silencieux */})
+            }
+            logger.info(`[LLM] ✓ Fallback réussi: ${provider} → ${fallbackProvider}${modelOverride ? `/${modelOverride}` : ''} (${reason})`)
             return {
               ...response,
               fallbackUsed: true,
