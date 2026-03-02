@@ -210,11 +210,30 @@ export async function uploadKnowledgeDocument(
     throw new Error('Le contenu extrait est trop court (minimum 50 caractères)')
   }
 
+  // ✨ QUALITY GATE: Détecter contenu corrompu (PDF mal extrait, encodage cassé)
+  // Pour documents arabes : au moins 10% de caractères arabes requis
+  // Pour tous documents : max 40% de caractères "bruit" (non-alphanum, non-espace, non-ponctuation arabe/latine)
+  if (language === 'ar' || category === 'constitution' || category === 'codes' || category === 'legislation') {
+    const arabicChars = (fullText.match(/[\u0600-\u06FF]/g) || []).length
+    const arabicRatio = arabicChars / fullText.length
+    if (arabicRatio < 0.10) {
+      logger.warn(
+        `[KB Upload] ⚠️ CORRUPTION GATE: "${title}" — ratio arabe ${(arabicRatio * 100).toFixed(1)}% < 10% ` +
+        `(PDF probablement corrompu ou encodage cassé). Extraction annulée.`
+      )
+      throw new Error(
+        `Contenu corrompu détecté : seulement ${(arabicRatio * 100).toFixed(1)}% de caractères arabes ` +
+        `(minimum 10% requis pour un document ${language === 'ar' ? 'arabe' : 'juridique'}). ` +
+        `Vérifiez l'encodage du PDF ou utilisez une source texte alternative.`
+      )
+    }
+  }
+
   // Insertion en base
   const result = await db.query(
     `INSERT INTO knowledge_base
-     (category, subcategory, language, title, description, metadata, tags, source_file, full_text, uploaded_by, doc_type)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::document_type)
+     (category, subcategory, language, title, description, metadata, tags, source_file, full_text, uploaded_by, doc_type, rag_enabled)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::document_type, true)
      RETURNING *`,
     [
       category,
@@ -797,6 +816,88 @@ export async function indexPendingDocuments(limit: number = 10): Promise<{
     failed: results.filter((r) => !r.success).length,
     results,
   }
+}
+
+// =============================================================================
+// BACKFILL OLLAMA EMBEDDINGS
+// =============================================================================
+
+/**
+ * Génère les embeddings Ollama manquants sur des chunks déjà indexés.
+ * Appelé automatiquement après chaque run d'indexation (index-kb cron).
+ * Traite 100 chunks max par appel pour limiter la durée.
+ */
+export async function backfillOllamaEmbeddings(limit = 100): Promise<{
+  backfilled: number
+  failed: number
+  remaining: number
+}> {
+  const { generateEmbeddingsBatch, formatEmbeddingForPostgres } = await getEmbeddingsService()
+
+  const chunksResult = await db.query(
+    `SELECT kbc.id, kbc.content
+     FROM knowledge_base_chunks kbc
+     JOIN knowledge_base kb ON kb.id = kbc.knowledge_base_id
+     WHERE kbc.embedding IS NULL
+       AND kb.is_indexed = true
+       AND kb.rag_enabled = true
+     ORDER BY kb.created_at DESC
+     LIMIT $1`,
+    [limit]
+  )
+
+  if (chunksResult.rows.length === 0) {
+    const remaining = await db.query(
+      `SELECT COUNT(*) as count FROM knowledge_base_chunks kbc
+       JOIN knowledge_base kb ON kb.id = kbc.knowledge_base_id
+       WHERE kbc.embedding IS NULL AND kb.is_indexed = true AND kb.rag_enabled = true`
+    )
+    return { backfilled: 0, failed: 0, remaining: parseInt(remaining.rows[0].count) }
+  }
+
+  const chunks = chunksResult.rows as { id: string; content: string }[]
+  let backfilled = 0
+  let failed = 0
+
+  // Traiter par sous-batches de 20 pour éviter timeout Ollama
+  const SUB_BATCH = 20
+  for (let i = 0; i < chunks.length; i += SUB_BATCH) {
+    const sub = chunks.slice(i, i + SUB_BATCH)
+    try {
+      const result = await generateEmbeddingsBatch(sub.map(c => c.content), { forceOllama: true })
+      const ids: string[] = []
+      const vectors: string[] = []
+      for (let j = 0; j < sub.length; j++) {
+        if (result.embeddings[j] && result.embeddings[j].length === 768) {
+          ids.push(sub[j].id)
+          vectors.push(formatEmbeddingForPostgres(result.embeddings[j]))
+        }
+      }
+      if (ids.length > 0) {
+        await db.query(
+          `UPDATE knowledge_base_chunks kbc
+           SET embedding = batch.vec::vector(768)
+           FROM unnest($1::uuid[], $2::text[]) AS batch(chunk_id, vec)
+           WHERE kbc.id = batch.chunk_id`,
+          [ids, vectors]
+        )
+        backfilled += ids.length
+      }
+      failed += sub.length - ids.length
+    } catch {
+      failed += sub.length
+      logger.warn(`[Backfill] Ollama indisponible pour sous-batch ${i}-${i + SUB_BATCH}`)
+      break
+    }
+  }
+
+  const remainingResult = await db.query(
+    `SELECT COUNT(*) as count FROM knowledge_base_chunks kbc
+     JOIN knowledge_base kb ON kb.id = kbc.knowledge_base_id
+     WHERE kbc.embedding IS NULL AND kb.is_indexed = true AND kb.rag_enabled = true`
+  )
+
+  return { backfilled, failed, remaining: parseInt(remainingResult.rows[0].count) }
 }
 
 // =============================================================================

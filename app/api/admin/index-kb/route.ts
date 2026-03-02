@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { indexPendingDocuments } from '@/lib/ai/knowledge-base-service'
+import { indexPendingDocuments, backfillOllamaEmbeddings } from '@/lib/ai/knowledge-base-service'
 import { EMBEDDING_TURBO_CONFIG } from '@/lib/ai/config'
 import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 
@@ -51,6 +51,19 @@ export const GET = withAdminApiAuth(async (_request: NextRequest, _ctx, _session
     const duration = Date.now() - startTime
     const docsPerMinute = totalIndexed > 0 ? Math.round((totalIndexed / duration) * 60000) : 0
 
+    // Backfill embeddings Ollama manquants sur chunks déjà indexés (mode normal uniquement)
+    let backfillResult = null
+    if (!isTurbo) {
+      try {
+        backfillResult = await backfillOllamaEmbeddings()
+        if (backfillResult.backfilled > 0) {
+          console.log(`[IndexKB] Backfill Ollama: ${backfillResult.backfilled} chunks mis à jour, ${backfillResult.remaining} restants`)
+        }
+      } catch (err) {
+        console.warn('[IndexKB] Backfill Ollama ignoré (Ollama indisponible?):', err)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       duration,
@@ -59,6 +72,7 @@ export const GET = withAdminApiAuth(async (_request: NextRequest, _ctx, _session
       docsPerMinute,
       mode: isTurbo ? 'turbo' : 'normal',
       batchSize,
+      ...(backfillResult && { backfill: backfillResult }),
     })
   } catch (error) {
     console.error('[IndexKB] Erreur:', error)
