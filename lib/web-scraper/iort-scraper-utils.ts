@@ -1314,15 +1314,17 @@ export async function downloadConstitutionFromIort(
     await db.query(
       `UPDATE web_pages SET
         title = $2, extracted_text = $3, content_hash = $4, word_count = $5,
-        last_crawled_at = NOW(), updated_at = NOW(),
-        linked_files = CASE WHEN $6::text IS NOT NULL
-          THEN jsonb_build_array(jsonb_build_object('url', $7, 'type', 'pdf', 'minioPath', $6, 'size', $8, 'contentType', 'application/pdf'))
-          ELSE linked_files END
+        last_crawled_at = NOW(), updated_at = NOW()
        WHERE id = $1`,
       [pageId, extracted.title, extracted.content, contentHash,
-       extracted.content.split(/\s+/).length,
-       pdfInfo?.minioPath ?? null, constitutionUrl, pdfInfo?.size ?? 0],
+       extracted.content.split(/\s+/).length],
     )
+    if (pdfInfo) {
+      await db.query(
+        `UPDATE web_pages SET linked_files = $2::jsonb WHERE id = $1`,
+        [pageId, JSON.stringify([{ url: constitutionUrl, type: 'pdf', minioPath: pdfInfo.minioPath, size: pdfInfo.size, contentType: 'application/pdf' }])],
+      )
+    }
     console.log(`[IORT Constitution] Page mise à jour (id=${pageId})`)
   } else {
     const insertResult = await db.query(
