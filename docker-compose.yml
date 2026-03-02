@@ -208,6 +208,7 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen2.5:3b}
+      OLLAMA_QUALITY_MODEL: ${OLLAMA_QUALITY_MODEL:-qwen3:8b}
 
       # RAG Configuration (seuils optimisés Feb 2026)
       RAG_ENABLED: ${RAG_ENABLED:-true}

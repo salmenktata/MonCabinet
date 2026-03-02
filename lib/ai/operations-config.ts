@@ -88,6 +88,16 @@ export interface OperationAIConfig {
 const isDev = process.env.NODE_ENV === 'development'
 
 /**
+ * Modèle Ollama utilisé pour les opérations locales (classification, expansion, indexation, qualité KB).
+ * Priorité : OLLAMA_QUALITY_MODEL > OLLAMA_CHAT_MODEL > 'qwen3:8b'
+ * Exemples : qwen3-nothink (VPS actuel), qwen3.5:35b-a3b (futur), qwen3:8b (défaut)
+ */
+const OLLAMA_QUALITY_MODEL =
+  process.env.OLLAMA_QUALITY_MODEL ||
+  process.env.OLLAMA_CHAT_MODEL ||
+  'qwen3:8b'
+
+/**
  * Configuration centralisée - 1 modèle fixe par opération, 0 fallback
  *
  * Migration Mar 1, 2026 : Gemini → Groq (économie €84/mois GCP)
@@ -100,9 +110,9 @@ const isDev = process.env.NODE_ENV === 'development'
  * | Structuration dossier  | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
  * | Dossiers Assistant     | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
  * | Consultations IRAC     | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
- * | KB Quality Analysis    | Ollama    | qwen3:8b                  | $0 (local)        | 128K     |
- * | Query Classification   | Ollama    | qwen3:8b                  | $0 (local)        | 128K     |
- * | Query Expansion        | Ollama    | qwen3:8b                  | $0 (local)        | 128K     |
+ * | KB Quality Analysis    | Ollama    | OLLAMA_QUALITY_MODEL      | $0 (local)        | 128K     |
+ * | Query Classification   | Ollama    | OLLAMA_QUALITY_MODEL      | $0 (local)        | 128K     |
+ * | Query Expansion        | Ollama    | OLLAMA_QUALITY_MODEL      | $0 (local)        | 128K     |
  * | Consolidation docs     | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
  * | RAG Eval Judge         | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
  * | Embeddings (tout)      | Ollama    | nomic-embed-text          | $0 (local)        | 8K       |
@@ -114,9 +124,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 1. INDEXATION (background processing)
   // ---------------------------------------------------------------------------
   'indexation': {
-    model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'ollama', name: 'qwen3:8b' }, // Ollama pour classification (gratuit)
+    model: { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }, // Ollama pour classification (gratuit)
 
     embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
 
@@ -164,7 +172,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
   'dossiers-assistant': {
     model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
+      ? { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
     embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
@@ -210,7 +218,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 4. ANALYSE QUALITÉ KB (tous documents, courts et longs)
   // ---------------------------------------------------------------------------
   'kb-quality-analysis': {
-    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama en dev ET prod (batch, pas temps réel)
+    model: { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }, // Ollama en dev ET prod (batch, pas temps réel)
 
     timeouts: {
       chat: 60000, // Ollama plus lent que Groq, marge élargie
@@ -223,7 +231,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'warning' }, // Log seulement (batch non-critique)
-    description: 'Analyse qualité documents KB - Ollama qwen3:8b (gratuit, batch)',
+    description: `Analyse qualité documents KB - Ollama ${OLLAMA_QUALITY_MODEL} (gratuit, batch)`,
   },
 
   // ---------------------------------------------------------------------------
@@ -231,7 +239,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
   'dossiers-consultation': {
     model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
+      ? { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
     embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
@@ -256,10 +264,10 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 6. QUERY CLASSIFICATION (pré-filtrage KB)
   // ---------------------------------------------------------------------------
   'query-classification': {
-    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama : gratuit, déjà sur prod, tâche légère
+    model: { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }, // Ollama : gratuit, déjà sur prod, tâche légère
 
     timeouts: {
-      chat: 20000,  // Ollama VPS 12GB ~2-5s → marge 20s
+      chat: 20000,  // Ollama VPS ~2-5s → marge 20s
       total: 25000,
     },
 
@@ -269,17 +277,17 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'Classification query KB - Ollama qwen3:8b (gratuit, local, VPS 12GB RAM)',
+    description: `Classification query KB - Ollama ${OLLAMA_QUALITY_MODEL} (gratuit, local)`,
   },
 
   // ---------------------------------------------------------------------------
   // 7. QUERY EXPANSION (reformulation requêtes courtes)
   // ---------------------------------------------------------------------------
   'query-expansion': {
-    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama : gratuit, reformulation simple
+    model: { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }, // Ollama : gratuit, reformulation simple
 
     timeouts: {
-      chat: 20000,  // Ollama VPS 12GB ~2-5s → marge 20s
+      chat: 20000,  // Ollama VPS ~2-5s → marge 20s
       total: 25000,
     },
 
@@ -289,7 +297,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'info' },
-    description: 'Expansion queries courtes <50 chars - Ollama qwen3:8b (gratuit, local)',
+    description: `Expansion queries courtes <50 chars - Ollama ${OLLAMA_QUALITY_MODEL} (gratuit, local)`,
   },
 
   // ---------------------------------------------------------------------------
@@ -297,7 +305,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
   'document-consolidation': {
     model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
+      ? { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
     timeouts: {
@@ -319,7 +327,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
   'rag-eval-judge': {
     model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
+      ? { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : évite compétition quota Groq (100K tok/j 70b) ET Ollama (saturé par indexation KB)
 
     timeouts: {
@@ -358,12 +366,12 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   },
 
   'compare-ollama': {
-    model: { provider: 'ollama', name: 'qwen3:8b' },
+    model: { provider: 'ollama', name: OLLAMA_QUALITY_MODEL },
     embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 },
     timeouts: { chat: 120000, total: 135000 },
     llmConfig: { temperature: 0.1, maxTokens: 2048 },
     alerts: { onFailure: 'log', severity: 'warning' },
-    description: 'Test comparaison providers - Ollama qwen3:8b (local)',
+    description: `Test comparaison providers - Ollama ${OLLAMA_QUALITY_MODEL} (local)`,
   },
 
   // ---------------------------------------------------------------------------
@@ -371,7 +379,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
   'ariida-generation': {
     model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
+      ? { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }
       : { provider: 'deepseek', name: 'deepseek-chat' },
 
     timeouts: {
