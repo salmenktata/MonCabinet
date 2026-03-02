@@ -227,6 +227,29 @@ export async function routeQuery(
     }
   }
 
+  // Fix Mar 2 2026: Override branches pour requêtes constitutionnelles.
+  // Le LLM peut confondre "أحكام" (dispositions) avec domaine pénal/judiciaire,
+  // ce qui place 'administratif' dans forbiddenBranches → pénalité ×0.4 sur les chunks
+  // constitution. Si la query mentionne explicitement "الدستور/constitution", forcer
+  // l'inclusion de 'administratif' dans allowedBranches.
+  const applyConstitutionOverride = (result: RouterResult): RouterResult => {
+    if (!/الدستور|دستوري|دستورية|constitution|constitutionnel/i.test(query)) return result
+    // Retirer 'administratif' des branches interdites
+    if (result.forbiddenBranches?.includes('administratif')) {
+      const filtered = result.forbiddenBranches.filter(b => b !== 'administratif')
+      result.forbiddenBranches = filtered.length > 0 ? filtered : undefined
+    }
+    // Ajouter 'administratif' aux branches autorisées si absent
+    if (result.allowedBranches && !result.allowedBranches.includes('administratif')) {
+      result.allowedBranches = [...result.allowedBranches, 'administratif']
+    }
+    // Ajouter 'constitution' aux domaines si absent (active les boosts normatifs)
+    if (!result.classification.domains.includes('constitution')) {
+      result.classification.domains = [...result.classification.domains, 'constitution']
+    }
+    return result
+  }
+
   // Cache Redis — normalisation pour augmenter le taux de hit (~5% → ~20%)
   // Supprime ponctuation variable + mots interrogatifs de début
   const normalizeQuery = (q: string) =>
@@ -243,7 +266,7 @@ export async function routeQuery(
       if (cached) {
         const parsed = JSON.parse(cached as string) as RouterResult
         console.log('[Legal Router] Cache hit:', { query: query.substring(0, 50) })
-        return parsed
+        return applyConstitutionOverride(parsed)
       }
     } catch { /* cache miss */ }
   }
@@ -305,13 +328,13 @@ export async function routeQuery(
     // Sprint 1 RAG Audit-Proof : calculer branches depuis domaines classifiés
     const { allowedBranches, forbiddenBranches } = computeBranchesFromDomains(classification.domains)
 
-    const result: RouterResult = {
+    const result: RouterResult = applyConstitutionOverride({
       classification,
       tracks,
       source: 'llm',
       allowedBranches,
       forbiddenBranches,
-    }
+    })
 
     console.log('[Legal Router] Routing:', {
       query: query.substring(0, 50),
@@ -334,13 +357,13 @@ export async function routeQuery(
     // Fallback heuristique
     const classification = classifyQueryKeywords(query)
     const { allowedBranches, forbiddenBranches } = computeBranchesFromDomains(classification.domains)
-    return {
+    return applyConstitutionOverride({
       classification,
       tracks: routeQueryFromClassification(classification, query),
       source: 'heuristic',
       allowedBranches,
       forbiddenBranches,
-    }
+    })
   }
 }
 
