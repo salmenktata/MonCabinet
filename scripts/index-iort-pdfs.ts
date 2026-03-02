@@ -46,7 +46,7 @@ async function main() {
 
   // Récupérer l'ID de la source IORT
   const sourceResult = await db.query(
-    `SELECT id, name, category FROM web_sources WHERE base_url ILIKE '%iort%' OR name ILIKE '%iort%' LIMIT 1`
+    `SELECT id, name, categories FROM web_sources WHERE base_url ILIKE '%iort%' OR name ILIKE '%iort%' LIMIT 1`
   )
 
   if (sourceResult.rows.length === 0) {
@@ -54,8 +54,8 @@ async function main() {
     process.exit(1)
   }
 
-  const { id: sourceId, name: sourceName, category } = sourceResult.rows[0]
-  console.log(`[index-iort-pdfs] Source: ${sourceName} (id=${sourceId}, category=${category})`)
+  const { id: sourceId, name: sourceName, categories } = sourceResult.rows[0]
+  console.log(`[index-iort-pdfs] Source: ${sourceName} (id=${sourceId}, categories=${categories})`)
 
   // Récupérer toutes les pages IORT avec linked_files non vide contenant des PDFs
   let query: string
@@ -157,7 +157,7 @@ async function main() {
         row.page_id,
         sourceId,
         sourceName,
-        category
+        categories
       )
 
       if (result.success) {
