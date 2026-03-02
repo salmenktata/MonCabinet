@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { getSession } from '@/lib/auth/session'
+import { getPersistedCounters } from '@/lib/metrics/rag-metrics'
 
 /**
  * GET /api/admin/monitoring/rag-health
@@ -106,6 +107,9 @@ export async function GET(request: NextRequest) {
 
     const dimensionMismatchCount = parseInt(incidents.rows[0]?.count || '0', 10)
 
+    // 6. Compteurs Redis persistés (router fallback, erreurs embedding, etc.)
+    const persistedCounters = await getPersistedCounters()
+
     // Calculer ratios et taux de succès
     const openaiRatio = totalChunks > 0 ? (openaiCount / totalChunks) * 100 : 0
     const ollamaRatio = totalChunks > 0 ? (ollamaCount / totalChunks) * 100 : 0
@@ -148,6 +152,13 @@ export async function GET(request: NextRequest) {
         alerts: {
           hasMismatch: dimensionMismatchCount > 0,
           lowSuccessRate: successRate24h < 90,
+          highRouterFallbackRate: persistedCounters.routerFallback > 10,
+        },
+        router: {
+          fallbackCount: persistedCounters.routerFallback,
+          fallbackRate: persistedCounters.requestsTotal > 0
+            ? Math.round((persistedCounters.routerFallback / persistedCounters.requestsTotal) * 10000) / 100
+            : 0,
         },
       },
     })

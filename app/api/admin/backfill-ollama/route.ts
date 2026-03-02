@@ -16,21 +16,26 @@ import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-const BATCH_SIZE = 20 // chunks par batch
-const MAX_BATCHES = 100 // 2000 chunks max par appel
-const BATCH_DELAY_MS = 300
+const BATCH_SIZE = 20          // chunks par batch Ollama
+const DEFAULT_MAX_BATCHES = 100 // 2000 chunks par défaut (20 × 100)
+const MAX_BATCHES_LIMIT = 250   // plafond de sécurité (250 × 20 = 5000 chunks max, ~4min)
+const BATCH_DELAY_MS = 150      // délai réduit : Ollama tourne en local sur le VPS
 
-export const GET = withAdminApiAuth(async (_request: NextRequest): Promise<NextResponse> => {
+export const GET = withAdminApiAuth(async (request: NextRequest): Promise<NextResponse> => {
   const startTime = Date.now()
   let totalBackfilled = 0
   let totalFailed = 0
 
+  // Paramètre optionnel ?batches=N pour contrôler le volume par appel (défaut: 100 = 2000 chunks)
+  const batchesParam = parseInt(request.nextUrl.searchParams.get('batches') || String(DEFAULT_MAX_BATCHES), 10)
+  const maxBatches = Math.min(Math.max(1, batchesParam), MAX_BATCHES_LIMIT)
+
   const { generateEmbeddingsBatch, formatEmbeddingForPostgres } = await import('@/lib/ai/embeddings-service')
 
-  console.log('[BackfillOllama] Démarrage backfill embeddings Ollama manquants')
+  console.log(`[BackfillOllama] Démarrage backfill: ${maxBatches} batches × ${BATCH_SIZE} = ${maxBatches * BATCH_SIZE} chunks max`)
 
   try {
-    for (let batch = 0; batch < MAX_BATCHES; batch++) {
+    for (let batch = 0; batch < maxBatches; batch++) {
       // Trouver des chunks sans embedding Ollama dans des docs indexés + rag_enabled
       const chunksResult = await db.query(
         `SELECT kbc.id, kbc.content
@@ -117,6 +122,8 @@ export const GET = withAdminApiAuth(async (_request: NextRequest): Promise<NextR
       failed: totalFailed,
       remaining,
       duration,
+      batchesRun: Math.ceil(totalBackfilled / BATCH_SIZE),
+      chunksPerCall: maxBatches * BATCH_SIZE,
     })
   } catch (error) {
     console.error('[BackfillOllama] Erreur:', error)

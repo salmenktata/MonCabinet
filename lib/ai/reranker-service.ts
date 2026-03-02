@@ -267,9 +267,10 @@ export async function rerankDocuments(
     // Si Jina échoue → continuer vers TF-IDF fallback
   }
 
-  // Priorité 2 (legacy): Cross-Encoder neural si activé
-  // TEMPORAIREMENT DÉSACTIVÉ pour build production (incompatible Next.js)
-  const useCrossEncoder = options.useCrossEncoder !== false && !JINA_API_KEY
+  // Priorité 2 (legacy): Cross-Encoder neural si activé EXPLICITEMENT
+  // Désactivé par défaut — incompatible Next.js prod (@xenova/transformers non supporté en build).
+  // Activer en local : passer { useCrossEncoder: true } pour tester le neural re-ranking.
+  const useCrossEncoder = options.useCrossEncoder === true && !JINA_API_KEY
 
   if (useCrossEncoder) {
     try {
