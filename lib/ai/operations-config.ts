@@ -163,13 +163,14 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 2. ASSISTANT IA (chat temps réel utilisateur)
   // ---------------------------------------------------------------------------
   'assistant-ia': {
-    model: { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/M (cache hit), multilingue AR/FR, 128K ctx
+    model: { provider: 'groq', name: 'llama-3.3-70b-versatile' }, // Groq free tier : 1K RPD/12K TPM (gratuit)
 
     fallbackChain: [
-      { provider: 'groq', model: 'llama-3.3-70b-versatile' }, // Free 1K RPD/12K TPM
-      { provider: 'gemini', model: 'gemini-2.0-flash-lite' }, // Paid Tier1, ~€0.05/mois en fallback
-      { provider: 'openai', model: 'gpt-4.1-mini' },          // Budget $10/mois, filet sécurité
-      { provider: 'ollama' },                                   // Local, toujours disponible
+      { provider: 'deepseek', model: 'deepseek-chat' },         // $0.028/M (cache hit) — si Groq 1K RPD dépassé
+      { provider: 'groq', model: 'llama-3.1-8b-instant' },     // Free 14.4K RPD — fallback volume
+      { provider: 'gemini', model: 'gemini-2.0-flash-lite' },  // Paid Tier1, ~€0.05/mois en fallback
+      { provider: 'openai', model: 'gpt-4.1-mini' },           // Budget $10/mois, filet sécurité
+      { provider: 'ollama' },                                    // Local, toujours disponible
     ],
 
     embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
@@ -187,7 +188,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Chat utilisateur temps réel - DeepSeek deepseek-chat (cache hit $0.028/M in, $0.42/M out, multilingue AR/FR, 128K ctx)',
+    description: 'Chat utilisateur temps réel - Groq llama-3.3-70b-versatile (free 1K RPD) → DeepSeek fallback si quota dépassé',
   },
 
   // ---------------------------------------------------------------------------
