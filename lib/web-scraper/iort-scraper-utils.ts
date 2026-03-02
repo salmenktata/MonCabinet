@@ -1195,19 +1195,20 @@ export async function navigateToConstitutionPage(session: IortSessionManager): P
   await sleep(3000)
 
   console.log('[IORT Constitution] Page constitution atteinte')
+  await sleep(2000) // 2s supplémentaires pour le rendu JavaScript WebDev
 }
 
 /**
  * Télécharge le PDF de la constitution depuis la page IORT.
- * Déclenche l'action A7 et intercepte soit un event 'download' (Content-Disposition: attachment)
- * soit une réponse PDF navigée inline (Content-Disposition: inline / viewer WebDev).
+ * Stratégies:
+ * 1. Clic direct sur le bouton "تحميل PDF" (bouton WebDev visible dans la page M4)
+ * 2. Fallback: _JSL A7 classique
  */
 async function downloadConstitutionPdfViaA7(page: import('playwright').Page): Promise<{ buffer: Buffer; filename: string } | null> {
   let capturedBuffer: Buffer | null = null
   let capturedFilename = 'constitution-tunisienne.pdf'
 
-  // Intercepter les réponses PDF AVANT de déclencher A7
-  // (A7 sur la page M4 peut naviguer vers le PDF inline plutôt que déclencher un download)
+  // Intercepteur réseau PDF (download inline ou download event)
   const onResponse = async (response: import('playwright').Response) => {
     if (capturedBuffer) return
     try {
@@ -1222,49 +1223,78 @@ async function downloadConstitutionPdfViaA7(page: import('playwright').Page): Pr
           console.log(`[IORT Constitution] PDF capturé via réponse réseau: ${Math.round(buf.length / 1024)} KB`)
         }
       }
-    } catch {
-      /* body déjà consommé ou navigation annulée */
-    }
+    } catch { /* body déjà consommé */ }
   }
   page.on('response', onResponse)
 
   try {
-    // Déclencher A7 — laisser 3s pour capturer un éventuel download event rapide
-    const downloadPromise = page.waitForEvent('download', { timeout: 3000 }).catch(() => null)
-    await page.evaluate(() => {
-      // @ts-expect-error WebDev global function
-      _JSL(_PAGE_, 'A7', '_self', '', '')
+    // Stratégie 1: cliquer directement sur l'élément "تحميل PDF" (texte visible dans la page)
+    const downloadProm1 = page.waitForEvent('download', { timeout: 20000 }).catch(() => null)
+    const btnClicked = await page.evaluate(() => {
+      // Chercher le nœud texte "تحميل PDF" dans le DOM WebDev
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null)
+      let node: Text | null
+      while ((node = walker.nextNode() as Text | null)) {
+        if (node && node.nodeValue && node.nodeValue.trim().includes('تحميل')) {
+          const el = node.parentElement
+          if (el) { ;(el as HTMLElement).click(); return true }
+        }
+      }
+      // Fallback: chercher par classe ou attribut onclick contenant A7
+      const els = document.querySelectorAll('[onclick*="A7"], [id*="A7"], [name*="A7"]')
+      if (els.length > 0) { ;(els[0] as HTMLElement).click(); return true }
+      return false
     })
 
-    const download = await downloadPromise
-    if (download) {
-      // Cas classique : Content-Disposition: attachment
-      const path = await download.path()
-      if (path) {
-        const fs = await import('fs')
-        capturedBuffer = fs.readFileSync(path)
-        capturedFilename = download.suggestedFilename() || capturedFilename
-        console.log(`[IORT Constitution] PDF via download event: ${Math.round(capturedBuffer.length / 1024)} KB`)
+    if (btnClicked) {
+      const dl = await downloadProm1
+      if (dl) {
+        const path = await dl.path()
+        if (path) {
+          const fs = await import('fs')
+          capturedBuffer = fs.readFileSync(path)
+          capturedFilename = dl.suggestedFilename() || capturedFilename
+          console.log(`[IORT Constitution] PDF via clic bouton: ${Math.round(capturedBuffer.length / 1024)} KB`)
+        }
       }
     }
 
+    // Stratégie 2: _JSL A7 classique si rien capturé
     if (!capturedBuffer) {
-      // Attendre la réponse réseau interceptée (navigation inline vers le PDF)
-      const deadline = Date.now() + 45000
+      const downloadProm2 = page.waitForEvent('download', { timeout: 15000 }).catch(() => null)
+      await page.evaluate(() => {
+        // @ts-expect-error WebDev global function
+        _JSL(_PAGE_, 'A7', '_self', '', '')
+      }).catch(() => {})
+      const dl = await downloadProm2
+      if (dl) {
+        const path = await dl.path()
+        if (path) {
+          const fs = await import('fs')
+          capturedBuffer = fs.readFileSync(path)
+          capturedFilename = dl.suggestedFilename() || capturedFilename
+          console.log(`[IORT Constitution] PDF via A7: ${Math.round(capturedBuffer.length / 1024)} KB`)
+        }
+      }
+    }
+
+    // Attendre la réponse réseau interceptée si aucun download event
+    if (!capturedBuffer) {
+      const deadline = Date.now() + 10000
       while (!capturedBuffer && Date.now() < deadline) {
         await sleep(500)
       }
     }
 
     if (!capturedBuffer) {
-      console.warn('[IORT Constitution] Aucun PDF capturé via A7 (ni download ni réponse PDF)')
+      console.warn('[IORT Constitution] Aucun PDF capturé (bouton + A7 + réponse réseau)')
       return null
     }
 
     console.log(`[IORT Constitution] PDF téléchargé: ${capturedFilename} (${Math.round(capturedBuffer.length / 1024)} KB)`)
     return { buffer: capturedBuffer, filename: capturedFilename }
   } catch (err) {
-    console.warn('[IORT Constitution] Échec download PDF A7:', err instanceof Error ? err.message : err)
+    console.warn('[IORT Constitution] Échec download PDF:', err instanceof Error ? err.message : err)
     return null
   } finally {
     page.off('response', onResponse)
@@ -1348,13 +1378,31 @@ export async function downloadConstitutionFromIort(
 
   await navigateToConstitutionPage(session)
 
-  // Télécharger PDF EN PREMIER pour le passer en fallback à extractConstitutionText
-  // (la page M4 IORT peut être un viewer WebDev sans texte HTML articulé)
+  // EXTRAIRE LE TEXTE EN PREMIER (avant tout appel A7 qui pourrait naviguer la page)
+  // Fix Mar 2 2026: l'appel A7 réinitialise la page, ne laissant que 6092 chars vides.
+  // La page M4 IORT a le texte constitutionnel (37K chars HTML) si on l'extrait avant A7.
+  const extracted = await extractConstitutionText(page, undefined)
+  console.log(`[IORT Constitution] Extraction initiale: ${extracted.content.length} chars, hasArticles: ${/الفصل\s+\d+/.test(extracted.content)}`)
+
+  // Télécharger le PDF APRÈS extraction (A7 peut naviguer/réinitialiser la page — peu importe)
   const pdfResult = await downloadConstitutionPdfViaA7(page)
 
-  // Extraire texte (HTML + fallback PDF si HTML vide)
-  const extracted = await extractConstitutionText(page, pdfResult?.buffer)
-  console.log(`[IORT Constitution] Titre: ${extracted.title}, contenu: ${extracted.content.length} chars, hasArticles: ${/الفصل\s+\d+/.test(extracted.content)}`)
+  // Si PDF disponible et HTML sans articles → re-extraire depuis le PDF
+  if (pdfResult?.buffer && !/الفصل\s+\d+/.test(extracted.content)) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string; numpages: number }>
+      const pdfData = await pdfParse(pdfResult.buffer)
+      if (pdfData.text && pdfData.text.length > extracted.content.length) {
+        extracted.content = pdfData.text
+        console.log(`[IORT Constitution] PDF enrichit le contenu: ${extracted.content.length} chars, pages: ${pdfData.numpages}`)
+      }
+    } catch (pdfErr) {
+      console.warn('[IORT Constitution] Échec extraction PDF:', pdfErr instanceof Error ? pdfErr.message : pdfErr)
+    }
+  }
+
+  console.log(`[IORT Constitution] Titre: ${extracted.title}, contenu final: ${extracted.content.length} chars, hasArticles: ${/الفصل\s+\d+/.test(extracted.content)}`)
 
   // Sauvegarder PDF dans MinIO
   let pdfInfo: { minioPath: string; size: number } | null = null
