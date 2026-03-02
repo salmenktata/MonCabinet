@@ -1272,9 +1272,9 @@ async function extractConstitutionText(
   if ((!hasArticles || content.length < 5000) && pdfBuffer) {
     console.log('[IORT Constitution] HTML sans articles constitutionnels — fallback extraction PDF')
     try {
-      const { PDFParse } = await import('pdf-parse')
-      const pdfParser = new PDFParse({ data: pdfBuffer })
-      const pdfData = await pdfParser.getText()
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string; numpages: number }>
+      const pdfData = await pdfParse(pdfBuffer)
       if (pdfData.text && pdfData.text.length > content.length) {
         content = pdfData.text
         console.log(`[IORT Constitution] PDF extrait: ${content.length} chars, pages: ${pdfData.numpages}`)
