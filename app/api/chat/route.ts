@@ -369,9 +369,10 @@ export async function POST(
     // Sémaphore concurrence — protège le VPS contre les bursts (max CHAT_MAX_CONCURRENT simultanés)
     const semAcquired = await acquireChatSemaphore()
     if (!semAcquired) {
+      // Note: 429 (pas 503) pour éviter que Nginx intercepte et retourne maintenance.html
       return NextResponse.json(
         { error: 'Serveur occupé. Veuillez réessayer dans quelques secondes.' },
-        { status: 503, headers: { 'Retry-After': '5' } }
+        { status: 429, headers: { 'Retry-After': '5' } }
       )
     }
 
