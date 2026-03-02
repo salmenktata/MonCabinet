@@ -465,7 +465,7 @@ export function UnifiedChatPage({
           <div className="border-t bg-background/80 backdrop-blur-sm">
             {/* Tabs de mode */}
             {!hideActionButtons && (
-              <div className="pt-3 pb-1">
+              <div className="pt-1.5 pb-0 sm:pt-3 sm:pb-1">
                 <ActionButtons
                   selected={currentAction}
                   onSelect={handleActionSelect}

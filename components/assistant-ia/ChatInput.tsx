@@ -99,14 +99,14 @@ export function ChatInput({
   const canSend = message.trim().length > 0 && !disabled && !isStreaming && !isOverLimit
 
   return (
-    <div className="p-3 md:p-4">
+    <div className="p-2 sm:p-3 md:p-4">
       <div className="space-y-2">
         {/* Filtre doc_type */}
         {showDocTypeFilter && (
           <div className="flex items-center gap-2 px-1">
             <span className="text-xs text-muted-foreground">{t('searchIn')}</span>
             <Select value={selectedDocType} onValueChange={(v) => setSelectedDocType(v as DocumentType | 'ALL')}>
-              <SelectTrigger className="h-7 w-auto min-w-[180px] text-xs">
+              <SelectTrigger className="h-7 w-auto min-w-0 sm:min-w-[180px] text-xs">
                 <SelectValue>
                   <span className="flex items-center gap-1.5">
                     {DOC_TYPE_ICONS[selectedDocType]}
@@ -206,7 +206,7 @@ export function ChatInput({
             )}
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground/50 text-center mt-2">
+        <p className="hidden sm:block text-[11px] text-muted-foreground/50 text-center mt-2">
           {t('disclaimer')}
         </p>
       </div>

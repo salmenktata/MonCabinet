@@ -115,16 +115,16 @@ export function ChatActions({
   }
 
   return (
-    <div className="border-t bg-muted/30 px-4 py-3">
-      <div className="flex items-center gap-2 px-4 md:px-8">
-        <span className="text-xs text-muted-foreground mr-2">{t('actions')}:</span>
+    <div className="border-t bg-muted/30 px-2 py-1.5 sm:px-4 sm:py-3">
+      <div className="flex items-center gap-2 px-2 sm:px-4 md:px-8">
+        <span className="text-xs text-muted-foreground mr-2 hidden sm:block">{t('actions')}:</span>
 
-        <Button variant="outline" size="sm" onClick={onCreateDossier}>
+        <Button variant="outline" size="sm" onClick={onCreateDossier} className="hidden sm:flex">
           <Icons.add className="h-4 w-4 mr-2" />
           {t('createDossier')}
         </Button>
 
-        <Link href="/qadhya-ia/structure">
+        <Link href="/qadhya-ia/structure" className="hidden sm:flex">
           <Button variant="outline" size="sm">
             <Icons.zap className="h-4 w-4 mr-2" />
             {t('quickMode')}
@@ -142,6 +142,19 @@ export function ChatActions({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
+            {/* Actions rapides — mobiles uniquement */}
+            <DropdownMenuItem onClick={onCreateDossier} className="sm:hidden">
+              <Icons.add className="h-4 w-4 mr-2" />
+              {t('createDossier')}
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="sm:hidden">
+              <Link href="/qadhya-ia/structure" className="flex items-center">
+                <Icons.zap className="h-4 w-4 mr-2" />
+                {t('quickMode')}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="sm:hidden" />
+
             {/* Copier */}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>

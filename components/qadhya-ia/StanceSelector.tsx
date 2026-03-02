@@ -50,7 +50,7 @@ export function StanceSelector({ stance, onChange, disabled = false }: StanceSel
   const locale = useLocale()
   const isAr = locale === 'ar'
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5">
+    <div className="flex items-center gap-1.5 px-3 py-1 sm:py-1.5">
       <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">
         {t('label')}
       </span>
