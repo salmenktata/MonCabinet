@@ -5,6 +5,9 @@
  * Si le provider échoue → throw + alerte email (pas de dégradation silencieuse).
  *
  * Configuration définitive RAG Haute Qualité (Mars 2026 — zéro Groq)
+ * Migration Mar 2, 2026 : Embeddings OpenAI → Ollama en prod (économie ~$5/mois)
+ *   Reranking Jina → TF-IDF local (économie ~$1-2/mois)
+ *   Coût résiduel : DeepSeek chat uniquement (~$3-5/mois)
  */
 
 import type { LLMProvider } from './llm-fallback-service'
@@ -102,8 +105,8 @@ const isDev = process.env.NODE_ENV === 'development'
  * | Query Expansion        | Ollama    | qwen3:8b                  | $0 (local)        | 128K     |
  * | Consolidation docs     | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
  * | RAG Eval Judge         | DeepSeek  | deepseek-chat             | $0.028/M (cache)  | 128K     |
- * | Embeddings (tout)      | OpenAI    | text-embedding-3-small    | $0.02/M           | —        |
- * | Re-ranking             | Jina v2   | jina-reranker-v2-base-multilingual | $0.002/1K | —     |
+ * | Embeddings (tout)      | Ollama    | nomic-embed-text          | $0 (local)        | 8K       |
+ * | Re-ranking             | TF-IDF    | local (stopwords arabes)  | $0 (local)        | —        |
  * (DeepSeek cache hit sur system prompt stable — input = $0.028/M, output = $0.42/M, cache miss = $0.28/M)
  */
 export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
@@ -115,9 +118,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
       ? { provider: 'ollama', name: 'qwen3:8b' }
       : { provider: 'ollama', name: 'qwen3:8b' }, // Ollama pour classification (gratuit)
 
-    embeddings: isDev
-      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
-      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
+    embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
 
     timeouts: {
       embedding: 10000,
@@ -131,7 +132,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'warning' },
-    description: 'Indexation KB - Ollama classification + OpenAI embeddings',
+    description: 'Indexation KB - Ollama classification + Ollama embeddings (nomic-embed-text)',
   },
 
   // ---------------------------------------------------------------------------
@@ -140,9 +141,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'assistant-ia': {
     model: { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/M (cache hit), multilingue AR/FR, 128K ctx
 
-    embeddings: isDev
-      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
-      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
+    embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
 
     timeouts: {
       embedding: 8000,
@@ -168,9 +167,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
       ? { provider: 'ollama', name: 'qwen3:8b' }
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
-    embeddings: isDev
-      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
-      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
+    embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
 
     timeouts: {
       embedding: 5000,
@@ -237,9 +234,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
       ? { provider: 'ollama', name: 'qwen3:8b' }
       : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek : $0.028/$0.42/M (cache hit), 128K ctx
 
-    embeddings: isDev
-      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
-      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
+    embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
 
     timeouts: {
       embedding: 5000,
@@ -346,9 +341,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // ---------------------------------------------------------------------------
   'compare-deepseek': {
     model: { provider: 'deepseek', name: 'deepseek-chat' },
-    embeddings: isDev
-      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
-      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
+    embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
     timeouts: { chat: 45000, total: 55000 },
     llmConfig: { temperature: 0.1, maxTokens: 2048 },
     alerts: { onFailure: 'log', severity: 'warning' },
@@ -357,9 +350,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
   'compare-openai': {
     model: { provider: 'openai', name: 'gpt-4o' },
-    embeddings: isDev
-      ? { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }
-      : { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
+    embeddings: { provider: 'ollama', model: 'nomic-embed-text', dimensions: 768 }, // Ollama partout (gratuit)
     timeouts: { chat: 45000, total: 55000 },
     llmConfig: { temperature: 0.1, maxTokens: 2048 },
     alerts: { onFailure: 'log', severity: 'warning' },

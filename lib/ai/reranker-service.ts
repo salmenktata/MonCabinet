@@ -7,7 +7,11 @@
  *
  * Jina Reranker v2 supporte arabe + français nativement (meilleure précision que TF-IDF).
  * Fix Feb 24, 2026 : cross-encoder @xenova/transformers incompatible Next.js → Jina HTTP.
+ * Fix Mar 2, 2026 : TF-IDF promu reranker primaire (Jina retiré pour économie $1-2/mois).
+ *   Améliorations TF-IDF : stopwords arabes juridiques + normalisation caractères arabes.
  */
+
+import { normalizeArabicText, stripTashkeel } from '@/lib/web-scraper/arabic-text-utils'
 
 // =============================================================================
 // TYPES
@@ -104,19 +108,55 @@ async function rerankWithJina(
 }
 
 // =============================================================================
+// STOPWORDS ARABES (termes trop fréquents pour discriminer les documents)
+// =============================================================================
+
+const ARABIC_STOPWORDS = new Set([
+  // Prépositions et conjonctions
+  'في', 'من', 'على', 'إلى', 'عن', 'مع', 'بين', 'حتى', 'منذ', 'خلال',
+  'أن', 'أو', 'ثم', 'بل', 'لكن', 'لأن', 'إذا', 'إذ', 'حيث',
+  // Articles et pronoms
+  'هذا', 'هذه', 'ذلك', 'تلك', 'هو', 'هي', 'هم', 'هن',
+  'الذي', 'التي', 'الذين', 'اللذان', 'اللتان',
+  // Verbes auxiliaires / très courants
+  'كان', 'يكون', 'كانت', 'كانوا', 'ليس', 'ليست',
+  'قد', 'لم', 'لن', 'سوف',
+  // Mots outils juridiques trop fréquents
+  'وفق', 'بموجب', 'طبق', 'حسب', 'كما', 'عند', 'لدى', 'بعد', 'قبل',
+  'كل', 'بعض', 'غير', 'دون', 'ضد', 'حول',
+  // Particules
+  'ما', 'لا', 'نعم',
+])
+
+const FRENCH_STOPWORDS = new Set([
+  'le', 'la', 'les', 'de', 'du', 'des', 'un', 'une',
+  'et', 'ou', 'en', 'au', 'aux', 'par', 'pour', 'sur', 'dans', 'avec',
+  'ce', 'cette', 'ces', 'son', 'sa', 'ses',
+  'qui', 'que', 'dont', 'est', 'sont', 'il', 'elle', 'ils',
+  'ne', 'pas', 'plus', 'se',
+])
+
+// =============================================================================
 // TF-IDF RE-RANKING
 // =============================================================================
 
 /**
  * Tokenize un texte en mots normalisés (supporte arabe et français)
+ * Applique normalisation arabe (variantes alef, diacritiques) + stopwords
  */
 function tokenize(text: string): string[] {
-  return text
+  // Normaliser le texte arabe (variantes alef, chiffres, diacritiques)
+  let normalized = normalizeArabicText(text, { stripDiacritics: true })
+  normalized = stripTashkeel(normalized)
+
+  return normalized
     .toLowerCase()
     // Garder les caractères arabes, latins et chiffres
     .replace(/[^\u0600-\u06FF\u0750-\u077Fa-z0-9\s]/g, ' ')
+    // Supprimer tatweel (kashida)
+    .replace(/\u0640/g, '')
     .split(/\s+/)
-    .filter((w) => w.length > 1)
+    .filter((w) => w.length > 1 && !ARABIC_STOPWORDS.has(w) && !FRENCH_STOPWORDS.has(w))
 }
 
 /**

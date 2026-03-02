@@ -67,6 +67,9 @@ const DOMAIN_POSITIVE_TERMS: Record<string, string[]> = {
   ],
   administratif: [
     'إداري', 'administratif', 'صفقات عمومية', 'marchés publics', 'المحكمة الإدارية',
+    // Fix: termes constitutionnels (constitution classée sous domaine 'administratif')
+    'دستور', 'دستوري', 'دستورية', 'constitution', 'constitutionnel', 'constitutionnelle',
+    'حقوق أساسية', 'droits fondamentaux', 'حقوق وحريات', 'الباب الأول',
   ],
 }
 

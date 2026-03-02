@@ -1145,14 +1145,15 @@ function getTargetCodeTitleFragment(queryText: string, lang: string): string | n
  */
 async function searchArticleByTextMatch(
   artNum: string,
-  targetCodeFragment: string | null
+  targetCodeFragment: string | null,
+  categories: string[] = ['codes']
 ): Promise<KnowledgeBaseSearchResult[]> {
   try {
     // Fix Feb 26 v10: PostgreSQL regex ~ pour gérer "الفصل 23-2" (tiret) sans false-positive "الفصل 230"
     // "الفصل X" suivi d'un caractère non-chiffre (espace, tiret, newline, fin de chaîne)
     const artRegex = `الفصل ${artNum}([^0-9]|$)`
     let sql: string
-    let params: string[]
+    let params: (string | string[])[]
 
     if (targetCodeFragment) {
       sql = `
@@ -1167,12 +1168,12 @@ async function searchArticleByTextMatch(
         FROM knowledge_base_chunks kbc
         JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
         WHERE kb.is_indexed = true
-          AND kb.category = 'codes'
-          AND kbc.content ~ $1
-          AND kb.title ILIKE $2
+          AND kb.category = ANY($1::text[])
+          AND kbc.content ~ $2
+          AND kb.title ILIKE $3
         ORDER BY kbc.chunk_index
         LIMIT 3`
-      params = [artRegex, `%${targetCodeFragment}%`]
+      params = [categories, artRegex, `%${targetCodeFragment}%`]
     } else {
       sql = `
         SELECT
@@ -1186,11 +1187,11 @@ async function searchArticleByTextMatch(
         FROM knowledge_base_chunks kbc
         JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
         WHERE kb.is_indexed = true
-          AND kb.category = 'codes'
-          AND kbc.content ~ $1
+          AND kb.category = ANY($1::text[])
+          AND kbc.content ~ $2
         ORDER BY kbc.chunk_index
         LIMIT 3`
-      params = [artRegex]
+      params = [categories, artRegex]
     }
 
     const result = await db.query(sql, params)
@@ -1368,16 +1369,19 @@ async function searchTargetCodeByORExpansion(
  * - v10: chunks avec vecSim modéré (0.40-0.60) → articles généraux COC
  * - v11: chunks avec mots-clés classiques (أركان, تعمير) → articles spécifiques COC
  *
- * @param embeddingStr - Embedding OpenAI formatté pour PostgreSQL
+ * @param embeddingStr - Embedding formatté pour PostgreSQL
  * @param titleFragment - Fragment du titre du code cible (ex: 'مجلة الالتزامات')
  * @param limit - Nombre de résultats (défaut: 5)
+ * @param provider - Provider d'embeddings utilisé ('openai' | 'ollama')
  */
 async function searchTargetCodeForced(
   embeddingStr: string,
   titleFragment: string,
-  limit: number
+  limit: number,
+  provider: 'openai' | 'ollama' = 'ollama'
 ): Promise<KnowledgeBaseSearchResult[]> {
   try {
+    const embCol = provider === 'openai' ? 'embedding_openai' : 'embedding'
     const sql = `
       SELECT
         kbc.id as chunk_id,
@@ -1387,14 +1391,14 @@ async function searchTargetCodeForced(
         kbc.metadata,
         kb.title,
         kb.category,
-        (1 - (kbc.embedding_openai <=> $1::vector)) as vec_sim
+        (1 - (kbc.${embCol} <=> $1::vector)) as vec_sim
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
       WHERE kb.is_indexed = true
         AND kb.category = 'codes'
         AND kb.title ILIKE $2
-        AND kbc.embedding_openai IS NOT NULL
-      ORDER BY kbc.embedding_openai <=> $1::vector
+        AND kbc.${embCol} IS NOT NULL
+      ORDER BY kbc.${embCol} <=> $1::vector
       LIMIT $3`
 
     const result = await db.query(sql, [embeddingStr, `%${titleFragment}%`, limit])
@@ -1512,8 +1516,8 @@ export async function searchKnowledgeBaseHybrid(
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Ollama embedding timeout (${ollamaTimeoutMs}ms)`)), ollamaTimeoutMs)),
   ])
   const [openaiEmbResult, ollamaEmbResult] = await Promise.allSettled([
-    generateEmbedding(query, { operationName: operationName as any }),       // OpenAI (1536-dim)
-    ollamaWithTimeout,                                                        // Ollama (768-dim nomic, timeout configurable)
+    generateEmbedding(query, { operationName: operationName as any }),       // Provider principal (Ollama 768-dim en prod+dev)
+    ollamaWithTimeout,                                                        // Ollama forcé (768-dim nomic, timeout configurable)
   ])
 
   // Log providers disponibles
@@ -1560,15 +1564,31 @@ export async function searchKnowledgeBaseHybrid(
   //          vector-only (vecSim=0.40) → 0.40×1.50=0.60 < JORT 0.84 → FILTERED ✅
   // FR 1.60: maintenu (régression FR si réduit)
   const shouldForceCodes = !category || category !== 'codes'
-  if (shouldForceCodes && openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
-    const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
+  // codes-forced : utilise l'embedding principal disponible (Ollama prioritaire, OpenAI si turbo)
+  const primaryEmbResult = ollamaEmbResult.status === 'fulfilled' ? ollamaEmbResult : openaiEmbResult
+  const primaryProvider = primaryEmbResult.status === 'fulfilled' ? primaryEmbResult.value.provider : null
+  if (shouldForceCodes && primaryEmbResult.status === 'fulfilled' && primaryProvider) {
+    const embStr = formatEmbeddingForPostgres(primaryEmbResult.value.embedding)
     searchPromises.push(
       // Fix (Feb 17, 2026) : threshold 0.15 (était 0.20) pour capturer مجلة الالتزامات والعقود
       // et المجلة التجارية qui ont vecSim 0.15-0.20 pour certaines queries juridiques spécifiques.
       // Fix (Feb 25, 2026) : limit 5→15 — KB a 14K+ codes chunks, top 5 insuffisant pour atteindre articles spécifiques
-      searchHybridSingle(queryText, embStr, 'codes', null, Math.max(Math.ceil(limit / 2), 15), 0.15, 'openai', bm25Language)
+      searchHybridSingle(queryText, embStr, 'codes', null, Math.max(Math.ceil(limit / 2), 15), 0.15, primaryProvider as 'openai' | 'ollama', bm25Language)
     )
     providerLabels.push('codes-forced')
+  }
+
+  // Fix Mar 2 2026: Constitution-forced search — garantit que les chunks constitution
+  // entrent dans le pool pour les requêtes constitutionnelles (دستور/constitution).
+  // 40 chunks constitution indexés mais jamais récupérés sans chemin dédié.
+  const isConstitutionQuery = /دستور|دستوري|دستورية|constitution|constitutionnel/i.test(queryText)
+  if (isConstitutionQuery && primaryEmbResult.status === 'fulfilled' && primaryProvider) {
+    const embStr = formatEmbeddingForPostgres(primaryEmbResult.value.embedding)
+    searchPromises.push(
+      // threshold bas 0.10 : queries constitutionnelles peuvent avoir sim faible vs chunks Fsl-level
+      searchHybridSingle(queryText, embStr, 'constitution', null, 10, 0.10, primaryProvider as 'openai' | 'ollama', bm25Language)
+    )
+    providerLabels.push('constitution-forced')
   }
 
   // Fix Feb 26 v8: Recherche textuelle directe pour queries "ماذا ينص الفصل X من مجلة Y"
@@ -1579,6 +1599,18 @@ export async function searchKnowledgeBaseHybrid(
     if (articleExplicitMatch) {
       const artNum = articleExplicitMatch[1]
       searchPromises.push(searchArticleByTextMatch(artNum, targetCodeFragment))
+      providerLabels.push('article-text')
+    }
+  }
+
+  // Fix Mar 2 2026: Article-text match dédié constitution — "الفصل X من الدستور"
+  // searchArticleByTextMatch filtre category='codes' par défaut → manque les chunks constitution.
+  // Déclenchement uniquement si query mentionne explicitement الفصل ET دستور.
+  if (isConstitutionQuery) {
+    const constExplicitMatch = queryText.match(/الفصل\s+(\d+)/)
+    if (constExplicitMatch) {
+      const artNum = constExplicitMatch[1]
+      searchPromises.push(searchArticleByTextMatch(artNum, null, ['constitution', 'legislation']))
       providerLabels.push('article-text')
     }
   }
@@ -1747,10 +1779,10 @@ export async function searchKnowledgeBaseHybrid(
   // - BM25 OR-expanded (v11): "شروط OR أركان OR أهلية" → Fsl 2 ✅ | "تعمير OR التقادم" → Fsl 402 ✅
   //   Utilise websearch_to_tsquery('simple', OR_query) qui match si le chunk contient L'UN des termes
   if (shouldForceCodes && targetCodeFragment) {
-    if (openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
-      const embStrForced = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
+    if (primaryEmbResult.status === 'fulfilled' && primaryProvider) {
+      const embStrForced = formatEmbeddingForPostgres(primaryEmbResult.value.embedding)
       searchPromises.push(
-        searchTargetCodeForced(embStrForced, targetCodeFragment, 5)
+        searchTargetCodeForced(embStrForced, targetCodeFragment, 5, primaryProvider as 'openai' | 'ollama')
       )
       providerLabels.push('codes-forced-direct')
     }

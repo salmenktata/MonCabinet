@@ -187,10 +187,16 @@ export function validateAIConfig(): {
       )
     }
 
-    // En prod, OPENAI_API_KEY est requis pour les embeddings haute qualité
-    if (!isDevEnv && !hasOpenAI && aiConfig.rag.enabled) {
+    // En prod, Ollama est le provider d'embeddings principal (nomic-embed-text 768-dim)
+    // OpenAI reste optionnel pour le mode turbo (indexation bulk rapide)
+    if (!isDevEnv && !hasOpenAI && !hasOllama && aiConfig.rag.enabled) {
       errors.push(
-        'OPENAI_API_KEY requis en production pour embeddings 1536-dim. Configurez OPENAI_API_KEY.'
+        'Aucun provider d\'embeddings en production. Configurez OLLAMA_ENABLED=true (gratuit) ou OPENAI_API_KEY (turbo).'
+      )
+    }
+    if (!isDevEnv && !hasOpenAI && hasOllama) {
+      warnings.push(
+        `Ollama embeddings en production (${aiConfig.ollama.embeddingModel} ${aiConfig.ollama.embeddingDimensions}-dim) — $0/mois`
       )
     }
 
@@ -535,13 +541,13 @@ export function getRAGConfig(): {
 // =============================================================================
 // COÛTS ESTIMÉS - RÉFÉRENCE HISTORIQUE
 // =============================================================================
-// NOTE: Tarifs réels Février 2026 — mode no-fallback
-// - Groq 70b : GRATUIT (100K tokens/jour, 1K req/jour, 30 RPM) | 8b : GRATUIT (500K tokens/jour, 14.4K req/jour, 30 RPM)
-// - Ollama : GRATUIT (local)
-// - OpenAI : $0.02/1M tokens (embeddings uniquement)
-// - DeepSeek : $0.028/1M input (cache hit system prompt) + $0.42/1M output (dossiers)
+// NOTE: Tarifs réels Mars 2026 — mode no-fallback
+// - Ollama : GRATUIT (local) — embeddings nomic-embed-text + LLM qwen3:8b
+// - DeepSeek : $0.028/1M input (cache hit system prompt) + $0.42/1M output (chat/dossiers)
+// - OpenAI : OPTIONNEL ($0.02/1M tokens, turbo mode indexation uniquement)
+// - Jina Reranker : RETIRÉ (remplacé par TF-IDF local avec stopwords arabes)
 // - Anthropic : NON UTILISÉ EN PROD (dernier fallback théorique)
-// Coût réel Février 2026: ~$5/mois (OpenAI embeddings + DeepSeek dossiers)
+// Coût réel Mars 2026: ~$3-5/mois (DeepSeek chat uniquement)
 
 export const AI_COSTS = {
   // OpenAI text-embedding-3-small: $0.02 / 1M tokens

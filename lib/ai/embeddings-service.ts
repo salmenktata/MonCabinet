@@ -1,13 +1,13 @@
 /**
  * Service de génération d'embeddings - Mode No-Fallback
  *
- * Production: OpenAI text-embedding-3-small (1536-dim) uniquement
- * Développement: Ollama nomic-embed-text (768-dim, context 8192 tokens) — migré Feb 25, 2026
+ * Production + Dev: Ollama nomic-embed-text (768-dim, context 8192 tokens)
+ * Turbo (optionnel): OpenAI text-embedding-3-small (1536-dim) pour indexation bulk rapide
  *
  * Pas de fallback ni circuit breaker. Si le provider échoue → throw.
  * Avec cache Redis pour éviter les régénérations inutiles.
  *
- * Configuration définitive RAG Haute Qualité (Février 2026)
+ * Migration Mar 2, 2026: OpenAI → Ollama en prod (économie ~$5/mois)
  */
 
 import OpenAI from 'openai'
@@ -74,18 +74,17 @@ function resolveEmbeddingProvider(options?: EmbeddingOptions): 'ollama' | 'opena
     }
   }
 
-  // Dev → Ollama, Prod → OpenAI
-  if (isDev && aiConfig.ollama.enabled) return 'ollama'
-  if (aiConfig.openai.apiKey) return 'openai'
+  // Ollama partout (dev + prod), OpenAI uniquement si forcé ou turbo
   if (aiConfig.ollama.enabled) return 'ollama'
+  if (aiConfig.openai.apiKey) return 'openai'
 
   throw new Error(
-    'Service d\'embeddings non configuré. Configurez OPENAI_API_KEY (prod) ou OLLAMA_ENABLED=true (dev).'
+    'Service d\'embeddings non configuré. Configurez OLLAMA_ENABLED=true (recommandé) ou OPENAI_API_KEY (turbo).'
   )
 }
 
 // =============================================================================
-// OLLAMA EMBEDDINGS (dev uniquement)
+// OLLAMA EMBEDDINGS (dev + prod — provider principal)
 // =============================================================================
 
 const OLLAMA_TIMEOUT_MS = 120000
