@@ -1486,15 +1486,19 @@ export async function searchKnowledgeBaseHybrid(
   const { generateEmbedding, formatEmbeddingForPostgres } =
     await getEmbeddingsService()
 
-  // Préparer query texte pour BM25 + article-text pattern matching.
+  // Préparer query texte pour BM25 (supprimer ponctuation + diacritiques arabes tashkeel)
   // FIX (Feb 16, 2026): Préserver les accents français/latins pour BM25
-  // FIX (Mar 2 2026): Utiliser originalQuery (avant expansion LLM) pour les regex de type "الفصل الأول".
-  // L'expansion LLM peut omettre "الفصل X" → constExplicitMatch/articleExplicitMatch échouent.
-  // On garde `query` (enrichie) uniquement pour l'embedding vectoriel.
-  const queryText = (originalQuery ?? query)
+  const queryText = query
     .replace(/[\u064B-\u065F\u0670]/g, '') // Strip tashkeel/diacritiques arabes
     .replace(/[^\w\s\u0600-\u06FF\u00C0-\u017F]/g, ' ') // Garde lettres latines étendues (à-ÿ, accents FR)
     .trim()
+
+  // FIX (Mar 2 2026): Texte pour les regex article-text (constExplicitMatch, articleExplicitMatch).
+  // Utiliser originalQuery (avant expansion LLM) pour éviter que l'expansion omette "الفصل X".
+  // queryText (enrichi) reste pour BM25 et targetCodeFragment (meilleure couverture sémantique).
+  const patternText = originalQuery
+    ? originalQuery.replace(/[\u064B-\u065F\u0670]/g, '').replace(/[^\w\s\u0600-\u06FF\u00C0-\u017F]/g, ' ').trim()
+    : queryText
 
   // P0 fix (Feb 24, 2026) — BM25 bilingue : détecter la langue pour construire
   // une tsquery language-aware (stop-words AR/FR supprimés, meilleure précision BM25)
@@ -1586,7 +1590,9 @@ export async function searchKnowledgeBaseHybrid(
   // Fix Mar 2 2026: Constitution-forced search — garantit que les chunks constitution
   // entrent dans le pool pour les requêtes constitutionnelles (دستور/constitution).
   // 40 chunks constitution indexés mais jamais récupérés sans chemin dédié.
-  const isConstitutionQuery = /دستور|دستوري|دستورية|constitution|constitutionnel/i.test(queryText)
+  // isConstitutionQuery testé sur patternText (original) pour éviter que l'expansion LLM
+  // ajoute des termes qui masquent le mot "دستور" original.
+  const isConstitutionQuery = /دستور|دستوري|دستورية|constitution|constitutionnel/i.test(patternText)
   if (isConstitutionQuery && primaryEmbResult.status === 'fulfilled' && primaryProvider) {
     const embStr = formatEmbeddingForPostgres(primaryEmbResult.value.embedding)
     searchPromises.push(
@@ -1598,17 +1604,14 @@ export async function searchKnowledgeBaseHybrid(
 
   // Fix Feb 26 v8: Recherche textuelle directe pour queries "ماذا ينص الفصل X من مجلة Y"
   // Contourne le threshold vectoriel (0.15) qui peut exclure l'article exact si sim embedding < seuil.
-  // Pattern "الفصل X " (espace après) évite les faux positifs sur الفصل X0, الفصل X1...
   // Fix Mar 2 2026 (ordinals+hamza): support ordinals arabes (الأول→الاول...) en plus des chiffres.
-  // 9anoun.tn stocke "الاول" sans hamza → normaliser أ→ا avant SQL regex.
+  // Fix Mar 2 2026 (régression): ordinals sans code cible → 93 faux positifs. Condition targetCodeFragment.
+  // Utilise patternText (original) pour garantir "الفصل X" même si expansion LLM l'omettait.
   if (shouldForceCodes) {
-    const articleExplicitMatch = queryText.match(/الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
+    const articleExplicitMatch = patternText.match(/الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
     if (articleExplicitMatch) {
       const artNum = articleExplicitMatch[1].replace(/[أإآ]/g, 'ا')
-      // Fix Mar 2 2026 (régression): ordinals sans code cible → 93 faux positifs toutes catégories.
-      // N'appliquer le match ordinal que si: chiffre (safe) OU code identifié (targetCodeFragment).
-      // "الفصل الأول من الدستور" → targetCodeFragment=null → skip ici, géré par constExplicitMatch.
-      // "الفصل الأول من مجلة الشغل" → targetCodeFragment='شغل' → filtre OK.
+      // Ordinals sans code cible = 93 faux positifs. Ne déclencher que si digit OU code identifié.
       if (/^\d+$/.test(artNum) || targetCodeFragment) {
         searchPromises.push(searchArticleByTextMatch(artNum, targetCodeFragment))
         providerLabels.push('article-text')
@@ -1618,12 +1621,9 @@ export async function searchKnowledgeBaseHybrid(
 
   // Fix Mar 2 2026: Article-text match dédié constitution — "الفصل X من الدستور"
   // searchArticleByTextMatch filtre category='codes' par défaut → manque les chunks constitution.
-  // Déclenchement uniquement si query mentionne explicitement الفصل ET دستور.
-  // Fix Mar 2 2026 (ordinals): Support ordinals arabes (الأول→الاول, الثاني...) en plus des chiffres.
-  // Fix Mar 2 2026 (hamza): 9anoun.tn stocke "الاول" sans hamza → normaliser أ→ا avant SQL regex.
+  // Utilise patternText (original) pour garantir "الفصل الأول" même si l'expansion LLM l'omet.
   if (isConstitutionQuery) {
-    // Capture chiffres ET ordinals arabes (الأول, الثاني...) depuis la query (avec ou sans hamza).
-    const constExplicitMatch = queryText.match(/الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
+    const constExplicitMatch = patternText.match(/الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
     if (constExplicitMatch) {
       // Normaliser hamza : "الأول" (query) → "الاول" (stocké dans DB sans hamza sur alif)
       const rawMatch = constExplicitMatch[1].replace(/[أإآ]/g, 'ا')
