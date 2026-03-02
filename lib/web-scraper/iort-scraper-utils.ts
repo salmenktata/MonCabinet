@@ -1199,36 +1199,75 @@ export async function navigateToConstitutionPage(session: IortSessionManager): P
 
 /**
  * Télécharge le PDF de la constitution depuis la page IORT.
- * Déclenche l'action A7 (تحميل PDF) sur la page active.
+ * Déclenche l'action A7 et intercepte soit un event 'download' (Content-Disposition: attachment)
+ * soit une réponse PDF navigée inline (Content-Disposition: inline / viewer WebDev).
  */
 async function downloadConstitutionPdfViaA7(page: import('playwright').Page): Promise<{ buffer: Buffer; filename: string } | null> {
-  try {
-    // Sur la page constitution, A7 est un download direct (pas de A4.value)
-    const [download] = await Promise.all([
-      page.waitForEvent('download', { timeout: 60000 }),
-      page.evaluate(() => {
-        // @ts-expect-error WebDev global function
-        _JSL(_PAGE_, 'A7', '_self', '', '')
-      }),
-    ])
+  let capturedBuffer: Buffer | null = null
+  let capturedFilename = 'constitution-tunisienne.pdf'
 
-    const filename = download.suggestedFilename() || 'constitution-tunisienne.pdf'
-    const path = await download.path()
-    if (!path) {
-      console.warn('[IORT Constitution] PDF download path null')
+  // Intercepter les réponses PDF AVANT de déclencher A7
+  // (A7 sur la page M4 peut naviguer vers le PDF inline plutôt que déclencher un download)
+  const onResponse = async (response: import('playwright').Response) => {
+    if (capturedBuffer) return
+    try {
+      const ct = response.headers()['content-type'] || ''
+      if (ct.includes('application/pdf') || ct.includes('octet-stream')) {
+        const buf = await response.body()
+        if (buf && buf.length > 10000) {
+          capturedBuffer = buf
+          const url = response.url()
+          const m = url.match(/([^/?#]+\.pdf)/i)
+          if (m) capturedFilename = decodeURIComponent(m[1])
+          console.log(`[IORT Constitution] PDF capturé via réponse réseau: ${Math.round(buf.length / 1024)} KB`)
+        }
+      }
+    } catch {
+      /* body déjà consommé ou navigation annulée */
+    }
+  }
+  page.on('response', onResponse)
+
+  try {
+    // Déclencher A7 — laisser 3s pour capturer un éventuel download event rapide
+    const downloadPromise = page.waitForEvent('download', { timeout: 3000 }).catch(() => null)
+    await page.evaluate(() => {
+      // @ts-expect-error WebDev global function
+      _JSL(_PAGE_, 'A7', '_self', '', '')
+    })
+
+    const download = await downloadPromise
+    if (download) {
+      // Cas classique : Content-Disposition: attachment
+      const path = await download.path()
+      if (path) {
+        const fs = await import('fs')
+        capturedBuffer = fs.readFileSync(path)
+        capturedFilename = download.suggestedFilename() || capturedFilename
+        console.log(`[IORT Constitution] PDF via download event: ${Math.round(capturedBuffer.length / 1024)} KB`)
+      }
+    }
+
+    if (!capturedBuffer) {
+      // Attendre la réponse réseau interceptée (navigation inline vers le PDF)
+      const deadline = Date.now() + 45000
+      while (!capturedBuffer && Date.now() < deadline) {
+        await sleep(500)
+      }
+    }
+
+    if (!capturedBuffer) {
+      console.warn('[IORT Constitution] Aucun PDF capturé via A7 (ni download ni réponse PDF)')
       return null
     }
 
-    const fs = await import('fs')
-    const buffer = fs.readFileSync(path)
-    await page.waitForLoadState('load').catch(() => {})
-    await sleep(2000)
-
-    console.log(`[IORT Constitution] PDF téléchargé: ${filename} (${Math.round(buffer.length / 1024)} KB)`)
-    return { buffer, filename }
+    console.log(`[IORT Constitution] PDF téléchargé: ${capturedFilename} (${Math.round(capturedBuffer.length / 1024)} KB)`)
+    return { buffer: capturedBuffer, filename: capturedFilename }
   } catch (err) {
     console.warn('[IORT Constitution] Échec download PDF A7:', err instanceof Error ? err.message : err)
     return null
+  } finally {
+    page.off('response', onResponse)
   }
 }
 
