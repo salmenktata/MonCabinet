@@ -22,6 +22,7 @@ import {
 import { searchKnowledgeBaseHybrid } from './knowledge-base-service'
 import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
 import type { DocumentType } from '@/lib/categories/doc-types'
+import { LEGAL_DOMAIN_MAP } from '@/lib/categories/legal-domains'
 import { getCachedEmbedding } from '@/lib/cache/embedding-cache'
 import { aiConfig, RAG_THRESHOLDS, getEmbeddingProvider } from './config'
 import {
@@ -467,8 +468,12 @@ export async function search(
   // Pagination (offset > 0) → fallback dense. Échec → fallback dense automatique.
   if (process.env.ENABLE_HYBRID_SEARCH === 'true' && offset === 0) {
     try {
+      const domainCategory = filters.domain
+        ? (LEGAL_DOMAIN_MAP[filters.domain]?.categories[0] as KnowledgeCategory | undefined)
+        : undefined
+
       const kbResults = await searchKnowledgeBaseHybrid(query, {
-        category: filters.category as KnowledgeCategory | undefined,
+        category: (filters.category as KnowledgeCategory | undefined) ?? domainCategory,
         docType: filters.documentType as DocumentType | undefined,
         limit,
         threshold,
@@ -558,9 +563,18 @@ export async function search(
   }
 
   if (filters.domain) {
-    whereClauses.push(`kb.domain = $${paramIndex}`)
-    queryParams.push(filters.domain)
-    paramIndex++
+    const domainDef = LEGAL_DOMAIN_MAP[filters.domain]
+    if (domainDef?.categories?.length) {
+      whereClauses.push(`kb.category = ANY($${paramIndex}::text[])`)
+      queryParams.push(domainDef.categories)
+      paramIndex++
+    }
+    if (domainDef?.normLevels?.length) {
+      whereClauses.push(`kb.norm_level = ANY($${paramIndex}::norm_level[])`)
+      queryParams.push(domainDef.normLevels)
+      paramIndex++
+    }
+    // Si domaine inconnu → ignorer silencieusement (pas de crash)
   }
 
   if (filters.language) {
