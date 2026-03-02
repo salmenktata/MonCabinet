@@ -177,6 +177,20 @@ type HierarchyClass = 'norme' | 'jurisprudence' | 'doctrine' | 'modeles' | 'autr
 // =============================================================================
 
 /**
+ * Normalise un texte pour la déduplication cross-source.
+ * Supprime les diacritiques arabes, normalise les espaces, met en minuscules.
+ * Permet de détecter les doublons de contenu entre sources différentes (ex: 9anoun vs IORT).
+ */
+function normalizeForDedup(text: string): string {
+  return text
+    .replace(/[\u064B-\u065F\u0670]/g, '') // Supprimer tashkeel arabe (fatha, damma, kasra…)
+    .replace(/\s+/g, ' ')                   // Normaliser les espaces multiples
+    .toLowerCase()
+    .trim()
+    .substring(0, 200)                       // 200 chars suffisent, sans préfixe KB/doc
+}
+
+/**
  * Boost de fiabilité par origine de la source.
  * IORT = source officielle de l'État (publication au JORT) → priorité maximale.
  * Appliqué en plus du boost catégorie (codes, jurisprudence…).
@@ -705,7 +719,23 @@ async function rerankSources(
     }
   }
 
-  return diversifiedSources
+  // 4. Déduplication finale cross-source par contenu normalisé
+  // Cas d'usage : même article indexé depuis 9anoun.tn ET IORT → garder la meilleure source
+  // Les boosts SOURCE_RELIABILITY_BOOST (IORT×1.20 > 9anoun×1.08) sont déjà intégrés dans boostedSimilarity
+  const contentSeen = new Map<string, (typeof diversifiedSources)[0]>()
+  for (const source of diversifiedSources) {
+    const contentKey = normalizeForDedup(source.chunkContent)
+    const existing = contentSeen.get(contentKey)
+    const currentScore = source.boostedSimilarity ?? source.similarity
+    const existingScore = existing ? (existing.boostedSimilarity ?? existing.similarity) : 0
+    if (!existing || currentScore > existingScore) {
+      contentSeen.set(contentKey, source)
+    }
+  }
+
+  return Array.from(contentSeen.values()).sort(
+    (a, b) => (b.boostedSimilarity ?? b.similarity) - (a.boostedSimilarity ?? a.similarity)
+  )
 }
 
 /**
@@ -1080,14 +1110,14 @@ export async function searchRelevantContext(
             originalQuery: question,
           }),
         ])
-        // Merge: dédupliquer par chunkId, garder meilleure similarité
+        // Merge: dédupliquer par chunkId ou contenu normalisé (cross-source), garder meilleure similarité
         const mergedSeen = new Map<string, (typeof multiTrackResults)[0]>()
         for (const r of multiTrackResults) {
-          const key = r.chunkId || `${r.knowledgeBaseId}:${r.chunkContent.substring(0, 50)}`
+          const key = r.chunkId || normalizeForDedup(r.chunkContent)
           mergedSeen.set(key, r)
         }
         for (const r of directResults) {
-          const key = r.chunkId || `${r.knowledgeBaseId}:${r.chunkContent.substring(0, 50)}`
+          const key = r.chunkId || normalizeForDedup(r.chunkContent)
           if (!mergedSeen.has(key) || r.similarity > (mergedSeen.get(key)?.similarity ?? 0)) {
             mergedSeen.set(key, r)
           }
@@ -1125,10 +1155,10 @@ export async function searchRelevantContext(
             originalQuery: question,
           })
           if (jurisResults.length > 0) {
-            // Dédup via knowledgeBaseId+contenu (kbResults n'a pas de chunkId dans son type inline)
-            const seenKeys = new Set(kbResults.map(r => `${r.knowledgeBaseId}:${r.chunkContent.substring(0, 50)}`))
+            // Dédup via contenu normalisé cross-source (9anoun+IORT peuvent avoir le même article)
+            const seenKeys = new Set(kbResults.map(r => normalizeForDedup(r.chunkContent)))
             const newJuris = jurisResults.filter(r => {
-              const key = `${r.knowledgeBaseId}:${r.chunkContent.substring(0, 50)}`
+              const key = normalizeForDedup(r.chunkContent)
               return !seenKeys.has(key)
             })
             if (newJuris.length > 0) {
@@ -1450,7 +1480,7 @@ export async function searchRelevantContextBilingual(
 
   // Ajouter les sources primaires avec poids ajusté
   for (const source of primarySources) {
-    const key = `${source.documentId}:${source.chunkContent.substring(0, 100)}`
+    const key = normalizeForDedup(source.chunkContent)
     if (!seenChunks.has(key)) {
       seenChunks.add(key)
       mergedSources.push({
@@ -1462,7 +1492,7 @@ export async function searchRelevantContextBilingual(
 
   // Ajouter les sources secondaires avec poids ajusté
   for (const source of secondarySources) {
-    const key = `${source.documentId}:${source.chunkContent.substring(0, 100)}`
+    const key = normalizeForDedup(source.chunkContent)
     if (!seenChunks.has(key)) {
       seenChunks.add(key)
       mergedSources.push({
