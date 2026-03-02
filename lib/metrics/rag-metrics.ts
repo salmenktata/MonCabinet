@@ -108,6 +108,7 @@ const REDIS_COUNTER_KEYS = {
   errorsCache: `${REDIS_METRICS_PREFIX}:errors:cache`,
   tokensInput: `${REDIS_METRICS_PREFIX}:tokens:input`,
   tokensOutput: `${REDIS_METRICS_PREFIX}:tokens:output`,
+  routerFallback: `${REDIS_METRICS_PREFIX}:router:fallback`,
 }
 
 /**
@@ -146,6 +147,7 @@ export async function getPersistedCounters(): Promise<{
   requestsFailed: number
   errors: { embedding: number; llm: number; search: number; cache: number }
   tokens: { input: number; output: number }
+  routerFallback: number
 }> {
   const defaults = {
     requestsTotal: 0,
@@ -153,6 +155,7 @@ export async function getPersistedCounters(): Promise<{
     requestsFailed: 0,
     errors: { embedding: 0, llm: 0, search: 0, cache: 0 },
     tokens: { input: 0, output: 0 },
+    routerFallback: 0,
   }
 
   if (!isRedisAvailable()) return defaults
@@ -178,6 +181,7 @@ export async function getPersistedCounters(): Promise<{
         input: parse(values[7]),
         output: parse(values[8]),
       },
+      routerFallback: parse(values[9]),
     }
   } catch {
     return defaults
@@ -243,6 +247,14 @@ export function recordCacheError(): void {
   errorCounters.cache++
   errorCounters.total++
   persistCountersToRedis({ errorsCache: 1 })
+}
+
+/**
+ * Enregistre un fallback du legal router (rate limit, timeout, erreur LLM).
+ * Permet de monitorer la fréquence des dégradations silencieuses du routeur.
+ */
+export function recordRouterFallback(): void {
+  persistCountersToRedis({ routerFallback: 1 })
 }
 
 /**

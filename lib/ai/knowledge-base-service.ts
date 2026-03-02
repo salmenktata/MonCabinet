@@ -976,6 +976,84 @@ export function detectQueryType(query: string): {
 }
 
 // =============================================================================
+// IMPLICIT ARTICLE MAPS — constantes module (RegExp compilés une seule fois)
+// =============================================================================
+
+/** COC (مجلة الالتزامات والعقود) — v19 max 8 articles */
+const COC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
+  // Formation du contrat (AR + FR)
+  // Fix v14: "شروط.*عقد" trop large → matchait "شروط فسخ" → exiger "صحة" OU "أركان"
+  [/شروط.*صح[ةه]|صح[ةه].*عقد|أركان.*عقد|validit.*contrat|condition.*contrat|contrat.*valid/i, [2, 23, 119]],
+  // Prescription / التقادم (AR + FR) — FIX civil_easy_01, ar_civil_02 (R@5=0)
+  // v15: +401 (حساب المدة) +408 (آجال راتبة)
+  [/تقادم|تعمير.*ذمة|آجال.*تقادم|prescription.*civil|délai.*prescription|prescription.*droit commun/i, [401, 402, 403, 408]],
+  // Preuve / Proof (AR uniquement — termes FR déjà dans BM25 expansion)
+  [/إثبات.*الالتزام|إثبات.*حق|الإثبات.*مدني/, [443, 401]],
+  // Préjudice moral (AR + FR)
+  [/ضرر.*معنوي|الضرر.*معنوي|تعويض.*معنوي|préjudice.*moral|dommage.*moral/i, [82, 83]],
+  // Résolution du contrat (AR + FR)
+  // v15: +44 (جهل) +51 (إكراه) | v17: +61 (غبن) +346 (فسخ جزئي)
+  [/فسخ.*عقد|انفساخ.*عقد|résiliation.*contrat|résolution.*contrat/i, [44, 51, 61, 273, 274, 330, 346]],
+  // Nullité (AR + FR)
+  // v15: +64 (استحالة موضوع) +119 (شرط باطل)
+  [/بطلان.*مطلق|بطلان.*نسبي|بطلان.*عقد|nullité.*contrat|nullité.*absol|nullité.*relat/i, [64, 119, 325, 327]],
+  // Extinction des obligations (FR + AR) — FIX fr_civil_01 (R@5=0, retrieval cross-langue)
+  // v17: pattern FR pour injecter Fsl 339(انقضاء)/340(أداء)/345(تعذر)/351(إبراء)/359(تجديد)/370(مقاصة)
+  [/extinction.*obligation|modes.*extinction|انقضاء.*الالتزام|تنقضي.*الالتزام/i, [339, 340, 345, 351, 359, 370]],
+]
+
+/** PENAL (المجلة الجزائية) — v16 max 6 articles */
+const PENAL_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
+  // Légitime défense (AR + FR) — dossiers جرائم الشخص
+  [/دفاع.*شرع|شرع.*دفاع|شروط.*دفاع|حالة.*دفاع|الدفاع الشرعي|légitime défense|défense.*légitime/i, [39, 40, 41]],
+  // Homicide intentionnel (AR + FR)
+  [/قتل.*عمد|اغتيال|القتل العمد|homicide.*volont|meurtre.*intentionnel/i, [201, 202, 203, 204, 205]],
+  // Coup mortel sans intention / ضرب أفضى إلى موت (AR + FR)
+  // Art 207: "من أحدث ضربا أو جرحا أفضى إلى الموت دون قصد إحداثه"
+  [/ضرب.*أفضى.*موت|جرح.*أفضى.*موت|قتل.*دون.*قصد|coups.*mort sans intention|blessures.*mort/i, [207, 218]],
+  // Voies de fait / Agression physique (AR + FR)
+  [/الاعتداء.*جسدي|ضرب.*وجرح|الإيذاء.*الجسدي|coups.*blessures|voies de fait/i, [218, 219, 220, 221]],
+  // Vol qualifié — volontairement plus large (الفصل 233+ = vol simple, 240+ = vol aggravé)
+  [/سرقة|جريمة.*سرقة|vol.*aggrav|vol.*qualifié/i, [233, 234, 235, 240]],
+  // Faux et usage de faux
+  [/تزوير|تزييف.*وثيق|faux.*document|faux.*acte/i, [172, 173, 174]],
+  // Corruption / Rshwa
+  [/رشوة|اختلاس.*مال|corruption|détournement.*fonds/i, [83, 84, 85]],
+]
+
+/** MCO (المجلة التجارية) — max 6 articles */
+const MCO_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
+  // Art.2: définition du commerçant — احتراف + habitude + nom propre
+  [/تاجر|من.*يُعدّ.*تاجر|تعريف.*تاجر|هل.*تاجر|احتراف.*تجار|يحترف.*تجار/, [2, 3]],
+  // Art.2-6: actes de commerce par nature (بيع، شراء، مقاولة، بنك...)
+  [/أعمال تجارية|الأعمال التجارية|أعمال.*بطبيعتها/, [2, 3, 4, 5, 6]],
+  // Art.9: capacité d'exercer le commerce
+  [/أهلية.*تجارية|أهلية.*احتراف|قاصر.*تجارة/, [9, 10]],
+  // Art.214+: conditions de validité du chèque
+  [/شيك|شروط.*شيك|صحة.*شيك|عناصر.*شيك/, [214, 215, 216, 217, 218]],
+  // Art.432+: faillite — conditions + effets
+  [/إفلاس|شهر.*إفلاس|شروط.*إفلاس|توقف.*دفع/, [432, 433, 434, 435]],
+  // Art.452+: concordat / taysira qadha'iya
+  [/تسوية.*قضائية|الصلح.*الواقي/, [452, 453, 454]],
+]
+
+/**
+ * Cache module-level pour les résultats de pattern matching implicit article maps.
+ * Clé: queryText (normalisé), valeur: Set de clés "artNum:titleFrag" matchées.
+ * LRU simple (max 50 entrées — une query juridique = ~200 chars, 50 × ~300B = ~15KB).
+ */
+const _implicitArticleMatchCache = new Map<string, Set<string>>()
+const _IMPLICIT_CACHE_MAX = 50
+
+function _evictImplicitCacheIfFull(): void {
+  if (_implicitArticleMatchCache.size >= _IMPLICIT_CACHE_MAX) {
+    // Supprimer la première entrée (la plus ancienne — Map maintient l'ordre d'insertion)
+    const firstKey = _implicitArticleMatchCache.keys().next().value
+    if (firstKey !== undefined) _implicitArticleMatchCache.delete(firstKey)
+  }
+}
+
+// =============================================================================
 // RECHERCHE
 // =============================================================================
 
@@ -1151,7 +1229,13 @@ async function searchArticleByTextMatch(
   try {
     // Fix Feb 26 v10: PostgreSQL regex ~ pour gérer "الفصل 23-2" (tiret) sans false-positive "الفصل 230"
     // "الفصل X" suivi d'un caractère non-chiffre (espace, tiret, newline, fin de chaîne)
-    const artRegex = `الفصل ${artNum}([^0-9]|$)`
+    // Fix Mar 3 2026 (hamza ordinals): les ordinaux arabes sont normalisés côté query (الأول→الاول)
+    // mais le DB peut stocker la forme avec hamza (الأول). Générer un regex qui accepte les deux.
+    // Ex: "الاول" → "ال[اأإآ]ول" pour matcher الأول/الاول/الإول/الآول indifféremment.
+    const artNumRegex = /^\d+$/.test(artNum)
+      ? artNum
+      : artNum.replace(/ا/g, '[اأإآ]')
+    const artRegex = `الفصل ${artNumRegex}([^0-9]|$)`
     let sql: string
     let params: (string | string[])[]
 
@@ -1634,139 +1718,84 @@ export async function searchKnowledgeBaseHybrid(
     }
   }
 
-  // Fix Feb 26 v13: Implicit article mapping pour COC (مجلة الالتزامات والعقود)
+  // Fix Feb 26 v13: Implicit article mapping pour COC/PENAL/MCO
   //
-  // Problème résolu: quand plusieurs chunks scorent 1.0 (regular codes-forced + BM25-OR),
-  // l'ordre d'insertion dans la Map (JavaScript stable sort) détermine le ranking → les
-  // chunks de regular codes-forced (insérés avant) devancent les gold chunks (insérés après).
+  // Problème résolu: quand plusieurs chunks scorent 1.0, l'ordre d'insertion dans la Map
+  // détermine le ranking → les chunks de regular codes-forced devancent les gold chunks.
   //
   // Solution: searchArticleByTextMatch → sim=1.05 (via articleTextChunkIds post-processing)
   // → STRICTEMENT au-dessus de tout autre chunk (max 1.0) → toujours dans le top-K.
   //
-  // Mapping des articles gold par pattern de query:
-  //   ar_civil_01 "شروط صحة العقد"      → Fsl 2/23/119 (أركان, التراضي, الشرط الباطل)
-  //   ar_civil_02 "التقادم"              → Fsl 402/403
-  //   ar_civil_06 "إثبات الالتزامات"    → Fsl 443/401
-  //   ar_civil_07 "الضرر المعنوي"       → Fsl 82/83 (NB: targetCodeFragment peut être null!)
-  //   ar_civil_08 "فسخ العقد"           → Fsl 273/274/330
-  //   ar_civil_09 "البطلان"             → Fsl 325/327
-  // Fix v16 (Feb 27): Suppression du guard detectedLang === 'ar'
-  // Les queries FR enrichies par enrichQueryWithLegalSynonyms contiennent des termes arabes
-  // mais detectedLang peut rester 'fr' → COC_IMPLICIT_ARTICLE_MAP ne se déclenchait jamais
-  // pour civil_easy_01 "prescription civile" → R@5=0. Fix: patterns bilingues + guard retiré.
+  // Maps déplacées à niveau module (constantes — RegExp compilés une seule fois au chargement).
+  // Cache module-level pour éviter re-évaluation des patterns pour la même queryText.
+  // Fix v16 (Feb 27): guard detectedLang retiré — patterns bilingues AR+FR.
+  // v19 cap: max 8 articles COC / 6 PENAL / 6 MCO (évite explosion combinatoire).
   if (shouldForceCodes) {
-    const COC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
-      // Formation du contrat (AR + FR)
-      // Fix v14: "شروط.*عقد" trop large → matchait "شروط فسخ" → exiger "صحة" OU "أركان"
-      [/شروط.*صح[ةه]|صح[ةه].*عقد|أركان.*عقد|validit.*contrat|condition.*contrat|contrat.*valid/i, [2, 23, 119]],
-      // Prescription / التقادم (AR + FR) — FIX civil_easy_01, ar_civil_02 (R@5=0)
-      // v15: +401 (حساب المدة) +408 (آجال راتبة)
-      [/تقادم|تعمير.*ذمة|آجال.*تقادم|prescription.*civil|délai.*prescription|prescription.*droit commun/i, [401, 402, 403, 408]],
-      // Preuve / Proof (AR uniquement — termes FR déjà dans BM25 expansion)
-      [/إثبات.*الالتزام|إثبات.*حق|الإثبات.*مدني/, [443, 401]],
-      // Préjudice moral (AR + FR)
-      [/ضرر.*معنوي|الضرر.*معنوي|تعويض.*معنوي|préjudice.*moral|dommage.*moral/i, [82, 83]],
-      // Résolution du contrat (AR + FR)
-      // v15: +44 (جهل) +51 (إكراه) | v17: +61 (غبن) +346 (فسخ جزئي)
-      [/فسخ.*عقد|انفساخ.*عقد|résiliation.*contrat|résolution.*contrat/i, [44, 51, 61, 273, 274, 330, 346]],
-      // Nullité (AR + FR)
-      // v15: +64 (استحالة موضوع) +119 (شرط باطل)
-      [/بطلان.*مطلق|بطلان.*نسبي|بطلان.*عقد|nullité.*contrat|nullité.*absol|nullité.*relat/i, [64, 119, 325, 327]],
-      // Extinction des obligations (FR + AR) — FIX fr_civil_01 (R@5=0, retrieval cross-langue)
-      // v17: pattern FR pour injecter Fsl 339(انقضاء)/340(أداء)/345(تعذر)/351(إبراء)/359(تجديد)/370(مقاصة)
-      [/extinction.*obligation|modes.*extinction|انقضاء.*الالتزام|تنقضي.*الالتزام/i, [339, 340, 345, 351, 359, 370]],
-    ]
-    // Fallback COC si targetCodeFragment null (ex: ar_civil_07 "الضرر المعنوي" n'est pas dans regex COC)
+    // Fallback COC si targetCodeFragment null (ex: ar_civil_07 "الضرر المعنوي")
     const cocTitleFrag = (targetCodeFragment && targetCodeFragment.includes('الالتزامات'))
       ? targetCodeFragment
       : 'مجلة الالتزامات'
-    // v18 (Mar 2026): collecte TOUS les patterns correspondants (suppression break).
-    // Une query multi-domaine (ex: "nullité pour prescription") déclenche les 2 sets d'articles.
-    // Déduplication par clé "artNum:titleFrag" pour éviter les doubles requêtes DB.
-    // v19 cap: max 8 articles simultanés par map — évite l'explosion combinatoire qui noyait
-    // les vrais résultats sous des chunks sim=1.05 non pertinents (régression R@5 Mar 2026).
-    const COC_MAX_ARTICLES = 8
-    const cocQueuedArticles = new Set<string>()
-    for (const [pattern, articles] of COC_IMPLICIT_ARTICLE_MAP) {
-      if (cocQueuedArticles.size >= COC_MAX_ARTICLES) break
-      if (pattern.test(queryText)) {
-        for (const artNum of articles) {
-          if (cocQueuedArticles.size >= COC_MAX_ARTICLES) break
-          const key = `${artNum}:${cocTitleFrag}`
-          if (!cocQueuedArticles.has(key)) {
-            cocQueuedArticles.add(key)
-            searchPromises.push(searchArticleByTextMatch(String(artNum), cocTitleFrag))
-            providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+    const penalTitleFrag = 'المجلة الجزائية'
+
+    // Clé cache : queryText + codes ciblés (pour distinguer COC vs PENAL vs MCO)
+    const cacheKey = `${queryText}|${cocTitleFrag}`
+    let cachedArticleKeys = _implicitArticleMatchCache.get(cacheKey)
+
+    if (!cachedArticleKeys) {
+      // Calculer et mettre en cache les clés d'articles matchées (COC + PENAL)
+      cachedArticleKeys = new Set<string>()
+      const COC_MAX_ARTICLES = 8
+      const PENAL_MAX_ARTICLES = 6
+      let cocCount = 0
+      let penalCount = 0
+
+      for (const [pattern, articles] of COC_IMPLICIT_ARTICLE_MAP) {
+        if (cocCount >= COC_MAX_ARTICLES) break
+        if (pattern.test(queryText)) {
+          for (const artNum of articles) {
+            if (cocCount >= COC_MAX_ARTICLES) break
+            const key = `coc:${artNum}:${cocTitleFrag}`
+            if (!cachedArticleKeys.has(key)) { cachedArticleKeys.add(key); cocCount++ }
           }
         }
       }
-    }
-  }
-
-  // PENAL_IMPLICIT_ARTICLE_MAP — symétrique au COC mais pour المجلة الجزائية
-  // Fix v16: guard detectedLang retiré (identique au COC fix) + patterns bilingues AR+FR
-  // + Art 207 ajouté (coup mortel sans intention — stratégie alternative au dossier pénal)
-  // Guard mcoTitleFrag retiré: "légitime défense" en FR ne matchait pas 'الجزائية'
-  if (shouldForceCodes) {
-    const penalTitleFrag = 'المجلة الجزائية'
-    const PENAL_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
-      // Légitime défense (AR + FR) — dossiers جرائم الشخص
-      [/دفاع.*شرع|شرع.*دفاع|شروط.*دفاع|حالة.*دفاع|الدفاع الشرعي|légitime défense|défense.*légitime/i, [39, 40, 41]],
-      // Homicide intentionnel (AR + FR)
-      [/قتل.*عمد|اغتيال|القتل العمد|homicide.*volont|meurtre.*intentionnel/i, [201, 202, 203, 204, 205]],
-      // Coup mortel sans intention / ضرب أفضى إلى موت (AR + FR)
-      // Art 207: "من أحدث ضربا أو جرحا أفضى إلى الموت دون قصد إحداثه"
-      [/ضرب.*أفضى.*موت|جرح.*أفضى.*موت|قتل.*دون.*قصد|coups.*mort sans intention|blessures.*mort/i, [207, 218]],
-      // Voies de fait / Agresssion physique (AR + FR)
-      [/الاعتداء.*جسدي|ضرب.*وجرح|الإيذاء.*الجسدي|coups.*blessures|voies de fait/i, [218, 219, 220, 221]],
-      // Vol qualifié — volontairement plus large (الفصل 233+ = vol simple, 240+ = vol aggravé)
-      [/سرقة|جريمة.*سرقة|vol.*aggrav|vol.*qualifié/i, [233, 234, 235, 240]],
-      // Faux et usage de faux
-      [/تزوير|تزييف.*وثيق|faux.*document|faux.*acte/i, [172, 173, 174]],
-      // Corruption / Rshwa
-      [/رشوة|اختلاس.*مال|corruption|détournement.*fonds/i, [83, 84, 85]],
-    ]
-    const PENAL_MAX_ARTICLES = 6
-    const penalQueuedArticles = new Set<string>()
-    for (const [pattern, articles] of PENAL_IMPLICIT_ARTICLE_MAP) {
-      if (penalQueuedArticles.size >= PENAL_MAX_ARTICLES) break
-      if (pattern.test(queryText)) {
-        for (const artNum of articles) {
-          if (penalQueuedArticles.size >= PENAL_MAX_ARTICLES) break
-          const key = `${artNum}:${penalTitleFrag}`
-          if (!penalQueuedArticles.has(key)) {
-            penalQueuedArticles.add(key)
-            searchPromises.push(searchArticleByTextMatch(String(artNum), penalTitleFrag))
-            providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+      for (const [pattern, articles] of PENAL_IMPLICIT_ARTICLE_MAP) {
+        if (penalCount >= PENAL_MAX_ARTICLES) break
+        if (pattern.test(queryText)) {
+          for (const artNum of articles) {
+            if (penalCount >= PENAL_MAX_ARTICLES) break
+            const key = `penal:${artNum}:${penalTitleFrag}`
+            if (!cachedArticleKeys.has(key)) { cachedArticleKeys.add(key); penalCount++ }
           }
         }
+      }
+
+      _evictImplicitCacheIfFull()
+      _implicitArticleMatchCache.set(cacheKey, cachedArticleKeys)
+    }
+
+    // Lancer searchArticleByTextMatch pour chaque article matché (depuis cache ou calcul frais)
+    // Dédup intra-appel via Set local (cache stocke les clés, pas les promesses)
+    const launchedKeys = new Set<string>()
+    for (const key of cachedArticleKeys) {
+      const parts = key.split(':')
+      // key format: "coc:artNum:titleFrag" ou "penal:artNum:titleFrag"
+      const artNum = parts[1]
+      const titleFrag = parts.slice(2).join(':')
+      const dedupKey = `${artNum}:${titleFrag}`
+      if (!launchedKeys.has(dedupKey)) {
+        launchedKeys.add(dedupKey)
+        searchPromises.push(searchArticleByTextMatch(artNum, titleFrag))
+        providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
       }
     }
   }
 
   // MCO_IMPLICIT_ARTICLE_MAP — المجلة التجارية (Code de Commerce tunisien)
-  // Symétrique à COC_IMPLICIT_ARTICLE_MAP/PENAL_IMPLICIT_ARTICLE_MAP mais pour MCO.
-  // Déclenche article-text search (sim=1.05) pour questions sur:
-  //   - Définition/qualité de commerçant (Art.2-3)
-  //   - Actes de commerce par nature (Art.2-6)
-  //   - Chèque (Art.214+) | Faillite (Art.432+)
+  // Guard detectedLang === 'ar' conservé (MCO patterns arabes uniquement)
   if (detectedLang === 'ar') {
     const mcoTitleFrag = getTargetCodeTitleFragment(queryText, 'ar')
     if (mcoTitleFrag === 'المجلة التجارية') {
-      const MCO_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
-        // Art.2: définition du commerçant — احتراف + habitude + nom propre
-        [/تاجر|من.*يُعدّ.*تاجر|تعريف.*تاجر|هل.*تاجر|احتراف.*تجار|يحترف.*تجار/, [2, 3]],
-        // Art.2-6: actes de commerce par nature (بيع، شراء، مقاولة، بنك...)
-        [/أعمال تجارية|الأعمال التجارية|أعمال.*بطبيعتها/, [2, 3, 4, 5, 6]],
-        // Art.9: capacité d'exercer le commerce
-        [/أهلية.*تجارية|أهلية.*احتراف|قاصر.*تجارة/, [9, 10]],
-        // Art.214+: conditions de validité du chèque
-        [/شيك|شروط.*شيك|صحة.*شيك|عناصر.*شيك/, [214, 215, 216, 217, 218]],
-        // Art.432+: faillite — conditions + effets
-        [/إفلاس|شهر.*إفلاس|شروط.*إفلاس|توقف.*دفع/, [432, 433, 434, 435]],
-        // Art.452+: concordat / taysira qadha'iya
-        [/تسوية.*قضائية|الصلح.*الواقي/, [452, 453, 454]],
-      ]
       const MCO_MAX_ARTICLES = 6
       const mcoQueuedArticles = new Set<string>()
       for (const [pattern, articles] of MCO_IMPLICIT_ARTICLE_MAP) {

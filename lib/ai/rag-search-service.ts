@@ -46,7 +46,7 @@ import {
   isRerankerEnabled,
   DocumentToRerank,
 } from './reranker-service'
-import { recordRAGMetric } from '@/lib/metrics/rag-metrics'
+import { recordRAGMetric, recordRouterFallback } from '@/lib/metrics/rag-metrics'
 import { searchKnowledgeBase, searchKnowledgeBaseHybrid } from './knowledge-base-service'
 import type { LegalStance, PromptContextType } from './legal-reasoning-prompts'
 import type { OperationName } from './operations-config'
@@ -561,15 +561,29 @@ async function rerankSources(
     // Sprint 1 RAG Audit-Proof: pénalité douce pour branches hors-scope
     // ×0.4 uniforme : inférence titre ou branche DB explicite
     // Gate confiance : pas de pénalité si routeur peu confiant (<0.70)
+    const _branchConfidence = branchOptions?.routerConfidence ?? 1.0
     if (branchOptions?.forbiddenBranches && branchOptions.forbiddenBranches.length > 0) {
-      const routerConfidence = branchOptions.routerConfidence ?? 1.0
-      if (routerConfidence >= 0.70) {
+      if (_branchConfidence >= 0.70) {
         const explicitBranch = s.metadata?.branch as string | undefined
         const inferredBranch = explicitBranch ? undefined : inferBranchFromTitle(s.documentName || '')
         const branch = explicitBranch || inferredBranch
         if (branch && branch !== 'autre' && branchOptions.forbiddenBranches.includes(branch)) {
           boost *= 0.4
-          log.info(`[RAG Branch] Pénalité 0.4× sur "${s.documentName}" (branch=${branch}, inferred=${!explicitBranch}, confidence=${routerConfidence.toFixed(2)})`)
+          log.info(`[RAG Branch] Pénalité 0.4× sur "${s.documentName}" (branch=${branch}, inferred=${!explicitBranch}, confidence=${_branchConfidence.toFixed(2)})`)
+        }
+      }
+    }
+
+    // Symétrie: boost positif pour branches in-scope (×1.20 si confidence ≥ 0.70)
+    // Complète la pénalité forbidden (×0.4) pour amplifier le signal domaine
+    if (branchOptions?.allowedBranches && branchOptions.allowedBranches.length > 0) {
+      if (_branchConfidence >= 0.70) {
+        const explicitBranch = s.metadata?.branch as string | undefined
+        const inferredBranch = explicitBranch ? undefined : inferBranchFromTitle(s.documentName || '')
+        const branch = explicitBranch || inferredBranch
+        if (branch && branch !== 'autre' && branchOptions.allowedBranches.includes(branch)) {
+          boost *= 1.20
+          log.info(`[RAG Branch] Boost 1.20× sur "${s.documentName}" (branch=${branch}, inferred=${!explicitBranch}, confidence=${_branchConfidence.toFixed(2)})`)
         }
       }
     }
@@ -681,7 +695,9 @@ async function rerankSources(
         metadata: s.metadata as Record<string, unknown>,
       }))
 
-      const rerankedResults = await rerankDocuments(query, docsToRerank, undefined, { useCrossEncoder: true })
+      // useCrossEncoder non passé = false par défaut (incompatible Next.js prod — tente import @xenova/transformers)
+      // Activer manuellement en local avec { useCrossEncoder: true } pour tester le cross-encoder neural.
+      const rerankedResults = await rerankDocuments(query, docsToRerank, undefined)
 
       // Combiner scores cross-encoder avec boosts existants
       rankedSources = rerankedResults.map((result) => {
@@ -787,8 +803,11 @@ function computeAdaptiveQualityGate(
   sourcesFound: number,
   hasVectorResults: boolean
 ): number {
-  // IMPORTANT: ce seuil doit être STRICTEMENT INFÉRIEUR au seuil SQL (p_threshold=0.35 par défaut).
-  // Si gate >= threshold SQL, les sources qui passent juste le SQL threshold seront toutes rejetées.
+  // CONTRAT EXPLICITE avec le seuil SQL (p_threshold=0.35 dans searchKnowledgeBaseHybrid) :
+  //   gate_max (0.30) < sql_threshold (0.35)
+  // → Toute source qui passe le filtre SQL (sim ≥ 0.35) a sim > gate_max, donc ne peut jamais
+  //   déclencher à elle seule une abstention. L'abstention ne se produit que si AUCUNE source ne
+  //   passe le SQL ET que le fallback BM25-only retourne des chunks de faible score (< 0.22 AR).
   // Comportement attendu (gate progressif Feb 23):
   //   - Abstention dure seulement si TOUTES les sources < 0.25 (FR) ou < 0.22 (AR)
   //   - Sources dans la zone 0.25-0.40 = acceptées (borderline mais utiles)
@@ -1063,6 +1082,8 @@ export async function searchRelevantContext(
       log.warn('[RAG Search] Router échoué, fallback recherche KB sans classification:', routerError instanceof Error ? routerError.message : routerError)
       // P2 fix Feb 24, 2026 : log structuré pour observabilité (détectable par monitoring)
       log.warn('[RAG Metrics] router_failed=true reason=' + (routerError instanceof Error ? routerError.message.substring(0, 80) : String(routerError)).replace(/\s+/g, '_'))
+      // Compteur Redis non-bloquant pour monitoring dashboard
+      recordRouterFallback()
     }
   }
   const classification = routerResult?.classification || null
