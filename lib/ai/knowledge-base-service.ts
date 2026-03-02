@@ -1606,10 +1606,17 @@ export async function searchKnowledgeBaseHybrid(
   // Fix Mar 2 2026: Article-text match dédié constitution — "الفصل X من الدستور"
   // searchArticleByTextMatch filtre category='codes' par défaut → manque les chunks constitution.
   // Déclenchement uniquement si query mentionne explicitement الفصل ET دستور.
+  // Fix Mar 2 2026 (ordinals): Support ordinals arabes (الأول→1, الثاني→2...) en plus des chiffres.
   if (isConstitutionQuery) {
-    const constExplicitMatch = queryText.match(/الفصل\s+(\d+)/)
+    const ARABIC_ORDINALS: Record<string, string> = {
+      'الأول': '1', 'الثاني': '2', 'الثالث': '3', 'الرابع': '4',
+      'الخامس': '5', 'السادس': '6', 'السابع': '7', 'الثامن': '8',
+      'التاسع': '9', 'العاشر': '10',
+    }
+    const constExplicitMatch = queryText.match(/الفصل\s+(\d+|الأول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
     if (constExplicitMatch) {
-      const artNum = constExplicitMatch[1]
+      const rawMatch = constExplicitMatch[1]
+      const artNum = ARABIC_ORDINALS[rawMatch] ?? rawMatch  // "الأول" → "1", chiffre → inchangé
       searchPromises.push(searchArticleByTextMatch(artNum, null, ['constitution', 'legislation']))
       providerLabels.push('article-text')
     }
@@ -1871,6 +1878,20 @@ export async function searchKnowledgeBaseHybrid(
           // → chunks forts (أركان, تعمير) dominent, chunks faibles (عقد partout) s'effacent
           const bm25EffSim = Math.min(0.80, bm25Rank * 10)
           r.similarity = Math.min(1.0, bm25EffSim * CODE_PRIORITY_BOOST)
+        }
+      }
+
+      // Fix Mar 2 2026: Boost plancher pour constitution-forced
+      // Les chunks constitution ont souvent une faible sim embedding vs query sémantique
+      // (Fsl-level chunks vs question "ما هي أحكام...") → passent le seuil SQL 0.10 mais
+      // échouent le filtre app-level effectiveMinimum=0.30 (AR). Plancher 0.32 garantit
+      // qu'ils survivent et entrent dans le pool pour le re-ranking Jina.
+      if (label === 'constitution-forced') {
+        if (r.similarity < 0.32) {
+          r.similarity = 0.32
+        }
+        if (r.metadata) {
+          ;(r.metadata as Record<string, unknown>).constitutionForced = true
         }
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
