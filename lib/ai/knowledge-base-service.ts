@@ -1627,7 +1627,9 @@ export async function searchKnowledgeBaseHybrid(
     if (constExplicitMatch) {
       // Normaliser hamza : "الأول" (query) → "الاول" (stocké dans DB sans hamza sur alif)
       const rawMatch = constExplicitMatch[1].replace(/[أإآ]/g, 'ا')
-      searchPromises.push(searchArticleByTextMatch(rawMatch, null, ['constitution', 'legislation']))
+      // Fix Mar 2 2026: ['constitution'] uniquement (pas 'legislation') — LIMIT 3 sur 879 chunks
+      // (1 constitution + 878 legislation) retournait quasi-aléatoirement, le bon chunk rarement inclus.
+      searchPromises.push(searchArticleByTextMatch(rawMatch, null, ['constitution']))
       providerLabels.push('article-text')
     }
   }
