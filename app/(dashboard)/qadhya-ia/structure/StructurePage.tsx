@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import NarrativeInput from '@/components/dossiers/assistant/NarrativeInput'
 import ExamplesCarousel from '@/components/dossiers/assistant/ExamplesCarousel'
@@ -18,6 +17,7 @@ import {
 } from '@/app/actions/dossiers'
 import { useAssistantStore } from '@/lib/stores/assistant-store'
 import { useStance } from '@/contexts/StanceContext'
+import StepIndicator from '@/components/qadhya-ia/structure/StepIndicator'
 import type {
   StructuredDossier,
   NewClientData,
@@ -39,18 +39,10 @@ interface StructurePageProps {
   clients: Client[]
 }
 
-const WORKFLOW_STEPS = [
-  { labelFr: 'Structuration', labelAr: 'هيكلة', step: 1 },
-  { labelFr: 'Consultation', labelAr: 'استشارة', step: 2 },
-  { labelFr: 'Dossier', labelAr: 'ملف', step: 3 },
-]
-
 export function StructurePage({ clients }: StructurePageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const t = useTranslations('assistant')
-  const locale = useLocale()
-  const isAr = locale === 'ar'
 
   const {
     step,
@@ -180,13 +172,15 @@ export function StructurePage({ clients }: StructurePageProps) {
   if (!hydrated) {
     return (
       <div className="space-y-6 pb-12">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-            <Icons.edit className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-          </div>
-          <div>
-            <div className="h-7 w-48 rounded-md bg-muted animate-pulse" />
-            <div className="mt-1 h-4 w-72 rounded-md bg-muted animate-pulse" />
+        <div className="rounded-xl border bg-gradient-to-r from-amber-50 via-background to-background dark:from-amber-900/10 dark:via-background dark:to-background p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+              <Icons.edit className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <div className="h-7 w-48 rounded-md bg-muted animate-pulse" />
+              <div className="mt-1 h-4 w-72 rounded-md bg-muted animate-pulse" />
+            </div>
           </div>
         </div>
         <div className="h-64 animate-pulse rounded-xl bg-muted" />
@@ -197,36 +191,22 @@ export function StructurePage({ clients }: StructurePageProps) {
   return (
     <div className="space-y-6 pb-12">
       {/* En-tête */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-            <Icons.edit className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">{t('subtitle')}</p>
-          </div>
-        </div>
-
-        {/* Workflow indicator */}
-        <div className="hidden sm:flex items-center gap-1.5 shrink-0 pt-0.5">
-          {WORKFLOW_STEPS.map((s, i) => (
-            <div key={s.step} className="flex items-center gap-1.5">
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors',
-                  s.step === 1
-                    ? 'bg-amber-100 border-amber-300 text-amber-800 dark:bg-amber-900/40 dark:border-amber-600 dark:text-amber-300'
-                    : 'bg-muted/60 border-border text-muted-foreground'
-                )}
-              >
-                {isAr ? s.labelAr : s.labelFr}
-              </span>
-              {i < WORKFLOW_STEPS.length - 1 && (
-                <Icons.chevronRight className="h-3 w-3 text-muted-foreground/50" />
-              )}
+      <div className="rounded-xl border bg-gradient-to-r from-amber-50 via-background to-background dark:from-amber-900/10 dark:via-background dark:to-background p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+              <Icons.edit className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
-          ))}
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+              <p className="mt-0.5 text-sm text-muted-foreground">{t('subtitle')}</p>
+            </div>
+          </div>
+
+          {/* Indicateur d'étape dynamique */}
+          <div className="hidden sm:flex shrink-0 pt-0.5">
+            <StepIndicator currentStep={step === 'input' ? 'input' : step === 'analyzing' ? 'analyzing' : 'result'} />
+          </div>
         </div>
       </div>
 
@@ -238,9 +218,11 @@ export function StructurePage({ clients }: StructurePageProps) {
         </div>
       )}
 
-      {/* Saisie */}
-      {step === 'input' && (
-        <>
+      {/* Layout split-panel : gauche = saisie, droite = résultat */}
+      <div className="lg:flex lg:gap-6 lg:items-start">
+
+        {/* Panneau gauche — saisie narrative (desktop: toujours visible, mobile: seulement à l'étape saisie) */}
+        <div className={`lg:w-1/2 space-y-4 ${step !== 'input' ? 'hidden lg:block' : ''}`}>
           {/* Barre posture + conseil */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
             <div className="flex items-center gap-2">
@@ -256,26 +238,45 @@ export function StructurePage({ clients }: StructurePageProps) {
             value={narratif}
             onChange={setNarratif}
             onSubmit={handleSubmitNarrative}
-            disabled={false}
+            disabled={step === 'analyzing'}
           />
 
-          <ExamplesCarousel onSelect={(example) => setNarratif(example)} />
-        </>
-      )}
+          {/* Exemples visibles uniquement à l'étape de saisie */}
+          {step === 'input' && (
+            <ExamplesCarousel onSelect={(example) => setNarratif(example)} />
+          )}
+        </div>
 
-      {/* Analyse en cours */}
-      {step === 'analyzing' && <AnalysisLoader completedSteps={analysisSteps} />}
+        {/* Panneau droit — résultat contextuel (desktop: toujours visible, mobile: seulement hors étape saisie) */}
+        <div className={`lg:w-1/2 ${step === 'input' ? 'hidden lg:block' : 'mt-4 lg:mt-0'}`}>
+          {/* Placeholder desktop quand aucune analyse n'est encore lancée */}
+          {step === 'input' && (
+            <div className="rounded-xl border-2 border-dashed border-muted-foreground/15 bg-muted/20 flex flex-col items-center justify-center text-center p-10 min-h-[320px]">
+              <div className="w-14 h-14 rounded-2xl bg-amber-100/60 dark:bg-amber-900/20 flex items-center justify-center mb-4">
+                <Icons.fileText className="h-7 w-7 text-amber-500/50 dark:text-amber-400/40" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground/50">Résultat de l'analyse</p>
+              <p className="text-xs text-muted-foreground/35 mt-1 max-w-[200px]">
+                Décrivez votre situation et cliquez sur Analyser
+              </p>
+            </div>
+          )}
 
-      {/* Résultat */}
-      {step === 'result' && result && (
-        <StructuredResult
-          result={result}
-          onReanalyze={handleReanalyze}
-          onReset={() => reset()}
-          onCreateDossier={() => setShowCreateModal(true)}
-          onUpdateResult={(updated) => setResult(updated)}
-        />
-      )}
+          {/* Loader pendant l'analyse */}
+          {step === 'analyzing' && <AnalysisLoader completedSteps={analysisSteps} />}
+
+          {/* Résultat structuré */}
+          {step === 'result' && result && (
+            <StructuredResult
+              result={result}
+              onReanalyze={handleReanalyze}
+              onReset={() => reset()}
+              onCreateDossier={() => setShowCreateModal(true)}
+              onUpdateResult={(updated) => setResult(updated)}
+            />
+          )}
+        </div>
+      </div>
 
       {/* Modal création dossier */}
       {showCreateModal && result && (
