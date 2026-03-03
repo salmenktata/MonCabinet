@@ -823,6 +823,8 @@ async function handleStreamingResponse(
                 console.error('[Stream] Erreur trigger résumé:', err)
               )
             }
+          } else if (event.type === 'progress') {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'progress', step: event.step, count: event.count, avgSimilarity: event.avgSimilarity, quality: event.quality })}\n\n`))
           } else if (event.type === 'error') {
             const errorMessage = { type: 'error', error: event.message }
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorMessage)}\n\n`))

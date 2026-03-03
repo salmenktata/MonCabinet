@@ -9,6 +9,7 @@ export interface StreamingMessage {
   sources?: any[]
   tokensUsed?: number
   isStreaming?: boolean
+  isError?: boolean
   abrogationAlerts?: AbrogationAlert[] // Phase 3.4
 }
 
@@ -150,6 +151,8 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
           console.log('Requête annulée')
         } else {
           console.error('Erreur lors de l\'envoi du message:', error)
+          const errText = error instanceof Error ? error.message : 'Erreur lors de la génération de la réponse.'
+          setMessages((prev) => [...prev, { role: 'assistant', content: errText, isError: true }])
           options.onError?.(error as Error)
         }
       } finally {
