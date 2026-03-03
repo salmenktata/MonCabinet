@@ -116,6 +116,12 @@ const EXPLANATION_PATTERNS: RegExp[] = [
   /(?:كيف\s+(?:يعمل|تعمل|يتم|يطبق|تطبق|يحسب|تحسب|يسري|تسري))/i,
   /(?:ما\s+(?:هي\s+)?الية|شرح\s+(?:مفهوم|نظام|مبدا|الية))/i,
   /(?:expliquer?\s+(?:le\s+)?(?:concept|mecanisme|principe|fonctionnement)|pourquoi\s+(?:le\s+droit|la\s+loi|le\s+code))/i,
+  // Pénalités / sanctions
+  /(?:ما\s+(?:هي\s+)?عقوبة|عقوبة\s+(?:الطعن|السرقة|التحيل|الاختلاس|الاهمال|الاعتداء|الزنا|القتل)|كم\s+(?:حد|عقوبة))/i,
+  /(?:quelle\s+(?:est\s+la\s+)?(?:peine|sanction|condamnation)\s+(?:pour|de)|peine\s+(?:pour|de|encour))/i,
+  // Validité / conditions de validité d'un contrat
+  /(?:هل\s+(?:هذا\s+)?(?:العقد|الاتفاقية|الوثيقة)\s+(?:صحيح|صالح|ملزم|نافذ)|صحة\s+العقد|شروط\s+صحة\s+العقد)/i,
+  /(?:(?:est-ce\s+que\s+ce|ce)\s+contrat\s+(?:est-il\s+)?(?:valable|valide|legal|legalement\s+valide)|validite\s+(?:du\s+)?contrat)/i,
 ]
 
 // --- SUMMARY : résumé / synthèse ---
@@ -146,6 +152,19 @@ const AMBIGUOUS_PATTERNS: Array<{ pattern: RegExp; question: string }> = [
     pattern: /^(?:ساعدني|ساعد|مساعدة)\s*[؟?]?\s*$/,
     question:
       '❓ **بحاجة إلى توضيح**\n\nبكل سرور. ما هو سؤالك القانوني؟ أرجو وصف وضعك باختصار.',
+  },
+  // Patterns vagues en français
+  {
+    pattern:
+      /^(?:que\s+faire|comment\s+(?:faire|proceder|agir)|que\s+puis-je\s+faire|quoi\s+faire)\s*[?]?\s*$/i,
+    question:
+      '❓ **بحاجة إلى توضيح** / **Précision nécessaire**\n\nQuelle est votre situation juridique ?\n- Litige contractuel\n- Problème de travail\n- Affaire pénale\n- Litige de famille\n- Autre',
+  },
+  {
+    pattern:
+      /^(?:j['']ai\s+un\s+(?:probleme|probl\u00e8me|litige|souci)|besoin\s+d['']aide|aide\s+(?:svp|stp)?|help)\s*[?]?\s*$/i,
+    question:
+      '❓ **Précision nécessaire**\n\nPourriez-vous décrire votre situation juridique en quelques mots ?',
   },
 ]
 
@@ -194,6 +213,14 @@ La question demande une synthèse. Réponds par une liste de 3 à 5 points essen
 - Commence par le point le plus important
 - Pas de développement, pas de scénarios, pas de plan d'action
 N'utilise PAS la structure en 6 blocs.`,
+
+  procedure: `🚨 [FORMAT REQUIS — PRIORITÉ ABSOLUE]
+La question porte sur une procédure ou des démarches légales. Structure ta réponse ainsi :
+1. **الجهة المختصة** : quelle juridiction / administration est compétente
+2. **الخطوات** : étapes numérotées dans l'ordre chronologique
+3. **الآجال** : délais applicables à chaque étape clé
+4. **الوثائق المطلوبة** : pièces justificatives nécessaires
+N'utilise PAS la structure en 6 blocs stratégiques.`,
 }
 
 // =============================================================================
@@ -263,21 +290,7 @@ export function extractSituationContext(question: string): SituationContext {
     }
   }
 
-  // B) Failsafe : requête < 4 mots ET aucun ancrage légal reconnu
   const wordCount = q.trim().split(/\s+/).length
-  if (wordCount < 4 && !LEGAL_ANCHOR_PATTERN.test(q)) {
-    log.info(`[SituationExtractor] type=ambiguous (wordCount=${wordCount}, no legal anchor)`)
-    return {
-      role: 'inconnu',
-      stage: 'inconnu',
-      questionType: 'ambiguous',
-      needsClarification: true,
-      clarificationQuestion:
-        '❓ **بحاجة إلى توضيح**\n\nأرجو تقديم تفاصيل أكثر حول سؤالك القانوني.\nما هو الموضوع أو الوضعية التي تواجهها؟',
-      suggestedStance: 'neutral',
-      promptInjection: '',
-    }
-  }
 
   // -------------------------------------------------------------------------
   // ÉTAPE 1 — Détection rôle, stade, type général
@@ -330,6 +343,22 @@ export function extractSituationContext(question: string): SituationContext {
           break outer
         }
       }
+    }
+  }
+
+  // B) Failsafe : requête < 4 mots, aucun intent détecté ET aucun ancrage légal
+  // Positionné APRÈS INTENT_DETECTORS pour ne pas bloquer "تعريف التقادم" (2 mots = explanation)
+  if (questionType === 'fond' && wordCount < 4 && !LEGAL_ANCHOR_PATTERN.test(q)) {
+    log.info(`[SituationExtractor] type=ambiguous (wordCount=${wordCount}, no legal anchor, no intent)`)
+    return {
+      role: 'inconnu',
+      stage: 'inconnu',
+      questionType: 'ambiguous',
+      needsClarification: true,
+      clarificationQuestion:
+        '❓ **بحاجة إلى توضيح**\n\nأرجو تقديم تفاصيل أكثر حول سؤالك القانوني.\nما هو الموضوع أو الوضعية التي تواجهها؟',
+      suggestedStance: 'neutral',
+      promptInjection: '',
     }
   }
 

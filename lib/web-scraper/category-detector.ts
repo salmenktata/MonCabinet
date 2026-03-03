@@ -65,7 +65,7 @@ function detectFromUrlPatterns(url: string, title?: string | null): string | nul
   if (url.includes('/doctrine/') || url.includes('/articles/')) return 'doctrine'
   if (url.includes('/procedures/')) return 'procedures'
   if (url.includes('/guides/')) return 'guides'
-  if (url.includes('/lexique/')) return 'lexique'
+  if (url.includes('/lexique/') || url.includes('/lexi/')) return 'lexique'
   if (url.includes('/actualites/')) return 'actualites'
 
   // iort.gov.tn — affiner par type d'acte dans l'URL puis par titre

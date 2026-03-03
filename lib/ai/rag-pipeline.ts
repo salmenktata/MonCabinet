@@ -277,8 +277,9 @@ export async function answerQuestion(
   let cacheHit = false
 
   // 0. Fast path : détection requête ambiguë AVANT la recherche coûteuse (~600-1500ms économisés)
+  // Ignoré si conversationId existe (session active — l'utilisateur a déjà du contexte établi)
   const situationCtx = extractSituationContext(question)
-  if (situationCtx.needsClarification && situationCtx.clarificationQuestion) {
+  if (situationCtx.needsClarification && situationCtx.clarificationQuestion && !options.conversationId) {
     logger.info('search', '[RAG] Fast path: clarification needed, skipping search+LLM')
     return {
       answer: situationCtx.clarificationQuestion,
@@ -946,8 +947,9 @@ export async function* answerQuestionStream(
   }
 
   // 0. Fast path streaming : détection requête ambiguë AVANT la recherche coûteuse
+  // Ignoré si conversationId existe (session active — l'utilisateur a déjà du contexte établi)
   const streamSituationCtx = extractSituationContext(question)
-  if (streamSituationCtx.needsClarification && streamSituationCtx.clarificationQuestion) {
+  if (streamSituationCtx.needsClarification && streamSituationCtx.clarificationQuestion && !options.conversationId) {
     log.info('[RAG Stream] Fast path: clarification needed, skipping search+LLM')
     yield { type: 'metadata', sources: [], model: 'clarification', qualityIndicator: 'low', averageSimilarity: 0 }
     yield { type: 'chunk', text: streamSituationCtx.clarificationQuestion }
