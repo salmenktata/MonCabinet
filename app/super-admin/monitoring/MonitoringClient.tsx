@@ -7,19 +7,12 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Activity, PieChart, DollarSign, Gauge, Heart, Database, Clock, Settings, Eye, FileType, Radar, GitCompare } from 'lucide-react'
+import { Activity, DollarSign, Gauge, Server, Radar, Settings2 } from 'lucide-react'
 import { ProductionMonitoringTab } from '@/components/super-admin/monitoring/ProductionMonitoringTab'
-import { ProviderUsageTab } from '@/components/super-admin/monitoring/ProviderUsageTab'
-import { AICostsTab } from '@/components/super-admin/monitoring/AICostsTab'
-import { APIHealthTab } from '@/components/super-admin/monitoring/APIHealthTab'
-import { KBQualityTab } from '@/components/super-admin/monitoring/KBQualityTab'
-import { CronsAndBatchesTab } from '@/components/super-admin/monitoring/CronsAndBatchesTab'
-import { ImpersonationsTab } from '@/components/super-admin/monitoring/ImpersonationsTab'
-import SystemConfigTab from '@/components/super-admin/monitoring/SystemConfigTab'
-import { DocTypeStatsPanel } from '@/components/super-admin/monitoring/DocTypeStatsPanel'
-import { RAGHealthTab } from '@/components/super-admin/monitoring/RAGHealthTab'
-import { DriftDetectionTab } from '@/components/super-admin/monitoring/DriftDetectionTab'
-import { PipelineComparisonTab } from '@/components/super-admin/monitoring/PipelineComparisonTab'
+import { InfrastructureTab } from '@/components/super-admin/monitoring/InfrastructureTab'
+import { RAGKBTab } from '@/components/super-admin/monitoring/RAGKBTab'
+import { CombinedCostsTab } from '@/components/super-admin/monitoring/CombinedCostsTab'
+import { OperationsTab } from '@/components/super-admin/monitoring/OperationsTab'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -57,117 +50,47 @@ export function MonitoringClient() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <div className="overflow-x-auto">
-        <TabsList className="grid w-max min-w-full grid-cols-11">
-          <TabsTrigger value="system-config" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Config</span>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="infrastructure" className="flex items-center gap-2">
+            <Server className="h-4 w-4" />
+            <span className="hidden sm:inline">Infrastructure</span>
           </TabsTrigger>
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="kb-quality" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            <span className="hidden sm:inline">KB Quality</span>
-          </TabsTrigger>
-          <TabsTrigger value="rag-health" className="flex items-center gap-2">
+          <TabsTrigger value="rag-kb" className="flex items-center gap-2">
             <Radar className="h-4 w-4" />
-            <span className="hidden sm:inline">RAG Health</span>
-          </TabsTrigger>
-          <TabsTrigger value="doc-types" className="flex items-center gap-2">
-            <FileType className="h-4 w-4" />
-            <span className="hidden sm:inline">Types Docs</span>
-          </TabsTrigger>
-          <TabsTrigger value="providers" className="flex items-center gap-2">
-            <PieChart className="h-4 w-4" />
-            <span className="hidden sm:inline">Providers</span>
+            <span className="hidden sm:inline">RAG & KB</span>
           </TabsTrigger>
           <TabsTrigger value="costs" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
             <span className="hidden sm:inline">Coûts IA</span>
           </TabsTrigger>
-          <TabsTrigger value="api-health" className="flex items-center gap-2">
-            <Heart className="h-4 w-4" />
-            <span className="hidden sm:inline">API Health</span>
-          </TabsTrigger>
-          <TabsTrigger value="crons" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <span className="hidden sm:inline">Crons & Batches</span>
-          </TabsTrigger>
-          <TabsTrigger value="drift" className="flex items-center gap-2">
-            <Radar className="h-4 w-4" />
-            <span className="hidden sm:inline">Drift</span>
-          </TabsTrigger>
-          <TabsTrigger value="pipeline-comparison" className="flex items-center gap-2">
-            <GitCompare className="h-4 w-4" />
-            <span className="hidden sm:inline">Pipelines</span>
-          </TabsTrigger>
-          <TabsTrigger value="impersonations" className="flex items-center gap-2">
-            <Eye className="h-4 w-4" />
-            <span className="hidden sm:inline">Impersonations</span>
+          <TabsTrigger value="operations" className="flex items-center gap-2">
+            <Settings2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Opérations</span>
           </TabsTrigger>
         </TabsList>
-        </div>
 
-        {/* Tab 0: System Configuration */}
-        <TabsContent value="system-config" className="space-y-6">
-          <SystemConfigTab />
+        <TabsContent value="infrastructure" className="space-y-6">
+          <InfrastructureTab />
         </TabsContent>
 
-        {/* Tab 1: Production Overview */}
         <TabsContent value="overview" className="space-y-6">
           <ProductionMonitoringTab />
         </TabsContent>
 
-        {/* Tab 2: KB Quality - Analyse Base de Connaissances */}
-        <TabsContent value="kb-quality" className="space-y-6">
-          <KBQualityTab />
+        <TabsContent value="rag-kb" className="space-y-6">
+          <RAGKBTab />
         </TabsContent>
 
-        {/* Tab 3: RAG Health - Santé système RAG */}
-        <TabsContent value="rag-health" className="space-y-6">
-          <RAGHealthTab />
-        </TabsContent>
-
-        {/* Tab 4: Doc Types - Statistiques par type de document */}
-        <TabsContent value="doc-types" className="space-y-6">
-          <DocTypeStatsPanel />
-        </TabsContent>
-
-        {/* Tab 4: Provider Usage */}
-        <TabsContent value="providers" className="space-y-6">
-          <ProviderUsageTab />
-        </TabsContent>
-
-        {/* Tab 5: AI Costs */}
         <TabsContent value="costs" className="space-y-6">
-          <AICostsTab />
+          <CombinedCostsTab />
         </TabsContent>
 
-        {/* Tab 6: API Health */}
-        <TabsContent value="api-health" className="space-y-6">
-          <APIHealthTab />
-        </TabsContent>
-
-        {/* Tab 7: Crons & Batches */}
-        <TabsContent value="crons" className="space-y-6">
-          <CronsAndBatchesTab />
-        </TabsContent>
-
-        {/* Tab 8: Drift Detection */}
-        <TabsContent value="drift" className="space-y-6">
-          <DriftDetectionTab />
-        </TabsContent>
-
-        {/* Tab 9: Comparaison Pipelines RAG */}
-        <TabsContent value="pipeline-comparison" className="space-y-6">
-          <PipelineComparisonTab />
-        </TabsContent>
-
-        {/* Tab 10: Impersonations */}
-        <TabsContent value="impersonations" className="space-y-6">
-          <ImpersonationsTab />
+        <TabsContent value="operations" className="space-y-6">
+          <OperationsTab />
         </TabsContent>
       </Tabs>
     </div>
