@@ -255,7 +255,8 @@ jobs:
           echo "---"
 
           # Check if any infra/dependency files changed
-          DOCKER_TRIGGERS="Dockerfile|package\.json|package-lock\.json|docker-entrypoint\.sh|docker-compose\.prod\.yml"
+          # Note: package.json retiré (version bumps seuls → Lightning). package-lock.json suffit pour les vraies deps
+          DOCKER_TRIGGERS="Dockerfile|package-lock\.json|docker-entrypoint\.sh|docker-compose\.prod\.yml"
 
           if echo "$CHANGED" | grep -qE "^($DOCKER_TRIGGERS)$"; then
             echo "needs_docker=true" >> $GITHUB_OUTPUT
