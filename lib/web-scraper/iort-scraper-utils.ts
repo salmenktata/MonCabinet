@@ -40,10 +40,26 @@ export const IORT_RATE_CONFIG = {
   longPauseEvery: 50,
   longPauseMs: 30000,
   comboPauseMs: 30000,
-  refreshEvery: 200,
+  refreshEvery: 50,
   navigationTimeout: 60000,
   selectorTimeout: 30000,
 } as const
+
+/** Args Chromium optimisés pour limiter CPU/RAM en headless */
+const CHROMIUM_ARGS = [
+  '--no-sandbox',
+  '--disable-setuid-sandbox',
+  '--disable-gpu',
+  '--disable-dev-shm-usage',
+  '--disable-extensions',
+  '--disable-background-networking',
+  '--disable-background-timer-throttling',
+  '--disable-backgrounding-occluded-windows',
+  '--disable-renderer-backgrounding',
+  '--disable-software-rasterizer',
+  '--disable-images',
+  '--js-flags=--max-old-space-size=256',
+]
 
 /** Résultat parsé d'une entrée de recherche */
 export interface IortSearchResult {
@@ -98,7 +114,7 @@ export class IortSessionManager {
     const { chromium } = await import('playwright')
     this.browser = await chromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: CHROMIUM_ARGS,
     })
     await this.createContext()
     this.isInitialized = true
@@ -205,7 +221,7 @@ export class IortSessionManager {
     const { chromium } = await import('playwright')
     this.browser = await chromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: CHROMIUM_ARGS,
     })
     await this.createContext()
     await this.navigateToSearch()
