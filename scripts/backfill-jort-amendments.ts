@@ -137,7 +137,7 @@ async function main() {
         }
 
         // Test rapide (évite ~60% des appels LLM)
-        if (!isLikelyAmendingDocument(kbDoc.fullText ?? '')) {
+        if (!isLikelyAmendingDocument(kbDoc.fullText ?? '', kbDoc.title)) {
           await db.query(
             `UPDATE knowledge_base SET jort_amendments_extracted_at = NOW() WHERE id = $1`,
             [row.id]

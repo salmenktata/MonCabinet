@@ -155,9 +155,11 @@ async function updateJortStructuredMetadata(
        DO UPDATE SET
          is_jort_amendment      = true,
          amended_code_slug      = COALESCE(EXCLUDED.amended_code_slug, kb_structured_metadata.amended_code_slug),
-         amended_articles       = array_cat(
-           COALESCE(kb_structured_metadata.amended_articles, ARRAY[]::integer[]),
-           EXCLUDED.amended_articles
+         amended_articles       = ARRAY(
+           SELECT DISTINCT unnest(array_cat(
+             COALESCE(kb_structured_metadata.amended_articles, ARRAY[]::integer[]),
+             EXCLUDED.amended_articles
+           )) ORDER BY 1
          ),
          amendment_type         = EXCLUDED.amendment_type,
          jort_pub_date          = COALESCE(EXCLUDED.jort_pub_date, kb_structured_metadata.jort_pub_date),

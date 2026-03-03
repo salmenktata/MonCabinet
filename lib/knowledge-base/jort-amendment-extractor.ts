@@ -237,7 +237,7 @@ function detectAmendmentsByRegex(text: string): RegexDetectionResult {
               affectedArticles: articles,
               amendmentType: 'modification',
               context: excerpt.slice(0, 300),
-              confidence: 0.68,
+              confidence: 0.60,
             })
             found = true
           }
@@ -259,7 +259,7 @@ function detectAmendmentsByRegex(text: string): RegexDetectionResult {
               affectedArticles: articles,
               amendmentType: 'abrogation',
               context: excerpt.slice(0, 300),
-              confidence: 0.68,
+              confidence: 0.60,
             })
             found = true
           }
@@ -471,11 +471,45 @@ function extractJortReference(text: string, metadata: Record<string, unknown>): 
   return (metadata.title as string) ?? 'Document JORT'
 }
 
-function extractJortDate(metadata: Record<string, unknown>): string {
+const ARABIC_MONTH_MAP: Record<string, string> = {
+  'جانفي': '01', 'يناير': '01',
+  'فيفري': '02', 'فبراير': '02',
+  'مارس': '03',
+  'أفريل': '04', 'افريل': '04', 'إبريل': '04', 'نيسان': '04',
+  'ماي': '05', 'مايو': '05',
+  'جوان': '06', 'يونيو': '06',
+  'جويلية': '07', 'يوليو': '07',
+  'أوت': '08', 'اوت': '08', 'أغسطس': '08',
+  'سبتمبر': '09',
+  'أكتوبر': '10', 'اكتوبر': '10',
+  'نوفمبر': '11',
+  'ديسمبر': '12',
+}
+
+function extractDateFromTitle(title: string): string {
+  // Pattern : "مؤرّخ في DD شهر YYYY" ou "مؤرخ في DD شهر YYYY"
+  const m = title.match(
+    /مؤرّ?خ\s+في\s+(\d{1,2})\s+([\u0600-\u06FF]+)\s+(\d{4})/u
+  )
+  if (m) {
+    const day = m[1].padStart(2, '0')
+    const month = ARABIC_MONTH_MAP[m[2].trim()]
+    const year = m[3]
+    if (month) return `${year}-${month}-${day}`
+  }
+  return ''
+}
+
+function extractJortDate(metadata: Record<string, unknown>, title?: string): string {
   const sd = metadata.structured_data as Record<string, unknown> | undefined
   if (sd?.date) return String(sd.date)
   if (metadata.publishedAt) return String(metadata.publishedAt).slice(0, 10)
   if (metadata.jort_date) return String(metadata.jort_date)
+  // Fallback : extraire depuis le titre du document (ex: "مؤرخ في 13 ديسمبر 2021")
+  if (title) {
+    const fromTitle = extractDateFromTitle(title)
+    if (fromTitle) return fromTitle
+  }
   return ''
 }
 
@@ -509,7 +543,7 @@ export async function extractAmendmentsFromJORT(
   const metadata = kbDoc.metadata ?? {}
 
   const jortReference = extractJortReference(text, metadata)
-  const jortDate = extractJortDate(metadata)
+  const jortDate = extractJortDate(metadata, kbDoc.title)
   const jortIssue = extractJortIssue(metadata)
 
   // Si texte vide → impossible d'analyser
@@ -630,7 +664,7 @@ export async function extractAmendmentsFromJORT(
  * 2. Indicateurs FORTS : dispositif "الفصل الأول ـ [verbe d'action]"
  * 3. Indicateurs complémentaires : verbes d'amendement directs
  */
-export function isLikelyAmendingDocument(text: string): boolean {
+export function isLikelyAmendingDocument(text: string, title?: string): boolean {
   const normalized = stripArabicDiacritics(text)
 
   // ─── Exclure immédiatement les rectifications de données cadastrales (expropriation)
@@ -648,6 +682,13 @@ export function isLikelyAmendingDocument(text: string): boolean {
   // ─── Niveau 2 : Titre explicite "يتعلق بتنقيح" ou "تنقيح مجلة / إلغاء أحكام"
   if (/يتعلق\s+بتنقيح|تنقيح\s+مجل[ةه]|تعديل\s+مجل[ةه]|الغاء\s+احكام\s+الفصل/u.test(normalized)) {
     return true
+  }
+
+  // ─── Filtre Lois de Finances : exiger Level 1 ou Level 2 (déjà testés ci-dessus)
+  // Les LF contiennent souvent des verbes d'amendement hors-contexte (cavaliers législatifs
+  // citant des articles sans les modifier). Level 3 seul est insuffisant en contexte juridique.
+  if (title && /قانون\s+المالية|loi\s+de\s+finances/i.test(title)) {
+    return false
   }
 
   // ─── Niveau 3 : Verbes d'amendement sans être dans "كما تم تنقيحه" (faux positif préambule)

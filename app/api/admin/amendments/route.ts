@@ -235,7 +235,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         if (!kbDoc) continue
 
         // Test rapide
-        if (!isLikelyAmendingDocument(kbDoc.fullText ?? '')) {
+        if (!isLikelyAmendingDocument(kbDoc.fullText ?? '', kbDoc.title)) {
           // Marquer comme traité sans amendement
           await db.query(
             `UPDATE knowledge_base SET jort_amendments_extracted_at = NOW() WHERE id = $1`,
