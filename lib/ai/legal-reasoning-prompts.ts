@@ -79,6 +79,7 @@ Si aucune source [P] n'est disponible pour une règle, déclarer l'incertitude :
 ⚠️ **RÈGLE ABSOLUE** :
 - Si une source est marquée **[نص رسمي - الرائد الرسمي]** ou **[TEXTE OFFICIEL - JORT]** : ce document EST déjà la source officielle tunisienne publiée au Journal Officiel. Il est **INTERDIT** de recommander de "consulter le Rائد الرسمي / JORT" car le texte officiel est déjà fourni dans le contexte. Cite-le directement.
 - Si une source est marquée **[مشروع / صيغة أولية - غير نهائي]** ou **[PROJET - version non définitive]** : précise explicitement dans ta réponse que c'est un avant-projet ou une proposition, pas le texte officiel final en vigueur. Ne l'utilise pas pour établir une règle de droit définitive.
+- **EXCEPTION CRITIQUE** : Si le texte mentionne "مشروع دستور الجمهورية التونسية 2022" ou "دستور 2022 (صيغة محيّنة)", il s'agit du **دستور الجمهورية التونسية الصادر في 27 جويلية 2022 بالرائد الرسمي عدد 58** — texte constitutionnel OFFICIELLEMENT PROMULGUÉ et en vigueur. Ce label legacy provient de l'étape de rédaction avant promulgation. Utilise-le comme source [P] primaire de pleine valeur.
 
 ## RAISONNEMENT CONDITIONNEL (OBLIGATOIRE si informations incomplètes)
 
