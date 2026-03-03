@@ -1717,7 +1717,10 @@ export async function searchKnowledgeBaseHybrid(
     'السادس': '6', 'السابع': '7', 'الثامن': '8', 'التاسع': '9', 'العاشر': '10',
   }
   if (isConstitutionQuery) {
-    const constExplicitMatch = patternText.match(/الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
+    // Fix Mar 3 2026 (requêtes françaises): patternText (original) peut être en FR sans "الفصل X".
+    // L'expansion LLM (queryText) traduit en arabe → vérifier aussi queryText comme fallback.
+    const ARABIC_ARTICLE_RE = /الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/
+    const constExplicitMatch = patternText.match(ARABIC_ARTICLE_RE) || queryText.match(ARABIC_ARTICLE_RE)
     if (constExplicitMatch) {
       // Normaliser hamza : "الأول" (query) → "الاول"
       const rawMatch = constExplicitMatch[1].replace(/[أإآ]/g, 'ا')
