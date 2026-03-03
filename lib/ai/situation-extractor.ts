@@ -4,15 +4,17 @@
  * Analyse la question de l'utilisateur pour détecter :
  * - Rôle procédural (défendeur, demandeur, conseil neutre)
  * - Stade procédural (pré-contentieux, instruction, jugement, appel, cassation)
- * - Type de question (fond, procédure, stratégie, modèle)
+ * - Type de question (fond, procédure, stratégie, modèle, lookup, comparison, deadline, explanation, summary, ambiguous)
+ * - Requêtes ambiguës nécessitant une clarification avant réponse
  *
  * Ce contexte enrichit le prompt LLM pour personnaliser la réponse.
- * Utilise Ollama local (gratuit, rapide) pour ne pas consommer les quotas cloud.
+ * Utilise uniquement des heuristiques regex (sans appel LLM, gratuit et rapide).
  *
  * @module lib/ai/situation-extractor
  */
 
 import { createLogger } from '@/lib/logger'
+import { stripTashkeel } from '@/lib/web-scraper/arabic-text-utils'
 
 const log = createLogger('SituationExtractor')
 
@@ -25,78 +27,136 @@ export type ProcedureStage =
   | 'cassation'
   | 'execution'
   | 'inconnu'
-export type QuestionType = 'fond' | 'procedure' | 'strategie' | 'modele' | 'lookup' | 'comparison' | 'deadline' | 'explanation' | 'summary' | 'inconnu'
+export type QuestionType =
+  | 'fond'
+  | 'procedure'
+  | 'strategie'
+  | 'modele'
+  | 'lookup'
+  | 'comparison'
+  | 'deadline'
+  | 'explanation'
+  | 'summary'
+  | 'ambiguous'
+  | 'inconnu'
 
 export interface SituationContext {
   role: LegalRole
   stage: ProcedureStage
   questionType: QuestionType
   suggestedStance?: 'neutral' | 'defense' // Override du stance par défaut si détecté
+  needsClarification?: boolean // Requête trop vague pour répondre utilement
+  clarificationQuestion?: string // Question AR pré-générée à poser à l'utilisateur
   promptInjection: string // Fragment prêt à injecter dans le prompt LLM
 }
+
+// =============================================================================
+// PATTERNS DE DÉTECTION (tous testés sur texte normalisé sans diacritiques)
+// =============================================================================
 
 // Règles heuristiques rapides — évitent un appel LLM pour les cas évidents
 const STAGE_PATTERNS: Array<{ pattern: RegExp; stage: ProcedureStage }> = [
   { pattern: /محكم[ةا]\s*الاستئناف|appel|استئناف/i, stage: 'appel' },
   { pattern: /محكم[ةا]\s*التعقيب|تعقيب|cassation|pourvoi/i, stage: 'cassation' },
-  { pattern: /تنفيذ\s*الحكم|سند\s*تنفيذي|exécution\s*forcée|huissier/i, stage: 'execution' },
+  { pattern: /تنفيذ\s*الحكم|سند\s*تنفيذي|execution\s*forcee|huissier/i, stage: 'execution' },
   { pattern: /جلس[ةا]\s*الحكم|يوم\s*الجلس[ةا]|audience\s*de\s*jugement|المرافع[ةا]/i, stage: 'jugement_fond' },
   { pattern: /تحقيق|قاضي\s*التحقيق|instruction|inculp/i, stage: 'instruction' },
   { pattern: /إنذار|mise\s*en\s*demeure|تسوي[ةا]\s*ودي[ةا]|amiable|قبل\s*الدعوى/i, stage: 'pre_contentieux' },
 ]
 
+// Note: ROLE_PATTERNS testés sur texte normalisé — les دّ/يُ/ّ sont retirés de q
 const ROLE_PATTERNS: Array<{ pattern: RegExp; role: LegalRole }> = [
-  { pattern: /أنا\s*المدّعى\s*عليه|ضدي|يُدّعى\s*علي|défendeur|poursuivi|j'ai\s*reçu\s*une\s*convocation/i, role: 'defendeur' },
-  { pattern: /أنا\s*المدّعي|رفعت\s*دعوى|أريد\s*مقاضاة|demandeur|plaignant|je\s*veux\s*attaquer/i, role: 'demandeur' },
+  { pattern: /انا\s*المدعى\s*عليه|ضدي|يدعى\s*علي|defendeur|poursuivi|j'ai\s*recu\s*une\s*convocation/i, role: 'defendeur' },
+  { pattern: /انا\s*المدعي|رفعت\s*دعوى|اريد\s*مقاضاة|demandeur|plaignant|je\s*veux\s*attaquer/i, role: 'demandeur' },
 ]
 
 const TYPE_PATTERNS: Array<{ pattern: RegExp; type: QuestionType }> = [
-  { pattern: /نموذج|عقد\s*جاهز|modèle|formulaire|template/i, type: 'modele' },
-  { pattern: /كيف\s*أتقدم|الإجراءات|أجال|délai|procédure|comment\s*faire/i, type: 'procedure' },
-  { pattern: /استراتيجية|أفضل\s*طريقة|ما\s*رأيك|stratégie|conseil\s*sur/i, type: 'strategie' },
+  { pattern: /نموذج|عقد\s*جاهز|modele|formulaire|template/i, type: 'modele' },
+  { pattern: /كيف\s*اتقدم|الإجراءات|délai|procedure|comment\s*faire/i, type: 'procedure' },
+  { pattern: /استراتيجية|افضل\s*طريقة|ما\s*رايك|strategie|conseil\s*sur/i, type: 'strategie' },
 ]
 
-// Détecte les requêtes de consultation pure (texte légal, article, définition)
-// → force stance 'neutral' pour éviter l'analyse stratégique défense
+// --- LOOKUP : texte d'un article / disposition précise ---
 const LOOKUP_PATTERNS: RegExp[] = [
-  // "الفصل X من الدستور/المجلة/القانون..." — demande directe du texte d'un article
-  /(?:الفصل|الفقرة|المادة)\s+(?:\d+|الأول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر|الحادي\s*عشر|الثاني\s*عشر|\w+)\s+من\s+(?:الدستور|المجلة|القانون|الاتفاقية|الأمر|المرسوم)/i,
-  // "ما هو/نص الفصل X"
-  /ما\s+(?:هو|نص|هي)\s+(?:الفصل|الفقرة|المادة)/i,
+  // "الفصل X من Y" — demande directe du texte d'un article
+  /(?:الفصل|الفقرة|المادة)\s+(?:\d+|الاول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر|الحادي\s*عشر|الثاني\s*عشر)\s+من\s+(?:الدستور|المجلة|القانون|الاتفاقية|الامر|المرسوم)/i,
+  // "ما هو/نص/ينص الفصل X"
+  /ما\s+(?:هو|نص|هي|ينص)\s+(?:الفصل|الفقرة|المادة)/i,
   // "نص الفصل X"
   /نص\s+(?:الفصل|المادة|الفقرة)\s+\d+/i,
+  // "بموجب الفصل X"
+  /بموجب\s+(?:الفصل|المادة|الفقرة)/i,
+  // "الفصل 123 من..." (chiffre suivi de "من")
+  /(?:الفصل|المادة|الفقرة)\s+\d+\s*من\b/i,
   // article N de / du (FR)
   /\barticle\s+\d+\s+(?:de|du|des)\s+\w+/i,
   // "تعريف / ماذا يعني / ما معنى"
   /(?:تعريف|ماذا\s+يعني|ما\s+معنى)\s+\w+/i,
 ]
 
-// Requêtes de comparaison entre deux concepts/textes
+// --- COMPARISON : deux concepts face à face ---
 const COMPARISON_PATTERNS: RegExp[] = [
-  /(?:مقارنة\s+بين|الفرق\s+بين|ما\s+الفرق|فرّق\s+بين)/i,
-  /(?:comparaison|différence\s+entre|comparer|versus|\bvs\b)/i,
+  /(?:مقارنة\s+بين|الفرق\s+بين|ما\s+الفرق|فرق\s+بين|قارن\s+بين|تمييز\s+بين|الاختلاف\s+بين)/i,
+  /(?:comparaison|difference\s+entre|comparer|versus|\bvs\b)/i,
 ]
 
-// Requêtes sur un délai légal spécifique
+// --- DEADLINE : délai légal précis ---
 const DEADLINE_PATTERNS: RegExp[] = [
-  /(?:أجل\s+(?:الطعن|التقادم|الرفع|التقديم)|ميعاد|متى\s+ينقضي|كم\s+(?:يوماً|يوم|شهراً|شهر)\s+(?:للطعن|للتقادم))/i,
-  /(?:dans\s+quel\s+délai|délai\s+de\s+(?:recours|prescription|forclusion)|combien\s+de\s+(?:jours|mois)\s+pour)/i,
+  // Formes singulier + pluriel + dates
+  /(?:اجل\s+(?:الطعن|التقادم|الرفع|التقديم|الدفع|الجواب)|اجال\s+|ميعاد|متى\s+(?:ينقضي|تنقضي|تنتهي|ينتهي)|حساب\s+الاجل)/i,
+  // "كم مدة/وقت/يوم/شهر..."
+  /(?:كم\s+(?:مدة|وقت|يوما|يوم|شهرا|شهر)\s*(?:للطعن|للتقادم|للرفع)?|ما\s+(?:مدة|اجل|اجال))/i,
+  /(?:dans\s+quel\s+delai|delai\s+de\s+(?:recours|prescription|forclusion)|combien\s+de\s+(?:jours|mois)\s+pour)/i,
 ]
 
-// Requêtes de type "pourquoi / comment fonctionne / expliquer"
+// --- EXPLANATION : pourquoi / comment fonctionne ---
 const EXPLANATION_PATTERNS: RegExp[] = [
-  /(?:لماذا\s+(?:يشترط|يُلزم|تُوجب|يُعدّ)|كيف\s+(?:يعمل|تعمل|يتم|يُطبّق)|شرح\s+(?:مفهوم|نظام|مبدأ))/i,
-  /(?:expliquer?\s+(?:le\s+)?(?:concept|mécanisme|principe|fonctionnement)|pourquoi\s+(?:le\s+droit|la\s+loi|le\s+code))/i,
+  // Formes masculines + féminines, sans diacritiques
+  /(?:لماذا\s+(?:يشترط|تشترط|يلزم|توجب|يعد|تعد|يوجب|تستلزم))/i,
+  /(?:كيف\s+(?:يعمل|تعمل|يتم|يطبق|تطبق|يحسب|تحسب|يسري|تسري))/i,
+  /(?:ما\s+(?:هي\s+)?الية|شرح\s+(?:مفهوم|نظام|مبدا|الية))/i,
+  /(?:expliquer?\s+(?:le\s+)?(?:concept|mecanisme|principe|fonctionnement)|pourquoi\s+(?:le\s+droit|la\s+loi|le\s+code))/i,
 ]
 
-// Requêtes de résumé / synthèse
+// --- SUMMARY : résumé / synthèse ---
 const SUMMARY_PATTERNS: RegExp[] = [
-  /(?:ملخص\s+(?:حقوق|أحكام|قواعد)|باختصار|النقاط\s+الأساسية|أعطني\s+نقاط)/i,
-  /(?:résumé\s+(?:des\s+)?(?:droits|règles|dispositions)|en\s+bref|points\s+essentiels|synthèse\s+(?:des\s+)?(?:droits|règles))/i,
+  /(?:ملخص\s+(?:حقوق|احكام|قواعد)|باختصار|النقاط\s+الاساسية|اعطني\s+نقاط|نقاط\s+اساسية)/i,
+  /(?:resume\s+(?:des\s+)?(?:droits|regles|dispositions)|en\s+bref|points\s+essentiels|synthese\s+(?:des\s+)?(?:droits|regles))/i,
 ]
 
-// Instructions de format injectées dans le prompt selon l'intention détectée
-// Elles sont ajoutées en fin de system prompt pour overrider la structure par défaut
+// --- AMBIGUOUS : requêtes vagues nécessitant clarification ---
+// Patterns avec questions de clarification pré-générées en arabe
+const AMBIGUOUS_PATTERNS: Array<{ pattern: RegExp; question: string }> = [
+  {
+    pattern: /^(?:ماذا|ما)\s+(?:افعل|اعمل|نفعل)\s*[؟?]?\s*$/,
+    question:
+      '❓ **بحاجة إلى توضيح**\n\nما هي الوضعية القانونية التي تواجهها؟\n- نزاع عقاري أو إيجار\n- قضية جنائية أو مخالفة\n- مشكل عمالي\n- نزاع عائلي أو ميراث\n- دين مالي',
+  },
+  {
+    pattern: /^(?:هل\s+(?:يحق\s+لي|يمكنني|لدي\s+الحق|لي\s+الحق)|ما\s+(?:هو\s+حقي|حقوقي))\s*[؟?]?\s*$/,
+    question:
+      '❓ **بحاجة إلى توضيح**\n\nحول أي موضوع تريد معرفة حقوقك؟\n- في عقد عمل أو مع صاحب العمل\n- في نزاع مع المالك أو المستاجر\n- في مطالبة بتعويض\n- في شأن عائلي (طلاق، ميراث، حضانة)',
+  },
+  {
+    pattern: /^(?:ما\s+(?:هو\s+)?(?:الحل|الوضع|الوضعية)|كيف\s+(?:الحل|نحل|اتصرف))\s*[؟?]?\s*$/,
+    question:
+      '❓ **بحاجة إلى توضيح**\n\nأرجو وصف وضعك القانوني بإيجاز:\n- ما الذي حدث؟\n- ما الذي تحتاج لمعرفته أو فعله؟',
+  },
+  {
+    pattern: /^(?:ساعدني|ساعد|مساعدة)\s*[؟?]?\s*$/,
+    question:
+      '❓ **بحاجة إلى توضيح**\n\nبكل سرور. ما هو سؤالك القانوني؟ أرجو وصف وضعك باختصار.',
+  },
+]
+
+// Mots-clés juridiques — présence = requête ancrée (pas besoin de clarification)
+const LEGAL_ANCHOR_PATTERN =
+  /(?:الفصل|المادة|المجلة|القانون|العقد|الدعوى|الحكم|الطعن|التقادم|المحكمة|الاستئناف|الإيجار|الطلاق|الشغل|التعويض|الجنحة|الجناية|الدستور|المرسوم|الاتفاقية|مجلة|مطلب|عريضة|عدل|موثق)/
+
+// =============================================================================
+// INSTRUCTIONS DE FORMAT PAR INTENTION
+// =============================================================================
+
 const INTENT_FORMAT_INSTRUCTIONS: Partial<Record<QuestionType, string>> = {
   lookup: `🚨 [FORMAT REQUIS — PRIORITÉ ABSOLUE]
 La question porte sur le texte d'un article ou d'une disposition précise.
@@ -136,61 +196,123 @@ La question demande une synthèse. Réponds par une liste de 3 à 5 points essen
 N'utilise PAS la structure en 6 blocs.`,
 }
 
-/**
- * Instructions LLM adaptées au stade procédural
- */
+// =============================================================================
+// INSTRUCTIONS PROCÉDURALES PAR STADE ET RÔLE
+// =============================================================================
+
 const STAGE_INSTRUCTIONS: Record<ProcedureStage, string> = {
-  pre_contentieux: 'التركيز على: محاولة التسوية الودية، الإنذار بالدفع، الآجال القانونية قبل رفع الدعوى، وسائل الإثبات اللازمة قبل التقاضي.',
-  instruction: 'التركيز على: الحقوق خلال مرحلة التحقيق، الاطلاع على ملف القضية، طلبات إجراء الخبرات، ضمانات حقوق الدفاع.',
-  jugement_fond: 'التركيز على: بناء الحجج القانونية للمرافعة، ترتيب أولويات الدفوع (شكلية ثم موضوعية)، الرد على ما يحتمل أن يطرحه الطرف الآخر.',
-  appel: 'التركيز على: أسباب الاستئناف الجوهرية، ما يمكن مراجعته في مرحلة الاستئناف، نطاق تدخل محكمة الاستئناف، المستجدات الواقعية والقانونية.',
-  cassation: 'التركيز على: أوجه التعقيب المقبولة (خرق القانون، إساءة تطبيقه، انعدام الأساس القانوني)، الصياغة التقنية الدقيقة المطلوبة أمام محكمة التعقيب.',
-  execution: 'التركيز على: إجراءات تنفيذ الحكم، صلاحيات العدل المنفذ، طرق الطعن في إجراءات التنفيذ، الأموال غير القابلة للحجز.',
+  pre_contentieux:
+    'التركيز على: محاولة التسوية الودية، الإنذار بالدفع، الآجال القانونية قبل رفع الدعوى، وسائل الإثبات اللازمة قبل التقاضي.',
+  instruction:
+    'التركيز على: الحقوق خلال مرحلة التحقيق، الاطلاع على ملف القضية، طلبات إجراء الخبرات، ضمانات حقوق الدفاع.',
+  jugement_fond:
+    'التركيز على: بناء الحجج القانونية للمرافعة، ترتيب أولويات الدفوع (شكلية ثم موضوعية)، الرد على ما يحتمل أن يطرحه الطرف الآخر.',
+  appel:
+    'التركيز على: أسباب الاستئناف الجوهرية، ما يمكن مراجعته في مرحلة الاستئناف، نطاق تدخل محكمة الاستئناف، المستجدات الواقعية والقانونية.',
+  cassation:
+    'التركيز على: أوجه التعقيب المقبولة (خرق القانون، إساءة تطبيقه، انعدام الأساس القانوني)، الصياغة التقنية الدقيقة المطلوبة أمام محكمة التعقيب.',
+  execution:
+    'التركيز على: إجراءات تنفيذ الحكم، صلاحيات العدل المنفذ، طرق الطعن في إجراءات التنفيذ، الأموال غير القابلة للحجز.',
   inconnu: '',
 }
 
 const ROLE_INSTRUCTIONS: Record<LegalRole, string> = {
-  defendeur: 'المستفسر في موقف الدفاع — اعتمد أسلوب الدفاع القانوني: الدفوع الشكلية أولاً، ثم دفوع الموضوع، ثم طلبات مقابلة إن اقتضى الحال.',
-  demandeur: 'المستفسر في موقف المطالبة — اعتمد أسلوب المطالبة القانونية: تقدير شروط القبول، بناء الأدلة، تحديد الطلبات.',
-  conseil_neutre: 'المستفسر يطلب تحليلاً محايداً — قدّم الوضع من الجانبين ثم استخلص التقييم القانوني الموضوعي.',
+  defendeur:
+    'المستفسر في موقف الدفاع — اعتمد أسلوب الدفاع القانوني: الدفوع الشكلية أولاً، ثم دفوع الموضوع، ثم طلبات مقابلة إن اقتضى الحال.',
+  demandeur:
+    'المستفسر في موقف المطالبة — اعتمد أسلوب المطالبة القانونية: تقدير شروط القبول، بناء الأدلة، تحديد الطلبات.',
+  conseil_neutre:
+    'المستفسر يطلب تحليلاً محايداً — قدّم الوضع من الجانبين ثم استخلص التقييم القانوني الموضوعي.',
   inconnu: '',
 }
+
+// =============================================================================
+// FONCTION PRINCIPALE
+// =============================================================================
 
 /**
  * Détecte le contexte situationnel à partir du texte de la question.
  * Utilise des règles heuristiques (sans appel LLM pour économiser les ressources).
+ *
+ * La question est normalisée (stripTashkeel) avant matching pour couvrir
+ * les requêtes sans diacritiques (cas réel 100% du temps).
  */
 export function extractSituationContext(question: string): SituationContext {
+  // Normalisation : supprimer diacritiques arabes pour matching robuste
+  // يُلزم → يلزم | فرّق → فرق | تُوجب → توجب
+  const q = stripTashkeel(question)
+
+  // -------------------------------------------------------------------------
+  // ÉTAPE 0 — Détection prioritaire : requête vague / ambiguë
+  // Court-circuit avant tout autre traitement (évite search+LLM inutiles)
+  // -------------------------------------------------------------------------
+
+  // A) Patterns explicitement ambigus avec question pré-générée
+  for (const { pattern, question: clarQ } of AMBIGUOUS_PATTERNS) {
+    if (pattern.test(q)) {
+      log.info(`[SituationExtractor] type=ambiguous (pattern match)`)
+      return {
+        role: 'inconnu',
+        stage: 'inconnu',
+        questionType: 'ambiguous',
+        needsClarification: true,
+        clarificationQuestion: clarQ,
+        suggestedStance: 'neutral',
+        promptInjection: '',
+      }
+    }
+  }
+
+  // B) Failsafe : requête < 4 mots ET aucun ancrage légal reconnu
+  const wordCount = q.trim().split(/\s+/).length
+  if (wordCount < 4 && !LEGAL_ANCHOR_PATTERN.test(q)) {
+    log.info(`[SituationExtractor] type=ambiguous (wordCount=${wordCount}, no legal anchor)`)
+    return {
+      role: 'inconnu',
+      stage: 'inconnu',
+      questionType: 'ambiguous',
+      needsClarification: true,
+      clarificationQuestion:
+        '❓ **بحاجة إلى توضيح**\n\nأرجو تقديم تفاصيل أكثر حول سؤالك القانوني.\nما هو الموضوع أو الوضعية التي تواجهها؟',
+      suggestedStance: 'neutral',
+      promptInjection: '',
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // ÉTAPE 1 — Détection rôle, stade, type général
+  // -------------------------------------------------------------------------
+
   let role: LegalRole = 'inconnu'
   let stage: ProcedureStage = 'inconnu'
   let questionType: QuestionType = 'fond'
 
-  // Détection rôle
   for (const { pattern, role: r } of ROLE_PATTERNS) {
-    if (pattern.test(question)) {
+    if (pattern.test(q)) {
       role = r
       break
     }
   }
 
-  // Détection stade procédural
   for (const { pattern, stage: s } of STAGE_PATTERNS) {
-    if (pattern.test(question)) {
+    if (pattern.test(q)) {
       stage = s
       break
     }
   }
 
-  // Détection type de question
   for (const { pattern, type } of TYPE_PATTERNS) {
-    if (pattern.test(question)) {
+    if (pattern.test(q)) {
       questionType = type
       break
     }
   }
 
-  // Détection fine de l'intention — lookup, comparaison, délai, explication, résumé
-  // → bypass le mode défense stratégique par défaut + injecte un format adapté
+  // -------------------------------------------------------------------------
+  // ÉTAPE 2 — Détection fine de l'intention (lookup, comparison, deadline…)
+  // Seulement si le type général n'a pas encore été identifié
+  // -------------------------------------------------------------------------
+
   let suggestedStance: 'neutral' | 'defense' | undefined = undefined
   if (questionType === 'fond' || questionType === 'inconnu') {
     const INTENT_DETECTORS: Array<{ patterns: RegExp[]; type: QuestionType }> = [
@@ -202,7 +324,7 @@ export function extractSituationContext(question: string): SituationContext {
     ]
     outer: for (const { patterns, type } of INTENT_DETECTORS) {
       for (const pattern of patterns) {
-        if (pattern.test(question)) {
+        if (pattern.test(q)) {
           questionType = type
           suggestedStance = 'neutral'
           break outer
@@ -211,7 +333,10 @@ export function extractSituationContext(question: string): SituationContext {
     }
   }
 
-  // Construction du fragment à injecter dans le prompt
+  // -------------------------------------------------------------------------
+  // ÉTAPE 3 — Construction du fragment à injecter dans le prompt
+  // -------------------------------------------------------------------------
+
   const parts: string[] = []
 
   if (role !== 'inconnu') {
@@ -233,12 +358,12 @@ export function extractSituationContext(question: string): SituationContext {
   }
 
   const hasContext = parts.length > 0
-  const promptInjection = hasContext
-    ? `[السياق الإجرائي]\n${parts.join('\n')}`
-    : ''
+  const promptInjection = hasContext ? `[السياق الإجرائي]\n${parts.join('\n')}` : ''
 
   if (hasContext || suggestedStance) {
-    log.info(`[SituationExtractor] role=${role}, stage=${stage}, type=${questionType}, suggestedStance=${suggestedStance ?? 'none'}`)
+    log.info(
+      `[SituationExtractor] role=${role}, stage=${stage}, type=${questionType}, suggestedStance=${suggestedStance ?? 'none'}`
+    )
   }
 
   return { role, stage, questionType, suggestedStance, promptInjection }

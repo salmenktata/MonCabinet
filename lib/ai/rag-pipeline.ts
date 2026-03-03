@@ -276,6 +276,22 @@ export async function answerQuestion(
   let searchTimeMs = 0
   let cacheHit = false
 
+  // 0. Fast path : détection requête ambiguë AVANT la recherche coûteuse (~600-1500ms économisés)
+  const situationCtx = extractSituationContext(question)
+  if (situationCtx.needsClarification && situationCtx.clarificationQuestion) {
+    logger.info('search', '[RAG] Fast path: clarification needed, skipping search+LLM')
+    return {
+      answer: situationCtx.clarificationQuestion,
+      sources: [],
+      tokensUsed: { input: 0, output: 0, total: 0 },
+      model: 'clarification',
+      conversationId: options.conversationId,
+      qualityIndicator: 'low',
+      averageSimilarity: 0,
+      abstentionReason: 'needs_clarification',
+    }
+  }
+
   // 1. Rechercher le contexte pertinent (bilingue si activé) avec fallback dégradé
   let sources: ChatSource[] = []
   let isDegradedMode = false
@@ -476,9 +492,7 @@ export async function answerQuestion(
   const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
   const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
 
-  // Enrichissement sémantique : détection du contexte situationnel client (heuristique, sans appel LLM)
-  // Doit être appelé AVANT le calcul du stance pour permettre la détection lookup → neutral
-  const situationCtx = extractSituationContext(question)
+  // situationCtx déjà calculé en étape 0 (fast path) — réutilisé ici
   const situationInjection = situationCtx.promptInjection
 
   // Stance : explicite (options) > suggéré par détection (lookup→neutral) > défaut 'defense'
@@ -931,6 +945,16 @@ export async function* answerQuestionStream(
     return
   }
 
+  // 0. Fast path streaming : détection requête ambiguë AVANT la recherche coûteuse
+  const streamSituationCtx = extractSituationContext(question)
+  if (streamSituationCtx.needsClarification && streamSituationCtx.clarificationQuestion) {
+    log.info('[RAG Stream] Fast path: clarification needed, skipping search+LLM')
+    yield { type: 'metadata', sources: [], model: 'clarification', qualityIndicator: 'low', averageSimilarity: 0 }
+    yield { type: 'chunk', text: streamSituationCtx.clarificationQuestion }
+    yield { type: 'done', tokensUsed: { input: 0, output: 0, total: 0 } }
+    return
+  }
+
   // 1. Phase RAG (non-streaming)
   yield { type: 'progress', step: 'searching' }
   let sources: ChatSource[] = []
@@ -1024,9 +1048,7 @@ export async function* answerQuestionStream(
   const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
   const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
 
-  // Enrichissement sémantique : contexte situationnel client (heuristique, sans appel LLM)
-  // Doit être appelé AVANT le calcul du stance pour permettre la détection lookup → neutral
-  const streamSituationCtx = extractSituationContext(question)
+  // streamSituationCtx déjà calculé en étape 0 (fast path) — réutilisé ici
 
   // Stance : explicite (options) > suggéré par détection (lookup→neutral) > défaut 'defense'
   const stance = options.stance ?? streamSituationCtx.suggestedStance ?? 'defense'

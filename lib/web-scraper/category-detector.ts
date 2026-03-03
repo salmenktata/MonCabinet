@@ -68,11 +68,18 @@ function detectFromUrlPatterns(url: string, title?: string | null): string | nul
   if (url.includes('/lexique/')) return 'lexique'
   if (url.includes('/actualites/')) return 'actualites'
 
-  // iort.gov.tn — affiner par titre avant le fallback générique 'jort'
+  // iort.gov.tn — affiner par type d'acte dans l'URL puis par titre
   if (url.includes('iort.gov.tn')) {
+    // Textes législatifs détectés par le segment de chemin
+    if (url.includes('/قانون/') || url.includes('/مرسوم/') || url.includes('/قانون_أساسي/')) {
+      return 'legislation'
+    }
+    // Conventions/traités détectés par mots-clés dans le titre
     if (title && CONVENTION_TITLE_KEYWORDS.some(kw => title.includes(kw))) {
       return 'conventions'
     }
+    // Constitution
+    if (url.includes('/دستور/')) return 'constitution'
     return 'jort'
   }
 
