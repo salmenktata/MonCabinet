@@ -91,34 +91,69 @@ async function getAuthCookie(request: APIRequestContext): Promise<string> {
  * @param question    - texte de la question
  * @param actionType  - 'chat' | 'consult' (défaut: 'chat')
  */
-async function askRAG(
-  request: APIRequestContext,
-  authCookie: string,
-  question: string,
-  actionType: 'chat' | 'consult' = 'chat'
-): Promise<{
+type RAGResponse = {
   answer: string
   sources: Array<{ documentId: string; similarity: number; chunkContent: string; documentName: string }>
   conversationId: string
   qualityIndicator?: 'high' | 'medium' | 'low'
   averageSimilarity?: number
   abstentionReason?: string
-}> {
-  const res = await request.post(`${BASE_URL}/api/chat`, {
-    data: { question, actionType, stream: false },
-    headers: {
-      'Content-Type': 'application/json',
-      Cookie: authCookie,
-    },
-    timeout: LLM_TIMEOUT_MS,
-  })
+}
 
-  if (!res.ok()) {
-    const body = await res.text()
-    throw new Error(`/api/chat ${res.status()}: ${body.substring(0, 300)}`)
+/**
+ * Envoie un message au chat RAG et retourne la réponse JSON.
+ * Gère les 502/503/504 transitoires (container en cours de redémarrage post-deploy).
+ */
+async function askRAG(
+  request: APIRequestContext,
+  authCookie: string,
+  question: string,
+  actionType: 'chat' | 'consult' = 'chat',
+  { maxRetries = 3, retryDelayMs = 20_000 } = {}
+): Promise<RAGResponse> {
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let res: Awaited<ReturnType<APIRequestContext['post']>>
+    try {
+      res = await request.post(`${BASE_URL}/api/chat`, {
+        data: { question, actionType, stream: false },
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: authCookie,
+        },
+        timeout: LLM_TIMEOUT_MS,
+      })
+    } catch (err) {
+      // Timeout Playwright → retry si pas la dernière tentative
+      lastError = err instanceof Error ? err : new Error(String(err))
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, retryDelayMs))
+        continue
+      }
+      throw lastError
+    }
+
+    // 502/503/504 transitoires = container redémarrage post-deploy → retry
+    if ([502, 503, 504].includes(res.status())) {
+      const body = await res.text()
+      lastError = new Error(`/api/chat ${res.status()} (transitoire): ${body.substring(0, 150)}`)
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, retryDelayMs))
+        continue
+      }
+      throw lastError
+    }
+
+    if (!res.ok()) {
+      const body = await res.text()
+      throw new Error(`/api/chat ${res.status()}: ${body.substring(0, 300)}`)
+    }
+
+    return res.json() as Promise<RAGResponse>
   }
 
-  return res.json()
+  throw lastError ?? new Error('askRAG: échec inattendu')
 }
 
 // =============================================================================
@@ -324,11 +359,17 @@ test.describe('4 — Abstention & Quality Gate', () => {
       'Droits ?'
     )
 
-    // Si sources présentes → qualité doit être au moins medium (pas des inventions)
-    if (response.sources.length > 0 && response.qualityIndicator) {
-      // Le quality gate progressif (P3) ne doit pas laisser passer du 'low' sans avertissement
-      // Si qualityIndicator est 'low', des sources borderline ont quand même été trouvées
-      expect(['high', 'medium', 'low']).toContain(response.qualityIndicator)
+    // Pour une question d'1 mot sans contexte juridique :
+    // Cas 1 — abstention (pas de sources) → réponse courte de rejet (< 600 chars)
+    // Cas 2 — sources borderline trouvées → réponse proportionnée (pas d'essai 2000 mots)
+    if (response.sources.length === 0) {
+      // Sans sources, la réponse ne doit pas inventer des faits juridiques
+      expect(response.answer.length).toBeLessThan(600)
+    } else {
+      // Avec sources, la réponse reste proportionnée à la question
+      // (une question vague ne doit pas déclencher un mémoire complet)
+      expect(response.qualityIndicator).toBeDefined()
+      expect(response.answer.length).toBeLessThan(2000)
     }
   })
 
@@ -544,5 +585,295 @@ test.describe('6 — Régression Implémentations RAG', () => {
 
     const me = await meRes.json()
     expect(me.user || me.email || me.id).toBeTruthy()
+  })
+})
+
+// =============================================================================
+// GROUPE 7 : QUALITÉ RÉDACTIONNELLE ARABE
+// Vérifie les améliorations de style introduites en Phase 1 (A1+A2+A3)
+// =============================================================================
+
+test.describe('7 — Qualité Rédactionnelle Arabe', () => {
+  test.skip(!HAS_CREDENTIALS, 'Credentials TEST_USER_EMAIL/TEST_USER_PASSWORD requis')
+
+  let authCookie: string
+
+  test.beforeAll(async ({ request }) => {
+    authCookie = await getAuthCookie(request)
+  })
+
+  test('AR — connecteurs judiciaires présents dans réponse complexe', async ({ request }) => {
+    test.setTimeout(80_000)
+
+    const response = await askRAG(
+      request,
+      authCookie,
+      'ما هي شروط صحة الزواج في القانون التونسي وما هي عواقب الزواج الباطل ؟'
+    )
+
+    if (response.sources.length === 0) return // Toléré si pas de sources
+
+    // Le style rédactionnel formel tunisien exige des connecteurs judiciaires.
+    // Au moins un des connecteurs suivants doit apparaître dans une analyse complexe.
+    const judicialConnectors = [
+      'حيث أن',
+      'إذ ثبت',
+      'وعليه',
+      'ومن ثمّة',
+      'ومن ثمة',
+      'بناءً على',
+      'بناء على',
+      'استناداً',
+      'وبمقتضى',
+      'وبالتالي',
+      'غير أن',
+      'إلا أن',
+      'بيد أن',
+    ]
+
+    const hasConnector = judicialConnectors.some(c => response.answer.includes(c))
+    expect(hasConnector).toBeTruthy()
+  })
+
+  test('AR — pas de dialectal (style juridique formel exigé)', async ({ request }) => {
+    const response = await askRAG(
+      request,
+      authCookie,
+      'ما هي حقوق المستأجر في عقد الكراء في تونس ؟'
+    )
+
+    if (response.sources.length === 0) return
+
+    // Les formes dialectales sont interdites dans le style juridique tunisien (A3 — anti-patterns)
+    const dialectalPatterns = [
+      /\bده\b/,      // Égyptien
+      /\bعشان\b/,   // Égyptien
+      /\bبتاع\b/,   // Dialectal
+      /\bما فيش\b/, // Maghrébin dialectal
+      /\bبس\b.*بس\b/, // "بس" seul peut être OK (=seulement), mais répété = dialectal
+    ]
+
+    for (const pattern of dialectalPatterns) {
+      expect(response.answer).not.toMatch(pattern)
+    }
+  })
+
+  test('AR — terminologie tunisienne : "فصل" préféré à "مادة"', async ({ request }) => {
+    const response = await askRAG(
+      request,
+      authCookie,
+      'ما نص الفصل الأول من مجلة الأحوال الشخصية ؟'
+    )
+
+    if (response.sources.length === 0) return
+
+    // La base de connaissances utilise "فصل" (usage tunisien) pas "مادة" (usage égyptien/syrien).
+    // Si la réponse cite un texte, elle devrait utiliser "فصل".
+    const hasFasl = /فصل\s+\d+/.test(response.answer)
+    const hasMadda = /مادة\s+\d+/.test(response.answer)
+
+    // Acceptable si l'un ou l'autre est présent — le "فصل" est préféré mais pas obligatoire
+    // L'important : la réponse ne doit pas remplacer "فصل" de nos sources par "مادة"
+    if (hasMadda && !hasFasl) {
+      // La réponse utilise uniquement "مادة" — potentiellement hallucination terminologique
+      // Ce cas est un avertissement, pas un blocage dur
+      console.warn('⚠️ E2E [G7]: Réponse utilise "مادة" sans "فصل" — possible drift terminologique')
+    }
+
+    // La réponse doit citer le texte ou mentionner la mجلة الأحوال الشخصية
+    const mentionsMAS = /مجلة الأحوال الشخصية|م\.أ\.ش|احوال شخصية/i.test(response.answer)
+    expect(response.answer.length).toBeGreaterThan(50)
+    // Si des sources existent, elles doivent être reflétées dans la réponse
+    if (response.sources.length > 0) {
+      expect(mentionsMAS || hasFasl || hasMadda).toBeTruthy()
+    }
+  })
+
+  test('AR — longueur adaptée : question simple → réponse ≤ 800 mots', async ({ request }) => {
+    // Question procédurale simple (type "procédure") → réponse courte attendue
+    const response = await askRAG(
+      request,
+      authCookie,
+      'ما هي آجال الطعن بالاستئناف ؟'
+    )
+
+    if (response.sources.length === 0) return
+
+    // Pour une question simple sur un délai, la réponse doit être concise
+    // (A1 — longueur adaptée : question simple → 200-400 mots ≈ ~1200-2400 chars)
+    // On tolère jusqu'à 3000 chars (≈500 mots) pour cette vérification E2E
+    expect(response.answer.length).toBeLessThan(3000)
+  })
+
+  test('AR — réponse ne commence pas par "يمكنني مساعدتك" (anti-chatbot)', async ({ request }) => {
+    const response = await askRAG(
+      request,
+      authCookie,
+      'هل يحق للعامل المطرود الحصول على تعويض ؟'
+    )
+
+    if (response.sources.length === 0) return
+
+    // A3 — anti-patterns : les réponses ne doivent pas commencer par des formules chatbotiques
+    const chatbotOpeners = [
+      /^يمكنني مساعدتك/,
+      /^بالطبع،?\s+يمكنني/,
+      /^نعم،?\s+يمكنني/,
+      /^سأساعدك/,
+    ]
+
+    for (const pattern of chatbotOpeners) {
+      expect(response.answer.trim()).not.toMatch(pattern)
+    }
+  })
+})
+
+// =============================================================================
+// GROUPE 8 : INTELLIGENCE SÉMANTIQUE (Situation Extractor + Intent Routing)
+// Vérifie les améliorations introduites en Phase 2 (B1+B2) et Phase 3
+// =============================================================================
+
+test.describe('8 — Intelligence Sémantique & Intent Routing', () => {
+  test.skip(!HAS_CREDENTIALS, 'Credentials TEST_USER_EMAIL/TEST_USER_PASSWORD requis')
+
+  let authCookie: string
+
+  test.beforeAll(async ({ request }) => {
+    authCookie = await getAuthCookie(request)
+  })
+
+  test('intent lookup — "ما نص الفصل X" → citation directe, pas de structure stratégique', async ({ request }) => {
+    test.setTimeout(80_000)
+
+    const response = await askRAG(
+      request,
+      authCookie,
+      'ما نص الفصل 258 من المجلة الجزائية ؟'
+    )
+
+    if (response.sources.length === 0) return
+
+    // Un intent "lookup" doit produire une citation directe, PAS une analyse en 6 blocs.
+    // Le situation-extractor détecte "ما نص الفصل X" → type=lookup → stance=neutral
+    // → format: citation entre guillemets, sans diagnostic stratégique.
+    const strategicBlocks = [
+      /الموقف الاستراتيجي/,
+      /خطة العمل/,
+      /التشخيص القانوني/,
+      /السيناريو الأفضل/,
+      /الخطوات الفورية/,
+    ]
+
+    // Pour un lookup, les blocs stratégiques ne doivent PAS dominer la réponse
+    const strategicBlocksFound = strategicBlocks.filter(p => p.test(response.answer)).length
+    expect(strategicBlocksFound).toBeLessThanOrEqual(1) // Max 1 toléré (réponse hybride acceptable)
+  })
+
+  test('intent comparison — "الفرق بين X وY" → tableau Markdown attendu', async ({ request }) => {
+    test.setTimeout(80_000)
+
+    const response = await askRAG(
+      request,
+      authCookie,
+      'ما الفرق بين الطلاق والخلع في القانون التونسي ؟'
+    )
+
+    if (response.sources.length === 0) return
+
+    // Un intent "comparison" doit produire un tableau Markdown (| col | col |)
+    // Le situation-extractor détecte "الفرق بين" → type=comparison → format=table
+    const hasMarkdownTable = /\|.+\|.+\|/.test(response.answer)
+    expect(hasMarkdownTable).toBeTruthy()
+  })
+
+  test('intent deadline — "أجل الطعن" → structure délai articulée', async ({ request }) => {
+    const response = await askRAG(
+      request,
+      authCookie,
+      'ما هو أجل الطعن بالاستئناف في المادة الجزائية في تونس ؟'
+    )
+
+    if (response.sources.length === 0) return
+
+    // Un intent "deadline" doit produire une réponse avec durée précise + conséquences.
+    // Le situation-extractor détecte "أجل الطعن" → type=deadline → format structuré.
+    // La réponse doit mentionner un délai chiffré (nombre de jours/mois).
+    const hasNumericDelay = /\d+\s*(?:يوماً|يوم|أيام|شهراً|شهر|أشهر|jour|jours|mois)/i.test(response.answer)
+    expect(hasNumericDelay).toBeTruthy()
+  })
+
+  test('intent explanation — "كيف يعمل / شرح مفهوم" → structure pédagogique', async ({ request }) => {
+    test.setTimeout(80_000)
+
+    const response = await askRAG(
+      request,
+      authCookie,
+      'كيف يعمل نظام التقادم في القانون التونسي وما هي مدده ؟'
+    )
+
+    if (response.sources.length === 0) return
+
+    // Un intent "explanation" doit produire une réponse pédagogique (définition + contexte + application).
+    // Le situation-extractor détecte "كيف يعمل" → type=explanation → format pédagogique.
+    // La réponse doit être substantielle (> 200 chars) avec une structure logique.
+    expect(response.answer.length).toBeGreaterThan(200)
+
+    // Doit mentionner une notion de durée (caractéristique principale du التقادم)
+    const mentionsDuration = /\d+\s*(?:سنة|سنوات|عام|أعوام|an|ans)/i.test(response.answer)
+    const mentionsConcept = /تقادم|prescription|انقضاء|forclusion/.test(response.answer)
+    expect(mentionsDuration || mentionsConcept).toBeTruthy()
+  })
+
+  test('stage pré-contentieux — "إنذار / mise en demeure" → conseil amiable prioritaire', async ({ request }) => {
+    test.setTimeout(80_000)
+
+    const response = await askRAG(
+      request,
+      authCookie,
+      'أريد إرسال إنذاراً لمديني الذي لم يسدد دينه — ما هي الخطوات القانونية ؟'
+    )
+
+    if (response.sources.length === 0) return
+
+    // Le situation-extractor détecte "إنذار" → stage=pre_contentieux
+    // → STAGE_INSTRUCTIONS: focus sur tentative règlement amiable + mise en demeure + délais
+    // La réponse doit mentionner la tentative amiable ou les étapes pré-judiciaires.
+    const mentionsPreContentieux = [
+      /تسوية ودية|règlement amiable/i,
+      /إنذار|mise en demeure/i,
+      /عدل التنفيذ|عدل الإشهاد|huissier/i,
+      /قبل رفع الدعوى|avant.*recours/i,
+      /أجل/i, // Les délais légaux (avant saisine du tribunal)
+    ]
+
+    const matchCount = mentionsPreContentieux.filter(p => p.test(response.answer)).length
+    // Au moins 2 des thèmes pré-contentieux doivent apparaître
+    expect(matchCount).toBeGreaterThanOrEqual(2)
+  })
+
+  test('role défendeur — "ضدي / défendeur" → angle défense en premier', async ({ request }) => {
+    test.setTimeout(80_000)
+
+    const response = await askRAG(
+      request,
+      authCookie,
+      'تم رفع دعوى ضدي بسبب عدم تسديد إيجار — أنا المدّعى عليه، كيف أدافع عن نفسي ؟'
+    )
+
+    if (response.sources.length === 0) return
+
+    // Le situation-extractor détecte "أنا المدّعى عليه" → role=defendeur
+    // → ROLE_INSTRUCTIONS: dفوع شكلية أولاً ثم موضوعية
+    // La réponse doit mentionner des éléments de défense.
+    const defenseElements = [
+      /دفع|دفوع|défense|exception/i,
+      /المدعى عليه|défendeur/i,
+      /رد|réponse|contestation/i,
+      /شكلي|موضوع|fond|forme/i,
+      /طلب رفض|demande.*rejet|irrecevabilit/i,
+    ]
+
+    const matchCount = defenseElements.filter(p => p.test(response.answer)).length
+    expect(matchCount).toBeGreaterThanOrEqual(2)
   })
 })

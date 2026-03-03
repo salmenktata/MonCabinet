@@ -25,7 +25,7 @@ export type ProcedureStage =
   | 'cassation'
   | 'execution'
   | 'inconnu'
-export type QuestionType = 'fond' | 'procedure' | 'strategie' | 'modele' | 'lookup' | 'inconnu'
+export type QuestionType = 'fond' | 'procedure' | 'strategie' | 'modele' | 'lookup' | 'comparison' | 'deadline' | 'explanation' | 'summary' | 'inconnu'
 
 export interface SituationContext {
   role: LegalRole
@@ -70,6 +70,71 @@ const LOOKUP_PATTERNS: RegExp[] = [
   // "تعريف / ماذا يعني / ما معنى"
   /(?:تعريف|ماذا\s+يعني|ما\s+معنى)\s+\w+/i,
 ]
+
+// Requêtes de comparaison entre deux concepts/textes
+const COMPARISON_PATTERNS: RegExp[] = [
+  /(?:مقارنة\s+بين|الفرق\s+بين|ما\s+الفرق|فرّق\s+بين)/i,
+  /(?:comparaison|différence\s+entre|comparer|versus|\bvs\b)/i,
+]
+
+// Requêtes sur un délai légal spécifique
+const DEADLINE_PATTERNS: RegExp[] = [
+  /(?:أجل\s+(?:الطعن|التقادم|الرفع|التقديم)|ميعاد|متى\s+ينقضي|كم\s+(?:يوماً|يوم|شهراً|شهر)\s+(?:للطعن|للتقادم))/i,
+  /(?:dans\s+quel\s+délai|délai\s+de\s+(?:recours|prescription|forclusion)|combien\s+de\s+(?:jours|mois)\s+pour)/i,
+]
+
+// Requêtes de type "pourquoi / comment fonctionne / expliquer"
+const EXPLANATION_PATTERNS: RegExp[] = [
+  /(?:لماذا\s+(?:يشترط|يُلزم|تُوجب|يُعدّ)|كيف\s+(?:يعمل|تعمل|يتم|يُطبّق)|شرح\s+(?:مفهوم|نظام|مبدأ))/i,
+  /(?:expliquer?\s+(?:le\s+)?(?:concept|mécanisme|principe|fonctionnement)|pourquoi\s+(?:le\s+droit|la\s+loi|le\s+code))/i,
+]
+
+// Requêtes de résumé / synthèse
+const SUMMARY_PATTERNS: RegExp[] = [
+  /(?:ملخص\s+(?:حقوق|أحكام|قواعد)|باختصار|النقاط\s+الأساسية|أعطني\s+نقاط)/i,
+  /(?:résumé\s+(?:des\s+)?(?:droits|règles|dispositions)|en\s+bref|points\s+essentiels|synthèse\s+(?:des\s+)?(?:droits|règles))/i,
+]
+
+// Instructions de format injectées dans le prompt selon l'intention détectée
+// Elles sont ajoutées en fin de system prompt pour overrider la structure par défaut
+const INTENT_FORMAT_INSTRUCTIONS: Partial<Record<QuestionType, string>> = {
+  lookup: `🚨 [FORMAT REQUIS — PRIORITÉ ABSOLUE]
+La question porte sur le texte d'un article ou d'une disposition précise.
+1. Cite le texte exact entre guillemets « » en commençant par la source [KB-X].
+2. Ajoute 2-3 phrases de contexte juridique uniquement si utile.
+3. N'utilise PAS la structure en 6 blocs. Pas de diagnostic stratégique, pas de scénarios, pas de plan d'action.`,
+
+  comparison: `🚨 [FORMAT REQUIS — PRIORITÉ ABSOLUE]
+La question demande une comparaison entre deux éléments juridiques.
+Réponds sous forme de tableau Markdown :
+| Critère | [Élément A] | [Élément B] |
+|---------|------------|------------|
+| ...     | ...        | ...        |
+Termine par 2-3 lignes de conclusion. N'utilise PAS la structure en 6 blocs.`,
+
+  deadline: `🚨 [FORMAT REQUIS — PRIORITÉ ABSOLUE]
+La question porte sur un délai légal précis. Structure ta réponse ainsi :
+1. **الأجل القانوني** : durée exacte + événement déclencheur
+2. **حساب الميعاد** : méthode de calcul si applicable
+3. **عواقب الإخلال** : conséquences du dépassement (irrecevabilité, forclusion...)
+4. **استثناءات** : cas particuliers ou suspensions éventuels
+N'utilise PAS la structure en 6 blocs.`,
+
+  explanation: `🚨 [FORMAT REQUIS — PRIORITÉ ABSOLUE]
+La question demande une explication pédagogique. Structure ta réponse ainsi :
+1. **التعريف** : définition concise du concept
+2. **السياق القانوني** : fondement en droit tunisien (texte, ratio legis)
+3. **التطبيق العملي** : comment ça s'applique concrètement
+4. **مثال** : un exemple concret en 1-2 phrases
+N'utilise PAS la structure en 6 blocs stratégiques.`,
+
+  summary: `🚨 [FORMAT REQUIS — PRIORITÉ ABSOLUE]
+La question demande une synthèse. Réponds par une liste de 3 à 5 points essentiels :
+- Chaque point = 1 phrase courte et directe
+- Commence par le point le plus important
+- Pas de développement, pas de scénarios, pas de plan d'action
+N'utilise PAS la structure en 6 blocs.`,
+}
 
 /**
  * Instructions LLM adaptées au stade procédural
@@ -124,15 +189,24 @@ export function extractSituationContext(question: string): SituationContext {
     }
   }
 
-  // Détection requête lookup (consultation pure — texte légal, article, définition)
-  // → bypass le mode défense stratégique par défaut
+  // Détection fine de l'intention — lookup, comparaison, délai, explication, résumé
+  // → bypass le mode défense stratégique par défaut + injecte un format adapté
   let suggestedStance: 'neutral' | 'defense' | undefined = undefined
   if (questionType === 'fond' || questionType === 'inconnu') {
-    for (const pattern of LOOKUP_PATTERNS) {
-      if (pattern.test(question)) {
-        questionType = 'lookup'
-        suggestedStance = 'neutral'
-        break
+    const INTENT_DETECTORS: Array<{ patterns: RegExp[]; type: QuestionType }> = [
+      { patterns: LOOKUP_PATTERNS, type: 'lookup' },
+      { patterns: COMPARISON_PATTERNS, type: 'comparison' },
+      { patterns: DEADLINE_PATTERNS, type: 'deadline' },
+      { patterns: EXPLANATION_PATTERNS, type: 'explanation' },
+      { patterns: SUMMARY_PATTERNS, type: 'summary' },
+    ]
+    outer: for (const { patterns, type } of INTENT_DETECTORS) {
+      for (const pattern of patterns) {
+        if (pattern.test(question)) {
+          questionType = type
+          suggestedStance = 'neutral'
+          break outer
+        }
       }
     }
   }
@@ -150,6 +224,12 @@ export function extractSituationContext(question: string): SituationContext {
     parts.push('المطلوب: تقديم نموذج أو صيغة قانونية جاهزة مع شرح موجز لكل بند.')
   } else if (questionType === 'procedure') {
     parts.push('المطلوب: شرح الإجراءات العملية والآجال والجهة المختصة خطوة بخطوة.')
+  }
+
+  // Injection des instructions de format spécifiques à l'intention détectée
+  const formatInstruction = INTENT_FORMAT_INSTRUCTIONS[questionType]
+  if (formatInstruction) {
+    parts.push(formatInstruction)
   }
 
   const hasContext = parts.length > 0
