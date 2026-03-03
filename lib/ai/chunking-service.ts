@@ -776,8 +776,8 @@ export function chunkTextByArticles(
   const articlePatterns: Record<string, RegExp> = {
     // Français: "Article 258" ou "art. 42 bis"
     fr: /(?:^|\n)\s*(?:Article|art\.?)\s+(\d+(?:\s+(?:bis|ter|quater))?)/gi,
-    // Arabe: "الفصل 258" ou "فصل 12 مكرر"
-    ar: /(?:^|\n)\s*(?:الفصل|فصل)\s+(\d+(?:\s+مكرر)?)/g,
+    // Arabe: "الفصل 258" ou "فصل 12 مكرر" — inclut chiffres arabes-indiens (٠-٩)
+    ar: /(?:^|\n)\s*(?:الفصل|فصل)\s+([\d\u0660-\u0669]+(?:\s+مكرر)?)/g,
   }
 
   // Auto-détection langue si non fournie

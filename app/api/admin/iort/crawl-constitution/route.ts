@@ -20,7 +20,7 @@ import { indexWebPage } from '@/lib/web-scraper/web-indexer-service'
 import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 300 // Playwright + indexation = jusqu'à 5 min
+export const maxDuration = 600 // Playwright + OCR 42 pages + indexation = jusqu'à 10 min
 
 export const GET = withAdminApiAuth(
   async (_request: NextRequest): Promise<NextResponse> => {

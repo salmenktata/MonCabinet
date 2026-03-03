@@ -1336,20 +1336,20 @@ async function extractConstitutionText(
     content = content.replace(/WD_ACTION_\w+/g, '').replace(/\s{3,}/g, '\n\n').trim()
   }
 
-  // Fallback PDF : si le HTML ne contient pas d'articles (viewer WebDev vide)
-  const hasArticles = /الفصل\s+\d+/.test(content)
+  // Fallback PDF : si le HTML ne contient pas d'articles (viewer WebDev vide/paginé)
+  // Utilise parsePdf() de file-parser-service qui gère le fallback OCR pour les PDFs
+  // à encodage de police personnalisé (fréquent pour les PDFs gouvernementaux arabes IORT).
+  const hasArticles = /(?:الفصل|فصل)\s+[\d\u0660-\u0669]+/.test(content)
   if ((!hasArticles || content.length < 5000) && pdfBuffer) {
-    console.log('[IORT Constitution] HTML sans articles constitutionnels — fallback extraction PDF')
+    console.log('[IORT Constitution] HTML sans articles constitutionnels — fallback PDF (parsePdf + OCR si garbled)')
     try {
-      // Pattern identique à file-parser-service.ts (seul fonctionnant en prod Next.js)
-      const mod = await import('pdf-parse')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const PDFParseClass = (mod as any).PDFParse
-      const parser = new PDFParseClass({ data: pdfBuffer })
-      const pdfData = await parser.getText()
-      if (pdfData.text && pdfData.text.length > content.length) {
-        content = pdfData.text
-        console.log(`[IORT Constitution] PDF extrait: ${content.length} chars, pages: ${pdfData.total}`)
+      const { parsePdf } = await import('./file-parser-service')
+      const parsed = await parsePdf(pdfBuffer)
+      if (parsed.success && parsed.text && parsed.text.length > content.length) {
+        content = parsed.text
+        console.log(`[IORT Constitution] PDF parsé: ${content.length} chars`)
+      } else if (!parsed.success) {
+        console.warn('[IORT Constitution] Échec extraction PDF:', parsed.error)
       }
     } catch (pdfErr) {
       console.warn('[IORT Constitution] Échec extraction PDF:', pdfErr instanceof Error ? pdfErr.message : pdfErr)
@@ -1390,25 +1390,28 @@ export async function downloadConstitutionFromIort(
   // Télécharger le PDF APRÈS extraction (A7 peut naviguer/réinitialiser la page — peu importe)
   const pdfResult = await downloadConstitutionPdfViaA7(page)
 
-  // Si PDF disponible et HTML sans articles → extraire le texte depuis le PDF
-  if (pdfResult?.buffer && !/الفصل\s+\d+/.test(extracted.content)) {
+  // Si PDF disponible et HTML sans articles → extraire via parsePdf() (avec OCR fallback)
+  // Le PDF IORT utilise un encodage de police personnalisé (Arabic custom font mapping) →
+  // pdf-parse seul produit du texte garbled (\x02\x03...). parsePdf() détecte ce cas
+  // et applique automatiquement l'OCR (Tesseract) pour produire du texte Unicode arabe.
+  const htmlHasArticles = /(?:الفصل|فصل)\s+[\d\u0660-\u0669]+/.test(extracted.content)
+  if (pdfResult?.buffer && (!htmlHasArticles || extracted.content.length < 5000)) {
     try {
-      // Pattern identique à file-parser-service.ts (seul fonctionnant en prod Next.js)
-      const mod = await import('pdf-parse')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const PDFParseClass = (mod as any).PDFParse
-      const parser = new PDFParseClass({ data: pdfResult.buffer })
-      const pdfData = await parser.getText()
-      if (pdfData.text && pdfData.text.length > extracted.content.length) {
-        extracted.content = pdfData.text
-        console.log(`[IORT Constitution] PDF enrichit le contenu: ${extracted.content.length} chars, pages: ${pdfData.total}`)
+      const { parsePdf } = await import('./file-parser-service')
+      const parsed = await parsePdf(pdfResult.buffer)
+      if (parsed.success && parsed.text && parsed.text.length > extracted.content.length) {
+        extracted.content = parsed.text
+        console.log(`[IORT Constitution] PDF enrichit le contenu: ${extracted.content.length} chars (OCR: ${parsed.metadata.ocrApplied ? 'oui' : 'non'})`)
+      } else if (!parsed.success) {
+        console.warn('[IORT Constitution] Échec extraction PDF:', parsed.error)
       }
     } catch (pdfErr) {
       console.warn('[IORT Constitution] Échec extraction PDF:', pdfErr instanceof Error ? pdfErr.message : pdfErr)
     }
   }
 
-  console.log(`[IORT Constitution] Titre: ${extracted.title}, contenu final: ${extracted.content.length} chars, hasArticles: ${/الفصل\s+\d+/.test(extracted.content)}`)
+  const finalHasArticles = /(?:الفصل|فصل)\s+[\d\u0660-\u0669]+/.test(extracted.content)
+  console.log(`[IORT Constitution] Titre: ${extracted.title}, contenu final: ${extracted.content.length} chars, hasArticles: ${finalHasArticles}`)
 
   // Sauvegarder PDF dans MinIO
   let pdfInfo: { minioPath: string; size: number } | null = null
@@ -1431,6 +1434,7 @@ export async function downloadConstitutionFromIort(
     await db.query(
       `UPDATE web_pages SET
         title = $2, extracted_text = $3, content_hash = $4, word_count = $5,
+        is_indexed = false,
         last_crawled_at = NOW(), updated_at = NOW()
        WHERE id = $1`,
       [pageId, extracted.title, extracted.content, contentHash,
