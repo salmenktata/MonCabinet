@@ -1232,9 +1232,11 @@ async function searchArticleByTextMatch(
     // Fix Mar 3 2026 (hamza ordinals): les ordinaux arabes sont normalisés côté query (الأول→الاول)
     // mais le DB peut stocker la forme avec hamza (الأول). Générer un regex qui accepte les deux.
     // Ex: "الاول" → "ال[اأإآ]ول" pour matcher الأول/الاول/الإول/الآول indifféremment.
+    // Fix Mar 3 2026: remplacer /ا/g → /[اأإآ]/g pour couvrir tous les variants alef (sans casser
+    // les ordinaux comme "الثاني" → l'ancien /ا/g remplaçait TOUS les ا dont ceux non-hamza).
     const artNumRegex = /^\d+$/.test(artNum)
       ? artNum
-      : artNum.replace(/ا/g, '[اأإآ]')
+      : artNum.replace(/[اأإآ]/g, '[اأإآ]')
     const artRegex = `الفصل ${artNumRegex}([^0-9]|$)`
     let sql: string
     let params: (string | string[])[]
@@ -1719,11 +1721,17 @@ export async function searchKnowledgeBaseHybrid(
     if (constExplicitMatch) {
       // Normaliser hamza : "الأول" (query) → "الاول"
       const rawMatch = constExplicitMatch[1].replace(/[أإآ]/g, 'ا')
-      // Convertir ordinal → chiffre (9anoun.tn stocke "الفصل 2", pas "الفصل الثاني")
+      // Convertir ordinal → chiffre (certains chunks 9anoun.tn stockent "الفصل 2")
       const artSearch = ARABIC_ORDINAL_TO_NUM[rawMatch] || rawMatch
       // Fix Mar 2 2026: ['constitution'] uniquement (pas 'legislation')
       searchPromises.push(searchArticleByTextMatch(artSearch, null, ['constitution']))
       providerLabels.push('article-text')
+      // Fix Mar 3 2026: Aussi chercher le format ordinal (9anoun.tn stocke souvent "الفصل الثاني")
+      // Un seul appel couvre les deux formats : si conversion s'est faite, chercher aussi l'ordinal brut.
+      if (artSearch !== rawMatch) {
+        searchPromises.push(searchArticleByTextMatch(rawMatch, null, ['constitution']))
+        providerLabels.push('article-text-ordinal')
+      }
     }
   }
 
