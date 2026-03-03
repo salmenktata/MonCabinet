@@ -1332,8 +1332,17 @@ async function extractConstitutionText(
     }
   }
   if (!content) {
-    content = await page.evaluate(() => document.body.innerText.substring(0, 50000))
-    content = content.replace(/WD_ACTION_\w+/g, '').replace(/\s{3,}/g, '\n\n').trim()
+    // Utiliser textContent (inclut éléments cachés) plutôt que innerText (visible seulement)
+    // La page M4 IORT affiche la constitution dans des éléments hors viewport/cachés
+    content = await page.evaluate(() => {
+      const scripts = document.querySelectorAll('script, style, noscript')
+      scripts.forEach((s) => s.remove())
+      return (document.body.textContent || '').substring(0, 100000)
+    })
+    content = content
+      .replace(/WD_ACTION_\w+/g, '')
+      .replace(/\s{3,}/g, '\n\n')
+      .trim()
   }
 
   // Fallback PDF : si le HTML ne contient pas d'articles (viewer WebDev vide/paginé)
