@@ -410,6 +410,10 @@ jobs:
               # CRITIQUE: Supprimer .next/server EN ROOT pour éviter Permission denied
               docker exec -u root qadhya-nextjs rm -rf /app/.next/server /app/.next/server-* /app/.next/static || true
 
+              # Anti-régression favicon: supprimer app/icon.* sur le host (Next.js App Router
+              # utilise automatiquement ces fichiers et écrase les <link> de layout.tsx)
+              rm -f /opt/moncabinet/app/icon.png /opt/moncabinet/app/icon.svg || true
+
               # Copy into running container (server.js, .next/, public/)
               docker cp /tmp/deploy-bundle/server.js qadhya-nextjs:/app/server.js
               docker cp /tmp/deploy-bundle/.next/. qadhya-nextjs:/app/.next/
