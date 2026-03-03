@@ -302,7 +302,9 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
 
       // Badge document draft/projet (exempter les textes promulgués même si titre contient "مشروع")
       const docName = source.documentName || ''
-      const isPromulgated = meta?.promulgated === true || meta?.sourceOrigin === 'iort_gov_tn'
+      // دستور 2022 est la constitution officielle en vigueur — URL 9anoun.tn contient "projet" par legacy
+      const isConstitution2022 = docName.includes('دستور') && docName.includes('2022')
+      const isPromulgated = meta?.promulgated === true || meta?.sourceOrigin === 'iort_gov_tn' || isConstitution2022
       if (!isPromulgated && (docName.includes('مشروع') || docName.includes('اقتراح'))) {
         enrichedHeader += lang === 'ar' ? '📋 [مشروع / صيغة أولية - غير نهائي]\n' : '📋 [PROJET - version non définitive]\n'
       }

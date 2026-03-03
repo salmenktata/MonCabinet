@@ -1059,6 +1059,10 @@ const PSC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
  * LRU simple (max 50 entrées — une query juridique = ~200 chars, 50 × ~300B = ~15KB).
  */
 const _implicitArticleMatchCache = new Map<string, Set<string>>()
+
+/** Regex PSC détection (extraite pour éviter bug SWC avec long regex arabique inline) */
+const PSC_CODE_RE =
+  /مجلة الأحوال الشخصية|الأحوال الشخصية|طلاق للضرر|التفريق للضرر|حضانة|نقل الحضانة|شروط الحضانة|الحضانة|نفقة.*زوج|نفقة الزوجة|نفقة.*الزوج|نفقة.*أبناء|نفقة.*أطفال|واجب النفقة|تعدد.*زوج|زوجات.*متعدد|الجمع بين زوج|سن.*الزواج|السن.*للزواج|الزواج.*سن|الحد.*للزواج|الطلاق.*تراضي|طلاق.*تراضي|الطلاق.*قضائي|واجبات.*الزوج|واجبات الزوجين|حقوق.*الزوجين|التبني|الكفالة.*طفل|كفالة.*قاصر|الوصية|شروط الوصية|صحة الوصية|اللقب.*العائلي|لقب.*طفل|لقب.*الأبناء|الميراث.*زوج|الميراث.*زوجة|حقوق.*الميراث|حقوق.*المرأة.*ميراث|ميراث.*المرأة|الإرث.*أسرة|divorce|mariage.*tunisien|tunisien.*mariage|garde.*enfant|droit.*visite|pension.*alimentaire|obligation.*alimentaire.*épou|kafala|recueil.*légal|empêchement.*mariage|régime.*successoral.*tunisien/i
 const _IMPLICIT_CACHE_MAX = 50
 
 function _evictImplicitCacheIfFull(): void {
@@ -1198,48 +1202,48 @@ async function searchHybridSingle(
  */
 function getTargetCodeTitleFragment(queryText: string, lang: string): string | null {
   // Fix Feb 26 v10c: Fonctionne sur TOUT texte, y.c. queries FR enrichies avec synonymes arabes.
-  // ORDRE CRITIQUE: CPP > Pénal > Travail > Famille > COC (évite collisions entre codes)
+  // ORDRE CRITIQUE: CPP > Pénal > Travail > Famille > Immobilier > Fiscal > Commercial > Procédure > COC
+  // (évite collisions : ex "طرد" → Travail avant Famille, "contrat" → COC en dernier)
 
   // CPP: REQUIERT الإجراءات OU synonymes CPP spécifiques (≠ المجلة الجزائية = Pénal seul)
   if (/الإجراءات الجزائية|اجراءات جزائية|الدعوى العمومية|الدعوى الجزائية|التتبع الجزائي|النيابة العمومية/.test(queryText)) {
     return 'مجلة الإجراءات الجزائية'
   }
-  // Penal Code — المجلة الجزائية ou termes pénaux (sans "الجزائي" seul qui est trop ambigu)
-  if (/المجلة الجزائية|الجريمة|عقوبة|جنحة|سرقة|قتل|الجنائي|دفاع.*شرع|شرع.*دفاع|الدفاع الشرعي/.test(queryText)) {
+  // Penal Code — المجلة الجزائية ou termes pénaux distinctifs
+  if (/المجلة الجزائية|الجريمة|عقوبة|جنحة|سرقة|قتل|الجنائي|دفاع.*شرع|شرع.*دفاع|الدفاع الشرعي|أنواع العقوبات|الإيقاف التحفظي|الإفراج الشرطي|جريمة التحيل|خيانة الأمانة|المسؤولية الجزائية|irresponsabilité.*pénale|récidive.*pénal|pénal.*récidive|sursis.*pénal|pénal.*sursis|complicité.*pénale|prescription.*pénale|prescription.*action publique|infraction.*informatique|majorité pénale|âge pénal|causes.*irresponsabilité/.test(queryText)) {
     return 'المجلة الجزائية'
   }
-  // Labor
-  if (/مجلة الشغل|عقد الشغل|صاحب العمل|رب العمل|الأجير|الطرد التعسفي|التشغيل/.test(queryText)) {
+  // Labor — مجلة الشغل (AR + FR étendu)
+  if (/مجلة الشغل|عقد الشغل|صاحب العمل|رب العمل|الأجير|الطرد التعسفي|التشغيل|عمل إضافي|حوادث الشغل|المرض المهني|أجر أدنى|فترة التجربة|مفتشية الشغل|إضراب|تحرش معنوي|مدة العمل.*أسبوعية|ساعات العمل|الطرد التأديبي|طرد.*أسباب اقتصادية|حقوق العامل|العامل.*حقوق|حقوق المرأة.*عامل|إجازة.*مدفوعة|العمل الإضافي|licenciement|indemnité.*licenciement|contrat.*travail|durée.*travail|durée.*hebdomadaire|congé annuel|congé.*payé|SMIG|salaire.*minimum|période.*essai|inspection.*travail|accident.*travail|travail.*intérimaire|clause.*non-concurrence|conflit.*collectif|règlement.*intérieur|faute grave.*travail|protection.*maternité|femme.*enceinte.*travail|droits.*salarié|salariée.*enceinte/.test(queryText)) {
     return 'مجلة الشغل'
   }
   // Family (Personal Status Code) — patterns bilingues AR + FR
-  // ORDRE: après Pénal/Travail pour éviter collision (ex: "طرد" → Travail avant Famille)
-  if (/مجلة الأحوال الشخصية|الأحوال الشخصية|طلاق للضرر|التفريق للضرر|
-    حضانة|نقل الحضانة|شروط الحضانة|الحضانة.*أم|الحضانة.*أب|
-    نفقة.*زوج|نفقة الزوجة|نفقة.*الزوج|نفقة.*أبناء|نفقة.*أطفال|واجب النفقة|
-    تعدد.*زوج|زوجات.*متعدد|الجمع بين زوج|
-    سن.*الزواج|السن.*للزواج|الزواج.*سن|الحد.*للزواج|
-    الطلاق.*تراضي|طلاق.*تراضي|الطلاق.*قضائي|
-    واجبات.*الزوج|واجبات الزوجين|حقوق.*الزوجين|
-    التبني|الكفالة.*طفل|كفالة.*قاصر|
-    الوصية|شروط الوصية|صحة الوصية|
-    اللقب.*العائلي|لقب.*طفل|لقب.*الأبناء|
-    الإرث.*الأسرة|الميراث.*زوج|الميراث.*زوجة|
-    divorce|mariage.*tunisien|tunisien.*mariage|garde.*enfant|droit.*visite|
-    pension.*alimentaire|obligation.*alimentaire.*épou|
-    kafala|recueil.*légal|empêchement.*mariage|régime.*successoral.*tunisien/x.test(queryText)) {
+  // ORDRE: après Pénal/Travail pour éviter collision
+  if (PSC_CODE_RE.test(queryText)) {
     return 'مجلة الأحوال الشخصية'
   }
-  // Commercial (MCO) — المجلة التجارية (avant COC pour éviter collision "عقد تجاري")
-  if (/المجلة التجارية|يُعدّ تاجراً|من.*يُعدّ.*تاجر|تعريف.*تاجر|هل.*تاجر|الأعمال التجارية بطبيعتها|أعمال تجارية بطبيعتها|احتراف.*تجاري|شهر.*إفلاس|التسوية القضائية|إفلاس.*تاجر|تاجر.*إفلاس|الكمبيالة|سند.*أمر/.test(queryText)) {
+  // Real Property — مجلة الحقوق العينية (avant Commercial pour éviter "baux commerciaux" → Commercial)
+  if (/الرسم العقاري|تسجيل.*عقار|العقارات|الشفعة|حقوق عينية|الحقوق العينية|الحيازة المكسبة|حق الانتفاع|الارتفاق|عقد الكراء|المستأجر|الايجار.*عقار|الكراء.*سكني|الكراء.*تجاري|copropriété|servitude|immatriculation foncière|hypothèque|bail.*habitation|bail.*commercial|vente.*immeuble.*constru|expropriation|saisie.*immobilière|droit.*immobilier|propriété.*foncière|registre.*foncier|عقد.*بيع.*عقار|شروط.*بيع.*عقار|حقوق المستأجر|طرد.*مستأجر|expulsion.*locataire|fin.*bail|vente.*immobilière|conflits.*propriétaires.*immeu|شروط.*الكراء/.test(queryText)) {
+    return 'مجلة الحقوق العينية'
+  }
+  // Fiscal — المجلة الجبائية (avant COC pour éviter "prescription civile" collision)
+  if (/TVA|IRPP|impôt.*société|impôt.*sociétés|retenue.*source|prescription.*fiscal|tranche.*imposition|contribuable|déclaration.*fiscale|ضريبة على الشركات|ضريبة على الدخل|معدل الضريبة|الجباية|المجلة الجبائية|التهرب الضريبي/.test(queryText)) {
+    return 'المجلة الجبائية'
+  }
+  // Commercial (MCO) — المجلة التجارية (avant COC pour éviter collision "عقد tجاري")
+  if (/المجلة التجارية|يُعدّ تاجراً|من.*يُعدّ.*تاجر|تعريف.*تاجر|هل.*تاجر|الأعمال التجارية بطبيعتها|أعمال تجارية بطبيعتها|احتراف.*تجاري|شهر.*إفلاس|التسوية القضائية|إفلاس.*تاجر|تاجر.*إفلاس|الكمبيالة|سند.*أمر|الشركات التجارية|رأس المال.*شركة|تسجيل.*شركة|مسؤولية.*الشريك|دفاتر التجارية|مسؤولية المسير|الشركة ذات المسؤولية|اكتساب صفة التاجر|حل الشركة|حقوق الدائنين.*إفلاس|SARL|registre.*commerce|actes.*commerce.*nature|lettre.*change|fonds.*commerce|redressement judiciaire|responsabilité.*dirigeant.*socié|transports.*commerciaux|obligations.*commerçant|livres.*comptables.*commerçant|transports.*marchandise.*commercial|arbitrage.*commercial.*international|qualifié.*commerçant|conditions.*commerçant/.test(queryText)) {
     return 'المجلة التجارية'
   }
-  // Civil obligations (COC) — التقادم + تعمير الذمة → art.402
-  if (/العقد|الالتزامات|البطلان|الفسخ|الضمان|التقادم|المسؤولية التقصيرية|المسؤولية المدنية|مجلة الالتزامات|أركان العقد|الرضا|الإيجاب والقبول|تعمير الذمة|شروط.*صحة|صحة.*العقد|إثبات.*التزام|وسائل الإثبات/.test(queryText)) {
+  // Procedure civile — مجلة المرافعات المدنية والتجارية
+  if (/اختصاصات.*محكمة|درجات التقاضي|رفع دعوى|آجال الاستئناف|شروط.*الدعوى|التنفيذ الجبري|الطعن بالتعقيب|رد القاضي|compétence.*juge.*cantonal|procédure.*référé|voies.*recours.*ordinaires|aide juridictionnelle|tierce opposition|motivation.*arrêt|compétence.*territoriale.*tribunal|effets.*appel|récusation.*juge|procédure.*civile|référé.*civil|pourvoi.*cassation|recours.*cassation|Cour.*cassation.*civile|cassation.*matière civile|contrôle.*motivation.*arrêt/.test(queryText)) {
+    return 'مجلة المرافعات المدنية والتجارية'
+  }
+  // Civil obligations (COC) — التقادم + tعمير الذمة → art.402
+  if (/العقد|الالتزامات|البطلان|الفسخ|الضمان|التقادم|المسؤولية التقصيرية|المسؤولية المدنية|مجلة الالتزامات|أركان العقد|الرضا|الإيجاب والقبول|تعمير الذمة|شروط.*صحة|صحة.*العقد|إثبات.*التزام|وسائل الإثبات|التعويض.*ضرر|ضرر معنوي|حوادث المرور|الكفالة.*مدني|الإثراء.*سبب|المقاصة.*مدني|subrogation|مسؤولية.*أشياء|القوة القاهرة|الإعذار/.test(queryText)) {
     return 'مجلة الالتزامات'
   }
-  // Fix Feb 26 v13: Queries FR ciblant le COC tunisien → même chemin codes-forced-direct
-  if (/validit.*contrat|conditions.*contrat|COC tunisien|obligat.*tunisien|résolution.*contrat|nullit.*contrat|garantie.*contrat|preuve.*obligat/.test(queryText)) {
+  // Fix Feb 26 v13 (étendu): Queries FR ciblant le COC tunisien
+  if (/validit.*contrat|conditions.*contrat|COC tunisien|obligat.*tunisien|résolution.*contrat|nullit.*contrat|garantie.*contrat|preuve.*obligat|prescription.*civil|prescription extinctive|prescription acquisitive|extinction.*obligation|responsabilité.*fait.*choses|responsabilité contractuelle|responsabilité délictuelle|mise en demeure|cautionnement|abus.*droit|enrichissement.*sans cause|théorie.*imprévision|article 243.*COC|dommages.*intérêts.*243|subrogation|compensation.*civil|تنازع.*القوانين.*عقود|العقود.*الدولية|force majeure.*exonération/.test(queryText)) {
     return 'مجلة الالتزامات'
   }
   return null
