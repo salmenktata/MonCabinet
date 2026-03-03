@@ -36,6 +36,7 @@ export function deriveSourceOrigin(baseUrl: string): string {
  * Utilisé pour enrichir les métadonnées KB lors de l'indexation.
  */
 const IORT_TEXTTYPE_TO_NORM_LEVEL: Record<string, NormLevel> = {
+  'دستور': 'constitution',       // Constitution tunisienne (×1.35 boost RAG)
   'قانون أساسي': 'loi_organique',
   'قانون': 'loi_ordinaire',
   'مجلة': 'loi_ordinaire',
@@ -242,9 +243,6 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       }
     : null
 
-  // Déterminer la catégorie KB (detected_category → IA → URL pattern → "autre")
-  const { category: kbCategory, source: classificationSource } = determineCategoryForKB(classification, row.url, row.detected_category)
-
   // Dériver l'origine de la source (pour boost fiabilité RAG)
   const sourceOrigin = deriveSourceOrigin(row.source_base_url || '')
 
@@ -253,6 +251,11 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   const normLevel = sourceOrigin === 'iort_gov_tn'
     ? deriveNormLevelFromIortTextType(iortStructuredData.textType as string | undefined)
     : null
+
+  // Déterminer la catégorie KB (detected_category → IA → URL pattern → "autre")
+  // Override : IORT textType='دستور' → forcer 'constitution' (classification IA échoue sur OCR brut)
+  const { category: rawKbCategory, source: classificationSource } = determineCategoryForKB(classification, row.url, row.detected_category)
+  const kbCategory = (normLevel === 'constitution') ? 'constitution' : rawKbCategory
 
   // Guard : قرارات et أوامر IORT de bruit (nominations, concours, mutations) → rag_enabled=false
   // Ces actes n'ont aucune valeur juridique pour un avocat mais polluent le RAG.
