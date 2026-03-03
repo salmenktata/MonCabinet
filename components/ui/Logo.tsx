@@ -58,18 +58,23 @@ export function Logo({
           />
         )}
 
-        {/* Logo PNG — transparent, sans fond blanc */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/logo.png"
-          alt="Qadhya"
-          draggable={false}
-          onContextMenu={(e) => e.preventDefault()}
-          className={cn(
-            'w-full h-full relative z-10 object-contain drop-shadow-lg select-none',
-            animate && 'transition-transform duration-300'
-          )}
-        />
+        {/* Logo — WebP pour navigateurs modernes, PNG fallback */}
+        <picture>
+          <source srcSet="/logo.webp" type="image/webp" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Qadhya"
+            width={192}
+            height={192}
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            className={cn(
+              'w-full h-full relative z-10 object-contain drop-shadow-lg select-none',
+              animate && 'transition-transform duration-300'
+            )}
+          />
+        </picture>
       </div>
 
       {/* Texte du logo */}
@@ -150,14 +155,19 @@ export function LogoHorizontal({
             }}
           />
         )}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/logo.png"
-          alt="Qadhya"
-          draggable={false}
-          onContextMenu={(e) => e.preventDefault()}
-          className="w-full h-full relative z-10 object-contain drop-shadow-lg select-none"
-        />
+        <picture>
+          <source srcSet="/logo.webp" type="image/webp" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Qadhya"
+            width={192}
+            height={192}
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            className="w-full h-full relative z-10 object-contain drop-shadow-lg select-none"
+          />
+        </picture>
       </div>
 
       {/* Texte et tag */}
