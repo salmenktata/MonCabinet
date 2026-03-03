@@ -1348,7 +1348,7 @@ async function extractConstitutionText(
   // Fallback PDF : si le HTML ne contient pas d'articles (viewer WebDev vide/paginé)
   // Utilise parsePdf() de file-parser-service qui gère le fallback OCR pour les PDFs
   // à encodage de police personnalisé (fréquent pour les PDFs gouvernementaux arabes IORT).
-  const hasArticles = /(?:الفصل|فصل)\s+[\d\u0660-\u0669]+/.test(content)
+  const hasArticles = /(?:الفصل|فصل)\s+(?:[\d\u0660-\u0669]+|ال[\u0600-\u06FF]+)/.test(content)
   if ((!hasArticles || content.length < 5000) && pdfBuffer) {
     console.log('[IORT Constitution] HTML sans articles constitutionnels — fallback PDF (parsePdf + OCR si garbled)')
     try {
@@ -1394,7 +1394,7 @@ export async function downloadConstitutionFromIort(
   // Fix Mar 2 2026: l'appel A7 réinitialise la page, ne laissant que 6092 chars vides.
   // La page M4 IORT a le texte constitutionnel (37K chars HTML) si on l'extrait avant A7.
   const extracted = await extractConstitutionText(page, undefined)
-  console.log(`[IORT Constitution] Extraction initiale: ${extracted.content.length} chars, hasArticles: ${/الفصل\s+\d+/.test(extracted.content)}`)
+  console.log(`[IORT Constitution] Extraction initiale: ${extracted.content.length} chars, hasArticles: ${/(?:الفصل|فصل)\s+(?:[\d\u0660-\u0669]+|ال[\u0600-\u06FF]+)/.test(extracted.content)}`)
 
   // Télécharger le PDF APRÈS extraction (A7 peut naviguer/réinitialiser la page — peu importe)
   const pdfResult = await downloadConstitutionPdfViaA7(page)
@@ -1411,7 +1411,7 @@ export async function downloadConstitutionFromIort(
   // Le PDF IORT utilise un encodage de police personnalisé (Arabic custom font mapping) →
   // pdf-parse seul produit du texte garbled (\x02\x03...). parsePdf() détecte ce cas
   // et applique automatiquement l'OCR (Tesseract) pour produire du texte Unicode arabe.
-  const htmlHasArticles = /(?:الفصل|فصل)\s+[\d\u0660-\u0669]+/.test(extracted.content)
+  const htmlHasArticles = /(?:الفصل|فصل)\s+(?:[\d\u0660-\u0669]+|ال[\u0600-\u06FF]+)/.test(extracted.content)
   if (pdfResult?.buffer && (!htmlHasArticles || extracted.content.length < 5000)) {
     try {
       const { parsePdf } = await import('./file-parser-service')
@@ -1429,7 +1429,7 @@ export async function downloadConstitutionFromIort(
     }
   }
 
-  const finalHasArticles = /(?:الفصل|فصل)\s+[\d\u0660-\u0669]+/.test(extracted.content)
+  const finalHasArticles = /(?:الفصل|فصل)\s+(?:[\d\u0660-\u0669]+|ال[\u0600-\u06FF]+)/.test(extracted.content)
   console.log(`[IORT Constitution] Titre: ${extracted.title}, contenu final: ${extracted.content.length} chars, hasArticles: ${finalHasArticles}`)
 
   // Sauvegarder PDF dans MinIO

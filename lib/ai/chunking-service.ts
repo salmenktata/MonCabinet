@@ -776,8 +776,10 @@ export function chunkTextByArticles(
   const articlePatterns: Record<string, RegExp> = {
     // Français: "Article 258" ou "art. 42 bis"
     fr: /(?:^|\n)\s*(?:Article|art\.?)\s+(\d+(?:\s+(?:bis|ter|quater))?)/gi,
-    // Arabe: "الفصل 258" ou "فصل 12 مكرر" — inclut chiffres arabes-indiens (٠-٩)
-    ar: /(?:^|\n)\s*(?:الفصل|فصل)\s+([\d\u0660-\u0669]+(?:\s+مكرر)?)/g,
+    // Arabe: "الفصل 258" ou "فصل 12 مكرر" (chiffres arabes-indiens inclus)
+    // ET ordinaux arabes: "الفصل الأوّل", "الفصل الحادي والعشرون", "الفصل المائة وواحد وأربعون"
+    // Lookahead (?=\s*[:\n\r]) pour s'arrêter au ':' (fin d'entête article IORT)
+    ar: /(?:^|\n)\s*(?:الفصل|فصل)\s+([\d\u0660-\u0669]+(?:\s+مكرر)?|ال[\u0600-\u06FF\u064B-\u065F]+(?:\s+[\u0600-\u06FF\u064B-\u065F]+){0,3})(?=\s*[:\n\r])/g,
   }
 
   // Auto-détection langue si non fournie
