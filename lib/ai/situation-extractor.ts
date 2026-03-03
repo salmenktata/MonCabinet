@@ -25,12 +25,13 @@ export type ProcedureStage =
   | 'cassation'
   | 'execution'
   | 'inconnu'
-export type QuestionType = 'fond' | 'procedure' | 'strategie' | 'modele' | 'inconnu'
+export type QuestionType = 'fond' | 'procedure' | 'strategie' | 'modele' | 'lookup' | 'inconnu'
 
 export interface SituationContext {
   role: LegalRole
   stage: ProcedureStage
   questionType: QuestionType
+  suggestedStance?: 'neutral' | 'defense' // Override du stance par défaut si détecté
   promptInjection: string // Fragment prêt à injecter dans le prompt LLM
 }
 
@@ -53,6 +54,21 @@ const TYPE_PATTERNS: Array<{ pattern: RegExp; type: QuestionType }> = [
   { pattern: /نموذج|عقد\s*جاهز|modèle|formulaire|template/i, type: 'modele' },
   { pattern: /كيف\s*أتقدم|الإجراءات|أجال|délai|procédure|comment\s*faire/i, type: 'procedure' },
   { pattern: /استراتيجية|أفضل\s*طريقة|ما\s*رأيك|stratégie|conseil\s*sur/i, type: 'strategie' },
+]
+
+// Détecte les requêtes de consultation pure (texte légal, article, définition)
+// → force stance 'neutral' pour éviter l'analyse stratégique défense
+const LOOKUP_PATTERNS: RegExp[] = [
+  // "الفصل X من الدستور/المجلة/القانون..." — demande directe du texte d'un article
+  /(?:الفصل|الفقرة|المادة)\s+(?:\d+|الأول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر|الحادي\s*عشر|الثاني\s*عشر|\w+)\s+من\s+(?:الدستور|المجلة|القانون|الاتفاقية|الأمر|المرسوم)/i,
+  // "ما هو/نص الفصل X"
+  /ما\s+(?:هو|نص|هي)\s+(?:الفصل|الفقرة|المادة)/i,
+  // "نص الفصل X"
+  /نص\s+(?:الفصل|المادة|الفقرة)\s+\d+/i,
+  // article N de / du (FR)
+  /\barticle\s+\d+\s+(?:de|du|des)\s+\w+/i,
+  // "تعريف / ماذا يعني / ما معنى"
+  /(?:تعريف|ماذا\s+يعني|ما\s+معنى)\s+\w+/i,
 ]
 
 /**
@@ -108,6 +124,19 @@ export function extractSituationContext(question: string): SituationContext {
     }
   }
 
+  // Détection requête lookup (consultation pure — texte légal, article, définition)
+  // → bypass le mode défense stratégique par défaut
+  let suggestedStance: 'neutral' | 'defense' | undefined = undefined
+  if (questionType === 'fond' || questionType === 'inconnu') {
+    for (const pattern of LOOKUP_PATTERNS) {
+      if (pattern.test(question)) {
+        questionType = 'lookup'
+        suggestedStance = 'neutral'
+        break
+      }
+    }
+  }
+
   // Construction du fragment à injecter dans le prompt
   const parts: string[] = []
 
@@ -128,9 +157,9 @@ export function extractSituationContext(question: string): SituationContext {
     ? `[السياق الإجرائي]\n${parts.join('\n')}`
     : ''
 
-  if (hasContext) {
-    log.info(`[SituationExtractor] role=${role}, stage=${stage}, type=${questionType}`)
+  if (hasContext || suggestedStance) {
+    log.info(`[SituationExtractor] role=${role}, stage=${stage}, type=${questionType}, suggestedStance=${suggestedStance ?? 'none'}`)
   }
 
-  return { role, stage, questionType, promptInjection }
+  return { role, stage, questionType, suggestedStance, promptInjection }
 }

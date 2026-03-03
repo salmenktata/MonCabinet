@@ -475,12 +475,15 @@ export async function answerQuestion(
   // Par défaut: 'chat' si conversation, 'consultation' sinon
   const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
   const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
-  const stance = options.stance ?? 'defense'
-  const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
 
   // Enrichissement sémantique : détection du contexte situationnel client (heuristique, sans appel LLM)
+  // Doit être appelé AVANT le calcul du stance pour permettre la détection lookup → neutral
   const situationCtx = extractSituationContext(question)
   const situationInjection = situationCtx.promptInjection
+
+  // Stance : explicite (options) > suggéré par détection (lookup→neutral) > défaut 'defense'
+  const stance = options.stance ?? situationCtx.suggestedStance ?? 'defense'
+  const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
 
   // 4. Construire les messages (format OpenAI-compatible pour Ollama/Groq)
   const messagesOpenAI: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = []
@@ -1020,11 +1023,14 @@ export async function* answerQuestionStream(
   // 4. Construire messages
   const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
   const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
-  const stance = options.stance ?? 'defense'
-  const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
 
   // Enrichissement sémantique : contexte situationnel client (heuristique, sans appel LLM)
+  // Doit être appelé AVANT le calcul du stance pour permettre la détection lookup → neutral
   const streamSituationCtx = extractSituationContext(question)
+
+  // Stance : explicite (options) > suggéré par détection (lookup→neutral) > défaut 'defense'
+  const stance = options.stance ?? streamSituationCtx.suggestedStance ?? 'defense'
+  const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
 
   const systemPrompt = [
     baseSystemPrompt,
