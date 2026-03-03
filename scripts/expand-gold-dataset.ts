@@ -286,8 +286,8 @@ async function selectChunksForDomain(
      WHERE kc.embedding IS NOT NULL
        AND length(kc.content) BETWEEN 200 AND 2000
        AND (${titleConditions})
-       AND kc.id NOT IN (
-         SELECT UNNEST(gold_chunk_ids) FROM rag_gold_dataset
+       AND kc.id::text NOT IN (
+         SELECT UNNEST(gold_chunk_ids)::text FROM rag_gold_dataset
        )
      ORDER BY RANDOM()
      LIMIT $1`,
