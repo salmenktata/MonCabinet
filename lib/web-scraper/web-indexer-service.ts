@@ -481,14 +481,37 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     const isOpenAI = primaryEmbeddings.provider === 'openai'
     const embeddingColumn = isOpenAI ? 'embedding_openai' : 'embedding'
 
+    // C4 : Extraire les en-têtes hiérarchiques du texte pour enrichir les chunks adaptatifs
+    // Heuristique : lignes courtes (≤80 chars) sans ponctuation finale = probable en-tête de section
+    const headingLines: Array<{ position: number; text: string }> = []
+    if (chunkingStrategy === 'adaptive') {
+      const lines = normalizedText.split('\n')
+      let linePos = 0
+      for (const line of lines) {
+        const trimmed = line.trim()
+        // Critères : 5-80 chars, ne termine pas par . ! ? ؟ ، ; :
+        if (trimmed.length >= 5 && trimmed.length <= 80 && !/[.!?؟،;:،]$/.test(trimmed)) {
+          headingLines.push({ position: linePos, text: trimmed })
+        }
+        linePos += line.length + 1 // +1 pour le \n
+      }
+    }
+
     // Insérer les chunks avec embedding primaire uniquement
     for (let i = 0; i < chunks.length; i++) {
+      // Trouver l'en-tête de section le plus proche avant ce chunk (contexte hiérarchique)
+      const chunkStart = chunks[i].metadata?.startPosition ?? 0
+      const nearestHeading = headingLines
+        .filter((h) => h.position <= chunkStart)
+        .at(-1) // Dernier heading avant ce chunk
+
       const meta = JSON.stringify({
         wordCount: chunks[i].metadata.wordCount,
         charCount: chunks[i].metadata.charCount,
         sourceUrl: row.url,
         sourceOrigin,
         ...(normLevel ? { normLevel } : {}),
+        ...(nearestHeading ? { sectionHeader: nearestHeading.text } : {}),
       })
 
       await client.query(

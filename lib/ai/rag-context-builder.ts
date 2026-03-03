@@ -193,6 +193,34 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
     return source
   })
 
+  // Détection de contradictions : si deux sources citent le même numéro d'article
+  // avec des dates différentes → avertir le LLM d'utiliser la version la plus récente
+  const articleVersionMap = new Map<string, { index: number; date?: string; docName: string }[]>()
+  for (let i = 0; i < enrichedSources.length; i++) {
+    const s = enrichedSources[i]
+    const m = s.metadata as any
+    // Détecter numéro d'article dans le contenu ou les métadonnées
+    const articleNumMatch = s.chunkContent.match(/(?:الفصل|فصل|Article|Art\.?)\s+(\d+)/i)
+    const articleKey = m?.articleNumber || (articleNumMatch ? articleNumMatch[1] : null)
+    if (!articleKey) continue
+    const existing = articleVersionMap.get(articleKey) || []
+    existing.push({ index: i, date: m?.lastVerifiedAt || m?.publicationDate, docName: s.documentName })
+    articleVersionMap.set(articleKey, existing)
+  }
+  const contradictionWarnings: string[] = []
+  for (const [artNum, versions] of articleVersionMap.entries()) {
+    if (versions.length < 2) continue
+    const withDates = versions.filter((v) => v.date)
+    if (withDates.length >= 2) {
+      const sorted = [...withDates].sort((a, b) => (a.date! > b.date! ? -1 : 1))
+      contradictionWarnings.push(
+        lang === 'ar'
+          ? `⚠️ تنبيه تعارض: الفصل ${artNum} موجود في ${versions.length} مصادر (أحدثها: "${sorted[0].docName}"). استعمل النسخة الأحدث تاريخاً.`
+          : `⚠️ Contradiction: الفصل ${artNum} présent dans ${versions.length} sources (plus récente: "${sorted[0].docName}"). Utiliser la version la plus récente.`
+      )
+    }
+  }
+
   for (let i = 0; i < enrichedSources.length; i++) {
     const source = enrichedSources[i]
     const meta = source.metadata as any
@@ -263,7 +291,24 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
         enrichedHeader += `${labels.articles}: ${meta?.articles?.join(', ') || labels.na}\n`
       }
 
-      part = enrichedHeader + '\n' + source.chunkContent
+      // C3 : Compression intelligente des jurisprudences longues
+      // Si le chunk dépasse ~500 mots (≈3000 chars arabes) ET que structuredMeta est disponible
+      // → le header contient déjà tribunal/date/décision/solution → on peut tronquer le corps
+      const JURIS_BODY_LIMIT_CHARS = 2800
+      let jurisBody = source.chunkContent
+      if (source.chunkContent.length > JURIS_BODY_LIMIT_CHARS) {
+        if (structuredMeta?.solution) {
+          // Le dispositif est déjà dans le header → tronquer agressivement (motifs seulement)
+          jurisBody = source.chunkContent.slice(0, 1500)
+            + (lang === 'ar' ? '\n[...تُرجع المتن إلى المنطوق المذكور أعلاه]' : '\n[...voir dispositif ci-dessus]')
+        } else {
+          // Pas de solution structurée → garder début + fin (contexte + dispositif)
+          jurisBody = source.chunkContent.slice(0, 1800)
+            + '\n[...]\n'
+            + source.chunkContent.slice(-400)
+        }
+      }
+      part = enrichedHeader + '\n' + jurisBody
     } else if (meta?.sourceType === 'legal_document' || meta?.citationKey) {
       // Format enrichi pour documents juridiques consolidés
       let enrichedHeader = `[KB-${i + 1}] ${source.documentName} (${relevanceLabel} - ${relevancePct})\n`
@@ -307,6 +352,12 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
       const isPromulgated = meta?.promulgated === true || meta?.sourceOrigin === 'iort_gov_tn' || isConstitution2022
       if (!isPromulgated && (docName.includes('مشروع') || docName.includes('اقتراح'))) {
         enrichedHeader += lang === 'ar' ? '📋 [مشروع / صيغة أولية - غير نهائي]\n' : '📋 [PROJET - version non définitive]\n'
+      }
+
+      // C4 : Contexte hiérarchique — injecter sectionHeader si disponible dans les métadonnées
+      // (stocké par web-indexer-service lors du chunking adaptatif)
+      if (meta?.sectionHeader) {
+        enrichedHeader += lang === 'ar' ? `📑 الباب: ${meta.sectionHeader}\n` : `📑 Section: ${meta.sectionHeader}\n`
       }
 
       // Ajouter métadonnées structurées KB si disponibles
@@ -387,7 +438,7 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
 
   // Si tout est dans "other" (pas de métadonnées type/category), retourner en ordre original
   if (grouped.codes.length === 0 && grouped.jurisprudence.length === 0 && grouped.doctrine.length === 0) {
-    return contextParts.join('\n\n---\n\n')
+    return (contradictionWarnings.length > 0 ? contradictionWarnings.join('\n') + '\n\n' : '') + contextParts.join('\n\n---\n\n')
   }
 
   // Construire le contexte groupé avec headers (réutilise `lang` déjà déclaré plus haut)
@@ -410,7 +461,100 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
     sections.push(`${header}\n\n${grouped.other.join('\n\n---\n\n')}`)
   }
 
-  return sections.join('\n\n===\n\n')
+  const contradictionBlock = contradictionWarnings.length > 0
+    ? contradictionWarnings.join('\n') + '\n\n'
+    : ''
+
+  const mainContext = contradictionBlock + sections.join('\n\n===\n\n')
+
+  // Enrichissement : articles connexes (±2 du même code) pour donner au LLM le contexte réglementaire
+  // Uniquement si budget tokens disponible et que des sources ont un articleNumber
+  const remainingTokens = RAG_MAX_CONTEXT_TOKENS - totalTokens
+  if (remainingTokens > 200) {
+    try {
+      const adjacent = await fetchAdjacentArticles(enrichedSources, Math.min(remainingTokens - 50, 800))
+      if (adjacent.length > 0) {
+        const adjHeader = lang === 'ar'
+          ? '📎 السياق التشريعي المجاور (فصول مرتبطة — للاستئناس)'
+          : '📎 Contexte législatif adjacent (articles connexes — à titre informatif)'
+        const adjContent = adjacent.map((a) => `${a.label}:\n${a.content}`).join('\n\n')
+        return mainContext + '\n\n===\n\n' + adjHeader + '\n\n' + adjContent
+      }
+    } catch {
+      // Silencieux : le contexte adjacent est optionnel
+    }
+  }
+
+  return mainContext
+}
+
+/**
+ * Récupère les articles juridiquement adjacents (±2) aux articles déjà trouvés.
+ * Permet au LLM de disposer du contexte réglementaire complet autour d'un article cité.
+ *
+ * Exemple : si الفصل 258 est trouvé → récupère الفصل 256, 257, 259, 260 du même document.
+ */
+async function fetchAdjacentArticles(
+  sources: ChatSource[],
+  maxAdjacentTokens: number = 800
+): Promise<{ content: string; label: string }[]> {
+  // Collecter les (documentId, articleNumber) avec numéro entier parseable
+  const articleSources: Array<{ documentId: string; articleNum: number }> = []
+  const seenDocs = new Set<string>()
+
+  for (const source of sources) {
+    const meta = source.metadata as any
+    const rawArticle = meta?.articleNumber as string | undefined
+    if (!rawArticle || !source.documentId) continue
+    // Extraire la partie numérique (ex: "42 bis" → 42, "258 مكرر" → 258)
+    const numMatch = rawArticle.match(/^(\d+)/)
+    if (!numMatch) continue
+    const articleNum = parseInt(numMatch[1], 10)
+    if (isNaN(articleNum) || seenDocs.has(source.documentId)) continue
+    seenDocs.add(source.documentId)
+    articleSources.push({ documentId: source.documentId, articleNum })
+  }
+
+  if (articleSources.length === 0) return []
+
+  const adjacentChunks: { content: string; label: string }[] = []
+  let tokensUsed = 0
+
+  for (const { documentId, articleNum } of articleSources.slice(0, 3)) {
+    try {
+      // Récupérer les chunks adjacents (±2 articles) du même document
+      const result = await db.query(
+        `SELECT chunk_content, metadata->>'articleNumber' AS article_num
+         FROM knowledge_base_chunks kbc
+         JOIN knowledge_base kb ON kb.id = kbc.kb_id
+         WHERE kbc.kb_id = $1
+           AND kb.is_indexed = true
+           AND (metadata->>'articleNumber') IS NOT NULL
+           AND (metadata->>'articleNumber') ~ '^\\d'
+           AND CAST(REGEXP_REPLACE(metadata->>'articleNumber', '[^0-9].*$', '') AS INTEGER)
+               BETWEEN $2 AND $3
+           AND CAST(REGEXP_REPLACE(metadata->>'articleNumber', '[^0-9].*$', '') AS INTEGER) != $4
+         ORDER BY CAST(REGEXP_REPLACE(metadata->>'articleNumber', '[^0-9].*$', '') AS INTEGER)
+         LIMIT 4`,
+        [documentId, articleNum - 2, articleNum + 2, articleNum]
+      )
+
+      for (const row of result.rows) {
+        const chunkTokens = countTokens(row.chunk_content)
+        if (tokensUsed + chunkTokens > maxAdjacentTokens) break
+        const truncated = row.chunk_content.slice(0, 300)
+        adjacentChunks.push({
+          label: `الفصل ${row.article_num}`,
+          content: truncated + (row.chunk_content.length > 300 ? '...' : ''),
+        })
+        tokensUsed += chunkTokens
+      }
+    } catch {
+      // Pas de panic si la requête échoue (ex: regex DB non supporté)
+    }
+  }
+
+  return adjacentChunks
 }
 
 /**

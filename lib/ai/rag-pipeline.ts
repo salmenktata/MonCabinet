@@ -59,6 +59,7 @@ import {
 import { recordRAGMetric } from '@/lib/metrics/rag-metrics'
 import { scheduleRiskScoring } from './risk-scoring-service'
 import { buildContextFromSources, sanitizeCitations, computeSourceQualityMetrics } from './rag-context-builder'
+import { extractSituationContext } from './situation-extractor'
 import {
   searchRelevantContext,
   searchRelevantContextBilingual,
@@ -477,6 +478,10 @@ export async function answerQuestion(
   const stance = options.stance ?? 'defense'
   const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
 
+  // Enrichissement sémantique : détection du contexte situationnel client (heuristique, sans appel LLM)
+  const situationCtx = extractSituationContext(question)
+  const situationInjection = situationCtx.promptInjection
+
   // 4. Construire les messages (format OpenAI-compatible pour Ollama/Groq)
   const messagesOpenAI: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = []
 
@@ -528,10 +533,12 @@ export async function answerQuestion(
     log.info(`[RAG] Conversation ${options.conversationId}: résumé injecté (${totalMessageCount} messages total)`)
   }
 
-  // Construire le système prompt avec résumé pour Anthropic
-  const systemPromptWithSummary = conversationSummary
-    ? `${baseSystemPrompt}\n\n[Résumé de la conversation précédente]\n${conversationSummary}`
-    : baseSystemPrompt
+  // Construire le système prompt avec résumé + contexte situationnel pour Anthropic
+  const systemPromptWithSummary = [
+    baseSystemPrompt,
+    conversationSummary ? `[Résumé de la conversation précédente]\n${conversationSummary}` : null,
+    situationInjection || null,
+  ].filter(Boolean).join('\n\n')
 
   log.info(`[RAG] Utilisation du prompt structuré: contextType=${contextType}, langue=${supportedLang}`)
 
@@ -1015,9 +1022,15 @@ export async function* answerQuestionStream(
   const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
   const stance = options.stance ?? 'defense'
   const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
-  const systemPrompt = conversationSummary
-    ? `${baseSystemPrompt}\n\n[Résumé de la conversation précédente]\n${conversationSummary}`
-    : baseSystemPrompt
+
+  // Enrichissement sémantique : contexte situationnel client (heuristique, sans appel LLM)
+  const streamSituationCtx = extractSituationContext(question)
+
+  const systemPrompt = [
+    baseSystemPrompt,
+    conversationSummary ? `[Résumé de la conversation précédente]\n${conversationSummary}` : null,
+    streamSituationCtx.promptInjection || null,
+  ].filter(Boolean).join('\n\n')
 
   const messagesForLLM: Array<{ role: string; content: string }> = []
   for (const msg of conversationHistory) {

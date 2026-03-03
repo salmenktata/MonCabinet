@@ -142,6 +142,46 @@ const FRENCH_STOPWORDS = new Set([
 ])
 
 // =============================================================================
+// ARTICLE NUMBER EXACT-MATCH BONUS
+// =============================================================================
+
+/**
+ * Extrait les numéros d'articles d'un texte arabe ou français.
+ * Retourne un Set de chaînes normalisées : "258", "42 bis", "39 مكرر"
+ */
+function extractArticleNumbers(text: string): Set<string> {
+  const numbers = new Set<string>()
+  // Arabe : الفصل 258 / فصل 39 / الفصل 42 مكرر
+  const arPattern = /(?:الفصل|فصل)\s+([\d\u0660-\u0669]+(?:\s+مكرر)?)/g
+  let m: RegExpExecArray | null
+  while ((m = arPattern.exec(text)) !== null) {
+    // Convertir chiffres arabes-indiens en occidentaux
+    const num = m[1].replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660))
+    numbers.add(num.trim().toLowerCase())
+  }
+  // Français : Article 258 / Art. 39 / Art 42 bis
+  const frPattern = /(?:article|art\.?)\s+(\d+(?:\s+(?:bis|ter|quater))?)/gi
+  while ((m = frPattern.exec(text)) !== null) {
+    numbers.add(m[1].trim().toLowerCase())
+  }
+  return numbers
+}
+
+/**
+ * Calcule le bonus exact-match numéro d'article entre query et chunk.
+ * Retourne un facteur multiplicatif (0 = pas de bonus, 0.35 = boost maximal).
+ */
+function computeArticleMatchBonus(query: string, docContent: string): number {
+  const queryArticles = extractArticleNumbers(query)
+  if (queryArticles.size === 0) return 0
+  const docArticles = extractArticleNumbers(docContent)
+  const matched = [...queryArticles].filter((n) => docArticles.has(n))
+  if (matched.length === 0) return 0
+  // Bonus progressif : 1 match = +0.25, 2+ = +0.35
+  return matched.length === 1 ? 0.25 : 0.35
+}
+
+// =============================================================================
 // TF-IDF RE-RANKING
 // =============================================================================
 
@@ -319,12 +359,13 @@ export async function rerankDocuments(
   const maxTFIDF = Math.max(...tfidfScores, 0.001)
   const normalizedTFIDF = tfidfScores.map((s) => s / maxTFIDF)
 
-  // Combiner avec les scores originaux
-  const results: RerankerResult[] = documents.map((doc, index) => ({
-    index,
-    score: combineScores(normalizedTFIDF[index], doc.originalScore),
-    originalScore: doc.originalScore,
-  }))
+  // Combiner avec les scores originaux + bonus exact-match numéro d'article
+  const results: RerankerResult[] = documents.map((doc, index) => {
+    const baseScore = combineScores(normalizedTFIDF[index], doc.originalScore)
+    const articleBonus = computeArticleMatchBonus(query, doc.content)
+    const score = articleBonus > 0 ? Math.min(baseScore * (1 + articleBonus), 1.0) : baseScore
+    return { index, score, originalScore: doc.originalScore }
+  })
 
   // Trier par score combiné décroissant
   results.sort((a, b) => b.score - a.score)
