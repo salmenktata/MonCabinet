@@ -301,7 +301,8 @@ export async function parsePdf(buffer: Buffer, options: { forceOcr?: boolean } =
   let pdfParseSuccess = false
 
   // Vérifier si l'OCR est activé (désactivable si dépendances manquantes)
-  const ocrEnabled = process.env.ENABLE_OCR !== 'false'
+  // forceOcr court-circuite ENABLE_OCR=false pour les cas explicites (ex: constitution IORT)
+  const ocrEnabled = process.env.ENABLE_OCR !== 'false' || !!options.forceOcr
 
   try {
     // pdf-parse v2 utilise une classe PDFParse (import dynamique)
