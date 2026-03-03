@@ -155,7 +155,7 @@ export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
       SELECT
         l.user_id,
         u.email,
-        u.full_name,
+        u.name,
         SUM(l.input_tokens + l.output_tokens) as total_tokens,
         SUM(l.estimated_cost_usd) as total_cost_usd,
         COUNT(*)::int as requests_count
@@ -163,7 +163,7 @@ export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
       LEFT JOIN users u ON u.id::text = l.user_id::text
       WHERE DATE_TRUNC('month', l.created_at) = DATE_TRUNC('month', CURRENT_DATE)
         AND l.user_id IS NOT NULL
-      GROUP BY l.user_id, u.email, u.full_name
+      GROUP BY l.user_id, u.email, u.name
       ORDER BY total_tokens DESC
       LIMIT 10
     `),
@@ -348,7 +348,7 @@ export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
   const topUsers = topUsersRows.rows.map(row => ({
     userId: row.user_id,
     email: row.email || null,
-    name: row.full_name || null,
+    name: row.name || null,
     totalTokens: parseInt(row.total_tokens || '0', 10),
     totalCostUsd: parseFloat(row.total_cost_usd || '0'),
     requestsCount: parseInt(row.requests_count || '0', 10),
