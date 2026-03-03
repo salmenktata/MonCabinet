@@ -942,8 +942,21 @@ function isTextGarbled(text: string): boolean {
   const latinChars = (sample.match(/[a-zA-Z]/g) || []).length
   const totalLetters = arabicChars + latinChars
 
-  // Pas assez de lettres pour conclure
-  if (totalLetters < 100) return false
+  // Pas assez de lettres pour conclure (mais on peut encore détecter extended-ASCII)
+  if (totalLetters < 100) {
+    // Cas spécial: PDFs arabes à police custom → extended-ASCII (0x80-0xFF) au lieu d'Unicode
+    // (fréquent sur les PDFs gouvernementaux IORT utilisant des polices Type1 non-Unicode)
+    const extendedAscii = (sample.match(/[\x80-\xFF]/g) || []).length
+    const nonSpace = sample.replace(/\s+/g, '').length
+    if (extendedAscii > 50 && nonSpace > 100 && extendedAscii / nonSpace > 0.20 && arabicChars < 50) {
+      console.log(
+        `[FileParser] Texte garbled détecté: ${extendedAscii} chars extended-ASCII ` +
+        `(police arabe custom — sans Unicode ToUnicode map)`
+      )
+      return true
+    }
+    return false
+  }
 
   const arabicRatio = arabicChars / totalLetters
   const latinRatio = latinChars / totalLetters
