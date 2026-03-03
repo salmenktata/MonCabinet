@@ -1059,6 +1059,10 @@ const PSC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
  * LRU simple (max 50 entrées — une query juridique = ~200 chars, 50 × ~300B = ~15KB).
  */
 const _implicitArticleMatchCache = new Map<string, Set<string>>()
+
+/** Regex PSC détection (extraite pour éviter bug SWC avec long regex arabique inline) */
+const PSC_CODE_RE =
+  /مجلة الأحوال الشخصية|الأحوال الشخصية|طلاق للضرر|التفريق للضرر|حضانة|نقل الحضانة|شروط الحضانة|الحضانة|نفقة.*زوج|نفقة الزوجة|نفقة.*الزوج|نفقة.*أبناء|نفقة.*أطفال|واجب النفقة|تعدد.*زوج|زوجات.*متعدد|الجمع بين زوج|سن.*الزواج|السن.*للزواج|الزواج.*سن|الحد.*للزواج|الطلاق.*تراضي|طلاق.*تراضي|الطلاق.*قضائي|واجبات.*الزوج|واجبات الزوجين|حقوق.*الزوجين|التبني|الكفالة.*طفل|كفالة.*قاصر|الوصية|شروط الوصية|صحة الوصية|اللقب.*العائلي|لقب.*طفل|لقب.*الأبناء|الميراث.*زوج|الميراث.*زوجة|حقوق.*الميراث|حقوق.*المرأة.*ميراث|ميراث.*المرأة|الإرث.*أسرة|divorce|mariage.*tunisien|tunisien.*mariage|garde.*enfant|droit.*visite|pension.*alimentaire|obligation.*alimentaire.*épou|kafala|recueil.*légal|empêchement.*mariage|régime.*successoral.*tunisien/i
 const _IMPLICIT_CACHE_MAX = 50
 
 function _evictImplicitCacheIfFull(): void {
@@ -1215,7 +1219,7 @@ function getTargetCodeTitleFragment(queryText: string, lang: string): string | n
   }
   // Family (Personal Status Code) — patterns bilingues AR + FR
   // ORDRE: après Pénal/Travail pour éviter collision
-  if (/مجلة الأحوال الشخصية|الأحوال الشخصية|طلاق للضرر|التفريق للضرر|حضانة|نقل الحضانة|شروط الحضانة|الحضانة|نفقة.*زوج|نفقة الزوجة|نفقة.*الزوج|نفقة.*أبناء|نفقة.*أطفال|واجب النفقة|تعدد.*زوج|زوجات.*متعدد|الجمع بين زوج|سن.*الزواج|السن.*للزواج|الزواج.*سن|الحد.*للزواج|الطلاق.*تراضي|طلاق.*تراضي|الطلاق.*قضائي|واجبات.*الزوج|واجبات الزوجين|حقوق.*الزوجين|التبني|الكفالة.*طفل|كفالة.*قاصر|الوصية|شروط الوصية|صحة الوصية|اللقب.*العائلي|لقب.*طفل|لقب.*الأبناء|الميراث.*زوج|الميراث.*زوجة|حقوق.*الميراث|حقوق.*المرأة.*ميراث|ميراث.*المرأة|الإرث.*أسرة|divorce|mariage.*tunisien|tunisien.*mariage|garde.*enfant|droit.*visite|pension.*alimentaire|obligation.*alimentaire.*épou|kafala|recueil.*légal|empêchement.*mariage|régime.*successoral.*tunisien/i.test(queryText)) {
+  if (PSC_CODE_RE.test(queryText)) {
     return 'مجلة الأحوال الشخصية'
   }
   // Real Property — مجلة الحقوق العينية (avant Commercial pour éviter "baux commerciaux" → Commercial)
