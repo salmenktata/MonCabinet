@@ -120,6 +120,8 @@ import {
   ArrowDownNarrowWide,
   Brain,
   Wrench,
+  Mic,
+  MicOff,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -274,6 +276,9 @@ export const Icons = {
   fileSearch: FileSearch,
   arrowUpDown: ArrowUpDown,
   sortAsc: ArrowDownNarrowWide,
+  mic: Mic,
+  micOff: MicOff,
+  refreshCw: RefreshCw,
 } as const
 
 export type IconName = keyof typeof Icons

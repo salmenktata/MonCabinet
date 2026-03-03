@@ -45,6 +45,7 @@ export interface ChatMessage {
   isStreaming?: boolean
   abrogationAlerts?: AbrogationAlert[] // Phase 3.4
   qualityIndicator?: 'high' | 'medium' | 'low'
+  model?: string
 }
 
 interface ChatMessagesProps {
@@ -58,12 +59,32 @@ interface ChatMessagesProps {
   onSendExample?: (text: string) => void
   canProvideFeedback?: boolean
   onResendMessage?: (content: string) => void
+  onRegenerate?: (userContent: string) => void
+  isStreaming?: boolean
 }
 
-export function ChatMessages({ messages, isLoading, streamingContent, currentMetadata, progressSteps, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false, onResendMessage }: ChatMessagesProps) {
+/** Raccourcit le nom du modèle pour l'affichage */
+function shortModelName(model?: string): string | null {
+  if (!model || model === 'abstained' || model === 'unknown') return null
+  if (model.includes('70b') || model.includes('llama-3.3')) return 'Groq 70b'
+  if (model.includes('8b') || model.includes('llama-3.1')) return 'Groq 8b'
+  if (model.includes('deepseek')) return 'DeepSeek'
+  if (model.includes('gemini-2.5')) return 'Gemini 2.5'
+  if (model.includes('gemini')) return 'Gemini'
+  if (model.includes('gpt-4.1')) return 'GPT-4.1'
+  if (model.includes('gpt-4')) return 'GPT-4'
+  if (model.includes('qwen')) return 'Qwen3'
+  if (model.includes('ollama')) return 'Ollama'
+  return null
+}
+
+export function ChatMessages({ messages, isLoading, streamingContent, currentMetadata, progressSteps, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false, onResendMessage, onRegenerate, isStreaming }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
   const tMode = useTranslations('qadhyaIA.modes')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [showScrollBottom, setShowScrollBottom] = useState(false)
+  const [unreadWhileScrolled, setUnreadWhileScrolled] = useState(0)
+  const isAtBottomRef = useRef(true)
 
   // Convertir les messages pour le hook de virtualisation
   const virtualMessages = useMemo(() =>
@@ -90,9 +111,36 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
     autoScrollToBottom: true,
   })
 
-  // Auto-scroll vers le bas pour les conversations non virtualisées
+  // Détection scroll position pour le bouton scroll-to-bottom
   useEffect(() => {
-    if (!isVirtualized) {
+    const container = containerRef.current
+    if (!container) return
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const atBottom = scrollHeight - scrollTop - clientHeight < 60
+      isAtBottomRef.current = atBottom
+      setShowScrollBottom(!atBottom)
+      if (atBottom) setUnreadWhileScrolled(0)
+    }
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [containerRef])
+
+  // Incrémente le compteur non-lus quand nouveau contenu arrive et user a scrollé
+  useEffect(() => {
+    if (!isAtBottomRef.current && isStreaming && streamingContent) {
+      setUnreadWhileScrolled(prev => prev + 1)
+    }
+  }, [streamingContent, isStreaming])
+
+  const handleScrollToBottom = () => {
+    containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' })
+    setUnreadWhileScrolled(0)
+  }
+
+  // Auto-scroll vers le bas pour les conversations non virtualisées — seulement si déjà en bas
+  useEffect(() => {
+    if (!isVirtualized && isAtBottomRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages, streamingContent, isVirtualized])
@@ -162,43 +210,153 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
     )
   }
 
+  // Bouton flottant scroll-to-bottom (partagé entre les deux modes)
+  const ScrollToBottomButton = showScrollBottom ? (
+    <motion.button
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+      transition={{ duration: 0.15 }}
+      onClick={handleScrollToBottom}
+      className={cn(
+        'absolute bottom-4 right-4 z-10',
+        'flex items-center gap-1.5 px-3 py-2 rounded-full',
+        'bg-background/95 border border-border shadow-lg backdrop-blur-sm',
+        'hover:shadow-xl hover:bg-background transition-all duration-200',
+        'text-sm text-foreground'
+      )}
+    >
+      <Icons.chevronDown className="h-4 w-4" />
+      {unreadWhileScrolled > 0 && (
+        <span className="text-xs font-medium text-primary tabular-nums">{unreadWhileScrolled}</span>
+      )}
+    </motion.button>
+  ) : null
+
+  // Indicateur de contexte
+  const ContextIndicator = messages.length > 0 ? (
+    <div className="flex justify-center pt-2 pb-1">
+      <span className={cn(
+        'text-[10px] px-2 py-0.5 rounded-full border transition-colors',
+        messages.length > 15
+          ? 'text-amber-600/70 border-amber-500/20 bg-amber-500/5'
+          : 'text-muted-foreground/35 border-border/20'
+      )}>
+        {messages.length} message{messages.length > 1 ? 's' : ''}
+        {messages.length > 15 && ' · contexte approchant sa limite'}
+      </span>
+    </div>
+  ) : null
+
   // Rendu virtualisé pour 50+ messages
   if (isVirtualized) {
     return (
-      <div ref={containerRef} className="flex-1 overflow-y-auto p-4">
-        <div
-          style={{
-            height: `${totalHeight}px`,
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {virtualItems.map((virtualItem) => {
-            const message = messages[virtualItem.index]
-            return (
-              <div
-                key={virtualItem.key}
-                ref={measureElement}
-                data-index={virtualItem.index}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualItem.start}px)`,
+      <div className="flex-1 min-h-0 overflow-hidden relative">
+        <div ref={containerRef} className="h-full overflow-y-auto p-4">
+          {ContextIndicator}
+          <div
+            style={{
+              height: `${totalHeight}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {virtualItems.map((virtualItem) => {
+              const message = messages[virtualItem.index]
+              const prevUserContent = message.role === 'assistant'
+                ? messages.slice(0, virtualItem.index).reverse().find(m => m.role === 'user')?.content
+                : undefined
+              return (
+                <div
+                  key={virtualItem.key}
+                  ref={measureElement}
+                  data-index={virtualItem.index}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                  className="pb-4"
+                >
+                  <MessageBubble
+                    message={message}
+                    renderEnriched={renderEnriched}
+                    canProvideFeedback={canProvideFeedback}
+                    onResendMessage={onResendMessage}
+                    onRegenerate={prevUserContent && onRegenerate ? () => onRegenerate(prevUserContent) : undefined}
+                  />
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Message en cours de streaming */}
+          {streamingContent && (
+            <div className="pb-4">
+              {!streamingContent.trim() && (currentMetadata?.sources?.length ?? 0) > 0 && (
+                <SourceChips sources={currentMetadata!.sources as unknown[]} />
+              )}
+              <MessageBubble
+                message={{
+                  id: 'streaming',
+                  role: 'assistant',
+                  content: streamingContent,
+                  createdAt: new Date(),
+                  isStreaming: true,
                 }}
-                className="pb-4"
+                progressSteps={progressSteps}
+                renderEnriched={renderEnriched}
+              />
+            </div>
+          )}
+
+          {/* Indicateur de chargement */}
+          {isLoading && !streamingContent && <LoadingIndicator progressSteps={progressSteps} />}
+        </div>
+        <AnimatePresence>{ScrollToBottomButton}</AnimatePresence>
+      </div>
+    )
+  }
+
+  // Rendu standard pour < 50 messages avec animations
+  return (
+    <div className="flex-1 min-h-0 overflow-hidden relative">
+      <div ref={containerRef} className="h-full overflow-y-auto px-4 py-6 space-y-6">
+        {ContextIndicator}
+        <AnimatePresence mode="popLayout">
+          {messages.map((message, idx) => {
+            const prevUserContent = message.role === 'assistant'
+              ? messages.slice(0, idx).reverse().find(m => m.role === 'user')?.content
+              : undefined
+            return (
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
               >
-                <MessageBubble message={message} renderEnriched={renderEnriched} canProvideFeedback={canProvideFeedback} onResendMessage={onResendMessage} />
-              </div>
+                <MessageBubble
+                  message={message}
+                  renderEnriched={renderEnriched}
+                  canProvideFeedback={canProvideFeedback}
+                  onResendMessage={onResendMessage}
+                  onRegenerate={prevUserContent && onRegenerate ? () => onRegenerate(prevUserContent) : undefined}
+                />
+              </motion.div>
             )
           })}
-        </div>
+        </AnimatePresence>
 
         {/* Message en cours de streaming */}
         {streamingContent && (
-          <div className="pb-4">
-            {/* Source title chips (avant que le texte commence, après metadata reçu) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             {!streamingContent.trim() && (currentMetadata?.sources?.length ?? 0) > 0 && (
               <SourceChips sources={currentMetadata!.sources as unknown[]} />
             )}
@@ -213,69 +371,23 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
               progressSteps={progressSteps}
               renderEnriched={renderEnriched}
             />
-          </div>
+          </motion.div>
         )}
 
-        {/* Indicateur de chargement */}
-        {isLoading && !streamingContent && <LoadingIndicator progressSteps={progressSteps} />}
-      </div>
-    )
-  }
-
-  // Rendu standard pour < 50 messages avec animations
-  return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-      <AnimatePresence mode="popLayout">
-        {messages.map((message) => (
+        {/* Indicateur de chargement avec animation */}
+        {isLoading && !streamingContent && (
           <motion.div
-            key={message.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
           >
-            <MessageBubble message={message} renderEnriched={renderEnriched} canProvideFeedback={canProvideFeedback} onResendMessage={onResendMessage} />
+            <LoadingIndicator progressSteps={progressSteps} />
           </motion.div>
-        ))}
-      </AnimatePresence>
+        )}
 
-      {/* Message en cours de streaming */}
-      {streamingContent && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {/* Source title chips (avant que le texte commence, après metadata reçu) */}
-          {!streamingContent.trim() && (currentMetadata?.sources?.length ?? 0) > 0 && (
-            <SourceChips sources={currentMetadata!.sources as unknown[]} />
-          )}
-          <MessageBubble
-            message={{
-              id: 'streaming',
-              role: 'assistant',
-              content: streamingContent,
-              createdAt: new Date(),
-              isStreaming: true,
-            }}
-            progressSteps={progressSteps}
-            renderEnriched={renderEnriched}
-          />
-        </motion.div>
-      )}
-
-      {/* Indicateur de chargement avec animation */}
-      {isLoading && !streamingContent && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-        >
-          <LoadingIndicator progressSteps={progressSteps} />
-        </motion.div>
-      )}
-
-      <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} />
+      </div>
+      <AnimatePresence>{ScrollToBottomButton}</AnimatePresence>
     </div>
   )
 }
@@ -376,9 +488,10 @@ interface MessageBubbleProps {
   renderEnriched?: (message: ChatMessage) => React.ReactNode
   canProvideFeedback?: boolean
   onResendMessage?: (content: string) => void
+  onRegenerate?: () => void
 }
 
-const MessageBubble = memo(function MessageBubble({ message, progressSteps, renderEnriched, canProvideFeedback = false, onResendMessage }: MessageBubbleProps) {
+const MessageBubble = memo(function MessageBubble({ message, progressSteps, renderEnriched, canProvideFeedback = false, onResendMessage, onRegenerate }: MessageBubbleProps) {
   const t = useTranslations('assistantIA')
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
@@ -508,6 +621,14 @@ const MessageBubble = memo(function MessageBubble({ message, progressSteps, rend
               minute: '2-digit',
             })}
           </span>
+          {shortModelName(message.model) && (
+            <>
+              <span className="text-muted-foreground/20 text-[10px]">&#183;</span>
+              <span className="text-[10px] text-muted-foreground/35 px-1.5 py-0.5 rounded-md bg-muted/30 border border-border/20">
+                {shortModelName(message.model)}
+              </span>
+            </>
+          )}
         </div>
 
         {/* Alertes abrogations */}
@@ -568,6 +689,16 @@ const MessageBubble = memo(function MessageBubble({ message, progressSteps, rend
                     <><Icons.copy className="h-3 w-3" /> <span>{t('copy')}</span></>
                   )}
                 </button>
+                {onRegenerate && (
+                  <button
+                    onClick={onRegenerate}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+                    title="Régénérer la réponse"
+                  >
+                    <Icons.refreshCw className="h-3 w-3" />
+                    <span>Régénérer</span>
+                  </button>
+                )}
               </div>
               {/* Feedback thumbs up/down */}
               <MessageFeedback
@@ -594,9 +725,11 @@ const MessageBubble = memo(function MessageBubble({ message, progressSteps, rend
     prevProps.message.content === nextProps.message.content &&
     prevProps.message.isStreaming === nextProps.message.isStreaming &&
     prevProps.message.sources?.length === nextProps.message.sources?.length &&
+    prevProps.message.model === nextProps.message.model &&
     prevProps.renderEnriched === nextProps.renderEnriched &&
     prevProps.canProvideFeedback === nextProps.canProvideFeedback &&
     prevProps.onResendMessage === nextProps.onResendMessage &&
+    prevProps.onRegenerate === nextProps.onRegenerate &&
     prevProps.progressSteps?.length === nextProps.progressSteps?.length
   )
 })

@@ -7,7 +7,7 @@
  * Actions contextuelles pour choisir le mode d'interaction
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
@@ -192,6 +192,7 @@ export function UnifiedChatPage({
           })),
           abrogationAlerts: m.metadata?.abrogationAlerts,
           qualityIndicator: m.metadata?.qualityIndicator,
+          model: (m.metadata as any)?.model,
           metadata: m.metadata,
         } as any
       })
@@ -260,6 +261,35 @@ export function UnifiedChatPage({
   const handleActionSelect = useCallback((action: ActionType) => {
     setCurrentAction(action)
   }, [])
+
+  // Régénérer la dernière réponse IA avec le contenu utilisateur précédent
+  const handleRegenerate = useCallback((userContent: string) => {
+    handleSendMessage(userContent)
+  }, [handleSendMessage])
+
+  // Raccourcis clavier globaux
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMeta = e.metaKey || e.ctrlKey
+      if (isMeta && e.key === 'n' && !isStreaming) {
+        e.preventDefault()
+        handleNewConversation()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isStreaming, handleNewConversation])
+
+  // Titre de l'onglet pendant le streaming
+  useEffect(() => {
+    const originalTitle = document.title
+    if (isStreaming) {
+      document.title = '● Qadhya IA...'
+    }
+    return () => {
+      document.title = originalTitle
+    }
+  }, [isStreaming])
 
   // Placeholder dynamique selon l'action
   const getPlaceholder = () => {
@@ -412,10 +442,12 @@ export function UnifiedChatPage({
                 streamingContent={isStreaming ? (streamingContent || ' ') : undefined}
                 currentMetadata={isStreaming ? currentMetadata : undefined}
                 progressSteps={isStreaming ? progressSteps : undefined}
+                isStreaming={isStreaming}
                 modeConfig={modeConfig}
                 renderEnriched={(message) => <EnrichedMessage message={message} />}
                 onSendExample={(text) => handleSendMessage(text)}
                 onResendMessage={(content) => handleSendMessage(content)}
+                onRegenerate={handleRegenerate}
                 canProvideFeedback={true}
               />
             </div>
@@ -492,6 +524,7 @@ export function UnifiedChatPage({
               placeholder={getPlaceholder()}
               modeConfig={modeConfig}
               focusKey={inputFocusKey}
+              conversationId={selectedConversationId}
             />
           </div>
         </main>

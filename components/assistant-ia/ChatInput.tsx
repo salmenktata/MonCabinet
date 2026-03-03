@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from 'react'
 import { useTranslations } from 'next-intl'
+import { useLocale } from 'next-intl'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
@@ -25,6 +27,8 @@ interface ChatInputProps {
   showDocTypeFilter?: boolean
   /** Incrémentez cette valeur pour déclencher l'auto-focus du textarea */
   focusKey?: number
+  /** ID de la conversation pour le draft auto-save */
+  conversationId?: string | null
 }
 
 const MAX_CHARS = 4000
@@ -47,11 +51,42 @@ export function ChatInput({
   modeConfig,
   showDocTypeFilter = true,
   focusKey,
+  conversationId,
 }: ChatInputProps) {
   const t = useTranslations('assistantIA')
+  const locale = useLocale()
   const [message, setMessage] = useState('')
   const [selectedDocType, setSelectedDocType] = useState<DocumentType | 'ALL'>('ALL')
+  const [isListening, setIsListening] = useState(false)
+  const [hasSpeechRecognition, setHasSpeechRecognition] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const recognitionRef = useRef<any>(null)
+
+  // Détecter support Speech Recognition
+  useEffect(() => {
+    setHasSpeechRecognition(!!(
+      typeof window !== 'undefined' &&
+      ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    ))
+  }, [])
+
+  // Restaurer le brouillon quand la conversation change
+  useEffect(() => {
+    const key = `qadhya_chat_draft_${conversationId || 'new'}`
+    const saved = typeof window !== 'undefined' ? localStorage.getItem(key) : null
+    setMessage(saved || '')
+  }, [conversationId])
+
+  // Sauvegarder le brouillon à chaque frappe
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const key = `qadhya_chat_draft_${conversationId || 'new'}`
+    if (message.trim()) {
+      localStorage.setItem(key, message)
+    } else {
+      localStorage.removeItem(key)
+    }
+  }, [message, conversationId])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -70,12 +105,36 @@ export function ChatInput({
     }
   }, [focusKey])
 
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) return
+    const recognition = new SR()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = locale === 'ar' ? 'ar-TN' : 'fr-FR'
+    recognition.onresult = (e: any) => {
+      const text = e.results[0][0].transcript
+      setMessage(prev => prev ? `${prev} ${text}` : text)
+    }
+    recognition.onend = () => setIsListening(false)
+    recognition.onerror = () => setIsListening(false)
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsListening(true)
+  }
+
   const handleSend = () => {
     const trimmed = message.trim()
     if (trimmed && !disabled && !isStreaming) {
       const options = selectedDocType !== 'ALL' ? { docType: selectedDocType } : undefined
       onSend(trimmed, options)
       setMessage('')
+      localStorage.removeItem(`qadhya_chat_draft_${conversationId || 'new'}`)
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
       }
@@ -136,8 +195,33 @@ export function ChatInput({
           'relative flex items-end gap-2',
           'rounded-2xl border bg-card shadow-sm',
           'focus-within:shadow-md focus-within:border-primary/30',
-          'transition-all duration-200'
+          'transition-all duration-200',
+          isListening && 'border-destructive/40 shadow-destructive/10'
         )}>
+          {/* Bouton microphone (voice input) */}
+          {hasSpeechRecognition && !isStreaming && (
+            <button
+              type="button"
+              onClick={toggleVoiceInput}
+              className={cn(
+                'ps-2 pb-2 self-end shrink-0 flex items-center justify-center h-9 w-9',
+                'rounded-xl transition-all duration-200',
+                isListening
+                  ? 'text-destructive'
+                  : 'text-muted-foreground/50 hover:text-foreground'
+              )}
+              title={isListening ? 'Arrêter l\'écoute' : 'Saisie vocale'}
+            >
+              {isListening ? (
+                <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 1.2 }}>
+                  <Icons.mic className="h-4 w-4" />
+                </motion.div>
+              ) : (
+                <Icons.mic className="h-4 w-4" />
+              )}
+            </button>
+          )}
+
           <textarea
             ref={textareaRef}
             value={message}
@@ -147,7 +231,8 @@ export function ChatInput({
             disabled={disabled || isStreaming}
             rows={1}
             className={cn(
-              'flex-1 resize-none bg-transparent px-4 py-3.5',
+              'flex-1 resize-none bg-transparent py-3.5',
+              hasSpeechRecognition && !isStreaming ? 'px-2' : 'px-4',
               'text-[15px] leading-relaxed placeholder:text-muted-foreground/60',
               'focus:outline-none',
               'min-h-[48px] max-h-[120px] md:max-h-[160px]',
@@ -155,14 +240,19 @@ export function ChatInput({
             )}
           />
           <div className="flex items-center gap-1.5 pe-2 pb-2">
-            {/* Compteur de caractères */}
+            {/* Compteur de caractères + tokens estimés */}
             {(isNearLimit || charCount > 100) && (
-              <span className={cn(
-                'text-[10px] tabular-nums hidden sm:inline',
-                isOverLimit ? 'text-destructive font-medium' : isNearLimit ? 'text-amber-500' : 'text-muted-foreground/40'
-              )}>
-                {charCount}/{MAX_CHARS}
-              </span>
+              <>
+                <span className={cn(
+                  'text-[10px] tabular-nums hidden sm:inline',
+                  isOverLimit ? 'text-destructive font-medium' : isNearLimit ? 'text-amber-500' : 'text-muted-foreground/40'
+                )}>
+                  {charCount}/{MAX_CHARS}
+                </span>
+                <span className="text-[10px] text-muted-foreground/25 hidden md:inline tabular-nums">
+                  ~{Math.ceil(charCount / 4)}t
+                </span>
+              </>
             )}
 
             {/* Hint clavier (caché pendant streaming) */}
@@ -174,17 +264,20 @@ export function ChatInput({
               </span>
             )}
 
-            {/* Bouton Stop ou Envoyer */}
+            {/* Bouton Stop (animé) ou Envoyer */}
             {isStreaming ? (
-              <Button
-                onClick={onStop}
-                size="icon"
-                variant="destructive"
-                className="h-9 w-9 rounded-xl shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
-                title={t('stopGeneration')}
-              >
-                <Icons.x className="h-4 w-4" />
-              </Button>
+              <div className="relative shrink-0">
+                <span className="absolute inset-0 rounded-xl animate-ping bg-destructive/25" />
+                <Button
+                  onClick={onStop}
+                  size="icon"
+                  variant="destructive"
+                  className="relative h-9 w-9 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
+                  title={t('stopGeneration')}
+                >
+                  <div className="h-3 w-3 rounded-sm bg-current" />
+                </Button>
+              </div>
             ) : (
               <Button
                 onClick={handleSend}
