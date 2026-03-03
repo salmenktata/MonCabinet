@@ -122,6 +122,7 @@ import {
   Wrench,
   Mic,
   MicOff,
+  Server,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -273,6 +274,7 @@ export const Icons = {
   scale: Scale,
   brain: Brain,
   wrench: Wrench,
+  server: Server,
   fileSearch: FileSearch,
   arrowUpDown: ArrowUpDown,
   sortAsc: ArrowDownNarrowWide,
