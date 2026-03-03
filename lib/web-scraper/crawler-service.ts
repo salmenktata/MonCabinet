@@ -656,7 +656,7 @@ async function processPage(
 
       // Auto-indexation si activée
       if (sourceAutoIndex && newlyDownloaded.length > 0) {
-        const pageCategory = detectPageCategory(url, s.categories || [], s.categoryRules || s.category_rules || [])
+        const pageCategory = detectPageCategory(url, s.categories || [], s.categoryRules || s.category_rules || [], content.title)
         const sName = s.name || 'Unknown'
         await autoIndexFilesForPage(existingPage.id, newlyDownloaded, sourceId, sName, pageCategory)
       }
@@ -709,7 +709,7 @@ async function processPage(
   // Auto-indexation des fichiers si activée (D3)
   const sourceAutoIndex = s.autoIndexFiles ?? s.auto_index_files ?? false
   if (sourceAutoIndex && savedPageId && downloadedFiles.length > 0) {
-    const pageCategory = detectPageCategory(url, s.categories || [], s.categoryRules || s.category_rules || [])
+    const pageCategory = detectPageCategory(url, s.categories || [], s.categoryRules || s.category_rules || [], mergedContent.title)
     const sName = s.name || 'Unknown'
     // Sauvegarder detected_category sur web_pages
     await db.query('UPDATE web_pages SET detected_category = $1 WHERE id = $2', [pageCategory, savedPageId])
@@ -1396,7 +1396,7 @@ export async function scrapeUrlList(
 
           // Auto-indexation des fichiers si activée
           if (sourceAutoIndex && savedPageId && downloadedFiles.length > 0) {
-            const pageCategory = detectPageCategory(url, s.categories || [], s.categoryRules || s.category_rules || [])
+            const pageCategory = detectPageCategory(url, s.categories || [], s.categoryRules || s.category_rules || [], content.title)
             await db.query('UPDATE web_pages SET detected_category = $1 WHERE id = $2', [pageCategory, savedPageId])
             await autoIndexFilesForPage(savedPageId, downloadedFiles, sourceId, sourceName, pageCategory)
           }

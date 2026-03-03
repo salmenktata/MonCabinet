@@ -22,11 +22,13 @@ export interface CategoryRule {
  * @param url - URL complète de la page
  * @param sourceCategories - Catégories de la source web (categories[])
  * @param categoryRules - Règles admin configurées sur la source (category_rules)
+ * @param title - Titre de la page (optionnel, utilisé pour affiner la détection IORT)
  */
 export function detectPageCategory(
   url: string,
   sourceCategories: string[],
-  categoryRules: CategoryRule[]
+  categoryRules: CategoryRule[],
+  title?: string | null
 ): string {
   // Option B : règles admin en priorité
   for (const rule of categoryRules) {
@@ -34,18 +36,26 @@ export function detectPageCategory(
   }
 
   // Option A : patterns déterministes
-  const auto = detectFromUrlPatterns(url)
+  const auto = detectFromUrlPatterns(url, title)
   if (auto) return auto
 
   // Fallback : première catégorie de la source
   return sourceCategories[0] || 'autre'
 }
 
+/** Mots-clés arabes indiquant une convention/traité international dans le titre */
+const CONVENTION_TITLE_KEYWORDS = [
+  'اتفاقية',   // convention
+  'اتفاق ',    // accord (avec espace pour éviter "اتفاقية")
+  'معاهدة',   // traité
+  'بروتوكول', // protocole
+]
+
 /**
  * Option A — Détection par patterns d'URL connus.
  * Couvre les domaines déjà indexés : 9anoun.tn, iort.gov.tn, cassation.tn.
  */
-function detectFromUrlPatterns(url: string): string | null {
+function detectFromUrlPatterns(url: string, title?: string | null): string | null {
   // 9anoun.tn — sections du knowledge base
   if (url.includes('/kb/codes/')) return 'codes'
   if (url.includes('/kb/constitution')) return 'constitution'
@@ -58,8 +68,13 @@ function detectFromUrlPatterns(url: string): string | null {
   if (url.includes('/lexique/')) return 'lexique'
   if (url.includes('/actualites/')) return 'actualites'
 
-  // iort.gov.tn — Journal Officiel
-  if (url.includes('iort.gov.tn')) return 'jort'
+  // iort.gov.tn — affiner par titre avant le fallback générique 'jort'
+  if (url.includes('iort.gov.tn')) {
+    if (title && CONVENTION_TITLE_KEYWORDS.some(kw => title.includes(kw))) {
+      return 'conventions'
+    }
+    return 'jort'
+  }
 
   // cassation.tn — jurisprudence
   if (url.includes('cassation.tn')) return 'jurisprudence'
