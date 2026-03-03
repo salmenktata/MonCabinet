@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { Check } from 'lucide-react'
+import { Icons } from '@/lib/icons'
 
 interface AnalysisLoaderProps {
   completedSteps: string[]
@@ -26,7 +27,7 @@ export default function AnalysisLoader({ completedSteps }: AnalysisLoaderProps) 
         <div className="relative">
           <div className="h-16 w-16 animate-spin rounded-full border-4 border-amber-200 dark:border-amber-800 border-t-amber-600" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-2xl">&#129302;</span>
+            <Icons.brain className="h-7 w-7 text-amber-600 dark:text-amber-400" />
           </div>
         </div>
 

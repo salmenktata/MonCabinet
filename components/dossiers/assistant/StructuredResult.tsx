@@ -17,7 +17,9 @@ import RAGInsights from './RAGInsights'
 import ExecutiveSummary from './ExecutiveSummary'
 import { AnalysisTableOfContents } from './AnalysisTableOfContents'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ChevronDown, Copy, Download, RotateCcw } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
+import { Icons } from '@/lib/icons'
+import type { IconName } from '@/lib/icons'
 import { toast } from 'sonner'
 
 interface StructuredResultProps {
@@ -126,7 +128,7 @@ export default function StructuredResult({
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           <div className="flex items-start gap-3 flex-1 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-              <span className="text-lg">&#128203;</span>
+              <Icons.clipboardCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-foreground leading-tight">
@@ -165,9 +167,9 @@ export default function StructuredResult({
       <div className="border-b">
         <nav className="flex gap-1">
           {[
-            { key: 'analysis', icon: '&#128269;', label: t('tabs.analysis') },
-            { key: 'structure', icon: '&#128209;', label: t('tabs.structure') },
-            { key: 'documents', icon: '&#128196;', label: t('tabs.documents') },
+            { key: 'analysis', Icon: Icons.search, label: t('tabs.analysis') },
+            { key: 'structure', Icon: Icons.fileText, label: t('tabs.structure') },
+            { key: 'documents', Icon: Icons.file, label: t('tabs.documents') },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -178,7 +180,7 @@ export default function StructuredResult({
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
               }`}
             >
-              <span dangerouslySetInnerHTML={{ __html: tab.icon }} />
+              <tab.Icon className="h-4 w-4" />
               {tab.label}
             </button>
           ))}
@@ -302,14 +304,14 @@ export default function StructuredResult({
               onClick={handleCopy}
               className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
             >
-              <Copy className="h-3.5 w-3.5" />
+              <Icons.copy className="h-3.5 w-3.5" />
               Copier
             </button>
             <button
               onClick={handleExport}
               className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
             >
-              <Download className="h-3.5 w-3.5" />
+              <Icons.download className="h-3.5 w-3.5" />
               Exporter
             </button>
             {onReset && (
@@ -317,7 +319,7 @@ export default function StructuredResult({
                 onClick={onReset}
                 className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
-                <RotateCcw className="h-3.5 w-3.5" />
+                <Icons.refreshCw className="h-3.5 w-3.5" />
                 Recommencer
               </button>
             )}
@@ -329,9 +331,7 @@ export default function StructuredResult({
               onClick={onReanalyze}
               className="flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm text-foreground font-medium hover:bg-muted transition-colors"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+              <Icons.refresh className="h-4 w-4" />
               {t('actions.reanalyze')}
             </button>
 
@@ -339,9 +339,7 @@ export default function StructuredResult({
               onClick={handleQuickAdvice}
               className="flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm text-foreground font-medium hover:bg-muted transition-colors"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+              <Icons.zap className="h-4 w-4" />
               {t('actions.quickAdvice')}
             </button>
 
@@ -349,9 +347,7 @@ export default function StructuredResult({
               onClick={onCreateDossier}
               className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-5 py-2 text-sm text-white font-semibold hover:bg-amber-700 transition-colors"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <Icons.check className="h-4 w-4" />
               {t('actions.createDossier')}
             </button>
           </div>
@@ -381,7 +377,9 @@ function DocumentsSection({ result }: { result: StructuredDossier }) {
       </p>
 
       <div className="space-y-4">
-        {documents.map((doc, index) => (
+        {documents.map((doc, index) => {
+          const DocIcon = Icons[doc.iconName]
+          return (
           <div
             key={index}
             className="flex items-start gap-4 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
@@ -395,7 +393,7 @@ function DocumentsSection({ result }: { result: StructuredDossier }) {
                     : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
               }`}
             >
-              <span className="text-lg" dangerouslySetInnerHTML={{ __html: doc.icon }} />
+              <DocIcon className="h-5 w-5" />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -416,7 +414,8 @@ function DocumentsSection({ result }: { result: StructuredDossier }) {
               </div>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
@@ -424,7 +423,7 @@ function DocumentsSection({ result }: { result: StructuredDossier }) {
 
 function getRecommendedDocuments(result: StructuredDossier, t: (key: string) => string) {
   const docs: Array<{
-    icon: string
+    iconName: IconName
     title: string
     description: string
     priority: 'high' | 'medium' | 'low'
@@ -432,7 +431,7 @@ function getRecommendedDocuments(result: StructuredDossier, t: (key: string) => 
 
   // Convention d'honoraires (toujours premier)
   docs.push({
-    icon: '&#128221;',
+    iconName: 'edit',
     title: t('documents.types.convention'),
     description: t('documents.descriptions.convention'),
     priority: 'high',
@@ -444,7 +443,7 @@ function getRecommendedDocuments(result: StructuredDossier, t: (key: string) => 
     result.typeProcedure === 'civil_premiere_instance'
   ) {
     docs.push({
-      icon: '&#128231;',
+      iconName: 'mail',
       title: t('documents.types.miseEnDemeure'),
       description: t('documents.descriptions.miseEnDemeure'),
       priority: 'high',
@@ -453,14 +452,14 @@ function getRecommendedDocuments(result: StructuredDossier, t: (key: string) => 
 
   if (result.typeProcedure === 'refere') {
     docs.push({
-      icon: '&#9889;',
+      iconName: 'zap',
       title: t('documents.types.requeteRefere'),
       description: t('documents.descriptions.requeteRefere'),
       priority: 'high',
     })
   } else {
     docs.push({
-      icon: '&#9878;',
+      iconName: 'scale',
       title: t('documents.types.assignation'),
       description: t('documents.descriptions.assignation'),
       priority: 'medium',
@@ -469,7 +468,7 @@ function getRecommendedDocuments(result: StructuredDossier, t: (key: string) => 
 
   if (result.typeProcedure === 'divorce') {
     docs.push({
-      icon: '&#128141;',
+      iconName: 'gavel',
       title: t('documents.types.requeteDivorce'),
       description: t('documents.descriptions.requeteDivorce'),
       priority: 'high',
@@ -478,7 +477,7 @@ function getRecommendedDocuments(result: StructuredDossier, t: (key: string) => 
 
   // Note d'analyse (toujours utile)
   docs.push({
-    icon: '&#128209;',
+    iconName: 'fileText',
     title: t('documents.types.noteAnalyse'),
     description: t('documents.descriptions.noteAnalyse'),
     priority: 'medium',
@@ -486,7 +485,7 @@ function getRecommendedDocuments(result: StructuredDossier, t: (key: string) => 
 
   // Bordereau de pièces
   docs.push({
-    icon: '&#128203;',
+    iconName: 'clipboardCheck',
     title: t('documents.types.bordereauPieces'),
     description: t('documents.descriptions.bordereauPieces'),
     priority: 'low',
