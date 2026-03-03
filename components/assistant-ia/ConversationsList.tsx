@@ -23,6 +23,35 @@ import { usePrefetchConversation, useUpdateConversationTitle } from '@/lib/hooks
 const VIRTUALIZATION_THRESHOLD = 50
 const ITEM_HEIGHT = 68 // hauteur approximative d'un item
 
+type DateGroup = 'Aujourd\'hui' | 'Hier' | '7 derniers jours' | 'Ce mois' | 'Plus ancien'
+const DATE_GROUP_ORDER: DateGroup[] = ['Aujourd\'hui', 'Hier', '7 derniers jours', 'Ce mois', 'Plus ancien']
+
+function getDateGroup(date: Date): DateGroup {
+  const now = new Date()
+  const d = new Date(date)
+  const diffMs = now.getTime() - d.getTime()
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (days === 0) return 'Aujourd\'hui'
+  if (days === 1) return 'Hier'
+  if (days < 7) return '7 derniers jours'
+  if (days < 30) return 'Ce mois'
+  return 'Plus ancien'
+}
+
+function groupConversationsByDate(convs: Conversation[]) {
+  const map = new Map<DateGroup, typeof convs>()
+  convs.forEach((conv) => {
+    const date = conv.lastMessageAt || conv.updatedAt || conv.createdAt
+    const label = date ? getDateGroup(new Date(date)) : 'Plus ancien'
+    if (!map.has(label)) map.set(label, [])
+    map.get(label)!.push(conv)
+  })
+  return DATE_GROUP_ORDER.filter((g) => map.has(g)).map((label) => ({
+    label,
+    conversations: map.get(label)!,
+  }))
+}
+
 export interface Conversation {
   id: string
   title: string | null
@@ -210,25 +239,32 @@ export function ConversationsList({
             })}
           </div>
         ) : (
-          // Rendu standard pour < 50 conversations
+          // Rendu standard pour < 50 conversations avec groupement par date
           <div className="py-2">
-            {filteredConversations.map((conv) => (
-              <ConversationItem
-                key={conv.id}
-                conv={conv}
-                isSelected={selectedId === conv.id}
-                onSelect={onSelect}
-                onDelete={(id) => setDeleteId(id)}
-                formatDate={formatDate}
-                t={t}
-                onPrefetch={prefetchConversation}
-                isEditing={editingId === conv.id}
-                editingTitle={editingTitle}
-                onStartEdit={handleStartEdit}
-                onEditChange={setEditingTitle}
-                onSaveEdit={handleSaveEdit}
-                onCancelEdit={handleCancelEdit}
-              />
+            {groupConversationsByDate(filteredConversations).map(({ label, conversations: group }) => (
+              <div key={label}>
+                <div className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/40 select-none">
+                  {label}
+                </div>
+                {group.map((conv) => (
+                  <ConversationItem
+                    key={conv.id}
+                    conv={conv}
+                    isSelected={selectedId === conv.id}
+                    onSelect={onSelect}
+                    onDelete={(id) => setDeleteId(id)}
+                    formatDate={formatDate}
+                    t={t}
+                    onPrefetch={prefetchConversation}
+                    isEditing={editingId === conv.id}
+                    editingTitle={editingTitle}
+                    onStartEdit={handleStartEdit}
+                    onEditChange={setEditingTitle}
+                    onSaveEdit={handleSaveEdit}
+                    onCancelEdit={handleCancelEdit}
+                  />
+                ))}
+              </div>
             ))}
           </div>
         )}

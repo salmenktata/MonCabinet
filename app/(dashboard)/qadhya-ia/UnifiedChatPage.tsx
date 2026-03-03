@@ -21,6 +21,7 @@ import { FeatureErrorBoundary } from '@/components/providers/FeatureErrorBoundar
 import { ActionButtons, type ActionType } from '@/components/qadhya-ia/ActionButtons'
 import { EnrichedMessage } from '@/components/qadhya-ia/EnrichedMessage'
 import { StanceSelector } from '@/components/qadhya-ia/StanceSelector'
+import { SuggestionChips } from '@/components/qadhya-ia/SuggestionChips'
 import { ChatActions } from '@/components/assistant-ia/ChatActions'
 import { MODE_CONFIGS } from './mode-config'
 import {
@@ -512,6 +513,15 @@ export function UnifiedChatPage({
                 stance={stance}
                 onChange={setStance}
                 disabled={isStreaming}
+              />
+            )}
+
+            {/* Chips de suggestion — visibles seulement sur écran vide */}
+            {messages.length === 0 && !isStreaming && (
+              <SuggestionChips
+                mode={currentAction}
+                onSend={handleSendMessage}
+                className="pt-1"
               />
             )}
 

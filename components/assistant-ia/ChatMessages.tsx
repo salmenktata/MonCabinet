@@ -78,6 +78,37 @@ function shortModelName(model?: string): string | null {
   return null
 }
 
+// Salutation dynamique selon l'heure
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return 'Bonjour'
+  if (hour >= 12 && hour < 18) return 'Bon après-midi'
+  return 'Bonsoir'
+}
+
+// Cartes de suggestion par mode
+type ModeSuggestionKey = 'chat' | 'structure' | 'ariida'
+const MODE_SUGGESTION_CARDS: Record<ModeSuggestionKey, Array<{ icon: keyof typeof Icons; title: string; send: string }>> = {
+  chat: [
+    { icon: 'search', title: 'Jurisprudence récente', send: 'Quelles sont les dernières décisions de la Cour de cassation sur la responsabilité délictuelle en droit tunisien ?' },
+    { icon: 'clock', title: 'Délais légaux', send: 'Quels sont les délais de prescription pour une action en réparation du préjudice en droit tunisien ?' },
+    { icon: 'users', title: 'Droits du salarié', send: 'Quels sont les droits d\'un salarié face à un licenciement abusif en droit du travail tunisien ?' },
+    { icon: 'scale', title: 'Procédure d\'appel', send: 'Comment formuler un mémoire d\'appel et quels sont les délais selon le Code de procédure civile ?' },
+  ],
+  structure: [
+    { icon: 'briefcase', title: 'Litige commercial', send: 'Mon client est commerçant et a signé un contrat d\'approvisionnement avec un fournisseur qui n\'a pas livré la marchandise. Préjudice estimé à 50 000 TND.' },
+    { icon: 'users', title: 'Droit de la famille', send: 'Il s\'agit d\'une demande en divorce pour faute, les époux sont mariés depuis 8 ans et ont 2 enfants mineurs âgés de 5 et 7 ans.' },
+    { icon: 'gavel', title: 'Affaire pénale', send: 'Mon client est poursuivi pour abus de confiance portant sur des fonds qu\'il gérait pour le compte d\'un associé. Les faits remontent à 2022.' },
+    { icon: 'home', title: 'Litige locatif', send: 'Un propriétaire souhaite résilier un contrat de bail commercial pour non-paiement de loyers depuis 6 mois et expulser son locataire.' },
+  ],
+  ariida: [
+    { icon: 'fileText', title: 'Résiliation bail', send: 'Rédiger une requête introductive d\'instance pour résiliation de bail commercial pour défaut de paiement de loyers et expulsion du locataire.' },
+    { icon: 'dollar', title: 'Recouvrement créance', send: 'Rédiger une requête pour recouvrement d\'une créance commerciale de 80 000 TND résultant d\'un contrat d\'entreprise non exécuté.' },
+    { icon: 'alertCircle', title: 'Responsabilité civile', send: 'Rédiger une requête introductive pour responsabilité délictuelle et réparation du préjudice suite à un accident de la circulation.' },
+    { icon: 'building', title: 'Litige immobilier', send: 'Rédiger une requête introductive d\'instance pour litige de propriété immobilière suite à une double vente contestée.' },
+  ],
+}
+
 export function ChatMessages({ messages, isLoading, streamingContent, currentMetadata, progressSteps, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false, onResendMessage, onRegenerate, isStreaming }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
   const tMode = useTranslations('qadhyaIA.modes')
@@ -146,63 +177,79 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
   }, [messages, streamingContent, isVirtualized])
 
   if (messages.length === 0 && !isLoading && !streamingContent) {
-    const modeKey = modeConfig?.translationKey || 'chat'
+    const modeKey = (modeConfig?.translationKey || 'chat') as ModeSuggestionKey
     const ModeIcon = modeConfig ? Icons[modeConfig.icon] : Icons.messageSquare
     const iconBg = modeConfig?.iconBgClass || 'bg-primary/10'
     const iconText = modeConfig?.iconTextClass || 'text-primary'
-
-    const examples = ['ex1', 'ex2', 'ex3'].map((key) =>
-      modeConfig ? tMode(`${modeKey}.examples.${key}`) : t(`examples.${['civil', 'commercial', 'divorce'][['ex1', 'ex2', 'ex3'].indexOf(key)]}`)
-    )
+    const suggestions = MODE_SUGGESTION_CARDS[modeKey] || MODE_SUGGESTION_CARDS.chat
 
     return (
-      <div className="flex-1 flex items-center justify-center p-6 md:p-8">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8 overflow-y-auto">
         <motion.div
-          className="text-center max-w-lg w-full"
+          className="w-full max-w-2xl"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
-          <div className={cn(
-            'w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5',
-            'shadow-sm',
-            iconBg
-          )}>
-            <ModeIcon className={cn('h-7 w-7', iconText)} />
+          {/* Greeting + Mode icon */}
+          <div className="text-center mb-8">
+            <div className={cn(
+              'w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4',
+              'shadow-md',
+              iconBg
+            )}>
+              <ModeIcon className={cn('h-8 w-8', iconText)} />
+            </div>
+            <p className="text-sm text-muted-foreground mb-1">{getGreeting()}</p>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {modeConfig ? tMode(`${modeKey}.welcomeTitle`) : t('welcomeTitle')}
+            </h2>
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-md mx-auto mt-2">
+              {modeConfig ? tMode(`${modeKey}.welcomeMessage`) : t('welcomeMessage')}
+            </p>
           </div>
-          <h2 className="text-xl font-semibold mb-2 tracking-tight">
-            {modeConfig ? tMode(`${modeKey}.welcomeTitle`) : t('welcomeTitle')}
-          </h2>
-          <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
-            {modeConfig ? tMode(`${modeKey}.welcomeMessage`) : t('welcomeMessage')}
-          </p>
 
-          <div className="mt-8">
-            <p className="text-xs font-medium text-muted-foreground mb-3">
+          {/* Grille 2×2 de cartes de suggestion */}
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground/60 mb-3 text-center uppercase tracking-widest">
               {modeConfig ? tMode(`${modeKey}.exampleQuestions`) : t('exampleQuestions')}
             </p>
-            <div className="flex flex-col gap-2 max-w-md mx-auto">
-              {examples.map((example, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => onSendExample?.(example)}
-                  className={cn(
-                    'group text-start px-4 py-3 rounded-xl border bg-card/50 backdrop-blur-sm',
-                    'hover:bg-card hover:shadow-md hover:border-primary/20',
-                    'transition-all duration-200 ease-out',
-                    'text-sm text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <div className="flex items-center gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {suggestions.map((card, idx) => {
+                const CardIcon = Icons[card.icon]
+                return (
+                  <motion.button
+                    key={idx}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.08 + idx * 0.06, duration: 0.3, ease: 'easeOut' }}
+                    onClick={() => onSendExample?.(card.send)}
+                    className={cn(
+                      'group text-start p-4 rounded-xl border bg-card/60 backdrop-blur-sm',
+                      'hover:bg-card hover:shadow-md hover:border-primary/20',
+                      'transition-all duration-200 ease-out',
+                      'flex items-start gap-3'
+                    )}
+                  >
+                    <div className={cn(
+                      'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5',
+                      iconBg
+                    )}>
+                      <CardIcon className={cn('h-4 w-4', iconText)} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground mb-0.5">{card.title}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                        {card.send}
+                      </p>
+                    </div>
                     <Icons.arrowUp className={cn(
-                      'h-4 w-4 shrink-0 rotate-45 opacity-0 group-hover:opacity-100',
-                      'transition-all duration-200',
+                      'h-4 w-4 shrink-0 rotate-45 opacity-0 group-hover:opacity-50 self-center transition-all duration-200',
                       iconText
                     )} />
-                    <span className="line-clamp-2">{example}</span>
-                  </div>
-                </button>
-              ))}
+                  </motion.button>
+                )
+              })}
             </div>
           </div>
         </motion.div>
@@ -644,7 +691,7 @@ const MessageBubble = memo(function MessageBubble({ message, progressSteps, rend
             {/* Streaming sans contenu textuel réel → ThinkingLog ou dots */}
             {message.isStreaming && !message.content?.trim() ? (
               progressSteps && progressSteps.length > 0
-                ? <ThinkingLog steps={progressSteps} />
+                ? <ThinkingLog steps={progressSteps} collapsible />
                 : (
                   <div className="flex items-center gap-1 py-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
@@ -741,6 +788,7 @@ const THINKING_STEPS = [
     key: 'searching' as const,
     icon: 'search' as const,
     label: () => 'Recherche dans la base juridique',
+    shortLabel: 'Recherche...',
   },
   {
     key: 'sources_found' as const,
@@ -749,20 +797,30 @@ const THINKING_STEPS = [
       step.count != null
         ? `${step.count} source${step.count !== 1 ? 's' : ''} trouvée${step.count !== 1 ? 's' : ''} · ${step.avgSimilarity ?? 0}% de pertinence`
         : 'Analyse des sources...',
+    shortLabel: 'Sources trouvées',
   },
   {
     key: 'generating' as const,
     icon: 'scale' as const,
     label: () => 'Rédaction de la réponse juridique',
+    shortLabel: 'Rédaction...',
   },
 ]
 
-function ThinkingLog({ steps }: { steps: ProgressStep[] }) {
+function ThinkingLog({ steps, collapsible = false }: { steps: ProgressStep[], collapsible?: boolean }) {
+  const [expanded, setExpanded] = useState(true)
   const completedKeys = steps.map((s) => s.step)
   const lastKey = completedKeys[completedKeys.length - 1]
 
-  return (
-    <div className="py-1 space-y-2">
+  // Label du step actif pour l'état réduit
+  const currentConfig = THINKING_STEPS.find((c) => c.key === lastKey)
+  const currentMatchingStep = steps.find((s) => s.step === lastKey)
+  const currentLabel = currentConfig && currentMatchingStep
+    ? currentConfig.label(currentMatchingStep)
+    : currentConfig?.shortLabel ?? 'Analyse...'
+
+  const stepContent = (
+    <div className="pt-2 space-y-2">
       {THINKING_STEPS.map((config) => {
         const matchingStep = steps.find((s) => s.step === config.key)
         const isDone = completedKeys.includes(config.key) && config.key !== lastKey
@@ -804,6 +862,46 @@ function ThinkingLog({ steps }: { steps: ProgressStep[] }) {
       })}
     </div>
   )
+
+  if (collapsible) {
+    return (
+      <div>
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="flex items-center gap-2 w-full text-left group"
+        >
+          <motion.div
+            animate={{ opacity: [1, 0.4, 1] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+          >
+            <Icons.brain className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+          </motion.div>
+          <span className="text-xs font-medium text-muted-foreground flex-1">
+            {expanded ? 'Analyse en cours...' : currentLabel}
+          </span>
+          <Icons.chevronDown className={cn(
+            'h-3 w-3 text-muted-foreground/40 transition-transform duration-200',
+            !expanded && '-rotate-90'
+          )} />
+        </button>
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              {stepContent}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    )
+  }
+
+  return <div className="py-1">{stepContent}</div>
 }
 
 // --- SourceChips : titre des 3 premières sources avant que le texte commence ---
