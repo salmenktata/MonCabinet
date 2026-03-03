@@ -496,8 +496,8 @@ export async function answerQuestion(
   // situationCtx déjà calculé en étape 0 (fast path) — réutilisé ici
   const situationInjection = situationCtx.promptInjection
 
-  // Stance : explicite (options) > suggéré par détection (lookup→neutral) > défaut 'defense'
-  const stance = options.stance ?? situationCtx.suggestedStance ?? 'defense'
+  // Stance : explicite (options) > suggéré par détection (lookup→neutral) > défaut 'neutral'
+  const stance = options.stance ?? situationCtx.suggestedStance ?? 'neutral'
   const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
 
   // 4. Construire les messages (format OpenAI-compatible pour Ollama/Groq)
@@ -1052,8 +1052,8 @@ export async function* answerQuestionStream(
 
   // streamSituationCtx déjà calculé en étape 0 (fast path) — réutilisé ici
 
-  // Stance : explicite (options) > suggéré par détection (lookup→neutral) > défaut 'defense'
-  const stance = options.stance ?? streamSituationCtx.suggestedStance ?? 'defense'
+  // Stance : explicite (options) > suggéré par détection (lookup→neutral) > défaut 'neutral'
+  const stance = options.stance ?? streamSituationCtx.suggestedStance ?? 'neutral'
   const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
 
   const systemPrompt = [

@@ -11,17 +11,17 @@ interface StanceContextValue {
 }
 
 export const StanceContext = createContext<StanceContextValue>({
-  stance: 'defense',
+  stance: 'neutral',
   setStance: () => {},
 })
 
 function readStoredStance(): LegalStance {
-  if (typeof window === 'undefined') return 'defense'
+  if (typeof window === 'undefined') return 'neutral'
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored === 'defense' || stored === 'attack' || stored === 'neutral') {
     return stored
   }
-  return 'defense'
+  return 'neutral'
 }
 
 export function StanceProvider({ children }: { children: React.ReactNode }) {

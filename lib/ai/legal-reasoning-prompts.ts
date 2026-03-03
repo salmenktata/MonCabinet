@@ -413,7 +413,7 @@ Si des informations sont manquantes, indique "Non précisé" ou laisse le champ 
 export function getSystemPromptForContext(
   contextType: 'chat' | 'consultation' | 'structuration',
   language: 'ar' | 'fr' = 'ar',
-  stance: LegalStance = 'defense'
+  stance: LegalStance = 'neutral'
 ): string {
   let basePrompt: string
 
