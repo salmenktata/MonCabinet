@@ -59,7 +59,7 @@ export function Logo({
         )}
 
         {/* Logo — WebP pour navigateurs modernes, PNG fallback */}
-        <picture>
+        <picture className="block w-full h-full">
           <source srcSet="/logo.webp" type="image/webp" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -155,7 +155,7 @@ export function LogoHorizontal({
             }}
           />
         )}
-        <picture>
+        <picture className="block w-full h-full">
           <source srcSet="/logo.webp" type="image/webp" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
