@@ -1068,7 +1068,7 @@
   },
   "assistantIA": {
     "title": "Qadhya Chat",
-    "subtitle": "Chat conversationnel avec l'assistant IA juridique",
+    "subtitle": "Posez vos questions, approfondissez un angle, explorez des hypothèses — le contexte persiste entre les messages.",
     "newConversation": "Nouvelle conversation",
     "searchConversations": "Rechercher...",
     "noResults": "Aucun résultat",
@@ -1081,8 +1081,8 @@
     "placeholder": "Décrivez votre cas juridique ou posez une question...",
     "enterToSend": "Entrée",
     "disclaimer": "Qadhya est un outil d'aide à la recherche. Les réponses sont générées par IA et ne constituent pas un avis juridique engageant la responsabilité. Vérification impérative par un avocat.",
-    "welcomeTitle": "Bienvenue sur Qadhya Chat",
-    "welcomeMessage": "Posez vos questions juridiques et obtenez des réponses contextualisées basées sur vos documents et la jurisprudence tunisienne.",
+    "welcomeTitle": "Assistant IA — Recherche juridique conversationnelle",
+    "welcomeMessage": "Interrogez la jurisprudence tunisienne, les codes en vigueur et vos documents. Idéal pour affiner une analyse, tester une argumentation ou préparer une audience.",
     "exampleQuestions": "Exemples de questions :",
     "examples": {
       "civil": "Procédure civile",
@@ -1186,8 +1186,8 @@
     "modes": {
       "chat": {
         "label": "Assistant IA",
-        "welcomeTitle": "Assistant juridique IA",
-        "welcomeMessage": "Posez vos questions juridiques et obtenez des réponses contextualisées basées sur la jurisprudence tunisienne.",
+        "welcomeTitle": "Assistant IA conversationnel",
+        "welcomeMessage": "Interrogez la jurisprudence, les textes de loi et vos dossiers. Le contexte est mémorisé au fil de la conversation.",
         "exampleQuestions": "Exemples de questions :",
         "examples": { "ex1": "Procédure civile", "ex2": "Litige commercial", "ex3": "Affaire de divorce" }
       },
@@ -1228,10 +1228,10 @@
   },
   "assistant": {
     "title": "Structuration de Dossier",
-    "subtitle": "Décrivez votre dossier en langage naturel. L'IA analysera, structurera et proposera une stratégie.",
+    "subtitle": "Décrivez l'affaire en langage naturel — l'IA identifie les parties, extrait les faits clés et bâtit la stratégie juridique.",
     "tip": {
       "title": "Conseil",
-      "description": "Décrivez les faits, les parties, les montants, les dates importantes. L'IA structurera automatiquement votre dossier et vous guidera dans la démarche juridique."
+      "description": "Incluez : parties (noms et qualités), chronologie des faits, montants en jeu, documents disponibles. Plus le récit est complet, plus l'analyse est fiable."
     },
     "input": {
       "label": "Racontez les faits de votre dossier",

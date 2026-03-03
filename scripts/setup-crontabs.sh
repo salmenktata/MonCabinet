@@ -49,6 +49,9 @@ cat > /tmp/qadhya-crontab << 'CRONTAB'
 # Cleanup old cron executions - Quotidien à 4h
 0 4 * * * docker exec 275ce01791bf_qadhya-postgres psql -U moncabinet -d qadhya -c "SELECT cleanup_old_cron_executions();" >> /var/log/qadhya/cleanup.log 2>&1
 
+# Crawl Constitution IORT - 1er du mois à 3h (OCR 42 pages, ~7min)
+0 3 1 * * /opt/qadhya/scripts/cron-crawl-iort-constitution.sh >> /var/log/qadhya/iort-constitution.log 2>&1
+
 CRONTAB
 
 # Installer le crontab

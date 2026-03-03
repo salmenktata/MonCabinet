@@ -19,6 +19,32 @@ import { ThemeToggle } from './ThemeToggle'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 
+function useUrgentNotificationsCount() {
+  const [count, setCount] = React.useState(0)
+
+  React.useEffect(() => {
+    let cancelled = false
+
+    async function fetchCount() {
+      try {
+        const res = await fetch('/api/user/notifications/count')
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        if (!cancelled) setCount(data.urgent ?? 0)
+      } catch { /* silencieux */ }
+    }
+
+    fetchCount()
+    const interval = setInterval(fetchCount, 5 * 60 * 1000) // toutes les 5 min
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
+
+  return count
+}
+
 // Lazy load GlobalSearch (522 lignes) après le premier render
 const GlobalSearch = dynamic(
   () => import('./GlobalSearch').then(mod => ({ default: mod.GlobalSearch })),
@@ -41,6 +67,7 @@ interface TopbarProps {
 export function Topbar({ user }: TopbarProps) {
   const t = useTranslations('common')
   const router = useRouter()
+  const urgentCount = useUrgentNotificationsCount()
 
   const handleLogout = async () => {
     await fetch('/api/auth/signout', { method: 'POST' })
@@ -81,9 +108,16 @@ export function Topbar({ user }: TopbarProps) {
           <ThemeToggle />
 
           {/* Notifications - caché sur mobile (bottom nav) */}
-          <Button variant="ghost" size="icon" className="hidden lg:flex" aria-label="Notifications">
-            <Icons.bell className="h-5 w-5" />
-          </Button>
+          <Link href="/echeances" className="hidden lg:flex">
+            <Button variant="ghost" size="icon" className="relative" aria-label={`Notifications${urgentCount > 0 ? ` (${urgentCount} urgentes)` : ''}`}>
+              <Icons.bell className="h-5 w-5" />
+              {urgentCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white leading-none">
+                  {urgentCount > 9 ? '9+' : urgentCount}
+                </span>
+              )}
+            </Button>
+          </Link>
 
           {/* Menu utilisateur */}
           <DropdownMenu>
