@@ -1164,11 +1164,9 @@ export async function* callGroqStream(
       temperature: options.temperature ?? 0.1,
     })
   } catch (err) {
-    // Protection 429 : rate limit Groq → throw message explicite + enregistre l'échec
+    // Laisser remonter l'erreur originale (rate limit inclus) pour que callLLMStream puisse déclencher le fallback
     if (isRateLimitError(err)) {
-      recordProviderFailure('groq')
       logger.warn(`[Groq Stream] 429 rate limit atteint pour modèle ${model}`)
-      throw new Error(`Assistant temporairement surchargé (rate limit Groq). Réessayez dans quelques secondes.`)
     }
     throw err
   }
@@ -1186,9 +1184,7 @@ export async function* callGroqStream(
     }
   } catch (err) {
     if (isRateLimitError(err)) {
-      recordProviderFailure('groq')
       logger.warn(`[Groq Stream] 429 en cours de streaming pour modèle ${model}`)
-      throw new Error(`Assistant temporairement surchargé (rate limit Groq). Réessayez dans quelques secondes.`)
     }
     throw err
   }
@@ -1197,6 +1193,7 @@ export async function* callGroqStream(
 /**
  * Dispatcher streaming générique selon le provider configuré pour l'opération.
  * Supporte Ollama, DeepSeek, Groq et Gemini — sélection automatique via operations-config.
+ * En cas de rate limit (429) ou erreur serveur récupérable, cascade automatiquement vers le fallbackChain.
  * Le paramètre `usageOut` capture les stats de tokens.
  */
 export async function* callLLMStream(
@@ -1209,25 +1206,66 @@ export async function* callLLMStream(
   },
   usageOut?: StreamTokenUsage
 ): AsyncGenerator<string> {
-  const provider = options.operationName
+  const primaryProvider = options.operationName
     ? getOperationProvider(options.operationName)
     : 'ollama'
 
-  if (provider === 'ollama') {
-    const opConfig = options.operationName ? getOperationConfig(options.operationName) : null
-    const timeout = opConfig?.timeouts?.chat ?? 60000
-    yield* callOllamaStream(messages, { ...options, timeout }, usageOut)
-  } else if (provider === 'deepseek') {
-    yield* callDeepSeekStream(messages, options, usageOut)
-  } else if (provider === 'groq') {
-    const model = options.operationName ? getOperationModel(options.operationName) : undefined
-    yield* callGroqStream(messages, { ...options, model }, usageOut)
-  } else {
-    // Fallback Gemini pour tout autre provider (gemini, openai, anthropic)
-    yield* callGeminiStream(messages, {
-      temperature: options.temperature,
-      maxTokens: options.maxTokens,
-      systemInstruction: options.systemInstruction,
-    })
+  const operationConfig = options.operationName ? getOperationConfig(options.operationName) : null
+
+  // Helper : stream avec un provider donné
+  async function* streamWithProvider(provider: LLMProvider, modelOverride?: string): AsyncGenerator<string> {
+    if (provider === 'ollama') {
+      const timeout = operationConfig?.timeouts?.chat ?? 60000
+      yield* callOllamaStream(messages, { ...options, timeout }, usageOut)
+    } else if (provider === 'deepseek') {
+      yield* callDeepSeekStream(messages, options, usageOut)
+    } else if (provider === 'groq') {
+      const model = modelOverride ?? (options.operationName ? getOperationModel(options.operationName) : undefined)
+      yield* callGroqStream(messages, { ...options, model }, usageOut)
+    } else {
+      // gemini, openai et autres → callGeminiStream
+      yield* callGeminiStream(messages, {
+        temperature: options.temperature,
+        maxTokens: options.maxTokens,
+        systemInstruction: options.systemInstruction,
+        model: modelOverride,
+      })
+    }
   }
+
+  // Essayer le provider primaire
+  try {
+    yield* streamWithProvider(primaryProvider)
+    return
+  } catch (error) {
+    // Erreur non-récupérable → re-throw immédiatement sans fallback
+    if (!isRateLimitError(error) && !isServerOrTimeoutError(error)) throw error
+
+    // Erreur récupérable (rate limit, timeout, 5xx) → cascade vers fallbackChain
+    recordProviderFailure(primaryProvider)
+    const reason = isRateLimitError(error) ? 'rate-limité' : 'erreur serveur/timeout'
+    logger.warn(`[LLM Stream] ⚠️ ${primaryProvider} ${reason} pour ${options.operationName || 'default'}, cascade fallback...`)
+  }
+
+  // Construire la liste de fallbacks depuis la config de l'opération
+  const fallbackEntries = (operationConfig?.fallbackChain && operationConfig.fallbackChain.length > 0)
+    ? operationConfig.fallbackChain
+        .filter(fb => isProviderCircuitClosed(fb.provider))
+        .map(fb => ({ provider: fb.provider as LLMProvider, modelOverride: fb.model }))
+    : []
+
+  for (const { provider: fallbackProvider, modelOverride } of fallbackEntries) {
+    try {
+      logger.info(`[LLM Stream] Tentative fallback: ${primaryProvider} → ${fallbackProvider}${modelOverride ? `/${modelOverride}` : ''}`)
+      yield* streamWithProvider(fallbackProvider, modelOverride)
+      logger.info(`[LLM Stream] ✓ Fallback streaming réussi: → ${fallbackProvider}`)
+      return
+    } catch (fallbackErr) {
+      recordProviderFailure(fallbackProvider)
+      logger.warn(`[LLM Stream] ⚠ Fallback ${fallbackProvider} échoué: ${fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)}`)
+    }
+  }
+
+  // Tous les providers ont échoué
+  throw new Error(`Assistant temporairement indisponible. Veuillez réessayer dans quelques instants.`)
 }
