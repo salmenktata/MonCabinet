@@ -431,6 +431,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
           language = $4,
           full_text = $5,
           metadata = metadata || $6::jsonb,
+          category = $7,
           is_indexed = false,
           version = version + 1,
           updated_at = NOW()
@@ -452,6 +453,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
             classification_signals: classification?.signals_used || null,
             needs_review: classificationSource === 'default',
           }),
+          kbCategory, // Mettre à jour la catégorie (ex: 'constitution' pour IORT دستور)
         ]
       )
 
