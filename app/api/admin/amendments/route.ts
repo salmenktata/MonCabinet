@@ -110,7 +110,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
          sm.amended_code_slug     AS code_slug,
          sm.amended_articles      AS amended_articles,
          sm.amendment_type        AS amendment_type,
-         sm.jort_pub_date         AS jort_date,
+         sm.jort_pub_date::TEXT   AS jort_date,
          sm.jort_issue_number     AS jort_issue,
          sm.amendment_extracted_at AS extracted_at,
          sm.extraction_confidence  AS confidence,
