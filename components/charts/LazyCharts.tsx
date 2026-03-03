@@ -99,6 +99,11 @@ const RechartsArea = dynamic(
   { ssr: false }
 )
 
+const RechartsReferenceLine = dynamic(
+  () => import('recharts').then((mod) => mod.ReferenceLine),
+  { ssr: false }
+)
+
 // Export avec les bons types
 export const BarChart = RechartsBarChart as typeof import('recharts').BarChart
 export const Bar = RechartsBar as typeof import('recharts').Bar
@@ -115,3 +120,4 @@ export const LineChart = RechartsLineChart as typeof import('recharts').LineChar
 export const Line = RechartsLine as typeof import('recharts').Line
 export const AreaChart = RechartsAreaChart as typeof import('recharts').AreaChart
 export const Area = RechartsArea as typeof import('recharts').Area
+export const ReferenceLine = RechartsReferenceLine as typeof import('recharts').ReferenceLine

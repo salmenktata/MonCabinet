@@ -1,258 +1,191 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useState, useEffect, useCallback } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { QuotaCard } from '@/components/super-admin/quotas/QuotaCard'
 import { Icons } from '@/lib/icons'
-import { PROVIDERS_WITH_QUOTAS } from '@/lib/constants/providers'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from '@/components/charts/LazyCharts'
+import { QuotaKPICards } from '@/components/super-admin/quotas/QuotaKPICards'
+import { RateLimitsTable } from '@/components/super-admin/quotas/RateLimitsTable'
+import { ConsumptionTabs } from '@/components/super-admin/quotas/ConsumptionTabs'
+import { DailyHistoryTable } from '@/components/super-admin/quotas/DailyHistoryTable'
+import { CostForecastChart } from '@/components/super-admin/quotas/CostForecastChart'
 
-interface QuotaData {
-  provider: string
-  today: {
-    total_tokens: number
-    cost_usd: number
-    quota?: number
-    usage_percent: number
+interface UnifiedQuotaData {
+  summary: {
+    totalCostMonthUsd: number
+    forecastEndOfMonthUsd: number
+    forecastDaysRemaining: number
+    topProviderByTokens: string
+    topProviderByCost: string
+    totalRequestsToday: number
+    activeAlerts: string[]
+    currentDate: string
+    daysElapsed: number
+    daysInMonth: number
   }
-  month: {
-    total_tokens: number
-    cost_usd: number
-    quota?: number
-    usage_percent: number
-  }
-  current_rpm: number
-  rpm_limit?: number
-  trend: Array<{
-    date: string
-    total_tokens: number
-    cost_usd: number
+  rateLimits: Array<{
+    provider: string
+    model: string
+    tier: 'free' | 'paid' | 'local'
+    limitType: 'RPD' | 'TPD' | 'RPM' | 'TPM' | 'Budget'
+    limitValue: number | null
+    unit?: string
+    usedToday: number
+    percentUsed: number
+    status: 'ok' | 'warning' | 'critical' | 'unlimited'
+    source: 'redis' | 'db'
   }>
-  quotas: {
-    tokensPerDay?: number
-    tokensPerMonth?: number
-    rpm?: number
-    costPerMTokenInput: number
-    costPerMTokenOutput: number
-  }
+  dailyTrend: Array<{
+    date: string
+    byProvider: Record<string, { tokens: number; cost: number; requests: number }>
+    total: { tokens: number; cost: number; requests: number }
+  }>
+  topUsers: Array<{
+    userId: string
+    email: string | null
+    name: string | null
+    totalTokens: number
+    totalCostUsd: number
+    requestsCount: number
+  }>
+  byOperation: Array<{
+    operationType: string
+    provider: string
+    model: string | null
+    requests: number
+    inputTokens: number
+    outputTokens: number
+    totalTokens: number
+    costUsd: number
+  }>
 }
 
+const AUTO_REFRESH_MS = 5 * 60 * 1000 // 5 minutes
+
 export default function QuotasPage() {
-  const [quotasData, setQuotasData] = useState<Record<string, QuotaData | null>>({})
+  const [data, setData] = useState<UnifiedQuotaData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('groq')
+  const [error, setError] = useState<string | null>(null)
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    fetchQuotas()
-  }, [])
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
+    else setRefreshing(true)
+    setError(null)
 
-  const fetchQuotas = async () => {
-    setLoading(true)
     try {
-      // Fetch quotas pour tous les providers avec quotas
-      const promises = PROVIDERS_WITH_QUOTAS.map(provider =>
-        fetch(`/api/admin/quotas?provider=${provider.id}`).then(r => r.json())
-      )
-
-      const results = await Promise.all(promises)
-
-      const data: Record<string, QuotaData | null> = {}
-      PROVIDERS_WITH_QUOTAS.forEach((provider, index) => {
-        data[provider.id] = results[index]
-      })
-
-      setQuotasData(data)
-    } catch (error) {
-      console.error('Erreur récupération quotas:', error)
+      const res = await fetch('/api/admin/quotas/unified')
+      if (!res.ok) throw new Error(`Erreur ${res.status}`)
+      const json = await res.json()
+      setData(json)
+      setLastRefresh(new Date())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de chargement')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  // Auto-refresh toutes les 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => fetchData(true), AUTO_REFRESH_MS)
+    return () => clearInterval(interval)
+  }, [fetchData])
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Icons.loader className="h-8 w-8 animate-spin" />
+      <div className="flex h-screen items-center justify-center gap-3">
+        <Icons.loader className="h-6 w-6 animate-spin" />
+        <span className="text-muted-foreground">Chargement des données...</span>
       </div>
     )
   }
 
-  const hasAlert = (data: QuotaData | null) => {
-    if (!data) return false
-    return data.today.usage_percent >= 80 || data.month.usage_percent >= 80
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <Alert variant="destructive">
+          <Icons.alertTriangle className="h-4 w-4" />
+          <AlertTitle>Erreur de chargement</AlertTitle>
+          <AlertDescription>
+            {error}
+            <button
+              onClick={() => fetchData()}
+              className="ml-4 underline hover:no-underline"
+            >
+              Réessayer
+            </button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
-  const getProviderData = (providerId: string) => quotasData[providerId]
+  if (!data) return null
+
+  const hasAlerts = data.summary.activeAlerts.length > 0
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      {/* ── En-tête ────────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Quotas & Alertes</h1>
+          <h1 className="text-3xl font-bold">Coûts & Limites IA</h1>
           <p className="text-muted-foreground mt-1">
-            Suivi consommation providers IA et limites tier gratuit
+            Suivi en temps réel des quotas, consommation tokens et prévision de coût par provider
           </p>
         </div>
-        <button
-          onClick={fetchQuotas}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-        >
-          <Icons.refresh className="h-4 w-4" />
-          Rafraîchir
-        </button>
+        <div className="flex items-center gap-3 shrink-0">
+          {lastRefresh && (
+            <span className="text-xs text-muted-foreground">
+              Màj {lastRefresh.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+          <button
+            onClick={() => fetchData(true)}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-opacity text-sm"
+          >
+            <Icons.refresh className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Rafraîchir
+          </button>
+        </div>
       </div>
 
-      {/* Alertes globales */}
-      {Object.values(quotasData).some(data => hasAlert(data)) && (
-        <Alert className="border-orange-500 bg-orange-500/10">
-          <Icons.alertTriangle className="h-4 w-4 text-orange-500" />
-          <AlertTitle>⚠️ Quotas élevés détectés</AlertTitle>
+      {/* ── Alerte globale ────────────────────────────────────────────────── */}
+      {hasAlerts && (
+        <Alert className="border-red-500/50 bg-red-500/5">
+          <Icons.alertTriangle className="h-4 w-4 text-red-500" />
+          <AlertTitle className="text-red-500">Limites critiques détectées</AlertTitle>
           <AlertDescription>
-            Un ou plusieurs providers approchent de leur limite. Envisagez un upgrade vers un tier payant.
+            {data.summary.activeAlerts.join(' · ')}
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Onglets providers */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${PROVIDERS_WITH_QUOTAS.length}, minmax(0, 1fr))` }}>
-          {PROVIDERS_WITH_QUOTAS.map(provider => (
-            <TabsTrigger key={provider.id} value={provider.id} className="flex items-center gap-2">
-              <span>{provider.icon}</span>
-              <span className="hidden sm:inline">{provider.name}</span>
-              {hasAlert(getProviderData(provider.id)) && (
-                <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {/* ── Section 1 : KPIs ──────────────────────────────────────────────── */}
+      <QuotaKPICards summary={data.summary} />
 
-        {/* Onglets dynamiques pour chaque provider */}
-        {PROVIDERS_WITH_QUOTAS.map(provider => {
-          const data = getProviderData(provider.id)
-          return (
-            <TabsContent key={provider.id} value={provider.id} className="space-y-6">
-              {data && (
-                <>
-                  <QuotaCard
-                    provider={provider.id}
-                    todayUsage={data.today}
-                    monthUsage={data.month}
-                    currentRPM={data.current_rpm}
-                    rpmLimit={data.rpm_limit}
-                    tier={provider.tier}
-                  />
+      {/* ── Section 2 : Limites temps réel ───────────────────────────────── */}
+      <RateLimitsTable rateLimits={data.rateLimits} />
 
-                  {/* Tendance (Groq = provider principal prod) */}
-                  {provider.id === 'groq' && data.trend && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Tendance 7 derniers jours</CardTitle>
-                        <CardDescription>Consommation quotidienne tokens</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <LineChart data={data.trend.reverse()}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis
-                              dataKey="date"
-                              tickFormatter={(date) => new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                            />
-                            <YAxis
-                              tickFormatter={(value) => `${(value / 1_000_000).toFixed(1)}M`}
-                            />
-                            <Tooltip
-                              formatter={(value, name) => {
-                                if (typeof value !== 'number' || !name) return ['', '']
-                                if (name === 'total_tokens') {
-                                  return [`${(value / 1_000_000).toFixed(2)}M tokens`, 'Tokens']
-                                }
-                                return [`$${value.toFixed(2)}`, 'Coût']
-                              }}
-                              labelFormatter={(date) => new Date(date).toLocaleDateString('fr-FR')}
-                            />
-                            <Legend />
-                            <Line
-                              type="monotone"
-                              dataKey="total_tokens"
-                              stroke="#3b82f6"
-                              strokeWidth={2}
-                              name="Tokens"
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
+      {/* ── Section 3 : Consommation / Users / Opérations ────────────────── */}
+      <ConsumptionTabs
+        dailyTrend={data.dailyTrend}
+        topUsers={data.topUsers}
+        byOperation={data.byOperation}
+      />
 
-                        {/* Limite gratuite */}
-                        {data.quotas?.tokensPerDay && (
-                          <div className="mt-4 p-3 border border-red-500/30 rounded-lg bg-red-500/5">
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-semibold text-red-500">Limite tier gratuit</span> :
-                              {' '}{(data.quotas.tokensPerDay / 1_000_000).toFixed(1)}M tokens/jour
-                            </p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-                </>
-              )}
-            </TabsContent>
-          )
-        })}
-      </Tabs>
+      {/* ── Section 4 : Historique 30j ────────────────────────────────────── */}
+      <DailyHistoryTable dailyTrend={data.dailyTrend} />
 
-      {/* Recommandations */}
-      <Card className="border-blue-500 bg-blue-500/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Icons.lightbulb className="h-5 w-5 text-blue-500" />
-            Recommandations
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div className="flex items-start gap-2">
-            <Icons.checkCircle className="h-4 w-4 text-green-500 mt-0.5" />
-            <div>
-              <p className="font-semibold">Groq + Ollama = gratuits (chat + batch)</p>
-              <p className="text-muted-foreground">
-                Groq llama-3.3-70b (chat) + llama-3.1-8b (routing) + Ollama qwen3:8b (indexation, eval) : 0€/mois.
-                Seuls OpenAI embeddings + DeepSeek dossiers sont facturés.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <Icons.info className="h-4 w-4 text-blue-500 mt-0.5" />
-            <div>
-              <p className="font-semibold">Surveiller DeepSeek ($0.028/M cache hit)</p>
-              <p className="text-muted-foreground">
-                DeepSeek facture les dossiers juridiques. Coût typique &lt; $2/mois selon volume.
-                Alerte si &gt; $5/mois.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <Icons.trendingUp className="h-4 w-4 text-orange-500 mt-0.5" />
-            <div>
-              <p className="font-semibold">OpenAI embeddings (~$0.02/M tokens)</p>
-              <p className="text-muted-foreground">
-                Budget actuel : $10/mois, alerte à $5. Pour 33K chunks réindexés : &lt; $0.01.
-                Google Cloud : 0€/mois depuis migration Gemini LLM → Groq (Mar 2026).
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── Section 5 : Prévision de coût ────────────────────────────────── */}
+      <CostForecastChart dailyTrend={data.dailyTrend} forecast={data.summary} />
     </div>
   )
 }
