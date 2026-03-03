@@ -1706,14 +1706,23 @@ export async function searchKnowledgeBaseHybrid(
   // Fix Mar 2 2026: Article-text match dédié constitution — "الفصل X من الدستور"
   // searchArticleByTextMatch filtre category='codes' par défaut → manque les chunks constitution.
   // Utilise patternText (original) pour garantir "الفصل الأول" même si l'expansion LLM l'omet.
+  //
+  // Fix Mar 3 2026 (ordinal→numeral): les chunks 9anoun.tn stockent "الفصل 2" (chiffre),
+  // mais la query peut avoir "الثاني" (ordinal). Convertir → chiffre avant searchArticleByTextMatch
+  // pour garantir le match. Ex: "الفصل الثاني من الدستور" → search "الفصل 2".
+  const ARABIC_ORDINAL_TO_NUM: Record<string, string> = {
+    'الاول': '1', 'الثاني': '2', 'الثالث': '3', 'الرابع': '4', 'الخامس': '5',
+    'السادس': '6', 'السابع': '7', 'الثامن': '8', 'التاسع': '9', 'العاشر': '10',
+  }
   if (isConstitutionQuery) {
     const constExplicitMatch = patternText.match(/الفصل\s+(\d+|ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/)
     if (constExplicitMatch) {
-      // Normaliser hamza : "الأول" (query) → "الاول" (stocké dans DB sans hamza sur alif)
+      // Normaliser hamza : "الأول" (query) → "الاول"
       const rawMatch = constExplicitMatch[1].replace(/[أإآ]/g, 'ا')
-      // Fix Mar 2 2026: ['constitution'] uniquement (pas 'legislation') — LIMIT 3 sur 879 chunks
-      // (1 constitution + 878 legislation) retournait quasi-aléatoirement, le bon chunk rarement inclus.
-      searchPromises.push(searchArticleByTextMatch(rawMatch, null, ['constitution']))
+      // Convertir ordinal → chiffre (9anoun.tn stocke "الفصل 2", pas "الفصل الثاني")
+      const artSearch = ARABIC_ORDINAL_TO_NUM[rawMatch] || rawMatch
+      // Fix Mar 2 2026: ['constitution'] uniquement (pas 'legislation')
+      searchPromises.push(searchArticleByTextMatch(artSearch, null, ['constitution']))
       providerLabels.push('article-text')
     }
   }
