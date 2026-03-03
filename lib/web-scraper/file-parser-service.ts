@@ -290,7 +290,7 @@ export function getPageForPosition(
  * Extrait le texte d'un fichier PDF
  * Utilise OCR si le texte extrait est insuffisant (PDF scanné)
  */
-export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
+export async function parsePdf(buffer: Buffer, options: { forceOcr?: boolean } = {}): Promise<ParsedFile> {
   let pageCount = 0
   let text = ''
   let wordCount = 0
@@ -335,7 +335,7 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
 
   try {
     // Si pdf-parse a échoué complètement, forcer l'OCR
-    const forcedOcr = !pdfParseSuccess
+    const forcedOcr = !pdfParseSuccess || !!options.forceOcr
 
     // Vérifier si le PDF nécessite l'OCR
     const avgCharsPerPage = pageCount > 0 ? text.length / pageCount : text.length
