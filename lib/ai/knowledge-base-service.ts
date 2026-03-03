@@ -1037,20 +1037,23 @@ const MCO_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
   [/تسوية.*قضائية|الصلح.*الواقي/, [452, 453, 454]],
 ]
 
-/** PSC (مجلة الأحوال الشخصية) — max 6 articles */
+/** PSC (مجلة الأحوال الشخصية) — max 6 articles
+ * Numéros vérifiés en prod Mar 3 2026 via audit SQL direct sur knowledge_base_chunks
+ */
 const PSC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
-  // Fsl 5: âge minimum mariage 18 ans (AR + FR)
-  [/سن.*زواج|سن.*الزواج|الحد الأدنى.*سن|âge.*mariage|mariage.*mineur|capacité.*mariage/i, [5, 6]],
-  // Fsl 18: interdiction polygamie (AR + FR)
-  [/تعدد.*زوج|زوجات.*متعدد|الجمع بين زوج|polygamie|monogamie|mariage.*plusieurs/i, [18]],
-  // Fsl 23: nafaqa (obligation alimentaire du mari → épouse) — CONFIRMÉ gold ar_famille_02
-  [/نفقة.*زوج|نفقة الزوجة|نفقة.*الزوج|واجب النفقة|obligation.*alimentaire|aliment.*épou|devoir.*entretien/i, [23]],
-  // Fsl 29-31: divorce (types, procédure, effets) (AR + FR)
-  [/طلاق.*قضائي|التطليق|طلاق للضرر|التفريق للضرر|divorce.*judiciaire|divorce.*tort|divorce.*préjudice/i, [29, 31]],
+  // Fsl 5: conditions mariage + âge minimum 18 ans (AR + FR)
+  [/سن.*زواج|سن.*الزواج|الحد الأدنى.*سن|âge.*mariage|mariage.*mineur|capacité.*mariage/i, [5]],
+  // Fsl 38-39-42: nafaqa épouse (obligation alimentaire du mari) — vérifié prod
+  // Fsl 38 = "يجب علي الزوج ان ينفق علي زوجته", Fsl 39 = insolvabilité, Fsl 42 = imprescriptible
+  [/نفقة.*زوج|نفقة الزوجة|نفقة.*الزوج|واجب النفقة|obligation.*alimentaire|aliment.*épou|devoir.*entretien/i, [38, 39, 42]],
+  // Fsl 31-32: divorce (causes + procédure) — vérifié prod
+  // Fsl 31 = "يحكم بالطلاق: 1-تراضي 2-ضرر 3-رغبة", Fsl 32 = procédure juge famille
+  [/طلاق.*قضائي|التطليق|طلاق للضرر|التفريق للضرر|divorce.*judiciaire|divorce.*tort|divorce.*préjudice/i, [31, 32]],
   // Fsl 31: divorce par consentement mutuel (AR + FR)
   [/طلاق.*تراضي|التراضي.*طلاق|الطلاق بالتراضي|divorce.*consentement|consentement.*mutuel/i, [31]],
-  // Fsl 39-41: hadana (conditions + attribution) (AR + FR)
-  [/حضانة|شروط.*حضانة|الحضانة.*الأم|الحضانة.*الأب|garde.*enfant|droit.*garde|attribution.*garde/i, [39, 40, 41]],
+  // Fsl 56-63-67: hadana (garde enfant) — vérifié prod
+  // Fsl 56 = frais/logement, Fsl 63 = procédure juge, Fsl 67 = après décès parent
+  [/حضانة|شروط.*حضانة|الحضانة.*الأم|الحضانة.*الأب|garde.*enfant|droit.*garde|attribution.*garde/i, [56, 63, 67]],
 ]
 
 /**
