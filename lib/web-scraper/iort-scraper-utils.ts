@@ -1341,12 +1341,15 @@ async function extractConstitutionText(
   if ((!hasArticles || content.length < 5000) && pdfBuffer) {
     console.log('[IORT Constitution] HTML sans articles constitutionnels — fallback extraction PDF')
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string; numpages: number }>
-      const pdfData = await pdfParse(pdfBuffer)
+      // Pattern identique à file-parser-service.ts (seul fonctionnant en prod Next.js)
+      const mod = await import('pdf-parse')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const PDFParseClass = (mod as any).PDFParse
+      const parser = new PDFParseClass({ data: pdfBuffer })
+      const pdfData = await parser.getText()
       if (pdfData.text && pdfData.text.length > content.length) {
         content = pdfData.text
-        console.log(`[IORT Constitution] PDF extrait: ${content.length} chars, pages: ${pdfData.numpages}`)
+        console.log(`[IORT Constitution] PDF extrait: ${content.length} chars, pages: ${pdfData.total}`)
       }
     } catch (pdfErr) {
       console.warn('[IORT Constitution] Échec extraction PDF:', pdfErr instanceof Error ? pdfErr.message : pdfErr)
@@ -1387,15 +1390,18 @@ export async function downloadConstitutionFromIort(
   // Télécharger le PDF APRÈS extraction (A7 peut naviguer/réinitialiser la page — peu importe)
   const pdfResult = await downloadConstitutionPdfViaA7(page)
 
-  // Si PDF disponible et HTML sans articles → re-extraire depuis le PDF
+  // Si PDF disponible et HTML sans articles → extraire le texte depuis le PDF
   if (pdfResult?.buffer && !/الفصل\s+\d+/.test(extracted.content)) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string; numpages: number }>
-      const pdfData = await pdfParse(pdfResult.buffer)
+      // Pattern identique à file-parser-service.ts (seul fonctionnant en prod Next.js)
+      const mod = await import('pdf-parse')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const PDFParseClass = (mod as any).PDFParse
+      const parser = new PDFParseClass({ data: pdfResult.buffer })
+      const pdfData = await parser.getText()
       if (pdfData.text && pdfData.text.length > extracted.content.length) {
         extracted.content = pdfData.text
-        console.log(`[IORT Constitution] PDF enrichit le contenu: ${extracted.content.length} chars, pages: ${pdfData.numpages}`)
+        console.log(`[IORT Constitution] PDF enrichit le contenu: ${extracted.content.length} chars, pages: ${pdfData.total}`)
       }
     } catch (pdfErr) {
       console.warn('[IORT Constitution] Échec extraction PDF:', pdfErr instanceof Error ? pdfErr.message : pdfErr)
