@@ -67,9 +67,14 @@ EOF
 
 ### Étape 6 : Push vers main
 
+Détecter si on est dans un worktree (branche différente de `main`) :
+
 ```bash
-git push origin main
+git branch --show-current
 ```
+
+- Si on est sur `main` : `git push origin main`
+- Si on est sur une autre branche (worktree) : `git push origin HEAD:main`
 
 Afficher le résultat du push.
 
