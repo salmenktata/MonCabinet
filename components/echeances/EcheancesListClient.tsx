@@ -126,7 +126,7 @@ export default function EcheancesListClient({ echeances }: EcheancesListClientPr
       {/* Filtres + recherche */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs value={activeType} onValueChange={setActiveType}>
-          <TabsList className="h-8 flex-wrap">
+          <TabsList className="h-auto min-h-8 flex-wrap">
             {TYPE_TABS.map((tab) => {
               const count = typeCounts[tab.value] ?? 0
               if (tab.value !== 'all' && count === 0) return null

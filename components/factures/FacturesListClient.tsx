@@ -96,7 +96,7 @@ export default function FacturesListClient({ factures }: { factures: FactureData
       {/* Filtres + recherche */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs value={activeStatus} onValueChange={setActiveStatus}>
-          <TabsList className="h-8 flex-wrap">
+          <TabsList className="h-auto min-h-8 flex-wrap">
             {STATUS_TABS.map((tab) => {
               const count = statusCounts[tab.value] ?? 0
               if (tab.value !== 'all' && count === 0) return null

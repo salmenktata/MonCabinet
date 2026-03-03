@@ -200,7 +200,7 @@ export function DataTable<T>({
       )}
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -299,9 +299,9 @@ export function DataTable<T>({
 
       {/* Pagination */}
       {!loading && paginatedData.length > 0 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Lignes par page</span>
+            <span className="hidden sm:inline text-sm text-muted-foreground">Lignes par page</span>
             <Select
               value={String(pageSize)}
               onValueChange={(value) => setPageSize(Number(value))}
@@ -318,12 +318,15 @@ export function DataTable<T>({
               </SelectContent>
             </Select>
             <span className="text-sm text-muted-foreground">
-              {(currentPage - 1) * pageSize + 1} -{' '}
-              {Math.min(currentPage * pageSize, sortedData.length)} sur {sortedData.length}
+              <span className="hidden sm:inline">
+                {(currentPage - 1) * pageSize + 1} –{' '}
+                {Math.min(currentPage * pageSize, sortedData.length)} sur{' '}
+              </span>
+              {sortedData.length}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="sm"
@@ -341,8 +344,8 @@ export function DataTable<T>({
             >
               <Icons.chevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-muted-foreground">
-              Page {currentPage} sur {totalPages}
+            <span className="hidden sm:inline text-sm text-muted-foreground px-1">
+              Page {currentPage} / {totalPages}
             </span>
             <Button
               variant="outline"
