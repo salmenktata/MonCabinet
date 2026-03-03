@@ -10,6 +10,7 @@ import NarrativeInput from '@/components/dossiers/assistant/NarrativeInput'
 import ExamplesCarousel from '@/components/dossiers/assistant/ExamplesCarousel'
 import AnalysisLoader from '@/components/dossiers/assistant/AnalysisLoader'
 import StructuredResult from '@/components/dossiers/assistant/StructuredResult'
+import { ProgressiveFeedback } from '@/components/dossiers/assistant/ProgressiveFeedback'
 import { StanceSelector } from '@/components/qadhya-ia/StanceSelector'
 import {
   structurerDossierAction,
@@ -234,11 +235,13 @@ export function StructurePage({ clients }: StructurePageProps) {
             </div>
           </div>
 
+          {/* NarrativeInput en mode single-colonne (ProgressiveFeedback déplacé dans le panneau droit) */}
           <NarrativeInput
             value={narratif}
             onChange={setNarratif}
             onSubmit={handleSubmitNarrative}
             disabled={step === 'analyzing'}
+            hideProgressiveFeedback
           />
 
           {/* Exemples visibles uniquement à l'étape de saisie */}
@@ -247,19 +250,11 @@ export function StructurePage({ clients }: StructurePageProps) {
           )}
         </div>
 
-        {/* Panneau droit — résultat contextuel (desktop: toujours visible, mobile: seulement hors étape saisie) */}
+        {/* Panneau droit — feedback / loader / résultat (desktop: toujours visible, mobile: seulement hors étape saisie) */}
         <div className={`lg:w-1/2 ${step === 'input' ? 'hidden lg:block' : 'mt-4 lg:mt-0'}`}>
-          {/* Placeholder desktop quand aucune analyse n'est encore lancée */}
+          {/* Feedback progressif pendant la saisie — remplace le placeholder statique */}
           {step === 'input' && (
-            <div className="rounded-xl border-2 border-dashed border-muted-foreground/15 bg-muted/20 flex flex-col items-center justify-center text-center p-10 min-h-[320px]">
-              <div className="w-14 h-14 rounded-2xl bg-amber-100/60 dark:bg-amber-900/20 flex items-center justify-center mb-4">
-                <Icons.fileText className="h-7 w-7 text-amber-500/50 dark:text-amber-400/40" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground/50">Résultat de l'analyse</p>
-              <p className="text-xs text-muted-foreground/35 mt-1 max-w-[200px]">
-                Décrivez votre situation et cliquez sur Analyser
-              </p>
-            </div>
+            <ProgressiveFeedback text={narratif} realtime />
           )}
 
           {/* Loader pendant l'analyse */}

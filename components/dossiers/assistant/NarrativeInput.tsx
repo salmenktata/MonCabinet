@@ -10,6 +10,8 @@ interface NarrativeInputProps {
   onChange: (value: string) => void
   onSubmit: () => void
   disabled: boolean
+  /** Masque le panneau ProgressiveFeedback interne (utile en layout split-panel) */
+  hideProgressiveFeedback?: boolean
 }
 
 export default function NarrativeInput({
@@ -17,6 +19,7 @@ export default function NarrativeInput({
   onChange,
   onSubmit,
   disabled,
+  hideProgressiveFeedback = false,
 }: NarrativeInputProps) {
   const t = useTranslations('assistant')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -50,7 +53,7 @@ export default function NarrativeInput({
 
   return (
     <div className="space-y-4">
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className={hideProgressiveFeedback ? '' : 'grid md:grid-cols-2 gap-4'}>
         {/* Colonne 1 : Saisie du narratif */}
         <div className="rounded-xl border bg-card p-5 shadow-sm flex flex-col gap-3">
           <textarea
@@ -98,8 +101,8 @@ export default function NarrativeInput({
           </div>
         </div>
 
-        {/* Colonne 2 : Feedback progressif */}
-        <ProgressiveFeedback text={value} realtime={true} />
+        {/* Colonne 2 : Feedback progressif (masqué en mode split-panel) */}
+        {!hideProgressiveFeedback && <ProgressiveFeedback text={value} realtime={true} />}
       </div>
     </div>
   )
