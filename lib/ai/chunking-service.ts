@@ -283,24 +283,21 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
 
   // Phase 3: Router selon stratégie
   if (strategy === 'article') {
-    // Vérifier si applicable (codes/legislation)
-    const isLegalCode = ['codes', 'legislation', 'constitution', 'code', 'jort'].includes(category || '')
-    if (isLegalCode) {
-      const articleChunks = chunkTextByArticles(cleanedText, {
-        language,
-        maxChunkWords: chunkSize,
-        category
-      })
+    // L'appelant (web-indexer) est responsable du choix de stratégie.
+    // On tente toujours le chunking par article quand explicitement demandé.
+    const articleChunks = chunkTextByArticles(cleanedText, {
+      language,
+      maxChunkWords: chunkSize,
+      category
+    })
 
-      // Si détection articles réussie, retourner
-      if (articleChunks.length > 0) {
-        console.log(`[Chunking] Stratégie article-level: ${articleChunks.length} articles détectés (catégorie: ${category})`)
-        return articleChunks
-      }
-
-      console.log(`[Chunking] Aucun article détecté, fallback vers chunking adaptive`)
+    if (articleChunks.length > 0) {
+      console.log(`[Chunking] Stratégie article-level: ${articleChunks.length} articles détectés (catégorie: ${category})`)
+      return articleChunks
     }
-    // Fallback vers adaptive si pas applicable
+
+    // Fallback adaptive si aucun article détecté (pas de marqueurs الفصل/Article dans le texte)
+    console.log(`[Chunking] Aucun article détecté, fallback vers chunking adaptive`)
   }
 
   // Si le texte est plus court que la taille de chunk, retourner un seul chunk
