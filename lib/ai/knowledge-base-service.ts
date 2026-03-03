@@ -1037,6 +1037,22 @@ const MCO_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
   [/تسوية.*قضائية|الصلح.*الواقي/, [452, 453, 454]],
 ]
 
+/** PSC (مجلة الأحوال الشخصية) — max 6 articles */
+const PSC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
+  // Fsl 5: âge minimum mariage 18 ans (AR + FR)
+  [/سن.*زواج|سن.*الزواج|الحد الأدنى.*سن|âge.*mariage|mariage.*mineur|capacité.*mariage/i, [5, 6]],
+  // Fsl 18: interdiction polygamie (AR + FR)
+  [/تعدد.*زوج|زوجات.*متعدد|الجمع بين زوج|polygamie|monogamie|mariage.*plusieurs/i, [18]],
+  // Fsl 23: nafaqa (obligation alimentaire du mari → épouse) — CONFIRMÉ gold ar_famille_02
+  [/نفقة.*زوج|نفقة الزوجة|نفقة.*الزوج|واجب النفقة|obligation.*alimentaire|aliment.*épou|devoir.*entretien/i, [23]],
+  // Fsl 29-31: divorce (types, procédure, effets) (AR + FR)
+  [/طلاق.*قضائي|التطليق|طلاق للضرر|التفريق للضرر|divorce.*judiciaire|divorce.*tort|divorce.*préjudice/i, [29, 31]],
+  // Fsl 31: divorce par consentement mutuel (AR + FR)
+  [/طلاق.*تراضي|التراضي.*طلاق|الطلاق بالتراضي|divorce.*consentement|consentement.*mutuel/i, [31]],
+  // Fsl 39-41: hadana (conditions + attribution) (AR + FR)
+  [/حضانة|شروط.*حضانة|الحضانة.*الأم|الحضانة.*الأب|garde.*enfant|droit.*garde|attribution.*garde/i, [39, 40, 41]],
+]
+
 /**
  * Cache module-level pour les résultats de pattern matching implicit article maps.
  * Clé: queryText (normalisé), valeur: Set de clés "artNum:titleFrag" matchées.
@@ -1196,8 +1212,22 @@ function getTargetCodeTitleFragment(queryText: string, lang: string): string | n
   if (/مجلة الشغل|عقد الشغل|صاحب العمل|رب العمل|الأجير|الطرد التعسفي|التشغيل/.test(queryText)) {
     return 'مجلة الشغل'
   }
-  // Family (Personal Status Code)
-  if (/مجلة الأحوال الشخصية|الأحوال الشخصية|طلاق للضرر|التفريق للضرر/.test(queryText)) {
+  // Family (Personal Status Code) — patterns bilingues AR + FR
+  // ORDRE: après Pénal/Travail pour éviter collision (ex: "طرد" → Travail avant Famille)
+  if (/مجلة الأحوال الشخصية|الأحوال الشخصية|طلاق للضرر|التفريق للضرر|
+    حضانة|نقل الحضانة|شروط الحضانة|الحضانة.*أم|الحضانة.*أب|
+    نفقة.*زوج|نفقة الزوجة|نفقة.*الزوج|نفقة.*أبناء|نفقة.*أطفال|واجب النفقة|
+    تعدد.*زوج|زوجات.*متعدد|الجمع بين زوج|
+    سن.*الزواج|السن.*للزواج|الزواج.*سن|الحد.*للزواج|
+    الطلاق.*تراضي|طلاق.*تراضي|الطلاق.*قضائي|
+    واجبات.*الزوج|واجبات الزوجين|حقوق.*الزوجين|
+    التبني|الكفالة.*طفل|كفالة.*قاصر|
+    الوصية|شروط الوصية|صحة الوصية|
+    اللقب.*العائلي|لقب.*طفل|لقب.*الأبناء|
+    الإرث.*الأسرة|الميراث.*زوج|الميراث.*زوجة|
+    divorce|mariage.*tunisien|tunisien.*mariage|garde.*enfant|droit.*visite|
+    pension.*alimentaire|obligation.*alimentaire.*épou|
+    kafala|recueil.*légal|empêchement.*mariage|régime.*successoral.*tunisien/x.test(queryText)) {
     return 'مجلة الأحوال الشخصية'
   }
   // Commercial (MCO) — المجلة التجارية (avant COC pour éviter collision "عقد تجاري")
@@ -1827,6 +1857,30 @@ export async function searchKnowledgeBaseHybrid(
             if (!mcoQueuedArticles.has(key)) {
               mcoQueuedArticles.add(key)
               searchPromises.push(searchArticleByTextMatch(String(artNum), mcoTitleFrag))
+              providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // PSC_IMPLICIT_ARTICLE_MAP — مجلة الأحوال الشخصية (Code du Statut Personnel)
+  // Supporte AR + FR (patterns bilingues dans la map)
+  {
+    const pscTitleFrag = getTargetCodeTitleFragment(queryText, bm25Language as string)
+    if (pscTitleFrag === 'مجلة الأحوال الشخصية') {
+      const PSC_MAX_ARTICLES = 6
+      const pscQueuedArticles = new Set<string>()
+      for (const [pattern, articles] of PSC_IMPLICIT_ARTICLE_MAP) {
+        if (pscQueuedArticles.size >= PSC_MAX_ARTICLES) break
+        if (pattern.test(queryText)) {
+          for (const artNum of articles) {
+            if (pscQueuedArticles.size >= PSC_MAX_ARTICLES) break
+            const key = `${artNum}:${pscTitleFrag}`
+            if (!pscQueuedArticles.has(key)) {
+              pscQueuedArticles.add(key)
+              searchPromises.push(searchArticleByTextMatch(String(artNum), pscTitleFrag))
               providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
             }
           }

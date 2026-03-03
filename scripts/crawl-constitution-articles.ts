@@ -175,6 +175,8 @@ async function main() {
 
   console.log(`\n[Crawl Constitution] Terminé : ${totalScraped} scrapés, ${totalErrors} erreurs`)
   console.log(`[Crawl] Après indexation, relancer 'backfill-constitution-embeddings.ts' pour les embeddings Ollama`)
+  console.log(`[Crawl] IMPORTANT: corriger les titres "مشروع دستور" → "دستور" en prod:`)
+  console.log(`  docker exec -i qadhya-postgres psql -U moncabinet -d qadhya < scripts/fix-constitution-titles.sql`)
 }
 
 main().catch((err) => {

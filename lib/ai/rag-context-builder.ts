@@ -300,9 +300,10 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
         enrichedHeader += lang === 'ar' ? '📜 [نص رسمي - الرائد الرسمي]\n' : '📜 [TEXTE OFFICIEL - JORT]\n'
       }
 
-      // Badge document draft/projet
+      // Badge document draft/projet (exempter les textes promulgués même si titre contient "مشروع")
       const docName = source.documentName || ''
-      if (docName.includes('مشروع') || docName.includes('اقتراح')) {
+      const isPromulgated = meta?.promulgated === true || meta?.sourceOrigin === 'iort_gov_tn'
+      if (!isPromulgated && (docName.includes('مشروع') || docName.includes('اقتراح'))) {
         enrichedHeader += lang === 'ar' ? '📋 [مشروع / صيغة أولية - غير نهائي]\n' : '📋 [PROJET - version non définitive]\n'
       }
 
