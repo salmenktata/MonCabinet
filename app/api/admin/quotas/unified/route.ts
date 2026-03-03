@@ -163,6 +163,7 @@ export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
       LEFT JOIN users u ON u.id::text = l.user_id::text
       WHERE DATE_TRUNC('month', l.created_at) = DATE_TRUNC('month', CURRENT_DATE)
         AND l.user_id IS NOT NULL
+        AND (u.is_system_account = false OR u.is_system_account IS NULL)
       GROUP BY l.user_id, u.email, u.name
       ORDER BY total_tokens DESC
       LIMIT 10

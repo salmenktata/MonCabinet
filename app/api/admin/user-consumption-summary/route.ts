@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
       FROM users u
       INNER JOIN ai_usage_logs a ON a.user_id = u.id
       WHERE a.created_at >= $1
+        AND (u.is_system_account = false OR u.is_system_account IS NULL)
       GROUP BY u.id, u.email, u.nom, u.prenom, u.plan
       HAVING COUNT(*) > 0
       ORDER BY total_cost DESC
