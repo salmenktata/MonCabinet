@@ -126,6 +126,11 @@ const ARABIC_STOPWORDS = new Set([
   'كل', 'بعض', 'غير', 'دون', 'ضد', 'حول',
   // Particules
   'ما', 'لا', 'نعم',
+  // Termes structurels juridiques (omnipresents → IDF≈0, biaisent TF-IDF)
+  // Présents dans presque tous les chunks KB juridiques → discriminant nul
+  'الفصل', 'فصل', 'مجلة', 'المجلة', 'مقتضيات', 'التونسي', 'التونسية',
+  'القانون', 'تونس', 'تونسي', 'تونسية', 'منه', 'منها', 'التشريع',
+  'قانون', 'تشريع', 'نص', 'النص', 'أحكام', 'الأحكام',
 ])
 
 const FRENCH_STOPWORDS = new Set([
