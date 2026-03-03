@@ -1,13 +1,28 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { query } from '@/lib/db/postgres'
 import { PageHeader } from '@/components/super-admin/shared/PageHeader'
+import { StatCard } from '@/components/dashboard/StatCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import Link from 'next/link'
+import {
+  Users,
+  Clock,
+  Activity,
+  XCircle,
+  Database,
+  DollarSign,
+  GitBranch,
+  BarChart2,
+  FlaskConical,
+  Settings,
+} from 'lucide-react'
 
-// Composant pour les stats utilisateurs
+// =============================================================================
+// UserStats — 4 StatCard avec variants
+// =============================================================================
 async function UserStats() {
   const result = await query(`
     SELECT
@@ -21,66 +36,48 @@ async function UserStats() {
       COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '30 days') as new_this_month
     FROM users
   `)
-  const stats = result.rows[0]
+  const s = result.rows[0]
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-300">Total Utilisateurs</CardTitle>
-          <Icons.users className="h-4 w-4 text-slate-400" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-white">{stats.total}</div>
-          <p className="text-xs text-slate-400">
-            +{stats.new_this_month} ce mois
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-300">En Attente</CardTitle>
-          <Icons.clock className="h-4 w-4 text-yellow-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-yellow-500">{stats.pending}</div>
-          <p className="text-xs text-slate-400">
-            Requièrent approbation
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-300">Actifs (7j)</CardTitle>
-          <Icons.activity className="h-4 w-4 text-green-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-500">{stats.active_7d}</div>
-          <p className="text-xs text-slate-400">
-            {stats.active_30d} actifs ce mois
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-300">Suspendus</CardTitle>
-          <Icons.xCircle className="h-4 w-4 text-red-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-red-500">{stats.suspended}</div>
-          <p className="text-xs text-slate-400">
-            {stats.rejected} rejetés
-          </p>
-        </CardContent>
-      </Card>
+      <StatCard
+        title="Total Utilisateurs"
+        value={parseInt(s.total)}
+        subtitle={`+${s.new_this_month} ce mois`}
+        icon={Users}
+        variant="default"
+        href="/super-admin/users"
+      />
+      <StatCard
+        title="En Attente"
+        value={parseInt(s.pending)}
+        subtitle="Requièrent approbation"
+        icon={Clock}
+        variant={parseInt(s.pending) > 0 ? 'warning' : 'default'}
+        href="/super-admin/users?status=pending"
+        trend={parseInt(s.pending) > 0 ? { value: 1, label: 'Action requise' } : undefined}
+      />
+      <StatCard
+        title="Actifs (7 jours)"
+        value={parseInt(s.active_7d)}
+        subtitle={`${s.active_30d} actifs ce mois`}
+        icon={Activity}
+        variant="success"
+      />
+      <StatCard
+        title="Suspendus"
+        value={parseInt(s.suspended)}
+        subtitle={`${s.rejected} rejetés`}
+        icon={XCircle}
+        variant={parseInt(s.suspended) > 0 ? 'danger' : 'default'}
+      />
     </div>
   )
 }
 
-// Composant pour les stats base de connaissance
+// =============================================================================
+// KnowledgeBaseStats — avec barre de progression d'indexation
+// =============================================================================
 async function KnowledgeBaseStats() {
   const result = await query(`
     SELECT
@@ -89,9 +86,8 @@ async function KnowledgeBaseStats() {
       COALESCE(SUM(chunk_count) FILTER (WHERE is_active = TRUE), 0) as total_chunks
     FROM knowledge_base
   `)
-  const stats = result.rows[0]
+  const s = result.rows[0]
 
-  // Répartition par catégorie (sources actives uniquement)
   const categoryResult = await query(`
     SELECT category, COUNT(*) as count
     FROM knowledge_base
@@ -100,36 +96,63 @@ async function KnowledgeBaseStats() {
     ORDER BY count DESC
   `)
 
+  const total = parseInt(s.total_docs)
+  const indexed = parseInt(s.indexed_docs)
+  const chunks = parseInt(s.total_chunks)
+  const indexRate = total > 0 ? Math.round((indexed / total) * 100) : 0
+
   return (
     <Card className="bg-slate-800 border-slate-700">
-      <CardHeader>
-        <CardTitle className="text-white">Base de Connaissances</CardTitle>
-        <CardDescription className="text-slate-400">
-          Documents et indexation
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <div>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Database className="h-4 w-4 text-blue-400" />
+            Base de Connaissances
+          </CardTitle>
+          <CardDescription className="text-slate-400">Documents et indexation RAG</CardDescription>
+        </div>
+        <Link href="/super-admin/knowledge-base">
+          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white text-xs">
+            Gérer →
+          </Button>
+        </Link>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-white">{stats.total_docs}</div>
-            <p className="text-sm text-slate-400">Documents</p>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <div className="text-2xl font-bold text-white">{total.toLocaleString('fr-FR')}</div>
+            <p className="text-xs text-slate-400">Documents</p>
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-500">{stats.indexed_docs}</div>
-            <p className="text-sm text-slate-400">Indexés</p>
+          <div>
+            <div className="text-2xl font-bold text-green-400">{indexed.toLocaleString('fr-FR')}</div>
+            <p className="text-xs text-slate-400">Indexés</p>
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-500">{stats.total_chunks}</div>
-            <p className="text-sm text-slate-400">Chunks</p>
+          <div>
+            <div className="text-2xl font-bold text-blue-400">{chunks.toLocaleString('fr-FR')}</div>
+            <p className="text-xs text-slate-400">Chunks</p>
+          </div>
+        </div>
+
+        {/* Barre de progression d'indexation */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-slate-400">Taux d'indexation</span>
+            <span className="text-xs font-medium text-slate-300">{indexRate}%</span>
+          </div>
+          <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-green-500 rounded-full transition-all"
+              style={{ width: `${indexRate}%` }}
+            />
           </div>
         </div>
 
         {categoryResult.rows.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-700">
-            <p className="text-sm text-slate-400 mb-2">Par catégorie :</p>
-            <div className="flex flex-wrap gap-2">
+          <div className="pt-2 border-t border-slate-700">
+            <p className="text-xs text-slate-400 mb-2">Par catégorie</p>
+            <div className="flex flex-wrap gap-1.5">
               {categoryResult.rows.map((cat: { category: string; count: string }) => (
-                <Badge key={cat.category} variant="secondary" className="bg-slate-700 text-slate-300">
+                <Badge key={cat.category} variant="secondary" className="bg-slate-700 text-slate-300 text-xs">
                   {cat.category}: {cat.count}
                 </Badge>
               ))}
@@ -141,10 +164,11 @@ async function KnowledgeBaseStats() {
   )
 }
 
-// Taux de change USD -> TND
+// =============================================================================
+// AICostsStats — avec icône et layout amélioré
+// =============================================================================
 const USD_TO_TND = 3.1
 
-// Composant pour les coûts IA
 async function AICostsStats() {
   const result = await query(`
     SELECT
@@ -154,33 +178,41 @@ async function AICostsStats() {
     FROM ai_usage_logs
     WHERE created_at > NOW() - INTERVAL '30 days'
   `)
-  const stats = result.rows[0]
-  const costUSD = parseFloat(stats.total_cost)
+  const s = result.rows[0]
+  const costUSD = parseFloat(s.total_cost)
   const costTND = (costUSD * USD_TO_TND).toFixed(3)
 
   return (
     <Card className="bg-slate-800 border-slate-700">
-      <CardHeader>
-        <CardTitle className="text-white">Coûts IA (30 jours)</CardTitle>
-        <CardDescription className="text-slate-400">
-          OpenAI embeddings + DeepSeek dossiers (Groq/Ollama = gratuit)
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <div>
+          <CardTitle className="text-white flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-green-400" />
+            Coûts IA (30 jours)
+          </CardTitle>
+          <CardDescription className="text-slate-400">
+            DeepSeek + OpenAI embeddings (Groq/Ollama = gratuit)
+          </CardDescription>
+        </div>
+        <Link href="/super-admin/monitoring?tab=costs">
+          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white text-xs">
+            Détail →
+          </Button>
+        </Link>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-white">
-              ${costUSD.toFixed(2)}
-            </div>
-            <p className="text-sm text-slate-400">{costTND} TND</p>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <div className="text-2xl font-bold text-white">${costUSD.toFixed(2)}</div>
+            <p className="text-xs text-slate-400">{costTND} TND</p>
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-500">{stats.total_operations}</div>
-            <p className="text-sm text-slate-400">Opérations</p>
+          <div>
+            <div className="text-2xl font-bold text-blue-400">{parseInt(s.total_operations).toLocaleString('fr-FR')}</div>
+            <p className="text-xs text-slate-400">Opérations</p>
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-500">{stats.unique_users}</div>
-            <p className="text-sm text-slate-400">Utilisateurs</p>
+          <div>
+            <div className="text-2xl font-bold text-purple-400">{parseInt(s.unique_users).toLocaleString('fr-FR')}</div>
+            <p className="text-xs text-slate-400">Utilisateurs</p>
           </div>
         </div>
       </CardContent>
@@ -188,7 +220,9 @@ async function AICostsStats() {
   )
 }
 
-// Composant pour les inscriptions en attente
+// =============================================================================
+// PendingRegistrations
+// =============================================================================
 async function PendingRegistrations() {
   const result = await query(`
     SELECT id, email, nom, prenom, created_at
@@ -216,11 +250,11 @@ async function PendingRegistrations() {
       <CardContent>
         {result.rows.length === 0 ? (
           <div className="text-center py-6 text-slate-400">
-            <Icons.checkCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
-            <p>Aucune demande en attente</p>
+            <Icons.checkCircle className="h-10 w-10 mx-auto mb-2 text-green-500" />
+            <p className="text-sm">Aucune demande en attente</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {result.rows.map((user: {
               id: string
               email: string
@@ -230,20 +264,20 @@ async function PendingRegistrations() {
             }) => (
               <div
                 key={user.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50"
+                className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors"
               >
                 <div>
-                  <p className="font-medium text-white">
+                  <p className="text-sm font-medium text-white">
                     {user.prenom} {user.nom}
                   </p>
-                  <p className="text-sm text-slate-400">{user.email}</p>
+                  <p className="text-xs text-slate-400">{user.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-500">
                     {new Date(user.created_at).toLocaleDateString('fr-FR')}
                   </span>
                   <Link href={`/super-admin/users/${user.id}`}>
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-7 text-xs">
                       Examiner
                     </Button>
                   </Link>
@@ -257,7 +291,9 @@ async function PendingRegistrations() {
   )
 }
 
-// Composant pour l'activité récente
+// =============================================================================
+// RecentActivity
+// =============================================================================
 async function RecentActivity() {
   const result = await query(`
     SELECT
@@ -282,6 +318,12 @@ async function RecentActivity() {
     return labels[action] || action
   }
 
+  const getActionColor = (action: string) => {
+    if (action.includes('approved') || action.includes('reactivated')) return 'text-green-500'
+    if (action.includes('rejected') || action.includes('suspended') || action.includes('delete')) return 'text-red-400'
+    return 'text-blue-400'
+  }
+
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -300,11 +342,11 @@ async function RecentActivity() {
       <CardContent>
         {result.rows.length === 0 ? (
           <div className="text-center py-6 text-slate-400">
-            <Icons.activity className="h-12 w-12 mx-auto mb-2" />
-            <p>Aucune activité récente</p>
+            <Icons.activity className="h-10 w-10 mx-auto mb-2" />
+            <p className="text-sm">Aucune activité récente</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {result.rows.map((log: {
               id: string
               admin_email: string
@@ -314,27 +356,27 @@ async function RecentActivity() {
             }) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-700/50"
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center">
-                    <Icons.shield className="h-4 w-4 text-slate-400" />
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-7 w-7 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+                    <Icons.shield className={`h-3.5 w-3.5 ${getActionColor(log.action_type)}`} />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white truncate">
                       {getActionLabel(log.action_type)}
                     </p>
-                    <p className="text-xs text-slate-400">
-                      {log.target_identifier} par {log.admin_email}
+                    <p className="text-xs text-slate-400 truncate">
+                      {log.target_identifier} · {log.admin_email}
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-500 shrink-0 ml-2">
                   {new Date(log.created_at).toLocaleString('fr-FR', {
                     day: '2-digit',
                     month: '2-digit',
                     hour: '2-digit',
-                    minute: '2-digit'
+                    minute: '2-digit',
                   })}
                 </span>
               </div>
@@ -346,36 +388,80 @@ async function RecentActivity() {
   )
 }
 
+// =============================================================================
+// Raccourcis rapides
+// =============================================================================
+const SHORTCUTS = [
+  { label: 'Pipeline', href: '/super-admin/pipeline', icon: GitBranch, desc: 'Validation documents', color: 'text-blue-400' },
+  { label: 'Évaluation RAG', href: '/super-admin/evaluation', icon: FlaskConical, desc: 'Benchmarks & métriques', color: 'text-purple-400' },
+  { label: 'Monitoring', href: '/super-admin/monitoring', icon: BarChart2, desc: 'Santé système', color: 'text-green-400' },
+  { label: 'Configuration', href: '/super-admin/settings', icon: Settings, desc: 'Paramètres globaux', color: 'text-slate-400' },
+] as const
+
+function QuickShortcuts() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {SHORTCUTS.map((s) => (
+        <Link key={s.href} href={s.href}>
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all cursor-pointer group">
+            <s.icon className={`h-5 w-5 shrink-0 ${s.color} group-hover:scale-110 transition-transform`} />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white truncate">{s.label}</p>
+              <p className="text-xs text-slate-400 truncate">{s.desc}</p>
+            </div>
+          </div>
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+// =============================================================================
+// Page principale
+// =============================================================================
 export default function SuperAdminDashboard() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Dashboard Super Admin" description="Vue d'ensemble de la plateforme" />
+      <PageHeader
+        title="Dashboard Super Admin"
+        description="Vue d'ensemble de la plateforme Qadhya"
+      />
 
       {/* Stats utilisateurs */}
-      <Suspense fallback={<div className="h-32 bg-slate-800 animate-pulse rounded-lg" />}>
+      <Suspense fallback={
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-28 bg-slate-800 animate-pulse rounded-xl border border-slate-700" />
+          ))}
+        </div>
+      }>
         <UserStats />
       </Suspense>
 
-      {/* Grille 2 colonnes */}
+      {/* KB + Coûts */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Suspense fallback={<div className="h-64 bg-slate-800 animate-pulse rounded-lg" />}>
+        <Suspense fallback={<div className="h-56 bg-slate-800 animate-pulse rounded-xl border border-slate-700" />}>
           <KnowledgeBaseStats />
         </Suspense>
-
-        <Suspense fallback={<div className="h-64 bg-slate-800 animate-pulse rounded-lg" />}>
+        <Suspense fallback={<div className="h-56 bg-slate-800 animate-pulse rounded-xl border border-slate-700" />}>
           <AICostsStats />
         </Suspense>
       </div>
 
-      {/* Grille 2 colonnes */}
+      {/* Inscriptions + Activité */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Suspense fallback={<div className="h-96 bg-slate-800 animate-pulse rounded-lg" />}>
+        <Suspense fallback={<div className="h-72 bg-slate-800 animate-pulse rounded-xl border border-slate-700" />}>
           <PendingRegistrations />
         </Suspense>
-
-        <Suspense fallback={<div className="h-96 bg-slate-800 animate-pulse rounded-lg" />}>
+        <Suspense fallback={<div className="h-72 bg-slate-800 animate-pulse rounded-xl border border-slate-700" />}>
           <RecentActivity />
         </Suspense>
+      </div>
+
+      {/* Raccourcis rapides */}
+      <div>
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">Raccourcis</p>
+        <QuickShortcuts />
       </div>
     </div>
   )

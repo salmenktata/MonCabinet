@@ -11,6 +11,7 @@ import { PipelineStageTab } from './PipelineStageTab'
 import { PipelineStatsCards, PipelineStatsCardsSkeleton } from './PipelineStatsCards'
 import { PipelineThroughputStats } from './PipelineThroughputStats'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 
 const CATEGORIES = getCategoriesForContext('knowledge_base').map(c => c.value)
 
@@ -220,30 +221,28 @@ export function PipelineDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Pipeline KB</h1>
-          <p className="text-muted-foreground">
-            Validation supervisée des documents de la base de connaissances
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {lastRefresh && (
-            <span className="text-xs text-muted-foreground">
-              Mis à jour à {lastRefresh.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { fetchFunnel(); fetchDocs() }}
-            disabled={isLoadingFunnel}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingFunnel ? 'animate-spin' : ''}`} />
-            Actualiser
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Pipeline KB"
+        description="Validation supervisée des documents de la base de connaissances"
+        action={
+          <div className="flex items-center gap-3">
+            {lastRefresh && (
+              <span className="text-xs text-muted-foreground">
+                Mis à jour à {lastRefresh.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { fetchFunnel(); fetchDocs() }}
+              disabled={isLoadingFunnel}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingFunnel ? 'animate-spin' : ''}`} />
+              Actualiser
+            </Button>
+          </div>
+        }
+      />
 
       {/* Stats cards */}
       {isLoadingFunnel && !funnelData ? (
@@ -281,7 +280,7 @@ export function PipelineDashboard() {
 
       {/* Tabs par étape */}
       <Tabs value={activeTab} onValueChange={handleStageClick}>
-        <TabsList className="flex flex-wrap h-auto gap-1">
+        <TabsList className="w-full overflow-x-auto flex h-auto gap-1 pb-0.5 justify-start">
           {STAGES.map(s => {
             const count = funnelData?.funnel.stages.find(fs => fs.stage === s.value)?.count
               ?? (s.value === 'rejected' ? funnelData?.funnel.rejected : undefined)

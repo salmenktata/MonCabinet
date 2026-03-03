@@ -51,22 +51,76 @@ interface AmendmentsData {
 }
 
 // =============================================================================
-// COULEURS PAR TYPE D'AMENDEMENT
+// BADGES TYPE D'AMENDEMENT — couleurs compatibles dark mode
 // =============================================================================
 
 function getAmendmentTypeBadge(type: string | null) {
   switch (type) {
     case 'modification':
-      return <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50 dark:bg-blue-950/20 text-xs">Modification</Badge>
+      return (
+        <Badge variant="outline" className="text-blue-400 border-blue-500/30 bg-blue-500/10 text-xs">
+          Modification
+        </Badge>
+      )
     case 'abrogation':
-      return <Badge variant="outline" className="text-red-700 border-red-300 bg-red-50 dark:bg-red-950/20 text-xs">Abrogation</Badge>
+      return (
+        <Badge variant="outline" className="text-red-400 border-red-500/30 bg-red-500/10 text-xs">
+          Abrogation
+        </Badge>
+      )
     case 'addition':
-      return <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 dark:bg-green-950/20 text-xs">Addition</Badge>
+      return (
+        <Badge variant="outline" className="text-green-400 border-green-500/30 bg-green-500/10 text-xs">
+          Addition
+        </Badge>
+      )
     case 'replacement':
-      return <Badge variant="outline" className="text-purple-700 border-purple-300 bg-purple-50 dark:bg-purple-950/20 text-xs">Remplacement</Badge>
+      return (
+        <Badge variant="outline" className="text-purple-400 border-purple-500/30 bg-purple-500/10 text-xs">
+          Remplacement
+        </Badge>
+      )
     default:
-      return <Badge variant="outline" className="text-xs">{type ?? '—'}</Badge>
+      return (
+        <Badge variant="outline" className="text-slate-400 border-slate-600 text-xs">
+          {type ?? '—'}
+        </Badge>
+      )
   }
+}
+
+// =============================================================================
+// SKELETON CHARGEMENT
+// =============================================================================
+
+function KPIsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="rounded-xl bg-slate-800 border border-slate-700 p-5 animate-pulse">
+          <div className="h-7 w-16 bg-slate-700 rounded mb-2" />
+          <div className="h-3 w-24 bg-slate-700 rounded" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function TableSkeleton() {
+  return (
+    <div className="space-y-2 py-4">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex gap-4 animate-pulse">
+          <div className="h-10 flex-[2] bg-muted rounded" />
+          <div className="h-10 flex-1 bg-muted rounded" />
+          <div className="h-10 flex-1 bg-muted rounded" />
+          <div className="h-10 w-24 bg-muted rounded" />
+          <div className="h-10 w-20 bg-muted rounded" />
+          <div className="h-10 w-16 bg-muted rounded" />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 // =============================================================================
@@ -132,12 +186,14 @@ export function AmendmentsDashboardClient() {
     }
   }
 
+  const showingCount = data?.amendments.length ?? 0
+  const totalCount = data?.pagination.total ?? 0
+
   return (
     <div className="space-y-6 p-6">
       <PageHeader
         title="Amendements JORT"
         description="Suivi des modifications législatives publiées au Journal Officiel de la République Tunisienne"
-        backHref="/super-admin/monitoring"
         action={
           <div className="flex items-center gap-2">
             <Button
@@ -166,7 +222,9 @@ export function AmendmentsDashboardClient() {
       />
 
       {/* KPIs */}
-      {data && (
+      {!data ? (
+        <KPIsSkeleton />
+      ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard
             label="Amendements détectés"
@@ -181,7 +239,7 @@ export function AmendmentsDashboardClient() {
             color="green"
           />
           <KPICard
-            label="Docs IORT indexés"
+            label="Docs JORT indexés"
             value={data.stats.totalIortDocs}
             icon="fileText"
             color="purple"
@@ -243,7 +301,7 @@ export function AmendmentsDashboardClient() {
               : 'Tous les amendements'}
             {data && (
               <span className="text-xs text-muted-foreground font-normal">
-                ({data.amendments.length})
+                ({showingCount}{totalCount > showingCount ? ` / ${totalCount}` : ''})
               </span>
             )}
           </h2>
@@ -259,11 +317,7 @@ export function AmendmentsDashboardClient() {
           </Button>
         </div>
 
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <Icons.loader className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        )}
+        {loading && <TableSkeleton />}
 
         {!loading && data && data.amendments.length === 0 && (
           <EmptyState
@@ -273,80 +327,89 @@ export function AmendmentsDashboardClient() {
         )}
 
         {!loading && data && data.amendments.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="pb-2 pr-4 font-medium">Document JORT</th>
-                  <th className="pb-2 pr-4 font-medium">Code modifié</th>
-                  <th className="pb-2 pr-4 font-medium">Articles</th>
-                  <th className="pb-2 pr-4 font-medium">Type</th>
-                  <th className="pb-2 pr-4 font-medium">Date JORT</th>
-                  <th className="pb-2 pr-4 font-medium">Confiance</th>
-                  <th className="pb-2 font-medium">Relations</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {data.amendments.map((row) => (
-                  <tr key={`${row.jortKbId}-${row.codeSlug}`} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3 pr-4">
-                      <div className="text-xs font-medium max-w-[200px] truncate" title={row.jortTitle}>
-                        {row.jortTitle}
-                      </div>
-                      {row.jortIssue && (
-                        <div className="text-[11px] text-muted-foreground">{row.jortIssue}</div>
-                      )}
-                    </td>
-                    <td className="py-3 pr-4">
-                      <div className="font-semibold text-xs">{row.codeSlug}</div>
-                      {row.codeNameAr && (
-                        <div className="text-[11px] text-muted-foreground truncate max-w-[120px]" dir="rtl">
-                          {row.codeNameAr}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 pr-4">
-                      <div className="flex flex-wrap gap-1 max-w-[150px]">
-                        {row.amendedArticles?.slice(0, 5).map((n) => (
-                          <span key={n} className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">
-                            {n}
-                          </span>
-                        ))}
-                        {(row.amendedArticles?.length ?? 0) > 5 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            +{(row.amendedArticles?.length ?? 0) - 5}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 pr-4">
-                      {getAmendmentTypeBadge(row.amendmentType)}
-                    </td>
-                    <td className="py-3 pr-4 text-xs text-muted-foreground">
-                      {row.jortDate ?? '—'}
-                    </td>
-                    <td className="py-3 pr-4">
-                      {row.confidence !== null ? (
-                        <span className={cn(
-                          'text-xs font-medium',
-                          row.confidence >= 0.8 ? 'text-green-600' :
-                          row.confidence >= 0.6 ? 'text-amber-600' :
-                          'text-red-600'
-                        )}>
-                          {Math.round(row.confidence * 100)}%
-                        </span>
-                      ) : '—'}
-                    </td>
-                    <td className="py-3">
-                      <Badge variant="secondary" className="text-[10px]">
-                        {row.relationsCount}
-                      </Badge>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">Document JORT</th>
+                    <th className="pb-2 pr-4 font-medium">Code modifié</th>
+                    <th className="pb-2 pr-4 font-medium">Articles</th>
+                    <th className="pb-2 pr-4 font-medium">Type</th>
+                    <th className="pb-2 pr-4 font-medium">Date JORT</th>
+                    <th className="pb-2 pr-4 font-medium">Confiance</th>
+                    <th className="pb-2 font-medium">Relations</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {data.amendments.map((row) => (
+                    <tr key={`${row.jortKbId}-${row.codeSlug}`} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-3 pr-4">
+                        <div className="text-xs font-medium max-w-[200px] truncate" title={row.jortTitle}>
+                          {row.jortTitle}
+                        </div>
+                        {row.jortIssue && (
+                          <div className="text-[11px] text-muted-foreground">{row.jortIssue}</div>
+                        )}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <div className="font-semibold text-xs">{row.codeSlug}</div>
+                        {row.codeNameAr && (
+                          <div className="text-[11px] text-muted-foreground truncate max-w-[120px]" dir="rtl">
+                            {row.codeNameAr}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <div className="flex flex-wrap gap-1 max-w-[150px]">
+                          {row.amendedArticles?.slice(0, 5).map((n) => (
+                            <span key={n} className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">
+                              {n}
+                            </span>
+                          ))}
+                          {(row.amendedArticles?.length ?? 0) > 5 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              +{(row.amendedArticles?.length ?? 0) - 5}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 pr-4">
+                        {getAmendmentTypeBadge(row.amendmentType)}
+                      </td>
+                      <td className="py-3 pr-4 text-xs text-muted-foreground">
+                        {row.jortDate ?? '—'}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {row.confidence !== null ? (
+                          <span className={cn(
+                            'text-xs font-medium',
+                            row.confidence >= 0.8 ? 'text-green-400' :
+                            row.confidence >= 0.6 ? 'text-amber-400' :
+                            'text-red-400'
+                          )}>
+                            {Math.round(row.confidence * 100)}%
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td className="py-3">
+                        <Badge variant="secondary" className="text-[10px]">
+                          {row.relationsCount}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Compteur pagination */}
+            {totalCount > showingCount && (
+              <div className="mt-4 pt-3 border-t border-border/40 text-xs text-muted-foreground text-center">
+                Affichage de {showingCount} sur {totalCount} amendements — utilisez les filtres par code pour affiner
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
