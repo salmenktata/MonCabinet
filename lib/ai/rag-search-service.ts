@@ -880,8 +880,10 @@ export async function searchRelevantContext(
     : null
 
   // ✨ OPTIMISATION RAG - Sprint 2 (Feb 2026) + Fix requêtes longues (Feb 16, 2026)
+  // 0. Normalisation ordinaux (premier→1, الأول→1, etc.) — avant expansion/embedding
+  const { normalizeOrdinals } = await import('./text-normalization-service')
   // 1. Query Expansion pour requêtes courtes / Condensation pour requêtes longues
-  let embeddingQuestion = question // Question utilisée pour l'embedding
+  let embeddingQuestion = normalizeOrdinals(question) // Question utilisée pour l'embedding
   if (ENABLE_QUERY_EXPANSION) {
     if (question.length < 50) {
       // Requêtes courtes : expansion LLM (ajouter termes juridiques)
