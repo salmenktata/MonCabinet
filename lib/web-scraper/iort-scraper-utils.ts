@@ -1344,7 +1344,7 @@ async function extractConstitutionText(
     console.log('[IORT Constitution] HTML sans articles constitutionnels — fallback PDF (parsePdf + OCR si garbled)')
     try {
       const { parsePdf } = await import('./file-parser-service')
-      const parsed = await parsePdf(pdfBuffer)
+      const parsed = await parsePdf(pdfBuffer, { forceOcr: true })
       if (parsed.success && parsed.text && parsed.text.length > content.length) {
         content = parsed.text
         console.log(`[IORT Constitution] PDF parsé: ${content.length} chars`)
@@ -1398,7 +1398,9 @@ export async function downloadConstitutionFromIort(
   if (pdfResult?.buffer && (!htmlHasArticles || extracted.content.length < 5000)) {
     try {
       const { parsePdf } = await import('./file-parser-service')
-      const parsed = await parsePdf(pdfResult.buffer)
+      // forceOcr: le PDF IORT utilise un encodage de police custom (ASCII printable comme glyphes)
+      // → pdf-parse extrait du bruit non détectable par isTextGarbled(). OCR forcé ici.
+      const parsed = await parsePdf(pdfResult.buffer, { forceOcr: true })
       if (parsed.success && parsed.text && parsed.text.length > extracted.content.length) {
         extracted.content = parsed.text
         console.log(`[IORT Constitution] PDF enrichit le contenu: ${extracted.content.length} chars (OCR: ${parsed.metadata.ocrApplied ? 'oui' : 'non'})`)
