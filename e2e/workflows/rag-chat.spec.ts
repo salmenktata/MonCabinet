@@ -36,6 +36,9 @@ const TEST_EMAIL = process.env.TEST_USER_EMAIL || ''
 const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || ''
 const HAS_CREDENTIALS = !!TEST_EMAIL && !!TEST_PASSWORD
 
+/** Mode smoke : groupes 7-8 (qualité AR + intent routing) skippés pour réduire les appels LLM */
+const IS_SMOKE = process.env.E2E_MODE === 'smoke'
+
 /** Timeout LLM — 65s pour laisser de la marge (handler chat = 44s + latence réseau/Groq) */
 const LLM_TIMEOUT_MS = 65_000
 
@@ -595,6 +598,7 @@ test.describe('6 — Régression Implémentations RAG', () => {
 
 test.describe('7 — Qualité Rédactionnelle Arabe', () => {
   test.skip(!HAS_CREDENTIALS, 'Credentials TEST_USER_EMAIL/TEST_USER_PASSWORD requis')
+  test.skip(IS_SMOKE, 'Tests qualité avancés — mode complet uniquement (workflow hebdomadaire)')
 
   let authCookie: string
 
@@ -735,6 +739,7 @@ test.describe('7 — Qualité Rédactionnelle Arabe', () => {
 
 test.describe('8 — Intelligence Sémantique & Intent Routing', () => {
   test.skip(!HAS_CREDENTIALS, 'Credentials TEST_USER_EMAIL/TEST_USER_PASSWORD requis')
+  test.skip(IS_SMOKE, 'Tests qualité avancés — mode complet uniquement (workflow hebdomadaire)')
 
   let authCookie: string
 

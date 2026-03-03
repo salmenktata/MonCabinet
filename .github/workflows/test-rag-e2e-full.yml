@@ -1,25 +1,17 @@
-name: RAG E2E Tests — Smoke (post-deploy)
+name: RAG E2E Tests — Complets (hebdomadaire)
 
 on:
-  # Exécuter après chaque déploiement réussi (mode smoke : groupes 1-6 seulement)
-  workflow_run:
-    workflows: ["Deploy to VPS Contabo"]
-    types:
-      - completed
-    branches: [main]
+  # Tests complets une fois par semaine (dimanche 9h UTC)
+  schedule:
+    - cron: '0 9 * * 0'
 
-  # Permettre exécution manuelle
+  # Permettre exécution manuelle (ex: avant release importante)
   workflow_dispatch:
 
 jobs:
-  test-production-config:
-    name: Test RAG Configuration — Smoke (Production)
+  test-production-full:
+    name: Test RAG Configuration — Complet (Production)
     runs-on: ubuntu-latest
-
-    # Exécuter seulement si déploiement a réussi (ou si manuel)
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Checkout code
@@ -37,10 +29,6 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Wait for deployment to stabilize
-        if: github.event_name == 'workflow_run'
-        run: sleep 60  # Attendre 60s après déploiement
-
       - name: Reset E2E test account quota
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -53,20 +41,20 @@ jobs:
             \"UPDATE feature_flags SET monthly_ai_queries_used = 0 WHERE user_id = (SELECT id FROM users WHERE email = 'e2e-test@qadhya.tn');\""
           rm -f /tmp/vps_key
 
-      - name: Run E2E Tests - Smoke (groupes 1-6, ~20 appels LLM)
+      - name: Run E2E Tests — Complets (tous les groupes, ~38 appels LLM)
         env:
           PLAYWRIGHT_BASE_URL: https://qadhya.tn
           TEST_PROD_URL: https://qadhya.tn
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-          E2E_MODE: smoke
+          # E2E_MODE absent → mode complet (groupes 1-8)
         run: npm run test:e2e:rag
 
       - name: Report test results
         if: always()
         uses: dorny/test-reporter@v1
         with:
-          name: RAG E2E Tests (Smoke)
+          name: RAG E2E Tests (Complets)
           path: 'test-results/*.xml'
           reporter: jest-junit
           fail-on-error: true
@@ -75,12 +63,12 @@ jobs:
   alert-on-failure:
     name: Alert if Tests Fail
     runs-on: ubuntu-latest
-    needs: test-production-config
+    needs: test-production-full
     if: failure()
 
     steps:
       - name: Send alert notification
         run: |
-          echo "❌ RAG E2E Smoke Tests FAILED"
-          echo "Action requise : Vérifier configuration production"
+          echo "❌ RAG E2E Tests Complets FAILED"
+          echo "Action requise : Vérifier qualité rédactionnelle et intent routing"
           echo "Dashboard : https://qadhya.tn/super-admin/monitoring?tab=system-config"
