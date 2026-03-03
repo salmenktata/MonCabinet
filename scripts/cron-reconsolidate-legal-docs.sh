@@ -18,6 +18,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Charger library cron logging
 source "$SCRIPT_DIR/lib/cron-logger.sh"
+source "$SCRIPT_DIR/lib/cron-lock.sh"
+
+# Priorité basse + anti-double-run + attente charge
+renice -n 15 $$ 2>/dev/null || true
+wait_for_low_load 180 5
+acquire_lock "$(basename "${BASH_SOURCE[0]}" .sh)" 3600 || exit 0
+trap 'release_lock' EXIT INT TERM
 
 LOG_DIR="/var/log/qadhya"
 LOG_FILE="${LOG_DIR}/reconsolidate-legal-docs.log"

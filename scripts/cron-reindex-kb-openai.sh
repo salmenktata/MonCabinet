@@ -25,6 +25,15 @@ if [ -f "${SCRIPT_DIR}/lib/cron-logger.sh" ]; then
   source "${SCRIPT_DIR}/lib/cron-logger.sh"
 fi
 
+# Priorité basse + anti-double-run + attente charge
+if [ -f "${SCRIPT_DIR}/lib/cron-lock.sh" ]; then
+  source "${SCRIPT_DIR}/lib/cron-lock.sh"
+  renice -n 10 $$ 2>/dev/null || true
+  wait_for_low_load 180 5
+  acquire_lock "$(basename "${BASH_SOURCE[0]}" .sh)" 3600 || exit 0
+  trap 'release_lock' EXIT INT TERM
+fi
+
 # Configuration
 DAILY_LIMIT="${DAILY_LIMIT:-50}"
 MIN_PRIORITY="${MIN_PRIORITY:-0}"
