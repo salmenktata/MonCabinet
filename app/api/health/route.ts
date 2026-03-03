@@ -14,6 +14,7 @@ import { healthCheck as dbHealthCheck, db } from '@/lib/db/postgres'
 import { healthCheck as storageHealthCheck } from '@/lib/storage/minio'
 import { isSemanticSearchEnabled } from '@/lib/ai/config'
 import { getRedisClient } from '@/lib/cache/redis'
+import { getSystemMetrics } from '@/lib/system/load-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,6 +140,16 @@ export async function GET() {
             // Alerte si RAG enabled mais semantic search disabled
             status: ragEnabled && !semanticSearchEnabled ? 'misconfigured' : 'ok'
           },
+          system: (() => {
+            const m = getSystemMetrics()
+            return {
+              cpuLoad1m: parseFloat(m.cpuLoad1m.toFixed(2)),
+              loadPerCpu: parseFloat(m.loadPerCpu.toFixed(2)),
+              freeMemPercent: parseFloat(m.freeMemPercent.toFixed(1)),
+              heapUsedMB: m.heapUsedMB,
+              loadLevel: m.loadLevel,
+            }
+          })(),
           version: process.env.APP_VERSION || process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
         },
         { status: 200 }

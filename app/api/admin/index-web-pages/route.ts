@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { indexWebPages } from '@/lib/web-scraper/web-indexer-service'
 import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
+import { adaptiveSleep, waitForSafeLoad } from '@/lib/system/load-guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes
@@ -42,8 +43,15 @@ export const GET = withAdminApiAuth(async (request: NextRequest, _ctx, _session)
         break
       }
 
-      // Pause entre batches (éviter surcharge)
-      await new Promise((resolve) => setTimeout(resolve, 200))
+      // Pause adaptative — ralentit automatiquement si le serveur est chargé
+      const loadLevel = await adaptiveSleep(200)
+      if (loadLevel === 'overloaded') {
+        const safe = await waitForSafeLoad(30_000)
+        if (!safe) {
+          console.warn('[IndexWebPages] Serveur surchargé depuis >30s — arrêt anticipé pour préserver la navigation')
+          break
+        }
+      }
     }
 
     const duration = Date.now() - startTime

@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
+import { adaptiveSleep, waitForSafeLoad } from '@/lib/system/load-guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -98,7 +99,15 @@ export const GET = withAdminApiAuth(async (request: NextRequest): Promise<NextRe
 
       if (chunks.length < BATCH_SIZE) break
 
-      await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS))
+      // Pause adaptative — ralentit si VPS chargé pour préserver la navigation
+      const loadLevel = await adaptiveSleep(BATCH_DELAY_MS)
+      if (loadLevel === 'overloaded') {
+        const safe = await waitForSafeLoad(60_000)
+        if (!safe) {
+          console.warn('[BackfillOllama] Serveur surchargé depuis >60s — arrêt anticipé (reprendra au prochain cron)')
+          break
+        }
+      }
     }
 
     const duration = Date.now() - startTime
