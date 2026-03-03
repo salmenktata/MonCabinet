@@ -244,7 +244,13 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
                 throw new Error(chunk.error || 'Erreur streaming')
             }
           } catch (parseError) {
-            console.error('Erreur parsing chunk:', parseError)
+            if (parseError instanceof SyntaxError) {
+              // Ligne SSE malformée → ignorer silencieusement
+              console.error('Erreur parsing chunk SSE:', parseError)
+            } else {
+              // Erreur logique (chunk type 'error') → propager vers le catch externe
+              throw parseError
+            }
           }
         }
       }
