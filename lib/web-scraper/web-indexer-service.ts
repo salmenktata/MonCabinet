@@ -320,7 +320,16 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   // IORT : stratégie article-aware pour détecter "الفصل X" / "Article X" comme séparateurs
   const chunkingStrategy = (sourceOrigin === 'iort_gov_tn' || ['codes', 'legislation', 'constitution'].includes(kbCategory))
     ? 'article' : 'adaptive'
-  const chunks = chunkText(normalizedText, {
+
+  // Pour la stratégie article, préserver les '\n' pour la détection des marqueurs الفصل X:
+  // normalizeText() collapse TOUS les whitespace (dont \n) en un seul espace, ce qui casse
+  // la regex (?:^|\n) de chunkTextByArticles. On utilise une normalisation légère (non-newline
+  // whitespace seulement) pour permettre au chunker de trouver les limites d'articles.
+  const textForChunking = chunkingStrategy === 'article'
+    ? (row.extracted_text || '').replace(/\r\n/g, '\n').replace(/[^\S\n]+/g, ' ').trim()
+    : normalizedText
+
+  const chunks = chunkText(textForChunking, {
     chunkSize: aiConfig.rag.chunkSize,
     overlap,
     preserveParagraphs: true,
