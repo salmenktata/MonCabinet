@@ -7,7 +7,7 @@
  * Utilise hooks personnalisés pour cache intelligent et optimistic updates
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Icons } from '@/lib/icons'
@@ -109,6 +109,7 @@ export function ChatPage({ userId }: ChatPageProps) {
           similarity: s.similarity,
         })),
         abrogationAlerts: m.metadata?.abrogationAlerts, // Phase 3.4
+        model: (m.metadata as any)?.model,
       })),
     [selectedConversation?.messages]
   )
@@ -145,6 +146,32 @@ export function ChatPage({ userId }: ChatPageProps) {
 
     setStreamingContent('')
   }
+
+  const handleRegenerate = (userContent: string) => {
+    handleSendMessage(userContent)
+  }
+
+  // Raccourci Cmd+N → nouvelle conversation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault()
+        handleNewConversation()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  // Titre onglet pendant envoi
+  useEffect(() => {
+    if (isSending) {
+      document.title = '● Assistant IA...'
+    } else {
+      document.title = 'Assistant IA — Qadhya'
+    }
+    return () => { document.title = 'Qadhya' }
+  }, [isSending])
 
   // Créer un dossier depuis la conversation
   const handleCreateDossier = () => {
@@ -240,6 +267,8 @@ export function ChatPage({ userId }: ChatPageProps) {
             messages={messages}
             isLoading={isLoadingMessages || isSending}
             streamingContent={streamingContent}
+            onRegenerate={handleRegenerate}
+            isStreaming={isSending}
           />
 
           {/* Actions contextuelles */}
@@ -254,7 +283,11 @@ export function ChatPage({ userId }: ChatPageProps) {
           />
 
           {/* Input */}
-          <ChatInput onSend={handleSendMessage} disabled={isSending} />
+          <ChatInput
+            onSend={handleSendMessage}
+            disabled={isSending}
+            conversationId={selectedConversationId}
+          />
         </div>
       </div>
 
