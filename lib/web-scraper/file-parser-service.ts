@@ -603,10 +603,12 @@ async function extractTextWithOcrPdftoppm(
     await fs.mkdir(tempDir, { recursive: true })
     await fs.writeFile(pdfPath, buffer)
 
-    // Convertir PDF en images PNG via pdftoppm (200 DPI — bon compromis vitesse/qualité)
+    // Convertir PDF en images PNG via pdftoppm (150 DPI — réduit la taille des PNG de ~56%
+    // vs 200 DPI tout en restant lisible pour l'arabe). Un document A4 officiel à 150 DPI
+    // produit ~0.5-1.5 MB/page vs 2-5 MB à 200 DPI — crucial pour éviter l'OOM sur VPS.
     const lastPage = Math.min(pagesToProcess, 250)
     await execAsync(
-      `pdftoppm -png -r 200 -l ${lastPage} "${pdfPath}" "${join(tempDir, 'page')}"`,
+      `pdftoppm -png -r 150 -l ${lastPage} "${pdfPath}" "${join(tempDir, 'page')}"`,
       { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
     )
 
@@ -620,6 +622,9 @@ async function extractTextWithOcrPdftoppm(
     for (let i = 0; i < files.length && i < pagesToProcess; i++) {
       try {
         const imgPath = join(tempDir, files[i])
+
+        // Log de démarrage par page pour diagnostic crash (visible avant éventuel crash)
+        console.log(`[FileParser] OCR page ${i + 1}/${files.length}...`)
 
         // OCR via tesseract CLI natif (beaucoup plus rapide que WASM)
         const { stdout } = await execAsync(
@@ -639,7 +644,7 @@ async function extractTextWithOcrPdftoppm(
         console.error(`[FileParser] Erreur OCR page ${i + 1}:`, pageError?.message || pageError)
       }
 
-      if ((i + 1) % 25 === 0) {
+      if ((i + 1) % 10 === 0) {
         const elapsedSec = ((Date.now() - ocrStartTime) / 1000).toFixed(0)
         const pagesPerMin = ((i + 1) / (Date.now() - ocrStartTime) * 60000).toFixed(1)
         console.log(`[FileParser] OCR progression: ${i + 1}/${files.length} pages | ${elapsedSec}s | ${pagesPerMin} pages/min`)

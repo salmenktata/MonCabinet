@@ -1399,6 +1399,14 @@ export async function downloadConstitutionFromIort(
   // Télécharger le PDF APRÈS extraction (A7 peut naviguer/réinitialiser la page — peu importe)
   const pdfResult = await downloadConstitutionPdfViaA7(page)
 
+  // 🔑 Fermer le browser Playwright AVANT l'OCR pour libérer la mémoire Chromium (~300 MB).
+  // L'OCR de 42 pages (pdftoppm 150 DPI + tesseract CLI séquentiel) consomme ~200-400 MB.
+  // Garder Chromium actif en parallèle de l'OCR cause une contention mémoire qui crash le
+  // process Node.js (V8 OOM ou kernel OOM non loggé). On n'a plus besoin du browser après
+  // le téléchargement du PDF.
+  await session.close().catch(() => {})
+  console.log('[IORT Constitution] Session Playwright fermée (libération mémoire avant OCR)')
+
   // Si PDF disponible et HTML sans articles → extraire via parsePdf() (avec OCR fallback)
   // Le PDF IORT utilise un encodage de police personnalisé (Arabic custom font mapping) →
   // pdf-parse seul produit du texte garbled (\x02\x03...). parsePdf() détecte ce cas
