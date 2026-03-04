@@ -29,6 +29,8 @@ const PROBLEMATIC_TITLE_SQL = `
   OR char_length(title) < 5
   OR title ~ '^\\d+$'
   OR lower(title) IN ('sans titre', 'untitled', 'page', 'document', 'fichier')
+  OR title ILIKE 'Imprimerie Officielle%'
+  OR title ~ '[#$%&]{2,}'
 `
 
 // =============================================================================
