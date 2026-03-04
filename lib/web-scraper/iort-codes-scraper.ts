@@ -544,7 +544,7 @@ export async function extractSectionText(
   if (item.onclick && item.onclick.includes('_JSL')) {
     const jslMatch = item.onclick.match(/_JSL\s*\([^,]+,\s*'(\w+)'\s*,\s*'([^']*)'/)
     if (jslMatch) {
-      const [, btnId, target] = jslMatch
+      const [, btnId, _target] = jslMatch
       try {
         const [detailPage] = await Promise.all([
           page.context().waitForEvent('page', { timeout: 15000 }),
@@ -669,34 +669,41 @@ export async function extractSectionText(
     } catch { /**/ }
   }
 
-  // Stratégie 4 : clic direct sur le lien TOC (onclick exécuté tel quel)
-  if (item.onclick) {
-    try {
-      const urlBefore = page.url()
-      await page.evaluate((onclick: string) => {
-        try { eval(onclick) } catch { /**/ } // eslint-disable-line no-eval
-      }, item.onclick)
-      await Promise.race([
-        page.waitForLoadState('load'),
-        sleep(5000),
-      ])
-      await sleep(3000)
+  // Stratégie 4 : onclick TOC item en mode _self (si présent et différent des essais précédents)
+  if (item.onclick && item.onclick.includes('_JSL')) {
+    const selfMatch = item.onclick.match(/_JSL\s*\([^,]+,\s*'(\w+)'\s*,\s*'_self'/)
+    if (selfMatch && !viewButtons.includes(selfMatch[1])) {
+      const btnId = selfMatch[1]
+      try {
+        const urlBefore = page.url()
+        await page.evaluate(([idx, looperId, btn]: [number, string, string]) => {
+          // @ts-expect-error WebDev
+          if (_PAGE_[looperId]) _PAGE_[looperId].value = idx
+          // @ts-expect-error WebDev
+          _JSL(_PAGE_, btn, '_self', '', '')
+        }, [item.resultIndex, item.looperId, btnId] as [number, string, string])
+        await Promise.race([
+          page.waitForLoadState('load'),
+          sleep(5000),
+        ])
+        await sleep(2000)
 
-      const text = await extractTextFromPage(page)
-      if (text && text.length > 50 && !isNavigationBoilerplate(text)) {
+        const text = await extractTextFromPage(page)
+        if (text && text.length > 50 && !isNavigationBoilerplate(text)) {
+          if (page.url() !== urlBefore) {
+            await page.goBack()
+            await page.waitForLoadState('load')
+            await sleep(1000)
+          }
+          return text
+        }
         if (page.url() !== urlBefore) {
           await page.goBack()
           await page.waitForLoadState('load')
-          await sleep(1000)
+          await sleep(500)
         }
-        return text
-      }
-      if (page.url() !== urlBefore) {
-        await page.goBack()
-        await page.waitForLoadState('load')
-        await sleep(500)
-      }
-    } catch { /**/ }
+      } catch { /**/ }
+    }
   }
 
   return null
