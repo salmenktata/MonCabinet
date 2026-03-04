@@ -67,6 +67,8 @@ interface CategoryStats {
   min_words: number | null
   max_words: number | null
   stddev_words: number | null
+  threshold_min: number
+  threshold_max: number
   count_tiny: number
   count_normal: number
   count_huge: number
@@ -274,6 +276,8 @@ const QUERIES = {
   `,
 
   // B2 - Distribution de taille par catégorie (sources actives dans le RAG uniquement)
+  // Note: les catégories article-level (codes, constitution, legislation, jort) utilisent
+  // un seuil min de 10 mots car 1 article = 1 chunk et certains articles sont courts
   sizeDistribution: `
     WITH chunk_stats AS (
       SELECT
@@ -283,20 +287,37 @@ const QUERIES = {
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
       WHERE kb.is_active = true
+    ),
+    thresholds AS (
+      SELECT category,
+        CASE
+          WHEN category IN ('codes', 'code', 'constitution', 'legislation', 'jort')
+            THEN 10   -- article-level: articles courts valides
+          ELSE $1     -- défaut: 40 mots minimum
+        END as min_words,
+        CASE
+          WHEN category IN ('modele', 'modeles', 'procedures')
+            THEN 1000  -- formulaires/procédures: chunks plus longs acceptables
+          ELSE 800     -- défaut
+        END as max_words
+      FROM (SELECT DISTINCT category FROM chunk_stats) cats
     )
     SELECT
-      category,
+      cs.category,
       COUNT(*) as total_chunks,
-      ROUND(AVG(word_count)) as avg_words,
-      ROUND(MIN(word_count)) as min_words,
-      ROUND(MAX(word_count)) as max_words,
-      ROUND(STDDEV(word_count)) as stddev_words,
-      COUNT(*) FILTER (WHERE word_count < $1) as count_tiny,
-      COUNT(*) FILTER (WHERE word_count BETWEEN $1 AND 800) as count_normal,
-      COUNT(*) FILTER (WHERE word_count > 800) as count_huge,
-      ROUND(100.0 * COUNT(*) FILTER (WHERE word_count BETWEEN $1 AND 800) / NULLIF(COUNT(*), 0), 1) as pct_normal
-    FROM chunk_stats
-    GROUP BY category
+      ROUND(AVG(cs.word_count)) as avg_words,
+      ROUND(MIN(cs.word_count)) as min_words,
+      ROUND(MAX(cs.word_count)) as max_words,
+      ROUND(STDDEV(cs.word_count)) as stddev_words,
+      t.min_words as threshold_min,
+      t.max_words as threshold_max,
+      COUNT(*) FILTER (WHERE cs.word_count < t.min_words) as count_tiny,
+      COUNT(*) FILTER (WHERE cs.word_count BETWEEN t.min_words AND t.max_words) as count_normal,
+      COUNT(*) FILTER (WHERE cs.word_count > t.max_words) as count_huge,
+      ROUND(100.0 * COUNT(*) FILTER (WHERE cs.word_count BETWEEN t.min_words AND t.max_words) / NULLIF(COUNT(*), 0), 1) as pct_normal
+    FROM chunk_stats cs
+    JOIN thresholds t ON cs.category = t.category
+    GROUP BY cs.category, t.min_words, t.max_words
     ORDER BY avg_words DESC
   `,
 
@@ -569,8 +590,10 @@ async function auditChunking(): Promise<{
     const avgWords = category.avg_words ?? 0
 
     if (pctNormal < 95 - THRESHOLDS.CHUNK_PROBLEMATIC_PCT) {
+      const minThresh = category.threshold_min ?? THRESHOLDS.CHUNK_MIN_WORDS
+      const maxThresh = category.threshold_max ?? 800
       criticalIssues.push(
-        `⚠️ Catégorie "${category.category}" : ${Math.round(100 - pctNormal)}% chunks hors plage normale (${THRESHOLDS.CHUNK_MIN_WORDS}-800 mots)`
+        `⚠️ Catégorie "${category.category}" : ${Math.round(100 - pctNormal)}% chunks hors plage normale (${minThresh}-${maxThresh} mots)`
       )
       recommendations.push(
         `Vérifier OVERLAP_BY_CATEGORY dans chunking-service.ts pour catégorie ${category.category}`

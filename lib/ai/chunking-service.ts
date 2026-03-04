@@ -50,6 +50,8 @@ export const MAX_TOKENS_BY_CATEGORY: Record<string, number> = {
   google_drive: 800,   // Google Drive: documents variés
   lexique: 400,        // Lexique: définitions courtes → max 400 mots
   modele: 900,         // Modèles: sections plus longues (formulaires)
+  procedures: 600,     // Procédures: sections procédurales (~600 mots)
+  modeles: 900,        // Alias "modeles" → même que "modele"
 }
 
 /**

@@ -191,6 +191,21 @@ const CRON_SCRIPTS: Record<string, { script: string; description: string; estima
     description: 'Nettoyage logs RAG (TTL 90j)',
     estimatedDuration: 60000,
   },
+  'analyze-web-pages-quality': {
+    script: '/opt/qadhya/scripts/cron-analyze-web-pages-quality.sh',
+    description: 'Analyse Qualité Web Pages (quality_score NULL)',
+    estimatedDuration: 600000,
+  },
+  'enrich-court-metadata': {
+    script: '/opt/qadhya/scripts/cron-enrich-court-metadata.sh',
+    description: 'Enrichissement Métadonnées Jurisprudence (Cassation/CA)',
+    estimatedDuration: 300000,
+  },
+  'rechunk-large': {
+    script: '/opt/qadhya/scripts/cron-rechunk-large.sh',
+    description: 'Re-chunking Docs Surdimensionnés (> 5000 chars)',
+    estimatedDuration: 300000,
+  },
 }
 
 export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
