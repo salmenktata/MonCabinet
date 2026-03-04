@@ -297,7 +297,7 @@ RETURNS TABLE (
   params JSONB,
   source_name TEXT,
   base_url TEXT,
-  category TEXT,
+  category TEXT,            -- premier élément de categories[]
   requires_javascript BOOLEAN,
   css_selectors JSONB,
   max_depth INTEGER,
@@ -346,7 +346,7 @@ BEGIN
     j.params,
     s.name as source_name,
     s.base_url,
-    s.category,
+    s.categories[1] as category,
     s.requires_javascript,
     s.css_selectors,
     s.max_depth,
@@ -487,7 +487,7 @@ RETURNS TABLE (
   id UUID,
   name TEXT,
   base_url TEXT,
-  category TEXT,
+  category TEXT,            -- premier élément de categories[]
   priority INTEGER,
   last_crawl_at TIMESTAMPTZ,
   next_crawl_at TIMESTAMPTZ
@@ -495,7 +495,7 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   SELECT
-    s.id, s.name, s.base_url, s.category, s.priority,
+    s.id, s.name, s.base_url, s.categories[1], s.priority,
     s.last_crawl_at, s.next_crawl_at
   FROM web_sources s
   WHERE s.is_active = true

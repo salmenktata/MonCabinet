@@ -425,7 +425,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       }
 
       // Mettre à jour le document existant + incrémenter version
-      await client.query(
+      const updateResult = await client.query(
         `UPDATE knowledge_base SET
           title = $2,
           description = $3,
@@ -458,11 +458,53 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
         ]
       )
 
-      // Supprimer les anciens chunks
-      await client.query(
-        'DELETE FROM knowledge_base_chunks WHERE knowledge_base_id = $1',
-        [knowledgeBaseId]
-      )
+      if ((updateResult.rowCount ?? 0) === 0) {
+        // Référence périmée : le doc KB a été supprimé mais web_pages.knowledge_base_id
+        // pointe encore dessus. Créer un nouveau doc KB.
+        console.warn(`[WebIndexer] KB doc ${knowledgeBaseId} introuvable — création d'un nouveau`)
+        const kbResult = await client.query(
+          `INSERT INTO knowledge_base (
+            category, subcategory, language, title, description,
+            metadata, tags, full_text, source_file, is_indexed,
+            rag_enabled, pipeline_stage, pipeline_stage_updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, $10, 'crawled', NOW())
+          RETURNING id`,
+          [
+            kbCategory,
+            null,
+            language,
+            pageTitle,
+            row.meta_description,
+            JSON.stringify({
+              source: 'web_scraper',
+              sourceId: row.web_source_id,
+              sourceName: row.source_name,
+              sourceOrigin,
+              ...(normLevel ? { normLevel } : {}),
+              pageId: pageId,
+              url: row.url,
+              author: row.meta_author,
+              publishedAt: row.meta_date,
+              crawledAt: row.last_crawled_at,
+              classification_source: classificationSource,
+              classification_confidence: classification?.confidence_score || null,
+              classification_signals: classification?.signals_used || null,
+              needs_review: classificationSource === 'default',
+            }),
+            row.meta_keywords || [],
+            normalizedText,
+            row.url,
+            !isNoise,
+          ]
+        )
+        knowledgeBaseId = kbResult.rows[0].id
+      } else {
+        // Supprimer les anciens chunks (seulement si le KB doc existait)
+        await client.query(
+          'DELETE FROM knowledge_base_chunks WHERE knowledge_base_id = $1',
+          [knowledgeBaseId]
+        )
+      }
     }
 
     // Générer les embeddings (OpenAI uniquement — Gemini supprimé pour réduire les coûts)
