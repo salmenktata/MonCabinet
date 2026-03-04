@@ -749,7 +749,15 @@ export async function getWebSourcesListData(params: {
   } else if (params.status === 'inactive') {
     whereClause += ` AND ws.is_active = false`
   } else if (params.status === 'failing') {
-    whereClause += ` AND ws.health_status IN ('failing', 'degraded')`
+    whereClause += `
+      AND ws.is_active = true
+      AND (SELECT COUNT(*) FROM web_crawl_jobs WHERE web_source_id = ws.id) > 0
+      AND (
+        SELECT COUNT(*) FROM (
+          SELECT status, pages_processed FROM web_crawl_jobs
+          WHERE web_source_id = ws.id ORDER BY created_at DESC LIMIT 3
+        ) recent WHERE recent.status != 'failed' OR recent.pages_processed > 0
+      ) < 2`
   }
 
   if (params.language) {
@@ -766,7 +774,7 @@ export async function getWebSourcesListData(params: {
   // Tri
   const sortMap: Record<WebSourcesSortField, string> = {
     name: 'ws.name',
-    last_crawl_at: 'ws.last_crawl_at',
+    last_crawl_at: '(SELECT MAX(started_at) FROM web_crawl_jobs WHERE web_source_id = ws.id)',
     pages_count: 'pages_count',
     priority: 'ws.priority',
     indexation_rate: 'CASE WHEN pages_count > 0 THEN indexed_count::float / pages_count ELSE 0 END',
@@ -867,9 +875,22 @@ export async function getWebSourcesListData(params: {
           SELECT
             COUNT(*) as total_sources,
             COUNT(*) FILTER (WHERE is_active = true) as active_sources,
-            COUNT(*) FILTER (WHERE health_status = 'healthy') as healthy_sources,
-            COUNT(*) FILTER (WHERE health_status = 'failing') as failing_sources
-          FROM web_sources
+            COUNT(*) FILTER (WHERE (
+              ws.is_active = true
+              AND (SELECT COUNT(*) FROM web_crawl_jobs j WHERE j.web_source_id = ws.id) > 0
+              AND (SELECT COUNT(*) FROM (
+                SELECT status, pages_processed FROM web_crawl_jobs
+                WHERE web_source_id = ws.id ORDER BY created_at DESC LIMIT 3
+              ) r WHERE r.status != 'failed' OR r.pages_processed > 0) >= 2
+            )) as healthy_sources,
+            COUNT(*) FILTER (WHERE (
+              ws.is_active = true
+              AND (SELECT COUNT(*) FROM (
+                SELECT status, pages_processed FROM web_crawl_jobs
+                WHERE web_source_id = ws.id ORDER BY created_at DESC LIMIT 3
+              ) r WHERE r.status = 'failed' AND r.pages_processed = 0) >= 2
+            )) as failing_sources
+          FROM web_sources ws
         `),
         db.query(`
           SELECT
