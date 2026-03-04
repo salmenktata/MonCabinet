@@ -11,6 +11,7 @@ interface LogoProps {
   showTag?: boolean
   showText?: boolean
   animate?: boolean
+  priority?: boolean
   className?: string
 }
 
@@ -33,6 +34,7 @@ export function Logo({
   showTag = true,
   showText = true,
   animate = true,
+  priority = false,
   className,
 }: LogoProps) {
   const { label, color } = variantConfig[variant]
@@ -68,6 +70,8 @@ export function Logo({
             width={192}
             height={192}
             draggable={false}
+            // eslint-disable-next-line react/no-unknown-property
+            fetchPriority={priority ? 'high' : 'auto'}
             onContextMenu={(e) => e.preventDefault()}
             className={cn(
               'w-full h-full relative z-10 object-contain drop-shadow-lg select-none',

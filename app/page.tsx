@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { Logo } from '@/components/ui/Logo'
@@ -11,6 +12,11 @@ import { TestimonialCard } from '@/components/marketing/TestimonialCard'
 import { TrustBadges } from '@/components/marketing/TrustBadges'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Qadhya - Assistant Juridique IA pour Avocats Tunisiens',
+  description: 'Qadhya est la plateforme SaaS dédiée aux avocats tunisiens : gestion de dossiers, IA juridique RAG, délais procéduraux et facturation. Essayez gratuitement.',
+}
 
 function CheckIcon({ className }: { className?: string }) {
   return (
@@ -78,7 +84,7 @@ export default async function HomePage() {
 
           {/* Logo */}
           <div className="mb-8 animate-fade-in-up stagger-1">
-            <Logo size="xl" variant="juridique" showTag={true} animate={true} />
+            <Logo size="xl" variant="juridique" showTag={true} animate={true} priority={true} />
           </div>
 
           {/* Title */}

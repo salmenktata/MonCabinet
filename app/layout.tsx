@@ -71,11 +71,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
-      <head>
-        {/* Preconnect pour accélérer le chargement des fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
+      <head />
       <body className={`${inter.className} ${notoSansArabic.variable}${locale === 'ar' ? ' font-arabic' : ''}`}>
         <SessionProvider>
           <ThemeProvider>
