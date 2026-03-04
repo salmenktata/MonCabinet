@@ -60,8 +60,16 @@ export function calculateCost(
   model: string = ''
 ): number {
   if (provider === 'openai') {
-    // text-embedding-3-small: $0.02 / 1M tokens
-    return (inputTokens / 1_000_000) * AI_COSTS.embeddingCostPer1MTokens
+    // Chat models : gpt-4.1-mini $0.40/1M input, $1.60/1M output | gpt-4o $2.50/1M input, $10/1M output
+    // Embeddings : text-embedding-3-small $0.02/1M tokens
+    if (model.includes('embedding') || model.includes('embed')) {
+      return (inputTokens / 1_000_000) * AI_COSTS.embeddingCostPer1MTokens
+    }
+    if (model.includes('gpt-4o') && !model.includes('mini')) {
+      return (inputTokens / 1_000_000) * 2.50 + (outputTokens / 1_000_000) * 10.0
+    }
+    // gpt-4.1-mini, gpt-4o-mini, etc.
+    return (inputTokens / 1_000_000) * 0.40 + (outputTokens / 1_000_000) * 1.60
   } else if (provider === 'deepseek') {
     // deepseek-chat: $0.028/1M input (cache hit system prompt) + $0.42/1M output
     return (
@@ -69,23 +77,29 @@ export function calculateCost(
       (outputTokens / 1_000_000) * AI_COSTS.deepseekOutputCostPer1MTokens
     )
   } else if (provider === 'anthropic') {
-    // NON UTILISÉ EN PROD (dernier fallback théorique uniquement)
     // Claude 3.5 Sonnet: $3 / 1M input, $15 / 1M output
     return (
       (inputTokens / 1_000_000) * AI_COSTS.claudeInputCostPer1MTokens +
       (outputTokens / 1_000_000) * AI_COSTS.claudeOutputCostPer1MTokens
     )
   }
-  // Groq : payant si hors free tier (70b : 100K tokens/jour, 1K req/jour | 8b : 500K tokens/jour, 14.4K req/jour)
+  // Groq : FREE tier utilisé (70b : 1K RPD / 8b : 14.4K RPD) — coût = $0
   if (provider === 'groq') {
-    const isSmall = model.includes('8b') || model.includes('instant')
-    return isSmall
-      ? (inputTokens / 1_000_000) * 0.05  + (outputTokens / 1_000_000) * 0.08
-      : (inputTokens / 1_000_000) * 0.59  + (outputTokens / 1_000_000) * 0.79
+    return 0
   }
-  // Gemini LLM (embeddings gérés séparément dans gemini-client.ts)
+  // Gemini LLM — prix par modèle (vérifié mars 2026)
   if (provider === 'gemini') {
-    return (inputTokens / 1_000_000) * 0.075 + (outputTokens / 1_000_000) * 0.30
+    const m = model.toLowerCase()
+    if (m.includes('2.5-flash') || m.includes('2.5_flash')) {
+      // gemini-2.5-flash : $1.25/1M input + $10/1M output (CHER — fallback rare uniquement)
+      return (inputTokens / 1_000_000) * 1.25 + (outputTokens / 1_000_000) * 10.0
+    }
+    if (m.includes('flash-lite') || m.includes('flash_lite')) {
+      // gemini-2.0-flash-lite : $0.075/1M input + $0.30/1M output
+      return (inputTokens / 1_000_000) * 0.075 + (outputTokens / 1_000_000) * 0.30
+    }
+    // gemini-2.0-flash (défaut) : $0.15/1M input + $0.60/1M output
+    return (inputTokens / 1_000_000) * 0.15 + (outputTokens / 1_000_000) * 0.60
   }
   // Ollama : gratuit (local)
   return 0
@@ -98,7 +112,8 @@ export async function logUsage(usage: UsageLog): Promise<string> {
   const cost = calculateCost(
     usage.provider,
     usage.inputTokens,
-    usage.outputTokens || 0
+    usage.outputTokens || 0,
+    usage.model
   )
 
   const result = await db.query(

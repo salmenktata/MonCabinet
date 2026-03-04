@@ -318,6 +318,7 @@ async function RecentActivity() {
       kb_upload: 'Document uploadé',
       kb_delete: 'Document supprimé',
       kb_index: 'Document indexé',
+      kb_rag_toggle: 'RAG document modifié',
     }
     return labels[action] || action
   }

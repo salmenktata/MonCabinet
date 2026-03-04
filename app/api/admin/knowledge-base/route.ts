@@ -207,6 +207,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       session.user.id
     )
 
+    // Audit log (fire-and-forget)
+    db.query(
+      `INSERT INTO admin_audit_logs (admin_id, admin_email, action_type, target_type, target_id, target_identifier)
+       VALUES ($1, $2, 'kb_upload', 'knowledge_base', $3, $4)`,
+      [session.user.id, session.user.email ?? '', document.id, title]
+    ).catch(() => {})
+
     return NextResponse.json(
       {
         message: 'Document ajouté avec succès',

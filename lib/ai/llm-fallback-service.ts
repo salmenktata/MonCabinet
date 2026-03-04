@@ -813,7 +813,12 @@ export async function callLLMWithFallback(
       // Sur erreur récupérable (429, context_length_exceeded, 5xx, timeout) → cascade fallback
       const isRecoverable = isRateLimitError(error) || isServerOrTimeoutError(error) || isContextLengthExceeded(error)
       if (isRecoverable) {
-        recordProviderFailure(provider)
+        // Ne PAS enregistrer les rate limits comme des échecs de circuit breaker :
+        // un 429 signifie quota épuisé pour ce modèle, pas que le provider est down.
+        // Seules les erreurs serveur et timeouts dégradent le circuit (pas les rate limits).
+        if (!isRateLimitError(error)) {
+          recordProviderFailure(provider)
+        }
         const reason = isRateLimitError(error) ? 'rate-limité'
           : isContextLengthExceeded(error) ? 'context-dépassé'
           : 'erreur serveur/timeout'

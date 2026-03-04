@@ -446,6 +446,7 @@ export interface StructuredDossier {
     output: number
     total: number
   }
+  llmProvider?: string
 
   // Métriques RAG (optionnel)
   ragMetrics?: {
@@ -1546,6 +1547,7 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, sans texte avant ou après.`
       (parsed.titrePropose as string) || 'Nouveau dossier',
     resumeCourt: (parsed.resumeCourt as string) || '',
     tokensUsed,
+    llmProvider: llmResponse.provider,
   }
 
   // Enrichir avec la base de connaissances si activé

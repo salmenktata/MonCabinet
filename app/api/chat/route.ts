@@ -455,6 +455,7 @@ export async function POST(
       const m = response.model || ''
       const detectedProvider = m.includes('gemini') ? 'gemini'
         : m.includes('deepseek') ? 'deepseek'
+        : m.includes('openai/') || m.includes('gpt-') ? 'openai'
         : m.includes('llama') || m.includes('groq') ? 'groq'
         : m.includes('qwen') || m.includes('ollama') ? 'ollama'
         : 'groq' // défaut : assistant-ia → Groq

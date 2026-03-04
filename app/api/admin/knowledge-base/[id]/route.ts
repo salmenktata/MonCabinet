@@ -138,6 +138,13 @@ export async function PATCH(
         `SELECT id, title, rag_enabled FROM knowledge_base WHERE id = $1`,
         [id]
       )
+      // Audit log (fire-and-forget)
+      db.query(
+        `INSERT INTO admin_audit_logs (admin_id, admin_email, action_type, target_type, target_id, target_identifier, new_value)
+         VALUES ($1, $2, 'kb_rag_toggle', 'knowledge_base', $3, $4, $5)`,
+        [session.user.id, session.user.email ?? '', id, updated.rows[0]?.title ?? id, JSON.stringify({ rag_enabled })]
+      ).catch(() => {})
+
       return NextResponse.json({
         message: `Document ${rag_enabled ? 'activé' : 'désactivé'} pour le RAG`,
         document: updated.rows[0] || null,
@@ -263,11 +270,22 @@ export async function DELETE(
     }
 
     const { id } = await params
+    // Récupérer le titre avant suppression pour le log
+    const docInfo = await db.query(`SELECT title FROM knowledge_base WHERE id = $1`, [id])
+    const docTitle = docInfo.rows[0]?.title ?? id
+
     const deleted = await deleteKnowledgeDocument(id)
 
     if (!deleted) {
       return NextResponse.json({ error: 'Document non trouvé' }, { status: 404 })
     }
+
+    // Audit log (fire-and-forget)
+    db.query(
+      `INSERT INTO admin_audit_logs (admin_id, admin_email, action_type, target_type, target_id, target_identifier)
+       VALUES ($1, $2, 'kb_delete', 'knowledge_base', $3, $4)`,
+      [session.user.id, session.user.email ?? '', id, docTitle]
+    ).catch(() => {})
 
     return NextResponse.json({
       message: 'Document supprimé avec succès',

@@ -83,7 +83,16 @@ const MODEL_LIMITS: Array<{
     tier: 'paid',
     limits: [
       { type: 'RPM', value: 4_000 },
-      { type: 'Budget', value: 1, unit: 'USD/mois', monthlyBudgetUsd: 1 },
+      { type: 'Budget', value: 5, unit: 'USD/mois', monthlyBudgetUsd: 5 },
+    ],
+  },
+  {
+    provider: 'openai',
+    model: 'gpt-4o',
+    tier: 'paid',
+    limits: [
+      { type: 'RPM', value: 5_000 },
+      { type: 'Budget', value: 10, unit: 'USD/mois', monthlyBudgetUsd: 10 },
     ],
   },
   {
@@ -103,7 +112,9 @@ const MODEL_LIMITS: Array<{
 // ─── Pricing pour prévision ────────────────────────────────────────────────────
 const PROVIDER_PRICING: Record<string, { input: number; output: number }> = {
   deepseek: { input: 0.028 / 1_000_000, output: 0.42 / 1_000_000 },
-  openai: { input: 0.02 / 1_000_000, output: 0.02 / 1_000_000 },
+  // OpenAI : mix gpt-4.1-mini ($0.40/1M input) + gpt-4o ($2.50/1M input) → moyenne pondérée ~$0.60/1M
+  openai: { input: 0.60 / 1_000_000, output: 2.0 / 1_000_000 },
+  // Gemini : flash-lite $0.075/1M input (usage principal depuis mars 2026)
   gemini: { input: 0.075 / 1_000_000, output: 0.30 / 1_000_000 },
   groq: { input: 0, output: 0 }, // free tier
   ollama: { input: 0, output: 0 },

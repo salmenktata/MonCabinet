@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 import { getSession } from '@/lib/auth/session'
 import { structurerDossier, type StructuringOptions } from '@/lib/ai/dossier-structuring-service'
-import { logChatUsage } from '@/lib/ai/usage-tracker'
+import { logUsage } from '@/lib/ai/usage-tracker'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -57,14 +57,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Appeler le service de structuration
     const result = await structurerDossier(narratif, userId, options || {})
 
-    // Logger l'utilisation
+    // Logger l'utilisation avec le vrai provider retourné par le service
     if (result.tokensUsed) {
-      await logChatUsage(
+      await logUsage({
         userId,
-        'claude-3-5-sonnet-20241022', // modèle utilisé
-        result.tokensUsed.input,
-        result.tokensUsed.output
-      ).catch((err) => console.error('Erreur logging usage:', err))
+        operationType: 'chat',
+        provider: (result.llmProvider as any) || 'deepseek',
+        model: result.llmProvider || 'deepseek-chat',
+        inputTokens: result.tokensUsed.input,
+        outputTokens: result.tokensUsed.output,
+      }).catch((err) => console.error('Erreur logging usage:', err))
     }
 
     return NextResponse.json({
