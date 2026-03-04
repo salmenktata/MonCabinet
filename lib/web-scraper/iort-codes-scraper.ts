@@ -148,7 +148,27 @@ function cleanText(text: string): string {
     .replace(/جميع الحقوق محفوظة.{0,80}/g, '')
     .replace(/Copyright.{0,40}IORT/gi, '')
     .replace(/المطبعة الرسمية.{0,80}/g, '')
+    // Boilerplate navigation IORT siteiort.tn
+    .replace(/الجمهورية التونسية\s*رئاسة الحكومة/g, '')
+    .replace(/إصدارات لقرارات الرائد الرسمي[\s\S]{0,600}/g, '')
+    .replace(/الرائد الرسمي للإعلانات القانونية والشرعية.{0,200}/g, '')
+    .replace(/الجريدة الرسمية للجماعات المحلية.{0,200}/g, '')
+    .replace(/المجلة القضائية.{0,100}/g, '')
+    .replace(/\baطلاع\b/g, '')
     .trim()
+}
+
+/** Détecte si le texte est du boilerplate navigation IORT (pas du contenu juridique) */
+function isNavigationBoilerplate(text: string): boolean {
+  const cleaned = text.trim()
+  if (cleaned.length < 50) return true
+  // Le contenu est du boilerplate si :
+  // 1. Commence par le header gouvernemental
+  if (/^الجمهورية التونسية/.test(cleaned)) return true
+  // 2. Contient les patterns de navigation IORT sans mots-clés juridiques
+  const hasLegalContent = /الفصل\s+\d|المادة\s+\d|أحكام\s+(عامة|خاصة)|الباب\s+(الأول|الثاني|الثالث)|العنوان\s+(الأول|الثاني|الثالث)|يُعدّ|يُعتبر|يُعاقب|يجوز|لا يجوز|يُلزم|يُخضع/.test(cleaned)
+  const hasNavText = /الرائد الرسمي|إصدارات لقرارات|اطلاع|رئاسة الحكومة/.test(cleaned)
+  return hasNavText && !hasLegalContent
 }
 
 // =============================================================================
@@ -610,30 +630,72 @@ export async function extractSectionText(
   // Stratégie 3 : _JSL(btnId, '_self') — navigation dans la même page
   for (const btn of viewButtons) {
     try {
+      // Snapshot URL avant navigation
+      const urlBefore = page.url()
       await page.evaluate(([idx, looperId, btnId]: [number, string, string]) => {
         // @ts-expect-error WebDev
         if (_PAGE_[looperId]) _PAGE_[looperId].value = idx
         // @ts-expect-error WebDev
         _JSL(_PAGE_, btnId, '_self', '', '')
       }, [item.resultIndex, item.looperId, btn] as [number, string, string])
-      await page.waitForLoadState('load')
+
+      // Attendre soit un chargement complet, soit un changement d'URL
+      await Promise.race([
+        page.waitForLoadState('load'),
+        sleep(5000),
+      ])
       await sleep(2000)
+
       if (isPdfUrl(page.url())) {
         await page.goBack()
         await page.waitForLoadState('load')
         return null
       }
+
       const text = await extractTextFromPage(page)
-      if (text && text.length > 30) {
-        // Revenir en arrière pour que la TOC soit toujours accessible
-        await page.goBack()
-        await page.waitForLoadState('load')
-        await sleep(2000)
+      if (text && text.length > 50 && !isNavigationBoilerplate(text)) {
+        if (page.url() !== urlBefore) {
+          await page.goBack()
+          await page.waitForLoadState('load')
+          await sleep(2000)
+        }
         return text
       }
-      await page.goBack()
-      await page.waitForLoadState('load')
-      await sleep(1000)
+      if (page.url() !== urlBefore) {
+        await page.goBack()
+        await page.waitForLoadState('load')
+        await sleep(1000)
+      }
+    } catch { /**/ }
+  }
+
+  // Stratégie 4 : clic direct sur le lien TOC (onclick exécuté tel quel)
+  if (item.onclick) {
+    try {
+      const urlBefore = page.url()
+      await page.evaluate((onclick: string) => {
+        try { eval(onclick) } catch { /**/ } // eslint-disable-line no-eval
+      }, item.onclick)
+      await Promise.race([
+        page.waitForLoadState('load'),
+        sleep(5000),
+      ])
+      await sleep(3000)
+
+      const text = await extractTextFromPage(page)
+      if (text && text.length > 50 && !isNavigationBoilerplate(text)) {
+        if (page.url() !== urlBefore) {
+          await page.goBack()
+          await page.waitForLoadState('load')
+          await sleep(1000)
+        }
+        return text
+      }
+      if (page.url() !== urlBefore) {
+        await page.goBack()
+        await page.waitForLoadState('load')
+        await sleep(500)
+      }
     } catch { /**/ }
   }
 
@@ -645,6 +707,7 @@ async function extractTextFromPage(page: Page): Promise<string> {
     '.contenu', '.texte', 'td.texte', 'td.contenu',
     'div.texte', '#contenu', '.Texte', '.nass',
     '.article-body', '#article-content', '.legal-text',
+    '#printable', '.printable', 'div.nass', 'div.fas',
   ]
 
   for (const sel of selectors) {
@@ -652,10 +715,50 @@ async function extractTextFromPage(page: Page): Promise<string> {
       const el = await page.$(sel)
       if (el) {
         const text = await el.textContent()
-        if (text && text.trim().length > 50) return cleanText(text)
+        if (text && text.trim().length > 50) {
+          const c = cleanText(text)
+          if (!isNavigationBoilerplate(c)) return c
+        }
       }
     } catch { /**/ }
   }
+
+  // Stratégie : chercher les zones de contenu WebDev (*3_1 — content display areas)
+  // excluant les loopers TOC/navigation connus (A4/B4/C4/D4/E4/A1/M18/M78/M110)
+  const TOC_LOOPERS = new Set(['A1', 'A4', 'B4', 'C4', 'D4', 'E4', 'M18', 'M78', 'M110', 'M81', 'M59'])
+  const webdevContent = await page.evaluate((excluded: string[]) => {
+    const excludedSet = new Set(excluded)
+    const results: { id: string; text: string }[] = []
+    for (const el of document.querySelectorAll('div[id]')) {
+      const m = el.id.match(/^([A-Z]\d+)_1$/)
+      if (!m || excludedSet.has(m[1])) continue
+      const text = (el.textContent || '').trim()
+      if (text.length > 150 && /[\u0600-\u06FF]{20,}/.test(text)) {
+        results.push({ id: el.id, text: text.substring(0, 2000) })
+      }
+    }
+    return results.sort((a, b) => b.text.length - a.text.length)
+  }, Array.from(TOC_LOOPERS))
+
+  for (const { text } of webdevContent) {
+    const c = cleanText(text)
+    if (!isNavigationBoilerplate(c) && c.length > 100) return c
+  }
+
+  // Stratégie : iframes (le contenu peut être dans un iframe WebDev)
+  try {
+    const frames = page.frames()
+    for (const frame of frames) {
+      if (frame === page.mainFrame()) continue
+      try {
+        const frameText = await frame.evaluate(() => document.body?.innerText || '')
+        if (frameText && frameText.trim().length > 200) {
+          const c = cleanText(frameText)
+          if (!isNavigationBoilerplate(c)) return c
+        }
+      } catch { /**/ }
+    }
+  } catch { /**/ }
 
   // Fallback : body nettoyé
   const fullText = await page.evaluate(() => {
@@ -820,9 +923,9 @@ export async function crawlCode(
 
       const textContent = await extractSectionText(page, item)
 
-      if (!textContent || textContent.length < 20) {
+      if (!textContent || textContent.length < 20 || isNavigationBoilerplate(textContent)) {
         stats.skipped++
-        console.log(`[IORT Codes] Texte vide: "${item.title.substring(0, 60)}"`)
+        console.log(`[IORT Codes] Texte vide/boilerplate: "${item.title.substring(0, 60)}"`)
         await sleep(1000)
         continue
       }
