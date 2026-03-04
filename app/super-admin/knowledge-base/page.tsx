@@ -30,6 +30,11 @@ const KnowledgeBaseViewToggle = nextDynamic(
   { loading: () => <div className="h-9 w-40 bg-slate-800 animate-pulse rounded-lg" /> }
 )
 
+const FixTitlesButton = nextDynamic(
+  () => import('@/components/super-admin/knowledge-base/FixTitlesButton').then(m => ({ default: m.FixTitlesButton })),
+  { loading: () => <div className="h-9 w-40 bg-slate-800 animate-pulse rounded-lg" /> }
+)
+
 interface PageProps {
   searchParams: Promise<{
     category?: string
@@ -216,6 +221,9 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
           <p className="text-slate-400 mt-1">Gérer les documents juridiques pour l&apos;IA</p>
         </div>
         <div className="flex items-center gap-2">
+          <Suspense fallback={<div className="h-9 w-40 bg-slate-800 animate-pulse rounded-lg" />}>
+            <FixTitlesButton />
+          </Suspense>
           <Suspense fallback={<Button disabled className="bg-blue-600"><Icons.plus className="h-4 w-4 mr-2" />Ajouter</Button>}>
             <KnowledgeBaseUploadDialog />
           </Suspense>
