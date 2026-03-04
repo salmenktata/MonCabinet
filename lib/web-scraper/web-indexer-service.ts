@@ -261,17 +261,40 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   // Guard : قرارات et أوامر IORT de bruit (nominations, concours, mutations) → rag_enabled=false
   // Ces actes n'ont aucune valeur juridique pour un avocat mais polluent le RAG.
   const IORT_NOISE_PATTERNS = [
-    /\b(تعيين|تسمية|تنصيب)\b/,                        // nominations / désignations
-    /\b(تنقيل|إنهاء مهام|إعفاء من مهام)\b/,            // mutations / révocations
-    /\b(إحالة على التقاعد)\b/,                          // retraites
-    /\b(مناظرة|توظيف|انتداب|استقطاب)\b/,               // concours / recrutement
+    /\b(تعيين|تسمية|تنصيب)\b/,                          // nominations / désignations
+    /\b(تنقيل|إنهاء مهام|إعفاء من مهام)\b/,              // mutations / révocations
+    /\b(إحالة على التقاعد)\b/,                            // retraites
+    /\b(مناظرة|توظيف|انتداب|استقطاب)\b/,                 // concours / recrutement
     /\b(ترقية بالاختيار|ترقية في الرتبة|ترقية في الدرجة)\b/, // promotions administratives
-    /\b(استيداع|إسناد رتبة)\b/,                         // disponibilité / attribution grade
+    /\b(استيداع|إسناد رتبة)\b/,                           // disponibilité / attribution grade
+    /\b(يُعيَّن|تُعيَّن|يُنقَّل|تُنقَّل)\b/,             // passif nomination/mutation dans titre
+    /\b(يُرقَّى|تُرقَّى|يُنتدَب|تُنتدَب)\b/,             // passif promotion/détachement dans titre
+    /\b(يُحال|تُحال)\s+على\s+التقاعد\b/,                 // passif retraite dans titre
+    /\b(وسام|نيشان)\b/,                                   // décorations / médailles (aucune valeur juridique)
+    /\b(والي|معتمد أول)\b/,                               // grades civils nommés par décret présidentiel
+  ]
+  // Patterns détectés dans le CORPS du texte (verbes/noms de nomination absents du titre)
+  const IORT_CONTENT_NOISE_PATTERNS = [
+    /\b(يُسمَّى|تُسمَّى|يسمّى|تسمّى|سُمِّيَ)\b/,           // formes verbales "est nommé(e)"
+    /\b(يُكلَّف|تُكلَّف|كُلِّفَ|كُلِّفَت|تكلف بمهام)\b/,    // formes verbales "est chargé(e)"
+    /\b(تُسند|يُسند|أُسندت|أُسند)\b/,                        // formes verbales "est confié(e)"
+    /\b(يُعيَّن|تُعيَّن|يُنقَّل|تُنقَّل)\b/,                 // passif nomination/mutation dans corps
+    /\b(يُرقَّى|تُرقَّى|يُنتدَب|تُنتدَب)\b/,                 // passif promotion/détachement dans corps
+    /\b(يُحال|تُحال)\s+على\s+التقاعد\b/,                     // passif retraite dans corps
+    /\bالسيدة\s+[\u0600-\u06FF]{2,}/,                        // "السيدة [Prénom]" — femme nommée
+    /\b(العقيد|العميد|اللواء|الرائد|النقيب|المقدم)\b/,        // grades militaires
+    /\b(وسام|نيشان)\b/,                                       // décorations dans corps
+    /\b(والي|معتمد أول)\b/,                                   // grades civils de nomination dans corps
+    /\b(شروط الترشح|ملف الترشح)\b/,                          // détails concours dans corps du texte
   ]
   // S'applique aux قرارات, أوامر ET مراسيم (nominations présidentielles par décret)
   const isIortNoiseType = sourceOrigin === 'iort_gov_tn' &&
     ['قرار', 'أمر', 'مرسوم'].includes(iortStructuredData.textType as string)
-  const isNoise = isIortNoiseType && IORT_NOISE_PATTERNS.some(p => p.test(rawPageTitle))
+  const contentSnippet = (row.extracted_text || '').slice(0, 600)
+  const isNoise = isIortNoiseType && (
+    IORT_NOISE_PATTERNS.some(p => p.test(rawPageTitle)) ||
+    IORT_CONTENT_NOISE_PATTERNS.some(p => p.test(contentSnippet))
+  )
   if (isNoise) {
     console.log(`[WebIndexer] ${iortStructuredData.textType} bruit IORT — rag_enabled=false: "${rawPageTitle.slice(0, 80)}"`)
   }

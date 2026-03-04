@@ -47,12 +47,21 @@ export const IORT_RATE_CONFIG = {
 
 /** Textes JORT sans valeur juridique pour un avocat — skip au crawl */
 const IORT_ADMIN_NOISE_PATTERNS = [
-  /\b(تعيين|تسمية|تنصيب)\b/,                        // nominations / désignations
-  /\b(تنقيل|إنهاء مهام|إعفاء من مهام)\b/,            // mutations / révocations
-  /\b(إحالة على التقاعد)\b/,                          // retraites
-  /\b(مناظرة|توظيف|انتداب|استقطاب)\b/,               // concours / recrutement
+  /\b(تعيين|تسمية|تنصيب)\b/,                          // nominations / désignations
+  /\b(تنقيل|إنهاء مهام|إعفاء من مهام)\b/,              // mutations / révocations
+  /\b(إحالة على التقاعد)\b/,                            // retraites
+  /\b(مناظرة|توظيف|انتداب|استقطاب)\b/,                 // concours / recrutement
   /\b(ترقية بالاختيار|ترقية في الرتبة|ترقية في الدرجة)\b/, // promotions administratives
-  /\b(استيداع|إسناد رتبة)\b/,                         // disponibilité / attribution grade
+  /\b(استيداع|إسناد رتبة)\b/,                           // disponibilité / attribution grade
+  /\b(يُسمَّى|تُسمَّى|يسمّى|تسمّى)\b/,                 // passif nomination dans titre
+  /\b(يُكلَّف|تُكلَّف|كُلِّفَ|تكلف بمهام)\b/,          // passif délégation dans titre
+  /\b(تُسند|يُسند|أُسندت)\b/,                           // passif délégation dans titre
+  /\b(يُعيَّن|تُعيَّن|يُنقَّل|تُنقَّل)\b/,             // passif nomination/mutation dans titre
+  /\b(يُرقَّى|تُرقَّى|يُنتدَب|تُنتدَب)\b/,             // passif promotion/détachement dans titre
+  /\b(يُحال|تُحال)\s+على\s+التقاعد\b/,                 // passif retraite dans titre
+  /\b(العقيد|العميد|اللواء|الرائد|النقيب|المقدم)\b/,    // grades militaires dans titre
+  /\b(وسام|نيشان)\b/,                                   // décorations / médailles dans titre
+  /\b(والي|معتمد أول)\b/,                               // grades civils dans titre
 ]
 
 /** Args Chromium optimisés pour limiter CPU/RAM en headless */
