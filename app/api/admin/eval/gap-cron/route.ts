@@ -77,7 +77,7 @@ export const POST = withAdminApiAuth(async (_request: NextRequest) => {
     if (cronExecutionId) {
       await db.query(
         `UPDATE cron_executions
-         SET status = 'success', completed_at = NOW(), duration_ms = $1, output = $2
+         SET status = 'completed', completed_at = NOW(), duration_ms = $1, output = $2
          WHERE id = $3`,
         [durationMs, output, cronExecutionId]
       ).catch(() => {})
@@ -99,7 +99,7 @@ export const POST = withAdminApiAuth(async (_request: NextRequest) => {
     if (cronExecutionId) {
       await db.query(
         `UPDATE cron_executions
-         SET status = 'error', completed_at = NOW(),
+         SET status = 'failed', completed_at = NOW(),
              duration_ms = $1, error_message = $2
          WHERE id = $3`,
         [Date.now() - startTime, errMsg, cronExecutionId]

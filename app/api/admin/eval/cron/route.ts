@@ -172,27 +172,34 @@ export const POST = withAdminApiAuth(async (_request: NextRequest, _ctx, _sessio
       }
     }
 
-    // Log cron execution
+    // Log cron execution (pattern running → completed pour déclencher le trigger de stats)
     try {
-      await db.query(
-        `INSERT INTO cron_executions (cron_name, status, started_at, completed_at, duration_ms, output, triggered_by)
-         VALUES ($1, $2, $3, NOW(), $4, $5, $6)`,
-        [
-          'eval-rag-weekly',
-          'success',
-          new Date(startTime),
-          Date.now() - startTime,
-          JSON.stringify({
-            runId,
-            questions: results.length,
-            avgRecall5: currentRecall5.toFixed(3),
-            avgMRR: currentMRR.toFixed(3),
-            avgFaithfulness: currentFaith.toFixed(3),
-            regressionDetected,
-          }),
-          'cron',
-        ]
+      const execResult = await db.query(
+        `INSERT INTO cron_executions (cron_name, status, started_at, triggered_by)
+         VALUES ($1, 'running', $2, 'cron')
+         RETURNING id`,
+        ['eval-rag-weekly', new Date(startTime)]
       )
+      const execId = execResult.rows[0]?.id
+      if (execId) {
+        await db.query(
+          `UPDATE cron_executions
+           SET status = 'completed', completed_at = NOW(), duration_ms = $1, output = $2
+           WHERE id = $3`,
+          [
+            Date.now() - startTime,
+            JSON.stringify({
+              runId,
+              questions: results.length,
+              avgRecall5: currentRecall5.toFixed(3),
+              avgMRR: currentMRR.toFixed(3),
+              avgFaithfulness: currentFaith.toFixed(3),
+              regressionDetected,
+            }),
+            execId,
+          ]
+        )
+      }
     } catch {
       // Ignore si table cron_executions n'existe pas
     }
