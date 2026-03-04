@@ -200,7 +200,7 @@ export function StructurePage({ clients }: StructurePageProps) {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">{t('subtitle')}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground hidden sm:block">{t('subtitle')}</p>
             </div>
           </div>
 

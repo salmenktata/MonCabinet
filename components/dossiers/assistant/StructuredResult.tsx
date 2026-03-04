@@ -191,6 +191,7 @@ export default function StructuredResult({
       {activeTab === 'analysis' && (
         <div className="flex gap-6">
           {/* Table des matières sticky */}
+          <div className="hidden lg:block">
           <AnalysisTableOfContents
             sections={[
               { id: 'executive-summary', title: t('toc.executiveSummary'), readingTime: 1 },
@@ -218,6 +219,7 @@ export default function StructuredResult({
             locale="fr"
             className="w-64 shrink-0"
           />
+          </div>
 
           {/* Contenu principal */}
           <div className="flex-1 space-y-6 min-w-0">
@@ -297,19 +299,19 @@ export default function StructuredResult({
 
       {/* Actions principales */}
       <div className="rounded-xl border bg-card p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {/* Secondaires */}
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-2.5 sm:py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
             >
               <Icons.copy className="h-3.5 w-3.5" />
               Copier
             </button>
             <button
               onClick={handleExport}
-              className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-2.5 sm:py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
             >
               <Icons.download className="h-3.5 w-3.5" />
               Exporter
@@ -317,7 +319,7 @@ export default function StructuredResult({
             {onReset && (
               <button
                 onClick={onReset}
-                className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-2.5 sm:py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <Icons.refreshCw className="h-3.5 w-3.5" />
                 Recommencer
@@ -329,7 +331,7 @@ export default function StructuredResult({
           <div className="flex items-center gap-2">
             <button
               onClick={onReanalyze}
-              className="flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm text-foreground font-medium hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2.5 sm:py-2 text-sm text-foreground font-medium hover:bg-muted transition-colors"
             >
               <Icons.refresh className="h-4 w-4" />
               {t('actions.reanalyze')}
@@ -337,7 +339,7 @@ export default function StructuredResult({
 
             <button
               onClick={handleQuickAdvice}
-              className="flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm text-foreground font-medium hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2.5 sm:py-2 text-sm text-foreground font-medium hover:bg-muted transition-colors"
             >
               <Icons.zap className="h-4 w-4" />
               {t('actions.quickAdvice')}
@@ -345,7 +347,7 @@ export default function StructuredResult({
 
             <button
               onClick={onCreateDossier}
-              className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-5 py-2 text-sm text-white font-semibold hover:bg-amber-700 transition-colors"
+              className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-5 py-2.5 sm:py-2 text-sm text-white font-semibold hover:bg-amber-700 transition-colors"
             >
               <Icons.check className="h-4 w-4" />
               {t('actions.createDossier')}
