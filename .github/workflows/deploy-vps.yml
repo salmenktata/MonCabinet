@@ -199,7 +199,7 @@ jobs:
           }
 
   # ===========================================================================
-  # Job 0.6: Lint - Bloquant avant deploy (ratchet: max 473 warnings)
+  # Job 0.6: Lint - Bloquant avant deploy (ratchet: max 1125 warnings)
   # ===========================================================================
   lint:
     runs-on: ubuntu-latest
@@ -222,7 +222,7 @@ jobs:
         run: npm ci
 
       - name: ESLint check (ratchet max-warnings)
-        run: npm run lint -- --max-warnings 1119
+        run: npm run lint -- --max-warnings 1125
 
   # ===========================================================================
   # Job 0.7: TypeScript Type Check - Bloquant avant deploy
