@@ -292,20 +292,20 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
       }
 
       // C3 : Compression intelligente des jurisprudences longues
-      // Si le chunk dépasse ~500 mots (≈3000 chars arabes) ET que structuredMeta est disponible
+      // Seuil réduit 2800→1000 pour faire tenir plus de chunks dans les 6000 tokens (RAG_MAX_RESULTS=10)
       // → le header contient déjà tribunal/date/décision/solution → on peut tronquer le corps
-      const JURIS_BODY_LIMIT_CHARS = 2800
+      const JURIS_BODY_LIMIT_CHARS = 1000
       let jurisBody = source.chunkContent
       if (source.chunkContent.length > JURIS_BODY_LIMIT_CHARS) {
         if (structuredMeta?.solution) {
           // Le dispositif est déjà dans le header → tronquer agressivement (motifs seulement)
-          jurisBody = source.chunkContent.slice(0, 1500)
+          jurisBody = source.chunkContent.slice(0, 800)
             + (lang === 'ar' ? '\n[...تُرجع المتن إلى المنطوق المذكور أعلاه]' : '\n[...voir dispositif ci-dessus]')
         } else {
           // Pas de solution structurée → garder début + fin (contexte + dispositif)
-          jurisBody = source.chunkContent.slice(0, 1800)
+          jurisBody = source.chunkContent.slice(0, 1100)
             + '\n[...]\n'
-            + source.chunkContent.slice(-400)
+            + source.chunkContent.slice(-250)
         }
       }
       part = enrichedHeader + '\n' + jurisBody

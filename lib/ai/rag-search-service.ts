@@ -1013,7 +1013,7 @@ export async function searchRelevantContext(
       userId,
       dossierId,
       RAG_THRESHOLDS.documents,
-      maxContextChunks * 2, // Récupérer plus pour le re-ranking
+      maxContextChunks * 4, // Pool élargi pour meilleur recall reranking
     ]
   } else {
     docSql = `
@@ -1034,7 +1034,7 @@ export async function searchRelevantContext(
       embeddingStr,
       userId,
       RAG_THRESHOLDS.documents,
-      maxContextChunks * 2, // Récupérer plus pour le re-ranking
+      maxContextChunks * 4, // Pool élargi pour meilleur recall reranking
     ]
   }
 
