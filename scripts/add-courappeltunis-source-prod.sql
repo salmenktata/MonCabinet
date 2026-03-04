@@ -1,6 +1,9 @@
 /**
  * Script SQL - Ajouter source web Cour d'Appel de Tunis en PRODUCTION
  *
+ * Site WordPress (WordPress 6.6.2) — SSL auto-signé → ignore_ssl_errors=true
+ * Sitemap : https://courappeltunis.justice.gov.tn/wp-sitemap.xml
+ *
  * Exécution sur VPS:
  *   docker exec -i qadhya-postgres psql -U moncabinet -d qadhya < scripts/add-courappeltunis-source-prod.sql
  *
@@ -39,8 +42,11 @@ BEGIN
       follow_links,
       download_files,
       use_sitemap,
+      sitemap_url,
+      rss_feed_url,
       respect_robots_txt,
       ignore_ssl_errors,
+      min_word_count,
       is_active,
       rag_enabled,
       health_status,
@@ -57,37 +63,40 @@ BEGIN
       true,
       3,
       500,
-      false,
+      true,                    -- requires_javascript: Playwright (SSL auto-signé + ignoreHTTPSErrors)
       1500,                    -- 1,5s entre requêtes (site gouvernemental)
       45000,                   -- timeout 45s (site gouvernemental parfois lent)
       ARRAY[
-        'https://courappeltunis.justice.gov.tn/*arret*',
-        'https://courappeltunis.justice.gov.tn/*decision*',
-        'https://courappeltunis.justice.gov.tn/*jugement*',
-        'https://courappeltunis.justice.gov.tn/*قرار*',
-        'https://courappeltunis.justice.gov.tn/*حكم*'
+        'https://courappeltunis.justice.gov.tn/*'
       ]::text[],
       ARRAY[
-        '/contact',
-        '/login',
-        '/admin',
-        '/search',
-        '*/print*',
-        '*.pdf'               -- PDFs gérés séparément si besoin
+        '*172.21.2.72*',
+        '*/wp-admin/*',
+        '*/wp-login*',
+        '*/wp-json/*',
+        '*/xmlrpc*',
+        '*/feed/*',
+        '*/comments/*',
+        '*/embed/*',
+        '*/trackback/*',
+        '*/wp-content/uploads/*'
       ]::text[],
       true,
       true,
-      false,                   -- sitemap probablement absent
+      true,                    -- use_sitemap: wp-sitemap.xml WordPress
+      'https://courappeltunis.justice.gov.tn/wp-sitemap.xml',
+      'https://courappeltunis.justice.gov.tn/feed/',
       true,
-      true,                    -- ignore_ssl_errors: certificat SSL invalide sur ce site
-      false,                   -- désactivé initialement : valider le crawl avant activation
-      false,                   -- rag_enabled false jusqu'à validation du contenu indexé
+      true,                    -- ignore_ssl_errors: certificat SSL auto-signé
+      10,                      -- min_word_count abaissé (posts courts sur ce site)
+      true,                    -- is_active
+      true,                    -- rag_enabled
       'unknown',
       NOW(),
       NOW()
     );
 
-    RAISE NOTICE '✅ Source Cour d''Appel de Tunis créée (is_active=false, rag_enabled=false — activer après validation)';
+    RAISE NOTICE '✅ Source Cour d''Appel de Tunis créée';
   END IF;
 END $$;
 
@@ -101,6 +110,9 @@ SELECT
   priority,
   is_active,
   rag_enabled,
+  requires_javascript,
+  ignore_ssl_errors,
+  min_word_count,
   health_status,
   created_at
 FROM web_sources
