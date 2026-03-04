@@ -48,18 +48,16 @@ export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
     const activeUsers = usersResult.rows[0]?.active_users || 0
 
     // =========================================================================
-    // 3. Latence moyenne (estimation basée sur tokens_used)
+    // 3. Latence réelle depuis rag_query_log (latency_ms mesuré)
     // =========================================================================
-    // NOTE: Table chat_messages n'a pas de colonne updated_at
-    // Estimation : ~50ms par token (modèles rapides Groq/Gemini)
     const latencyEstimateResult = await db.query(`
       SELECT
-        (PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY tokens_used) * 50)::int as p50,
-        (PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY tokens_used) * 50)::int as p95
-      FROM chat_messages
+        COALESCE((PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY latency_ms))::int, 0) as p50,
+        COALESCE((PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY latency_ms))::int, 0) as p95
+      FROM rag_query_log
       WHERE created_at >= NOW() - INTERVAL '${interval}'
-        AND role = 'assistant'
-        AND tokens_used IS NOT NULL
+        AND latency_ms IS NOT NULL
+        AND latency_ms > 0
     `)
 
     const latency = latencyEstimateResult.rows[0] || { p50: 0, p95: 0 }
@@ -118,7 +116,7 @@ export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
         citationAccuracy: citationAccuracy,
         latencyP50: latency.p50 || 0,
         latencyP95: latency.p95 || 0,
-        latencyNote: 'Estimation basée sur tokens×50ms, non mesuré réellement',
+        latencyNote: 'Latence réelle mesurée depuis rag_query_log',
         errorRate: errorRate,
         errorRateNote: 'Basé sur réponses sans tokens (LLM échoué ou aucune source)',
         costPerQuery: costPerQuery,
