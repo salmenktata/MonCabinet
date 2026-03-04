@@ -261,15 +261,16 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   // Guard : قرارات et أوامر IORT de bruit (nominations, concours, mutations) → rag_enabled=false
   // Ces actes n'ont aucune valeur juridique pour un avocat mais polluent le RAG.
   const IORT_NOISE_PATTERNS = [
-    /\b(تعيين|تسمية)\b/,                     // nominations de fonctionnaires
-    /\b(تنقيل|إنهاء مهام)\b/,                // mutations / fin de fonctions
-    /\b(إحالة على التقاعد)\b/,               // retraites
-    /\b(مناظرة|توظيف|انتداب|استقطاب)\b/,    // concours / recrutement
-    /\b(ترقية بالاختيار|ترقية في الرتبة)\b/, // promotions administratives
+    /\b(تعيين|تسمية|تنصيب)\b/,                        // nominations / désignations
+    /\b(تنقيل|إنهاء مهام|إعفاء من مهام)\b/,            // mutations / révocations
+    /\b(إحالة على التقاعد)\b/,                          // retraites
+    /\b(مناظرة|توظيف|انتداب|استقطاب)\b/,               // concours / recrutement
+    /\b(ترقية بالاختيار|ترقية في الرتبة|ترقية في الدرجة)\b/, // promotions administratives
+    /\b(استيداع|إسناد رتبة)\b/,                         // disponibilité / attribution grade
   ]
-  // S'applique aux قرارات ET aux أوامر (arrêtés gouvernementaux/présidentiels de nomination)
+  // S'applique aux قرارات, أوامر ET مراسيم (nominations présidentielles par décret)
   const isIortNoiseType = sourceOrigin === 'iort_gov_tn' &&
-    (iortStructuredData.textType === 'قرار' || iortStructuredData.textType === 'أمر')
+    ['قرار', 'أمر', 'مرسوم'].includes(iortStructuredData.textType as string)
   const isNoise = isIortNoiseType && IORT_NOISE_PATTERNS.some(p => p.test(rawPageTitle))
   if (isNoise) {
     console.log(`[WebIndexer] ${iortStructuredData.textType} bruit IORT — rag_enabled=false: "${rawPageTitle.slice(0, 80)}"`)

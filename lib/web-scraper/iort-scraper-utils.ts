@@ -45,6 +45,16 @@ export const IORT_RATE_CONFIG = {
   selectorTimeout: 30000,
 } as const
 
+/** Textes JORT sans valeur juridique pour un avocat — skip au crawl */
+const IORT_ADMIN_NOISE_PATTERNS = [
+  /\b(تعيين|تسمية|تنصيب)\b/,                        // nominations / désignations
+  /\b(تنقيل|إنهاء مهام|إعفاء من مهام)\b/,            // mutations / révocations
+  /\b(إحالة على التقاعد)\b/,                          // retraites
+  /\b(مناظرة|توظيف|انتداب|استقطاب)\b/,               // concours / recrutement
+  /\b(ترقية بالاختيار|ترقية في الرتبة|ترقية في الدرجة)\b/, // promotions administratives
+  /\b(استيداع|إسناد رتبة)\b/,                         // disponibilité / attribution grade
+]
+
 /** Args Chromium optimisés pour limiter CPU/RAM en headless */
 const CHROMIUM_ARGS = [
   '--no-sandbox',
@@ -1022,6 +1032,14 @@ export async function crawlYearType(
 
       for (const result of results) {
         if (signal?.aborted) break
+
+        // Filtrer les textes administratifs sans valeur juridique (nominations, mutations, concours…)
+        if (IORT_ADMIN_NOISE_PATTERNS.some(p => p.test(result.title))) {
+          console.log(`[IORT] skip bruit admin: "${result.title.substring(0, 70)}"`)
+          stats.skipped++
+          await sleep(IORT_RATE_CONFIG.minDelay)
+          continue
+        }
 
         try {
           page = session.getPage()
