@@ -148,6 +148,20 @@ async function askRAG(
       throw lastError
     }
 
+    // 500 avec circuit breaker ouvert = état transitoire (trafic prod) → retry court
+    if (res.status() === 500) {
+      const body = await res.text()
+      if (body.includes('Circuit ouvert') || body.includes('circuit') || body.includes('fallback')) {
+        lastError = new Error(`/api/chat 500 (circuit breaker): ${body.substring(0, 150)}`)
+        if (attempt < maxRetries) {
+          await new Promise(r => setTimeout(r, 10_000))
+          continue
+        }
+        throw lastError
+      }
+      throw new Error(`/api/chat 500: ${body.substring(0, 300)}`)
+    }
+
     // 429 = rate limit ou sémaphore occupé → retry après Retry-After (max 15s)
     if (res.status() === 429) {
       const retryAfterHeader = res.headers()['retry-after']
