@@ -8,6 +8,7 @@
  *   ?list=true              Liste les recueils disponibles sans crawler
  *   ?recueil=nom            Crawl d'un recueil spécifique (filtre sur le nom)
  *                           Si absent → crawl tous les recueils
+ *   ?lang=ar|fr|both        Langue (défaut: ar). both = crawl AR puis FR
  *
  * Auth : CRON_SECRET (x-cron-secret) OU session admin.
  * maxDuration : 600s (Playwright + navigation + extraction multi-recueils)
@@ -33,7 +34,15 @@ export const GET = withAdminApiAuth(
     const { searchParams } = request.nextUrl
 
     const recueilName = searchParams.get('recueil') ?? undefined
+    const langParam = searchParams.get('lang') ?? 'ar'
     const listOnly = searchParams.get('list') === 'true'
+
+    if (!['ar', 'fr', 'both'].includes(langParam)) {
+      return NextResponse.json(
+        { success: false, error: `Langue invalide: ${langParam}. Valides: ar, fr, both` },
+        { status: 400 },
+      )
+    }
 
     const session = new IortSessionManager()
 
@@ -54,10 +63,10 @@ export const GET = withAdminApiAuth(
         })
       }
 
-      logger.info(`[IORT Recueil] Démarrage crawl: ${recueilName ? `"${recueilName}"` : 'tous'}`)
+      logger.info(`[IORT Recueil] Démarrage crawl: ${recueilName ? `"${recueilName}"` : 'tous'} (lang=${langParam})`)
 
       const sourceId = await getOrCreateIortSource()
-      const stats = await crawlRecueil(session, sourceId, recueilName)
+      const stats = await crawlRecueil(session, sourceId, recueilName, langParam as 'ar' | 'fr' | 'both')
 
       const elapsed = Math.round((Date.now() - startTime) / 1000)
       logger.info(
@@ -68,6 +77,7 @@ export const GET = withAdminApiAuth(
       return NextResponse.json({
         success: true,
         recueilName: recueilName ?? 'tous',
+        lang: langParam,
         stats,
         elapsed,
         sourceOrigin: 'iort_gov_tn',

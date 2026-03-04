@@ -23,6 +23,7 @@ import type { Page } from 'playwright'
 import { db } from '@/lib/db/postgres'
 import {
   IortSessionManager,
+  IortLanguage,
   IORT_RATE_CONFIG,
   getOrCreateIortSource,
 } from './iort-scraper-utils'
@@ -982,21 +983,29 @@ export async function crawlCode(
 // ─── مجموعات نصوص (PAGE_CodesJuridiques) ──────────────────────────────────────
 
 /**
- * URL du listing des recueils thématiques (مجموعات نصوص) sur iort.tn/siteiort.
- * PAGE_CodesJuridiques = recueils organisés par domaine (travail, famille, etc.)
- * Distinct des codes juridiques (PAGE_NavigationCode via M180).
+ * URLs des recueils thématiques (مجموعات نصوص) — deux pages séparées AR/FR sur iort.tn/siteiort.
+ * PAGE_CODESJURIDIQUES (uppercase) = version arabe
+ * PAGE_CodesJuridiques (mixedcase) = version française
  */
-export const RECUEIL_LISTING_URL =
-  'https://www.iort.tn/siteiort/PAGE_CodesJuridiques/7C8AAGEmUkICAAAAFQA'
+export const RECUEIL_LISTING_URL_AR =
+  'https://www.iort.tn/siteiort/PAGE_CODESJURIDIQUES/uCYAAArB00MCAAAAGwA'
+export const RECUEIL_LISTING_URL_FR =
+  'https://www.iort.tn/siteiort/PAGE_CodesJuridiques/uCYAAMyr00MCAAAAGwA'
 
 /**
  * Navigue vers la page de listing des recueils thématiques.
  * Attend le rendu JS (WebDev charge les loopers de façon asynchrone).
+ *
+ * @param language 'ar' (défaut) | 'fr' — version linguistique du listing
  */
-export async function navigateToRecueilPage(session: IortSessionManager): Promise<void> {
+export async function navigateToRecueilPage(
+  session: IortSessionManager,
+  language: IortLanguage = 'ar',
+): Promise<void> {
   const page = session.getPage()
-  console.log('[IORT Recueil] Navigation vers PAGE_CodesJuridiques...')
-  await page.goto(RECUEIL_LISTING_URL, {
+  const url = language === 'fr' ? RECUEIL_LISTING_URL_FR : RECUEIL_LISTING_URL_AR
+  console.log(`[IORT Recueil] Navigation vers PAGE_CodesJuridiques (${language.toUpperCase()})...`)
+  await page.goto(url, {
     waitUntil: 'load',
     timeout: IORT_RATE_CONFIG.navigationTimeout,
   })
@@ -1005,7 +1014,7 @@ export async function navigateToRecueilPage(session: IortSessionManager): Promis
   const count = await page.evaluate(() =>
     document.querySelectorAll('[id^="A1_"], [id^="M18_"], [id^="M3_"]').length,
   )
-  console.log(`[IORT Recueil] ${count} items détectés dans le listing`)
+  console.log(`[IORT Recueil] ${count} items détectés dans le listing ${language.toUpperCase()}`)
 }
 
 /**
@@ -1039,11 +1048,13 @@ export async function parseAvailableRecueils(page: Page): Promise<IortCode[]> {
  * @param session     Session Playwright IORT active
  * @param sourceId    ID de la source web (web_sources.id)
  * @param recueilName Si fourni, filtre sur les recueils dont le nom contient cette chaîne
+ * @param language    'ar' | 'fr' | 'both' (défaut: 'ar')
  */
 export async function crawlRecueil(
   session: IortSessionManager,
   sourceId: string,
   recueilName?: string,
+  language: IortLanguage | 'both' = 'ar',
 ): Promise<IortCodeCrawlStats> {
   const startTime = Date.now()
   const stats: IortCodeCrawlStats = {
@@ -1056,71 +1067,74 @@ export async function crawlRecueil(
     elapsedMs: 0,
   }
 
-  await navigateToRecueilPage(session)
-  let page = session.getPage()
-  const available = await parseAvailableRecueils(page)
+  const languages: IortLanguage[] = language === 'both' ? ['ar', 'fr'] : [language]
 
-  if (available.length === 0) {
-    console.warn('[IORT Recueil] Aucun recueil disponible — abandon')
-    stats.elapsedMs = Date.now() - startTime
-    return stats
-  }
+  for (const lang of languages) {
+    await navigateToRecueilPage(session, lang)
+    let page = session.getPage()
+    const available = await parseAvailableRecueils(page)
 
-  const targets = recueilName
-    ? available.filter(r => r.name.includes(recueilName))
-    : available
-
-  console.log(`[IORT Recueil] ${targets.length}/${available.length} recueils à crawlер`)
-
-  for (const recueil of targets) {
-    console.log(`[IORT Recueil] → "${recueil.name}" (index ${recueil.selectIndex})`)
-
-    try {
-      // Sélectionner le recueil (même fonction que pour les codes)
-      await selectCodeAndNavigate(page, recueil)
-      await sleep(12000) // PAGE_CodesJuridiques nécessite attente longue
-
-      const capturedUrl = page.url()
-      console.log(`[IORT Recueil] URL après navigation: ${capturedUrl}`)
-
-      // Extraire la table des matières
-      const tocItems = await parseTocItems(page, capturedUrl)
-      console.log(`[IORT Recueil] ${tocItems.length} sections trouvées dans "${recueil.name}"`)
-
-      for (const item of tocItems) {
-        try {
-          const text = await extractSectionText(page, item)
-
-          if (!text || text.length < 20) {
-            stats.skipped++
-            continue
-          }
-
-          const saveResult = await saveCodeSection(sourceId, recueil.name, item.title, text, item.depth)
-
-          if (saveResult.skipped) {
-            stats.skipped++
-          } else if (saveResult.updated) {
-            stats.updated++
-          } else {
-            stats.crawled++
-          }
-
-          await sleep(IORT_RATE_CONFIG.minDelay)
-        } catch (err) {
-          console.error(`[IORT Recueil] Erreur section "${item.title}":`, err)
-          stats.errors++
-        }
-      }
-    } catch (err) {
-      console.error(`[IORT Recueil] Erreur recueil "${recueil.name}":`, err)
-      stats.errors++
+    if (available.length === 0) {
+      console.warn(`[IORT Recueil] Aucun recueil disponible (${lang.toUpperCase()}) — skip`)
+      continue
     }
 
-    // Revenir au listing pour le recueil suivant
-    await navigateToRecueilPage(session)
-    page = session.getPage()
-    await sleep(3000)
+    const targets = recueilName
+      ? available.filter(r => r.name.includes(recueilName))
+      : available
+
+    console.log(`[IORT Recueil] ${targets.length}/${available.length} recueils à crawler (${lang.toUpperCase()})`)
+
+    for (const recueil of targets) {
+      console.log(`[IORT Recueil] → "${recueil.name}" (index ${recueil.selectIndex}, ${lang.toUpperCase()})`)
+
+      try {
+        await selectCodeAndNavigate(page, recueil)
+        await sleep(12000)
+
+        const capturedUrl = page.url()
+        const tocItems = await parseTocItems(page, capturedUrl)
+        console.log(`[IORT Recueil] ${tocItems.length} sections dans "${recueil.name}"`)
+
+        for (const item of tocItems) {
+          try {
+            const text = await extractSectionText(page, item)
+
+            if (!text || text.length < 20) {
+              stats.skipped++
+              continue
+            }
+
+            const saveResult = await saveCodeSection(sourceId, recueil.name, item.title, text, item.depth)
+
+            if (saveResult.skipped) {
+              stats.skipped++
+            } else if (saveResult.updated) {
+              stats.updated++
+            } else {
+              stats.crawled++
+            }
+
+            await sleep(IORT_RATE_CONFIG.minDelay)
+          } catch (err) {
+            console.error(`[IORT Recueil] Erreur section "${item.title}":`, err)
+            stats.errors++
+          }
+        }
+      } catch (err) {
+        console.error(`[IORT Recueil] Erreur recueil "${recueil.name}":`, err)
+        stats.errors++
+      }
+
+      await navigateToRecueilPage(session, lang)
+      page = session.getPage()
+      await sleep(3000)
+    }
+
+    if (language === 'both' && lang === 'ar') {
+      console.log('[IORT Recueil] Pause entre AR et FR...')
+      await sleep(5000)
+    }
   }
 
   stats.elapsedMs = Date.now() - startTime
