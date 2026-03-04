@@ -90,7 +90,7 @@ export interface IortCode {
   selectValue?: string
 }
 
-/** Un item de la table des matières (PAGE_NavigationCode) */
+/** Un item de la table des matières (PAGE_NavigationCode ou PAGE_CodesJuridiques) */
 export interface IortTocItem {
   /** Titre de la section (ex: العنوان الأول في التجار) */
   title: string
@@ -98,8 +98,10 @@ export interface IortTocItem {
   resultIndex: number
   /** Profondeur dans la hiérarchie (0=livre, 1=titre, 2=section, etc.) */
   depth: number
-  /** ID du looper (ex: A4, B4) — pour construire le sélecteur */
+  /** ID du looper (ex: A4, B4, M18) — pour construire le sélecteur */
   looperId: string
+  /** Handler onclick du lien (capturé pour les pages non-standard) */
+  onclick?: string
 }
 
 export interface IortCodeCrawlStats {
@@ -333,51 +335,86 @@ export async function selectCodeAndNavigate(page: Page, code: IortCode): Promise
 // TABLE DES MATIÈRES (PAGE_NavigationCode)
 // =============================================================================
 
+/** Extrait les items d'un looper donné avec filtrage arabe */
+async function extractLooperItems(
+  page: Page,
+  prefix: string,
+): Promise<{ index: number; text: string; depth: number; onclick: string }[] | null> {
+  return page.evaluate((pfx) => {
+    const els = Array.from(document.querySelectorAll(`div[id^="${pfx}_"]`))
+    if (els.length === 0) return null
+
+    const mapped = els.map(el => {
+      const idMatch = el.id.match(/(\d+)$/)
+      const index = idMatch ? parseInt(idMatch[1], 10) : 0
+      const text = (el.textContent || '').trim().replace(/\s+/g, ' ')
+      const style = el.getAttribute('style') || ''
+      const paddingMatch = style.match(/padding-(?:right|left)\s*:\s*(\d+)/)
+      const depth = paddingMatch ? Math.floor(parseInt(paddingMatch[1]) / 20) : 0
+      const link = el.querySelector('a, [onclick]')
+      const onclick = link?.getAttribute('onclick') || ''
+      return { index, text: text.substring(0, 200), depth, onclick }
+    }).filter(x => x && x.text && x.index > 0 && /[\u0600-\u06FF]/.test(x.text))
+
+    return mapped.length > 0 ? mapped : null
+  }, prefix)
+}
+
 /**
  * Parse la table des matières du code courant.
- * Chaque item est une section cliquable (كتاب / عنوان / باب / قسم / فرع).
+ * Essaie d'abord les loopers standards A4-E4, puis effectue une découverte
+ * dynamique de tous les loopers disponibles (pour PAGE_CodesJuridiques).
  */
 export async function parseTocItems(page: Page): Promise<IortTocItem[]> {
   console.log('[IORT Codes] Parsing table des matières...')
 
-  // Chercher le looper qui contient les sections de la TOC
-  // Essayer plusieurs préfixes (A4, B4, C4, etc.)
+  // Stratégie 1 : loopers standards PAGE_NavigationCode (A4, B4, C4, D4, E4)
   for (const prefix of ['A4', 'B4', 'C4', 'D4', 'E4']) {
-    const items = await page.evaluate((pfx) => {
-      const els = Array.from(document.querySelectorAll(`div[id^="${pfx}_"]`))
-      if (els.length === 0) return null
-
-      return els.map(el => {
-        const idMatch = el.id.match(/(\d+)$/)
-        const index = idMatch ? parseInt(idMatch[1], 10) : 0
-        const text = (el.textContent || '').trim().replace(/\s+/g, ' ')
-
-        // Détecter la profondeur via les espaces/padding CSS ou l'indentation du texte
-        // On se base sur le style ou les classes s'il y en a
-        const style = el.getAttribute('style') || ''
-        const paddingMatch = style.match(/padding-(?:right|left)\s*:\s*(\d+)/)
-        const depth = paddingMatch ? Math.floor(parseInt(paddingMatch[1]) / 20) : 0
-
-        // Chercher le lien onclick ou href dans le div
-        const link = el.querySelector('a, [onclick]')
-        const onclick = link?.getAttribute('onclick') || ''
-
-        return { index, text: text.substring(0, 200), depth, onclick, looperId: pfx }
-      }).filter(x => x && x.text && x.index > 0 && /[\u0600-\u06FF]/.test(x.text))
-    }, prefix)
-
+    const items = await extractLooperItems(page, prefix)
     if (items && items.length > 0) {
       console.log(`[IORT Codes] Looper ${prefix} → ${items.length} sections TOC`)
       return items.map(item => ({
-        title: item!.text,
-        resultIndex: item!.index,
-        depth: item!.depth,
+        title: item.text,
+        resultIndex: item.index,
+        depth: item.depth,
         looperId: prefix,
+        onclick: item.onclick || undefined,
       }))
     }
   }
 
-  // Fallback : chercher des liens structurés (arbre HTML)
+  // Stratégie 2 : découverte dynamique — chercher TOUS les loopers présents sur la page
+  // (gère PAGE_CodesJuridiques avec loopers M18, M78, M110, M81, M3, M59, etc.)
+  const discoveredLoopers = await page.evaluate(() => {
+    const prefixCounts: Record<string, number> = {}
+    for (const el of document.querySelectorAll('[id]')) {
+      const m = el.id.match(/^([A-Z]\d+)_(\d+)$/)
+      if (m) prefixCounts[m[1]] = (prefixCounts[m[1]] || 0) + 1
+    }
+    // Retourner les loopers avec >= 3 items, triés par count desc
+    return Object.entries(prefixCounts)
+      .filter(([pfx, count]) => count >= 3 && pfx !== 'A1')
+      .sort((a, b) => b[1] - a[1])
+      .map(([pfx]) => pfx)
+  })
+
+  console.log(`[IORT Codes] Découverte loopers: ${discoveredLoopers.join(', ')}`)
+
+  for (const prefix of discoveredLoopers) {
+    const items = await extractLooperItems(page, prefix)
+    if (items && items.length >= 2) {
+      console.log(`[IORT Codes] Looper découvert ${prefix} → ${items.length} items arabes`)
+      return items.map(item => ({
+        title: item.text,
+        resultIndex: item.index,
+        depth: item.depth,
+        looperId: prefix,
+        onclick: item.onclick || undefined,
+      }))
+    }
+  }
+
+  // Stratégie 3 : liens structurés (arbre HTML)
   const linkItems = await page.evaluate(() => {
     const arabicSectionKeywords = /^(الكتاب|العنوان|الباب|القسم|الفرع|المادة|الفصل|أحكام|في |تنظيم|إجراءات)/
     const links = Array.from(document.querySelectorAll('a, li'))
@@ -390,9 +427,7 @@ export async function parseTocItems(page: Page): Promise<IortTocItem[]> {
       .map((el, i) => ({
         text: (el.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 200),
         onclick: el.getAttribute('onclick') || '',
-        href: el.getAttribute('href') || '',
         index: i + 1,
-        looperId: 'LINK',
       }))
     return links
   })
@@ -403,7 +438,8 @@ export async function parseTocItems(page: Page): Promise<IortTocItem[]> {
       title: l.text,
       resultIndex: l.index,
       depth: 0,
-      looperId: l.looperId,
+      looperId: 'LINK',
+      onclick: l.onclick || undefined,
     }))
   }
 
@@ -429,50 +465,86 @@ export async function parseTocItems(page: Page): Promise<IortTocItem[]> {
 /**
  * Clique sur un item de la TOC et extrait le texte de la section affichée.
  * Le site peut :
- * (a) ouvrir une popup (A17 sur _blank)
- * (b) naviguer dans la même page (A17 sur _self) et afficher le contenu
+ * (a) ouvrir une popup (A17 sur _blank, ou autre bouton pour PAGE_CodesJuridiques)
+ * (b) naviguer dans la même page (_self) et afficher le contenu
  * (c) afficher le contenu inline dans un div de la page
  */
 export async function extractSectionText(
   page: Page,
   item: IortTocItem,
 ): Promise<string | null> {
-  // Stratégie 1 : _PAGE_.A4.value = idx; _JSL(A17, '_blank') → popup
-  try {
-    const [detailPage] = await Promise.all([
-      page.context().waitForEvent('page', { timeout: 15000 }),
-      page.evaluate(([idx, looperId]: [number, string]) => {
-        // @ts-expect-error WebDev
-        const formField = _PAGE_[looperId]
-        if (formField) formField.value = idx
-        // @ts-expect-error WebDev
-        _JSL(_PAGE_, 'A17', '_blank', '', '')
-      }, [item.resultIndex, item.looperId] as [number, string]),
-    ])
+  // A17 = bouton view standard (PAGE_NavigationCode)
+  // Pour PAGE_CodesJuridiques, essayer aussi M17, A7, M7, B17
+  const isStandardLooper = /^[A-E]4$/.test(item.looperId)
+  const viewButtons = isStandardLooper ? ['A17'] : ['A17', 'M17', 'A7', 'M7', 'B17']
 
-    await detailPage.waitForLoadState('load')
-    await sleep(2000)
-    if (isPdfUrl(detailPage.url())) {
-      console.log(`[IORT Codes] PDF ignoré: ${detailPage.url()}`)
-      await detailPage.close()
-      return null
+  // Helper : nettoyer les popups orphelines
+  const closeOrphans = async () => {
+    try {
+      for (const p of page.context().pages()) if (p !== page) await p.close().catch(() => {})
+    } catch { /**/ }
+  }
+
+  // Stratégie 0 : si onclick stocké, extraire le bouton et l'exécuter directement
+  if (item.onclick && item.onclick.includes('_JSL')) {
+    const jslMatch = item.onclick.match(/_JSL\s*\([^,]+,\s*'(\w+)'\s*,\s*'([^']*)'/)
+    if (jslMatch) {
+      const [, btnId, target] = jslMatch
+      try {
+        const [detailPage] = await Promise.all([
+          page.context().waitForEvent('page', { timeout: 15000 }),
+          page.evaluate(([idx, looperId, btn]: [number, string, string]) => {
+            // @ts-expect-error WebDev
+            const formField = _PAGE_[looperId]
+            if (formField) formField.value = idx
+            // @ts-expect-error WebDev
+            _JSL(_PAGE_, btn, '_blank', '', '')
+          }, [item.resultIndex, item.looperId, btnId] as [number, string, string]),
+        ])
+        await detailPage.waitForLoadState('load')
+        await sleep(2000)
+        if (isPdfUrl(detailPage.url())) { await detailPage.close(); return null }
+        const text = await extractTextFromPage(detailPage)
+        await detailPage.close()
+        if (text && text.length > 30) return text
+      } catch { /* fallback */ }
     }
-    const text = await extractTextFromPage(detailPage)
-    await detailPage.close()
-    if (text && text.length > 30) return text
-  } catch { /* pas de popup */ }
+  }
 
-  // Fermer popups orphelins
-  try {
-    const pages = page.context().pages()
-    for (const p of pages) if (p !== page) await p.close().catch(() => {})
-  } catch { /**/ }
+  await closeOrphans()
+
+  // Stratégie 1 : _PAGE_[looperId].value = idx; _JSL(btnId, '_blank') → popup
+  for (const btn of viewButtons) {
+    try {
+      const [detailPage] = await Promise.all([
+        page.context().waitForEvent('page', { timeout: 15000 }),
+        page.evaluate(([idx, looperId, btnId]: [number, string, string]) => {
+          // @ts-expect-error WebDev
+          const formField = _PAGE_[looperId]
+          if (formField) formField.value = idx
+          // @ts-expect-error WebDev
+          _JSL(_PAGE_, btnId, '_blank', '', '')
+        }, [item.resultIndex, item.looperId, btn] as [number, string, string]),
+      ])
+      await detailPage.waitForLoadState('load')
+      await sleep(2000)
+      if (isPdfUrl(detailPage.url())) {
+        console.log(`[IORT Codes] PDF ignoré: ${detailPage.url()}`)
+        await detailPage.close()
+        return null
+      }
+      const text = await extractTextFromPage(detailPage)
+      await detailPage.close()
+      if (text && text.length > 30) return text
+    } catch { /* pas de popup pour ce bouton */ }
+  }
+
+  await closeOrphans()
 
   // Stratégie 2 : clic direct sur le lien dans le div du looper
   try {
     const link = await page.$(`div#${item.looperId}_${item.resultIndex} a`)
     if (link) {
-      // Vérifier si le lien href pointe vers un PDF avant de cliquer
       const href = await link.getAttribute('href') || ''
       if (isPdfUrl(href)) {
         console.log(`[IORT Codes] PDF ignoré (href): ${href}`)
@@ -488,7 +560,6 @@ export async function extractSectionText(
         await (detailPage as Page).waitForLoadState('load')
         await sleep(2000)
         if (isPdfUrl((detailPage as Page).url())) {
-          console.log(`[IORT Codes] PDF ignoré: ${(detailPage as Page).url()}`)
           await (detailPage as Page).close()
           return null
         }
@@ -499,36 +570,37 @@ export async function extractSectionText(
     }
   } catch { /**/ }
 
-  // Fermer popups orphelins à nouveau
-  try {
-    const pages = page.context().pages()
-    for (const p of pages) if (p !== page) await p.close().catch(() => {})
-  } catch { /**/ }
+  await closeOrphans()
 
-  // Stratégie 3 : _JSL(A17, '_self') — navigation dans la même page
-  try {
-    await page.evaluate(([idx, looperId]: [number, string]) => {
-      // @ts-expect-error WebDev
-      if (_PAGE_[looperId]) _PAGE_[looperId].value = idx
-      // @ts-expect-error WebDev
-      _JSL(_PAGE_, 'A17', '_self', '', '')
-    }, [item.resultIndex, item.looperId] as [number, string])
-    await page.waitForLoadState('load')
-    await sleep(2000)
-    if (isPdfUrl(page.url())) {
-      console.log(`[IORT Codes] PDF ignoré (_self): ${page.url()}`)
+  // Stratégie 3 : _JSL(btnId, '_self') — navigation dans la même page
+  for (const btn of viewButtons) {
+    try {
+      await page.evaluate(([idx, looperId, btnId]: [number, string, string]) => {
+        // @ts-expect-error WebDev
+        if (_PAGE_[looperId]) _PAGE_[looperId].value = idx
+        // @ts-expect-error WebDev
+        _JSL(_PAGE_, btnId, '_self', '', '')
+      }, [item.resultIndex, item.looperId, btn] as [number, string, string])
+      await page.waitForLoadState('load')
+      await sleep(2000)
+      if (isPdfUrl(page.url())) {
+        await page.goBack()
+        await page.waitForLoadState('load')
+        return null
+      }
+      const text = await extractTextFromPage(page)
+      if (text && text.length > 30) {
+        // Revenir en arrière pour que la TOC soit toujours accessible
+        await page.goBack()
+        await page.waitForLoadState('load')
+        await sleep(2000)
+        return text
+      }
       await page.goBack()
       await page.waitForLoadState('load')
-      return null
-    }
-    const text = await extractTextFromPage(page)
-    if (text && text.length > 30) return text
-
-    // Revenir en arrière (on est sur la page de détail maintenant)
-    await page.goBack()
-    await page.waitForLoadState('load')
-    await sleep(2000)
-  } catch { /**/ }
+      await sleep(1000)
+    } catch { /**/ }
+  }
 
   return null
 }
