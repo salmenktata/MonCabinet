@@ -25,6 +25,7 @@ const WEB_INDEXING_CONCURRENCY = parseInt(process.env.WEB_INDEXING_CONCURRENCY |
 export function deriveSourceOrigin(baseUrl: string): string {
   const url = (baseUrl || '').toLowerCase()
   if (url.includes('iort.gov.tn')) return 'iort_gov_tn'
+  if (url.includes('justice.gov.tn')) return 'justice_gov_tn'
   if (url.includes('9anoun.tn')) return '9anoun_tn'
   if (url.includes('cassation.tn')) return 'cassation_tn'
   if (url.includes('google')) return 'google_drive'
