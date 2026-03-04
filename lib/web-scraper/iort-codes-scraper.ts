@@ -1,13 +1,15 @@
 /**
- * Scraper IORT — Section RechercheCodes (Codes Juridiques)
+ * Scraper IORT — Section codes juridiques (الإبحار في المجلات)
  *
  * Accède à https://www.iort.tn/siteiort/ via Playwright pour extraire
  * les articles des codes juridiques tunisiens (المجلة التجارية, مجلة الشغل, etc.)
  *
  * Structure du site (vérifiée Mars 2026) :
  *   Homepage
- *   → _JSL(M49) → PAGE_RechercheCodes : sélection du code (select/looper)
- *   → sélectionner code → PAGE_NavigationCode : table des matières (arbre de sections)
+ *   → _JCL(url + '?M24') → active le menu JORT élargi
+ *   → _JEM('M180')       → PAGE_Production / PAGE_PageDernierParu
+ *                           looper A1 = liste des codes + bouton "اطلاع"
+ *   → clic "اطلاع" sur le code voulu → PAGE_NavigationCode (table des matières)
  *   → clic sur chaque section → texte de la section
  *
  * Exemple PAGE_NavigationCode (المجلة التجارية) :
@@ -32,8 +34,19 @@ import { hashUrl, hashContent, countWords, detectTextLanguage } from './content-
 
 export const IORT_SITEIORT_URL = 'https://www.iort.tn/siteiort'
 
-/** Menu ID WebDev pour accéder à la section RechercheCodes (déduit depuis #M49 dans l'URL) */
-const CODES_MENU_ID = 'M49'
+/**
+ * URL directe de la page de listing des codes (الإبحار في المجلات).
+ * Fournie explicitement — plus fiable que la navigation via le menu.
+ */
+export const CODES_LISTING_URL =
+  'https://www.iort.tn/siteiort/PAGE_Production/kAoAANCKFUICAAAADQA?WD_ACTION_=MENU&ID=M180#M49'
+
+/**
+ * Fallback navigation via menu :
+ * Homepage → _JCL(M24) → _JEM(M180)
+ */
+const NAV_STEP1_JCL = 'M24'
+const NAV_STEP2_JEM = 'M180'
 
 /** Mapping codes connus arabe → français */
 export const IORT_KNOWN_CODES: Record<string, string> = {
@@ -120,6 +133,11 @@ export function generateCodeSectionUrl(codeName: string, sectionTitle: string): 
   return `${IORT_SITEIORT_URL}/codes/${codeSlug}/${sectionSlug}-${hash}`
 }
 
+/** Détecte si une URL pointe vers un PDF (à ignorer) */
+function isPdfUrl(url: string): boolean {
+  return /\.pdf($|\?|#)/i.test(url) || url.startsWith('blob:')
+}
+
 function cleanText(text: string): string {
   return text
     .replace(/\s+/g, ' ')
@@ -136,190 +154,179 @@ function cleanText(text: string): string {
 // =============================================================================
 
 /**
- * Navigue vers la page de sélection des codes (PAGE_RechercheCodes) via M49.
- * Retourne la page Playwright courante après navigation réussie.
+ * Navigue vers la page de listing des codes.
+ * Stratégie 1 (directe) : URL explicite CODES_LISTING_URL
+ * Stratégie 2 (fallback) : Homepage → _JCL(M24) → _JEM(M180)
  */
 export async function navigateToCodesSelectionPage(session: IortSessionManager): Promise<void> {
   const page = session.getPage()
 
-  console.log('[IORT Codes] Navigation homepage → section codes...')
+  // Stratégie 1 : URL directe (plus fiable)
+  console.log('[IORT Codes] Navigation directe vers page listing codes...')
+  await page.goto(CODES_LISTING_URL, {
+    waitUntil: 'load',
+    timeout: IORT_RATE_CONFIG.navigationTimeout,
+  })
+  await sleep(2500)
+
+  let a1Count = await page.evaluate(() =>
+    document.querySelectorAll('div[id^="A1_"]').length,
+  )
+
+  if (a1Count > 0) {
+    console.log(`[IORT Codes] OK (URL directe) — ${a1Count} codes dans le looper A1`)
+    return
+  }
+
+  // Stratégie 2 : fallback navigation via menu M24 + M180
+  console.log('[IORT Codes] URL directe vide, fallback navigation menu...')
   await page.goto(IORT_SITEIORT_URL, {
     waitUntil: 'load',
     timeout: IORT_RATE_CONFIG.navigationTimeout,
   })
+  await sleep(2500)
+
+  console.log(`[IORT Codes] _JCL(${NAV_STEP1_JCL})...`)
+  await page.evaluate((menuId: string) => {
+    // @ts-expect-error WebDev
+    _JCL(clWDUtil.sGetPageActionIE10() + '?' + menuId, '_self', '', '')
+  }, NAV_STEP1_JCL)
+  await page.waitForLoadState('load')
+  await sleep(2500)
+
+  console.log(`[IORT Codes] _JEM(${NAV_STEP2_JEM})...`)
+  await page.evaluate((menuId: string) => {
+    // @ts-expect-error WebDev
+    _JEM(menuId, '_self', '', '')
+  }, NAV_STEP2_JEM)
+  await page.waitForLoadState('load')
   await sleep(3000)
 
-  // Tenter M49 (déduit de l'URL observée #M49)
-  let navigated = false
-  try {
-    await page.evaluate((menuId) => {
-      // @ts-expect-error WebDev
-      _JSL(_PAGE_, menuId, '_self', '', '')
-    }, CODES_MENU_ID)
-    await page.waitForLoadState('load')
-    await sleep(3000)
+  console.log(`[IORT Codes] URL après navigation: ${page.url()}`)
 
-    const url = page.url()
-    console.log(`[IORT Codes] URL après ${CODES_MENU_ID}: ${url}`)
-    navigated = url.includes('RechercheCodes') || url.includes('Navigation')
-  } catch (err) {
-    console.warn(`[IORT Codes] _JSL(${CODES_MENU_ID}) a échoué:`, err instanceof Error ? err.message : err)
+  a1Count = await page.evaluate(() =>
+    document.querySelectorAll('div[id^="A1_"]').length,
+  )
+  if (a1Count === 0) {
+    const info = await page.evaluate(() => ({
+      url: location.href,
+      title: document.title,
+      loopers: Array.from(new Set(
+        Array.from(document.querySelectorAll('[id]'))
+          .map(el => el.id.match(/^([A-Z]\d+)_\d+$/)?.[1])
+          .filter(Boolean),
+      )),
+    }))
+    throw new Error(
+      `[IORT Codes] Looper A1 vide après navigation. Page: ${JSON.stringify(info)}`,
+    )
   }
-
-  if (!navigated) {
-    // Découverte automatique : chercher le lien "البحث في المجلات" ou similaire
-    console.log('[IORT Codes] Découverte automatique du lien codes...')
-    const found = await page.evaluate(() => {
-      const keywords = ['مجلة', 'مجلات', 'RechercheCodes', 'codes juridiques', 'البحث في القانون']
-      const links = Array.from(document.querySelectorAll('a, [onclick]'))
-      for (const el of links) {
-        const text = (el.textContent || '').trim()
-        const onclick = el.getAttribute('onclick') || ''
-        if (keywords.some(kw => text.includes(kw) || onclick.includes(kw))) {
-          const m = onclick.match(/_JSL\s*\(_PAGE_\s*,\s*'(\w+)'/)
-          if (m) {
-            // @ts-expect-error WebDev
-            _JSL(_PAGE_, m[1], '_self', '', '')
-            return m[1]
-          }
-        }
-      }
-      return null
-    })
-
-    if (found) {
-      await page.waitForLoadState('load')
-      await sleep(3000)
-      console.log(`[IORT Codes] Navigué via découverte: ${found}`)
-    } else {
-      const currentUrl = page.url()
-      throw new Error(
-        `[IORT Codes] Impossible de naviguer vers la section codes. URL actuelle: ${currentUrl}. ` +
-        `Vérifier que M49 est le bon ID de menu IORT.`,
-      )
-    }
-  }
+  console.log(`[IORT Codes] OK (menu fallback) — ${a1Count} codes dans le looper A1`)
 }
 
 /**
- * Parse la liste des codes disponibles depuis PAGE_RechercheCodes.
- * Cherche d'abord un <select> avec options arabes, puis un looper.
+ * Parse la liste des codes depuis le looper A1 (PAGE_Production / PAGE_PageDernierParu).
+ * Chaque div#A1_N contient le nom du code + un bouton "اطلاع".
+ * Le nom du code = texte du div sans le suffixe " اطلاع".
  */
 export async function parseAvailableCodes(page: Page): Promise<IortCode[]> {
-  console.log('[IORT Codes] Parsing des codes disponibles...')
+  console.log('[IORT Codes] Parsing des codes (looper A1)...')
 
-  // Stratégie 1 : <select> avec options arabes
-  const selectData = await page.evaluate(() => {
-    for (const sel of Array.from(document.querySelectorAll('select'))) {
-      const opts = Array.from(sel.options).filter(o =>
-        /[\u0600-\u06FF]/.test(o.text) && o.text.trim().length > 4,
-      )
-      if (opts.length >= 3) {
-        return { found: true, name: sel.name, options: opts.map((o, i) => ({ value: o.value, text: o.text.trim(), index: i + 1 })) }
-      }
-    }
-    return { found: false, name: '', options: [] }
-  })
-
-  if (selectData.found && selectData.options.length > 0) {
-    console.log(`[IORT Codes] Select "${selectData.name}" → ${selectData.options.length} codes`)
-    return selectData.options.map(o => ({
-      name: o.text,
-      nameFr: IORT_KNOWN_CODES[o.text],
-      selectIndex: o.index,
-      selectValue: o.value,
-    }))
-  }
-
-  // Stratégie 2 : looper div[id^="A4_"]
   const looperData = await page.evaluate(() => {
-    return Array.from(document.querySelectorAll('div[id^="A4_"]')).map((el, i) => ({
-      text: (el.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 120),
-      index: i + 1,
-    })).filter(x => x.text && /[\u0600-\u06FF]/.test(x.text))
+    return Array.from(document.querySelectorAll('div[id^="A1_"]')).map(el => {
+      const idMatch = el.id.match(/A1_(\d+)$/)
+      const index = idMatch ? parseInt(idMatch[1], 10) : 0
+      // Texte brut du div — contient le nom + " اطلاع"
+      const rawText = (el.textContent || '').trim().replace(/\s+/g, ' ')
+      // Supprimer le suffixe "اطلاع" (bouton view) et espaces résiduels
+      const name = rawText.replace(/\s*اطلاع\s*$/, '').trim()
+      // Récupérer le onclick du bouton "اطلاع" pour savoir quel ID déclencher
+      const btn = el.querySelector('a, [onclick]')
+      const onclick = btn?.getAttribute('onclick') || ''
+      return { index, name, onclick }
+    }).filter(x => x.index > 0 && x.name.length > 3 && /[\u0600-\u06FF]/.test(x.name))
   })
 
   if (looperData.length > 0) {
-    console.log(`[IORT Codes] Looper A4 → ${looperData.length} codes`)
+    console.log(`[IORT Codes] ${looperData.length} codes dans le looper A1`)
     return looperData.map(x => ({
-      name: x.text,
-      nameFr: IORT_KNOWN_CODES[x.text],
+      name: x.name,
+      nameFr: IORT_KNOWN_CODES[x.name],
       selectIndex: x.index,
+      selectValue: x.onclick, // on stocke l'onclick pour selectCodeAndNavigate()
     }))
   }
 
-  // Log de découverte si rien trouvé
+  // Log de découverte si A1 vide
   const discovery = await page.evaluate(() => ({
     url: location.href,
     title: document.title,
-    selectCount: document.querySelectorAll('select').length,
     loopers: Array.from(new Set(
       Array.from(document.querySelectorAll('[id]'))
         .map(el => el.id.match(/^([A-Z]\d+)_\d+$/)?.[1])
         .filter(Boolean),
     )),
-    bodyPreview: (document.body.textContent || '').substring(0, 500),
+    bodyPreview: (document.body.textContent || '').trim().substring(0, 500),
   }))
-  console.warn('[IORT Codes] ⚠️  Aucun code trouvé. Page info:', JSON.stringify(discovery, null, 2))
+  console.warn('[IORT Codes] ⚠️  Looper A1 vide. Page info:', JSON.stringify(discovery, null, 2))
   return []
 }
 
 /**
- * Sélectionne un code et navigue vers sa table des matières (PAGE_NavigationCode).
+ * Clique sur le bouton "اطلاع" du code dans le looper A1
+ * pour naviguer vers PAGE_NavigationCode (table des matières).
  */
 export async function selectCodeAndNavigate(page: Page, code: IortCode): Promise<void> {
-  console.log(`[IORT Codes] Sélection: "${code.name}"`)
+  console.log(`[IORT Codes] Clic "اطلاع" sur: "${code.name}" (A1_${code.selectIndex})`)
 
-  // 1. Sélectionner dans le <select> si on a la valeur
-  if (code.selectValue) {
-    const selected = await page.evaluate((val) => {
-      for (const sel of Array.from(document.querySelectorAll('select'))) {
-        const opt = Array.from(sel.options).find(o => o.value === val || o.text.trim() === val)
-        if (opt) {
-          sel.value = opt.value
-          sel.dispatchEvent(new Event('change', { bubbles: true }))
-          return true
-        }
-      }
-      return false
-    }, code.selectValue)
+  // Chercher le bouton "اطلاع" dans le div A1_N du code
+  const divSelector = `div#A1_${code.selectIndex}`
 
-    if (selected) await sleep(500)
-  } else {
-    // Fallback : cliquer directement sur le lien dans le looper
-    await page.evaluate((idx) => {
-      // @ts-expect-error WebDev
-      if (_PAGE_.A4) _PAGE_.A4.value = idx
-      // @ts-expect-error WebDev
-      _JSL(_PAGE_, 'A17', '_self', '', '')
-    }, code.selectIndex)
+  // Stratégie 1 : clic HTML direct sur le lien dans le div
+  const clicked = await page.evaluate((sel: string) => {
+    const div = document.querySelector(sel)
+    if (!div) return false
+    // Chercher le premier lien/bouton cliquable (le bouton "اطلاع")
+    const btn = div.querySelector('a, input[type="button"], [onclick]') as HTMLElement | null
+    if (btn) { btn.click(); return true }
+    return false
+  }, divSelector)
+
+  if (clicked) {
     await page.waitForLoadState('load')
     await sleep(3000)
+    const url = page.url()
+    console.log(`[IORT Codes] URL après clic: ${url}`)
     return
   }
 
-  // 2. Déclencher la validation (bouton recherche WebDev)
-  // Tenter plusieurs IDs de bouton submit courants
-  const submitResult = await page.evaluate(() => {
-    for (const id of ['A40', 'B40', 'A12', 'B12', 'A11', 'A9', 'A10']) {
-      try {
+  // Stratégie 2 : si onclick est disponible (stocké dans selectValue), l'exécuter
+  if (code.selectValue && code.selectValue.includes('_JSL')) {
+    const jslMatch = code.selectValue.match(/_JSL\s*\([^,]+,\s*'(\w+)'/)
+    if (jslMatch) {
+      await page.evaluate((id: string) => {
         // @ts-expect-error WebDev
         _JSL(_PAGE_, id, '_self', '', '')
-        return id
-      } catch { /* essayer suivant */ }
+      }, jslMatch[1])
+      await page.waitForLoadState('load')
+      await sleep(3000)
+      return
     }
-    // Fallback : chercher un <input type="submit"> ou <button>
-    const btn = document.querySelector('input[type="submit"], button[type="submit"], button')
-    if (btn) { (btn as HTMLElement).click(); return 'button-click' }
-    return null
-  })
+  }
 
-  console.log(`[IORT Codes] Submit via: ${submitResult}`)
+  // Stratégie 3 : fallback WebDev — définir A1.value et déclencher A17
+  console.warn(`[IORT Codes] Fallback WebDev A1=${code.selectIndex}...`)
+  await page.evaluate((idx: number) => {
+    // @ts-expect-error WebDev
+    if (_PAGE_.A1) _PAGE_.A1.value = idx
+    // @ts-expect-error WebDev
+    _JSL(_PAGE_, 'A17', '_self', '', '')
+  }, code.selectIndex)
   await page.waitForLoadState('load')
   await sleep(3000)
 
   const url = page.url()
-  console.log(`[IORT Codes] URL après sélection: ${url}`)
+  console.log(`[IORT Codes] URL après navigation: ${url}`)
 }
 
 // =============================================================================
@@ -376,7 +383,9 @@ export async function parseTocItems(page: Page): Promise<IortTocItem[]> {
     const links = Array.from(document.querySelectorAll('a, li'))
       .filter(el => {
         const text = (el.textContent || '').trim()
+        const href = el.getAttribute('href') || ''
         return text.length > 5 && arabicSectionKeywords.test(text) && /[\u0600-\u06FF]/.test(text)
+          && !/\.pdf($|\?)/i.test(href)
       })
       .map((el, i) => ({
         text: (el.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 200),
@@ -443,6 +452,11 @@ export async function extractSectionText(
 
     await detailPage.waitForLoadState('load')
     await sleep(2000)
+    if (isPdfUrl(detailPage.url())) {
+      console.log(`[IORT Codes] PDF ignoré: ${detailPage.url()}`)
+      await detailPage.close()
+      return null
+    }
     const text = await extractTextFromPage(detailPage)
     await detailPage.close()
     if (text && text.length > 30) return text
@@ -458,6 +472,13 @@ export async function extractSectionText(
   try {
     const link = await page.$(`div#${item.looperId}_${item.resultIndex} a`)
     if (link) {
+      // Vérifier si le lien href pointe vers un PDF avant de cliquer
+      const href = await link.getAttribute('href') || ''
+      if (isPdfUrl(href)) {
+        console.log(`[IORT Codes] PDF ignoré (href): ${href}`)
+        return null
+      }
+
       const [detailPage] = await Promise.all([
         page.context().waitForEvent('page', { timeout: 15000 }),
         link.click(),
@@ -466,6 +487,11 @@ export async function extractSectionText(
       if (detailPage && (detailPage as Page).url) {
         await (detailPage as Page).waitForLoadState('load')
         await sleep(2000)
+        if (isPdfUrl((detailPage as Page).url())) {
+          console.log(`[IORT Codes] PDF ignoré: ${(detailPage as Page).url()}`)
+          await (detailPage as Page).close()
+          return null
+        }
         const text = await extractTextFromPage(detailPage as Page)
         await (detailPage as Page).close()
         if (text && text.length > 30) return text
@@ -489,6 +515,12 @@ export async function extractSectionText(
     }, [item.resultIndex, item.looperId] as [number, string])
     await page.waitForLoadState('load')
     await sleep(2000)
+    if (isPdfUrl(page.url())) {
+      console.log(`[IORT Codes] PDF ignoré (_self): ${page.url()}`)
+      await page.goBack()
+      await page.waitForLoadState('load')
+      return null
+    }
     const text = await extractTextFromPage(page)
     if (text && text.length > 30) return text
 
@@ -626,7 +658,7 @@ export async function crawlCode(
   // 2. Trouver le code dans la liste
   const availableCodes = await parseAvailableCodes(page)
   if (availableCodes.length === 0) {
-    throw new Error('[IORT Codes] Aucun code disponible — vérifier la navigation M49')
+    throw new Error('[IORT Codes] Aucun code disponible — vérifier la navigation _JCL(M24) + _JEM(M180)')
   }
 
   const target = availableCodes.find(c =>
