@@ -191,6 +191,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
         kb.is_indexed, kb.is_approved,
         kb.is_abroge, kb.abroge_suspected, kb.abroge_confidence,
         kb.quality_score, kb.quality_requires_review,
+        kb.doc_type, kb.norm_level,
         (SELECT COUNT(*) FROM knowledge_base_chunks WHERE knowledge_base_id = kb.id) as chunk_count,
         kb.source_file as file_name, kb.source_file as file_type,
         kb.created_at, kb.updated_at,

@@ -31,6 +31,10 @@ async function getDocument(id: string) {
     id: row.id,
     category: row.category,
     subcategory: row.subcategory,
+    docType: row.doc_type ?? null,
+    normLevel: row.norm_level ?? null,
+    sourceOrigin: row.source_origin ?? null,
+    ragEnabled: row.rag_enabled !== false,
     language: row.language || 'ar',
     title: row.title,
     description: row.description,
@@ -40,12 +44,25 @@ async function getDocument(id: string) {
     fullText: row.full_text,
     isIndexed: row.is_indexed,
     isActive: row.is_active !== false,
+    isApproved: row.is_approved === true,
+    isAbroge: row.is_abroge ?? null,
+    abrogeSuspected: row.abroge_suspected ?? null,
+    abrogeConfidence: row.abroge_confidence ?? null,
     version: row.version || 1,
     chunkCount: parseInt(row.chunk_count, 10) || 0,
     uploadedBy: row.uploaded_by,
     uploadedByEmail: row.uploaded_by_email,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    qualityScore: row.quality_score ?? null,
+    qualityClarity: row.quality_clarity ?? undefined,
+    qualityStructure: row.quality_structure ?? undefined,
+    qualityCompleteness: row.quality_completeness ?? undefined,
+    qualityReliability: row.quality_reliability ?? undefined,
+    qualityAnalysisSummary: row.quality_analysis_summary ?? null,
+    qualityDetectedIssues: row.quality_detected_issues ?? [],
+    qualityRecommendations: row.quality_recommendations ?? [],
+    qualityRequiresReview: row.quality_requires_review ?? false,
   }
 }
 
@@ -79,7 +96,7 @@ export default async function KnowledgeBaseDetailPage({ params }: PageProps) {
   const versions = await getVersions(id)
 
   return (
-    <div className="p-6">
+    <div className="-m-6">
       <KnowledgeBaseDetail document={document} versions={versions} />
     </div>
   )

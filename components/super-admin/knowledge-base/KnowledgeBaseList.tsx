@@ -49,6 +49,8 @@ interface Document {
   is_abroge?: boolean | null
   abroge_suspected?: boolean | null
   abroge_confidence?: 'low' | 'medium' | 'high' | null
+  doc_type?: string | null
+  norm_level?: string | null
 }
 
 interface KnowledgeBaseListProps {
@@ -398,6 +400,36 @@ export function KnowledgeBaseList({
                   abrogeSuspected={doc.abroge_suspected}
                   abrogeConfidence={doc.abroge_confidence}
                 />
+                {doc.doc_type && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded border font-medium ${
+                    doc.doc_type === 'TEXTES' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
+                    doc.doc_type === 'JURIS' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' :
+                    doc.doc_type === 'PROC' ? 'bg-orange-500/20 text-orange-300 border-orange-500/30' :
+                    doc.doc_type === 'TEMPLATES' ? 'bg-teal-500/20 text-teal-300 border-teal-500/30' :
+                    doc.doc_type === 'DOCTRINE' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' :
+                    'bg-slate-600/30 text-slate-400 border-slate-500/30'
+                  }`}>
+                    {doc.doc_type === 'TEXTES' ? 'Textes' :
+                     doc.doc_type === 'JURIS' ? 'Juris.' :
+                     doc.doc_type === 'PROC' ? 'Procéd.' :
+                     doc.doc_type === 'TEMPLATES' ? 'Modèles' :
+                     doc.doc_type === 'DOCTRINE' ? 'Doctrine' :
+                     doc.doc_type}
+                  </span>
+                )}
+                {doc.norm_level && (
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">
+                    {doc.norm_level === 'constitution' ? 'Constitution' :
+                     doc.norm_level === 'loi_ord' ? 'Loi' :
+                     doc.norm_level === 'loi_org' ? 'Loi org.' :
+                     doc.norm_level === 'marsoum' ? 'Marsoum' :
+                     doc.norm_level === 'ordre_reg' ? 'Ordre rég.' :
+                     doc.norm_level === 'arrete_min' ? 'Arrêté' :
+                     doc.norm_level === 'traite_int' ? 'Traité' :
+                     doc.norm_level === 'acte_local' ? 'Acte local' :
+                     doc.norm_level}
+                  </span>
+                )}
               </div>
 
               {doc.description && (
