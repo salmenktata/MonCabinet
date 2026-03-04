@@ -102,6 +102,7 @@ export function KBQualityTab() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [enrichLoading, setEnrichLoading] = useState(false)
   const [rechunkArticlesLoading, setRechunkArticlesLoading] = useState(false)
+  const [reanalyzeFailedLoading, setReanalyzeFailedLoading] = useState(false)
   const [actionResult, setActionResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const handleEnrichMetadata = async () => {
@@ -123,6 +124,33 @@ export function KBQualityTab() {
       setActionResult({ type: 'error', message: 'Erreur réseau' })
     } finally {
       setEnrichLoading(false)
+    }
+  }
+
+  const handleReanalyzeFailed = async () => {
+    setReanalyzeFailedLoading(true)
+    setActionResult(null)
+    try {
+      const res = await fetch('/api/admin/kb/reanalyze-failed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 50 }),
+      })
+      const data = await res.json()
+      if (data.stats) {
+        const { succeeded, improved, failed, total } = data.stats
+        setActionResult({
+          type: improved > 0 || succeeded > 0 ? 'success' : 'error',
+          message: `${succeeded}/${total} réanalysés, ${improved} améliorés, ${failed} toujours en échec`,
+        })
+        await fetchMetrics()
+      } else {
+        setActionResult({ type: 'error', message: data.error || 'Erreur réanalyse' })
+      }
+    } catch {
+      setActionResult({ type: 'error', message: 'Erreur réseau' })
+    } finally {
+      setReanalyzeFailedLoading(false)
     }
   }
 
@@ -228,6 +256,19 @@ export function KBQualityTab() {
             <Sparkles className={`h-4 w-4 mr-1 ${enrichLoading ? 'animate-spin' : ''}`} />
             {enrichLoading ? 'Enrichissement...' : 'Enrichir métadonnées'}
           </Button>
+          {metrics.failures.total > 0 && (
+            <Button
+              onClick={handleReanalyzeFailed}
+              variant="outline"
+              size="sm"
+              disabled={reanalyzeFailedLoading}
+              title={`Réanalyser les ${metrics.failures.total} documents avec score=50 (échecs qualité)`}
+              className="border-orange-400 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+            >
+              <AlertTriangle className={`h-4 w-4 mr-1 ${reanalyzeFailedLoading ? 'animate-spin' : ''}`} />
+              {reanalyzeFailedLoading ? 'Réanalyse...' : `Réanalyser échecs (${metrics.failures.total})`}
+            </Button>
+          )}
           <Button
             onClick={handleRechunkArticles}
             variant="outline"
