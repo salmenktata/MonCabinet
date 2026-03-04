@@ -20,6 +20,41 @@ interface CronsKPICardsProps {
 export function CronsKPICards({ stats, schedules }: CronsKPICardsProps) {
   const [liveCountdown, setLiveCountdown] = useState<string | null>(null)
 
+  // KPI 4: Prochaine Exécution (calculé avant le hook)
+  const nextCron = schedules?.schedules
+    ?.filter((s: any) => s.is_enabled && s.next_execution_at)
+    .sort((a: any, b: any) => {
+      return (
+        new Date(a.next_execution_at).getTime() -
+        new Date(b.next_execution_at).getTime()
+      )
+    })[0]
+
+  // QW1: Live countdown avec granularité seconde — hook AVANT le return conditionnel
+  useEffect(() => {
+    if (!nextCron?.next_execution_at) {
+      setLiveCountdown(null)
+      return
+    }
+
+    const formatCountdown = (diffSeconds: number): string => {
+      if (diffSeconds <= 0) return '0s'
+      const minutes = Math.floor(diffSeconds / 60)
+      const seconds = diffSeconds % 60
+      return minutes > 0 ? `${minutes}min ${seconds}s` : `${seconds}s`
+    }
+
+    const updateCountdown = () => {
+      const diffMs = new Date(nextCron.next_execution_at).getTime() - Date.now()
+      const diffSeconds = Math.max(0, Math.floor(diffMs / 1000))
+      setLiveCountdown(formatCountdown(diffSeconds))
+    }
+
+    updateCountdown()
+    const interval = setInterval(updateCountdown, 1000)
+    return () => clearInterval(interval)
+  }, [nextCron?.next_execution_at])
+
   if (!stats || !schedules) {
     return null
   }
@@ -66,49 +101,6 @@ export function CronsKPICards({ stats, schedules }: CronsKPICardsProps) {
         new Date(b.last_failure_at).getTime() - new Date(a.last_failure_at).getTime()
       )
     })[0]
-
-  // KPI 4: Prochaine Exécution
-  const nextCron = schedules.schedules
-    ?.filter((s: any) => s.is_enabled && s.next_execution_at)
-    .sort((a: any, b: any) => {
-      return (
-        new Date(a.next_execution_at).getTime() -
-        new Date(b.next_execution_at).getTime()
-      )
-    })[0]
-
-  // QW1: Live countdown avec granularité seconde
-  const formatCountdown = (diffSeconds: number): string => {
-    if (diffSeconds <= 0) return '0s'
-    const minutes = Math.floor(diffSeconds / 60)
-    const seconds = diffSeconds % 60
-    if (minutes > 0) {
-      return `${minutes}min ${seconds}s`
-    }
-    return `${seconds}s`
-  }
-
-  // useEffect pour update countdown chaque seconde
-  useEffect(() => {
-    if (!nextCron?.next_execution_at) {
-      setLiveCountdown(null)
-      return
-    }
-
-    const updateCountdown = () => {
-      const diffMs = new Date(nextCron.next_execution_at).getTime() - Date.now()
-      const diffSeconds = Math.max(0, Math.floor(diffMs / 1000))
-      setLiveCountdown(formatCountdown(diffSeconds))
-    }
-
-    // Update initial
-    updateCountdown()
-
-    // Update chaque seconde
-    const interval = setInterval(updateCountdown, 1000)
-
-    return () => clearInterval(interval)
-  }, [nextCron?.next_execution_at])
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

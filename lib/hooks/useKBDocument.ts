@@ -9,7 +9,7 @@
 
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 
 // =============================================================================
 // TYPES
@@ -271,8 +271,6 @@ export function useKBDocumentList(params?: KBDocumentListParams) {
 export function useKBDocumentInfiniteList(
   params?: Omit<KBDocumentListParams, 'offset'>
 ) {
-  const { useInfiniteQuery } = require('@tanstack/react-query')
-
   return useInfiniteQuery({
     queryKey: kbDocumentKeys.list(params),
     queryFn: ({ pageParam = 0 }) =>

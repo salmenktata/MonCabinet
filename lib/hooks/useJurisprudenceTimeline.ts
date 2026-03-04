@@ -9,7 +9,7 @@
 
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import type {
   TimelineEvent,
   TimelineStats,
@@ -279,7 +279,6 @@ export function useTimelineInfiniteScroll(
   params?: Omit<TimelineQueryParams, 'offset'>,
   options?: UseTimelineOptions
 ) {
-  const { useInfiniteQuery } = require('@tanstack/react-query')
   const { staleTime = 5 * 60 * 1000 } = options || {}
 
   return useInfiniteQuery({

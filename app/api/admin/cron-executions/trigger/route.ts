@@ -171,6 +171,26 @@ const CRON_SCRIPTS: Record<string, { script: string; description: string; estima
     description: 'Détection Contradictions Juridiques',
     estimatedDuration: 300000,
   },
+  'iort-constitution-refresh': {
+    script: 'curl -s -X GET http://localhost:3000/api/admin/iort/crawl-constitution -H "X-Cron-Secret: $CRON_SECRET"',
+    description: 'Refresh Constitution IORT (OCR PDF 42 pages, réindexation article par article)',
+    estimatedDuration: 660000,
+  },
+  'gap-analysis': {
+    script: 'curl -s -X POST http://localhost:3000/api/admin/eval/gap-cron -H "X-Cron-Secret: $CRON_SECRET"',
+    description: 'Détection Lacunes KB (abstentions, faible similarité)',
+    estimatedDuration: 60000,
+  },
+  'silver-generation': {
+    script: 'curl -s -X POST http://localhost:3000/api/admin/eval/silver-cron -H "X-Cron-Secret: $CRON_SECRET"',
+    description: 'Génération Silver Dataset depuis trafic prod',
+    estimatedDuration: 120000,
+  },
+  'log-cleanup': {
+    script: 'curl -s -X POST http://localhost:3000/api/admin/eval/log-cleanup -H "X-Cron-Secret: $CRON_SECRET"',
+    description: 'Nettoyage logs RAG (TTL 90j)',
+    estimatedDuration: 60000,
+  },
 }
 
 export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
