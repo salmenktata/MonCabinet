@@ -313,6 +313,16 @@ const LEGAL_SYNONYMS: Record<string, string[]> = {
   'saisie conservatoire': ['عقلة تحفظية', 'حجز تحفظي', 'إجراء تحفظي', 'تدبير تحفظي'],
 
   // === TERMES FRANÇAIS → ARABES (pour requêtes en français) ===
+
+  // Codes légaux — noms complets français → équivalents arabes
+  // Permet de retrouver les chunks arabes quand la requête cite le code en français
+  'code pénal': ['المجلة الجزائية', 'قانون العقوبات'],
+  'code de procédure pénale': ['مجلة الإجراءات الجزائية', 'قانون الإجراءات الجنائية'],
+  'code de procédure civile': ['مجلة المرافعات المدنية والتجارية', 'الإجراءات المدنية'],
+  'code des obligations et contrats': ['مجلة الالتزامات والعقود', 'قانون الالتزامات'],
+  'code du statut personnel': ['مجلة الأحوال الشخصية', 'قانون الأسرة'],
+  'code de commerce': ['المجلة التجارية', 'قانون التجارة'],
+
   // Droit de la famille
   'divorce': ['طلاق', 'فسخ عقد الزواج', 'حل عقدة النكاح', 'التفريق', 'مجلة الأحوال الشخصية'],
   'mariage': ['زواج', 'عقد النكاح', 'الصداق', 'المهر', 'مجلة الأحوال الشخصية'],
@@ -366,7 +376,9 @@ const LEGAL_SYNONYMS: Record<string, string[]> = {
   'préjudice moral': ['الضرر المعنوي', 'الضرر الأدبي', 'الأذى النفسي', 'التعويض المعنوي'],
   'dommages et intérêts': ['التعويض عن الضرر', 'جبر الضرر', 'التعويض المدني', 'مجلة الالتزامات والعقود'],
 
-  // Droit du travail
+  // Droit du travail — codes et synonymes bilingues
+  'code du travail': ['مجلة الشغل', 'قانون الشغل'],
+  'code de travail': ['مجلة الشغل', 'قانون الشغل'],  // variante fréquente (sans "du")
   'licenciement': ['طرد تعسفي', 'فسخ عقد الشغل', 'الإنهاء غير المشروع', 'مجلة الشغل'],
   'licenciement abusif': ['طرد تعسفي', 'فسخ بدون موجب', 'الإنهاء غير المشروع', 'مجلة الشغل'],
   'indemnité de licenciement': ['تعويض الطرد', 'تعويض انهاء عقد الشغل', 'الفصل 23 مجلة الشغل', 'الفصل 23-2 مجلة الشغل', 'تعويض الأقدمية'],
