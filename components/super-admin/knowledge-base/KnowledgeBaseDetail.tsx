@@ -148,12 +148,39 @@ function isOcrNoise(line: string): boolean {
 
 /** Détecte les entrées de table des matières : texte arabe + points + numéro de page */
 function isTocEntry(line: string): boolean {
-  // "القسم الاول: مجلس نواب الشهب........19"
   return /[\u0600-\u06ff].*\.{3,}\s*\d+\s*$/.test(line)
 }
 
+/**
+ * Nettoie les artéfacts OCR de pied de page AVANT le découpage en lignes.
+ * Ces artéfacts peuvent être sur la même ligne que du contenu légitime.
+ *
+ * Patterns ciblés (jamais présents dans le texte juridique légitime) :
+ *  - "الاسجرية التوسية 12"  — variante OCR de "الجمهورية التونسية" + numéro de page
+ *  - "des 37 البسهورية التونسية"  — préfixe latin + variante OCR
+ *  - "وستور (لبسهورية التونسية 34"  — "دستور" mal reconnu + footer
+ *  - "sans 5", "pus 11", "pe 9"  — séquences bruit standalone
+ */
+function preprocessText(text: string): string {
+  let t = text
+  // Variantes garbled de "الجمهورية" (jamais dans le contenu réel)
+  // Couverture : البسهورية | لبسهورية | الاسجرية | الببرية | السهورية | الجهورية
+  // + préfixe latin optionnel (des, pe, Dis, ...) + suffixe التونسية + numéro
+  t = t.replace(
+    /(?:[A-Za-z()]{0,15}\s*)(البسهورية|لبسهورية|الاسجرية|الببرية|السهورية|الجهورية)(?:\s*(?:التونسية|التوسية|التوضية))?\s*\d{0,3}/g,
+    ' '
+  )
+  // "وستور (...)" = "دستور" garbled (toujours un footer, jamais dans un article)
+  t = t.replace(/وستور[^\n]{0,80}/g, ' ')
+  // Séquences bruit latin court + numéro : "sans 5", "pus 11", "pe 9"
+  t = t.replace(/\b(sans|pus|des|pe|en)\s+\d+\b/gi, ' ')
+  // Espaces multiples (on préserve les \n)
+  t = t.replace(/[ \t]{2,}/g, ' ')
+  return t
+}
+
 function parseDocumentNodes(text: string): DocNode[] {
-  const lines = text.split('\n')
+  const lines = preprocessText(text).split('\n')
   const nodes: DocNode[] = []
   let pendingLines: string[] = []
 
