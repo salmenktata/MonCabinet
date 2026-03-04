@@ -70,9 +70,9 @@ export default async function FacturesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">{t('subtitle')}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground hidden sm:block">{t('subtitle')}</p>
         </div>
-        <Button asChild size="sm" className="self-start sm:self-auto">
+        <Button asChild size="sm" className="w-full sm:w-auto justify-center">
           <Link href="/factures/new">
             <Icons.add className="mr-1.5 h-4 w-4" />
             {t('newInvoice')}
@@ -81,7 +81,7 @@ export default async function FacturesPage() {
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
           icon={Icons.invoices}
           variant="primary"
@@ -89,12 +89,14 @@ export default async function FacturesPage() {
           value={stats.total}
           subtitle={`${stats.brouillon} brouillon · ${stats.envoyees} envoyée${stats.envoyees !== 1 ? 's' : ''}`}
         />
-        <StatCard
-          icon={Icons.banknote}
-          variant="default"
-          title={t('totalAmountTTC')}
-          value={`${stats.montantTotal.toFixed(3)} TND`}
-        />
+        <div className="hidden sm:block">
+          <StatCard
+            icon={Icons.banknote}
+            variant="default"
+            title={t('totalAmountTTC')}
+            value={`${stats.montantTotal.toFixed(3)} TND`}
+          />
+        </div>
         <StatCard
           icon={Icons.checkCircle}
           variant="success"

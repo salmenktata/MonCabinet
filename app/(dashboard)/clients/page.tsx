@@ -68,7 +68,7 @@ export default function ClientsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
-          <p className="mt-1 text-muted-foreground">{t('subtitle')}</p>
+          <p className="mt-1 text-muted-foreground hidden sm:block">{t('subtitle')}</p>
         </div>
 
         <Link

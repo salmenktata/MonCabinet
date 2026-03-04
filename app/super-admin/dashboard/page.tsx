@@ -39,7 +39,7 @@ async function UserStats() {
   const s = result.rows[0]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <StatCard
         title="Total Utilisateurs"
         value={parseInt(s.total)}
@@ -57,20 +57,24 @@ async function UserStats() {
         href="/super-admin/users?status=pending"
         trend={parseInt(s.pending) > 0 ? { value: 1, label: 'Action requise' } : undefined}
       />
-      <StatCard
-        title="Actifs (7 jours)"
-        value={parseInt(s.active_7d)}
-        subtitle={`${s.active_30d} actifs ce mois`}
-        icon={Activity}
-        variant="success"
-      />
-      <StatCard
-        title="Suspendus"
-        value={parseInt(s.suspended)}
-        subtitle={`${s.rejected} rejetés`}
-        icon={XCircle}
-        variant={parseInt(s.suspended) > 0 ? 'danger' : 'default'}
-      />
+      <div className="hidden sm:block">
+        <StatCard
+          title="Actifs (7 jours)"
+          value={parseInt(s.active_7d)}
+          subtitle={`${s.active_30d} actifs ce mois`}
+          icon={Activity}
+          variant="success"
+        />
+      </div>
+      <div className="hidden sm:block">
+        <StatCard
+          title="Suspendus"
+          value={parseInt(s.suspended)}
+          subtitle={`${s.rejected} rejetés`}
+          icon={XCircle}
+          variant={parseInt(s.suspended) > 0 ? 'danger' : 'default'}
+        />
+      </div>
     </div>
   )
 }

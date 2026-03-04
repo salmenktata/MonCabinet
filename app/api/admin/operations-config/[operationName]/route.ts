@@ -24,7 +24,7 @@ import type {
   OperationConfigUpdateResponse,
   ProviderAvailability,
 } from '@/lib/types/ai-config.types'
-import { operationNameSchema } from '@/lib/validations/operations-config-schemas'
+import { operationNameSchema, operationConfigUpdateSchema } from '@/lib/validations/operations-config-schemas'
 
 // =============================================================================
 // GET - Récupère configuration + status providers
@@ -139,10 +139,18 @@ export async function PUT(
 
     const operationName = validationResult.data as OperationName
 
-    // 4. Parse body
-    const body = await request.json()
+    // 4. Parse + validate body
+    const rawBody = await request.json()
+    const parseResult = operationConfigUpdateSchema.safeParse(rawBody)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { success: false, error: parseResult.error.errors[0]?.message ?? 'Corps de requête invalide' },
+        { status: 400 }
+      )
+    }
+    const body = parseResult.data
 
-    // 4. Update config
+    // 5. Update config
     const result = await updateOperationConfig(operationName, body, session.user.id)
 
     if (!result.success) {
@@ -161,9 +169,9 @@ export async function PUT(
       success: true,
       operation: result.config!,
       changes: {
-        fields: Object.keys(body),
+        fields: Object.keys(rawBody),
         previous: {},
-        current: body,
+        current: rawBody,
       },
       warnings: result.warnings || [],
     }

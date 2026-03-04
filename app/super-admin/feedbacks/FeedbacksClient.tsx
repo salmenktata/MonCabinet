@@ -154,12 +154,12 @@ export function FeedbacksClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Feedbacks</h1>
           <p className="text-muted-foreground">Analyse des retours utilisateurs sur les réponses IA</p>
         </div>
-        <Button onClick={fetchData} variant="outline" size="sm" disabled={loading}>
+        <Button onClick={fetchData} variant="outline" size="sm" disabled={loading} className="w-full sm:w-auto justify-center">
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Actualiser
         </Button>

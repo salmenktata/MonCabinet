@@ -89,11 +89,11 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
         <TableHeader>
           <TableRow className="border-slate-700 hover:bg-transparent">
             <TableHead className="text-slate-400">Utilisateur</TableHead>
-            <TableHead className="text-slate-400">Rôle</TableHead>
+            <TableHead className="text-slate-400 hidden sm:table-cell">Rôle</TableHead>
             <TableHead className="text-slate-400">Status</TableHead>
-            <TableHead className="text-slate-400">Plan</TableHead>
-            <TableHead className="text-slate-400">Dernière connexion</TableHead>
-            <TableHead className="text-slate-400">Inscrit le</TableHead>
+            <TableHead className="text-slate-400 hidden md:table-cell">Plan</TableHead>
+            <TableHead className="text-slate-400 hidden lg:table-cell">Dernière connexion</TableHead>
+            <TableHead className="text-slate-400 hidden lg:table-cell">Inscrit le</TableHead>
             <TableHead className="text-slate-400 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -106,11 +106,16 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
                     {user.prenom} {user.nom}
                   </p>
                   <p className="text-sm text-slate-400">{user.email}</p>
+                  {/* Résumé condensé visible sur mobile uniquement */}
+                  <div className="sm:hidden mt-1 flex flex-wrap gap-1">
+                    {getRoleBadge(user.role)}
+                    {getPlanBadge(user.plan)}
+                  </div>
                 </div>
               </TableCell>
-              <TableCell>{getRoleBadge(user.role)}</TableCell>
+              <TableCell className="hidden sm:table-cell">{getRoleBadge(user.role)}</TableCell>
               <TableCell>{getStatusBadge(user.status)}</TableCell>
-              <TableCell>
+              <TableCell className="hidden md:table-cell">
                 <div className="flex flex-col gap-1">
                   {getPlanBadge(user.plan)}
                   {user.upgrade_requested_plan && (
@@ -120,7 +125,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
                   )}
                 </div>
               </TableCell>
-              <TableCell className="text-slate-400">
+              <TableCell className="text-slate-400 hidden lg:table-cell">
                 {user.last_login_at ? (
                   <div>
                     <p>{new Date(user.last_login_at).toLocaleDateString('fr-FR')}</p>
@@ -130,7 +135,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
                   <span className="text-slate-400">Jamais</span>
                 )}
               </TableCell>
-              <TableCell className="text-slate-400">
+              <TableCell className="text-slate-400 hidden lg:table-cell">
                 {new Date(user.created_at).toLocaleDateString('fr-FR')}
               </TableCell>
               <TableCell className="text-right">

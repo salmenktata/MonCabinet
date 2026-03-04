@@ -63,7 +63,7 @@ export default async function EcheancesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">{t('subtitle')}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground hidden sm:block">{t('subtitle')}</p>
         </div>
         <Button asChild size="sm" className="w-full sm:w-auto justify-center">
           <Link href="/dossiers">
@@ -74,7 +74,7 @@ export default async function EcheancesPage() {
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
           icon={Icons.deadlines}
           variant="primary"
@@ -95,13 +95,15 @@ export default async function EcheancesPage() {
           value={stats.critiques}
           subtitle={t('maxUrgency')}
         />
-        <StatCard
-          icon={Icons.bell}
-          variant="default"
-          title={t('urgent7Days')}
-          value={stats.urgentes}
-          subtitle={t('handleQuickly')}
-        />
+        <div className="hidden sm:block">
+          <StatCard
+            icon={Icons.bell}
+            variant="default"
+            title={t('urgent7Days')}
+            value={stats.urgentes}
+            subtitle={t('handleQuickly')}
+          />
+        </div>
       </div>
 
       {/* Liste interactive (filtres + recherche + groupement) */}

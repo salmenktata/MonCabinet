@@ -94,7 +94,7 @@ async function DashboardStats({ userId }: { userId: string }) {
   const nouveauxDossiersCeMois = dossiers.filter((d) => new Date(d.created_at) >= debutMois).length
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
       <StatCard
         title={t('clients')}
         value={clients.length}
@@ -117,22 +117,26 @@ async function DashboardStats({ userId }: { userId: string }) {
           label: tStats('newThisMonth', { count: nouveauxDossiersCeMois }),
         }}
       />
-      <StatCard
-        title={t('unpaid')}
-        value={`${montantImpaye.toFixed(3)} ${tCurrency('tnd')}`}
-        subtitle={`${facturesImpayees.length} ${t('invoices')}`}
-        icon={Icons.dollar}
-        variant="danger"
-        href="/factures"
-      />
-      <StatCard
-        title={t('deadlines7Days')}
-        value={echeancesCritiques.length}
-        subtitle={tStats('urgent')}
-        icon={Icons.alertCircle}
-        variant="warning"
-        href="/echeances"
-      />
+      <div className="hidden sm:block">
+        <StatCard
+          title={t('unpaid')}
+          value={`${montantImpaye.toFixed(3)} ${tCurrency('tnd')}`}
+          subtitle={`${facturesImpayees.length} ${t('invoices')}`}
+          icon={Icons.dollar}
+          variant="danger"
+          href="/factures"
+        />
+      </div>
+      <div className="hidden sm:block">
+        <StatCard
+          title={t('deadlines7Days')}
+          value={echeancesCritiques.length}
+          subtitle={tStats('urgent')}
+          icon={Icons.alertCircle}
+          variant="warning"
+          href="/echeances"
+        />
+      </div>
     </div>
   )
 }

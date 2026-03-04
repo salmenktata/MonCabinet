@@ -48,7 +48,7 @@ export default async function SettingsPage() {
       <PageHeader title="Paramètres" description="Configuration globale de la plateforme" />
 
       <Tabs defaultValue="ai-architecture" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-slate-800 border-slate-700">
           <TabsTrigger value="ai-architecture" className="data-[state=active]:bg-slate-700">
             ⚡ Architecture IA
           </TabsTrigger>

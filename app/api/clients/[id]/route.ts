@@ -14,6 +14,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { query } from '@/lib/db/postgres'
+import { z } from 'zod'
+
+const ClientPatchSchema = z.object({
+  nom: z.string().min(1).max(100).optional(),
+  prenom: z.string().max(100).optional(),
+  cin: z.string().max(20).optional(),
+  email: z.string().email('Email invalide').max(255).optional(),
+  telephone: z.string().max(30).optional(),
+  telephone_secondaire: z.string().max(30).optional(),
+  adresse: z.string().max(500).optional(),
+  code_postal: z.string().max(10).optional(),
+  ville: z.string().max(100).optional(),
+  pays: z.string().max(100).optional(),
+  notes: z.string().max(5000).optional(),
+  type_client: z.string().max(50).optional(),
+})
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -114,28 +130,23 @@ export async function PATCH(
     }
 
     const userId = session.user.id
-    const body = await request.json()
+    const rawBody = await request.json()
+    const parseResult = ClientPatchSchema.safeParse(rawBody)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: parseResult.error.errors[0]?.message ?? 'Corps de requête invalide' },
+        { status: 400 }
+      )
+    }
 
-    // Supprimer les champs undefined et non modifiables
-    const updateData: Record<string, any> = {}
-    const allowedFields = [
-      'nom',
-      'prenom',
-      'cin',
-      'email',
-      'telephone',
-      'telephone_secondaire',
-      'adresse',
-      'code_postal',
-      'ville',
-      'pays',
-      'notes',
-      'type_client',
-    ]
+    // Supprimer les champs undefined
+    const updateData: Record<string, unknown> = {}
+    const validatedBody = parseResult.data
+    const allowedFields = Object.keys(validatedBody) as (keyof typeof validatedBody)[]
 
     allowedFields.forEach((field) => {
-      if (body[field] !== undefined) {
-        updateData[field] = body[field]
+      if (validatedBody[field] !== undefined) {
+        updateData[field] = validatedBody[field]
       }
     })
 

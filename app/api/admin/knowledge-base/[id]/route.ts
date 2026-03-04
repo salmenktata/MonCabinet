@@ -14,11 +14,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 
 // Force dynamic rendering - pas de prérendu statique
 export const dynamic = 'force-dynamic'
 
 import { getSession } from '@/lib/auth/session'
+
+const KnowledgeBasePatchSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  description: z.string().max(2000).optional(),
+  category: z.string().max(100).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  is_abroge: z.boolean().optional(),
+  abroge_suspected: z.boolean().optional(),
+  rag_enabled: z.boolean().optional(),
+})
 import { db } from '@/lib/db/postgres'
 import {
   getKnowledgeDocument,
@@ -107,9 +118,15 @@ export async function PATCH(
     }
 
     const { id } = await params
-    const body = await request.json()
-
-    const { title, description, category, metadata, is_abroge, abroge_suspected, rag_enabled } = body
+    const rawBody = await request.json()
+    const parseResult = KnowledgeBasePatchSchema.safeParse(rawBody)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: parseResult.error.errors[0]?.message ?? 'Corps de requête invalide' },
+        { status: 400 }
+      )
+    }
+    const { title, description, category, metadata, is_abroge, abroge_suspected, rag_enabled } = parseResult.data
 
     // Toggle rag_enabled (contrôle manuel par document — ex: Google Drive)
     if (rag_enabled !== undefined) {
@@ -133,7 +150,7 @@ export async function PATCH(
         .filter(c => c.value !== 'all')
         .map(c => c.value as KnowledgeBaseCategory)
 
-      if (!validCategories.includes(category)) {
+      if (!validCategories.includes(category as KnowledgeBaseCategory)) {
         return NextResponse.json(
           { error: `Catégorie invalide. Valeurs acceptées: ${validCategories.join(', ')}` },
           { status: 400 }
@@ -205,7 +222,7 @@ export async function PATCH(
     const document = await updateKnowledgeDocument(id, {
       title,
       description,
-      category,
+      category: category as KnowledgeBaseCategory | undefined,
       metadata,
     })
 

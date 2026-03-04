@@ -64,11 +64,11 @@ export default async function TimeTrackingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
+          <p className="mt-0.5 text-sm text-muted-foreground hidden sm:block">
             {t('subtitle')}
           </p>
         </div>
-        <Button asChild size="sm" className="self-start sm:self-auto">
+        <Button asChild size="sm" className="w-full sm:w-auto justify-center">
           <Link href="/time-tracking/new">
             <Icons.add className="mr-1.5 h-4 w-4" />
             {t('newEntry')}
@@ -80,19 +80,21 @@ export default async function TimeTrackingPage() {
       {activeTimer && <ActiveTimer timer={activeTimer} />}
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
           icon={Icons.clock}
           variant="primary"
           title={t('hoursThisWeek')}
           value={`${stats.heuresSemaine.toFixed(1)}h`}
         />
-        <StatCard
-          icon={Icons.calendar}
-          variant="default"
-          title={t('hoursThisMonth')}
-          value={`${stats.heuresMois.toFixed(1)}h`}
-        />
+        <div className="hidden sm:block">
+          <StatCard
+            icon={Icons.calendar}
+            variant="default"
+            title={t('hoursThisMonth')}
+            value={`${stats.heuresMois.toFixed(1)}h`}
+          />
+        </div>
         <StatCard
           icon={Icons.banknote}
           variant="success"

@@ -120,7 +120,7 @@ export default function DossiersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">{t('subtitle')}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground hidden sm:block">{t('subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -212,7 +212,7 @@ export default function DossiersPage() {
 
           {/* Stats compactes */}
           {!isLoading && total > 0 && (
-            <div className="ms-auto flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="ms-auto hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                 {t('activeDossiers')} ({activeCount})
