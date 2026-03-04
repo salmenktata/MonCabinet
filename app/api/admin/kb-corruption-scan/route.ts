@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
-import { verifyCronSecret } from '@/lib/auth/cron-secret'
+import { verifyCronSecret } from '@/lib/auth/verify-cron-secret'
 import { db } from '@/lib/db/postgres'
 import { detectOcrCorruption } from '@/lib/kb/corruption-detector'
 
@@ -18,7 +18,7 @@ import { detectOcrCorruption } from '@/lib/kb/corruption-detector'
  * Accessible aussi via CRON_SECRET pour automatisation.
  */
 export const GET = async (req: NextRequest) => {
-  const isCron = verifyCronSecret(req)
+  const isCron = verifyCronSecret(req.headers.get('x-cron-secret'))
   if (!isCron) {
     return withAdminApiAuth(async (_req, _ctx, _session) => {
       return handleScan(req)
