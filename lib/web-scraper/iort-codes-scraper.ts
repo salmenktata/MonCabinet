@@ -383,15 +383,50 @@ export async function parseTocItems(page: Page): Promise<IortTocItem[]> {
     }
   }
 
-  // Stratégie 2 : découverte dynamique — chercher TOUS les loopers présents sur la page
-  // (gère PAGE_CodesJuridiques avec loopers M18, M78, M110, M81, M3, M59, etc.)
+  // Stratégie 2a : PAGE_CodesJuridiques — essayer les loopers connus avec seuil = 1
+  // (ces pages ont M18/M78/M110/M81/M59 avec peu d'items mais contenu arabe)
+  const currentUrl = page.url()
+  if (currentUrl.includes('PAGE_CodesJuridiques')) {
+    for (const prefix of ['M18', 'M78', 'M110', 'M81', 'M59', 'M3', 'M81']) {
+      const rawItems = await page.evaluate((pfx) => {
+        const els = Array.from(document.querySelectorAll(`div[id^="${pfx}_"]`))
+        return els.map(el => {
+          const idMatch = el.id.match(/(\d+)$/)
+          const index = idMatch ? parseInt(idMatch[1], 10) : 0
+          const text = (el.textContent || '').trim().replace(/\s+/g, ' ')
+          const link = el.querySelector('a, [onclick]')
+          const onclick = link?.getAttribute('onclick') || ''
+          const style = el.getAttribute('style') || ''
+          const paddingMatch = style.match(/padding-(?:right|left)\s*:\s*(\d+)/)
+          const depth = paddingMatch ? Math.floor(parseInt(paddingMatch[1]) / 20) : 0
+          return { index, text: text.substring(0, 200), depth, onclick }
+        }).filter(x => x && x.index > 0)
+      }, prefix)
+
+      if (rawItems.length > 0) {
+        const arabicItems = rawItems.filter(i => /[\u0600-\u06FF]/.test(i.text) && i.text.length > 5)
+        console.log(`[IORT Codes] ${prefix}: ${rawItems.length} items, ${arabicItems.length} arabes — ${rawItems.map(i => i.text.substring(0, 25)).join(' | ')}`)
+        if (arabicItems.length >= 1) {
+          return arabicItems.map(item => ({
+            title: item.text,
+            resultIndex: item.index,
+            depth: item.depth,
+            looperId: prefix,
+            onclick: item.onclick || undefined,
+          }))
+        }
+      }
+    }
+  }
+
+  // Stratégie 2b : découverte dynamique générale — tous les loopers (count >= 3)
+  // (pour d'autres types de pages non-standards)
   const discoveredLoopers = await page.evaluate(() => {
     const prefixCounts: Record<string, number> = {}
     for (const el of document.querySelectorAll('[id]')) {
       const m = el.id.match(/^([A-Z]\d+)_(\d+)$/)
       if (m) prefixCounts[m[1]] = (prefixCounts[m[1]] || 0) + 1
     }
-    // Retourner les loopers avec >= 3 items, triés par count desc
     return Object.entries(prefixCounts)
       .filter(([pfx, count]) => count >= 3 && pfx !== 'A1')
       .sort((a, b) => b[1] - a[1])
@@ -675,7 +710,7 @@ export async function saveCodeSection(
       title, content_hash, extracted_text, word_count,
       language_detected, structured_data,
       status, crawl_depth, last_crawled_at, first_seen_at
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'indexed',0,NOW(),NOW())
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'crawled',0,NOW(),NOW())
     RETURNING id`,
     [
       sourceId,
@@ -747,6 +782,20 @@ export async function crawlCode(
   // 3. Sélectionner le code → aller sur PAGE_NavigationCode
   await selectCodeAndNavigate(page, target)
   page = session.getPage()
+
+  // Si on arrive sur PAGE_CodesJuridiques, attendre le chargement dynamique du contenu
+  if (page.url().includes('PAGE_CodesJuridiques')) {
+    console.log('[IORT Codes] PAGE_CodesJuridiques détectée, attente du contenu dynamique (8s)...')
+    await sleep(8000)
+    // Essayer aussi de déclencher l'action M49 qui charge la section "Parcourir les codes"
+    await page.evaluate(() => {
+      try {
+        // @ts-expect-error WebDev
+        if (typeof _JEM !== 'undefined') _JEM('M49', '_self', '', '')
+      } catch { /**/ }
+    })
+    await sleep(3000)
+  }
 
   // 4. Parser la table des matières
   const tocItems = await parseTocItems(page)
