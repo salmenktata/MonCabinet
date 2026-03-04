@@ -384,8 +384,11 @@ async function extractLooperItems(
  * Parse la table des matières du code courant.
  * Essaie d'abord les loopers standards A4-E4, puis effectue une découverte
  * dynamique de tous les loopers disponibles (pour PAGE_CodesJuridiques).
+ *
+ * @param capturedUrl URL capturée AVANT une éventuelle navigation JS (ex: _JEM)
+ *                    Permet de détecter PAGE_CodesJuridiques même si l'URL a changé.
  */
-export async function parseTocItems(page: Page): Promise<IortTocItem[]> {
+export async function parseTocItems(page: Page, capturedUrl?: string): Promise<IortTocItem[]> {
   console.log('[IORT Codes] Parsing table des matières...')
 
   // Stratégie 1 : loopers standards PAGE_NavigationCode (A4, B4, C4, D4, E4)
@@ -404,8 +407,8 @@ export async function parseTocItems(page: Page): Promise<IortTocItem[]> {
   }
 
   // Stratégie 2a : PAGE_CodesJuridiques — essayer les loopers connus avec seuil = 1
-  // (ces pages ont M18/M78/M110/M81/M59 avec peu d'items mais contenu arabe)
-  const currentUrl = page.url()
+  // Utilise capturedUrl (URL avant navigation JS) pour détecter le type de page
+  const currentUrl = capturedUrl ?? page.url()
   if (currentUrl.includes('PAGE_CodesJuridiques')) {
     for (const prefix of ['M18', 'M78', 'M110', 'M81', 'M59', 'M3', 'M81']) {
       const rawItems = await page.evaluate((pfx) => {
@@ -894,21 +897,17 @@ export async function crawlCode(
   page = session.getPage()
 
   // Si on arrive sur PAGE_CodesJuridiques, attendre le chargement dynamique du contenu
-  if (page.url().includes('PAGE_CodesJuridiques')) {
-    console.log('[IORT Codes] PAGE_CodesJuridiques détectée, attente du contenu dynamique (8s)...')
-    await sleep(8000)
-    // Essayer aussi de déclencher l'action M49 qui charge la section "Parcourir les codes"
-    await page.evaluate(() => {
-      try {
-        // @ts-expect-error WebDev
-        if (typeof _JEM !== 'undefined') _JEM('M49', '_self', '', '')
-      } catch { /**/ }
-    })
-    await sleep(3000)
+  // IMPORTANT : ne pas appeler _JEM() ici — ça navigate vers une autre page et
+  // brise la détection PAGE_CodesJuridiques dans parseTocItems()
+  const urlAfterNav = page.url()
+  if (urlAfterNav.includes('PAGE_CodesJuridiques')) {
+    console.log('[IORT Codes] PAGE_CodesJuridiques détectée, attente chargement dynamique (12s)...')
+    await sleep(12000)
+    console.log(`[IORT Codes] URL après attente: ${page.url()}`)
   }
 
-  // 4. Parser la table des matières
-  const tocItems = await parseTocItems(page)
+  // 4. Parser la table des matières (passe l'URL capturée avant navigation éventuelle)
+  const tocItems = await parseTocItems(page, urlAfterNav)
   stats.totalSections = tocItems.length
   console.log(`[IORT Codes] "${codeName}": ${tocItems.length} sections dans la TOC`)
 
