@@ -117,7 +117,7 @@ export default function DossiersPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{t('subtitle')}</p>
@@ -126,14 +126,14 @@ export default function DossiersPage() {
         <div className="flex items-center gap-2">
           <Link
             href="/qadhya-ia/structure"
-            className="inline-flex items-center gap-1.5 rounded-md border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 text-sm text-blue-700 dark:text-blue-300 font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+            className="inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 px-3 py-2.5 sm:py-1.5 text-sm text-blue-700 dark:text-blue-300 font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
           >
             <Sparkles className="h-3.5 w-3.5" />
             {t('newWithAI')}
           </Link>
           <Link
             href="/dossiers/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white font-medium hover:bg-blue-700 transition-colors"
+            className="inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md bg-blue-600 px-3 py-2.5 sm:py-1.5 text-sm text-white font-medium hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
             {t('newDossier')}

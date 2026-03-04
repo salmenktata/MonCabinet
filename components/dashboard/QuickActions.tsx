@@ -50,11 +50,11 @@ export function QuickActions() {
             variant="outline"
             size="sm"
             asChild
-            className="h-8 gap-1.5 text-xs font-medium"
+            className="h-10 sm:h-8 gap-1.5 text-xs font-medium"
           >
             <Link href={action.href}>
-              <Icon className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{action.title}</span>
+              <Icon className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span>{action.title}</span>
             </Link>
           </Button>
         )

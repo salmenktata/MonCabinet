@@ -65,7 +65,7 @@ export default async function EcheancesPage() {
           <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <Button asChild size="sm" className="self-start sm:self-auto">
+        <Button asChild size="sm" className="w-full sm:w-auto justify-center">
           <Link href="/dossiers">
             <Icons.add className="mr-1.5 h-4 w-4" />
             {t('newDeadline')}

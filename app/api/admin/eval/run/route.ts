@@ -30,9 +30,18 @@ import {
   computeFaithfulness,
 } from '@/lib/ai/rag-eval-metrics'
 import { computeFaithfulnessLLM } from '@/lib/ai/rag-eval-judge'
+import { z } from 'zod'
 import type { GoldEvalCase, RunMode } from '@/lib/ai/rag-eval-types'
 
 export const dynamic = 'force-dynamic'
+
+const EvalRunSchema = z.object({
+  mode: z.enum(['quick', 'full']).optional(),
+  runMode: z.enum(['retrieval', 'e2e', 'e2e+judge']).optional(),
+  label: z.string().max(100).optional(),
+  skipJinaRerank: z.boolean().optional(),
+  secret: z.string().optional(),
+})
 
 // Tracker des runs en cours (in-memory, suffisant pour single instance)
 const activeRuns = new Map<string, { status: 'running' | 'done' | 'error'; progress: number; total: number; error?: string }>()
@@ -57,11 +66,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
       }
     }
-    const mode = body.mode || 'quick'
-    const runMode: RunMode = body.runMode || 'retrieval'
-    const label: string | undefined = body.label
+
+    const parseResult = EvalRunSchema.safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: parseResult.error.errors[0]?.message ?? 'Corps de requête invalide' },
+        { status: 400 }
+      )
+    }
+
+    const mode = parseResult.data.mode ?? 'quick'
+    const runMode: RunMode = parseResult.data.runMode ?? 'retrieval'
+    const label: string | undefined = parseResult.data.label
     // A/B testing Jina : skipJinaRerank=true → compare R@5 sans Jina vs avec Jina (défaut)
-    const skipJinaRerank: boolean = body.skipJinaRerank === true
+    const skipJinaRerank: boolean = parseResult.data.skipJinaRerank ?? false
 
     // Chargement depuis DB (fallback JSON si table vide)
     let goldCases: GoldEvalCase[] = await loadGoldDatasetFromDB()

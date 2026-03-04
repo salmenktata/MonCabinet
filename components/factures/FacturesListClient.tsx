@@ -96,12 +96,12 @@ export default function FacturesListClient({ factures }: { factures: FactureData
       {/* Filtres + recherche */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs value={activeStatus} onValueChange={setActiveStatus}>
-          <TabsList className="h-auto min-h-8 flex-wrap">
+          <TabsList className="h-auto min-h-9 flex-wrap">
             {STATUS_TABS.map((tab) => {
               const count = statusCounts[tab.value] ?? 0
               if (tab.value !== 'all' && count === 0) return null
               return (
-                <TabsTrigger key={tab.value} value={tab.value} className="h-7 text-xs gap-1.5">
+                <TabsTrigger key={tab.value} value={tab.value} className="h-9 sm:h-7 text-xs gap-1.5">
                   {tab.label}
                   {count > 0 && (
                     <Badge
@@ -123,7 +123,7 @@ export default function FacturesListClient({ factures }: { factures: FactureData
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher…"
-            className="h-8 pl-8 text-sm"
+            className="h-10 sm:h-8 pl-8 text-sm"
           />
         </div>
       </div>

@@ -235,13 +235,13 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 shrink-0"
+              className="h-9 w-9 sm:h-7 sm:w-7 shrink-0"
               disabled={loading}
             >
               {loading ? (
-                <Icons.loader className="h-3.5 w-3.5 animate-spin" />
+                <Icons.loader className="h-4 w-4 animate-spin" />
               ) : (
-                <Icons.moreHorizontal className="h-3.5 w-3.5" />
+                <Icons.moreHorizontal className="h-4 w-4" />
               )}
             </Button>
           </DropdownMenuTrigger>

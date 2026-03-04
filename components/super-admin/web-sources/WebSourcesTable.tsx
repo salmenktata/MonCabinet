@@ -482,7 +482,7 @@ export function WebSourcesTable({
                   <TableCell>
                     <div className="flex items-center gap-0.5">
                       {readOnly ? (
-                        <Button size="sm" variant="ghost" asChild className="text-slate-400 hover:text-white h-7 w-7 p-0">
+                        <Button size="sm" variant="ghost" asChild className="text-slate-400 hover:text-white h-9 w-9 sm:h-7 sm:w-7 p-0">
                           <Link href={`/super-admin/web-sources/${source.id}`}>
                             <Icons.eye className="h-3.5 w-3.5" />
                           </Link>
@@ -494,7 +494,7 @@ export function WebSourcesTable({
                             variant="ghost"
                             onClick={() => handleCrawl(source.id)}
                             disabled={loading === source.id || !source.is_active}
-                            className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-7 w-7 p-0"
+                            className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-9 w-9 sm:h-7 sm:w-7 p-0"
                             title="Lancer un crawl"
                           >
                             {loading === source.id ? (
@@ -506,7 +506,7 @@ export function WebSourcesTable({
 
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white h-7 w-7 p-0" aria-label="Actions">
+                              <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white h-9 w-9 sm:h-7 sm:w-7 p-0" aria-label="Actions">
                                 <Icons.moreVertical className="h-3.5 w-3.5" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -571,13 +571,13 @@ export function WebSourcesTable({
           <div className="flex items-center gap-1">
             {/* First */}
             <Link href={buildUrl({ page: 1 })}>
-              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-slate-600 text-slate-300 h-8 w-8 p-0">
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-slate-600 text-slate-300 h-10 w-10 sm:h-8 sm:w-8 p-0">
                 <Icons.chevronLeft className="h-3 w-3" /><Icons.chevronLeft className="h-3 w-3 -ml-2" />
               </Button>
             </Link>
             {/* Prev */}
             <Link href={buildUrl({ page: Math.max(1, currentPage - 1) })}>
-              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-slate-600 text-slate-300 h-8 w-8 p-0">
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-slate-600 text-slate-300 h-10 w-10 sm:h-8 sm:w-8 p-0">
                 <Icons.chevronLeft className="h-4 w-4" />
               </Button>
             </Link>
@@ -591,7 +591,7 @@ export function WebSourcesTable({
                   <Button
                     variant={currentPage === p ? 'default' : 'outline'}
                     size="sm"
-                    className={`h-8 w-8 p-0 ${currentPage === p ? 'bg-blue-600 text-white' : 'border-slate-600 text-slate-300'}`}
+                    className={`h-10 w-10 sm:h-8 sm:w-8 p-0 ${currentPage === p ? 'bg-blue-600 text-white' : 'border-slate-600 text-slate-300'}`}
                   >
                     {p}
                   </Button>
@@ -601,13 +601,13 @@ export function WebSourcesTable({
 
             {/* Next */}
             <Link href={buildUrl({ page: Math.min(totalPages, currentPage + 1) })}>
-              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-slate-600 text-slate-300 h-8 w-8 p-0">
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-slate-600 text-slate-300 h-10 w-10 sm:h-8 sm:w-8 p-0">
                 <Icons.chevronRight className="h-4 w-4" />
               </Button>
             </Link>
             {/* Last */}
             <Link href={buildUrl({ page: totalPages })}>
-              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-slate-600 text-slate-300 h-8 w-8 p-0">
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-slate-600 text-slate-300 h-10 w-10 sm:h-8 sm:w-8 p-0">
                 <Icons.chevronRight className="h-3 w-3" /><Icons.chevronRight className="h-3 w-3 -ml-2" />
               </Button>
             </Link>

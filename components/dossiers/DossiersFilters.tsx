@@ -89,7 +89,7 @@ export default function DossiersFilters({
           onChange({ typeFilter: v === '__all__' ? undefined : (v as DossierType) })
         }
       >
-        <SelectTrigger className="h-8 w-auto min-w-[150px] text-xs border-dashed gap-1.5">
+        <SelectTrigger className="h-10 sm:h-8 w-auto min-w-[150px] text-xs border-dashed gap-1.5">
           <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           <SelectValue placeholder={t('filterType')} />
         </SelectTrigger>
@@ -110,7 +110,7 @@ export default function DossiersFilters({
           onChange({ priorityFilter: v === '__all__' ? undefined : (v as Priority) })
         }
       >
-        <SelectTrigger className="h-8 w-auto min-w-[130px] text-xs border-dashed gap-1.5">
+        <SelectTrigger className="h-10 sm:h-8 w-auto min-w-[130px] text-xs border-dashed gap-1.5">
           <SelectValue placeholder={t('filterPriority')} />
         </SelectTrigger>
         <SelectContent>
@@ -129,7 +129,7 @@ export default function DossiersFilters({
           value={sortBy}
           onValueChange={(v) => onChange({ sortBy: v as SortBy })}
         >
-          <SelectTrigger className="h-8 w-auto min-w-[160px] text-xs gap-1.5">
+          <SelectTrigger className="h-10 sm:h-8 w-auto min-w-[160px] text-xs gap-1.5">
             <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <SelectValue />
           </SelectTrigger>
@@ -143,7 +143,7 @@ export default function DossiersFilters({
         </Select>
         <button
           onClick={() => onChange({ sortOrder: sortOrder === 'asc' ? 'desc' : 'asc' })}
-          className="h-8 w-8 inline-flex items-center justify-center rounded-md border text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="h-10 w-10 sm:h-8 sm:w-8 inline-flex items-center justify-center rounded-md border text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           title={sortOrder === 'asc' ? t('sortDesc') : t('sortAsc')}
         >
           {sortOrder === 'asc' ? '↑' : '↓'}
@@ -155,7 +155,7 @@ export default function DossiersFilters({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+          className="h-10 sm:h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
           onClick={onReset}
         >
           <RotateCcw className="h-3 w-3" />

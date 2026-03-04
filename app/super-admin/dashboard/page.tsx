@@ -277,7 +277,7 @@ async function PendingRegistrations() {
                     {new Date(user.created_at).toLocaleDateString('fr-FR')}
                   </span>
                   <Link href={`/super-admin/users/${user.id}`}>
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-7 text-xs">
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-9 sm:h-7 text-xs">
                       Examiner
                     </Button>
                   </Link>

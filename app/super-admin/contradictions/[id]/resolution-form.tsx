@@ -158,7 +158,7 @@ export function ResolutionForm({
               size="sm"
               onClick={() => handleSubmit('dismissed')}
               disabled={loading || !notes.trim()}
-              className="h-7 text-xs border-red-500/40 text-red-400 hover:bg-red-500/10"
+              className="h-9 sm:h-7 text-xs border-red-500/40 text-red-400 hover:bg-red-500/10"
             >
               {loading ? <Icons.loader className="h-3 w-3 animate-spin" /> : 'Oui, rejeter'}
             </Button>
@@ -166,7 +166,7 @@ export function ResolutionForm({
               variant="ghost"
               size="sm"
               onClick={() => setDismissConfirm(false)}
-              className="h-7 text-xs text-slate-400"
+              className="h-9 sm:h-7 text-xs text-slate-400"
             >
               Annuler
             </Button>

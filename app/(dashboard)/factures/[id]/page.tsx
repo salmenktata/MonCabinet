@@ -75,7 +75,7 @@ export default async function FactureDetailPage({
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* En-tête */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <Button variant="ghost" size="sm" className="mb-2 -ml-2 h-8 text-muted-foreground" asChild>
             <Link href="/factures">
@@ -110,7 +110,7 @@ export default async function FactureDetailPage({
               {t('invoiceInfo')}
             </h2>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-muted-foreground">{t('number')}</p>
                   <p className="font-medium text-foreground mt-0.5">{facture.numero}</p>
@@ -124,7 +124,7 @@ export default async function FactureDetailPage({
               </div>
 
               {(facture.date_echeance || facture.date_paiement) && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {facture.date_echeance && (
                     <div>
                       <p className="text-xs text-muted-foreground">{t('dueDate')}</p>

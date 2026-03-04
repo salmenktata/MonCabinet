@@ -64,7 +64,7 @@ async function WaitlistTable() {
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <CardTitle className="text-white">Liste d'attente</CardTitle>
             <CardDescription className="text-slate-400">

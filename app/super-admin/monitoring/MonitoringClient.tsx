@@ -31,7 +31,7 @@ export function MonitoringClient() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">Monitoring Production</h1>
           <p className="text-muted-foreground">

@@ -184,10 +184,10 @@ function StatusActions({
         <Icons.loader className="h-4 w-4 animate-spin text-slate-400" />
       ) : (
         <>
-          <Button size="sm" variant="ghost" onClick={() => onUpdate('confirmed')} className="text-green-400 hover:bg-green-500/10 h-7 px-2 text-xs">
+          <Button size="sm" variant="ghost" onClick={() => onUpdate('confirmed')} className="text-green-400 hover:bg-green-500/10 h-9 sm:h-7 px-2 text-xs">
             Confirmer
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => onUpdate('dismissed')} className="text-slate-400 hover:bg-slate-600 h-7 px-2 text-xs">
+          <Button size="sm" variant="ghost" onClick={() => onUpdate('dismissed')} className="text-slate-400 hover:bg-slate-600 h-9 sm:h-7 px-2 text-xs">
             Rejeter
           </Button>
         </>

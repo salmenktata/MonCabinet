@@ -16,7 +16,7 @@ async function fetchText(url: string): Promise<{ success: boolean; text: string 
       headers: {
         'User-Agent': 'QadhyaBot/1.0 (+https://qadhya.tn/bot)',
       },
-      // @ts-ignore - Node.js fetch options
+      // @ts-expect-error - Node.js fetch options non standard
       rejectUnauthorized: false, // Ignore SSL errors
     })
 
