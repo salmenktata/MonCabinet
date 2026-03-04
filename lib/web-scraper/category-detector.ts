@@ -86,6 +86,9 @@ function detectFromUrlPatterns(url: string, title?: string | null): string | nul
   // cassation.tn — jurisprudence
   if (url.includes('cassation.tn')) return 'jurisprudence'
 
+  // courappeltunis.justice.gov.tn — jurisprudence
+  if (url.includes('courappeltunis.justice.gov.tn')) return 'jurisprudence'
+
   return null
 }
 
