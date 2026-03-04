@@ -86,8 +86,8 @@ function getAmendmentMeta(source: ChatSource): {
   const meta = source.metadata as Record<string, unknown> | undefined
 
   return {
-    isAmendment: meta?.is_amendment === true,
-    hasAmendment: meta?.has_amendment === true,
+    isAmendment: meta?.is_amendment === true || meta?.is_amendment === 'true',
+    hasAmendment: meta?.has_amendment === true || meta?.has_amendment === 'true',
     amendedCode: (meta?.amended_code as string | undefined) ?? null,
     amendedByJortRef: (meta?.amendment_ref as string | undefined) ?? null,
     amendmentDate: (meta?.amendment_date as string | undefined) ?? null,
