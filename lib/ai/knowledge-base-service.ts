@@ -1592,7 +1592,7 @@ export async function searchKnowledgeBaseHybrid(
     docType,
     docTypes,
     limit = aiConfig.rag.maxResults,
-    threshold = aiConfig.rag.similarityThreshold - 0.20, // SQL vector_threshold permissif (0.35) ; le HARD_QUALITY_GATE (0.50) filtre ensuite
+    threshold: rawThreshold,
     operationName,
     skipJinaRerank = false,
     originalQuery,
@@ -1618,8 +1618,15 @@ export async function searchKnowledgeBaseHybrid(
 
   // FIX (Mar 2 2026): Texte pour les regex article-text (constExplicitMatch, articleExplicitMatch).
   // Utiliser originalQuery (avant expansion LLM) pour éviter que l'expansion omette "الفصل X".
-  // queryText (enrichi) reste pour BM25 et targetCodeFragment (meilleure couverture sémantique).
   const patternText = originalQuery
+    ? originalQuery.replace(/[\u064B-\u065F\u0670]/g, '').replace(/[^\w\s\u0600-\u06FF\u00C0-\u017F]/g, ' ').trim()
+    : queryText
+
+  // Fix Mar 4 2026 — BM25 arabe : l'expansion LLM ajoute des termes en arabe classique
+  // absents du KB (ex: "فسخ العقد" → "الانفساخ"). Pour BM25, préférer originalQuery
+  // (avant expansion) afin d'éviter les termes fantômes qui annulent le score BM25.
+  // Pour FR et quand pas d'originalQuery, queryText enrichi reste utilisé (meilleure couverture).
+  const bm25QueryText = originalQuery && /[\u0600-\u06FF]/.test(query)
     ? originalQuery.replace(/[\u064B-\u065F\u0670]/g, '').replace(/[^\w\s\u0600-\u06FF\u00C0-\u017F]/g, ' ').trim()
     : queryText
 
@@ -1627,6 +1634,11 @@ export async function searchKnowledgeBaseHybrid(
   // une tsquery language-aware (stop-words AR/FR supprimés, meilleure précision BM25)
   const detectedLang = detectLanguage(query)
   const bm25Language: 'ar' | 'fr' | 'simple' = detectedLang === 'ar' ? 'ar' : detectedLang === 'fr' ? 'fr' : 'simple'
+
+  // Fix Mar 4 2026 — Threshold language-aware : l'arabe a des similarités cosinus
+  // structurellement plus basses (0.18-0.34) à cause des diacritiques et morphologie.
+  // SQL threshold permissif arabe = 0.15 vs 0.35 FR, le quality gate 0.20 filtre ensuite.
+  const threshold = rawThreshold ?? (bm25Language === 'ar' ? 0.15 : aiConfig.rag.similarityThreshold - 0.20)
 
   // Fix Feb 26 v9: pré-calculer targetCodeFragment UNE fois (évite appel par chunk + permet push avant loop)
   const targetCodeFragment = getTargetCodeTitleFragment(queryText, bm25Language as string)
@@ -1637,7 +1649,11 @@ export async function searchKnowledgeBaseHybrid(
   // ✨ DUAL EMBEDDING PARALLÈLE - OpenAI + Ollama (Gemini supprimé — coût €44/mois)
   // Génère 2 embeddings en parallèle, lance les recherches en parallèle,
   // fusionne par chunk_id (meilleur score gagne).
-  const sqlCandidatePool = Math.min(limit * 3, 100)
+  // Fix Mar 4 2026 — Pool candidat language-aware : arabe ×6 (vs ×3 FR) pour compenser
+  // les similarités cosinus plus basses et capturer les gold chunks avec sim 0.18-0.34.
+  const sqlCandidatePool = bm25Language === 'ar'
+    ? Math.min(limit * 6, 180)
+    : Math.min(limit * 3, 100)
 
   // 1. Générer les 2 embeddings en parallèle
   // ✨ FIX C (TTFT): Timeout 8s sur Ollama — CPU-bound, peut prendre 8-10s en prod
@@ -1667,7 +1683,7 @@ export async function searchKnowledgeBaseHybrid(
   if (openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
     const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
     searchPromises.push(
-      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'openai', bm25Language)
+      searchHybridSingle(bm25QueryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'openai', bm25Language)
     )
     providerLabels.push('openai')
   }
@@ -1677,7 +1693,7 @@ export async function searchKnowledgeBaseHybrid(
     // Sinon dimension mismatch PostgreSQL (1536 vs 768) → crash → 0% hit@5
     const embStr = formatEmbeddingForPostgres(ollamaEmbResult.value.embedding)
     searchPromises.push(
-      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'ollama', bm25Language)
+      searchHybridSingle(bm25QueryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'ollama', bm25Language)
     )
     providerLabels.push('ollama')
   }
@@ -1705,7 +1721,7 @@ export async function searchKnowledgeBaseHybrid(
       // Fix (Feb 17, 2026) : threshold 0.15 (était 0.20) pour capturer مجلة الالتزامات والعقود
       // et المجلة التجارية qui ont vecSim 0.15-0.20 pour certaines queries juridiques spécifiques.
       // Fix (Feb 25, 2026) : limit 5→15 — KB a 14K+ codes chunks, top 5 insuffisant pour atteindre articles spécifiques
-      searchHybridSingle(queryText, embStr, 'codes', null, Math.max(Math.ceil(limit / 2), 15), 0.15, primaryProvider as 'openai' | 'ollama', bm25Language)
+      searchHybridSingle(bm25QueryText, embStr, 'codes', null, Math.max(Math.ceil(limit / 2), 15), 0.15, primaryProvider as 'openai' | 'ollama', bm25Language)
     )
     providerLabels.push('codes-forced')
   }
@@ -1720,7 +1736,7 @@ export async function searchKnowledgeBaseHybrid(
     const embStr = formatEmbeddingForPostgres(primaryEmbResult.value.embedding)
     searchPromises.push(
       // threshold bas 0.10 : queries constitutionnelles peuvent avoir sim faible vs chunks Fsl-level
-      searchHybridSingle(queryText, embStr, 'constitution', null, 10, 0.10, primaryProvider as 'openai' | 'ollama', bm25Language)
+      searchHybridSingle(bm25QueryText, embStr, 'constitution', null, 10, 0.10, primaryProvider as 'openai' | 'ollama', bm25Language)
     )
     providerLabels.push('constitution-forced')
   }
@@ -2089,7 +2105,7 @@ export async function searchMultiTrack(
   tracks: Array<{ label: string; searchQueries: string[]; targetDocTypes?: string[]; priority: number }>,
   options: { topKPerQuery?: number; threshold?: number; operationName?: string; limit?: number } = {}
 ): Promise<KnowledgeBaseSearchResult[]> {
-  const { topKPerQuery = 5, threshold, operationName, limit = 30 } = options
+  const { topKPerQuery = 10, threshold, operationName, limit = 30 } = options
 
   // Lancer toutes les queries de tous les tracks en parallèle
   const searchPromises: Array<{ promise: Promise<KnowledgeBaseSearchResult[]>; priority: number }> = []
