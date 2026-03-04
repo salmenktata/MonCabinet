@@ -382,7 +382,8 @@ export async function parsePdf(buffer: Buffer, options: { forceOcr?: boolean } =
 
       try {
         const ocrResult = await extractTextWithOcr(buffer, pageCount)
-        if (ocrResult && ocrResult.text && ocrResult.text.length > text.length) {
+        // forceOcr=true → accepter le résultat OCR même si plus court (texte natif garbled)
+        if (ocrResult && ocrResult.text && (forcedOcr || ocrResult.text.length > text.length)) {
           text = ocrResult.text
           wordCount = countWords(text)
           ocrApplied = true

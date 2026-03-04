@@ -34,6 +34,54 @@ export const IORT_TEXT_TYPES = {
 
 export type IortTextType = keyof typeof IORT_TEXT_TYPES
 
+/** Langue de crawl IORT */
+export type IortLanguage = 'ar' | 'fr'
+
+/**
+ * Switcher de langue homepage IORT.
+ *
+ * AR : null (mode arabe par défaut, pas de switch nécessaire)
+ * FR : M32 ("Français") — bascule le site en mode français.
+ *      Après M32, M7 = "Journal officiel (lois, décrets, arrêtés et avis)"
+ *      avec select[A9] en français.
+ *
+ * Vérifié via scripts/_explore-iort-lang.ts le 2026-03-05.
+ */
+export const IORT_LANGUAGE_SWITCH: Record<IortLanguage, string | null> = {
+  ar: null,   // Pas de switch (mode AR par défaut)
+  fr: 'M32', // M32 = "Français"
+}
+
+/**
+ * Labels des types de textes dans select[name="A9"] selon la langue.
+ *
+ * AR : قانون | مرسوم | أمر | قرار | رإي
+ * FR : Loi | Décret-loi | Décret | Arrêté | Avis
+ *
+ * Correspondances (vérifiées sur le site IORT le 2026-03-05) :
+ *   law      (قانون) → Loi
+ *   decree   (مرسوم) → Décret-loi  (marsoums, textes antérieurs à 2014)
+ *   order    (أمر)   → Décret      (décrets présidentiels / gouvernementaux)
+ *   decision (قرار)  → Arrêté      (arrêtés ministériels)
+ *   notice   (رإي)   → Avis
+ */
+export const IORT_TEXT_TYPE_LABELS: Record<IortLanguage, Record<IortTextType, string>> = {
+  ar: {
+    law: 'قانون',
+    decree: 'مرسوم',
+    order: 'أمر',
+    decision: 'قرار',
+    notice: 'رإي',
+  },
+  fr: {
+    law: 'Loi',
+    decree: 'Décret-loi',
+    order: 'Décret',
+    decision: 'Arrêté',
+    notice: 'Avis',
+  },
+}
+
 /** Configuration rate limiting */
 export const IORT_RATE_CONFIG = {
   minDelay: 5000,
@@ -128,6 +176,8 @@ export class IortSessionManager {
   private page: Page | null = null
   private pageCount = 0
   private isInitialized = false
+  /** Langue courante de crawl (défaut: arabe) */
+  public language: IortLanguage = 'ar'
 
   async init(): Promise<void> {
     const { chromium } = await import('playwright')
@@ -164,9 +214,9 @@ export class IortSessionManager {
   async tick(): Promise<void> {
     this.pageCount++
     if (this.pageCount >= IORT_RATE_CONFIG.refreshEvery) {
-      console.log(`[IORT] Refresh contexte Playwright après ${this.pageCount} pages`)
+      console.log(`[IORT ${this.language.toUpperCase()}] Refresh contexte Playwright après ${this.pageCount} pages`)
       await this.createContext()
-      await this.navigateToSearch()
+      await this.navigateToSearch(this.language)
     }
   }
 
@@ -181,22 +231,42 @@ export class IortSessionManager {
   }
 
   /**
-   * Navigue vers la page de recherche IORT:
-   * Homepage → _JSL(M7) → _JSL(A9)
+   * Navigue vers la page de recherche IORT.
+   *
+   * AR : Homepage → M7 → A9 (si nécessaire)
+   * FR : Homepage → M32 (switcher langue) → M7 → A9 (si nécessaire)
+   *
+   * En mode FR, M32 bascule le site en français, puis M7 donne accès au
+   * "Journal officiel (lois, décrets, arrêtés et avis)" avec select[A9] en FR.
+   * Vérifié via scripts/_explore-iort-lang.ts le 2026-03-05.
    */
-  async navigateToSearch(): Promise<void> {
+  async navigateToSearch(language: IortLanguage = 'ar'): Promise<void> {
     const page = this.getPage()
+    const langTag = language.toUpperCase()
+    const langSwitch = IORT_LANGUAGE_SWITCH[language]
 
     // 1. Homepage
-    console.log('[IORT] Navigation vers la page d\'accueil...')
+    console.log(`[IORT ${langTag}] Navigation vers la page d'accueil...`)
     await page.goto(IORT_BASE_URL, {
       waitUntil: 'load',
       timeout: IORT_RATE_CONFIG.navigationTimeout,
     })
     await sleep(3000)
 
-    // 2. _JSL(M7) = "الرائد الرسمي القوانين و الأوامر و القرارات و الأراء"
-    console.log('[IORT] Navigation M7 (JORT lois et décrets)...')
+    // 2. Switcher de langue si nécessaire (FR: M32)
+    if (langSwitch) {
+      console.log(`[IORT ${langTag}] Activation mode français (${langSwitch})...`)
+      await page.evaluate((id) => {
+        // @ts-expect-error WebDev global function
+        _JSL(_PAGE_, id, '_self', '', '')
+      }, langSwitch)
+      await page.waitForLoadState('load')
+      await sleep(3000)
+    }
+
+    // 3. M7 = "الرائد الرسمي القوانين و الأوامر" / "Journal officiel (lois, décrets, arrêtés et avis)"
+    //    Même ID en AR et FR — le site adapte le contenu selon la langue active
+    console.log(`[IORT ${langTag}] Navigation M7 (JORT lois et décrets)...`)
     await page.evaluate(() => {
       // @ts-expect-error WebDev global function
       _JSL(_PAGE_, 'M7', '_self', '', '')
@@ -204,11 +274,11 @@ export class IortSessionManager {
     await page.waitForLoadState('load')
     await sleep(3000)
 
-    // 3. Vérifier si on a déjà le formulaire de recherche (select A8)
+    // 4. Vérifier si on a déjà le formulaire de recherche (select A8)
     const hasSearchForm = await page.$('select[name="A8"]')
     if (!hasSearchForm) {
-      // _JSL(A9) = "البحث عن النص"
-      console.log('[IORT] Navigation A9 (recherche par texte)...')
+      // A9 = "البحث عن النص" / "Recherche dans le JORT"
+      console.log(`[IORT ${langTag}] Navigation A9 (formulaire de recherche)...`)
       await page.evaluate(() => {
         // @ts-expect-error WebDev global function
         _JSL(_PAGE_, 'A9', '_self', '', '')
@@ -220,10 +290,10 @@ export class IortSessionManager {
     // Vérifier que le formulaire est présent
     const yearSelect = await page.$('select[name="A8"]')
     if (!yearSelect) {
-      throw new Error('[IORT] Formulaire de recherche non trouvé (select A8 absent)')
+      throw new Error(`[IORT ${langTag}] Formulaire de recherche non trouvé (select A8 absent)`)
     }
 
-    console.log('[IORT] Page de recherche atteinte')
+    console.log(`[IORT ${langTag}] Page de recherche atteinte`)
   }
 
   /**
@@ -231,7 +301,7 @@ export class IortSessionManager {
    * Re-crée le browser, context et page, puis re-navigue.
    */
   async recover(): Promise<void> {
-    console.log('[IORT] Récupération session après crash...')
+    console.log(`[IORT ${this.language.toUpperCase()}] Récupération session après crash...`)
     // Fermer tout proprement
     if (this.context) await this.context.close().catch(() => {})
     if (this.browser) await this.browser.close().catch(() => {})
@@ -243,8 +313,8 @@ export class IortSessionManager {
       args: CHROMIUM_ARGS,
     })
     await this.createContext()
-    await this.navigateToSearch()
-    console.log('[IORT] Session récupérée')
+    await this.navigateToSearch(this.language)
+    console.log(`[IORT ${this.language.toUpperCase()}] Session récupérée`)
   }
 
   async close(): Promise<void> {
@@ -267,15 +337,20 @@ export class IortSessionManager {
  * Effectue une recherche par année et type de texte.
  * Sélectionne dans A8 (année) et A9 (type), puis soumet via _JSL(A40).
  * Retourne le nombre total de résultats (champ A5).
+ *
+ * @param language - 'ar' (défaut) ou 'fr'. Détermine le label du type dans select[A9].
  */
 export async function searchByYearAndType(
   page: Page,
   year: number,
   textType: IortTextType,
+  language: IortLanguage = 'ar',
 ): Promise<number> {
   const typeConfig = IORT_TEXT_TYPES[textType]
+  const typeLabel = IORT_TEXT_TYPE_LABELS[language][textType]
+  const langTag = language.toUpperCase()
 
-  console.log(`[IORT] Recherche: année=${year}, type=${typeConfig.fr} (${typeConfig.ar})`)
+  console.log(`[IORT ${langTag}] Recherche: année=${year}, type=${typeConfig.fr} (label="${typeLabel}")`)
 
   // Réinitialiser le formulaire d'abord via _JSL(A39)
   await page.evaluate(() => {
@@ -289,8 +364,16 @@ export async function searchByYearAndType(
   await page.selectOption('select[name="A8"]', { label: String(year) })
   await sleep(500)
 
-  // Sélectionner le type via select[name="A9"] (par label arabe exact)
-  await page.selectOption('select[name="A9"]', { label: typeConfig.ar })
+  // Sélectionner le type via select[name="A9"] (par label selon la langue)
+  // En AR : "قانون", "مرسوم", etc. | En FR : "Loi", "Décret", etc.
+  try {
+    await page.selectOption('select[name="A9"]', { label: typeLabel })
+  } catch {
+    // Fallback : utiliser le label arabe si le label FR n'est pas trouvé dans le select
+    // (certaines interfaces IORT FR gardent les labels arabes)
+    console.warn(`[IORT ${langTag}] Label "${typeLabel}" non trouvé dans A9, essai avec label AR "${typeConfig.ar}"`)
+    await page.selectOption('select[name="A9"]', { label: typeConfig.ar })
+  }
   await sleep(500)
 
   // Soumettre via _JSL(A40) (bouton recherche image)
@@ -303,7 +386,7 @@ export async function searchByYearAndType(
 
   // Lire le nombre total dans input[name="A5"]
   const totalResults = await parseTotalResults(page)
-  console.log(`[IORT] ${totalResults} résultats trouvés pour ${year}/${typeConfig.fr}`)
+  console.log(`[IORT ${langTag}] ${totalResults} résultats trouvés pour ${year}/${typeConfig.fr}`)
 
   return totalResults
 }
@@ -728,27 +811,31 @@ export function generateIortUrl(
   issueNumber: string | null,
   textType: string,
   title: string,
+  language: IortLanguage = 'ar',
 ): string {
   const typeSlug = textType.replace(/\s+/g, '-')
+  // Le préfixe /fr/ dans l'URL garantit un url_hash distinct pour les versions FR
+  // Ex : AR → /jort/2024/قانون/123 | FR → /jort/fr/2024/قانون/123
+  const langPrefix = language === 'fr' ? '/fr' : ''
   if (issueNumber) {
-    // URL stable basée sur year/textType/issueNumber (pas le titre)
-    return `${IORT_BASE_URL}/jort/${year}/${typeSlug}/${issueNumber}`
+    return `${IORT_BASE_URL}/jort${langPrefix}/${year}/${typeSlug}/${issueNumber}`
   }
-  // Fallback: hash court du titre quand issueNumber est absent
   const titleHash = hashContent(title).substring(0, 12)
-  return `${IORT_BASE_URL}/jort/${year}/${typeSlug}/${titleHash}`
+  return `${IORT_BASE_URL}/jort${langPrefix}/${year}/${typeSlug}/${titleHash}`
 }
 
 export async function saveIortPage(
   sourceId: string,
   extracted: IortExtractedText,
   pdfInfo: { minioPath: string; size: number } | null,
+  language: IortLanguage = 'ar',
 ): Promise<{ id: string; skipped: boolean; updated: boolean }> {
   const url = generateIortUrl(
     extracted.year,
     extracted.issueNumber,
     extracted.textType,
     extracted.title,
+    language,
   )
   const urlHash = hashUrl(url)
   const contentHash = hashContent(extracted.content)
@@ -773,11 +860,12 @@ export async function saveIortPage(
     }
 
     // Contenu changé → créer version + mettre à jour
-    await updateIortPage(row.id as string, extracted, contentHash, pdfInfo)
+    await updateIortPage(row.id as string, extracted, contentHash, pdfInfo, language)
     return { id: row.id as string, skipped: false, updated: true }
   }
 
   // 2. Lookup secondaire par structured_data (évite doublons quand le titre change)
+  // Filtre par langue pour ne pas confondre la version AR et FR du même texte
   if (extracted.issueNumber) {
     const structLookup = await db.query(
       `SELECT id, content_hash, url FROM web_pages
@@ -786,8 +874,12 @@ export async function saveIortPage(
        AND structured_data->>'issueNumber' = $3
        AND structured_data->>'textType' = $4
        AND structured_data->>'source' = 'iort'
+       AND (
+         structured_data->>'language' = $5
+         OR ($5 = 'ar' AND structured_data->>'language' IS NULL)
+       )
        LIMIT 1`,
-      [sourceId, String(extracted.year), extracted.issueNumber, extracted.textType],
+      [sourceId, String(extracted.year), extracted.issueNumber, extracted.textType, language],
     )
 
     if (structLookup.rows.length > 0) {
@@ -801,7 +893,7 @@ export async function saveIortPage(
       )
 
       if (needsContentUpdate) {
-        await updateIortPage(row.id as string, extracted, contentHash, pdfInfo)
+        await updateIortPage(row.id as string, extracted, contentHash, pdfInfo, language)
         return { id: row.id as string, skipped: false, updated: true }
       }
 
@@ -815,7 +907,8 @@ export async function saveIortPage(
 
   // 3. Nouveau texte → INSERT
   const wordCount = countWords(extracted.content)
-  const language = detectTextLanguage(extracted.content)
+  // Utiliser la langue de crawl explicite (plus fiable que la détection automatique)
+  const detectedLang = language || detectTextLanguage(extracted.content) || 'ar'
 
   const linkedFiles = pdfInfo
     ? JSON.stringify([{
@@ -834,6 +927,7 @@ export async function saveIortPage(
     issueNumber: extracted.issueNumber,
     date: extracted.date,
     source: 'iort',
+    language,
   })
 
   const isoDate = parseArabicDate(extracted.date)
@@ -861,7 +955,7 @@ export async function saveIortPage(
       contentHash,
       extracted.content,
       wordCount,
-      language,
+      detectedLang,
       `${extracted.textType} - ${extracted.title}`.substring(0, 500),
       isoDate,
       structuredData,
@@ -892,6 +986,7 @@ async function updateIortPage(
   extracted: IortExtractedText,
   contentHash: string,
   pdfInfo: { minioPath: string; size: number } | null,
+  language: IortLanguage = 'ar',
 ): Promise<void> {
   // Créer un snapshot avant la mise à jour
   try {
@@ -902,7 +997,7 @@ async function updateIortPage(
   }
 
   const wordCount = countWords(extracted.content)
-  const language = detectTextLanguage(extracted.content)
+  const detectedLang = language || detectTextLanguage(extracted.content) || 'ar'
   const isoDate = parseArabicDate(extracted.date)
 
   const structuredData = JSON.stringify({
@@ -911,6 +1006,7 @@ async function updateIortPage(
     issueNumber: extracted.issueNumber,
     date: extracted.date,
     source: 'iort',
+    language,
   })
 
   const params: unknown[] = [
@@ -919,7 +1015,7 @@ async function updateIortPage(
     contentHash,
     extracted.content,
     wordCount,
-    language,
+    detectedLang,
     `${extracted.textType} - ${extracted.title}`.substring(0, 500),
     isoDate,
     structuredData,
@@ -984,7 +1080,9 @@ export async function crawlYearType(
   year: number,
   textType: IortTextType,
   signal?: AbortSignal,
+  language: IortLanguage = 'ar',
 ): Promise<IortCrawlStats> {
+  const langTag = language.toUpperCase()
   const stats: IortCrawlStats = {
     year,
     textType: IORT_TEXT_TYPES[textType].fr,
@@ -995,23 +1093,26 @@ export async function crawlYearType(
     errors: 0,
   }
 
+  // Mémoriser la langue dans la session (utilisé par recover())
+  session.language = language
+
   // Toujours utiliser session.getPage() pour avoir la page courante (peut changer après recover)
   let page = session.getPage()
 
   // Vérifier session et re-naviguer si nécessaire
   const valid = await session.isSessionValid()
   if (!valid) {
-    console.log('[IORT] Session expirée, re-navigation...')
-    await session.navigateToSearch()
+    console.log(`[IORT ${langTag}] Session expirée, re-navigation...`)
+    await session.navigateToSearch(language)
     page = session.getPage()
   }
 
   // Effectuer la recherche
-  const totalResults = await searchByYearAndType(page, year, textType)
+  const totalResults = await searchByYearAndType(page, year, textType, language)
   stats.totalResults = totalResults
 
   if (totalResults === 0) {
-    console.log(`[IORT] Aucun résultat pour ${year}/${IORT_TEXT_TYPES[textType].fr}`)
+    console.log(`[IORT ${langTag}] Aucun résultat pour ${year}/${IORT_TEXT_TYPES[textType].fr}`)
     return stats
   }
 
@@ -1022,14 +1123,14 @@ export async function crawlYearType(
 
   while (hasNextPage) {
     if (signal?.aborted) {
-      console.log('[IORT] Signal d\'arrêt reçu')
+      console.log(`[IORT ${langTag}] Signal d'arrêt reçu`)
       break
     }
 
     try {
       page = session.getPage()
       const results = await parseSearchResults(page)
-      console.log(`[IORT] Page ${pageNum}: ${results.length} résultats à traiter`)
+      console.log(`[IORT ${langTag}] Page ${pageNum}: ${results.length} résultats à traiter`)
       consecutiveErrors = 0
 
       // Phase 1: Extraire texte + sauvegarder (via popup A17)
@@ -1063,7 +1164,7 @@ export async function crawlYearType(
             continue
           }
 
-          const { id: pageId, skipped, updated } = await saveIortPage(sourceId, extracted, null)
+          const { id: pageId, skipped, updated } = await saveIortPage(sourceId, extracted, null, language)
 
           if (skipped) {
             stats.skipped++
@@ -1094,7 +1195,7 @@ export async function crawlYearType(
             console.log('[IORT] Browser crash détecté, recovery...')
             await session.recover()
             page = session.getPage()
-            await searchByYearAndType(page, year, textType)
+            await searchByYearAndType(page, year, textType, language)
             pageNum = 1 // Repart depuis page 1 (évite re-navigation O(n²))
             break // Sortir de la boucle des résultats, recommencer cette page
           }
@@ -1164,7 +1265,7 @@ export async function crawlYearType(
             console.log('[IORT] Page résultats perdue après PDFs, re-navigation page 1...')
             await session.recover()
             page = session.getPage()
-            await searchByYearAndType(page, year, textType)
+            await searchByYearAndType(page, year, textType, language)
             pageNum = 1 // Repart depuis page 1 (doublons skippés par saveIortPage)
             continue
           }
@@ -1172,7 +1273,7 @@ export async function crawlYearType(
           console.log('[IORT] Erreur vérification page, recovery page 1...')
           await session.recover()
           page = session.getPage()
-          await searchByYearAndType(page, year, textType)
+          await searchByYearAndType(page, year, textType, language)
           pageNum = 1 // Repart depuis page 1 (doublons skippés par saveIortPage)
           continue
         }
@@ -1195,7 +1296,7 @@ export async function crawlYearType(
       try {
         await session.recover()
         page = session.getPage()
-        await searchByYearAndType(page, year, textType)
+        await searchByYearAndType(page, year, textType, language)
         pageNum = 1 // Repart depuis page 1 (évite re-navigation O(n²))
         console.log('[IORT] Recovery OK — reprise depuis page 1 (doublons skippés)')
       } catch (recoverErr) {
@@ -1206,7 +1307,7 @@ export async function crawlYearType(
   }
 
   console.log(
-    `[IORT] Terminé ${year}/${IORT_TEXT_TYPES[textType].fr}: ` +
+    `[IORT ${langTag}] Terminé ${year}/${IORT_TEXT_TYPES[textType].fr}: ` +
     `${stats.crawled} nouveaux, ${stats.updated} mis à jour, ${stats.skipped} inchangés, ${stats.errors} erreurs ` +
     `(sur ${stats.totalResults} total)`
   )

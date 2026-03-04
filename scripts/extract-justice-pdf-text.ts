@@ -35,8 +35,8 @@ const DB_CONFIG = isProduction
 const CRON_SECRET = process.env.CRON_SECRET || 'f65b89a33943a552b134dafeed73bac239166fd21a8819207774fb6e19031766'
 const API_BASE = isProduction ? 'https://qadhya.tn' : 'http://localhost:7002'
 
-// Source justice.gov.tn
-const JUSTICE_SOURCE_ID = '72fba4e8-7e6b-4267-a585-b4d23bac9efe'
+// Source justice.gov.tn (ID prod réel)
+const JUSTICE_SOURCE_ID = '83adb798-b5ca-45e1-acb6-f04b5e50f5de'
 
 async function downloadPdf(url: string): Promise<Buffer> {
   const response = await fetch(url, {

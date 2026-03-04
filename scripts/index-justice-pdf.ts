@@ -5,9 +5,15 @@
  *
  * Usage :
  *   Dry run (parse seulement) :
- *     npx tsx scripts/index-justice-pdf.ts
+ *     npx tsx scripts/index-justice-pdf.ts [URL]
  *   Indexation prod (via tunnel 5434) :
- *     DATABASE_URL=postgres://moncabinet:...@127.0.0.1:5434/qadhya npx tsx scripts/index-justice-pdf.ts --index
+ *     DATABASE_URL=postgres://moncabinet:...@127.0.0.1:5434/qadhya npx tsx scripts/index-justice-pdf.ts [URL] --index
+ *
+ *   Réindexation batch de tous les PDFs avec OCR forcé (met à jour web_pages, sans Ollama) :
+ *     DATABASE_URL=postgres://moncabinet:...@127.0.0.1:5434/qadhya npx tsx scripts/index-justice-pdf.ts --reindex-all
+ *     → Puis déclencher manuellement : ssh moncabinet-prod "curl -s http://localhost:3000/api/admin/index-kb -H 'X-Cron-Secret: ...'"
+ *
+ *   Si URL non fournie, utilise le PDF Cour d'Appel par défaut.
  */
 
 import { Pool } from 'pg'
@@ -17,14 +23,39 @@ import crypto from 'crypto'
 // CONFIG
 // =============================================================================
 
-const PDF_URL = 'https://www.justice.gov.tn/fileadmin/medias/manuels_de_procedure/manuel_proced_cour_appel.pdf'
-const DOC_TITLE = 'Manuel de procédure de la Cour d\'Appel - Ministère de la Justice'
+// Support URL en argument : npx tsx scripts/index-justice-pdf.ts <url> [--index]
+const urlArg = process.argv.find(a => a.startsWith('http'))
+const PDF_URL = urlArg ?? 'https://www.justice.gov.tn/fileadmin/medias/manuels_de_procedure/manuel_proced_cour_appel.pdf'
+
+// ID de la source justice.gov.tn en prod
+const JUSTICE_SOURCE_ID = '83adb798-b5ca-45e1-acb6-f04b5e50f5de'
+
+// Dériver le titre depuis le nom de fichier si URL fournie en argument
+function deriveTitleFromUrl(url: string): string {
+  const filename = url.split('/').pop() ?? url
+  return filename
+    .replace(/\.pdf$/i, '')
+    .replace(/manuel_proced_?/i, 'Manuel de procédure — ')
+    .replace(/cour_appel/, 'Cour d\'Appel')
+    .replace(/cour_cass/, 'Cour de Cassation')
+    .replace(/trib_1instance/, 'Tribunal de Première Instance')
+    .replace(/trib_immo/, 'Tribunal Immobilier')
+    .replace(/juge_rapp/, 'Juge Rapporteur')
+    .replace(/enregis_deci/, 'Enregistrement des Décisions')
+    .replace(/just_canto/, 'Justice Cantonale')
+    .replace(/_/g, ' ')
+    .trim()
+    + ' — Ministère de la Justice'
+}
+
+const DOC_TITLE = urlArg ? deriveTitleFromUrl(urlArg) : 'Manuel de procédure de la Cour d\'Appel - Ministère de la Justice'
 const DOC_CATEGORY = 'procedure'
 const SOURCE_BASE_URL = 'https://www.justice.gov.tn'
 const SOURCE_ORIGIN = 'justice_gov_tn'
 const NORM_LEVEL = 'loi_ordinaire' // Manuel procédural officiel
 
 const isIndex = process.argv.includes('--index')
+const isReindexAll = process.argv.includes('--reindex-all')
 
 // =============================================================================
 // UTILITAIRES
@@ -90,12 +121,19 @@ async function main() {
   // Ex: "د ـــ ل" au lieu de "دليل". Symptôme : ratio espaces/chars anormalement élevé.
   const isGarbled = parsed.text
     ? (() => {
-        const words = parsed.text!.split(/\s+/).filter(Boolean)
+        const text = parsed.text!
+        const words = text.split(/\s+/).filter(Boolean)
         const avgWordLen = words.length > 0
-          ? parsed.text!.replace(/\s/g, '').length / words.length
+          ? text.replace(/\s/g, '').length / words.length
           : 0
-        // Mot moyen < 2 chars = lettres séparées → garbled
-        return avgWordLen < 2.5
+        // Cas 1 : mots très courts en moyenne (lettres isolées)
+        if (avgWordLen < 2.5) return true
+        // Cas 2 : présence de tatweel (U+0640 ـ) isolé = police custom
+        // Les chars tatweel isolés comme mots-séparateurs indiquent un encodage cassé
+        const tatweelWords = words.filter(w => /^\u0640+$/.test(w)).length
+        const tatweelRatio = words.length > 0 ? tatweelWords / words.length : 0
+        if (tatweelRatio > 0.03) return true // >3% de mots = tatweel isolé
+        return false
       })()
     : false
 
@@ -254,7 +292,108 @@ async function main() {
   }
 }
 
-main().catch(err => {
-  console.error('[JusticePDF] Erreur fatale:', err instanceof Error ? err.message : err)
-  process.exit(1)
-})
+// =============================================================================
+// MODE --reindex-all : OCR forcé batch sur les 7 PDFs, mise à jour web_pages
+// =============================================================================
+
+async function reindexAll() {
+  console.log('\n[JusticePDF] ===== Réindexation batch OCR forcé — 7 PDFs =====')
+  console.log('[JusticePDF] Connexion DB via:', process.env.DATABASE_URL?.replace(/:.*@/, ':***@'))
+
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+
+  try {
+    // Récupérer les 7 pages PDF de la source justice.gov.tn
+    const pagesResult = await pool.query<{ id: string; url: string; title: string }>(
+      `SELECT id, url, title FROM web_pages
+       WHERE web_source_id = $1 AND url ILIKE '%.pdf%'
+       ORDER BY title`,
+      [JUSTICE_SOURCE_ID],
+    )
+
+    if (pagesResult.rows.length === 0) {
+      console.error('[JusticePDF] ❌ Aucune page PDF trouvée pour source', JUSTICE_SOURCE_ID)
+      process.exit(1)
+    }
+
+    console.log(`[JusticePDF] ${pagesResult.rows.length} PDFs à réindexer\n`)
+
+    const { parsePdf } = await import('../lib/web-scraper/file-parser-service')
+
+    let success = 0
+    let failed = 0
+
+    for (const page of pagesResult.rows) {
+      console.log(`\n[JusticePDF] ─── ${page.title || page.url}`)
+      console.log(`[JusticePDF] URL: ${page.url}`)
+
+      try {
+        // Télécharger le PDF
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 120_000)
+        const response = await fetch(page.url, {
+          signal: controller.signal,
+          headers: { 'User-Agent': 'QadhyaBot/1.0 (+https://qadhya.tn)' },
+        })
+        clearTimeout(timeout)
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        const buffer = Buffer.from(await response.arrayBuffer())
+        console.log(`[JusticePDF] Téléchargé: ${Math.round(buffer.length / 1024)} KB`)
+
+        // OCR forcé directement (on sait que ces PDFs sont garbled)
+        console.log('[JusticePDF] OCR forcé...')
+        const parsed = await parsePdf(buffer, { forceOcr: true })
+
+        if (!parsed.success || !parsed.text || parsed.text.length < 200) {
+          throw new Error(`OCR insuffisant: ${parsed.error ?? 'texte vide'}`)
+        }
+
+        const wordCount = countWords(parsed.text)
+        const contentHash = hashContent(parsed.text)
+        console.log(`[JusticePDF] Texte OCR: ${parsed.text.length} chars, ${wordCount} mots, ${parsed.metadata.pageCount} pages`)
+        console.log(`[JusticePDF] Aperçu: ${parsed.text.slice(0, 150).replace(/\n/g, ' ')}`)
+
+        // Mettre à jour web_pages avec le texte OCR propre
+        await pool.query(
+          `UPDATE web_pages SET
+            extracted_text = $2, content_hash = $3, word_count = $4,
+            is_indexed = false, status = 'crawled',
+            last_crawled_at = NOW(), updated_at = NOW()
+          WHERE id = $1`,
+          [page.id, parsed.text, contentHash, wordCount],
+        )
+        console.log(`[JusticePDF] ✅ web_pages mis à jour (is_indexed=false)`)
+        success++
+
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`[JusticePDF] ❌ Erreur: ${msg}`)
+        failed++
+      }
+    }
+
+    console.log(`\n[JusticePDF] ===== Terminé: ${success} succès, ${failed} échecs =====`)
+    console.log('\n[JusticePDF] Pour déclencher la réindexation Ollama sur prod :')
+    console.log('  ssh moncabinet-prod "curl -s http://localhost:3000/api/admin/index-kb -H \'X-Cron-Secret: $(grep CRON_SECRET /opt/moncabinet/.env.production.local | cut -d= -f2)\'"')
+
+  } finally {
+    await pool.end()
+  }
+}
+
+// =============================================================================
+// DISPATCHER
+// =============================================================================
+
+if (isReindexAll) {
+  reindexAll().catch(err => {
+    console.error('[JusticePDF] Erreur fatale:', err instanceof Error ? err.message : err)
+    process.exit(1)
+  })
+} else {
+  main().catch(err => {
+    console.error('[JusticePDF] Erreur fatale:', err instanceof Error ? err.message : err)
+    process.exit(1)
+  })
+}
