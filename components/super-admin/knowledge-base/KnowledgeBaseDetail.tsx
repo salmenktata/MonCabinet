@@ -180,60 +180,61 @@ function preprocessText(text: string): string {
 }
 
 function parseDocumentNodes(text: string): DocNode[] {
-  const lines = preprocessText(text).split('\n')
   const nodes: DocNode[] = []
+  const processed = preprocessText(text)
   let pendingLines: string[] = []
 
   const flushPara = () => {
-    if (pendingLines.length === 0) return
+    if (!pendingLines.length) return
     const joined = pendingLines.join('\n').trim()
     if (joined) nodes.push({ type: 'p', text: joined })
     pendingLines = []
   }
 
-  for (const rawLine of lines) {
+  const processLine = (rawLine: string) => {
     const line = rawLine.trim()
-
-    if (!line) {
-      flushPara()
-      continue
-    }
-
-    // Séparateur de page
-    const pageMatch = line.match(PAGE_SEP_RE)
-    if (pageMatch) {
-      flushPara()
-      nodes.push({ type: 'page', pageNum: parseInt(pageMatch[1]) })
-      const rest = line.replace(PAGE_SEP_RE, '').trim()
-      if (rest && !isOcrNoise(rest) && !isTocEntry(rest)) pendingLines.push(rest)
-      continue
-    }
-
-    // Filtres
-    if (isOcrNoise(line)) continue
-    if (isTocEntry(line)) continue
-
+    if (!line) { flushPara(); return }
+    if (isOcrNoise(line)) return
+    if (isTocEntry(line)) return
     if (H1_RE.test(line)) {
       flushPara()
       const { before, after } = splitAtFirstSep(line)
       nodes.push({ type: 'h1', heading: before, body: after })
-      continue
+      return
     }
     if (H2_RE.test(line)) {
       flushPara()
       const { before, after } = splitAtFirstSep(line)
       nodes.push({ type: 'h2', heading: before, body: after })
-      continue
+      return
     }
     if (H3_RE.test(line)) {
       flushPara()
       const { before, after } = splitAtFirstSep(line)
       nodes.push({ type: 'h3', heading: before, body: after })
-      continue
+      return
     }
-
     pendingLines.push(line)
   }
+
+  // Tokeniser par séparateurs de page EN PREMIER.
+  // Cela évite le bug où tout le contenu d'une page (long) est testé
+  // comme une seule chaîne par isOcrNoise et filtré entièrement.
+  const pageSepRe = /---\s*[Pp]age\s*(\d+)\s*---/g
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = pageSepRe.exec(processed)) !== null) {
+    // Contenu avant ce séparateur → traiter ligne par ligne
+    const chunk = processed.slice(last, m.index)
+    for (const line of chunk.split('\n')) processLine(line)
+    // Ajouter le nœud page
+    flushPara()
+    nodes.push({ type: 'page', pageNum: parseInt(m[1]) })
+    last = m.index + m[0].length
+  }
+  // Contenu après le dernier séparateur
+  const tail = processed.slice(last)
+  for (const line of tail.split('\n')) processLine(line)
 
   flushPara()
   return nodes
