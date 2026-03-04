@@ -132,12 +132,24 @@ function splitAtFirstSep(line: string): { before: string; after?: string } {
   return { before: line }
 }
 
-/** Filtre les lignes OCR trop bruitées (beaucoup de majuscules latines isolées) */
+/** Filtre les lignes OCR trop bruitées */
 function isOcrNoise(line: string): boolean {
   if (line.length < 3) return true
+  // ≥ 3 mots en majuscules latines isolés → bruit OCR (ex: "PAT IS RE", "PE EL ENT RSA")
+  const capsWords = (line.match(/\b[A-Z]{2,}\b/g) || []).length
+  if (capsWords >= 3) return true
+  // Ratio élevé de majuscules latines (ex: "VV AYVLANLDYLY")
   const latinCaps = (line.match(/[A-Z]/g) || []).length
-  const total = line.length
-  return latinCaps > 8 && latinCaps / total > 0.4
+  if (latinCaps > 8 && latinCaps / line.length > 0.35) return true
+  // Motif mixte Latin-Arabe-Latin typique OCR : "PAT RE: الباب PE EL"
+  if (/\b[A-Z]{2,}\b.{0,25}[\u0600-\u06ff].{0,25}\b[A-Z]{2,}\b/.test(line)) return true
+  return false
+}
+
+/** Détecte les entrées de table des matières : texte arabe + points + numéro de page */
+function isTocEntry(line: string): boolean {
+  // "القسم الاول: مجلس نواب الشهب........19"
+  return /[\u0600-\u06ff].*\.{3,}\s*\d+\s*$/.test(line)
 }
 
 function parseDocumentNodes(text: string): DocNode[] {
@@ -165,13 +177,14 @@ function parseDocumentNodes(text: string): DocNode[] {
     if (pageMatch) {
       flushPara()
       nodes.push({ type: 'page', pageNum: parseInt(pageMatch[1]) })
-      // Texte éventuel après le séparateur sur la même ligne
       const rest = line.replace(PAGE_SEP_RE, '').trim()
-      if (rest && !isOcrNoise(rest)) pendingLines.push(rest)
+      if (rest && !isOcrNoise(rest) && !isTocEntry(rest)) pendingLines.push(rest)
       continue
     }
 
+    // Filtres
     if (isOcrNoise(line)) continue
+    if (isTocEntry(line)) continue
 
     if (H1_RE.test(line)) {
       flushPara()
