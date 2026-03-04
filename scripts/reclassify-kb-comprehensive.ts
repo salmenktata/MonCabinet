@@ -427,8 +427,8 @@ async function runNormLevelBackfill(pool: Pool): Promise<void> {
           WHEN subcategory IN ('coc','code_penal','code_commerce',
             'code_travail','csp','code_fiscal','code_article')         THEN 'loi_ordinaire'
           WHEN category    IN ('codes','legislation')                  THEN 'loi_ordinaire'
-          WHEN subcategory IN ('decret_loi','decret')                  THEN 'marsoum'
-          WHEN subcategory IN ('decret_gouvernemental','ordre_presidentiel') THEN 'ordre_reglementaire'
+          WHEN subcategory IN ('decret_loi','decret',
+            'decret_gouvernemental','ordre_presidentiel')               THEN 'decret_presidentiel'
           WHEN subcategory IN ('arrete','circulaire')                  THEN 'arrete_ministeriel'
           WHEN category    = 'jort'                                    THEN 'loi_ordinaire'
           ELSE NULL
@@ -451,6 +451,9 @@ async function runNormLevelBackfill(pool: Pool): Promise<void> {
     return
   }
 
+  // Note : ENUM prod = constitution, traite_international, loi_organique, loi_ordinaire,
+  //        decret_presidentiel, arrete_ministeriel, acte_local
+  //        (marsoum et ordre_reglementaire pas encore migrés en prod)
   const updateRes = await pool.query(`
     UPDATE knowledge_base
     SET norm_level = CASE
@@ -461,8 +464,8 @@ async function runNormLevelBackfill(pool: Pool): Promise<void> {
       WHEN subcategory IN ('coc','code_penal','code_commerce',
         'code_travail','csp','code_fiscal','code_article')         THEN 'loi_ordinaire'::norm_level
       WHEN category    IN ('codes','legislation')                  THEN 'loi_ordinaire'::norm_level
-      WHEN subcategory IN ('decret_loi','decret')                  THEN 'marsoum'::norm_level
-      WHEN subcategory IN ('decret_gouvernemental','ordre_presidentiel') THEN 'ordre_reglementaire'::norm_level
+      WHEN subcategory IN ('decret_loi','decret',
+        'decret_gouvernemental','ordre_presidentiel')              THEN 'decret_presidentiel'::norm_level
       WHEN subcategory IN ('arrete','circulaire')                  THEN 'arrete_ministeriel'::norm_level
       WHEN category    = 'jort'                                    THEN 'loi_ordinaire'::norm_level
       ELSE NULL
