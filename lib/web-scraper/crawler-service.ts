@@ -621,7 +621,7 @@ async function processPage(
   // Filtrer les pages avec contenu trop court (navigation, pagination, recherche, templates vides)
   // Les seed URLs sont exclues du filtre (elles servent à la découverte de liens et aux form crawls)
   if (!options.isSeedUrl) {
-    const minWords = s.min_word_count ?? MIN_CONTENT_WORDS
+    const minWords = s.minWordCount ?? s.min_word_count ?? MIN_CONTENT_WORDS
     const contentWordCount = countWords(content.content)
     if (contentWordCount < minWords) {
       console.log(`[Crawler] Skip (${contentWordCount} mots < ${minWords}): ${url}`)
