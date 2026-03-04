@@ -4,10 +4,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
-import { Sidebar } from './Sidebar'
+import { MobileQuickActions } from './MobileQuickActions'
 
 interface MobileBottomNavProps {
   userRole?: string
@@ -30,7 +30,7 @@ const NAV_ITEMS: NavItem[] = [
 export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
   const pathname = usePathname()
   const t = useTranslations('nav')
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false)
 
   const isActive = (href: string) =>
     pathname === href || pathname?.startsWith(href + '/')
@@ -55,7 +55,7 @@ export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex flex-col items-center gap-0.5 min-w-[60px] px-1 py-1.5 rounded-xl',
+                  'relative flex flex-col items-center gap-0.5 min-w-[60px] px-1 py-1.5 rounded-xl',
                   'transition-colors',
                   active
                     ? item.highlighted
@@ -65,18 +65,28 @@ export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
                 )}
                 aria-current={active ? 'page' : undefined}
               >
-                <div className={cn(
-                  'flex items-center justify-center rounded-full w-8 h-8 transition-colors',
-                  active && item.highlighted && 'bg-indigo-100 dark:bg-indigo-950',
-                  active && !item.highlighted && 'bg-accent'
-                )}>
+                {/* Indicateur actif animé (pill) */}
+                {active && (
+                  <motion.span
+                    layoutId="mobile-nav-active"
+                    className={cn(
+                      'absolute inset-0 rounded-xl',
+                      item.highlighted
+                        ? 'bg-indigo-50 dark:bg-indigo-950/60'
+                        : 'bg-accent'
+                    )}
+                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                  />
+                )}
+
+                <div className="relative z-10 flex items-center justify-center w-8 h-8">
                   <Icon className={cn(
                     'h-5 w-5',
                     item.highlighted && 'stroke-[1.75]'
                   )} />
                 </div>
                 <span className={cn(
-                  'text-[10px] font-medium leading-none',
+                  'relative z-10 text-[10px] font-medium leading-none',
                   item.highlighted && active && 'text-indigo-600 dark:text-indigo-400'
                 )}>
                   {item.labelKey === 'qadhyaIAChat' ? 'Qadhya IA' : t(item.labelKey)}
@@ -85,16 +95,16 @@ export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
             )
           })}
 
-          {/* Bouton Plus → ouvre le drawer Sidebar */}
+          {/* Bouton Plus → ouvre Quick Actions */}
           <button
-            onClick={() => setDrawerOpen(true)}
+            onClick={() => setQuickActionsOpen(true)}
             className={cn(
               'flex flex-col items-center gap-0.5 min-w-[60px] px-1 py-1.5 rounded-xl',
               'transition-colors text-muted-foreground hover:text-foreground'
             )}
-            aria-label="Ouvrir le menu complet"
+            aria-label="Actions rapides et navigation"
           >
-            <div className="flex items-center justify-center rounded-full w-8 h-8">
+            <div className="flex items-center justify-center w-8 h-8">
               <Icons.moreHorizontal className="h-5 w-5" />
             </div>
             <span className="text-[10px] font-medium leading-none">Plus</span>
@@ -102,12 +112,11 @@ export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
         </div>
       </nav>
 
-      {/* Drawer Sidebar complet pour "Plus" */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="left" className="p-0 w-72">
-          <Sidebar userRole={userRole} onClose={() => setDrawerOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      <MobileQuickActions
+        open={quickActionsOpen}
+        onOpenChange={setQuickActionsOpen}
+        userRole={userRole}
+      />
     </>
   )
 }

@@ -163,6 +163,16 @@
     padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
   }
 
+  /* Safe area top (iOS Dynamic Island / Notch) */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Safe area bottom générique */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   /* Masquer la scrollbar horizontale (onglets sur mobile) */
   .scrollbar-none {
     scrollbar-width: none; /* Firefox */

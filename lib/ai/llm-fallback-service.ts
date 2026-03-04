@@ -127,47 +127,41 @@ async function _setCircuitState(provider: LLMProvider, state: CircuitBreakerStat
 
 /**
  * Enregistre un échec pour un provider. Ouvre le circuit si seuil atteint.
+ * Mise à jour in-memory synchrone (visible par isProviderCircuitClosed immédiatement),
+ * persistance Redis async en best-effort.
  */
 function recordProviderFailure(provider: LLMProvider): void {
-  _getCircuitState(provider).then(state => {
-    state.failCount += 1
+  const state = circuitBreakerMap.get(provider) ?? { failCount: 0, cooldownUntil: 0 }
+  state.failCount += 1
 
-    if (state.failCount >= CIRCUIT_BREAKER_FAIL_THRESHOLD) {
-      // Backoff exponentiel : 60s → 120s → 240s → 300s max
-      const exponent = Math.min(state.failCount - CIRCUIT_BREAKER_FAIL_THRESHOLD, 3)
-      const cooldownMs = Math.min(
-        CIRCUIT_BREAKER_INITIAL_COOLDOWN_MS * Math.pow(2, exponent),
-        CIRCUIT_BREAKER_MAX_COOLDOWN_MS
-      )
-      state.cooldownUntil = Date.now() + cooldownMs
-      logger.warn(
-        `[CircuitBreaker] 🔴 ${provider} ouvert après ${state.failCount} échecs — cooldown ${cooldownMs / 1000}s (persisté Redis)`
-      )
-    }
+  if (state.failCount >= CIRCUIT_BREAKER_FAIL_THRESHOLD) {
+    // Backoff exponentiel : 60s → 120s → 240s → 300s max
+    const exponent = Math.min(state.failCount - CIRCUIT_BREAKER_FAIL_THRESHOLD, 3)
+    const cooldownMs = Math.min(
+      CIRCUIT_BREAKER_INITIAL_COOLDOWN_MS * Math.pow(2, exponent),
+      CIRCUIT_BREAKER_MAX_COOLDOWN_MS
+    )
+    state.cooldownUntil = Date.now() + cooldownMs
+    logger.warn(
+      `[CircuitBreaker] 🔴 ${provider} ouvert après ${state.failCount} échecs — cooldown ${cooldownMs / 1000}s (persisté Redis)`
+    )
+  }
 
-    _setCircuitState(provider, state).catch(() => {})
-  }).catch(() => {
-    // Fallback synchrone in-memory si _getCircuitState échoue
-    const state = circuitBreakerMap.get(provider) ?? { failCount: 0, cooldownUntil: 0 }
-    state.failCount += 1
-    circuitBreakerMap.set(provider, state)
-  })
+  circuitBreakerMap.set(provider, state) // Mise à jour synchrone — visible immédiatement
+  _setCircuitState(provider, state).catch(() => {}) // Persistance Redis async (best-effort)
 }
 
 /**
  * Enregistre un succès pour un provider. Réinitialise le compteur d'échecs.
+ * Mise à jour in-memory synchrone, persistance Redis async en best-effort.
  */
 function recordProviderSuccess(provider: LLMProvider): void {
-  _getCircuitState(provider).then(state => {
-    if (state.failCount > 0) {
-      _setCircuitState(provider, { failCount: 0, cooldownUntil: 0 }).catch(() => {})
-    }
-  }).catch(() => {
-    const state = circuitBreakerMap.get(provider)
-    if (state && state.failCount > 0) {
-      circuitBreakerMap.set(provider, { failCount: 0, cooldownUntil: 0 })
-    }
-  })
+  const state = circuitBreakerMap.get(provider)
+  if (state && state.failCount > 0) {
+    const resetState = { failCount: 0, cooldownUntil: 0 }
+    circuitBreakerMap.set(provider, resetState) // Mise à jour synchrone — visible immédiatement
+    _setCircuitState(provider, resetState).catch(() => {}) // Persistance Redis async (best-effort)
+  }
 }
 
 /**

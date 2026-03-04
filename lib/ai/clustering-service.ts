@@ -7,7 +7,7 @@
  */
 
 import { UMAP } from 'umap-js'
-import { Hdbscan } from 'hdbscan'
+import { DBSCAN } from 'density-clustering'
 import { db } from '@/lib/db/postgres'
 import { parseEmbeddingFromPostgres } from './embeddings-service'
 
@@ -17,6 +17,7 @@ import { parseEmbeddingFromPostgres } from './embeddings-service'
 
 const KB_CLUSTERING_ENABLED = process.env.KB_CLUSTERING_ENABLED !== 'false'
 const KB_MIN_CLUSTER_SIZE = parseInt(process.env.KB_MIN_CLUSTER_SIZE || '3', 10)
+const KB_DBSCAN_EPSILON = parseFloat(process.env.KB_DBSCAN_EPSILON || '0.5') // Rayon de voisinage dans l'espace UMAP réduit
 const UMAP_N_NEIGHBORS = parseInt(process.env.UMAP_N_NEIGHBORS || '15', 10)
 const UMAP_MIN_DIST = parseFloat(process.env.UMAP_MIN_DIST || '0.1')
 const UMAP_N_COMPONENTS = parseInt(process.env.UMAP_N_COMPONENTS || '50', 10)
@@ -90,24 +91,23 @@ function reduceEmbeddingDimensions(
 // =============================================================================
 
 /**
- * Cluster les embeddings réduits avec HDBSCAN
+ * Cluster les embeddings réduits avec DBSCAN
+ * (remplace HDBSCAN alpha — density-clustering est stable et MIT)
  */
 function clusterEmbeddings(
   embeddings: number[][],
   minClusterSize: number = KB_MIN_CLUSTER_SIZE
 ): number[] {
   if (embeddings.length < minClusterSize) {
-    console.log(`[Clustering] Pas assez de documents pour HDBSCAN (${embeddings.length}/${minClusterSize})`)
+    console.log(`[Clustering] Pas assez de documents pour DBSCAN (${embeddings.length}/${minClusterSize})`)
     return embeddings.map(() => -1) // Tous marqués comme bruit
   }
 
-  console.log(`[Clustering] HDBSCAN: ${embeddings.length} documents, minClusterSize=${minClusterSize}`)
+  console.log(`[Clustering] DBSCAN: ${embeddings.length} documents, epsilon=${KB_DBSCAN_EPSILON}, minPts=${minClusterSize}`)
 
-  const clusterer = new Hdbscan(embeddings, minClusterSize, 1)
-
-  // getClusters retourne un tableau de clusters (chaque cluster = indices des points)
-  const clusters = clusterer.getClusters()
-  const noiseIndices = clusterer.getNoise()
+  const dbscan = new DBSCAN()
+  const clusters = dbscan.run(embeddings, KB_DBSCAN_EPSILON, minClusterSize)
+  const noiseIndices = dbscan.noise
 
   // Convertir en labels (-1 pour bruit, 0+ pour clusters)
   const labels: number[] = new Array(embeddings.length).fill(-1)
@@ -118,7 +118,7 @@ function clusterEmbeddings(
     }
   }
 
-  console.log(`[Clustering] HDBSCAN terminé: ${clusters.length} clusters, ${noiseIndices.length} bruit`)
+  console.log(`[Clustering] DBSCAN terminé: ${clusters.length} clusters, ${noiseIndices.length} bruit`)
 
   return labels
 }

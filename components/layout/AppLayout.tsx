@@ -1,9 +1,10 @@
 'use client'
 
-import { memo, useEffect, useState } from 'react'
+import { memo } from 'react'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { MobileBottomNav } from './MobileBottomNav'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 
 interface AppLayoutProps {
@@ -14,32 +15,6 @@ interface AppLayoutProps {
     prenom?: string
     role?: string
   }
-}
-
-// Hook personnalisé pour détecter mobile avec debounce
-function useIsMobile(breakpoint = 1024, delay = 150) {
-  const [isMobile, setIsMobile] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < breakpoint)
-
-    let timeoutId: NodeJS.Timeout
-
-    const handleResize = () => {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(() => {
-        setIsMobile(window.innerWidth < breakpoint)
-      }, delay)
-    }
-
-    window.addEventListener('resize', handleResize, { passive: true })
-    return () => {
-      clearTimeout(timeoutId)
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [breakpoint, delay])
-
-  return isMobile
 }
 
 function AppLayoutComponent({ children, user }: AppLayoutProps) {

@@ -199,12 +199,38 @@ jobs:
           }
 
   # ===========================================================================
+  # Job 0.6: TypeScript Type Check - Bloquant avant deploy
+  # ===========================================================================
+  type-check:
+    runs-on: ubuntu-latest
+    name: TypeScript Type Check
+    needs: [check-queue, validate-schema]
+    if: needs.check-queue.outputs.should_skip != 'true'
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npm run type-check
+
+  # ===========================================================================
   # Job 1: Detect Changes - Choisir Tier 1 (fast) ou Tier 2 (docker)
   # ===========================================================================
   detect-changes:
     runs-on: ubuntu-latest
     name: Detect Changes
-    needs: [check-queue, validate-schema]
+    needs: [check-queue, validate-schema, type-check]
     if: needs.check-queue.outputs.should_skip != 'true'
     outputs:
       needs_docker: ${{ steps.check.outputs.needs_docker }}

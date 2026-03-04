@@ -46,8 +46,22 @@ const chatRateLimiter = new RateLimiter({ windowMs: 60_000, maxRequests: 20, nam
 // TYPES
 // =============================================================================
 
+import { z } from 'zod'
 import type { DocumentType } from '@/lib/categories/doc-types'
 import type { LegalStance } from '@/lib/ai/legal-reasoning-prompts'
+
+const ChatRequestSchema = z.object({
+  question: z.string().min(3, 'Question trop courte (min 3 caractères)').max(4000, 'Question trop longue (max 4000 caractères)'),
+  dossierId: z.string().uuid().optional(),
+  conversationId: z.string().uuid().optional(),
+  includeJurisprudence: z.boolean().optional(),
+  stream: z.boolean().optional(),
+  usePremiumModel: z.boolean().optional(),
+  actionType: z.enum(['chat', 'structure', 'ariida']).optional(),
+  docType: z.enum(['TEXTES', 'JURIS', 'PROC', 'TEMPLATES', 'DOCTRINE']).optional(),
+  stance: z.enum(['neutral', 'defense', 'attack']).optional(),
+  excludeCategories: z.array(z.string().max(50)).max(10).optional(),
+})
 
 interface ChatRequestBody {
   question: string
@@ -249,8 +263,16 @@ export async function POST(
       )
     }
 
-    // Parse le body
-    const body: ChatRequestBody = await request.json()
+    // Parse et valide le body
+    const rawBody = await request.json()
+    const parseResult = ChatRequestSchema.safeParse(rawBody)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: parseResult.error.errors[0]?.message ?? 'Corps de requête invalide' },
+        { status: 400 }
+      )
+    }
+
     const {
       question,
       dossierId,
@@ -258,18 +280,11 @@ export async function POST(
       includeJurisprudence = true,
       stream = false,
       usePremiumModel = false,
-      actionType = 'chat', // Par défaut: conversation normale
-      docType, // Nouveau: filtrage par type de document
-      stance, // Mode Avocat Stratège
-      excludeCategories, // Exclure catégories (ex: ['google_drive'])
-    } = body
-
-    if (!question || question.trim().length < 3) {
-      return NextResponse.json(
-        { error: 'Question trop courte (min 3 caractères)' },
-        { status: 400 }
-      )
-    }
+      actionType = 'chat',
+      docType,
+      stance,
+      excludeCategories,
+    } = parseResult.data as ChatRequestBody
 
     // Vérifier le quota IA de l'utilisateur (trial / pro / enterprise)
     const quotaCheck = await checkAndConsumeAiQuota(userId)

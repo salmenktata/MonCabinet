@@ -19,6 +19,13 @@ import { ThemeToggle } from './ThemeToggle'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 
+// Ouvrir GlobalSearch via l'événement clavier (CMD+K) qu'il écoute déjà
+function openGlobalSearch() {
+  document.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })
+  )
+}
+
 function useUrgentNotificationsCount() {
   const [count, setCount] = React.useState(0)
 
@@ -96,8 +103,19 @@ export function Topbar({ user }: TopbarProps) {
 
         {/* Actions à droite */}
         <div className="flex items-center gap-1 sm:gap-2">
-          {/* Recherche globale CMD+K */}
+          {/* Recherche globale CMD+K — desktop */}
           <GlobalSearch className="hidden md:flex md:w-64" />
+
+          {/* Bouton recherche — mobile uniquement */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={openGlobalSearch}
+            aria-label="Rechercher"
+          >
+            <Icons.search className="h-5 w-5" />
+          </Button>
 
           {/* Language Switcher */}
           <div className="hidden sm:flex">

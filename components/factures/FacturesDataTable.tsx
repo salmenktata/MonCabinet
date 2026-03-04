@@ -174,11 +174,16 @@ export function FacturesDataTable({ factures }: { factures: Facture[] }) {
           <div>
             <div className="font-medium">{facture.numero}</div>
             <div className="text-xs text-muted-foreground">{formatDate(facture.date_emission)}</div>
+            {/* Résumé condensé sur mobile : objet + client */}
+            <div className="sm:hidden mt-0.5 space-y-0.5">
+              <div className="text-xs text-muted-foreground line-clamp-1">{facture.objet}</div>
+              <div className="text-xs text-muted-foreground">{getClientName(facture.clients)}</div>
+            </div>
           </div>
         </div>
       ),
       sortable: true,
-      className: 'min-w-[180px]',
+      className: 'min-w-[160px]',
     },
     {
       id: 'objet',
@@ -195,6 +200,7 @@ export function FacturesDataTable({ factures }: { factures: Facture[] }) {
         </div>
       ),
       sortable: true,
+      className: 'hidden sm:table-cell',
     },
     {
       id: 'client',
@@ -210,6 +216,7 @@ export function FacturesDataTable({ factures }: { factures: Facture[] }) {
         </div>
       ),
       sortable: true,
+      className: 'hidden sm:table-cell',
     },
     {
       id: 'montant',
