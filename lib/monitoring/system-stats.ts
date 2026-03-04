@@ -418,7 +418,8 @@ async function checkRedis(): Promise<ServicesSnapshot['redis']> {
 }
 
 async function checkMinio(): Promise<ServiceHealth> {
-  const minioEndpoint = process.env.MINIO_ENDPOINT || 'http://localhost:9000'
+  const rawEndpoint = process.env.MINIO_ENDPOINT || 'localhost:9000'
+  const minioEndpoint = rawEndpoint.startsWith('http') ? rawEndpoint : `http://${rawEndpoint}:9000`
   const healthUrl = `${minioEndpoint}/minio/health/live`
   const start = Date.now()
   try {

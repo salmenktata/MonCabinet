@@ -87,7 +87,7 @@ export default async function HomePage() {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto mb-8 animate-fade-in-up stagger-3">
+          <p className="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto mb-8">
             {t('hero.subtitle')}
           </p>
 
