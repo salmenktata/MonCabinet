@@ -451,7 +451,7 @@ export function KnowledgeBaseList({
                     {doc.file_name}
                   </span>
                 )}
-                <span>
+                <span suppressHydrationWarning>
                   {new Date(doc.created_at).toLocaleDateString('fr-FR')}
                 </span>
                 {doc.uploaded_by_email && (
