@@ -389,6 +389,41 @@ const LEGAL_SYNONYMS: Record<string, string[]> = {
 }
 
 /**
+ * Expanse les abréviations standards des codes légaux tunisiens (FR).
+ * Utilise des regex avec word boundaries pour éviter les faux positifs (ex: "acte" ≠ "CT").
+ * Exemples:
+ *   "Art. 445 CT"  → "Art. 445 CT Code du Travail مجلة الشغل"
+ *   "Art. 52 COC"  → "Art. 52 COC Code des Obligations et Contrats مجلة الالتزامات والعقود"
+ *   "Art. 261 CP"  → "Art. 261 CP Code Pénal المجلة الجزائية"
+ */
+export function expandCodeAbbreviations(query: string): string {
+  // Ordre critique : abréviations longues d'abord (CPP avant CP, pour éviter sous-match)
+  const CODE_ABBREVIATIONS: Array<[RegExp, string]> = [
+    [/\bCT\b/g, 'Code du Travail مجلة الشغل'],
+    [/\bC\.T\b/g, 'Code du Travail مجلة الشغل'],
+    [/\bCOC\b/g, 'Code des Obligations et Contrats مجلة الالتزامات والعقود'],
+    [/\bC\.O\.C\b/g, 'Code des Obligations et Contrats مجلة الالتزامات والعقود'],
+    [/\bCPP\b/g, 'Code de Procédure Pénale مجلة الإجراءات الجزائية'],
+    [/\bCPC\b/g, 'Code de Procédure Civile مجلة المرافعات المدنية والتجارية'],
+    [/\bCSP\b/g, 'Code du Statut Personnel مجلة الأحوال الشخصية'],
+    [/\bC\.Com\b/g, 'Code de Commerce المجلة التجارية'],
+    [/\bCCom\b/g, 'Code de Commerce المجلة التجارية'],
+    // CP en dernier (2 chars — après CPP pour éviter "CP Code Pénal P")
+    [/\bCP\b/g, 'Code Pénal المجلة الجزائية'],
+  ]
+
+  let expanded = query
+  for (const [pattern, expansion] of CODE_ABBREVIATIONS) {
+    pattern.lastIndex = 0
+    if (pattern.test(expanded)) {
+      pattern.lastIndex = 0
+      expanded = expanded.replace(pattern, (match) => `${match} ${expansion}`)
+    }
+  }
+  return expanded
+}
+
+/**
  * Enrichit une query avec des synonymes juridiques arabes classiques.
  * Applicable à TOUTES les queries (pas seulement les courtes).
  * N'utilise pas de LLM - lookup instantané O(n).

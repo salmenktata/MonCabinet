@@ -914,6 +914,19 @@ export async function searchRelevantContext(
     }
   }
 
+  // 1.5. Expansion des abréviations légales françaises (CT, COC, CP, CPP, CPC, CSP, CCom)
+  // Synchrone, sans LLM. Ex: "Art. 445 CT" → "Art. 445 CT Code du Travail مجلة الشغل"
+  try {
+    const { expandCodeAbbreviations } = await import('./query-expansion-service')
+    const withAbbr = expandCodeAbbreviations(embeddingQuestion)
+    if (withAbbr !== embeddingQuestion) {
+      log.info(`[RAG Search] Abréviations expandées: "${embeddingQuestion}" → "${withAbbr.substring(0, 100)}"`)
+      embeddingQuestion = withAbbr
+    }
+  } catch {
+    // Non-bloquant
+  }
+
   // 2. Enrichissement synonymes juridiques arabes (applicable à toutes les queries)
   // Lookup instantané O(n) - pas de LLM, pas de latence ajoutée
   try {
