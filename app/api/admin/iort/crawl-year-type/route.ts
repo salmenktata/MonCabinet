@@ -70,6 +70,8 @@ export const GET = withAdminApiAuth(
     const typeParam = searchParams.get('type')
     const langParam = searchParams.get('lang') ?? 'ar'
     const resume = searchParams.get('resume') === 'true'
+    // skipPdf=true (défaut) : préférer HTML web, ne télécharger PDF que si HTML < 300 chars
+    const skipPdf = searchParams.get('skipPdf') !== 'false'
 
     if (!yearParam) {
       return NextResponse.json({ success: false, error: 'Paramètre year obligatoire' }, { status: 400 })
@@ -129,7 +131,7 @@ export const GET = withAdminApiAuth(
           }
 
           logger.info(`[IORT crawl-year-type] Crawl ${language.toUpperCase()}/${year}/${IORT_TEXT_TYPES[type].fr}...`)
-          const stats = await crawlYearType(session, sourceId, year, type, undefined, language)
+          const stats = await crawlYearType(session, sourceId, year, type, undefined, language, skipPdf)
 
           results.push({
             year: stats.year,

@@ -979,4 +979,158 @@ export async function crawlCode(
   return stats
 }
 
+// ─── مجموعات نصوص (PAGE_CodesJuridiques) ──────────────────────────────────────
+
+/**
+ * URL du listing des recueils thématiques (مجموعات نصوص) sur iort.tn/siteiort.
+ * PAGE_CodesJuridiques = recueils organisés par domaine (travail, famille, etc.)
+ * Distinct des codes juridiques (PAGE_NavigationCode via M180).
+ */
+export const RECUEIL_LISTING_URL =
+  'https://www.iort.tn/siteiort/PAGE_CodesJuridiques/7C8AAGEmUkICAAAAFQA'
+
+/**
+ * Navigue vers la page de listing des recueils thématiques.
+ * Attend le rendu JS (WebDev charge les loopers de façon asynchrone).
+ */
+export async function navigateToRecueilPage(session: IortSessionManager): Promise<void> {
+  const page = session.getPage()
+  console.log('[IORT Recueil] Navigation vers PAGE_CodesJuridiques...')
+  await page.goto(RECUEIL_LISTING_URL, {
+    waitUntil: 'load',
+    timeout: IORT_RATE_CONFIG.navigationTimeout,
+  })
+  // PAGE_CodesJuridiques charge les items looper via JS (seuil WebDev ~8s)
+  await sleep(8000)
+  const count = await page.evaluate(() =>
+    document.querySelectorAll('[id^="A1_"], [id^="M18_"], [id^="M3_"]').length,
+  )
+  console.log(`[IORT Recueil] ${count} items détectés dans le listing`)
+}
+
+/**
+ * Détecte et retourne la liste des recueils disponibles depuis la page courante.
+ * Même pattern que parseAvailableCodes() — détecte le looper actif parmi A1/M18/M3.
+ */
+export async function parseAvailableRecueils(page: Page): Promise<IortCode[]> {
+  for (const prefix of ['A1', 'M18', 'M3']) {
+    const items = await page.evaluate((pfx: string) => {
+      return Array.from(document.querySelectorAll(`[id^="${pfx}_"]`))
+        .map(el => ({
+          index: parseInt((el.id.split('_')[1] ?? '0'), 10),
+          name: (el.textContent ?? '').trim(),
+        }))
+        .filter(x => x.index > 0 && x.name.length > 3)
+    }, prefix)
+
+    if (items.length > 0) {
+      console.log(`[IORT Recueil] Looper "${prefix}" — ${items.length} recueils trouvés`)
+      return items.map(x => ({ name: x.name, selectIndex: x.index, looperId: prefix }))
+    }
+  }
+  console.warn('[IORT Recueil] Aucun looper détecté sur PAGE_CodesJuridiques')
+  return []
+}
+
+/**
+ * Crawle un ou tous les recueils thématiques (مجموعات نصوص).
+ * Réutilise parseTocItems() + extractSectionText() + saveCodeSection() des codes.
+ *
+ * @param session     Session Playwright IORT active
+ * @param sourceId    ID de la source web (web_sources.id)
+ * @param recueilName Si fourni, filtre sur les recueils dont le nom contient cette chaîne
+ */
+export async function crawlRecueil(
+  session: IortSessionManager,
+  sourceId: string,
+  recueilName?: string,
+): Promise<IortCodeCrawlStats> {
+  const startTime = Date.now()
+  const stats: IortCodeCrawlStats = {
+    codeName: recueilName ?? 'tous les recueils',
+    totalSections: 0,
+    crawled: 0,
+    updated: 0,
+    skipped: 0,
+    errors: 0,
+    elapsedMs: 0,
+  }
+
+  await navigateToRecueilPage(session)
+  let page = session.getPage()
+  const available = await parseAvailableRecueils(page)
+
+  if (available.length === 0) {
+    console.warn('[IORT Recueil] Aucun recueil disponible — abandon')
+    stats.elapsedMs = Date.now() - startTime
+    return stats
+  }
+
+  const targets = recueilName
+    ? available.filter(r => r.name.includes(recueilName))
+    : available
+
+  console.log(`[IORT Recueil] ${targets.length}/${available.length} recueils à crawlер`)
+
+  for (const recueil of targets) {
+    console.log(`[IORT Recueil] → "${recueil.name}" (index ${recueil.selectIndex})`)
+
+    try {
+      // Sélectionner le recueil (même fonction que pour les codes)
+      await selectCodeAndNavigate(page, recueil)
+      await sleep(12000) // PAGE_CodesJuridiques nécessite attente longue
+
+      const capturedUrl = page.url()
+      console.log(`[IORT Recueil] URL après navigation: ${capturedUrl}`)
+
+      // Extraire la table des matières
+      const tocItems = await parseTocItems(page, capturedUrl)
+      console.log(`[IORT Recueil] ${tocItems.length} sections trouvées dans "${recueil.name}"`)
+
+      for (const item of tocItems) {
+        try {
+          const text = await extractSectionText(page, item)
+
+          if (!text || text.length < 20) {
+            stats.skipped++
+            continue
+          }
+
+          const saveResult = await saveCodeSection(sourceId, recueil.name, item.title, text, item.depth)
+
+          if (saveResult.skipped) {
+            stats.skipped++
+          } else if (saveResult.updated) {
+            stats.updated++
+          } else {
+            stats.crawled++
+          }
+
+          await sleep(IORT_RATE_CONFIG.minDelay)
+        } catch (err) {
+          console.error(`[IORT Recueil] Erreur section "${item.title}":`, err)
+          stats.errors++
+        }
+      }
+    } catch (err) {
+      console.error(`[IORT Recueil] Erreur recueil "${recueil.name}":`, err)
+      stats.errors++
+    }
+
+    // Revenir au listing pour le recueil suivant
+    await navigateToRecueilPage(session)
+    page = session.getPage()
+    await sleep(3000)
+  }
+
+  stats.elapsedMs = Date.now() - startTime
+  console.log(
+    `[IORT Recueil] ✅ Terminé: ` +
+    `${stats.crawled} nouveaux, ${stats.updated} MAJ, ${stats.skipped} sautés, ${stats.errors} erreurs ` +
+    `en ${Math.round(stats.elapsedMs / 1000)}s`,
+  )
+
+  return stats
+}
+
 export { getOrCreateIortSource }

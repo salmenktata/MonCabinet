@@ -20,8 +20,11 @@ import { hashUrl, hashContent, countWords, detectTextLanguage } from './content-
 // CONSTANTES
 // =============================================================================
 
-/** URL de base du site IORT */
+/** URL de base du site IORT (legacy iort.gov.tn — utilisé pour JORT par année/type) */
 export const IORT_BASE_URL = 'http://www.iort.gov.tn'
+
+/** URL du portail moderne iort.tn — utilisé pour codes, recueils, constitution HTML */
+export const IORT_SITEIORT_URL = 'https://www.iort.tn/siteiort'
 
 /** Types de textes disponibles sur IORT (labels exactement comme sur le site) */
 export const IORT_TEXT_TYPES = {
@@ -1081,6 +1084,7 @@ export async function crawlYearType(
   textType: IortTextType,
   signal?: AbortSignal,
   language: IortLanguage = 'ar',
+  skipPdfDownload = false,
 ): Promise<IortCrawlStats> {
   const langTag = language.toUpperCase()
   const stats: IortCrawlStats = {
@@ -1212,11 +1216,20 @@ export async function crawlYearType(
         }
       }
 
-      // Phase 2: Télécharger les PDFs via A7
-      if (extractedResults.length > 0) {
-        console.log(`[IORT] Téléchargement PDFs pour ${extractedResults.length} résultats...`)
+      // Phase 2: Télécharger les PDFs via A7 (uniquement si HTML insuffisant)
+      const JORT_MIN_HTML_LENGTH = 300
+      const resultsMissingContent = skipPdfDownload
+        ? []
+        : extractedResults.filter(
+            ({ extracted }) => !extracted.content || extracted.content.length < JORT_MIN_HTML_LENGTH,
+          )
 
-        for (const { result, extracted, pageId } of extractedResults) {
+      if (resultsMissingContent.length > 0) {
+        console.log(
+          `[IORT] Phase 2 PDF — ${resultsMissingContent.length}/${extractedResults.length} résultats sans HTML suffisant`,
+        )
+
+        for (const { result, extracted, pageId } of resultsMissingContent) {
           if (signal?.aborted) break
 
           try {
@@ -1320,25 +1333,28 @@ export async function crawlYearType(
 // =============================================================================
 
 /**
- * Navigue vers la page Constitution du site IORT via le lien M4 de la homepage.
+ * Navigue vers la page Constitution du site IORT via le menu M16 sur iort.tn/siteiort.
+ * Préféré à iort.gov.tn M4 car la page HTML contient le texte des articles directement,
+ * évitant le fallback OCR PDF (42 pages, ~434s).
+ *
  * Doit être appelé depuis la homepage (après init() ou recover()).
  */
 export async function navigateToConstitutionPage(session: IortSessionManager): Promise<void> {
   const page = session.getPage()
 
-  console.log('[IORT Constitution] Navigation vers la homepage...')
-  await page.goto(IORT_BASE_URL, { waitUntil: 'load', timeout: IORT_RATE_CONFIG.navigationTimeout })
-  await sleep(3000)
+  console.log('[IORT Constitution] Navigation vers iort.tn/siteiort (HTML web — préféré au PDF OCR)...')
+  await page.goto(IORT_SITEIORT_URL, { waitUntil: 'load', timeout: IORT_RATE_CONFIG.navigationTimeout })
+  await sleep(2500)
 
-  console.log('[IORT Constitution] Clic sur M4 (دستور الجمهورية التونسية)...')
+  console.log('[IORT Constitution] Clic sur M16 (دستور الجمهورية التونسية) sur iort.tn...')
   await page.evaluate(() => {
     // @ts-expect-error WebDev global function
-    _JSL(_PAGE_, 'M4', '_self', '', '')
+    _JSL(_PAGE_, 'M16', '_self', '', '')
   })
   await page.waitForLoadState('load')
   await sleep(3000)
 
-  console.log('[IORT Constitution] Page constitution atteinte')
+  console.log('[IORT Constitution] Page constitution atteinte (iort.tn M16)')
   await sleep(2000) // 2s supplémentaires pour le rendu JavaScript WebDev
 }
 
