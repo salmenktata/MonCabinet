@@ -1258,7 +1258,7 @@ function getTargetCodeTitleFragment(queryText: string, lang: string): string | n
  * garantit que le chunk de l'article est dans le pool même si sim vectorielle < threshold.
  * Utilise ILIKE pour trouver "الفصل X " (espace après = no false-positive sur الفصل X0).
  */
-async function searchArticleByTextMatch(
+export async function searchArticleByTextMatch(
   artNum: string,
   targetCodeFragment: string | null,
   categories: string[] = ['codes']

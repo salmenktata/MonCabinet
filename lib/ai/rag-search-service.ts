@@ -47,7 +47,7 @@ import {
   DocumentToRerank,
 } from './reranker-service'
 import { recordRAGMetric, recordRouterFallback } from '@/lib/metrics/rag-metrics'
-import { searchKnowledgeBase, searchKnowledgeBaseHybrid } from './knowledge-base-service'
+import { searchKnowledgeBase, searchKnowledgeBaseHybrid, searchArticleByTextMatch } from './knowledge-base-service'
 import type { LegalStance, PromptContextType } from './legal-reasoning-prompts'
 import type { OperationName } from './operations-config'
 import type { DocumentType } from '@/lib/categories/doc-types'
@@ -1464,6 +1464,32 @@ export async function searchRelevantContextBilingual(
       }
     } catch (fallbackErr) {
       log.error('[RAG Bilingual] Fallback KB search échoué:', fallbackErr instanceof Error ? fallbackErr.message : fallbackErr)
+
+      // Dernier recours : article-text match direct (SQL pur, sans embedding)
+      // Déclenché quand le primary ET le fallback ont tous deux échoué (surcharge système / Ollama down)
+      try {
+        const articleMatch = question.match(/الفصل\s+(\d+)/)
+        if (articleMatch) {
+          const artNum = articleMatch[1]
+          // Extraire le nom du code (المجلة X) depuis la question
+          const codeMatch = question.match(/مجلة\s+\S+(?:\s+\S+)?/) || question.match(/م\.ع|م\.ج|م\.إ\.ج|COC|CSP/)
+          const targetCodeFrag = codeMatch ? codeMatch[0].slice(0, 20) : null
+          const artResults = await searchArticleByTextMatch(artNum, targetCodeFrag)
+          if (artResults.length > 0) {
+            const lastResortSources: ChatSource[] = artResults.slice(0, 3).map(r => ({
+              documentId: r.knowledgeBaseId,
+              documentName: r.title || 'Document',
+              chunkContent: r.chunkContent,
+              similarity: r.similarity || 0.75,
+              metadata: r.metadata,
+            }))
+            log.info(`[RAG Bilingual] Last resort article-text: ${lastResortSources.length} sources (الفصل ${artNum})`)
+            return { sources: lastResortSources, cacheHit: false }
+          }
+        }
+      } catch (lastResortErr) {
+        log.warn('[RAG Bilingual] Last resort article-text échoué:', lastResortErr instanceof Error ? lastResortErr.message : lastResortErr)
+      }
     }
 
     return { sources: [], cacheHit: false }
