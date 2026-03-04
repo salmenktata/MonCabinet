@@ -40,10 +40,13 @@ dotenv.config()
 const DRY_RUN = process.argv.includes('--dry-run')
 const LOCAL = process.argv.includes('--local')
 const SKIP_GDRIVE = process.argv.includes('--skip-gdrive')
+const ALL_DOCS = process.argv.includes('--all-docs')  // Reclasser tous les docs, pas seulement google_drive
 const PHASE_ARG = process.argv.find(arg => arg.startsWith('--phase='))
 const PHASE_ONLY = PHASE_ARG ? parseInt(PHASE_ARG.split('=')[1], 10) : null
 const LIMIT_ARG = process.argv.find(arg => arg.startsWith('--limit='))
 const LIMIT = LIMIT_ARG ? parseInt(LIMIT_ARG.split('=')[1], 10) : undefined
+const OFFSET_ARG = process.argv.find(arg => arg.startsWith('--offset='))
+const OFFSET = OFFSET_ARG ? parseInt(OFFSET_ARG.split('=')[1], 10) : 0
 
 // =============================================================================
 // CATÉGORIES & MAPPINGS (miroir de lib/categories/)
@@ -130,17 +133,38 @@ function createPool(): Pool {
 // LLM (Groq via OpenAI-compatible API, fallback DeepSeek)
 // =============================================================================
 
+// État global Groq — une fois rate-limité, on bascule directement sur DeepSeek
+let groqRateLimited = false
+
 async function callLLM(prompt: string): Promise<string> {
   const groqKey = process.env.GROQ_API_KEY
   const deepseekKey = process.env.DEEPSEEK_API_KEY
 
-  if (groqKey) {
-    return callOpenAICompatible(
-      'https://api.groq.com/openai/v1/chat/completions',
-      groqKey,
-      'llama-3.3-70b-versatile',
-      prompt,
-    )
+  // Si Groq déjà rate-limité, aller directement sur DeepSeek
+  if (groqKey && !groqRateLimited) {
+    try {
+      return await callOpenAICompatible(
+        'https://api.groq.com/openai/v1/chat/completions',
+        groqKey,
+        'llama-3.1-8b-instant',
+        prompt,
+      )
+    } catch (err: any) {
+      const msg = err?.message || String(err)
+      if (msg.includes('429') || msg.includes('rate_limit') || msg.includes('RESOURCE_EXHAUSTED')) {
+        groqRateLimited = true
+        // Fallback immédiat sur DeepSeek si disponible
+        if (deepseekKey) {
+          return callOpenAICompatible(
+            'https://api.deepseek.com/v1/chat/completions',
+            deepseekKey,
+            'deepseek-chat',
+            prompt,
+          )
+        }
+      }
+      throw err
+    }
   }
 
   if (deepseekKey) {
@@ -217,7 +241,7 @@ async function classifyGDriveDoc(
     .replace('{TITLE}', title || 'Sans titre')
     .replace('{CONTENT}', content.substring(0, 2000))
 
-  const raw = await callLLM(prompt)
+  const raw = await callLLM(prompt, 0) // commence par llama-3.1-8b-instant
   const cleaned = raw.toLowerCase().replace(/[^a-z_]/g, '')
   return VALID_CATEGORIES.includes(cleaned as ValidCategory)
     ? (cleaned as ValidCategory)
@@ -484,13 +508,19 @@ async function runNormLevelBackfill(pool: Pool): Promise<void> {
 // PHASE 4 — RECLASSIFICATION GOOGLE DRIVE VIA LLM
 // =============================================================================
 
-async function runGDriveReclassification(pool: Pool): Promise<void> {
+async function runLLMReclassification(pool: Pool): Promise<void> {
+  const modeLabel = ALL_DOCS ? 'TOUS LES DOCS (LLM)' : 'GOOGLE DRIVE (LLM)'
   console.log('\n' + '='.repeat(60))
-  console.log('🤖 PHASE 4 — RECLASSIFICATION GOOGLE DRIVE (LLM)')
+  console.log(`🤖 PHASE 4 — RECLASSIFICATION ${modeLabel}`)
   console.log('='.repeat(60) + '\n')
 
+  if (ALL_DOCS) {
+    console.log('  ⚠️  Mode --all-docs : TOUS les documents actifs seront reclassés via LLM.')
+    console.log('  Les docs officiels (iort, cassation, 9anoun) seront aussi traités.\n')
+  }
+
   // Détecter provider disponible
-  const provider = process.env.GROQ_API_KEY ? 'Groq llama-3.3-70b-versatile'
+  const provider = process.env.GROQ_API_KEY ? 'Groq llama-3.1-8b-instant (→ DeepSeek fallback)'
     : process.env.DEEPSEEK_API_KEY ? 'DeepSeek deepseek-chat'
     : null
 
@@ -500,14 +530,17 @@ async function runGDriveReclassification(pool: Pool): Promise<void> {
   }
   console.log(`  Provider : ${provider}`)
 
-  const countRes = await pool.query(
-    "SELECT COUNT(*) FROM knowledge_base WHERE category = 'google_drive' AND is_active = true"
-  )
+  // Construire la clause WHERE selon le mode
+  const whereClause = ALL_DOCS
+    ? 'kb.is_active = true'
+    : "kb.category = 'google_drive' AND kb.is_active = true"
+
+  const countRes = await pool.query(`SELECT COUNT(*) FROM knowledge_base kb WHERE ${whereClause}`)
   const total = parseInt(countRes.rows[0].count, 10)
-  console.log(`  Docs google_drive à reclasser : ${total}`)
+  console.log(`  Docs à reclasser : ${total}`)
 
   if (total === 0) {
-    console.log('  ✅ Aucun doc google_drive — phase ignorée\n')
+    console.log('  ✅ Aucun doc — phase ignorée\n')
     return
   }
 
@@ -516,6 +549,7 @@ async function runGDriveReclassification(pool: Pool): Promise<void> {
     SELECT
       kb.id as kb_id,
       kb.title,
+      kb.category as old_category,
       COALESCE(
         (SELECT string_agg(sub.content, ' ')
          FROM (
@@ -528,33 +562,38 @@ async function runGDriveReclassification(pool: Pool): Promise<void> {
         ''
       ) as content
     FROM knowledge_base kb
-    WHERE kb.category = 'google_drive'
-      AND kb.is_active = true
+    WHERE ${whereClause}
     ORDER BY kb.created_at DESC
+    ${OFFSET ? `OFFSET ${OFFSET}` : ''}
     ${LIMIT ? `LIMIT ${LIMIT}` : ''}
   `)
 
   const docs = docsRes.rows
-  console.log(`  Docs à traiter : ${docs.length}\n`)
+  console.log(`  Docs à traiter : ${docs.length}${OFFSET ? ` (offset: ${OFFSET})` : ''}\n`)
+
+  // Estimation temps (DeepSeek ~1s/doc, Groq ~0.5s/doc)
+  const estimMin = Math.ceil(docs.length / 60)
+  if (docs.length > 50) console.log(`  ⏱️  Estimation : ~${estimMin} min\n`)
 
   const stats = { classified: 0, noContent: 0, errors: 0, byCategory: {} as Record<string, number> }
-  const DELAY_MS = process.env.GROQ_API_KEY ? 2100 : 1000 // Groq 30 RPM → ~2s
+  const DELAY_MS = groqRateLimited ? 1000 : 500 // DeepSeek peut aller plus vite
 
   for (let i = 0; i < docs.length; i++) {
     const doc = docs[i]
     const shortTitle = (doc.title || 'Sans titre').substring(0, 50)
 
-    // Pas de contenu → autre
+    // Pas de contenu → autre (sauf si le doc a un titre informative)
     if (!doc.content || doc.content.trim().length < 50) {
+      const fallbackCat: ValidCategory = 'autre'
       stats.noContent++
-      stats.byCategory['autre'] = (stats.byCategory['autre'] || 0) + 1
+      stats.byCategory[fallbackCat] = (stats.byCategory[fallbackCat] || 0) + 1
 
       if (!DRY_RUN) {
-        await applyGDriveReclassification(pool, doc.kb_id, 'autre', 'no_content')
+        await applyReclassification(pool, doc.kb_id, fallbackCat, doc.old_category, 'no_content')
       }
 
       stats.classified++
-      logGDriveProgress(i + 1, docs.length, shortTitle, 'autre', stats)
+      logGDriveProgress(i + 1, docs.length, shortTitle, fallbackCat, stats)
       continue
     }
 
@@ -563,7 +602,8 @@ async function runGDriveReclassification(pool: Pool): Promise<void> {
       stats.byCategory[category] = (stats.byCategory[category] || 0) + 1
 
       if (!DRY_RUN) {
-        await applyGDriveReclassification(pool, doc.kb_id, category, provider.includes('Groq') ? 'groq_reclassify' : 'deepseek_reclassify')
+        const src = groqRateLimited ? 'deepseek_reclassify' : 'groq_reclassify'
+        await applyReclassification(pool, doc.kb_id, category, doc.old_category, src)
       }
 
       stats.classified++
@@ -571,19 +611,16 @@ async function runGDriveReclassification(pool: Pool): Promise<void> {
     } catch (err: any) {
       const msg = err?.message || String(err)
 
-      // Rate limit → pause et retry
       if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('rate_limit')) {
-        console.log(`   ⏳ Rate limit, pause 60s...`)
-        await sleep(60000)
-
+        // Groq rate limité → DeepSeek prend le relais, pause courte
+        groqRateLimited = true
+        await sleep(5000)
         try {
           const category = await classifyGDriveDoc(doc.title, doc.content)
           stats.byCategory[category] = (stats.byCategory[category] || 0) + 1
-
           if (!DRY_RUN) {
-            await applyGDriveReclassification(pool, doc.kb_id, category, 'groq_reclassify_retry')
+            await applyReclassification(pool, doc.kb_id, category, doc.old_category, 'deepseek_reclassify')
           }
-
           stats.classified++
           logGDriveProgress(i + 1, docs.length, shortTitle, category, stats)
         } catch (retryErr: any) {
@@ -597,7 +634,7 @@ async function runGDriveReclassification(pool: Pool): Promise<void> {
     }
 
     if (i < docs.length - 1) {
-      await sleep(DELAY_MS)
+      await sleep(groqRateLimited ? 1000 : DELAY_MS)
     }
   }
 
@@ -611,32 +648,34 @@ async function runGDriveReclassification(pool: Pool): Promise<void> {
   console.log(`\n  Total classifiés: ${stats.classified} | Sans contenu: ${stats.noContent} | Erreurs: ${stats.errors}\n`)
 }
 
-async function applyGDriveReclassification(
+async function applyReclassification(
   pool: Pool,
   docId: string,
   category: ValidCategory,
+  oldCategory: string,
   source: string,
 ): Promise<void> {
   const docType = CATEGORY_TO_DOC_TYPE[category] || 'DOCTRINE'
   const normLevel = CATEGORY_TO_NORM_LEVEL[category] || null
 
+  const metaUpdate: Record<string, string> = {
+    old_category: oldCategory,
+    classification_source: source,
+    reclassified_at: new Date().toISOString(),
+    doc_type: docType,
+  }
+  if (normLevel) metaUpdate.norm_level = normLevel
+
   await pool.query(`
     UPDATE knowledge_base
     SET
-      category = $1,
+      category = $1::text,
       doc_type = $2::document_type,
-      norm_level = $3::norm_level,
-      metadata = COALESCE(metadata, '{}'::jsonb)
-        || jsonb_build_object(
-          'old_category', 'google_drive',
-          'classification_source', $4,
-          'reclassified_at', $5,
-          'doc_type', $2,
-          'norm_level', $3
-        ),
+      norm_level = CASE WHEN $3::text IS NOT NULL THEN ($3::text)::norm_level ELSE NULL::norm_level END,
+      metadata = COALESCE(metadata, '{}'::jsonb) || $4::jsonb,
       updated_at = NOW()
-    WHERE id = $6
-  `, [category, docType, normLevel, source, new Date().toISOString(), docId])
+    WHERE id = $5::uuid
+  `, [category, docType, normLevel, JSON.stringify(metaUpdate), docId])
 }
 
 function logGDriveProgress(current: number, total: number, title: string, category: string, stats: { byCategory: Record<string, number> }) {
@@ -756,9 +795,9 @@ async function main() {
       if (!DRY_RUN) await syncChunksMetadata(pool)
     }
 
-    // Phase 4 — Reclassification Google Drive
+    // Phase 4 — Reclassification LLM (google_drive ou tous les docs)
     if (!SKIP_GDRIVE && (!PHASE_ONLY || PHASE_ONLY === 4)) {
-      await runGDriveReclassification(pool)
+      await runLLMReclassification(pool)
       if (!DRY_RUN) await syncChunksMetadata(pool)
     }
 

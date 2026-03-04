@@ -135,6 +135,8 @@ function splitAtFirstSep(line: string): { before: string; after?: string } {
 /** Filtre les lignes OCR trop bruitées */
 function isOcrNoise(line: string): boolean {
   if (line.length < 3) return true
+  // Les lignes longues (> 300 chars) sont des paragraphes légitimes, pas du bruit
+  if (line.length > 300) return false
   // ≥ 3 mots en majuscules latines isolés → bruit OCR (ex: "PAT IS RE", "PE EL ENT RSA")
   const capsWords = (line.match(/\b[A-Z]{2,}\b/g) || []).length
   if (capsWords >= 3) return true
@@ -609,9 +611,16 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
 
             {/* Zone de lecture — fond adaptatif dark/light */}
             <div className="bg-white dark:bg-slate-900 rounded-b-xl px-10 py-10">
-              {document.fullText ? (
-                renderDocumentNodes(parseDocumentNodes(document.fullText), isRtl)
-              ) : (
+              {document.fullText ? (() => {
+                const nodes = parseDocumentNodes(document.fullText)
+                if (nodes.length > 0) return renderDocumentNodes(nodes, isRtl)
+                // Fallback : aucun node parsé (ex: texte sans sauts de ligne) → affichage brut
+                return (
+                  <p className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-[15px] leading-relaxed ${isRtl ? 'text-right' : 'text-left'}`} dir={isRtl ? 'rtl' : 'ltr'}>
+                    {document.fullText}
+                  </p>
+                )
+              })() : (
                 <p className="text-gray-400 dark:text-slate-500 italic text-center py-16">
                   Aucun contenu disponible
                 </p>
