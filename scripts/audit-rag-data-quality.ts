@@ -221,7 +221,7 @@ const QUERIES = {
     SELECT
       ws.id as source_id,
       ws.name,
-      ws.category,
+      array_to_string(ws.categories, ',') as category,
       COUNT(*) as total_indexed,
       ROUND(AVG(wp.quality_score), 1) as avg_quality,
       MIN(wp.quality_score) as min_quality,
@@ -235,7 +235,7 @@ const QUERIES = {
     JOIN web_pages wp ON ws.id = wp.web_source_id
     WHERE wp.is_indexed = true
       AND ws.rag_enabled = true
-    GROUP BY ws.id, ws.name, ws.category
+    GROUP BY ws.id, ws.name, ws.categories
     ORDER BY avg_quality ASC NULLS FIRST
   `,
 
@@ -332,7 +332,7 @@ const QUERIES = {
     SELECT
       ws.id as source_id,
       ws.name,
-      ws.category,
+      array_to_string(ws.categories, ',') as category,
       COUNT(DISTINCT wp.id) as total_pages,
       COUNT(DISTINCT wpm.id) as pages_with_metadata,
       ROUND(100.0 * COUNT(DISTINCT wpm.id) / NULLIF(COUNT(DISTINCT wp.id), 0), 1) as coverage_pct,
@@ -342,7 +342,7 @@ const QUERIES = {
       COUNT(*) FILTER (WHERE wpm.document_date IS NOT NULL) as has_date,
       COUNT(*) FILTER (WHERE wpm.decision_number IS NOT NULL) as has_numero,
       CASE
-        WHEN ws.category = 'jurisprudence' AND COUNT(DISTINCT wpm.id) * 100.0 / NULLIF(COUNT(DISTINCT wp.id), 0) < 50 THEN 'CRITICAL'
+        WHEN 'jurisprudence' = ANY(ws.categories) AND COUNT(DISTINCT wpm.id) * 100.0 / NULLIF(COUNT(DISTINCT wp.id), 0) < 50 THEN 'CRITICAL'
         WHEN COUNT(DISTINCT wpm.id) * 100.0 / NULLIF(COUNT(DISTINCT wp.id), 0) < $1 THEN 'WARNING'
         ELSE 'OK'
       END as coverage_status
@@ -351,7 +351,7 @@ const QUERIES = {
     LEFT JOIN web_page_structured_metadata wpm ON wp.id = wpm.web_page_id
     WHERE wp.is_indexed = true
       AND ws.rag_enabled = true
-    GROUP BY ws.id, ws.name, ws.category
+    GROUP BY ws.id, ws.name, ws.categories
     ORDER BY coverage_pct DESC
   `,
 

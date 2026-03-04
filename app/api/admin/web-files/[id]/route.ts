@@ -42,7 +42,7 @@ export async function GET(
       `SELECT
         wf.*,
         ws.name as source_name,
-        ws.category as source_category,
+        array_to_string(ws.categories, ',') as source_category,
         wp.url as page_url,
         wp.title as page_title,
         kb.title as kb_title
@@ -217,7 +217,7 @@ export async function POST(
 
     // Récupérer le fichier
     const fileResult = await db.query(
-      `SELECT wf.*, ws.category as source_category
+      `SELECT wf.*, array_to_string(ws.categories, ',') as source_category
        FROM web_files wf
        LEFT JOIN web_sources ws ON wf.web_source_id = ws.id
        WHERE wf.id = $1`,

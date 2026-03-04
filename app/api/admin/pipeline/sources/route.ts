@@ -22,7 +22,7 @@ export async function GET(): Promise<NextResponse> {
     }
 
     const result = await db.query(
-      `SELECT DISTINCT ws.id, ws.name, ws.base_url, ws.category
+      `SELECT DISTINCT ws.id, ws.name, ws.base_url, ws.categories
       FROM web_sources ws
       INNER JOIN web_pages wp ON wp.web_source_id = ws.id
       INNER JOIN knowledge_base kb ON wp.knowledge_base_id = kb.id

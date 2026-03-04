@@ -60,7 +60,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Construire la requête pour récupérer les pages à traiter
     let query = `
       SELECT wp.id, wp.url, wp.title, wp.extracted_text,
-             ws.category as source_category, ws.name as source_name
+             array_to_string(ws.categories, ',') as source_category, ws.name as source_name
       FROM web_pages wp
       JOIN web_sources ws ON wp.web_source_id = ws.id
       WHERE 1=1
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Filtrer par catégorie si spécifié
     if (onlyCategory) {
-      query += ` AND ws.category = $${queryParams.length + 1}`
+      query += ` AND $${queryParams.length + 1} = ANY(ws.categories)`
       queryParams.push(onlyCategory)
     }
 

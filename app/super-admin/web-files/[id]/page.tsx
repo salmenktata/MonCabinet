@@ -14,7 +14,7 @@ async function getFileDetail(id: string) {
     `SELECT
       wf.*,
       ws.name as source_name,
-      ws.category as source_category,
+      array_to_string(ws.categories, ',') as source_category,
       wp.url as page_url,
       wp.title as page_title,
       kb.title as kb_title
