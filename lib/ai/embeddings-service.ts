@@ -146,19 +146,49 @@ async function generateEmbeddingsBatchWithOllama(
     return { embeddings: [], totalTokens: 0, provider: 'ollama' }
   }
 
-  const concurrency = parseInt(process.env.OLLAMA_EMBEDDING_CONCURRENCY || '2', 10)
+  // /v1/embeddings supporte les tableaux → vrai batching (vs /api/embeddings = 1 texte/appel)
+  const batchSize = parseInt(process.env.OLLAMA_EMBEDDING_BATCH_SIZE || '20', 10)
   const allEmbeddings: number[][] = []
   let totalTokens = 0
 
-  for (let i = 0; i < texts.length; i += concurrency) {
-    const batch = texts.slice(i, i + concurrency)
-    const batchResults = await Promise.all(
-      batch.map((text) => generateEmbeddingWithOllama(text))
-    )
+  for (let i = 0; i < texts.length; i += batchSize) {
+    const batch = texts.slice(i, i + batchSize)
 
-    for (const result of batchResults) {
-      allEmbeddings.push(result.embedding)
-      totalTokens += result.tokenCount
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS)
+
+    try {
+      const response = await fetch(`${aiConfig.ollama.baseUrl}/v1/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: aiConfig.ollama.embeddingModel,
+          input: batch,
+          keep_alive: '60m',
+        }),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Ollama batch embedding error: ${response.status} - ${errorText}`)
+      }
+
+      const data = await response.json() as { data: Array<{ embedding: number[]; index: number }> }
+
+      for (const item of data.data.sort((a, b) => a.index - b.index)) {
+        const validation = validateEmbedding(item.embedding, 'ollama')
+        if (!validation.valid) {
+          throw new Error(`Embedding Ollama invalide (index ${item.index}): ${validation.error}`)
+        }
+        allEmbeddings.push(item.embedding)
+        totalTokens += countTokens(batch[item.index] || '')
+      }
+    } catch (error) {
+      clearTimeout(timeoutId)
+      throw error
     }
   }
 
