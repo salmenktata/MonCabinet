@@ -41,38 +41,42 @@ export interface LinkingResult {
 
 /**
  * Trouve l'ID du document KB correspondant à un code tunisien.
- * Cherche dans knowledge_base par titre + category='codes'.
+ * Exclut les documents JORT (category='jort') pour éviter de lier
+ * un amendement à un autre décret IORT mentionnant le même code.
+ * Préfère le document avec le plus grand nombre de chunks (code le plus complet).
  */
 async function findKBDocForCode(codeSlug: string): Promise<string | null> {
   const code = getCodeBySlug(codeSlug)
   if (!code) return null
 
-  // Chercher par titre arabe exact ou contenu du titre
   const result = await db.query(
-    `SELECT id
+    `SELECT id, title, chunk_count
      FROM knowledge_base
      WHERE is_indexed = true
        AND is_active = true
+       AND category != 'jort'
        AND (
          title ILIKE $1
          OR title ILIKE $2
-         OR title ILIKE $3
-         OR metadata->>'sourceOrigin' IN ('9anoun_tn', 'iort_gov_tn')
-            AND title ILIKE $1
        )
      ORDER BY
-       CASE WHEN title ILIKE $1 THEN 1
-            WHEN title ILIKE $2 THEN 2
-            ELSE 3 END
+       CASE WHEN title ILIKE $1 THEN 0 ELSE 1 END,
+       chunk_count DESC NULLS LAST
      LIMIT 1`,
     [
       `%${code.nameAr}%`,
       `%${code.nameFr}%`,
-      `%${codeSlug}%`,
     ]
   )
 
-  return result.rows[0]?.id ?? null
+  const row = result.rows[0]
+  if (row) {
+    log.info(`[Linker] findKBDocForCode(${codeSlug}) → "${row.title}" (id=${row.id}, chunks=${row.chunk_count ?? '?'})`)
+  } else {
+    log.warn(`[Linker] findKBDocForCode(${codeSlug}) → aucun document trouvé`)
+  }
+
+  return row?.id ?? null
 }
 
 /**
