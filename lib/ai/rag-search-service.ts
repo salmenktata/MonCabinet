@@ -912,6 +912,14 @@ export async function searchRelevantContext(
         log.error('[RAG Search] Erreur condensation query:', error)
         embeddingQuestion = question
       }
+    } else {
+      // Requêtes moyennes (50-200 chars) : enrichissement synonymes juridiques (sans LLM, instantané)
+      const { enrichQueryWithLegalSynonyms } = await import('./query-expansion-service')
+      const enriched = enrichQueryWithLegalSynonyms(embeddingQuestion)
+      if (enriched !== embeddingQuestion) {
+        log.info(`[RAG Search] Synonymes juridiques ajoutés (${question.length} chars): "${enriched.substring(0, 100)}"`)
+        embeddingQuestion = enriched
+      }
     }
   }
 

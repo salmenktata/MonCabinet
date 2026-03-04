@@ -183,7 +183,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     llmConfig: {
       temperature: 0.1,
-      maxTokens: 2048,
+      maxTokens: 3500,  // Augmenté 2048→3500 pour raisonnement juridique complet (règle → application → conclusion)
       systemPromptType: 'chat',
     },
 
