@@ -1,13 +1,12 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Noto_Sans_Arabic } from 'next/font/google'
-import { NextIntlClientProvider } from 'next-intl'
-import { getMessages, getLocale } from 'next-intl/server'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { StorageCleanupProvider } from '@/components/providers/StorageCleanupProvider'
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import { WebVitalsReporter } from '@/components/monitoring/WebVitalsReporter'
 import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner'
+import { I18nProvider } from '@/app/components/I18nProvider'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -68,29 +67,34 @@ export const viewport: Viewport = {
   ],
 }
 
-// Optimisation: générer les pages statiques quand possible
-export const dynamic = 'auto'
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const locale = await getLocale()
-  const messages = await getMessages()
-
   return (
-    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
-      <head />
-      <body className={`${inter.className} ${notoSansArabic.variable}${locale === 'ar' ? ' font-arabic' : ''}`}>
+    // lang="fr" par défaut; un script inline corrige vers "ar" si cookie NEXT_LOCALE=ar
+    <html lang="fr" dir="ltr" suppressHydrationWarning>
+      <head>
+        {/* Applique immédiatement lang/dir/font-arabic selon le cookie locale (avant hydration) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var m=document.cookie.match(/NEXT_LOCALE=([^;]+)/);if(m&&m[1]==='ar'){document.documentElement.lang='ar';document.documentElement.dir='rtl';}}catch(e){}`,
+          }}
+        />
+      </head>
+      <body
+        className={`${inter.className} ${notoSansArabic.variable}`}
+        suppressHydrationWarning
+      >
         <SessionProvider>
           <ThemeProvider>
             <QueryProvider>
               <StorageCleanupProvider>
-                <NextIntlClientProvider messages={messages}>
+                <I18nProvider>
                   <ImpersonationBanner />
                   {children}
-                </NextIntlClientProvider>
+                </I18nProvider>
               </StorageCleanupProvider>
             </QueryProvider>
           </ThemeProvider>

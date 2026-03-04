@@ -61,6 +61,9 @@ export default function TarificationPage() {
             </span>
             <button
               onClick={() => setAnnual(!annual)}
+              aria-label={`${t('pricing.monthly')} / ${t('pricing.annual')}`}
+              aria-pressed={annual}
+              role="switch"
               className={`relative w-14 h-7 rounded-full transition-colors ${annual ? 'bg-blue-600' : 'bg-slate-600'}`}
             >
               <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white transition-transform ${annual ? 'translate-x-7' : 'translate-x-0.5'}`} />

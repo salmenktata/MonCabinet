@@ -26,7 +26,7 @@ export function PricingCard({ name, description, price, currency, perMonth, feat
         </div>
       )}
       {badge && !popular && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-xs font-bold px-4 py-1 rounded-full">
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-700 text-white text-xs font-bold px-4 py-1 rounded-full">
           {badge}
         </div>
       )}

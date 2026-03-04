@@ -20,7 +20,7 @@ export async function MarketingFooter() {
 
           {/* Product */}
           <div>
-            <h3 className="text-sm font-semibold text-white mb-4">{t('product')}</h3>
+            <h2 className="text-sm font-semibold text-white mb-4">{t('product')}</h2>
             <ul className="space-y-3">
               <li><Link href="/fonctionnalites" className="text-sm text-slate-400 hover:text-white transition-colors">{t('features')}</Link></li>
               <li><Link href="/tarification" className="text-sm text-slate-400 hover:text-white transition-colors">{t('pricing')}</Link></li>
@@ -31,7 +31,7 @@ export async function MarketingFooter() {
 
           {/* Company */}
           <div>
-            <h3 className="text-sm font-semibold text-white mb-4">{t('company')}</h3>
+            <h2 className="text-sm font-semibold text-white mb-4">{t('company')}</h2>
             <ul className="space-y-3">
               <li><Link href="/a-propos" className="text-sm text-slate-400 hover:text-white transition-colors">{t('about')}</Link></li>
               <li><Link href="/contact" className="text-sm text-slate-400 hover:text-white transition-colors">{t('contact')}</Link></li>
@@ -40,7 +40,7 @@ export async function MarketingFooter() {
 
           {/* Legal */}
           <div>
-            <h3 className="text-sm font-semibold text-white mb-4">{t('legal')}</h3>
+            <h2 className="text-sm font-semibold text-white mb-4">{t('legal')}</h2>
             <ul className="space-y-3">
               <li><Link href="/conditions" className="text-sm text-slate-400 hover:text-white transition-colors">{t('terms')}</Link></li>
               <li><Link href="/confidentialite" className="text-sm text-slate-400 hover:text-white transition-colors">{t('privacy')}</Link></li>

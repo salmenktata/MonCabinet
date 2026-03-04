@@ -160,7 +160,7 @@ export default function AccesAnticipePage() {
             </button>
           </form>
 
-          <p className="text-xs text-slate-500 text-center mt-4">
+          <p className="text-xs text-slate-400 text-center mt-4">
             Sans carte bancaire • Pas de spam • Désabonnement en 1 clic
           </p>
         </div>
