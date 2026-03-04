@@ -77,8 +77,9 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
       page_id: string
       page_url: string
       linked_files: LinkedFile[]
+      structured_data: Record<string, unknown> | null
     }>(
-      `SELECT wp.id as page_id, wp.url as page_url, wp.linked_files
+      `SELECT wp.id as page_id, wp.url as page_url, wp.linked_files, wp.structured_data
        FROM web_pages wp
        WHERE wp.web_source_id = $1
          AND wp.linked_files IS NOT NULL
@@ -224,13 +225,17 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
           console.log(`[IndexFiles] ✅ Téléchargé ${file.filename} (${dlResult.size} bytes) → ${uploadResult.path}`)
         }
 
-        // Indexer le fichier
+        // Indexer le fichier (propager sourceOrigin depuis structured_data si présent)
+        const extraMetadata = page.structured_data?.sourceOrigin
+          ? { sourceOrigin: page.structured_data.sourceOrigin }
+          : undefined
         const result = await indexFile(
           file,
           page.page_id,
           source.id,
           source.name,
-          source.categories?.[0] || ''
+          source.categories?.[0] || '',
+          extraMetadata
         )
 
         const durationMs = Date.now() - fileStart

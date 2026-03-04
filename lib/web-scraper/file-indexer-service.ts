@@ -273,7 +273,8 @@ export async function indexFile(
   pageId: string,
   sourceId: string,
   sourceName: string,
-  category: string
+  category: string,
+  extraMetadata?: Record<string, unknown>
 ): Promise<FileIndexResult> {
   if (!file.minioPath) {
     return {
@@ -372,13 +373,14 @@ export async function indexFile(
     try {
       await client.query('BEGIN')
 
-      // Créer le document dans knowledge_base (avec tracking OCR)
+      // Créer le document dans knowledge_base (avec tracking OCR + extraMetadata)
       const ocrApplied = parsed.metadata.ocrApplied || false
+      const kbMetadata = extraMetadata ? JSON.stringify(extraMetadata) : null
       const kbResult = await client.query(
         `INSERT INTO knowledge_base (
           title, full_text, category, language, source_file,
-          file_name, file_type, is_indexed, chunk_count, ocr_applied
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)
+          file_name, file_type, is_indexed, chunk_count, ocr_applied, metadata
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, $10)
         RETURNING id`,
         [
           parsed.metadata.title || file.filename,
@@ -390,13 +392,14 @@ export async function indexFile(
           file.type,
           chunks.length,
           ocrApplied,
+          kbMetadata,
         ]
       )
 
       const knowledgeBaseId = kbResult.rows[0].id
 
-      // Créer les chunks (avec OCR confidence si applicable)
-      const chunkMetadataBase: Record<string, unknown> = {}
+      // Créer les chunks (avec OCR confidence + extraMetadata si applicable)
+      const chunkMetadataBase: Record<string, unknown> = { ...extraMetadata }
       if (ocrApplied && parsed.metadata.ocrConfidence !== undefined) {
         chunkMetadataBase.ocrConfidence = parsed.metadata.ocrConfidence
         chunkMetadataBase.ocrApplied = true
