@@ -449,6 +449,27 @@ export async function indexKnowledgeDocument(
     }
   }
 
+  // ✨ Corruption gate: Bloquer l'indexation des docs OCR arabes corrompus
+  if (!options.skipQualityGate) {
+    const { detectOcrCorruption } = await import('@/lib/kb/corruption-detector')
+    const corruptionCheck = detectOcrCorruption(doc.full_text)
+    if (corruptionCheck.isCorrupted) {
+      logger.warn(
+        `[KB Index] ⚠️ CORRUPTION GATE: Doc ${documentId} ("${doc.title?.substring(0, 40)}") ` +
+        `bloqué — score=${corruptionCheck.score} — ${corruptionCheck.reasons.join('; ')}`
+      )
+      await db.query(
+        `UPDATE knowledge_base SET metadata = COALESCE(metadata, '{}'::jsonb) || $1::jsonb WHERE id = $2`,
+        [JSON.stringify({ quality_flag: 'corrupted_ocr', corruption_score: corruptionCheck.score, corruption_reasons: corruptionCheck.reasons }), documentId]
+      ).catch(() => {})
+      return {
+        success: false,
+        chunksCreated: 0,
+        error: `Corruption gate: OCR corrompu détecté (score ${corruptionCheck.score}) — ${corruptionCheck.reasons[0] || ''}`,
+      }
+    }
+  }
+
   // ✨ C2: Règles d'inclusion/exclusion (Sprint 3)
   const inclusionCheck = checkDocumentInclusion({
     title: doc.title || '',
