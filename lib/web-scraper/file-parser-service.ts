@@ -351,6 +351,22 @@ export async function parsePdf(buffer: Buffer, options: { forceOcr?: boolean } =
 
     const needsOcr = forcedOcr || tooLittleText || garbledText
 
+    // Skip OCR pour les PDFs purement image (pas de couche texte)
+    // Si pdf-parse a tourné et n'a rien trouvé, ce n'est pas la peine de lancer OCR :
+    // le résultat sera de mauvaise qualité et polluerait la KB.
+    // Exception : forceOcr=true (ex: Constitution IORT) et pdf-parse qui a planté.
+    if (tooLittleText && !forcedOcr) {
+      console.log(
+        `[FileParser] PDF image-only ignoré (${text.length} chars, ${avgCharsPerPage.toFixed(0)} chars/page) — OCR skippé`
+      )
+      return {
+        success: false,
+        text: '',
+        metadata: { wordCount: 0, pageCount },
+        error: `PDF image-only (${text.length} chars, ${avgCharsPerPage.toFixed(0)} chars/page) — ignoré`,
+      }
+    }
+
     let ocrApplied = false
     let ocrPagesProcessed = 0
     let ocrConfidence: number | undefined
