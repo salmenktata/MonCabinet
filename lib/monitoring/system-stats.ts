@@ -418,8 +418,17 @@ async function checkRedis(): Promise<ServicesSnapshot['redis']> {
 }
 
 async function checkMinio(): Promise<ServiceHealth> {
-  const rawEndpoint = process.env.MINIO_ENDPOINT || 'localhost:9000'
-  const minioEndpoint = rawEndpoint.startsWith('http') ? rawEndpoint : `http://${rawEndpoint}:9000`
+  const rawEndpoint = process.env.MINIO_ENDPOINT || 'localhost'
+  const port = process.env.MINIO_PORT || '9000'
+  const useSSL = process.env.MINIO_USE_SSL === 'true'
+  let minioEndpoint: string
+  if (rawEndpoint.startsWith('http://') || rawEndpoint.startsWith('https://')) {
+    minioEndpoint = rawEndpoint.replace(/\/$/, '')
+  } else {
+    // Extraire le host sans port si rawEndpoint contient déjà un port
+    const host = rawEndpoint.includes(':') ? rawEndpoint.split(':')[0] : rawEndpoint
+    minioEndpoint = `${useSSL ? 'https' : 'http'}://${host}:${port}`
+  }
   const healthUrl = `${minioEndpoint}/minio/health/live`
   const start = Date.now()
   try {
