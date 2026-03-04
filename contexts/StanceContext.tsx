@@ -25,8 +25,13 @@ function readStoredStance(): LegalStance {
 }
 
 export function StanceProvider({ children }: { children: React.ReactNode }) {
-  // Lazy initializer : lit localStorage dès le premier rendu (pas de flash)
-  const [stance, setStanceState] = useState<LegalStance>(readStoredStance)
+  // Initialiser avec 'neutral' pour correspondre au rendu SSR, puis lire localStorage
+  const [stance, setStanceState] = useState<LegalStance>('neutral')
+
+  // Lire localStorage après hydration pour éviter le mismatch SSR/client
+  useEffect(() => {
+    setStanceState(readStoredStance())
+  }, [])
 
   // Sync inter-onglets : écoute les changements localStorage depuis d'autres onglets
   useEffect(() => {
