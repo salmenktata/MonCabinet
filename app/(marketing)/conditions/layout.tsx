@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Conditions d\'utilisation — Qadhya',
   description: 'Conditions générales d\'utilisation de la plateforme Qadhya, service SaaS de gestion de cabinet juridique.',
+  robots: { index: false, follow: true },
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {

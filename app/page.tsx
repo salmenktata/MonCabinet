@@ -16,6 +16,20 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: 'Qadhya - Assistant Juridique IA pour Avocats Tunisiens',
   description: 'Qadhya est la plateforme SaaS dédiée aux avocats tunisiens : gestion de dossiers, IA juridique RAG, délais procéduraux et facturation. Essayez gratuitement.',
+  openGraph: {
+    title: 'Qadhya - Assistant Juridique IA pour Avocats Tunisiens',
+    description: 'Qadhya est la plateforme SaaS dédiée aux avocats tunisiens : gestion de dossiers, IA juridique RAG, délais procéduraux et facturation. Essayez gratuitement.',
+    url: 'https://qadhya.tn',
+    type: 'website',
+    locale: 'fr_TN',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Qadhya - Assistant Juridique IA' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Qadhya - Assistant Juridique IA pour Avocats Tunisiens',
+    description: 'Gestion de dossiers, IA juridique RAG, délais procéduraux et facturation pour avocats tunisiens.',
+    images: ['/opengraph-image'],
+  },
 }
 
 function CheckIcon({ className }: { className?: string }) {
@@ -66,11 +80,37 @@ function AlertIcon() {
   )
 }
 
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Qadhya',
+  url: 'https://qadhya.tn',
+  description: 'Plateforme SaaS de gestion de cabinet juridique pour avocats tunisiens avec IA juridique RAG.',
+  applicationCategory: 'LegalApplication',
+  operatingSystem: 'Web',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'TND',
+    description: 'Plan Starter gratuit',
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'Qadhya',
+    url: 'https://qadhya.tn',
+    sameAs: ['https://qadhya.tn'],
+  },
+}
+
 export default async function HomePage() {
   const t = await getTranslations('marketing')
 
   return (
     <div className="dark min-h-screen bg-slate-950 text-white overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
       <BackgroundBlobs />
       <MarketingHeader />
 

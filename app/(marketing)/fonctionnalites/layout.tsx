@@ -7,6 +7,14 @@ export const metadata: Metadata = {
     title: 'Fonctionnalités — Qadhya',
     description: 'La plateforme complète pour les avocats tunisiens. Dossiers, délais, facturation et IA juridique.',
     url: 'https://qadhya.tn/fonctionnalites',
+    type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Fonctionnalités Qadhya' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Fonctionnalités — Qadhya',
+    description: 'La plateforme complète pour les avocats tunisiens. Dossiers, délais, facturation et IA juridique.',
+    images: ['/opengraph-image'],
   },
 }
 

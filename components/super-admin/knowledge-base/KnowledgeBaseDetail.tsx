@@ -102,51 +102,192 @@ interface KnowledgeBaseDetailProps {
   relations?: Relation[]
 }
 
-// ─── Détection et rendu du contenu structuré légal ───────────────────────────
+// ─── Parser et rendu de contenu légal structuré ──────────────────────────────
 
-const ARTICLE_HEADING_PATTERN =
-  /^(الفصل|الباب|الجزء|القسم|المادة|الفقرة|الفرع|Art\.|Article|Chapitre|Titre|Section|Paragraphe|CHAPITRE|TITRE|ARTICLE)\s/
+type DocNodeType = 'page' | 'h1' | 'h2' | 'h3' | 'p'
 
-function renderLegalContent(text: string, isRtl: boolean) {
-  const paragraphs = text.split(/\n{2,}/)
+interface DocNode {
+  type: DocNodeType
+  heading?: string
+  body?: string
+  text?: string
+  pageNum?: number
+}
 
-  return paragraphs.map((para, pi) => {
-    const trimmed = para.trim()
-    if (!trimmed) return null
+const PAGE_SEP_RE = /---\s*[Pp]age\s*(\d+)\s*---/
+const H1_RE = /^(الباب|التوطئة|المقدمة|المحتوي|المحتوى|TITRE\b|PARTIE\b|PRÉAMBULE|PREAMBLE)/i
+const H2_RE = /^(القسم|الفرع|CHAPITRE\b|Section\b|SECTION\b)/i
+const H3_RE = /^(الفصل|المادة|Art\.\s|Article\s|ARTICLE\s)/i
 
-    const lines = trimmed.split('\n')
-    const firstLine = lines[0].trim()
+/** Sépare "الفصل الأول: contenu" → { before: "الفصل الأول", after: "contenu" } */
+function splitAtFirstSep(line: string): { before: string; after?: string } {
+  const colonIdx = line.indexOf(':')
+  if (colonIdx > 0 && colonIdx <= 70) {
+    const before = line.substring(0, colonIdx).trim()
+    const after = line.substring(colonIdx + 1).trim()
+    return { before, after: after || undefined }
+  }
+  const dashMatch = line.match(/^(.{1,70}?)\s[-–]\s(.+)$/)
+  if (dashMatch) return { before: dashMatch[1].trim(), after: dashMatch[2].trim() }
+  return { before: line }
+}
 
-    if (ARTICLE_HEADING_PATTERN.test(firstLine)) {
-      const rest = lines.slice(1).join('\n').trim()
-      return (
-        <div key={pi} className="mb-6">
-          <h3
-            className={`text-[15px] font-bold text-gray-800 mb-2 border-b border-gray-200 pb-1 ${isRtl ? 'text-right' : ''}`}
-          >
-            {firstLine}
-          </h3>
-          {rest && (
-            <p
-              className={`text-gray-700 whitespace-pre-wrap ${isRtl ? 'text-right' : ''}`}
-              style={{ lineHeight: isRtl ? '2.2' : '1.85' }}
-            >
-              {rest}
-            </p>
-          )}
-        </div>
-      )
+/** Filtre les lignes OCR trop bruitées (beaucoup de majuscules latines isolées) */
+function isOcrNoise(line: string): boolean {
+  if (line.length < 3) return true
+  const latinCaps = (line.match(/[A-Z]/g) || []).length
+  const total = line.length
+  return latinCaps > 8 && latinCaps / total > 0.4
+}
+
+function parseDocumentNodes(text: string): DocNode[] {
+  const lines = text.split('\n')
+  const nodes: DocNode[] = []
+  let pendingLines: string[] = []
+
+  const flushPara = () => {
+    if (pendingLines.length === 0) return
+    const joined = pendingLines.join('\n').trim()
+    if (joined) nodes.push({ type: 'p', text: joined })
+    pendingLines = []
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim()
+
+    if (!line) {
+      flushPara()
+      continue
     }
 
-    return (
-      <p
-        key={pi}
-        className={`mb-5 text-gray-700 whitespace-pre-wrap ${isRtl ? 'text-right' : ''}`}
-        style={{ lineHeight: isRtl ? '2.2' : '1.85' }}
-      >
-        {trimmed}
-      </p>
-    )
+    // Séparateur de page
+    const pageMatch = line.match(PAGE_SEP_RE)
+    if (pageMatch) {
+      flushPara()
+      nodes.push({ type: 'page', pageNum: parseInt(pageMatch[1]) })
+      // Texte éventuel après le séparateur sur la même ligne
+      const rest = line.replace(PAGE_SEP_RE, '').trim()
+      if (rest && !isOcrNoise(rest)) pendingLines.push(rest)
+      continue
+    }
+
+    if (isOcrNoise(line)) continue
+
+    if (H1_RE.test(line)) {
+      flushPara()
+      const { before, after } = splitAtFirstSep(line)
+      nodes.push({ type: 'h1', heading: before, body: after })
+      continue
+    }
+    if (H2_RE.test(line)) {
+      flushPara()
+      const { before, after } = splitAtFirstSep(line)
+      nodes.push({ type: 'h2', heading: before, body: after })
+      continue
+    }
+    if (H3_RE.test(line)) {
+      flushPara()
+      const { before, after } = splitAtFirstSep(line)
+      nodes.push({ type: 'h3', heading: before, body: after })
+      continue
+    }
+
+    pendingLines.push(line)
+  }
+
+  flushPara()
+  return nodes
+}
+
+function renderDocumentNodes(nodes: DocNode[], isRtl: boolean) {
+  const dir = isRtl ? 'rtl' : 'ltr'
+  const textAlign = isRtl ? 'text-right' : 'text-left'
+  const borderSide = isRtl ? 'border-r-4 pr-4' : 'border-l-4 pl-4'
+  const articleFlex = isRtl ? 'flex-row-reverse' : 'flex-row'
+
+  return nodes.map((node, i) => {
+    switch (node.type) {
+      case 'page':
+        return (
+          <div key={i} className="flex items-center gap-3 my-8 select-none" dir="ltr">
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+            <span className="text-[11px] text-gray-400 dark:text-gray-500 font-mono px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              {isRtl ? `صفحة ${node.pageNum}` : `Page ${node.pageNum}`}
+            </span>
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+          </div>
+        )
+
+      case 'h1':
+        return (
+          <div key={i} className={`mt-12 mb-6 first:mt-0 ${borderSide} border-indigo-500 dark:border-indigo-400`} dir={dir}>
+            <h2 className={`text-xl font-bold text-indigo-700 dark:text-indigo-300 ${textAlign}`}>
+              {node.heading}
+            </h2>
+            {node.body && (
+              <p className={`mt-2 text-gray-600 dark:text-gray-400 text-[15px] ${textAlign}`}
+                style={{ lineHeight: isRtl ? '2.0' : '1.75' }}>
+                {node.body}
+              </p>
+            )}
+          </div>
+        )
+
+      case 'h2':
+        return (
+          <div key={i} className="mt-8 mb-4" dir={dir}>
+            <div className={`${borderSide} border-teal-500 dark:border-teal-400`}>
+              <h3 className={`text-[17px] font-semibold text-teal-700 dark:text-teal-300 ${textAlign}`}>
+                {node.heading}
+              </h3>
+              {node.body && (
+                <p className={`mt-1.5 text-gray-600 dark:text-gray-300 text-[14px] ${textAlign}`}
+                  style={{ lineHeight: isRtl ? '2.0' : '1.7' }}>
+                  {node.body}
+                </p>
+              )}
+            </div>
+          </div>
+        )
+
+      case 'h3':
+        return (
+          <div key={i}
+            className="my-3 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/25 px-4 py-3"
+            dir={dir}>
+            <div className={`flex gap-3 ${articleFlex} items-start`}>
+              <span className="text-[12px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/60 px-2.5 py-1 rounded-md whitespace-nowrap flex-shrink-0 mt-0.5 border border-amber-200 dark:border-amber-700/50">
+                {node.heading}
+              </span>
+              {node.body && (
+                <p className={`text-gray-800 dark:text-gray-200 flex-1 ${textAlign}`}
+                  style={{ fontSize: isRtl ? '16px' : '15px', lineHeight: isRtl ? '2.0' : '1.8' }}>
+                  {node.body}
+                </p>
+              )}
+            </div>
+          </div>
+        )
+
+      case 'p': {
+        const text = node.text || ''
+        if (!text) return null
+        return (
+          <p key={i}
+            className={`mb-5 text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${textAlign}`}
+            dir={dir}
+            style={{
+              lineHeight: isRtl ? '2.1' : '1.85',
+              fontSize: isRtl ? '16.5px' : '15px',
+            }}>
+            {text}
+          </p>
+        )
+      }
+
+      default:
+        return null
+    }
   })
 }
 
@@ -395,12 +536,12 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
           {/* Contenu complet — style page publique */}
           <div className="rounded-xl overflow-hidden shadow-sm border border-slate-200/10">
             {/* Barre supérieure du viewer */}
-            <div className="bg-slate-700/50 border-b border-slate-600/40 px-5 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-slate-400">
+            <div className="bg-slate-100 dark:bg-slate-700/50 border-b border-slate-300 dark:border-slate-600/40 px-5 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                 <Icons.fileText className="h-4 w-4" />
                 <span>Contenu du document</span>
                 {document.fullText && (
-                  <span className="text-slate-500">
+                  <span className="text-slate-500 dark:text-slate-500">
                     · {document.fullText.length.toLocaleString('fr-FR')} caractères
                   </span>
                 )}
@@ -409,7 +550,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                 size="sm"
                 variant="ghost"
                 onClick={handleCopy}
-                className="h-7 text-xs text-slate-400 hover:text-white"
+                className="h-7 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               >
                 {copied ? (
                   <>
@@ -425,16 +566,14 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
               </Button>
             </div>
 
-            {/* Zone de lecture — fond blanc, rendu document */}
-            <div
-              className="bg-white rounded-b-xl px-10 py-10"
-              dir={isRtl ? 'rtl' : 'ltr'}
-              style={{ fontSize: isRtl ? '17px' : '15.5px' }}
-            >
+            {/* Zone de lecture — fond adaptatif dark/light */}
+            <div className="bg-white dark:bg-slate-900 rounded-b-xl px-10 py-10">
               {document.fullText ? (
-                renderLegalContent(document.fullText, isRtl)
+                renderDocumentNodes(parseDocumentNodes(document.fullText), isRtl)
               ) : (
-                <p className="text-gray-400 italic text-center py-16">Aucun contenu disponible</p>
+                <p className="text-gray-400 dark:text-slate-500 italic text-center py-16">
+                  Aucun contenu disponible
+                </p>
               )}
             </div>
           </div>

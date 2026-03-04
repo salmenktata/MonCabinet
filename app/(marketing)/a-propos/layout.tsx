@@ -7,6 +7,14 @@ export const metadata: Metadata = {
     title: 'À propos — Qadhya',
     description: 'Simplifier la pratique juridique en Tunisie avec des outils modernes.',
     url: 'https://qadhya.tn/a-propos',
+    type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'À propos de Qadhya' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'À propos — Qadhya',
+    description: 'Simplifier la pratique juridique en Tunisie avec des outils modernes.',
+    images: ['/opengraph-image'],
   },
 }
 

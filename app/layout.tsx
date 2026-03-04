@@ -29,8 +29,18 @@ const notoSansArabic = Noto_Sans_Arabic({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://qadhya.tn'),
   title: 'Qadhya - Gestion de Cabinet Juridique',
   description: 'Qadhya - Plateforme SaaS pour la gestion de cabinet juridique en Tunisie',
+  openGraph: {
+    type: 'website',
+    locale: 'fr_TN',
+    siteName: 'Qadhya',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@qadhya_tn',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico?v=2', sizes: 'any' },

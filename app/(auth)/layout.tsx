@@ -7,6 +7,7 @@ import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 export const metadata: Metadata = {
   title: 'Connexion - Qadhya',
   description: 'Connectez-vous à Qadhya, la plateforme SaaS de gestion de cabinet juridique en Tunisie. Gérez vos dossiers, clients et factures efficacement.',
+  robots: { index: false, follow: false },
 }
 
 function CheckIcon() {
