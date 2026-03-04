@@ -196,10 +196,11 @@ function normalizeForDedup(text: string): string {
  * Appliqué en plus du boost catégorie (codes, jurisprudence…).
  */
 const SOURCE_RELIABILITY_BOOST: Record<string, number> = {
-  iort_gov_tn: 1.20,    // Source officielle état — publication JORT
-  cassation_tn: 1.12,   // Jurisprudence officielle Cour de Cassation
-  '9anoun_tn': 1.08,    // Compilation vérifiée mais non-officielle
-  google_drive: 1.0,    // Documents internes — fiabilité variable
+  iort_gov_tn: 1.20,       // Source officielle état — publication JORT
+  justice_gov_tn: 1.20,    // Ministère de la Justice — codes officiels PDF
+  cassation_tn: 1.12,      // Jurisprudence officielle Cour de Cassation
+  '9anoun_tn': 1.08,       // Compilation vérifiée mais non-officielle
+  google_drive: 1.0,       // Documents internes — fiabilité variable
   autre: 1.0,
 }
 
@@ -969,6 +970,13 @@ export async function searchRelevantContext(
   const cachedResult = await getEnhancedCachedResults(enhancedQuery)
   if (cachedResult) {
     log.info(`[RAG Search] Cache ${cachedResult.metadata.level} HIT - ${cachedResult.results.length} sources (${Date.now() - startTime}ms)`)
+    try {
+      const { applyAmendmentIntelligence } = await import('./rag-amendment-filter')
+      const enriched = await applyAmendmentIntelligence(cachedResult.results as ChatSource[])
+      if (enriched.amendmentWarnings.length > 0) {
+        return { sources: enriched.sources, cacheHit: true, amendmentWarnings: enriched.amendmentWarnings }
+      }
+    } catch { /* non-bloquant */ }
     return { sources: cachedResult.results as ChatSource[], cacheHit: true }
   }
 
