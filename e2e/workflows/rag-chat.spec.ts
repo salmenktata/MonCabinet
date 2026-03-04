@@ -148,6 +148,19 @@ async function askRAG(
       throw lastError
     }
 
+    // 429 = rate limit ou sémaphore occupé → retry après Retry-After (max 15s)
+    if (res.status() === 429) {
+      const retryAfterHeader = res.headers()['retry-after']
+      const retryAfterMs = retryAfterHeader ? Math.min(parseInt(retryAfterHeader, 10) * 1000, 15_000) : 8_000
+      const body = await res.text()
+      lastError = new Error(`/api/chat 429 (rate limit): ${body.substring(0, 150)}`)
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, retryAfterMs))
+        continue
+      }
+      throw lastError
+    }
+
     if (!res.ok()) {
       const body = await res.text()
       throw new Error(`/api/chat ${res.status()}: ${body.substring(0, 300)}`)

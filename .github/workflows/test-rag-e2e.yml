@@ -41,27 +41,24 @@ jobs:
         if: github.event_name == 'workflow_run'
         run: sleep 60  # Attendre 60s après déploiement
 
-      - name: Reset E2E test account quota
+      - name: Reset E2E test account quota + circuit breakers
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
           echo "$VPS_SSH_KEY" > /tmp/vps_key && chmod 600 /tmp/vps_key
+          # Reset quota DB : monthly_ai_queries_used + trial_ai_uses_remaining
           ssh -i /tmp/vps_key -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" \
             "docker exec qadhya-postgres psql -U moncabinet -d qadhya -c \
-            \"UPDATE feature_flags SET monthly_ai_queries_used = 0 WHERE user_id = (SELECT id FROM users WHERE email = 'e2e-test@qadhya.tn');\""
-          rm -f /tmp/vps_key
-
-      - name: Reset Groq circuit breaker (évite faux positifs dus à trafic prod)
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-        run: |
-          echo "$VPS_SSH_KEY" > /tmp/vps_key && chmod 600 /tmp/vps_key
+            \"UPDATE feature_flags SET monthly_ai_queries_used = 0 WHERE user_id = (SELECT id FROM users WHERE email = 'e2e-test@qadhya.tn');
+              UPDATE users SET trial_ai_uses_remaining = 30 WHERE email = 'e2e-test@qadhya.tn';\""
+          # Reset Redis : sémaphore concurrence + circuit breakers LLM
           ssh -i /tmp/vps_key -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" \
-            "docker exec qadhya-redis redis-cli DEL circuit:state:groq circuit:state:gemini ratelimit:gemini:rpm:$(date +%s | python3 -c 'import sys; print(int(sys.stdin.read().strip())//60)') 2>/dev/null || true"
+            "docker exec qadhya-redis redis-cli DEL \
+              chat:semaphore:count \
+              circuit:state:groq circuit:state:gemini circuit:state:deepseek \
+              2>/dev/null || true"
           rm -f /tmp/vps_key
 
       - name: Run E2E Tests - Smoke (groupes 1-6, ~20 appels LLM)
