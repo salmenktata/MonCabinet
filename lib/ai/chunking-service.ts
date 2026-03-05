@@ -856,8 +856,8 @@ export function chunkTextByArticles(
     fr: /(?:^|\n)\s*(?:Article|art\.?)\s+(\d+(?:\s+(?:bis|ter|quater))?)/gi,
     // Arabe: "الفصل 258" ou "فصل 12 مكرر" (chiffres arabes-indiens inclus)
     // ET ordinaux arabes: "الفصل الأوّل", "الفصل الحادي والعشرون", "الفصل المائة وواحد وأربعون"
-    // Lookahead (?=\s*[:\n\r]) pour s'arrêter au ':' (fin d'entête article IORT)
-    ar: /(?:^|\n)\s*(?:الفصل|فصل)\s+([\d\u0660-\u0669]+(?:\s+مكرر)?|ال[\u0600-\u06FF\u064B-\u065F]+(?:\s+[\u0600-\u06FF\u064B-\u065F]+){0,3})(?=\s*[:\n\r])/g,
+    // Lookahead (?=\s*[:\n\rـ\-–]) pour s'arrêter au ':' ou '—' ou tatweel ـ (fin d'entête article)
+    ar: /(?:^|\n)\s*(?:الفصل|فصل)\s+([\d\u0660-\u0669]+(?:\s+مكرر)?|ال[\u0600-\u06FF\u064B-\u065F]+(?:\s+[\u0600-\u06FF\u064B-\u065F]+){0,3})(?=\s*[:\n\rـ\-–])/g,
   }
 
   // Auto-détection langue si non fournie
