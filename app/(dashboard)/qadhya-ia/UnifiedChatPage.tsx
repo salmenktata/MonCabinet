@@ -42,7 +42,6 @@ import {
   conversationKeys,
 } from '@/lib/hooks/useConversations'
 import { useStreamingChat } from '@/lib/hooks/useStreamingChat'
-import type { DocumentType } from '@/lib/categories/doc-types'
 import { useStance } from '@/contexts/StanceContext'
 
 // Clé localStorage par type d'action pour éviter la contamination croisée entre pages
@@ -242,7 +241,7 @@ export function UnifiedChatPage({
     deleteConversation(id)
   }, [selectedConversationId, deleteConversation])
 
-  const handleSendMessage = useCallback((content: string, options?: { docType?: DocumentType }) => {
+  const handleSendMessage = useCallback((content: string) => {
     setPendingUserMessage(content)
     // Streaming SSE uniquement pour le mode 'chat' (structure/consult retournent du JSON)
     const useStream = currentAction === 'chat'
@@ -254,7 +253,6 @@ export function UnifiedChatPage({
       {
         actionType: currentAction,
         stance,
-        ...(options?.docType ? { docType: options.docType } : {}),
       }
     )
   }, [selectedConversationId, currentAction, stance, streamSend])
