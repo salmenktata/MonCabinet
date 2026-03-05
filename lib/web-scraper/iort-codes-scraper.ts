@@ -376,18 +376,31 @@ const IGNORED_LOOPER_PREFIXES = new Set(['A1', 'M1', 'M2'])
 const TOC_LOOPER_PREFIXES = new Set(['A1', 'A2', 'A4', 'B2', 'B4', 'C2', 'C4', 'D2', 'D4', 'E4', 'M18', 'M78', 'M110', 'M81', 'M59'])
 
 /**
- * Clique sur un item de looper via JS (clic sur le lien à l'intérieur du div).
- * Utilisé pour l'expansion du TOC lazy-loaded.
+ * Clique sur un item de looper via Playwright real click (mouse events réels).
+ * Le clic JS via page.evaluate() ne déclenche pas les handlers WebDev correctement.
  */
 async function clickLooperItem(page: Page, looperId: string, resultIndex: number): Promise<boolean> {
-  return page.evaluate(([lid, idx]: [string, number]) => {
-    const div = document.querySelector(`div#${lid}_${idx}`)
-    if (!div) return false
-    const link = div.querySelector('a, [onclick], input[type="button"]') as HTMLElement | null
-    if (link) { link.click(); return true }
-    ;(div as HTMLElement).click()
-    return true
-  }, [looperId, resultIndex] as [string, number])
+  const divSelector = `div#${looperId}_${resultIndex}`
+  try {
+    // Essaie d'abord le lien/bouton à l'intérieur (réel mouse click via Playwright)
+    const linkHandle = await page.$(`${divSelector} a, ${divSelector} [onclick], ${divSelector} input[type="button"]`)
+    if (linkHandle) {
+      await linkHandle.click({ force: true }).catch(() => {})
+      return true
+    }
+    const divHandle = await page.$(divSelector)
+    if (divHandle) {
+      await divHandle.click({ force: true }).catch(() => {})
+      return true
+    }
+  } catch {
+    // fallback JS click
+    await page.evaluate((sel) => {
+      const div = document.querySelector(sel) as HTMLElement | null
+      if (div) div.click()
+    }, divSelector)
+  }
+  return false
 }
 
 /** Retourne le nombre d'items de chaque looper présent dans la page */
@@ -537,15 +550,28 @@ async function expandViaParentLooper(
   const initialChildCount = childItems.length
   const initialChildKeys = new Set(childItems.map(x => x.title.substring(0, 30)))
 
-  // Chercher tous les autres loopers disponibles
+  // Chercher tous les autres loopers disponibles (sans filtre arabe pour les candidats)
   const snapshot = await snapshotLoopers(page)
   const candidates = Object.keys(snapshot).filter(
     pfx => pfx !== childPrefix && pfx !== 'A1' && !IGNORED_LOOPER_PREFIXES.has(pfx) && snapshot[pfx] >= 2,
   )
+  console.log(`[IORT DEBUG] expandViaParentLooper candidates: ${candidates.join(', ')} (childPrefix=${childPrefix})`)
 
   for (const parentPrefix of candidates) {
-    const parentRaw = await extractLooperItems(page, parentPrefix)
-    if (!parentRaw || parentRaw.length < 2) continue
+    // Récupérer items sans filtre arabe (navigation peut être non-arabe)
+    const parentRaw = await page.evaluate((pfx) => {
+      const els = Array.from(document.querySelectorAll(`div[id^="${pfx}_"]`))
+      return els.map(el => {
+        const idMatch = el.id.match(/(\d+)$/)
+        const index = idMatch ? parseInt(idMatch[1], 10) : 0
+        const text = (el.textContent || '').trim().replace(/\s+/g, ' ')
+        const link = el.querySelector('a, [onclick]') as HTMLElement | null
+        const onclick = link?.getAttribute('onclick') || ''
+        return { index, text: text.substring(0, 200), depth: 0, onclick }
+      }).filter(x => x && x.index > 0)
+    }, parentPrefix) as Array<{ index: number; text: string; depth: number; onclick: string }>
+
+    if (!parentRaw || parentRaw.length < 1) continue
 
     console.log(
       `[IORT Codes] Test parent ${parentPrefix} (${parentRaw.length} items): ${parentRaw.map(x => x.text.substring(0, 20)).join(' | ')}`,
@@ -792,6 +818,39 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
       // Expansion hiérarchique si le looper découvert a peu d'items (TOC lazy-loaded)
       if (tocItems.length < 15) {
         console.log(`[IORT Codes] ${prefix} superficiel (${tocItems.length} items) — expansion...`)
+
+        // Debug: dump ALL loopers + M3 raw + content areas pour diagnostiquer
+        const domDebug = await page.evaluate(() => {
+          const loopers: Record<string, { count: number; items: Array<{ id: string; text: string }> }> = {}
+          for (const el of document.querySelectorAll('[id]')) {
+            const m = el.id.match(/^([A-Z]\d+)_(\d+)$/)
+            if (!m) continue
+            const pfx = m[1]
+            if (!loopers[pfx]) loopers[pfx] = { count: 0, items: [] }
+            loopers[pfx].count++
+            if (loopers[pfx].items.length < 4) {
+              loopers[pfx].items.push({ id: el.id, text: (el.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 60) })
+            }
+          }
+          const treeItems: string[] = []
+          for (const el of document.querySelectorAll('li, [class*="tree"], [class*="toc"], [class*="nav"]')) {
+            const text = (el.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 60)
+            if (text && /[\u0600-\u06FF]/.test(text)) { treeItems.push(text); if (treeItems.length >= 8) break }
+          }
+          const contentAreas: Array<{ id: string; len: number; preview: string }> = []
+          for (const el of document.querySelectorAll('div[id], td[id]') as NodeListOf<HTMLElement>) {
+            const text = (el.textContent || '').trim()
+            if (text.length > 300 && /[\u0600-\u06FF]{20,}/.test(text) && !el.id.match(/^[A-Z]\d+_/)) {
+              contentAreas.push({ id: el.id, len: text.length, preview: text.substring(0, 80) })
+              if (contentAreas.length >= 4) break
+            }
+          }
+          return { loopers, treeItems, contentAreas }
+        })
+        console.log('[IORT DEBUG] Loopers:', JSON.stringify(domDebug.loopers).substring(0, 1000))
+        console.log('[IORT DEBUG] TreeItems:', JSON.stringify(domDebug.treeItems))
+        console.log('[IORT DEBUG] ContentAreas:', JSON.stringify(domDebug.contentAreas).substring(0, 600))
+
         try {
           // Stratégie A : expansion directe (drill-down ou looper suivant)
           const expanded = await expandTocHierarchy(page, prefix, tocItems)
