@@ -1477,7 +1477,7 @@ async function crawlCodesJuridiquesPage(
 ): Promise<void> {
   console.log('[IORT Codes] PAGE_CodesJuridiques — navigation T-link → L1 → T2 → L2...')
 
-  const codesJuridiquesUrl = page.url()
+  const _codesJuridiquesUrl = page.url()
 
   // ─── Phase 1 : découverte des T2 sub-links (clic T-link[0] → L1) ──────────
   const firstTLinkText = await page.evaluate(() => {
@@ -1526,7 +1526,7 @@ async function crawlCodesJuridiquesPage(
     // Ne pas appeler session.tick() ici : il navigue vers la page de recherche
     // (createContext + navigateToSearch) et ferme le contexte WebDev codes.
     // Le crawl des codes gère sa propre navigation — on incrémente juste le compteur.
-    ;(session as any).pageCount = ((session as any).pageCount ?? 0) + 1
+    ;(session as unknown as Record<string, number>).pageCount = ((session as unknown as Record<string, number>).pageCount ?? 0) + 1
 
     // Navigation fraîche vers L1 (URL de session stable)
     await page.goto(l1Url, { waitUntil: 'load', timeout: 60000 })
