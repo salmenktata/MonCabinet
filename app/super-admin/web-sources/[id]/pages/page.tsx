@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ page?: string; status?: string; search?: string }>
+  searchParams: Promise<{ page?: string; status?: string; search?: string; code?: string }>
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -36,11 +36,12 @@ async function getSourcePages(
   sourceId: string,
   page: number,
   status?: string,
-  search?: string
+  search?: string,
+  code?: string
 ) {
   // Vérifier que la source existe
   const sourceResult = await db.query(
-    `SELECT id, name, base_url, category FROM web_sources WHERE id = $1`,
+    `SELECT id, name, base_url, categories FROM web_sources WHERE id = $1`,
     [sourceId]
   )
 
@@ -64,6 +65,12 @@ async function getSourcePages(
   if (search) {
     whereClause += ` AND (title ILIKE $${paramIndex} OR url ILIKE $${paramIndex})`
     params.push(`%${search}%`)
+    paramIndex++
+  }
+
+  if (code) {
+    whereClause += ` AND detected_category = $${paramIndex}`
+    params.push(code)
     paramIndex++
   }
 
@@ -134,10 +141,10 @@ export default async function WebSourcePagesPage({
   searchParams,
 }: PageProps) {
   const { id } = await params
-  const { page: pageParam, status, search } = await searchParams
+  const { page: pageParam, status, search, code } = await searchParams
   const page = parseInt(pageParam || '1', 10)
 
-  const data = await getSourcePages(id, page, status, search)
+  const data = await getSourcePages(id, page, status, search, code)
 
   if (!data) {
     notFound()

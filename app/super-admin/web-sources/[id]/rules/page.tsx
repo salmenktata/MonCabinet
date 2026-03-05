@@ -28,7 +28,7 @@ interface PageProps {
 async function getRulesData(webSourceId: string) {
   // Récupérer la source
   const sourceResult = await db.query(
-    'SELECT id, name, base_url, category FROM web_sources WHERE id = $1',
+    'SELECT id, name, base_url, categories FROM web_sources WHERE id = $1',
     [webSourceId]
   )
 
