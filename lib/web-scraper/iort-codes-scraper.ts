@@ -404,8 +404,12 @@ async function snapshotLoopers(page: Page): Promise<Record<string, number>> {
 
 /**
  * Expansion générique du TOC lazy-loaded basée sur diff de loopers.
- * Après chaque clic, détecte quel looper a CHANGÉ (apparu ou grossi) pour
- * identifier les sous-items — fonctionne pour A4→B4 comme pour A2→B2, etc.
+ *
+ * Deux cas détectés :
+ * 1. Drill-down : cliquer A2_N change A2 lui-même (même looper, items différents)
+ * 2. Expansion classique : cliquer A4_N charge B4 (looper différent apparaît/grossit)
+ *
+ * Après chaque clic, compare snapshot avant/après pour trouver quel looper a changé.
  */
 async function expandTocHierarchy(
   page: Page,
@@ -416,36 +420,80 @@ async function expandTocHierarchy(
   if (currentDepth >= 4) return topItems  // sécurité anti-boucle
   if (topItems.length === 0) return topItems
 
+  // Snapshot de référence (état initial du looper de départ)
+  const initialItems = await extractLooperItems(page, startPrefix)
+  const initialKeys = new Set((initialItems ?? []).map(x => x.text.substring(0, 30)))
+
   const allItems: IortTocItem[] = []
 
   for (const item of topItems) {
-    // Snapshot avant clic
     const before = await snapshotLoopers(page)
 
     await clickLooperItem(page, startPrefix, item.resultIndex)
     await sleep(2500)
 
-    // Snapshot après clic — trouver le looper qui a grossi/apparu
     const after = await snapshotLoopers(page)
 
-    // Trouver le looper avec la plus forte croissance (excl. startPrefix et ignorés)
+    // Trouver le looper avec la plus forte variation absolue
+    // Inclure startPrefix pour détecter drill-down (A2 se modifie lui-même)
     let bestPrefix: string | null = null
-    let bestGrowth = 0
+    let bestChange = 0
     for (const [pfx, count] of Object.entries(after)) {
-      if (pfx === startPrefix || IGNORED_LOOPER_PREFIXES.has(pfx)) continue
-      const growth = count - (before[pfx] ?? 0)
-      if (growth > bestGrowth) {
-        bestGrowth = growth
+      if (IGNORED_LOOPER_PREFIXES.has(pfx)) continue
+      const beforeCount = before[pfx] ?? 0
+      const change = Math.abs(count - beforeCount)
+      if (change > bestChange) {
+        bestChange = change
         bestPrefix = pfx
       }
     }
 
-    if (!bestPrefix || bestGrowth < 2) {
+    if (!bestPrefix || bestChange < 2) {
       // Aucun looper n'a changé → cet item est une feuille (article réel)
       allItems.push(item)
       continue
     }
 
+    // Cas drill-down : startPrefix s'est modifié lui-même
+    if (bestPrefix === startPrefix) {
+      const newItems = await extractLooperItems(page, startPrefix)
+      if (!newItems || newItems.length < 2) {
+        allItems.push(item)
+        continue
+      }
+
+      // Vérifier que le contenu a vraiment changé (pas seulement le count)
+      const newKeys = new Set(newItems.map(x => x.text.substring(0, 30)))
+      const hasNewContent = [...newKeys].some(k => !initialKeys.has(k))
+
+      if (!hasNewContent) {
+        // Même contenu → feuille
+        allItems.push(item)
+        continue
+      }
+
+      console.log(
+        `[IORT Codes] Drill-down ${startPrefix}: clic sur "${item.title.substring(0, 35)}" → ${newItems.length} sous-items`,
+      )
+
+      const subItems: IortTocItem[] = newItems.map(x => ({
+        title: x.text,
+        resultIndex: x.index,
+        depth: item.depth + 1,
+        looperId: startPrefix,
+        onclick: x.onclick || undefined,
+      }))
+
+      if (subItems.length < 15) {
+        const deeper = await expandTocHierarchy(page, startPrefix, subItems, currentDepth + 1)
+        allItems.push(...deeper)
+      } else {
+        allItems.push(...subItems)
+      }
+      continue
+    }
+
+    // Cas expansion classique : un autre looper a grossi
     const subRaw = await extractLooperItems(page, bestPrefix)
     if (!subRaw || subRaw.length < 2) {
       allItems.push(item)
@@ -464,7 +512,6 @@ async function expandTocHierarchy(
       onclick: x.onclick || undefined,
     }))
 
-    // Récursion si toujours peu d'items (niveau intermédiaire)
     if (subItems.length < 15) {
       const deeper = await expandTocHierarchy(page, bestPrefix!, subItems, currentDepth + 1)
       allItems.push(...deeper)
@@ -474,6 +521,81 @@ async function expandTocHierarchy(
   }
 
   return allItems
+}
+
+/**
+ * Sur PAGE_CodesJuridiques, tente de trouver un looper "parent" qui contrôle
+ * le looper primaire (ex: M3 contrôle A2 — M3 = livres, A2 = articles du livre sélectionné).
+ * Retourne les items collectés en itérant sur le looper parent.
+ */
+async function expandViaParentLooper(
+  page: Page,
+  childPrefix: string,
+  childItems: IortTocItem[],
+): Promise<IortTocItem[]> {
+  // Snapshot initial de childPrefix
+  const initialChildCount = childItems.length
+  const initialChildKeys = new Set(childItems.map(x => x.title.substring(0, 30)))
+
+  // Chercher tous les autres loopers disponibles
+  const snapshot = await snapshotLoopers(page)
+  const candidates = Object.keys(snapshot).filter(
+    pfx => pfx !== childPrefix && pfx !== 'A1' && !IGNORED_LOOPER_PREFIXES.has(pfx) && snapshot[pfx] >= 2,
+  )
+
+  for (const parentPrefix of candidates) {
+    const parentRaw = await extractLooperItems(page, parentPrefix)
+    if (!parentRaw || parentRaw.length < 2) continue
+
+    // Test : cliquer le premier item parent → voir si childPrefix change
+    await clickLooperItem(page, parentPrefix, parentRaw[0].index)
+    await sleep(2500)
+
+    const newChildRaw = await extractLooperItems(page, childPrefix)
+    const newChildCount = newChildRaw?.length ?? 0
+    const newChildKeys = new Set((newChildRaw ?? []).map(x => x.text.substring(0, 30)))
+    const childChanged = newChildCount !== initialChildCount ||
+      [...newChildKeys].some(k => !initialChildKeys.has(k))
+
+    if (!childChanged) continue
+
+    // parentPrefix contrôle childPrefix → itérer sur tous les items parent
+    console.log(`[IORT Codes] ${parentPrefix} contrôle ${childPrefix} — expansion complète...`)
+    const allItems: IortTocItem[] = []
+
+    // Ajouter les items chargés par le premier clic
+    if (newChildRaw && newChildRaw.length >= 2) {
+      allItems.push(...newChildRaw.map(x => ({
+        title: x.text,
+        resultIndex: x.index,
+        depth: 1,
+        looperId: childPrefix,
+        onclick: x.onclick || undefined,
+      })))
+    }
+
+    // Itérer sur les items restants du parent (index 2, 3, ...)
+    for (const parentItem of parentRaw.slice(1)) {
+      await clickLooperItem(page, parentPrefix, parentItem.index)
+      await sleep(2500)
+
+      const items = await extractLooperItems(page, childPrefix)
+      if (!items || items.length < 2) continue
+
+      allItems.push(...items.map(x => ({
+        title: x.text,
+        resultIndex: x.index,
+        depth: 1,
+        looperId: childPrefix,
+        onclick: x.onclick || undefined,
+      })))
+    }
+
+    console.log(`[IORT Codes] ${parentPrefix}→${childPrefix}: ${allItems.length} items total`)
+    return allItems
+  }
+
+  return []  // Aucun parent trouvé
 }
 
 /**
@@ -653,10 +775,18 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
       if (tocItems.length < 15) {
         console.log(`[IORT Codes] ${prefix} superficiel (${tocItems.length} items) — expansion...`)
         try {
+          // Stratégie A : expansion directe (drill-down ou looper suivant)
           const expanded = await expandTocHierarchy(page, prefix, tocItems)
           if (expanded.length > tocItems.length) {
-            console.log(`[IORT Codes] Expansion ${prefix}: ${tocItems.length} → ${expanded.length} items`)
+            console.log(`[IORT Codes] Expansion directe ${prefix}: ${tocItems.length} → ${expanded.length} items`)
             return expanded
+          }
+
+          // Stratégie B : looper parent qui contrôle ce looper (ex: M3 → A2)
+          const viaParent = await expandViaParentLooper(page, prefix, tocItems)
+          if (viaParent.length > tocItems.length) {
+            console.log(`[IORT Codes] Expansion via parent: ${tocItems.length} → ${viaParent.length} items`)
+            return viaParent
           }
         } catch (err) {
           console.warn('[IORT Codes] Expansion looper découvert échouée:', err)
