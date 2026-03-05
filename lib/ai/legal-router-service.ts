@@ -80,7 +80,7 @@ const DOMAIN_TO_BRANCHES: Array<{ keywords: string[]; branches: string[] }> = [
     branches: ['commercial'],
   },
   {
-    keywords: ['fiscal', 'droit fiscal', 'ضريبي', 'جبائي', 'ضريبة', 'أداء', 'impôt', 'TVA', 'جباية'],
+    keywords: ['fiscal', 'droit fiscal', 'ضريبي', 'جبائي', 'ضريبة', 'أداء', 'impôt', 'TVA', 'جباية', 'douane', 'ديوانة', 'جمارك', 'droits de douane', 'droit douanier'],
     branches: ['fiscal'],
   },
   {

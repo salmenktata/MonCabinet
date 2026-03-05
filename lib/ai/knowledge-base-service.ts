@@ -1250,6 +1250,10 @@ function getTargetCodeTitleFragment(queryText: string, lang: string): string | n
   if (/الرسم العقاري|تسجيل.*عقار|العقارات|الشفعة|حقوق عينية|الحقوق العينية|الحيازة المكسبة|حق الانتفاع|الارتفاق|عقد الكراء|المستأجر|الايجار.*عقار|الكراء.*سكني|الكراء.*تجاري|copropriété|servitude|immatriculation foncière|hypothèque|bail.*habitation|bail.*commercial|vente.*immeuble.*constru|expropriation|saisie.*immobilière|droit.*immobilier|propriété.*foncière|registre.*foncier|عقد.*بيع.*عقار|شروط.*بيع.*عقار|حقوق المستأجر|طرد.*مستأجر|expulsion.*locataire|fin.*bail|vente.*immobilière|conflits.*propriétaires.*immeu|شروط.*الكراء/.test(queryText)) {
     return 'مجلة الحقوق العينية'
   }
+  // Customs Code — مجلة الديوانة (avant Fiscal/COC pour éviter collision avec الجباية)
+  if (/مجلة الديوانة|الديوانة|douane|droit douanier|droits de douane|جمارك|معلوم ديواني|المعلوم الديواني|إجراءات جمركية|التهريب الجمركي/.test(queryText)) {
+    return 'مجلة الديوانة'
+  }
   // Fiscal — المجلة الجبائية (avant COC pour éviter "prescription civile" collision)
   if (/TVA|IRPP|impôt.*société|impôt.*sociétés|retenue.*source|prescription.*fiscal|tranche.*imposition|contribuable|déclaration.*fiscale|ضريبة على الشركات|ضريبة على الدخل|معدل الضريبة|الجباية|المجلة الجبائية|التهرب الضريبي/.test(queryText)) {
     return 'المجلة الجبائية'
@@ -1775,6 +1779,19 @@ export async function searchKnowledgeBaseHybrid(
       if (/^\d+$/.test(artNum) || targetCodeFragment) {
         searchPromises.push(searchArticleByTextMatch(artNum, targetCodeFragment))
         providerLabels.push('article-text')
+        // Fix Mar 5 2026: certains codes (مجلة الديوانة) stockent "الفصل 1" (chiffre) au lieu de
+        // "الفصل الأول" (ordinal). Chercher aussi la version numérique quand artNum est un ordinal.
+        if (!/^\d+$/.test(artNum)) {
+          const _ORDINAL_TO_NUM: Record<string, string> = {
+            'الاول': '1', 'الثاني': '2', 'الثالث': '3', 'الرابع': '4', 'الخامس': '5',
+            'السادس': '6', 'السابع': '7', 'الثامن': '8', 'التاسع': '9', 'العاشر': '10',
+          }
+          const numVersion = _ORDINAL_TO_NUM[artNum]
+          if (numVersion) {
+            searchPromises.push(searchArticleByTextMatch(numVersion, targetCodeFragment))
+            providerLabels.push('article-text')
+          }
+        }
       }
     }
   }

@@ -64,6 +64,7 @@ const DOMAIN_POSITIVE_TERMS: Record<string, string[]> = {
   ],
   fiscal: [
     'ضرائب', 'ضريبة', 'جبائي', 'fiscal', 'impôt', 'TVA',
+    'ديوانة', 'جمارك', 'douane', 'معلوم ديواني',
   ],
   administratif: [
     'إداري', 'administratif', 'صفقات عمومية', 'marchés publics', 'المحكمة الإدارية',
