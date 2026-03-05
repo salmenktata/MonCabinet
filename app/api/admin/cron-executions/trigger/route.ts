@@ -191,6 +191,11 @@ const CRON_SCRIPTS: Record<string, { script: string; description: string; estima
     description: 'Nettoyage logs RAG (TTL 90j)',
     estimatedDuration: 60000,
   },
+  'cleanup-orphan-chunks': {
+    script: 'curl -s -X POST http://localhost:3000/api/admin/cleanup-orphan-chunks -H "X-Cron-Secret: $CRON_SECRET"',
+    description: 'Nettoyage Chunks KB Orphelins',
+    estimatedDuration: 5000,
+  },
   'analyze-web-pages-quality': {
     script: '/opt/qadhya/scripts/cron-analyze-web-pages-quality.sh',
     description: 'Analyse Qualité Web Pages (quality_score NULL)',
