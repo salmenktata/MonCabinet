@@ -7,24 +7,15 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import type { ModeConfig } from '@/app/(dashboard)/qadhya-ia/mode-config'
-import { ALL_DOC_TYPES, DOC_TYPE_TRANSLATIONS, type DocumentType } from '@/lib/categories/doc-types'
 
 interface ChatInputProps {
-  onSend: (message: string, options?: { docType?: DocumentType }) => void
+  onSend: (message: string) => void
   onStop?: () => void
   isStreaming?: boolean
   disabled?: boolean
   placeholder?: string
   modeConfig?: ModeConfig
-  showDocTypeFilter?: boolean
   /** Incrémentez cette valeur pour déclencher l'auto-focus du textarea */
   focusKey?: number
   /** ID de la conversation pour le draft auto-save */
@@ -33,15 +24,6 @@ interface ChatInputProps {
 
 const MAX_CHARS = 4000
 
-const DOC_TYPE_ICONS: Record<DocumentType | 'ALL', string> = {
-  ALL: '📚',
-  TEXTES: '📕',
-  JURIS: '⚖️',
-  PROC: '📋',
-  TEMPLATES: '📄',
-  DOCTRINE: '📖',
-}
-
 export function ChatInput({
   onSend,
   onStop,
@@ -49,14 +31,12 @@ export function ChatInput({
   disabled = false,
   placeholder,
   modeConfig,
-  showDocTypeFilter = true,
   focusKey,
   conversationId,
 }: ChatInputProps) {
   const t = useTranslations('assistantIA')
   const locale = useLocale()
   const [message, setMessage] = useState('')
-  const [selectedDocType, setSelectedDocType] = useState<DocumentType | 'ALL'>('ALL')
   const [isListening, setIsListening] = useState(false)
   const [hasSpeechRecognition, setHasSpeechRecognition] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -131,8 +111,7 @@ export function ChatInput({
   const handleSend = () => {
     const trimmed = message.trim()
     if (trimmed && !disabled && !isStreaming) {
-      const options = selectedDocType !== 'ALL' ? { docType: selectedDocType } : undefined
-      onSend(trimmed, options)
+      onSend(trimmed)
       setMessage('')
       localStorage.removeItem(`qadhya_chat_draft_${conversationId || 'new'}`)
       if (textareaRef.current) {
@@ -160,37 +139,6 @@ export function ChatInput({
   return (
     <div className="p-2 sm:p-3 md:p-4">
       <div className="space-y-2">
-        {/* Filtre doc_type */}
-        {showDocTypeFilter && (
-          <div className="flex items-center gap-2 px-1">
-            <span className="text-xs text-muted-foreground">{t('searchIn')}</span>
-            <Select value={selectedDocType} onValueChange={(v) => setSelectedDocType(v as DocumentType | 'ALL')}>
-              <SelectTrigger className="h-7 w-auto min-w-0 sm:min-w-[180px] text-xs">
-                <SelectValue>
-                  <span className="flex items-center gap-1.5">
-                    {DOC_TYPE_ICONS[selectedDocType]}
-                    {selectedDocType === 'ALL' ? t('allTypes') : DOC_TYPE_TRANSLATIONS[selectedDocType as DocumentType].fr}
-                  </span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">
-                  <span className="flex items-center gap-2">
-                    {DOC_TYPE_ICONS.ALL} {t('allTypes')}
-                  </span>
-                </SelectItem>
-                {ALL_DOC_TYPES.map((docType) => (
-                  <SelectItem key={docType} value={docType}>
-                    <span className="flex items-center gap-2">
-                      {DOC_TYPE_ICONS[docType]} {DOC_TYPE_TRANSLATIONS[docType].fr}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
         <div className={cn(
           'relative flex items-end gap-2',
           'rounded-2xl border bg-card shadow-sm',

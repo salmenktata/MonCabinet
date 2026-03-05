@@ -81,6 +81,7 @@ export type ChunkingStrategy =
   | 'adaptive'    // Existant : par taille + catégorie
   | 'article'     // Phase 3 : 1 article = 1 chunk (codes/lois)
   | 'semantic'    // Chunking sémantique via embeddings
+  | 'page'        // PDFs OCR procéduraux : split sur marqueurs --- Page X ---
 
 export interface Chunk {
   content: string
@@ -218,6 +219,75 @@ function createTableChunk(segment: TextSegment, index: number): Chunk {
 // FONCTION PRINCIPALE
 // =============================================================================
 
+// =============================================================================
+// STRATÉGIE 'page' : Chunking page-aware pour PDFs OCR (justice.gov.tn)
+// =============================================================================
+
+/** Nombre de pages OCR à regrouper par chunk pour les PDFs procéduraux */
+const PAGES_PER_CHUNK = 3
+
+/**
+ * Chunking page-aware : utilise les marqueurs "--- Page X ---" générés par l'OCR
+ * comme séparateurs naturels. Regroupe PAGES_PER_CHUNK pages par chunk.
+ * Utilisé pour les PDFs procéduraux de justice.gov.tn où le texte est sparse.
+ */
+function chunkByPageMarkers(text: string, pagesPerChunk = PAGES_PER_CHUNK): Chunk[] {
+  const pagePattern = /---\s*Page\s+(\d+)\s*---/g
+  const pages: { number: number; content: string }[] = []
+
+  let lastIndex = 0
+  let lastPageNum = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pagePattern.exec(text)) !== null) {
+    if (lastIndex > 0) {
+      const content = text.slice(lastIndex, match.index).trim()
+      if (content && content !== '[page vide]' && content.split(/\s+/).filter(Boolean).length >= 10) {
+        pages.push({ number: lastPageNum, content })
+      }
+    }
+    lastPageNum = parseInt(match[1], 10)
+    lastIndex = match.index + match[0].length
+  }
+  // Dernière page
+  if (lastIndex > 0) {
+    const content = text.slice(lastIndex).trim()
+    if (content && content !== '[page vide]' && content.split(/\s+/).filter(Boolean).length >= 10) {
+      pages.push({ number: lastPageNum, content })
+    }
+  }
+
+  if (pages.length === 0) return []
+
+  const chunks: Chunk[] = []
+  for (let i = 0; i < pages.length; i += pagesPerChunk) {
+    const group = pages.slice(i, i + pagesPerChunk)
+    const content = group
+      .map(p => `--- Page ${p.number} ---\n${p.content}`)
+      .join('\n\n')
+    const wordCount = content.split(/\s+/).filter(Boolean).length
+    const firstPage = group[0].number
+    const lastPage = group[group.length - 1].number
+
+    chunks.push({
+      content,
+      index: chunks.length,
+      metadata: {
+        wordCount,
+        charCount: content.length,
+        startPosition: 0,
+        endPosition: content.length,
+        overlapWithPrevious: false,
+        overlapWithNext: false,
+        chunkingStrategy: 'page',
+        pageStart: firstPage,
+        pageEnd: lastPage,
+      },
+    })
+  }
+  return chunks
+}
+
 /**
  * Découpe un texte en chunks avec chevauchement
  * @param text - Texte à découper
@@ -284,6 +354,15 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
   const cleanedText = text.trim()
 
   // Phase 3: Router selon stratégie
+  if (strategy === 'page') {
+    const pageChunks = chunkByPageMarkers(cleanedText)
+    if (pageChunks.length > 0) {
+      console.log(`[Chunking] Stratégie page-aware: ${pageChunks.length} chunks depuis marqueurs --- Page X ---`)
+      return pageChunks
+    }
+    console.log(`[Chunking] Aucun marqueur de page détecté, fallback vers chunking adaptive`)
+  }
+
   if (strategy === 'article') {
     // L'appelant (web-indexer) est responsable du choix de stratégie.
     // On tente toujours le chunking par article quand explicitement demandé.

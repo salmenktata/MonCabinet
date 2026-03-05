@@ -345,15 +345,20 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   const overlap = getOverlapForCategory(kbCategory)
 
   // Découper en chunks selon la catégorie KB
-  // IORT : stratégie article-aware pour détecter "الفصل X" / "Article X" comme séparateurs
-  const chunkingStrategy = (sourceOrigin === 'iort_gov_tn' || ['codes', 'legislation', 'constitution'].includes(kbCategory))
-    ? 'article' : 'adaptive'
+  // - justice_gov_tn : stratégie 'page' — split sur marqueurs --- Page X --- (PDFs OCR procéduraux)
+  // - IORT + codes/legislation/constitution : stratégie 'article' — détecte "الفصل X" / "Article X"
+  // - Autres : stratégie 'adaptive' (par taille + paragraphes)
+  const chunkingStrategy =
+    sourceOrigin === 'justice_gov_tn'
+      ? 'page'
+      : (sourceOrigin === 'iort_gov_tn' || ['codes', 'legislation', 'constitution'].includes(kbCategory))
+        ? 'article'
+        : 'adaptive'
 
-  // Pour la stratégie article, préserver les '\n' pour la détection des marqueurs الفصل X:
+  // Pour les stratégies article et page, préserver les '\n' pour la détection des marqueurs.
   // normalizeText() collapse TOUS les whitespace (dont \n) en un seul espace, ce qui casse
-  // la regex (?:^|\n) de chunkTextByArticles. On utilise une normalisation légère (non-newline
-  // whitespace seulement) pour permettre au chunker de trouver les limites d'articles.
-  const textForChunking = chunkingStrategy === 'article'
+  // la regex (?:^|\n) de chunkTextByArticles et les marqueurs --- Page X ---.
+  const textForChunking = (chunkingStrategy === 'article' || chunkingStrategy === 'page')
     ? (row.extracted_text || '').replace(/\r\n/g, '\n').replace(/[^\S\n]+/g, ' ').trim()
     : normalizedText
 
