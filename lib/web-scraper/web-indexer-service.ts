@@ -358,8 +358,19 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   // Pour les stratégies article et page, préserver les '\n' pour la détection des marqueurs.
   // normalizeText() collapse TOUS les whitespace (dont \n) en un seul espace, ce qui casse
   // la regex (?:^|\n) de chunkTextByArticles et les marqueurs --- Page X ---.
+  //
+  // PIÈGE IORT : le scraper extrait les textes sans \n (tout sur une ligne), ex:
+  //   "...الفصل الأول ـ تحدث...الفصل 2 ـ تسهر...الفصل 3 ـ تتولى..."
+  // → la regex (?:^|\n)(الفصل|Article) ne trouve rien → fallback adaptive → 3 chunks.
+  // Fix : pour les sources IORT avec stratégie 'article', injecter des \n avant chaque الفصل/Article.
+  let rawText = (row.extracted_text || '').replace(/\r\n/g, '\n').replace(/[^\S\n]+/g, ' ').trim()
+  if (chunkingStrategy === 'article' && sourceOrigin === 'iort_gov_tn') {
+    rawText = rawText
+      .replace(/(?<!\n)(الفصل\s+)/g, '\n$1')
+      .replace(/(?<!\n)(Article\s+)/g, '\n$1')
+  }
   const textForChunking = (chunkingStrategy === 'article' || chunkingStrategy === 'page')
-    ? (row.extracted_text || '').replace(/\r\n/g, '\n').replace(/[^\S\n]+/g, ' ').trim()
+    ? rawText
     : normalizedText
 
   const chunks = chunkText(textForChunking, {
