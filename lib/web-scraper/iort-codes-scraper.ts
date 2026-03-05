@@ -369,11 +369,11 @@ export async function selectCodeAndNavigate(page: Page, code: IortCode): Promise
 // TABLE DES MATIÈRES (PAGE_NavigationCode)
 // =============================================================================
 
-/** Séquence hiérarchique des loopers TOC (livre → titre → chapitre → article) */
-const LOOPER_HIERARCHY = ['A4', 'B4', 'C4', 'D4', 'E4']
+/** Loopers à ignorer dans la détection de changements (navigation/A1, etc.) */
+const IGNORED_LOOPER_PREFIXES = new Set(['A1', 'M1', 'M2'])
 
 /** Loopers à exclure lors de la recherche de contenu inline */
-const TOC_LOOPER_PREFIXES = new Set(['A1', 'A4', 'B4', 'C4', 'D4', 'E4', 'M18', 'M78', 'M110', 'M81', 'M59'])
+const TOC_LOOPER_PREFIXES = new Set(['A1', 'A2', 'A4', 'B2', 'B4', 'C2', 'C4', 'D2', 'D4', 'E4', 'M18', 'M78', 'M110', 'M81', 'M59'])
 
 /**
  * Clique sur un item de looper via JS (clic sur le lien à l'intérieur du div).
@@ -390,10 +390,22 @@ async function clickLooperItem(page: Page, looperId: string, resultIndex: number
   }, [looperId, resultIndex] as [string, number])
 }
 
+/** Retourne le nombre d'items de chaque looper présent dans la page */
+async function snapshotLoopers(page: Page): Promise<Record<string, number>> {
+  return page.evaluate(() => {
+    const counts: Record<string, number> = {}
+    for (const el of document.querySelectorAll('[id]')) {
+      const m = el.id.match(/^([A-Z]\d+)_(\d+)$/)
+      if (m) counts[m[1]] = (counts[m[1]] || 0) + 1
+    }
+    return counts
+  })
+}
+
 /**
- * Expansion hiérarchique du TOC lazy-loaded :
- * Pour chaque item de niveau N, clique dessus et collecte les items de niveau N+1.
- * Continue récursivement jusqu'aux feuilles (articles).
+ * Expansion générique du TOC lazy-loaded basée sur diff de loopers.
+ * Après chaque clic, détecte quel looper a CHANGÉ (apparu ou grossi) pour
+ * identifier les sous-items — fonctionne pour A4→B4 comme pour A2→B2, etc.
  */
 async function expandTocHierarchy(
   page: Page,
@@ -402,39 +414,59 @@ async function expandTocHierarchy(
   currentDepth = 0,
 ): Promise<IortTocItem[]> {
   if (currentDepth >= 4) return topItems  // sécurité anti-boucle
+  if (topItems.length === 0) return topItems
 
-  const seqIdx = LOOPER_HIERARCHY.indexOf(startPrefix)
-  if (seqIdx < 0 || seqIdx >= LOOPER_HIERARCHY.length - 1) return topItems
-
-  const nextPrefix = LOOPER_HIERARCHY[seqIdx + 1]
   const allItems: IortTocItem[] = []
 
   for (const item of topItems) {
-    await clickLooperItem(page, startPrefix, item.resultIndex)
-    await sleep(2000)
+    // Snapshot avant clic
+    const before = await snapshotLoopers(page)
 
-    const subRaw = await extractLooperItems(page, nextPrefix)
-    if (!subRaw || subRaw.length === 0) {
-      // Aucun sous-item → cet item est une feuille (article)
+    await clickLooperItem(page, startPrefix, item.resultIndex)
+    await sleep(2500)
+
+    // Snapshot après clic — trouver le looper qui a grossi/apparu
+    const after = await snapshotLoopers(page)
+
+    // Trouver le looper avec la plus forte croissance (excl. startPrefix et ignorés)
+    let bestPrefix: string | null = null
+    let bestGrowth = 0
+    for (const [pfx, count] of Object.entries(after)) {
+      if (pfx === startPrefix || IGNORED_LOOPER_PREFIXES.has(pfx)) continue
+      const growth = count - (before[pfx] ?? 0)
+      if (growth > bestGrowth) {
+        bestGrowth = growth
+        bestPrefix = pfx
+      }
+    }
+
+    if (!bestPrefix || bestGrowth < 2) {
+      // Aucun looper n'a changé → cet item est une feuille (article réel)
+      allItems.push(item)
+      continue
+    }
+
+    const subRaw = await extractLooperItems(page, bestPrefix)
+    if (!subRaw || subRaw.length < 2) {
       allItems.push(item)
       continue
     }
 
     console.log(
-      `[IORT Codes] ${item.title.substring(0, 40)}: ${subRaw.length} sous-items dans ${nextPrefix}`,
+      `[IORT Codes] ${item.title.substring(0, 40)}: ${subRaw.length} sous-items dans ${bestPrefix}`,
     )
 
     const subItems: IortTocItem[] = subRaw.map(x => ({
       title: x.text,
       resultIndex: x.index,
       depth: item.depth + 1,
-      looperId: nextPrefix,
+      looperId: bestPrefix!,
       onclick: x.onclick || undefined,
     }))
 
     // Récursion si toujours peu d'items (niveau intermédiaire)
-    if (subItems.length < 15 && seqIdx + 1 < LOOPER_HIERARCHY.length - 1) {
-      const deeper = await expandTocHierarchy(page, nextPrefix, subItems, currentDepth + 1)
+    if (subItems.length < 15) {
+      const deeper = await expandTocHierarchy(page, bestPrefix!, subItems, currentDepth + 1)
       allItems.push(...deeper)
     } else {
       allItems.push(...subItems)
@@ -609,13 +641,29 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
     const items = await extractLooperItems(page, prefix)
     if (items && items.length >= 2) {
       console.log(`[IORT Codes] Looper découvert ${prefix} → ${items.length} items arabes`)
-      return items.map(item => ({
+      const tocItems = items.map(item => ({
         title: item.text,
         resultIndex: item.index,
         depth: item.depth,
         looperId: prefix,
         onclick: item.onclick || undefined,
       }))
+
+      // Expansion hiérarchique si le looper découvert a peu d'items (TOC lazy-loaded)
+      if (tocItems.length < 15) {
+        console.log(`[IORT Codes] ${prefix} superficiel (${tocItems.length} items) — expansion...`)
+        try {
+          const expanded = await expandTocHierarchy(page, prefix, tocItems)
+          if (expanded.length > tocItems.length) {
+            console.log(`[IORT Codes] Expansion ${prefix}: ${tocItems.length} → ${expanded.length} items`)
+            return expanded
+          }
+        } catch (err) {
+          console.warn('[IORT Codes] Expansion looper découvert échouée:', err)
+        }
+      }
+
+      return tocItems
     }
   }
 
