@@ -169,8 +169,17 @@ function isNavigationBoilerplate(text: string): boolean {
   // Le contenu est du boilerplate si :
   // 1. Commence par le header gouvernemental
   if (/^الجمهورية التونسية/.test(cleaned)) return true
-  // 2. Contient les patterns de navigation IORT sans mots-clés juridiques
-  const hasLegalContent = /الفصل\s+\d|المادة\s+\d|أحكام\s+(عامة|خاصة)|الباب\s+(الأول|الثاني|الثالث)|العنوان\s+(الأول|الثاني|الثالث)|يُعدّ|يُعتبر|يُعاقب|يجوز|لا يجوز|يُلزم|يُخضع/.test(cleaned)
+  // 2. Pattern TOC iort.tn : densité élevée de mots structurels (الباب/الكتاب/العنوان/القسم)
+  // sans contenu légal réel (articles avec verbes juridiques)
+  const structuralWords = (cleaned.match(/\b(الباب|الكتاب|العنوان|القسم|الفرع|اطلاع|التّوطئة|الفهرس)\b/g) || []).length
+  const totalWords = cleaned.split(/\s+/).length
+  if (structuralWords >= 6 && structuralWords / totalWords > 0.04) {
+    // Texte riche en structure : vérifier l'absence de contenu d'article réel
+    const hasRealContent = /يُعدّ|يُعتبر|يُعاقب|يجوز|لا يجوز|يُلزم|يُخضع|يترتّب|تسري|تطبّق|يُحظر|يُمنع|يُعفى|يُعاقب/.test(cleaned)
+    if (!hasRealContent) return true
+  }
+  // 3. Contient les patterns de navigation IORT sans mots-clés juridiques
+  const hasLegalContent = /الفصل\s+\d|المادة\s+\d|أحكام\s+(عامة|خاصة)|يُعدّ|يُعتبر|يُعاقب|يجوز|لا يجوز|يُلزم|يُخضع/.test(cleaned)
   const hasNavText = /الرائد الرسمي|إصدارات لقرارات|اطلاع|رئاسة الحكومة/.test(cleaned)
   return hasNavText && !hasLegalContent
 }
@@ -397,18 +406,33 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
   console.log('[IORT Codes] Parsing table des matières...')
 
   // Stratégie 1 : loopers standards PAGE_NavigationCode (A4, B4, C4, D4, E4)
+  // Collecter TOUS les loopers non-vides et préférer celui avec le plus d'items
+  // (typiquement C4/D4 = sections/articles) plutôt que A4 (chapitres/livres, trop haut niveau)
+  const standardLooperData: { prefix: string; items: IortTocItem[] }[] = []
   for (const prefix of ['A4', 'B4', 'C4', 'D4', 'E4']) {
     const items = await extractLooperItems(page, prefix)
     if (items && items.length > 0) {
-      console.log(`[IORT Codes] Looper ${prefix} → ${items.length} sections TOC`)
-      return items.map(item => ({
-        title: item.text,
-        resultIndex: item.index,
-        depth: item.depth,
-        looperId: prefix,
-        onclick: item.onclick || undefined,
-      }))
+      console.log(`[IORT Codes] Looper ${prefix} → ${items.length} items`)
+      standardLooperData.push({
+        prefix,
+        items: items.map(item => ({
+          title: item.text,
+          resultIndex: item.index,
+          depth: item.depth,
+          looperId: prefix,
+          onclick: item.onclick || undefined,
+        })),
+      })
     }
+  }
+  if (standardLooperData.length > 0) {
+    // Préférer le looper avec le plus d'items dans la plage 5-300 (granularité section/article)
+    // Si tous sont < 5 items, prendre le plus grand quand même
+    const best =
+      standardLooperData.find(l => l.items.length >= 5 && l.items.length <= 300) ??
+      standardLooperData.reduce((a, b) => (a.items.length >= b.items.length ? a : b))
+    console.log(`[IORT Codes] Looper retenu: ${best.prefix} (${best.items.length} sections)`)
+    return best.items
   }
 
   // Stratégie 2a : PAGE_CodesJuridiques — essayer les loopers connus avec seuil = 1
@@ -537,9 +561,15 @@ export async function extractSectionText(
   item: IortTocItem,
 ): Promise<string | null> {
   // A17 = bouton view standard (PAGE_NavigationCode)
-  // Pour PAGE_CodesJuridiques, essayer aussi M17, A7, M7, B17
+  // Pour chaque looper X4, le bouton de détail correspondant est X17 (WebDev convention)
+  // Ex: A4→A17, B4→B17, C4→C17, D4→D17, E4→E17
   const isStandardLooper = /^[A-E]4$/.test(item.looperId)
-  const viewButtons = isStandardLooper ? ['A17'] : ['A17', 'M17', 'A7', 'M7', 'B17']
+  const looperViewBtn = isStandardLooper
+    ? item.looperId.replace('4', '17')  // A4→A17, B4→B17, C4→C17, etc.
+    : 'A17'
+  const viewButtons = isStandardLooper
+    ? [looperViewBtn, 'A17'].filter((v, i, a) => a.indexOf(v) === i)  // déduplique si déjà A17
+    : ['A17', 'M17', 'A7', 'M7', 'B17']
 
   // Helper : nettoyer les popups orphelines
   const closeOrphans = async () => {
@@ -775,9 +805,17 @@ async function extractTextFromPage(page: Page): Promise<string> {
     }
   } catch { /**/ }
 
-  // Fallback : body nettoyé
+  // Fallback : body nettoyé — supprimer les divs TOC connus avant extraction
+  // pour éviter de capturer le panneau de navigation gauche d'iort.tn
   const fullText = await page.evaluate(() => {
-    ;['script', 'style', 'nav', 'header', 'footer', 'form[name="_WD_FORM_"]'].forEach(sel => {
+    ;[
+      'script', 'style', 'nav', 'header', 'footer', 'form[name="_WD_FORM_"]',
+      // Supprimer les divs loopers TOC (panneau navigation gauche iort.tn)
+      'div[id^="A4_"]', 'div[id^="B4_"]', 'div[id^="C4_"]',
+      'div[id^="D4_"]', 'div[id^="E4_"]', 'div[id^="A1_"]',
+      'div[id^="M18_"]', 'div[id^="M78_"]', 'div[id^="M110_"]',
+      'div[id^="M81_"]', 'div[id^="M59_"]',
+    ].forEach(sel => {
       document.querySelectorAll(sel).forEach(el => el.remove())
     })
     return document.body?.innerText || document.body?.textContent || ''
