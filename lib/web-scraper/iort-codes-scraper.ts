@@ -986,121 +986,79 @@ export async function crawlCode(
 // ─── مجموعات نصوص (PAGE_CodesJuridiques) ──────────────────────────────────────
 
 /**
- * URLs des recueils thématiques (مجموعات نصوص) — deux pages séparées AR/FR sur iort.tn/siteiort.
- * PAGE_CODESJURIDIQUES (uppercase) = version arabe
- * PAGE_CodesJuridiques (mixedcase) = version française
- */
-export const RECUEIL_LISTING_URL_AR =
-  'https://www.iort.tn/siteiort/PAGE_CODESJURIDIQUES/uCYAAArB00MCAAAAGwA'
-export const RECUEIL_LISTING_URL_FR =
-  'https://www.iort.tn/siteiort/PAGE_CodesJuridiques/uCYAAMyr00MCAAAAGwA'
-
-/**
- * Navigue vers la page de listing des recueils thématiques.
- * Stratégie 1 : URL directe (session token stable).
- * Stratégie 2 : fallback via homepage iort.tn/siteiort + menu M49 (AR) ou M49 FR.
+ * Navigue vers le listing complet codes+recueils via M62.
+ * M62 (المجلات ومجموعات النصوص القانونية) depuis iort.tn/siteiort → looper A1 avec ~52 items.
+ * C'est la navigation stable confirmée sur prod (vs URLs de session qui expirent).
  *
- * @param language 'ar' (défaut) | 'fr' — version linguistique du listing
+ * @param language 'ar' (défaut) | 'fr' — switche via M32 avant M62 si FR
  */
 export async function navigateToRecueilPage(
   session: IortSessionManager,
   language: IortLanguage = 'ar',
 ): Promise<void> {
   const page = session.getPage()
-  const url = language === 'fr' ? RECUEIL_LISTING_URL_FR : RECUEIL_LISTING_URL_AR
-  console.log(`[IORT Recueil] Navigation vers PAGE_CodesJuridiques (${language.toUpperCase()})...`)
+  console.log(`[IORT Recueil] Navigation M62 → codes+recueils (${language.toUpperCase()})...`)
 
-  await page.goto(url, {
-    waitUntil: 'load',
-    timeout: IORT_RATE_CONFIG.navigationTimeout,
-  })
-  await sleep(8000)
-
-  let count = await page.evaluate(() =>
-    document.querySelectorAll('[id^="A1_"], [id^="M18_"], [id^="M3_"], [id^="M78_"], [id^="M110_"]').length,
-  )
-
-  if (count > 0) {
-    console.log(`[IORT Recueil] ${count} items détectés (URL directe, ${language.toUpperCase()})`)
-    return
-  }
-
-  // Diagnostic — quels loopers sont présents sur la page ?
-  const availableLoopers = await page.evaluate(() => {
-    const counts: Record<string, number> = {}
-    for (const el of document.querySelectorAll('[id]')) {
-      const m = el.id.match(/^([A-Z]+\d+)_(\d+)$/)
-      if (m) counts[m[1]] = (counts[m[1]] || 0) + 1
-    }
-    return Object.entries(counts).filter(([, n]) => n >= 2).map(([k, n]) => `${k}(${n})`).join(', ')
-  })
-  console.warn(`[IORT Recueil] URL directe vide (${language.toUpperCase()}). Loopers dispo: ${availableLoopers || 'aucun'}`)
-
-  // Fallback : homepage iort.tn/siteiort → menu JCL M24 → JEM M49 (recueils)
-  console.log(`[IORT Recueil] Fallback navigation via menu M24→M49...`)
   await page.goto(IORT_SITEIORT_URL, {
     waitUntil: 'load',
     timeout: IORT_RATE_CONFIG.navigationTimeout,
   })
   await sleep(3000)
 
-  // Si FR : switcher la langue d'abord via M32
   if (language === 'fr') {
     console.log('[IORT Recueil] Activation langue FR (M32)...')
     await page.evaluate(() => {
       // @ts-expect-error WebDev
-      _JSL(_PAGE_, 'M32', '_self', '', '')
+      _JEM('M32', '_self', '', '')
     })
     await page.waitForLoadState('load')
     await sleep(3000)
   }
 
-  // M49 = مجموعات نصوص (recueils thématiques) dans le menu siteiort
+  // M62 = المجلات ومجموعات النصوص القانونية — expose A1 avec codes ET recueils (~52 items)
   await page.evaluate(() => {
     // @ts-expect-error WebDev
-    _JSL(_PAGE_, 'M49', '_self', '', '')
+    _JEM('M62', '_self', '', '')
   })
   await page.waitForLoadState('load')
-  await sleep(8000)
+  await sleep(6000)
 
-  count = await page.evaluate(() =>
-    document.querySelectorAll('[id^="A1_"], [id^="M18_"], [id^="M3_"], [id^="M78_"], [id^="M110_"]').length,
-  )
-
-  const fallbackLoopers = await page.evaluate(() => {
-    const counts: Record<string, number> = {}
-    for (const el of document.querySelectorAll('[id]')) {
-      const m = el.id.match(/^([A-Z]+\d+)_(\d+)$/)
-      if (m) counts[m[1]] = (counts[m[1]] || 0) + 1
-    }
-    return Object.entries(counts).filter(([, n]) => n >= 2).map(([k, n]) => `${k}(${n})`).join(', ')
-  })
-  console.log(`[IORT Recueil] Après fallback M49: ${count} items connus, loopers: ${fallbackLoopers || 'aucun'} (${language.toUpperCase()})`)
+  const count = await page.evaluate(() => document.querySelectorAll('[id^="A1_"]').length)
+  console.log(`[IORT Recueil] ${count} items A1 après M62 (${language.toUpperCase()})`)
 }
 
 /**
- * Détecte et retourne la liste des recueils disponibles depuis la page courante.
- * Même pattern que parseAvailableCodes() — détecte le looper actif parmi A1/M18/M3.
+ * Détecte et retourne les recueils depuis la page M62 (looper A1, ~52 items).
+ * Filtre les codes juridiques connus (IORT_KNOWN_CODES) pour ne retenir que les recueils
+ * et autres textes non encore crawlés par le scraper codes.
  */
 export async function parseAvailableRecueils(page: Page): Promise<IortCode[]> {
-  // Découverte dynamique des loopers disponibles (count >= 2) si les préfixes connus échouent
-  for (const prefix of ['A1', 'M18', 'M3', 'M78', 'M110', 'M81', 'M59', 'M4', 'M49']) {
-    const items = await page.evaluate((pfx: string) => {
-      return Array.from(document.querySelectorAll(`[id^="${pfx}_"]`))
-        .map(el => ({
-          index: parseInt((el.id.split('_')[1] ?? '0'), 10),
-          name: (el.textContent ?? '').trim(),
-        }))
-        .filter(x => x.index > 0 && x.name.length > 3)
-    }, prefix)
+  const allItems = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('[id^="A1_"]'))
+      .map(el => ({
+        index: parseInt((el.id.split('_')[1] ?? '0'), 10),
+        // Nettoyer le texte : retirer "اطلاع" (bouton) et espaces
+        name: (el.textContent ?? '').trim().replace(/\s*اطلاع\s*$/, '').trim(),
+      }))
+      .filter(x => x.index > 0 && x.name.length > 3)
+  })
 
-    if (items.length > 0) {
-      console.log(`[IORT Recueil] Looper "${prefix}" — ${items.length} recueils trouvés`)
-      return items.map(x => ({ name: x.name, selectIndex: x.index, looperId: prefix }))
-    }
+  if (allItems.length === 0) {
+    console.warn('[IORT Recueil] Aucun item A1 — M62 n\'a pas chargé la liste')
+    return []
   }
-  console.warn('[IORT Recueil] Aucun looper détecté sur PAGE_CodesJuridiques')
-  return []
+
+  console.log(`[IORT Recueil] ${allItems.length} items A1 totaux (codes + recueils)`)
+
+  // Filtrer les codes déjà connus (crawlés séparément via crawlCode)
+  const knownCodeNames = new Set(Object.keys(IORT_KNOWN_CODES))
+  const recueils = allItems.filter(item => {
+    // Garder si le nom ne correspond à aucun code connu (correspondance partielle)
+    return !Array.from(knownCodeNames).some(code => item.name.includes(code) || code.includes(item.name))
+  })
+
+  console.log(`[IORT Recueil] ${recueils.length} recueils après filtrage des codes connus`)
+  return recueils.map(x => ({ name: x.name, selectIndex: x.index, looperId: 'A1' }))
 }
 
 /**
