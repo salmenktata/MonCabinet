@@ -21,7 +21,7 @@ import {
   navigateToRecueilPage,
   parseAvailableRecueils,
   crawlRecueil,
-  getOrCreateIortSource,
+  getOrCreateIortSiteiortSource,
 } from '@/lib/web-scraper/iort-codes-scraper'
 import { logger } from '@/lib/logger'
 
@@ -65,7 +65,7 @@ export const GET = withAdminApiAuth(
 
       logger.info(`[IORT Recueil] Démarrage crawl: ${recueilName ? `"${recueilName}"` : 'tous'} (lang=${langParam})`)
 
-      const sourceId = await getOrCreateIortSource()
+      const sourceId = await getOrCreateIortSiteiortSource()
       const stats = await crawlRecueil(session, sourceId, recueilName, langParam as 'ar' | 'fr' | 'both')
 
       const elapsed = Math.round((Date.now() - startTime) / 1000)

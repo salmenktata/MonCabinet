@@ -1724,3 +1724,49 @@ export async function getOrCreateIortSource(): Promise<string> {
   console.log(`[IORT] Source créée: ${source.id}`)
   return source.id
 }
+
+/**
+ * Retourne (ou crée) la source web pour le portail moderne iort.tn/siteiort.
+ * Utilisé pour les crawls codes juridiques et recueils thématiques.
+ * Distinct de getOrCreateIortSource() qui cible l'ancien iort.gov.tn (JORT par année/type).
+ * sourceOrigin = 'iort_gov_tn' (boost RAG 1.20×) via deriveSourceOrigin() qui matche 'iort.tn'.
+ */
+export async function getOrCreateIortSiteiortSource(): Promise<string> {
+  const result = await db.query(
+    'SELECT id FROM web_sources WHERE base_url = $1',
+    [IORT_SITEIORT_URL],
+  )
+
+  if (result.rows.length > 0) {
+    return result.rows[0].id as string
+  }
+
+  const { createWebSource } = await import('./source-service')
+  const adminResult = await db.query(
+    "SELECT id FROM users WHERE role IN ('admin', 'super_admin') LIMIT 1",
+  )
+  const adminId = adminResult.rows[0]?.id
+
+  const source = await createWebSource(
+    {
+      name: 'IORT - Portail Codes & Recueils (iort.tn)',
+      baseUrl: IORT_SITEIORT_URL,
+      description:
+        'Portail moderne IORT — codes juridiques consolidés et recueils thématiques (مجلات قانونية ومجموعات النصوص). Source officielle État, même fiabilité que JORT.',
+      categories: ['codes', 'legislation', 'jort'],
+      language: 'ar',
+      priority: 9,
+      requiresJavascript: true,
+      respectRobotsTxt: false,
+      downloadFiles: false,
+      rateLimitMs: 3000,
+      crawlFrequency: '30 days',
+      maxDepth: 5,
+      maxPages: 10000,
+    },
+    adminId,
+  )
+
+  console.log(`[IORT Siteiort] Source créée: ${source.id}`)
+  return source.id
+}

@@ -20,7 +20,7 @@ import {
   navigateToCodesSelectionPage,
   parseAvailableCodes,
   crawlCode,
-  getOrCreateIortSource,
+  getOrCreateIortSiteiortSource,
 } from '@/lib/web-scraper/iort-codes-scraper'
 import { logger } from '@/lib/logger'
 
@@ -65,7 +65,7 @@ export const GET = withAdminApiAuth(
 
       logger.info(`[IORT Codes] Démarrage crawl: "${codeName}" (dryRun=${dryRun})`)
 
-      const sourceId = await getOrCreateIortSource()
+      const sourceId = await getOrCreateIortSiteiortSource()
       const stats = await crawlCode(session, sourceId, codeName, dryRun)
 
       const elapsed = Math.round((Date.now() - startTime) / 1000)

@@ -26,6 +26,7 @@ import {
   IortLanguage,
   IORT_RATE_CONFIG,
   getOrCreateIortSource,
+  getOrCreateIortSiteiortSource,
 } from './iort-scraper-utils'
 import { hashUrl, hashContent, countWords, detectTextLanguage } from './content-extractor'
 
@@ -1167,4 +1168,4 @@ export async function crawlRecueil(
   return stats
 }
 
-export { getOrCreateIortSource }
+export { getOrCreateIortSource, getOrCreateIortSiteiortSource }
