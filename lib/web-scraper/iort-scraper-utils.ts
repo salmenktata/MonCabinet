@@ -1333,29 +1333,29 @@ export async function crawlYearType(
 // =============================================================================
 
 /**
- * Navigue vers la page Constitution du site IORT via le menu M16 sur iort.tn/siteiort.
- * Préféré à iort.gov.tn M4 car la page HTML contient le texte des articles directement,
- * évitant le fallback OCR PDF (42 pages, ~434s).
+ * Navigue vers la page Constitution du site IORT via le menu M4 sur iort.gov.tn.
+ * La page M16 sur iort.tn n'expose pas les articles en HTML statique (rendu JS côté client).
+ * M4 sur iort.gov.tn permet le téléchargement PDF + OCR (~434s, 139 chunks fiables).
  *
  * Doit être appelé depuis la homepage (après init() ou recover()).
  */
 export async function navigateToConstitutionPage(session: IortSessionManager): Promise<void> {
   const page = session.getPage()
 
-  console.log('[IORT Constitution] Navigation vers iort.tn/siteiort (HTML web — préféré au PDF OCR)...')
-  await page.goto(IORT_SITEIORT_URL, { waitUntil: 'load', timeout: IORT_RATE_CONFIG.navigationTimeout })
+  console.log('[IORT Constitution] Navigation vers iort.gov.tn (M4 — OCR PDF)...')
+  await page.goto(IORT_BASE_URL, { waitUntil: 'load', timeout: IORT_RATE_CONFIG.navigationTimeout })
   await sleep(2500)
 
-  console.log('[IORT Constitution] Clic sur M16 (دستور الجمهورية التونسية) sur iort.tn...')
+  console.log('[IORT Constitution] Clic sur M4 (دستور الجمهورية التونسية) sur iort.gov.tn...')
   await page.evaluate(() => {
     // @ts-expect-error WebDev global function
-    _JSL(_PAGE_, 'M16', '_self', '', '')
+    _JSL(_PAGE_, 'M4', '_self', '', '')
   })
   await page.waitForLoadState('load')
   await sleep(3000)
 
-  console.log('[IORT Constitution] Page constitution atteinte (iort.tn M16)')
-  await sleep(2000) // 2s supplémentaires pour le rendu JavaScript WebDev
+  console.log('[IORT Constitution] Page constitution atteinte (iort.gov.tn M4)')
+  await sleep(2000)
 }
 
 /**
