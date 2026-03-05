@@ -179,7 +179,7 @@ function isNavigationBoilerplate(text: string): boolean {
     if (!hasRealContent) return true
   }
   // 3. Contient les patterns de navigation IORT sans mots-clés juridiques
-  const hasLegalContent = /الفصل\s+\d|المادة\s+\d|أحكام\s+(عامة|خاصة)|يُعدّ|يُعتبر|يُعاقب|يجوز|لا يجوز|يُلزم|يُخضع/.test(cleaned)
+  const hasLegalContent = /الفصل\s+\d|المادة\s+\d|أحكام\s+(عامة|خاصة)|يُعدّ|يُعتبر|يُعاقب|يجوز|لا يجوز|يُلزم|يُخضع|ينشر\s+هذا\s+(القانون|المرسوم|الأمر|القرار)/.test(cleaned)
   const hasNavText = /الرائد الرسمي|إصدارات لقرارات|اطلاع|رئاسة الحكومة/.test(cleaned)
   return hasNavText && !hasLegalContent
 }
