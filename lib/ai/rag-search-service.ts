@@ -424,6 +424,12 @@ function detectDomainBoost(query: string): { pattern: string; factor: number }[]
       titlePatterns: ['عقلة', 'طرق التنفيذ', 'تحفظ'],
       factor: 2.5,
     },
+    // Douane / مجلة الديوانة
+    {
+      keywords: ['مجلة الديوانة', 'الديوانة', 'جمارك', 'معلوم ديواني', 'إجراءات جمركية', 'التهريب الجمركي', 'douane', 'droit douanier', 'droits de douane'],
+      titlePatterns: ['مجلة الديوانة'],
+      factor: 2.0,
+    },
   ]
 
   const matches: { pattern: string; factor: number }[] = []
@@ -665,7 +671,17 @@ async function rerankSources(
     // Fix Feb 26 v6 : boost article exact — si la query mentionne "الفصل X" ou "article X",
     // booster les chunks contenant ce numéro d'article ×1.8.
     // Impact : ar_penal_02 — query "ماذا ينص الفصل 217" → chunk art.217 remonte au rang 1.
-    const articleNumMatch = (query || '').match(/(?:الفصل|article|art\.?)\s+(\d+)/i)
+    // Fix Mar 5 2026: normaliser les ordinaux (الأول→1, الثاني→2...) avant le match \d+
+    // pour que "الفصل الأول" déclenche le boost (ex: مجلة الديوانة stocke "الفصل 1").
+    const _ORDINAL_TO_NUM_RERANK: Record<string, string> = {
+      'الاول': '1', 'الثاني': '2', 'الثالث': '3', 'الرابع': '4', 'الخامس': '5',
+      'السادس': '6', 'السابع': '7', 'الثامن': '8', 'التاسع': '9', 'العاشر': '10',
+    }
+    const _queryNormOrdinal = (query || '').replace(
+      /\b(ال[أإاآ]?ول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)\b/g,
+      (m) => _ORDINAL_TO_NUM_RERANK[m.replace(/[أإآ]/g, 'ا')] || m
+    )
+    const articleNumMatch = _queryNormOrdinal.match(/(?:الفصل|article|art\.?)\s+(\d+)/i)
     if (articleNumMatch) {
       const artNum = articleNumMatch[1]
       const chunkText = s.chunkContent || ''

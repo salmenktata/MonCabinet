@@ -135,7 +135,10 @@
     "diff-env:verbose": "tsx scripts/diff-env.ts --verbose",
     "diff-env:check": "tsx scripts/diff-env.ts --check-connectivity",
     "sync-env-interactive": "tsx scripts/sync-env-interactive.ts",
-    "docs:env": "tsx scripts/generate-env-docs.ts"
+    "docs:env": "tsx scripts/generate-env-docs.ts",
+    "index:diouana": "npx tsx scripts/index-diouana.ts",
+    "enable:rag:diouana": "npx tsx scripts/enable-rag-diouana.ts",
+    "test:rag:diouana": "npx tsx scripts/test-rag-diouana.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",
