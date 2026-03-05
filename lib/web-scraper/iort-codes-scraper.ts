@@ -818,39 +818,6 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
       // Expansion hiérarchique si le looper découvert a peu d'items (TOC lazy-loaded)
       if (tocItems.length < 15) {
         console.log(`[IORT Codes] ${prefix} superficiel (${tocItems.length} items) — expansion...`)
-
-        // Debug: dump ALL loopers + M3 raw + content areas pour diagnostiquer
-        const domDebug = await page.evaluate(() => {
-          const loopers: Record<string, { count: number; items: Array<{ id: string; text: string }> }> = {}
-          for (const el of document.querySelectorAll('[id]')) {
-            const m = el.id.match(/^([A-Z]\d+)_(\d+)$/)
-            if (!m) continue
-            const pfx = m[1]
-            if (!loopers[pfx]) loopers[pfx] = { count: 0, items: [] }
-            loopers[pfx].count++
-            if (loopers[pfx].items.length < 4) {
-              loopers[pfx].items.push({ id: el.id, text: (el.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 60) })
-            }
-          }
-          const treeItems: string[] = []
-          for (const el of document.querySelectorAll('li, [class*="tree"], [class*="toc"], [class*="nav"]')) {
-            const text = (el.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 60)
-            if (text && /[\u0600-\u06FF]/.test(text)) { treeItems.push(text); if (treeItems.length >= 8) break }
-          }
-          const contentAreas: Array<{ id: string; len: number; preview: string }> = []
-          for (const el of document.querySelectorAll('div[id], td[id]') as NodeListOf<HTMLElement>) {
-            const text = (el.textContent || '').trim()
-            if (text.length > 300 && /[\u0600-\u06FF]{20,}/.test(text) && !el.id.match(/^[A-Z]\d+_/)) {
-              contentAreas.push({ id: el.id, len: text.length, preview: text.substring(0, 80) })
-              if (contentAreas.length >= 4) break
-            }
-          }
-          return { loopers, treeItems, contentAreas }
-        })
-        console.log('[IORT DEBUG] Loopers:', JSON.stringify(domDebug.loopers).substring(0, 1000))
-        console.log('[IORT DEBUG] TreeItems:', JSON.stringify(domDebug.treeItems))
-        console.log('[IORT DEBUG] ContentAreas:', JSON.stringify(domDebug.contentAreas).substring(0, 600))
-
         try {
           // Stratégie A : expansion directe (drill-down ou looper suivant)
           const expanded = await expandTocHierarchy(page, prefix, tocItems)
@@ -936,11 +903,20 @@ export async function extractSectionText(
   // ─── Fast path : lire directement le textContent du div looper ──────────────
   // Sur PAGE_CodesJuridiques (looper A2), le texte de l'article EST inline dans le div.
   // extractInlineContent() exclut A2 → on lit directement sans clic.
-  // Applicable aussi aux autres loopers où le texte est inline (non-clickable pour popup).
+  // Pour A2 : toujours utiliser inline (même texte court) pour éviter popup incorrecte.
+  // Pour autres loopers : seulement si > 100 chars (les titres TOC A4/B4/C4 font < 100).
   const inlineText = await page.evaluate((sel: string) => {
     const div = document.querySelector(sel)
     return (div?.textContent || '').trim()
   }, `div#${item.looperId}_${item.resultIndex}`)
+  if (item.looperId === 'A2') {
+    // PAGE_CodesJuridiques : texte inline = contenu article, retourner directement
+    if (inlineText && inlineText.length > 15) {
+      const cleaned = cleanText(inlineText)
+      if (cleaned.length > 10) return cleaned
+    }
+    return null  // A2 vide → pas de fallback popup (popup montre toujours article 1)
+  }
   if (inlineText && inlineText.length > 100) {
     const cleaned = cleanText(inlineText)
     if (!isNavigationBoilerplate(cleaned) && cleaned.length > 80) return cleaned
