@@ -730,6 +730,9 @@ export async function extractStructuredMetadata(
     } as LLMMetadataResponse
 
     await upsertStructuredMetadata(pageId, parsed, 'none', 'regex')
+    syncMetadataToRAG(pageId, parsed, 'none', 'regex').catch(err =>
+      console.error('[MetadataExtractor] Erreur sync RAG (regex):', err)
+    )
 
     return getStructuredMetadata(pageId) as Promise<WebPageStructuredMetadata>
   }
@@ -829,6 +832,11 @@ export async function extractStructuredMetadata(
     llmResult.model
   )
 
+  // Propager vers le RAG (chunks + kb_structured_metadata) — non-bloquant
+  syncMetadataToRAG(pageId, parsed, llmResult.provider, llmResult.model).catch(err =>
+    console.error('[MetadataExtractor] Erreur sync RAG:', err)
+  )
+
   // Retourner les métadonnées structurées
   return getStructuredMetadata(pageId) as Promise<WebPageStructuredMetadata>
 }
@@ -849,6 +857,114 @@ export async function getStructuredMetadata(
   }
 
   return mapRowToStructuredMetadata(result.rows[0])
+}
+
+// =============================================================================
+// PROPAGATION RAG
+// =============================================================================
+
+/**
+ * Propage les métadonnées structurées vers le pipeline RAG :
+ * 1. Inject dans knowledge_base_chunks.metadata (JSONB merge)
+ * 2. Upsert dans kb_structured_metadata (pour filtres + context builder)
+ *
+ * Appelé après chaque extraction réussie. Non-bloquant (appelé avec .catch).
+ */
+export async function syncMetadataToRAG(
+  pageId: string,
+  metadata: LLMMetadataResponse,
+  provider: string,
+  model: string
+): Promise<void> {
+  // Récupérer le knowledge_base_id lié à cette page
+  const kbResult = await db.query<{ knowledge_base_id: string | null }>(
+    `SELECT knowledge_base_id FROM web_pages WHERE id = $1`,
+    [pageId]
+  )
+  const kbId = kbResult.rows[0]?.knowledge_base_id
+  if (!kbId) return // Page non encore indexée dans la KB
+
+  // 1. Injecter les champs clés dans knowledge_base_chunks.metadata (JSONB merge)
+  const chunkMeta: Record<string, unknown> = {}
+  if (metadata.tribunal) chunkMeta.tribunal = metadata.tribunal
+  if (metadata.chambre) chunkMeta.chambre = metadata.chambre
+  if (metadata.decision_date) chunkMeta.decisionDate = metadata.decision_date
+  if (metadata.decision_number) chunkMeta.decisionNumber = metadata.decision_number
+  if (metadata.keywords?.length) chunkMeta.keywords = metadata.keywords
+  if (metadata.abstract) chunkMeta.abstract = metadata.abstract
+  if (metadata.extraction_confidence != null) chunkMeta.extractionConfidence = metadata.extraction_confidence
+
+  if (Object.keys(chunkMeta).length > 0) {
+    await db.query(
+      `UPDATE knowledge_base_chunks
+       SET metadata = metadata || $1::jsonb
+       WHERE knowledge_base_id = $2`,
+      [JSON.stringify(chunkMeta), kbId]
+    )
+  }
+
+  // 2. Sync vers kb_structured_metadata pour que les filtres RAG fonctionnent
+  // Résoudre tribunal_code via legal_taxonomy (lookup par label ou code)
+  let tribunalCode: string | null = null
+  let chambreCode: string | null = null
+
+  if (metadata.tribunal) {
+    const taxResult = await db.query<{ code: string }>(
+      `SELECT code FROM legal_taxonomy
+       WHERE type = 'tribunal'
+         AND (LOWER(label_fr) = LOWER($1) OR LOWER(label_ar) = LOWER($1) OR LOWER(code) = LOWER($1))
+       LIMIT 1`,
+      [metadata.tribunal]
+    )
+    tribunalCode = taxResult.rows[0]?.code ?? null
+  }
+
+  if (metadata.chambre && tribunalCode) {
+    const taxResult = await db.query<{ code: string }>(
+      `SELECT code FROM legal_taxonomy
+       WHERE type = 'chambre'
+         AND (LOWER(label_fr) = LOWER($1) OR LOWER(label_ar) = LOWER($1))
+       LIMIT 1`,
+      [metadata.chambre]
+    )
+    chambreCode = taxResult.rows[0]?.code ?? null
+  }
+
+  await db.query(
+    `INSERT INTO kb_structured_metadata
+       (knowledge_base_id, tribunal_code, chambre_code, decision_number, decision_date,
+        parties, keywords, abstract, extraction_confidence, extraction_method,
+        llm_provider, llm_model, extracted_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5::date, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+     ON CONFLICT (knowledge_base_id) DO UPDATE SET
+       tribunal_code = EXCLUDED.tribunal_code,
+       chambre_code = EXCLUDED.chambre_code,
+       decision_number = COALESCE(EXCLUDED.decision_number, kb_structured_metadata.decision_number),
+       decision_date = COALESCE(EXCLUDED.decision_date, kb_structured_metadata.decision_date),
+       parties = COALESCE(EXCLUDED.parties, kb_structured_metadata.parties),
+       keywords = COALESCE(EXCLUDED.keywords, kb_structured_metadata.keywords),
+       abstract = COALESCE(EXCLUDED.abstract, kb_structured_metadata.abstract),
+       extraction_confidence = EXCLUDED.extraction_confidence,
+       llm_provider = EXCLUDED.llm_provider,
+       llm_model = EXCLUDED.llm_model,
+       updated_at = NOW()`,
+    [
+      kbId,
+      tribunalCode,
+      chambreCode,
+      metadata.decision_number || null,
+      metadata.decision_date || null,
+      metadata.parties ? JSON.stringify(metadata.parties) : null,
+      metadata.keywords?.length ? metadata.keywords : null,
+      metadata.abstract || null,
+      metadata.extraction_confidence,
+      metadata.extraction_method || 'hybrid',
+      provider !== 'none' ? provider : null,
+      model !== 'none' && model !== 'regex' ? model : null,
+    ]
+  )
+
+  console.log(`[MetadataExtractor] Sync RAG OK — KB ${kbId} | tribunal_code: ${tribunalCode ?? 'non résolu'}`)
 }
 
 // =============================================================================

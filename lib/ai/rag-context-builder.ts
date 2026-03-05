@@ -286,9 +286,33 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
           enrichedHeader += '\n'
         }
       } else {
-        // Fallback sur métadonnées legacy
-        enrichedHeader += `${labels.chamber}: ${meta?.chamber || labels.na}, ${labels.date}: ${meta?.date || labels.na}\n`
-        enrichedHeader += `${labels.articles}: ${meta?.articles?.join(', ') || labels.na}\n`
+        // Fallback : métadonnées injectées dans chunks (via syncMetadataToRAG)
+        const fallbackTribunal = meta?.tribunal ?? meta?.chamber ?? null
+        const fallbackDate = meta?.decisionDate ?? meta?.date ?? null
+        const fallbackNumber = meta?.decisionNumber ?? null
+        const fallbackChambre = meta?.chambre ?? null
+
+        if (fallbackTribunal || fallbackDate || fallbackNumber) {
+          if (fallbackTribunal) {
+            enrichedHeader += `🏛️ ${lang === 'ar' ? 'المحكمة' : 'Tribunal'}: ${fallbackTribunal}\n`
+          }
+          if (fallbackChambre) {
+            enrichedHeader += `⚖️ ${labels.chamber}: ${fallbackChambre}\n`
+          }
+          if (fallbackDate) {
+            const dateObj = new Date(fallbackDate)
+            if (!isNaN(dateObj.getTime())) {
+              enrichedHeader += `📅 ${labels.date}: ${dateObj.toLocaleDateString(lang === 'ar' ? 'ar-TN' : 'fr-TN')}\n`
+            }
+          }
+          if (fallbackNumber) {
+            enrichedHeader += `📋 ${lang === 'ar' ? 'عدد القرار' : 'N° décision'}: ${fallbackNumber}\n`
+          }
+        } else {
+          // Métadonnées legacy uniquement
+          enrichedHeader += `${labels.chamber}: ${meta?.chamber || labels.na}, ${labels.date}: ${meta?.date || labels.na}\n`
+          enrichedHeader += `${labels.articles}: ${meta?.articles?.join(', ') || labels.na}\n`
+        }
       }
 
       // C3 : Compression intelligente des jurisprudences longues
