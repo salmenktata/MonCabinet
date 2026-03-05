@@ -89,6 +89,8 @@ export interface IortCode {
   /** Index 1-based dans le select/looper */
   selectIndex: number
   selectValue?: string
+  /** ID du looper WebDev contenant cet item (ex: 'A1', 'M18') */
+  looperId?: string
 }
 
 /** Un item de la table des matières (PAGE_NavigationCode ou PAGE_CodesJuridiques) */
@@ -300,10 +302,11 @@ export async function parseAvailableCodes(page: Page): Promise<IortCode[]> {
  * pour naviguer vers PAGE_NavigationCode (table des matières).
  */
 export async function selectCodeAndNavigate(page: Page, code: IortCode): Promise<void> {
-  console.log(`[IORT Codes] Clic "اطلاع" sur: "${code.name}" (A1_${code.selectIndex})`)
+  const looperId = code.looperId ?? 'A1'
+  console.log(`[IORT Codes] Clic "اطلاع" sur: "${code.name}" (${looperId}_${code.selectIndex})`)
 
-  // Chercher le bouton "اطلاع" dans le div A1_N du code
-  const divSelector = `div#A1_${code.selectIndex}`
+  // Chercher le bouton "اطلاع" dans le div du code (looperId dynamique)
+  const divSelector = `div#${looperId}_${code.selectIndex}`
 
   // Stratégie 1 : clic HTML direct sur le lien dans le div
   const clicked = await page.evaluate((sel: string) => {
@@ -994,7 +997,8 @@ export const RECUEIL_LISTING_URL_FR =
 
 /**
  * Navigue vers la page de listing des recueils thématiques.
- * Attend le rendu JS (WebDev charge les loopers de façon asynchrone).
+ * Stratégie 1 : URL directe (session token stable).
+ * Stratégie 2 : fallback via homepage iort.tn/siteiort + menu M49 (AR) ou M49 FR.
  *
  * @param language 'ar' (défaut) | 'fr' — version linguistique du listing
  */
@@ -1005,16 +1009,73 @@ export async function navigateToRecueilPage(
   const page = session.getPage()
   const url = language === 'fr' ? RECUEIL_LISTING_URL_FR : RECUEIL_LISTING_URL_AR
   console.log(`[IORT Recueil] Navigation vers PAGE_CodesJuridiques (${language.toUpperCase()})...`)
+
   await page.goto(url, {
     waitUntil: 'load',
     timeout: IORT_RATE_CONFIG.navigationTimeout,
   })
-  // PAGE_CodesJuridiques charge les items looper via JS (seuil WebDev ~8s)
   await sleep(8000)
-  const count = await page.evaluate(() =>
-    document.querySelectorAll('[id^="A1_"], [id^="M18_"], [id^="M3_"]').length,
+
+  let count = await page.evaluate(() =>
+    document.querySelectorAll('[id^="A1_"], [id^="M18_"], [id^="M3_"], [id^="M78_"], [id^="M110_"]').length,
   )
-  console.log(`[IORT Recueil] ${count} items détectés dans le listing ${language.toUpperCase()}`)
+
+  if (count > 0) {
+    console.log(`[IORT Recueil] ${count} items détectés (URL directe, ${language.toUpperCase()})`)
+    return
+  }
+
+  // Diagnostic — quels loopers sont présents sur la page ?
+  const availableLoopers = await page.evaluate(() => {
+    const counts: Record<string, number> = {}
+    for (const el of document.querySelectorAll('[id]')) {
+      const m = el.id.match(/^([A-Z]+\d+)_(\d+)$/)
+      if (m) counts[m[1]] = (counts[m[1]] || 0) + 1
+    }
+    return Object.entries(counts).filter(([, n]) => n >= 2).map(([k, n]) => `${k}(${n})`).join(', ')
+  })
+  console.warn(`[IORT Recueil] URL directe vide (${language.toUpperCase()}). Loopers dispo: ${availableLoopers || 'aucun'}`)
+
+  // Fallback : homepage iort.tn/siteiort → menu JCL M24 → JEM M49 (recueils)
+  console.log(`[IORT Recueil] Fallback navigation via menu M24→M49...`)
+  await page.goto(IORT_SITEIORT_URL, {
+    waitUntil: 'load',
+    timeout: IORT_RATE_CONFIG.navigationTimeout,
+  })
+  await sleep(3000)
+
+  // Si FR : switcher la langue d'abord via M32
+  if (language === 'fr') {
+    console.log('[IORT Recueil] Activation langue FR (M32)...')
+    await page.evaluate(() => {
+      // @ts-expect-error WebDev
+      _JSL(_PAGE_, 'M32', '_self', '', '')
+    })
+    await page.waitForLoadState('load')
+    await sleep(3000)
+  }
+
+  // M49 = مجموعات نصوص (recueils thématiques) dans le menu siteiort
+  await page.evaluate(() => {
+    // @ts-expect-error WebDev
+    _JSL(_PAGE_, 'M49', '_self', '', '')
+  })
+  await page.waitForLoadState('load')
+  await sleep(8000)
+
+  count = await page.evaluate(() =>
+    document.querySelectorAll('[id^="A1_"], [id^="M18_"], [id^="M3_"], [id^="M78_"], [id^="M110_"]').length,
+  )
+
+  const fallbackLoopers = await page.evaluate(() => {
+    const counts: Record<string, number> = {}
+    for (const el of document.querySelectorAll('[id]')) {
+      const m = el.id.match(/^([A-Z]+\d+)_(\d+)$/)
+      if (m) counts[m[1]] = (counts[m[1]] || 0) + 1
+    }
+    return Object.entries(counts).filter(([, n]) => n >= 2).map(([k, n]) => `${k}(${n})`).join(', ')
+  })
+  console.log(`[IORT Recueil] Après fallback M49: ${count} items connus, loopers: ${fallbackLoopers || 'aucun'} (${language.toUpperCase()})`)
 }
 
 /**
@@ -1022,7 +1083,8 @@ export async function navigateToRecueilPage(
  * Même pattern que parseAvailableCodes() — détecte le looper actif parmi A1/M18/M3.
  */
 export async function parseAvailableRecueils(page: Page): Promise<IortCode[]> {
-  for (const prefix of ['A1', 'M18', 'M3']) {
+  // Découverte dynamique des loopers disponibles (count >= 2) si les préfixes connus échouent
+  for (const prefix of ['A1', 'M18', 'M3', 'M78', 'M110', 'M81', 'M59', 'M4', 'M49']) {
     const items = await page.evaluate((pfx: string) => {
       return Array.from(document.querySelectorAll(`[id^="${pfx}_"]`))
         .map(el => ({
