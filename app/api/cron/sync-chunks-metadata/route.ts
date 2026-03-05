@@ -70,6 +70,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
          NULL::text AS extraction_method
        FROM web_page_structured_metadata wpsm
        JOIN web_pages wp ON wpsm.web_page_id = wp.id
+       JOIN knowledge_base kb ON kb.id = wp.knowledge_base_id
        WHERE wp.knowledge_base_id IS NOT NULL
          ${sourceFilter}
          AND NOT EXISTS (
@@ -154,11 +155,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // Compter le reste à traiter
+    // Compter le reste à traiter (exclure KB orphelins)
     const remainingResult = await db.query<{ remaining: string }>(
       `SELECT COUNT(*) AS remaining
        FROM web_pages wp
        JOIN web_page_structured_metadata wpsm ON wpsm.web_page_id = wp.id
+       JOIN knowledge_base kb ON kb.id = wp.knowledge_base_id
        WHERE wp.knowledge_base_id IS NOT NULL
          AND NOT EXISTS (
            SELECT 1 FROM kb_structured_metadata kbm
