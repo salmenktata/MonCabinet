@@ -1304,8 +1304,11 @@ export async function searchArticleByTextMatch(
     let params: (string | string[])[]
 
     if (targetCodeFragment) {
+      // Fix Mar 5 2026: DISTINCT ON (kb_id, chunk_index) pour éviter les doublons de chunks.
+      // length > 100 : filtre les chunks-en-tête vides (ex: "الفصل 1" sans contenu).
+      // ORDER BY doit commencer par les colonnes DISTINCT ON (PostgreSQL exigence).
       sql = `
-        SELECT
+        SELECT DISTINCT ON (kbc.knowledge_base_id, kbc.chunk_index)
           kbc.id as chunk_id,
           kbc.content as chunk_content,
           kbc.chunk_index,
@@ -1319,12 +1322,13 @@ export async function searchArticleByTextMatch(
           AND kb.category = ANY($1::text[])
           AND kbc.content ~ $2
           AND kb.title ILIKE $3
-        ORDER BY kbc.chunk_index
+          AND length(kbc.content) > 100
+        ORDER BY kbc.knowledge_base_id, kbc.chunk_index
         LIMIT 3`
       params = [categories, artRegex, `%${targetCodeFragment}%`]
     } else {
       sql = `
-        SELECT
+        SELECT DISTINCT ON (kbc.knowledge_base_id, kbc.chunk_index)
           kbc.id as chunk_id,
           kbc.content as chunk_content,
           kbc.chunk_index,
@@ -1337,7 +1341,8 @@ export async function searchArticleByTextMatch(
         WHERE kb.is_indexed = true
           AND kb.category = ANY($1::text[])
           AND kbc.content ~ $2
-        ORDER BY kbc.chunk_index
+          AND length(kbc.content) > 100
+        ORDER BY kbc.knowledge_base_id, kbc.chunk_index
         LIMIT 3`
       params = [categories, artRegex]
     }
