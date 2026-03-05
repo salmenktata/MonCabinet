@@ -1313,6 +1313,17 @@ export async function crawlCode(
     console.log('[IORT Codes] PAGE_CodesJuridiques détectée, attente chargement dynamique (12s)...')
     await sleep(12000)
     console.log(`[IORT Codes] URL après attente: ${page.url()}`)
+
+    // 4a. Navigation 2-niveaux spécifique PAGE_CodesJuridiques
+    // T-links → L1 (PAGE_NavigationCode) → T2 sub-links → L2 (td.Texte articles)
+    await crawlCodesJuridiquesPage(page, session, sourceId, codeName, dryRun, stats)
+    stats.elapsedMs = Date.now() - startTime
+    console.log(
+      `[IORT Codes] ✅ Terminé "${codeName}": ` +
+      `${stats.crawled} nouveaux, ${stats.updated} MAJ, ${stats.skipped} sautés, ${stats.errors} erreurs ` +
+      `en ${Math.round(stats.elapsedMs / 1000)}s`,
+    )
+    return stats
   }
 
   // 4. Parser la table des matières (passe l'URL capturée avant navigation éventuelle)
@@ -1386,6 +1397,192 @@ export async function crawlCode(
   )
 
   return stats
+}
+
+// ─── PAGE_CodesJuridiques : navigation 2-niveaux ─────────────────────────────
+
+/**
+ * Extrait tous les articles d'une page L2 via le looper A2 (td.Texte cells).
+ * Gère la pagination WebDev du looper A2 (_JSL A2_SUI).
+ *
+ * Structure L2 : div#A2_1..A2_5 → td[id^="tzzrl_"] class="Texte padding" → texte article
+ */
+async function extractAllArticlesFromA2(page: Page): Promise<string | null> {
+  const allTexts: string[] = []
+  let pageNum = 1
+
+  while (pageNum <= 200) { // sécurité anti-boucle
+    const pageTexts = await page.evaluate(() => {
+      const cells = Array.from(document.querySelectorAll(
+        'td.Texte, td[class~="Texte"], td[id^="tzzrl_"]',
+      ))
+      return cells
+        .map(el => (el.textContent || '').trim())
+        .filter(t => t.length > 5 && /[\u0600-\u06FF]/.test(t))
+    })
+
+    if (pageTexts.length > 0) allTexts.push(...pageTexts)
+
+    // Vérifier s'il y a plus de pages (champ hidden _A2_TOTALREC vs nb items actuels)
+    const pagination = await page.evaluate(() => {
+      const occEl = document.querySelector('input[name="_A2_OCC"]') as HTMLInputElement | null
+      const totalEl = document.querySelector('input[name="_A2_TOTALREC"]') as HTMLInputElement | null
+      const currentItems = document.querySelectorAll('div[id^="A2_"]').length
+      const occ = occEl ? parseInt(occEl.value, 10) : 5
+      const total = totalEl ? parseInt(totalEl.value, 10) : currentItems
+      // Chercher le bouton "suivant" du looper A2
+      const nextBtn = document.querySelector(
+        'input[name="A2_SUI"], img[onclick*="A2_SUI"], a[onclick*="A2_SUI"], ' +
+        '[onclick*=\'"A2_SUI"\'], [onclick*="\'A2_SUI\'"]',
+      ) as HTMLElement | null
+      return { occ, total, currentItems, hasNext: !!nextBtn }
+    })
+
+    if (!pagination.hasNext || pageTexts.length === 0) break
+
+    // Clic sur "suivant" A2
+    await page.evaluate(() => {
+      // @ts-expect-error WebDev
+      _JSL(_PAGE_, 'A2_SUI', '_self', '', '')
+    })
+    await sleep(3000)
+    pageNum++
+  }
+
+  if (allTexts.length === 0) return null
+  const combined = allTexts.join('\n\n')
+  const cleaned = cleanText(combined)
+  return isNavigationBoilerplate(cleaned) ? null : cleaned
+}
+
+/**
+ * Crawl spécifique pour PAGE_CodesJuridiques (مجلة الديوانة, etc.).
+ *
+ * Structure :
+ *   1. Clic T-link[0] → L1 (PAGE_NavigationCode) pour découvrir les T2 sub-links
+ *   2. Pour chaque T2 sub-link : navigation fraîche (PAGE_CodesJuridiques → T-link → L1 → T2[i] → L2)
+ *      → évite le cache WebDev qui renvoie toujours la même L2 via goBack()
+ *   3. L2 → extraire td.Texte (A2 looper avec pagination)
+ *
+ * Important : le clic T-link doit passer par page.evaluate() car les liens ne sont
+ * pas "visibles" pour Playwright CDP (boundingBox = 0,0).
+ */
+async function crawlCodesJuridiquesPage(
+  page: Page,
+  session: IortSessionManager,
+  sourceId: string,
+  codeName: string,
+  dryRun: boolean,
+  stats: IortCodeCrawlStats,
+): Promise<void> {
+  console.log('[IORT Codes] PAGE_CodesJuridiques — navigation T-link → L1 → T2 → L2...')
+
+  const codesJuridiquesUrl = page.url()
+
+  // ─── Phase 1 : découverte des T2 sub-links (clic T-link[0] → L1) ──────────
+  const firstTLinkText = await page.evaluate(() => {
+    const links = Array.from(document.querySelectorAll('div[id^="T"] a'))
+      .filter(a => /[\u0600-\u06FF]/.test(a.textContent || ''))
+    const el = links[0] as HTMLElement | null
+    if (el) { el.click(); return (el.textContent || '').trim().substring(0, 60) }
+    return null
+  })
+
+  if (!firstTLinkText) {
+    console.warn('[IORT Codes] ⚠️  Aucun T-link trouvé sur PAGE_CodesJuridiques')
+    return
+  }
+
+  console.log(`[IORT Codes] T-link[0] (découverte): "${firstTLinkText}"`)
+  await page.waitForLoadState('load')
+  await sleep(10000)
+
+  const l1Url = page.url()
+  console.log(`[IORT Codes] L1 URL: ${l1Url.split('/').pop()}`)
+
+  const t2Links = await page.evaluate(() => {
+    const t2 = document.getElementById('T2')
+    if (!t2) return []
+    return Array.from(t2.querySelectorAll('a'))
+      .filter(a => /[\u0600-\u06FF]/.test(a.textContent || ''))
+      .map((a, i) => ({
+        index: i,
+        title: (a.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 120),
+      }))
+  })
+
+  console.log(`[IORT Codes] ${t2Links.length} sous-sections T2 découvertes`)
+  stats.totalSections = t2Links.length
+
+  if (t2Links.length === 0) {
+    console.warn('[IORT Codes] ⚠️  T2 vide sur L1 — vérifier la structure')
+    return
+  }
+
+  // ─── Phase 2 : crawl de chaque T2 sub-link avec navigation fraîche ────────
+  // On navigue directement vers l1Url (stable dans la session WebDev), puis on clique T2[i].
+  // Évite le cache WebDev qui renvoie la même L2 lorsqu'on utilise goBack()
+  for (const t2Link of t2Links) {
+    // Ne pas appeler session.tick() ici : il navigue vers la page de recherche
+    // (createContext + navigateToSearch) et ferme le contexte WebDev codes.
+    // Le crawl des codes gère sa propre navigation — on incrémente juste le compteur.
+    ;(session as any).pageCount = ((session as any).pageCount ?? 0) + 1
+
+    // Navigation fraîche vers L1 (URL de session stable)
+    await page.goto(l1Url, { waitUntil: 'load', timeout: 60000 })
+    await sleep(5000)
+
+    // Clic T2[i] → L2
+    await page.evaluate((idx: number) => {
+      const t2 = document.getElementById('T2')
+      if (!t2) return
+      const links = Array.from(t2.querySelectorAll('a'))
+        .filter(a => /[\u0600-\u06FF]/.test(a.textContent || ''))
+      const el = links[idx] as HTMLElement | null
+      if (el) el.click()
+    }, t2Link.index)
+
+    await page.waitForLoadState('load')
+    await sleep(8000)
+
+    const l2Url = page.url()
+    console.log(
+      `[IORT Codes] T2[${t2Link.index}] "${t2Link.title.substring(0, 40)}" → L2: ${l2Url.split('/').pop()}`,
+    )
+
+    // Extraire tous les articles de L2 (A2 looper avec pagination)
+    const articleText = await extractAllArticlesFromA2(page)
+
+    if (articleText && articleText.length > 20) {
+      if (dryRun) {
+        console.log(`  [DRY] ${t2Link.title.substring(0, 80)} (${articleText.length} chars)`)
+        stats.crawled++
+      } else {
+        try {
+          const { skipped, updated } = await saveCodeSection(
+            sourceId, codeName, t2Link.title, articleText, 1,
+          )
+          if (skipped) {
+            stats.skipped++
+          } else if (updated) {
+            stats.updated++
+            console.log(`[IORT Codes] ↻ MAJ: ${t2Link.title.substring(0, 70)}`)
+          } else {
+            stats.crawled++
+            console.log(`[IORT Codes] ✓ ${t2Link.title.substring(0, 70)} (${articleText.length} chars)`)
+          }
+        } catch (err) {
+          stats.errors++
+          console.error(`[IORT Codes] Erreur save "${t2Link.title.substring(0, 40)}":`, err)
+        }
+      }
+    } else {
+      stats.skipped++
+      console.log(`[IORT Codes] Texte vide: "${t2Link.title.substring(0, 60)}"`)
+    }
+
+    await sleep(IORT_RATE_CONFIG.minDelay)
+  }
 }
 
 // ─── مجموعات نصوص (PAGE_CodesJuridiques) ──────────────────────────────────────

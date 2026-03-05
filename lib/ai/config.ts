@@ -488,8 +488,8 @@ export const KB_ARABIC_ONLY = process.env.ARABIC_ONLY_KB === 'true'
 export const RAG_THRESHOLDS = {
   documents: parseFloat(process.env.RAG_THRESHOLD_DOCUMENTS || '0.7'),
   jurisprudence: parseFloat(process.env.RAG_THRESHOLD_JURISPRUDENCE || '0.6'),
-  knowledgeBase: parseFloat(process.env.RAG_THRESHOLD_KB || '0.65'),
-  minimum: parseFloat(process.env.RAG_THRESHOLD_MIN || '0.55'),
+  knowledgeBase: parseFloat(process.env.RAG_THRESHOLD_KB || '0.55'),   // Réduit 0.65→0.55 : codes juridiques ont sim plus faible (~0.60)
+  minimum: parseFloat(process.env.RAG_THRESHOLD_MIN || '0.45'),        // Réduit 0.55→0.45 : filet de sécurité pour codes
   kbSearch: parseFloat(process.env.RAG_THRESHOLD_KB_SEARCH || '0.20'),
 }
 
