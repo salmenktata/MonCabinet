@@ -547,36 +547,54 @@ async function expandViaParentLooper(
     const parentRaw = await extractLooperItems(page, parentPrefix)
     if (!parentRaw || parentRaw.length < 2) continue
 
-    // Test : cliquer le premier item parent → voir si childPrefix change
-    await clickLooperItem(page, parentPrefix, parentRaw[0].index)
-    await sleep(2500)
+    console.log(
+      `[IORT Codes] Test parent ${parentPrefix} (${parentRaw.length} items): ${parentRaw.map(x => x.text.substring(0, 20)).join(' | ')}`,
+    )
 
-    const newChildRaw = await extractLooperItems(page, childPrefix)
-    const newChildCount = newChildRaw?.length ?? 0
-    const newChildKeys = new Set((newChildRaw ?? []).map(x => x.text.substring(0, 30)))
-    const childChanged = newChildCount !== initialChildCount ||
-      [...newChildKeys].some(k => !initialChildKeys.has(k))
+    // Tester chaque item parent pour détecter celui qui change childPrefix
+    type RawItem = { index: number; text: string; depth: number; onclick: string }
+    let triggerChildItems: RawItem[] | null = null
+    let triggerParentIdx = -1
 
-    if (!childChanged) continue
+    for (let pi = 0; pi < parentRaw.length; pi++) {
+      await clickLooperItem(page, parentPrefix, parentRaw[pi].index)
+      await sleep(2500)
 
-    // parentPrefix contrôle childPrefix → itérer sur tous les items parent
+      const afterChild = await extractLooperItems(page, childPrefix)
+      const afterCount = afterChild?.length ?? 0
+      const afterKeys = new Set((afterChild ?? []).map(x => x.text.substring(0, 30)))
+      const changed = afterCount !== initialChildCount ||
+        [...afterKeys].some(k => !initialChildKeys.has(k))
+
+      if (changed) {
+        triggerChildItems = afterChild ?? null
+        triggerParentIdx = pi
+        console.log(
+          `[IORT Codes] Parent ${parentPrefix}[${parentRaw[pi].index}] ("${parentRaw[pi].text.substring(0, 25)}") → ${childPrefix}: ${initialChildCount}→${afterCount}`,
+        )
+        break
+      }
+    }
+
+    if (!triggerChildItems || triggerParentIdx < 0) continue
+
+    // parentPrefix contrôle childPrefix → itérer sur tous les items parent restants
     console.log(`[IORT Codes] ${parentPrefix} contrôle ${childPrefix} — expansion complète...`)
     const allItems: IortTocItem[] = []
 
-    // Ajouter les items chargés par le premier clic
-    if (newChildRaw && newChildRaw.length >= 2) {
-      allItems.push(...newChildRaw.map(x => ({
-        title: x.text,
-        resultIndex: x.index,
-        depth: 1,
-        looperId: childPrefix,
-        onclick: x.onclick || undefined,
-      })))
-    }
+    // Items du parent trigger (déjà chargés)
+    allItems.push(...triggerChildItems.map(x => ({
+      title: x.text,
+      resultIndex: x.index,
+      depth: 1,
+      looperId: childPrefix,
+      onclick: x.onclick || undefined,
+    })))
 
-    // Itérer sur les items restants du parent (index 2, 3, ...)
-    for (const parentItem of parentRaw.slice(1)) {
-      await clickLooperItem(page, parentPrefix, parentItem.index)
+    // Itérer sur les items restants du parent
+    for (let pi = 0; pi < parentRaw.length; pi++) {
+      if (pi === triggerParentIdx) continue  // déjà traité
+      await clickLooperItem(page, parentPrefix, parentRaw[pi].index)
       await sleep(2500)
 
       const items = await extractLooperItems(page, childPrefix)
