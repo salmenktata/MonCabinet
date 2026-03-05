@@ -933,6 +933,19 @@ export async function extractSectionText(
   page: Page,
   item: IortTocItem,
 ): Promise<string | null> {
+  // ─── Fast path : lire directement le textContent du div looper ──────────────
+  // Sur PAGE_CodesJuridiques (looper A2), le texte de l'article EST inline dans le div.
+  // extractInlineContent() exclut A2 → on lit directement sans clic.
+  // Applicable aussi aux autres loopers où le texte est inline (non-clickable pour popup).
+  const inlineText = await page.evaluate((sel: string) => {
+    const div = document.querySelector(sel)
+    return (div?.textContent || '').trim()
+  }, `div#${item.looperId}_${item.resultIndex}`)
+  if (inlineText && inlineText.length > 100) {
+    const cleaned = cleanText(inlineText)
+    if (!isNavigationBoilerplate(cleaned) && cleaned.length > 80) return cleaned
+  }
+
   // Boutons WebDev standard (fallback uniquement)
   const isStandardLooper = /^[A-E]4$/.test(item.looperId)
   const looperViewBtn = isStandardLooper ? item.looperId.replace('4', '17') : 'A17'
