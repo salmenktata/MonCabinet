@@ -876,13 +876,16 @@ export async function syncMetadataToRAG(
   provider: string,
   model: string
 ): Promise<void> {
-  // Récupérer le knowledge_base_id lié à cette page
-  const kbResult = await db.query<{ knowledge_base_id: string | null }>(
-    `SELECT knowledge_base_id FROM web_pages WHERE id = $1`,
+  // Récupérer le knowledge_base_id lié à cette page (JOIN pour vérifier que le KB existe)
+  const kbResult = await db.query<{ knowledge_base_id: string }>(
+    `SELECT wp.knowledge_base_id
+     FROM web_pages wp
+     JOIN knowledge_base kb ON kb.id = wp.knowledge_base_id
+     WHERE wp.id = $1`,
     [pageId]
   )
   const kbId = kbResult.rows[0]?.knowledge_base_id
-  if (!kbId) return // Page non encore indexée dans la KB
+  if (!kbId) return // Page non indexée ou KB supprimé
 
   // 1. Injecter les champs clés dans knowledge_base_chunks.metadata (JSONB merge)
   const chunkMeta: Record<string, unknown> = {}
