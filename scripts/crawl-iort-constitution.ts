@@ -43,8 +43,8 @@ async function main() {
         console.log('\n📚 Déclenchement indexation KB...')
         // Marquer la page pour indexation via index-web-pages
         await db.query(
-          `INSERT INTO web_files (web_page_id, web_source_id, file_url, file_type, status, created_at, updated_at)
-           SELECT $1, $2, linked_files->0->>'url', 'pdf', 'pending', NOW(), NOW()
+          `INSERT INTO web_files (web_page_id, web_source_id, url, file_type, is_downloaded, is_indexed, created_at, updated_at)
+           SELECT $1, $2, linked_files->0->>'url', 'pdf', false, false, NOW(), NOW()
            FROM web_pages WHERE id = $1
            AND linked_files != '[]'::jsonb
            AND NOT EXISTS (SELECT 1 FROM web_files wf WHERE wf.web_page_id = $1)`,
