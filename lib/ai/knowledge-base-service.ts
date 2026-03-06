@@ -2124,7 +2124,7 @@ export async function searchKnowledgeBaseHybrid(
         content: r.chunkContent,
         originalScore: r.similarity,
       }))
-      const reranked = await rerankDocuments(query, docsToRerank, results.length, { skipJinaRerank: false })
+      const reranked = await rerankDocuments(query, docsToRerank, results.length)
       return reranked.map(r => ({ ...results[r.index], similarity: r.score }))
     } catch (err) {
       logger.warn('[KB Hybrid Search] Jina reranking échoué, résultats non-reranked retournés:', err)

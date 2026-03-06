@@ -112,9 +112,9 @@ const FR_MODIFICATION_PATTERNS: RegExp[] = [
   // remplace l'article X
   /remplace\s+(?:l[''']article|les\s+articles)\s+([\d,\s]+)\s+(?:du|de\s+la)/gi,
   // il est ajouté à / inséré un article
-  /(?:il\s+est\s+(?:ajouté|inséré)|sont\s+(?:ajoutés|insérés))\s+(?:au|à\s+la|dans\s+la)\s+(?:loi|code|mجلة)/gi,
+  /(?:il\s+est\s+(?:ajouté|inséré)|sont\s+(?:ajoutés|insérés))\s+(?:au|à\s+la|dans\s+la)\s+(?:loi|code|مجل[ةه])/gi,
   // L'article X du [code] est ainsi rédigé / est modifié comme suit
-  /l[''']article\s+(\d+)\s+(?:du|de\s+la)\s+(?:loi|code|mجلة)[\s\S]{0,30}?est\s+(?:ainsi\s+rédig[eé]|modifi[eé]|remplacé)/gi,
+  /l[''']article\s+(\d+)\s+(?:du|de\s+la)\s+(?:loi|code|مجل[ةه])[\s\S]{0,30}?est\s+(?:ainsi\s+rédig[eé]|modifi[eé]|remplacé)/gi,
 ]
 
 const FR_ABROGATION_PATTERNS: RegExp[] = [
@@ -310,12 +310,28 @@ Codes juridiques tunisiens disponibles :
 - COC : مجلة الالتزامات والعقود (Code des Obligations et Contrats)
 - CP : المجلة الجزائية (Code Pénal)
 - CPP : مجلة الإجراءات الجزائية (Code de Procédure Pénale)
-- CPC : مجلة المرافعات المدنية والتجارية (Code de Procédure Civile)
+- CPC : مجلة المرافعات المدنية والتجارية (Code de Procédure Civile et Commerciale)
 - CT : مجلة الشغل (Code du Travail)
 - CSP : مجلة الأحوال الشخصية (Code du Statut Personnel)
 - MCO : المجلة التجارية (Code de Commerce)
 - CF : مجلة الحقوق العينية (Code des Droits Réels)
+- COSP : مجلة الحماية الاجتماعية (Code de la Protection Sociale)
+- CF_AGRI : مجلة الأراضي الفلاحية (Code des terres agricoles)
 - CONST : الدستور (Constitution)
+
+Autres codes fréquemment modifiés (utiliser le nom arabe comme slug si absent ci-dessus) :
+- مجلة الديوانة (Code des Douanes)
+- مجلة الجماعات المحلية (Code des Collectivités Locales)
+- مجلة التجارة البحرية (Code du Commerce Maritime)
+- مجلة الشركات التجارية (Code des Sociétés Commerciales)
+- مجلة الطرقات (Code de la Route)
+- مجلة الغابات (Code Forestier)
+- مجلة القانون الدولي الخاص (Code de Droit International Privé)
+- مجلة المحاسبة العمومية (Code de la Comptabilité Publique)
+- مجلة حماية الطفل (Code de Protection de l'Enfant)
+- مجلة الضريبة على دخل الأشخاص الطبيعيين والضريبة على الشركات (Code IRPP et IS)
+- مجلة الاتصالات (Code des Télécommunications)
+- مجلة الأداء على القيمة المضافة (Code TVA)
 
 Analyse le texte ci-dessous et retourne un JSON structuré :
 

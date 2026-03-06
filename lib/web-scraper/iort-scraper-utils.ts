@@ -15,16 +15,29 @@
 import type { Page, Browser, BrowserContext } from 'playwright'
 import { db } from '@/lib/db/postgres'
 import { hashUrl, hashContent, countWords, detectTextLanguage } from './content-extractor'
+import { createLogger } from '@/lib/logger'
+import {
+  IORT_BASE_URL,
+  IORT_SITEIORT_URL,
+  sleep,
+  waitForSelector,
+  waitForStableContent,
+  cleanText,
+  isNavigationBoilerplate,
+  parseArabicDate,
+  generateIortUrl,
+  isPdfUrl,
+  type IortLanguage,
+} from './iort-text-utils'
+// Re-export pour compatibilité ascendante
+export {
+  IORT_BASE_URL,
+  IORT_SITEIORT_URL,
+  generateIortUrl,
+} from './iort-text-utils'
+export type { IortLanguage } from './iort-text-utils'
 
-// =============================================================================
-// CONSTANTES
-// =============================================================================
-
-/** URL de base du site IORT (legacy iort.gov.tn — utilisé pour JORT par année/type) */
-export const IORT_BASE_URL = 'http://www.iort.gov.tn'
-
-/** URL du portail moderne iort.tn — utilisé pour codes, recueils, constitution HTML */
-export const IORT_SITEIORT_URL = 'https://www.iort.tn/siteiort'
+const log = createLogger('IORT')
 
 /** Types de textes disponibles sur IORT (labels exactement comme sur le site) */
 export const IORT_TEXT_TYPES = {
@@ -37,8 +50,7 @@ export const IORT_TEXT_TYPES = {
 
 export type IortTextType = keyof typeof IORT_TEXT_TYPES
 
-/** Langue de crawl IORT */
-export type IortLanguage = 'ar' | 'fr'
+// IortLanguage est re-exporté depuis iort-text-utils.ts
 
 /**
  * Switcher de langue homepage IORT.
@@ -190,7 +202,7 @@ export class IortSessionManager {
     })
     await this.createContext()
     this.isInitialized = true
-    console.log('[IORT] Session Playwright initialisée')
+    log.info('Session Playwright initialisée')
   }
 
   private async createContext(): Promise<void> {
@@ -217,10 +229,18 @@ export class IortSessionManager {
   async tick(): Promise<void> {
     this.pageCount++
     if (this.pageCount >= IORT_RATE_CONFIG.refreshEvery) {
-      console.log(`[IORT ${this.language.toUpperCase()}] Refresh contexte Playwright après ${this.pageCount} pages`)
+      log.info(`[${this.language.toUpperCase()}] Refresh contexte Playwright après ${this.pageCount} pages`)
       await this.createContext()
       await this.navigateToSearch(this.language)
     }
+  }
+
+  /**
+   * Incrémente le compteur de pages sans déclencher de refresh contexte ni navigation.
+   * Utilisé par le codes scraper qui gère sa propre navigation WebDev.
+   */
+  tickWithoutNavigation(): void {
+    this.pageCount++
   }
 
   async isSessionValid(): Promise<boolean> {
@@ -249,7 +269,7 @@ export class IortSessionManager {
     const langSwitch = IORT_LANGUAGE_SWITCH[language]
 
     // 1. Homepage
-    console.log(`[IORT ${langTag}] Navigation vers la page d'accueil...`)
+    log.info(`[${langTag}] Navigation vers la page d'accueil...`)
     await page.goto(IORT_BASE_URL, {
       waitUntil: 'load',
       timeout: IORT_RATE_CONFIG.navigationTimeout,
@@ -258,7 +278,7 @@ export class IortSessionManager {
 
     // 2. Switcher de langue si nécessaire (FR: M32)
     if (langSwitch) {
-      console.log(`[IORT ${langTag}] Activation mode français (${langSwitch})...`)
+      log.info(`[${langTag}] Activation mode français (${langSwitch})...`)
       await page.evaluate((id) => {
         // @ts-expect-error WebDev global function
         _JSL(_PAGE_, id, '_self', '', '')
@@ -269,7 +289,7 @@ export class IortSessionManager {
 
     // 3. M7 = "الرائد الرسمي القوانين و الأوامر" / "Journal officiel (lois, décrets, arrêtés et avis)"
     //    Même ID en AR et FR — le site adapte le contenu selon la langue active
-    console.log(`[IORT ${langTag}] Navigation M7 (JORT lois et décrets)...`)
+    log.info(`[${langTag}] Navigation M7 (JORT lois et décrets)...`)
     await page.evaluate(() => {
       // @ts-expect-error WebDev global function
       _JSL(_PAGE_, 'M7', '_self', '', '')
@@ -281,7 +301,7 @@ export class IortSessionManager {
     const hasSearchForm = await page.$('select[name="A8"]')
     if (!hasSearchForm) {
       // A9 = "البحث عن النص" / "Recherche dans le JORT"
-      console.log(`[IORT ${langTag}] Navigation A9 (formulaire de recherche)...`)
+      log.info(`[${langTag}] Navigation A9 (formulaire de recherche)...`)
       await page.evaluate(() => {
         // @ts-expect-error WebDev global function
         _JSL(_PAGE_, 'A9', '_self', '', '')
@@ -296,7 +316,7 @@ export class IortSessionManager {
       throw new Error(`[IORT ${langTag}] Formulaire de recherche non trouvé (select A8 absent)`)
     }
 
-    console.log(`[IORT ${langTag}] Page de recherche atteinte`)
+    log.info(`[${langTag}] Page de recherche atteinte`)
   }
 
   /**
@@ -304,7 +324,7 @@ export class IortSessionManager {
    * Re-crée le browser, context et page, puis re-navigue.
    */
   async recover(): Promise<void> {
-    console.log(`[IORT ${this.language.toUpperCase()}] Récupération session après crash...`)
+    log.info(`[${this.language.toUpperCase()}] Récupération session après crash...`)
     // Fermer tout proprement
     if (this.context) await this.context.close().catch(() => {})
     if (this.browser) await this.browser.close().catch(() => {})
@@ -317,14 +337,14 @@ export class IortSessionManager {
     })
     await this.createContext()
     await this.navigateToSearch(this.language)
-    console.log(`[IORT ${this.language.toUpperCase()}] Session récupérée`)
+    log.info(`[${this.language.toUpperCase()}] Session récupérée`)
   }
 
   async close(): Promise<void> {
     if (this.context) await this.context.close().catch(() => {})
     if (this.browser) await this.browser.close().catch(() => {})
     this.isInitialized = false
-    console.log('[IORT] Session Playwright fermée')
+    log.info(' Session Playwright fermée')
   }
 
   get initialized(): boolean {
@@ -353,7 +373,7 @@ export async function searchByYearAndType(
   const typeLabel = IORT_TEXT_TYPE_LABELS[language][textType]
   const langTag = language.toUpperCase()
 
-  console.log(`[IORT ${langTag}] Recherche: année=${year}, type=${typeConfig.fr} (label="${typeLabel}")`)
+  log.info(`[${langTag}] Recherche: année=${year}, type=${typeConfig.fr} (label="${typeLabel}")`)
 
   // Réinitialiser le formulaire d'abord via _JSL(A39)
   await page.evaluate(() => {
@@ -374,7 +394,7 @@ export async function searchByYearAndType(
   } catch {
     // Fallback : utiliser le label arabe si le label FR n'est pas trouvé dans le select
     // (certaines interfaces IORT FR gardent les labels arabes)
-    console.warn(`[IORT ${langTag}] Label "${typeLabel}" non trouvé dans A9, essai avec label AR "${typeConfig.ar}"`)
+    log.warn(`[${langTag}] Label "${typeLabel}" non trouvé dans A9, essai avec label AR "${typeConfig.ar}"`)
     await page.selectOption('select[name="A9"]', { label: typeConfig.ar })
   }
   await sleep(500)
@@ -385,11 +405,13 @@ export async function searchByYearAndType(
     _JSL(_PAGE_, 'A40', '_self', '', '')
   })
   await page.waitForLoadState('load')
-  await sleep(5000)
+  // Attendre que le looper résultats ou le compteur A5 apparaisse
+  await waitForSelector(page, 'input[name="A5"], div[id^="A4_"]', 8000)
+  await sleep(1000) // court délai pour stabilisation WebDev
 
   // Lire le nombre total dans input[name="A5"]
   const totalResults = await parseTotalResults(page)
-  console.log(`[IORT ${langTag}] ${totalResults} résultats trouvés pour ${year}/${typeConfig.fr}`)
+  log.info(`[${langTag}] ${totalResults} résultats trouvés pour ${year}/${typeConfig.fr}`)
 
   return totalResults
 }
@@ -499,7 +521,7 @@ export async function parseSearchResults(page: Page): Promise<IortSearchResult[]
         hasFullText,
       })
     } catch (err) {
-      console.warn(`[IORT] Erreur parsing item:`, err instanceof Error ? err.message : err)
+      log.warn(` Erreur parsing item:`, err instanceof Error ? err.message : err)
     }
   }
 
@@ -546,7 +568,7 @@ export async function extractTextDetail(
 ): Promise<IortExtractedText | null> {
   try {
     if (!result.hasFullText) {
-      console.log(`[IORT] Pas de texte complet pour "${result.title.substring(0, 50)}..."`)
+      log.info(` Pas de texte complet pour "${result.title.substring(0, 50)}..."`)
       return null
     }
 
@@ -627,7 +649,7 @@ export async function extractTextDetail(
     await detailPage.close()
 
     if (textContent.length < 50) {
-      console.warn(`[IORT] Contenu trop court pour "${title}" (${textContent.length} chars)`)
+      log.warn(` Contenu trop court pour "${title}" (${textContent.length} chars)`)
       return null
     }
 
@@ -657,7 +679,7 @@ export async function extractTextDetail(
       pdfFilename: null,
     }
   } catch (err) {
-    console.error(`[IORT] Erreur extraction détail "${result.title}":`, err instanceof Error ? err.message : err)
+    log.error(` Erreur extraction détail "${result.title}":`, err instanceof Error ? err.message : err)
 
     // Fermer tout onglet supplémentaire qui aurait pu s'ouvrir
     const pages = page.context().pages()
@@ -705,7 +727,7 @@ async function downloadPdfViaA7(
     // Lire le contenu du fichier téléchargé
     const path = await download.path()
     if (!path) {
-      console.warn(`[IORT] PDF download path null pour index ${resultIndex}`)
+      log.warn(` PDF download path null pour index ${resultIndex}`)
       return null
     }
 
@@ -716,10 +738,10 @@ async function downloadPdfViaA7(
     await page.waitForLoadState('load').catch(() => {})
     await sleep(2000)
 
-    console.log(`[IORT] PDF téléchargé: ${filename} (${Math.round(buffer.length / 1024)} KB)`)
+    log.info(` PDF téléchargé: ${filename} (${Math.round(buffer.length / 1024)} KB)`)
     return { buffer, filename }
   } catch (err) {
-    console.warn(`[IORT] Échec download PDF A7 (index ${resultIndex}):`, err instanceof Error ? err.message : err)
+    log.warn(` Échec download PDF A7 (index ${resultIndex}):`, err instanceof Error ? err.message : err)
     // S'assurer qu'on est toujours sur la bonne page
     await page.waitForLoadState('load').catch(() => {})
     return null
@@ -769,7 +791,7 @@ export async function uploadIortPdf(
         const files = sizeMatch.rows[0].linked_files as Array<{ minioPath?: string; size?: number }>
         const matchingFile = files.find(f => f.size === pdfBuffer.length && f.minioPath)
         if (matchingFile?.minioPath) {
-          console.log(`[IORT] PDF dédupliqué (taille identique): ${matchingFile.minioPath}`)
+          log.info(` PDF dédupliqué (taille identique): ${matchingFile.minioPath}`)
           return { minioPath: matchingFile.minioPath, size: pdfBuffer.length }
         }
       }
@@ -777,7 +799,7 @@ export async function uploadIortPdf(
       const files = existingPdf.rows[0].linked_files as Array<{ minioPath?: string; size?: number }>
       const matchingFile = files.find(f => f.minioPath)
       if (matchingFile?.minioPath) {
-        console.log(`[IORT] PDF dédupliqué (hash identique): ${matchingFile.minioPath}`)
+        log.info(` PDF dédupliqué (hash identique): ${matchingFile.minioPath}`)
         return { minioPath: matchingFile.minioPath, size: pdfBuffer.length }
       }
     }
@@ -793,14 +815,14 @@ export async function uploadIortPdf(
 
     await uploadFile(pdfBuffer, filename, { contentType: 'application/pdf' }, 'web-files')
 
-    console.log(`[IORT] PDF uploadé MinIO: ${filename} (${Math.round(pdfBuffer.length / 1024)} KB)`)
+    log.info(` PDF uploadé MinIO: ${filename} (${Math.round(pdfBuffer.length / 1024)} KB)`)
 
     return {
       minioPath: filename,
       size: pdfBuffer.length,
     }
   } catch (err) {
-    console.error(`[IORT] Erreur upload PDF MinIO:`, err instanceof Error ? err.message : err)
+    log.error(` Erreur upload PDF MinIO:`, err instanceof Error ? err.message : err)
     return null
   }
 }
@@ -809,23 +831,7 @@ export async function uploadIortPdf(
 // SAUVEGARDE EN DB
 // =============================================================================
 
-export function generateIortUrl(
-  year: number,
-  issueNumber: string | null,
-  textType: string,
-  title: string,
-  language: IortLanguage = 'ar',
-): string {
-  const typeSlug = textType.replace(/\s+/g, '-')
-  // Le préfixe /fr/ dans l'URL garantit un url_hash distinct pour les versions FR
-  // Ex : AR → /jort/2024/قانون/123 | FR → /jort/fr/2024/قانون/123
-  const langPrefix = language === 'fr' ? '/fr' : ''
-  if (issueNumber) {
-    return `${IORT_BASE_URL}/jort${langPrefix}/${year}/${typeSlug}/${issueNumber}`
-  }
-  const titleHash = hashContent(title).substring(0, 12)
-  return `${IORT_BASE_URL}/jort${langPrefix}/${year}/${typeSlug}/${titleHash}`
-}
+// generateIortUrl — importé et re-exporté depuis iort-text-utils.ts
 
 export async function saveIortPage(
   sourceId: string,
@@ -973,7 +979,7 @@ export async function saveIortPage(
       const { createWebPageVersion } = await import('./source-service')
       await createWebPageVersion(pageId, 'initial_crawl')
     } catch (err) {
-      console.error('[IORT] Erreur création version initiale:', err)
+      log.error(' Erreur création version initiale:', err)
     }
   }
 
@@ -996,7 +1002,7 @@ async function updateIortPage(
     const { createWebPageVersion } = await import('./source-service')
     await createWebPageVersion(pageId, 'content_change')
   } catch (err) {
-    console.error('[IORT] Erreur création version:', err)
+    log.error(' Erreur création version:', err)
   }
 
   const wordCount = countWords(extracted.content)
@@ -1058,7 +1064,7 @@ async function updateIortPage(
     params,
   )
 
-  console.log(`[IORT] Page ${pageId} mise à jour (contenu changé, is_indexed=false)`)
+  log.info(` Page ${pageId} mise à jour (contenu changé, is_indexed=false)`)
 }
 
 export async function updateIortSourceStats(sourceId: string): Promise<void> {
@@ -1076,6 +1082,27 @@ export async function updateIortSourceStats(sourceId: string): Promise<void> {
 // =============================================================================
 // CRAWL PRINCIPAL
 // =============================================================================
+
+/**
+ * Fast-forward pagination après recovery : avance rapidement jusqu'à targetPage
+ * en cliquant ">" sans traiter les résultats.
+ * Retourne le numéro de page atteint (peut être < targetPage si pagination épuisée).
+ */
+async function fastForwardToPage(page: Page, targetPage: number, langTag: string): Promise<number> {
+  if (targetPage <= 1) return 1
+  log.info(`[${langTag}] Fast-forward vers page ${targetPage}...`)
+  let current = 1
+  while (current < targetPage) {
+    const advanced = await goToNextPage(page)
+    if (!advanced) {
+      log.info(`[${langTag}] Fast-forward arrêté à page ${current} (pagination épuisée)`)
+      return current
+    }
+    current++
+  }
+  log.info(`[${langTag}] Fast-forward OK — page ${current} atteinte`)
+  return current
+}
 
 export async function crawlYearType(
   session: IortSessionManager,
@@ -1106,7 +1133,7 @@ export async function crawlYearType(
   // Vérifier session et re-naviguer si nécessaire
   const valid = await session.isSessionValid()
   if (!valid) {
-    console.log(`[IORT ${langTag}] Session expirée, re-navigation...`)
+    log.info(`[${langTag}] Session expirée, re-navigation...`)
     await session.navigateToSearch(language)
     page = session.getPage()
   }
@@ -1116,7 +1143,7 @@ export async function crawlYearType(
   stats.totalResults = totalResults
 
   if (totalResults === 0) {
-    console.log(`[IORT ${langTag}] Aucun résultat pour ${year}/${IORT_TEXT_TYPES[textType].fr}`)
+    log.info(`[${langTag}] Aucun résultat pour ${year}/${IORT_TEXT_TYPES[textType].fr}`)
     return stats
   }
 
@@ -1124,17 +1151,19 @@ export async function crawlYearType(
   let hasNextPage = true
   let pageNum = 1
   let consecutiveErrors = 0
+  /** Page atteinte avant le dernier crash — permet de fast-forward après recovery */
+  let lastSuccessfulPage = 0
 
   while (hasNextPage) {
     if (signal?.aborted) {
-      console.log(`[IORT ${langTag}] Signal d'arrêt reçu`)
+      log.info(`[${langTag}] Signal d'arrêt reçu`)
       break
     }
 
     try {
       page = session.getPage()
       const results = await parseSearchResults(page)
-      console.log(`[IORT ${langTag}] Page ${pageNum}: ${results.length} résultats à traiter`)
+      log.info(`[${langTag}] Page ${pageNum}: ${results.length} résultats à traiter`)
       consecutiveErrors = 0
 
       // Phase 1: Extraire texte + sauvegarder (via popup A17)
@@ -1149,7 +1178,7 @@ export async function crawlYearType(
 
         // Filtrer les textes administratifs sans valeur juridique (nominations, mutations, concours…)
         if (IORT_ADMIN_NOISE_PATTERNS.some(p => p.test(result.title))) {
-          console.log(`[IORT] skip bruit admin: "${result.title.substring(0, 70)}"`)
+          log.info(` skip bruit admin: "${result.title.substring(0, 70)}"`)
           stats.skipped++
           await sleep(IORT_RATE_CONFIG.minDelay)
           continue
@@ -1175,32 +1204,33 @@ export async function crawlYearType(
           } else if (updated) {
             stats.updated++
             extractedResults.push({ result, extracted, pageId })
-            console.log(`[IORT] ↻ MAJ ${result.title.substring(0, 60)}...`)
+            log.info(` ↻ MAJ ${result.title.substring(0, 60)}...`)
           } else {
             stats.crawled++
             extractedResults.push({ result, extracted, pageId })
-            console.log(`[IORT] ✓ ${result.title.substring(0, 60)}...`)
+            log.info(` ✓ ${result.title.substring(0, 60)}...`)
           }
 
           await sleep(IORT_RATE_CONFIG.minDelay)
           await session.tick()
 
           if ((stats.crawled + stats.skipped) % IORT_RATE_CONFIG.longPauseEvery === 0 && stats.crawled > 0) {
-            console.log(`[IORT] Pause longue après ${stats.crawled + stats.skipped} pages...`)
+            log.info(` Pause longue après ${stats.crawled + stats.skipped} pages...`)
             await sleep(IORT_RATE_CONFIG.longPauseMs)
           }
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err)
           stats.errors++
-          console.error(`[IORT] Erreur traitement "${result.title.substring(0, 40)}":`, errMsg)
+          log.error(` Erreur traitement "${result.title.substring(0, 40)}":`, errMsg)
 
           // Si le browser a crashé, récupérer et sortir de la boucle des résultats
           if (errMsg.includes('Target page') || errMsg.includes('browser has been closed') || errMsg.includes('context has been closed')) {
-            console.log('[IORT] Browser crash détecté, recovery...')
+            log.info(' Browser crash détecté, recovery...')
             await session.recover()
             page = session.getPage()
             await searchByYearAndType(page, year, textType, language)
-            pageNum = 1 // Repart depuis page 1 (évite re-navigation O(n²))
+            // Fast-forward vers la dernière page traitée (doublons déjà en DB seront skippés)
+            pageNum = await fastForwardToPage(page, lastSuccessfulPage, langTag)
             break // Sortir de la boucle des résultats, recommencer cette page
           }
 
@@ -1225,8 +1255,8 @@ export async function crawlYearType(
           )
 
       if (resultsMissingContent.length > 0) {
-        console.log(
-          `[IORT] Phase 2 PDF — ${resultsMissingContent.length}/${extractedResults.length} résultats sans HTML suffisant`,
+        log.info(
+          `Phase 2 PDF — ${resultsMissingContent.length}/${extractedResults.length} résultats sans HTML suffisant`,
         )
 
         for (const { result, extracted, pageId } of resultsMissingContent) {
@@ -1252,17 +1282,17 @@ export async function crawlYearType(
 
                 // L'indexation PDF est déléguée à scripts/index-iort-pdfs.ts (non-bloquant)
                 // Cela évite de bloquer le crawl texte avec les embeddings Ollama (~1.5s/chunk)
-                console.log(`[IORT] PDF stocké dans MinIO (${pdfInfo.minioPath}) — indexation différée`)
+                log.info(` PDF stocké dans MinIO (${pdfInfo.minioPath}) — indexation différée`)
               }
             }
             await sleep(2000)
           } catch (err) {
             const errMsg = err instanceof Error ? err.message : String(err)
-            console.warn(`[IORT] Erreur PDF "${result.title.substring(0, 40)}":`, errMsg)
+            log.warn(` Erreur PDF "${result.title.substring(0, 40)}":`, errMsg)
 
             // Browser crash pendant le PDF → recover et abandonner le reste des PDFs
             if (errMsg.includes('Target page') || errMsg.includes('browser has been closed')) {
-              console.log('[IORT] Browser crash pendant PDF, recovery...')
+              log.info(' Browser crash pendant PDF, recovery...')
               await session.recover()
               page = session.getPage()
               break // Abandonner les PDFs restants, continuer le crawl
@@ -1275,52 +1305,55 @@ export async function crawlYearType(
           page = session.getPage()
           const stillOnResults = await page.$('div[id^="A4_"]')
           if (!stillOnResults) {
-            console.log('[IORT] Page résultats perdue après PDFs, re-navigation page 1...')
+            log.info(' Page résultats perdue après PDFs, recovery + fast-forward...')
             await session.recover()
             page = session.getPage()
             await searchByYearAndType(page, year, textType, language)
-            pageNum = 1 // Repart depuis page 1 (doublons skippés par saveIortPage)
+            pageNum = await fastForwardToPage(page, lastSuccessfulPage, langTag)
             continue
           }
         } catch {
-          console.log('[IORT] Erreur vérification page, recovery page 1...')
+          log.info(' Erreur vérification page, recovery + fast-forward...')
           await session.recover()
           page = session.getPage()
           await searchByYearAndType(page, year, textType, language)
-          pageNum = 1 // Repart depuis page 1 (doublons skippés par saveIortPage)
+          pageNum = await fastForwardToPage(page, lastSuccessfulPage, langTag)
           continue
         }
       }
+
+      // Marquer la page comme traitée avec succès (pour fast-forward après recovery)
+      lastSuccessfulPage = pageNum
 
       // Page suivante
       hasNextPage = await goToNextPage(page)
       pageNum++
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
-      console.error(`[IORT] Erreur page ${pageNum}:`, errMsg)
+      log.error(` Erreur page ${pageNum}:`, errMsg)
       consecutiveErrors++
 
       if (consecutiveErrors >= 8) {
-        console.error(`[IORT] ${consecutiveErrors} erreurs consécutives, abandon du combo`)
+        log.error(` ${consecutiveErrors} erreurs consécutives, abandon du combo`)
         break
       }
 
-      // Recovery : retour page 1, les doublons seront skippés par saveIortPage
+      // Recovery : fast-forward vers la dernière page traitée, les doublons seront skippés par saveIortPage
       try {
         await session.recover()
         page = session.getPage()
         await searchByYearAndType(page, year, textType, language)
-        pageNum = 1 // Repart depuis page 1 (évite re-navigation O(n²))
-        console.log('[IORT] Recovery OK — reprise depuis page 1 (doublons skippés)')
+        pageNum = await fastForwardToPage(page, lastSuccessfulPage, langTag)
+        log.info(` Recovery OK — reprise depuis page ${pageNum} (doublons skippés)`)
       } catch (recoverErr) {
-        console.error('[IORT] Échec recovery:', recoverErr instanceof Error ? recoverErr.message : recoverErr)
+        log.error(' Échec recovery:', recoverErr instanceof Error ? recoverErr.message : recoverErr)
         break
       }
     }
   }
 
-  console.log(
-    `[IORT ${langTag}] Terminé ${year}/${IORT_TEXT_TYPES[textType].fr}: ` +
+  log.info(
+    `[${langTag}] Terminé ${year}/${IORT_TEXT_TYPES[textType].fr}: ` +
     `${stats.crawled} nouveaux, ${stats.updated} mis à jour, ${stats.skipped} inchangés, ${stats.errors} erreurs ` +
     `(sur ${stats.totalResults} total)`
   )
@@ -1342,20 +1375,19 @@ export async function crawlYearType(
 export async function navigateToConstitutionPage(session: IortSessionManager): Promise<void> {
   const page = session.getPage()
 
-  console.log('[IORT Constitution] Navigation vers iort.gov.tn (M4 — OCR PDF)...')
+  log.info('[Constitution] Navigation vers iort.gov.tn (M4 — OCR PDF)...')
   await page.goto(IORT_BASE_URL, { waitUntil: 'load', timeout: IORT_RATE_CONFIG.navigationTimeout })
-  await sleep(2500)
+  await sleep(1500)
 
-  console.log('[IORT Constitution] Clic sur M4 (دستور الجمهورية التونسية) sur iort.gov.tn...')
+  log.info('[Constitution] Clic sur M4 (دستور الجمهورية التونسية) sur iort.gov.tn...')
   await page.evaluate(() => {
     // @ts-expect-error WebDev global function
     _JSL(_PAGE_, 'M4', '_self', '', '')
   })
   await page.waitForLoadState('load')
-  await sleep(3000)
+  await waitForStableContent(page, { intervalMs: 1500, timeoutMs: 8000 })
 
-  console.log('[IORT Constitution] Page constitution atteinte (iort.gov.tn M4)')
-  await sleep(2000)
+  log.info('[Constitution] Page constitution atteinte (iort.gov.tn M4)')
 }
 
 /**
@@ -1380,7 +1412,7 @@ async function downloadConstitutionPdfViaA7(page: import('playwright').Page): Pr
           const url = response.url()
           const m = url.match(/([^/?#]+\.pdf)/i)
           if (m) capturedFilename = decodeURIComponent(m[1])
-          console.log(`[IORT Constitution] PDF capturé via réponse réseau: ${Math.round(buf.length / 1024)} KB`)
+          log.info(`[Constitution] PDF capturé via réponse réseau: ${Math.round(buf.length / 1024)} KB`)
         }
       }
     } catch { /* body déjà consommé */ }
@@ -1414,7 +1446,7 @@ async function downloadConstitutionPdfViaA7(page: import('playwright').Page): Pr
           const fs = await import('fs')
           capturedBuffer = fs.readFileSync(path)
           capturedFilename = dl.suggestedFilename() || capturedFilename
-          console.log(`[IORT Constitution] PDF via clic bouton: ${Math.round(capturedBuffer.length / 1024)} KB`)
+          log.info(`[Constitution] PDF via clic bouton: ${Math.round(capturedBuffer.length / 1024)} KB`)
         }
       }
     }
@@ -1433,7 +1465,7 @@ async function downloadConstitutionPdfViaA7(page: import('playwright').Page): Pr
           const fs = await import('fs')
           capturedBuffer = fs.readFileSync(path)
           capturedFilename = dl.suggestedFilename() || capturedFilename
-          console.log(`[IORT Constitution] PDF via A7: ${Math.round(capturedBuffer.length / 1024)} KB`)
+          log.info(`[Constitution] PDF via A7: ${Math.round(capturedBuffer.length / 1024)} KB`)
         }
       }
     }
@@ -1447,14 +1479,14 @@ async function downloadConstitutionPdfViaA7(page: import('playwright').Page): Pr
     }
 
     if (!capturedBuffer) {
-      console.warn('[IORT Constitution] Aucun PDF capturé (bouton + A7 + réponse réseau)')
+      log.warn('[Constitution] Aucun PDF capturé (bouton + A7 + réponse réseau)')
       return null
     }
 
-    console.log(`[IORT Constitution] PDF téléchargé: ${capturedFilename} (${Math.round(capturedBuffer.length / 1024)} KB)`)
+    log.info(`[Constitution] PDF téléchargé: ${capturedFilename} (${Math.round(capturedBuffer.length / 1024)} KB)`)
     return { buffer: capturedBuffer, filename: capturedFilename }
   } catch (err) {
-    console.warn('[IORT Constitution] Échec download PDF:', err instanceof Error ? err.message : err)
+    log.warn('[Constitution] Échec download PDF:', err instanceof Error ? err.message : err)
     return null
   } finally {
     page.off('response', onResponse)
@@ -1510,18 +1542,18 @@ async function extractConstitutionText(
   // à encodage de police personnalisé (fréquent pour les PDFs gouvernementaux arabes IORT).
   const hasArticles = /(?:الفصل|فصل)\s+(?:[\d\u0660-\u0669]+|ال[\u0600-\u06FF]+)/.test(content)
   if ((!hasArticles || content.length < 5000) && pdfBuffer) {
-    console.log('[IORT Constitution] HTML sans articles constitutionnels — fallback PDF (parsePdf + OCR si garbled)')
+    log.info('[Constitution] HTML sans articles constitutionnels — fallback PDF (parsePdf + OCR si garbled)')
     try {
       const { parsePdf } = await import('./file-parser-service')
       const parsed = await parsePdf(pdfBuffer, { forceOcr: true })
       if (parsed.success && parsed.text && parsed.text.length > content.length) {
         content = parsed.text
-        console.log(`[IORT Constitution] PDF parsé: ${content.length} chars`)
+        log.info(`[Constitution] PDF parsé: ${content.length} chars`)
       } else if (!parsed.success) {
-        console.warn('[IORT Constitution] Échec extraction PDF:', parsed.error)
+        log.warn('[Constitution] Échec extraction PDF:', parsed.error)
       }
     } catch (pdfErr) {
-      console.warn('[IORT Constitution] Échec extraction PDF:', pdfErr instanceof Error ? pdfErr.message : pdfErr)
+      log.warn('[Constitution] Échec extraction PDF:', pdfErr instanceof Error ? pdfErr.message : pdfErr)
     }
   }
 
@@ -1554,7 +1586,7 @@ export async function downloadConstitutionFromIort(
   // Fix Mar 2 2026: l'appel A7 réinitialise la page, ne laissant que 6092 chars vides.
   // La page M4 IORT a le texte constitutionnel (37K chars HTML) si on l'extrait avant A7.
   const extracted = await extractConstitutionText(page, undefined)
-  console.log(`[IORT Constitution] Extraction initiale: ${extracted.content.length} chars, hasArticles: ${/(?:الفصل|فصل)\s+(?:[\d\u0660-\u0669]+|ال[\u0600-\u06FF]+)/.test(extracted.content)}`)
+  log.info(`[Constitution] Extraction initiale: ${extracted.content.length} chars, hasArticles: ${/(?:الفصل|فصل)\s+(?:[\d\u0660-\u0669]+|ال[\u0600-\u06FF]+)/.test(extracted.content)}`)
 
   // Télécharger le PDF APRÈS extraction (A7 peut naviguer/réinitialiser la page — peu importe)
   const pdfResult = await downloadConstitutionPdfViaA7(page)
@@ -1565,7 +1597,7 @@ export async function downloadConstitutionFromIort(
   // process Node.js (V8 OOM ou kernel OOM non loggé). On n'a plus besoin du browser après
   // le téléchargement du PDF.
   await session.close().catch(() => {})
-  console.log('[IORT Constitution] Session Playwright fermée (libération mémoire avant OCR)')
+  log.info('[Constitution] Session Playwright fermée (libération mémoire avant OCR)')
 
   // Si PDF disponible et HTML sans articles → extraire via parsePdf() (avec OCR fallback)
   // Le PDF IORT utilise un encodage de police personnalisé (Arabic custom font mapping) →
@@ -1580,17 +1612,17 @@ export async function downloadConstitutionFromIort(
       const parsed = await parsePdf(pdfResult.buffer, { forceOcr: true })
       if (parsed.success && parsed.text && parsed.text.length > extracted.content.length) {
         extracted.content = parsed.text
-        console.log(`[IORT Constitution] PDF enrichit le contenu: ${extracted.content.length} chars (OCR: ${parsed.metadata.ocrApplied ? 'oui' : 'non'})`)
+        log.info(`[Constitution] PDF enrichit le contenu: ${extracted.content.length} chars (OCR: ${parsed.metadata.ocrApplied ? 'oui' : 'non'})`)
       } else if (!parsed.success) {
-        console.warn('[IORT Constitution] Échec extraction PDF:', parsed.error)
+        log.warn('[Constitution] Échec extraction PDF:', parsed.error)
       }
     } catch (pdfErr) {
-      console.warn('[IORT Constitution] Échec extraction PDF:', pdfErr instanceof Error ? pdfErr.message : pdfErr)
+      log.warn('[Constitution] Échec extraction PDF:', pdfErr instanceof Error ? pdfErr.message : pdfErr)
     }
   }
 
   const finalHasArticles = /(?:الفصل|فصل)\s+(?:[\d\u0660-\u0669]+|ال[\u0600-\u06FF]+)/.test(extracted.content)
-  console.log(`[IORT Constitution] Titre: ${extracted.title}, contenu final: ${extracted.content.length} chars, hasArticles: ${finalHasArticles}`)
+  log.info(`[Constitution] Titre: ${extracted.title}, contenu final: ${extracted.content.length} chars, hasArticles: ${finalHasArticles}`)
 
   // Sauvegarder PDF dans MinIO
   let pdfInfo: { minioPath: string; size: number } | null = null
@@ -1625,7 +1657,7 @@ export async function downloadConstitutionFromIort(
         [pageId, JSON.stringify([{ url: constitutionUrl, type: 'pdf', minioPath: pdfInfo.minioPath, size: pdfInfo.size, contentType: 'application/pdf' }])],
       )
     }
-    console.log(`[IORT Constitution] Page mise à jour (id=${pageId})`)
+    log.info(`[Constitution] Page mise à jour (id=${pageId})`)
   } else {
     const insertResult = await db.query(
       `INSERT INTO web_pages (
@@ -1647,7 +1679,7 @@ export async function downloadConstitutionFromIort(
       ],
     )
     pageId = insertResult.rows[0].id as string
-    console.log(`[IORT Constitution] Page créée (id=${pageId})`)
+    log.info(`[Constitution] Page créée (id=${pageId})`)
   }
 
   return { saved: true, title: extracted.title, pdfSize: pdfInfo?.size, pageId }
@@ -1657,34 +1689,7 @@ export async function downloadConstitutionFromIort(
 // UTILITAIRES
 // =============================================================================
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-/** Mois arabes tunisiens → numéro */
-const ARABIC_MONTHS: Record<string, number> = {
-  'جانفي': 1, 'فيفري': 2, 'مارس': 3, 'أفريل': 4,
-  'ماي': 5, 'جوان': 6, 'جويلية': 7, 'أوت': 8,
-  'سبتمبر': 9, 'أكتوبر': 10, 'نوفمبر': 11, 'ديسمبر': 12,
-}
-
-/** Convertit une date arabe tunisienne ("31 ديسمبر 2025") en ISO ou null */
-function parseArabicDate(dateStr: string | null): string | null {
-  if (!dateStr) return null
-
-  // Format: "DD MMMM YYYY" (arabe tunisien)
-  const match = dateStr.match(/(\d{1,2})\s+(\S+)\s+(\d{4})/)
-  if (!match) return null
-
-  const day = parseInt(match[1], 10)
-  const monthName = match[2]
-  const year = parseInt(match[3], 10)
-  const month = ARABIC_MONTHS[monthName]
-
-  if (!month || day < 1 || day > 31 || year < 1900) return null
-
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
+// sleep, parseArabicDate — importés depuis iort-text-utils.ts
 
 export async function getOrCreateIortSource(): Promise<string> {
   const result = await db.query(
@@ -1721,7 +1726,7 @@ export async function getOrCreateIortSource(): Promise<string> {
     adminId,
   )
 
-  console.log(`[IORT] Source créée: ${source.id}`)
+  log.info(` Source créée: ${source.id}`)
   return source.id
 }
 
@@ -1767,6 +1772,6 @@ export async function getOrCreateIortSiteiortSource(): Promise<string> {
     adminId,
   )
 
-  console.log(`[IORT Siteiort] Source créée: ${source.id}`)
+  log.info(`[Siteiort] Source créée: ${source.id}`)
   return source.id
 }

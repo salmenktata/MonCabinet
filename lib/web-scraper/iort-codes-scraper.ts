@@ -23,18 +23,28 @@ import type { Page } from 'playwright'
 import { db } from '@/lib/db/postgres'
 import {
   IortSessionManager,
-  IortLanguage,
   IORT_RATE_CONFIG,
   getOrCreateIortSource,
   getOrCreateIortSiteiortSource,
 } from './iort-scraper-utils'
+import type { IortLanguage } from './iort-text-utils'
+import {
+  IORT_SITEIORT_URL,
+  sleep,
+  waitForSelector,
+  waitForStableContent,
+  cleanText,
+  isNavigationBoilerplate,
+  isPdfUrl,
+  generateCodeSectionUrl,
+} from './iort-text-utils'
 import { hashUrl, hashContent, countWords, detectTextLanguage } from './content-extractor'
+import { createLogger } from '@/lib/logger'
 
-// =============================================================================
-// CONSTANTES
-// =============================================================================
+const log = createLogger('IORT:Codes')
 
-export const IORT_SITEIORT_URL = 'https://www.iort.tn/siteiort'
+// Re-exports pour compatibilité
+export { IORT_SITEIORT_URL, generateCodeSectionUrl } from './iort-text-utils'
 
 /**
  * URL directe de la page de listing des codes (الإبحار في المجلات).
@@ -122,67 +132,8 @@ export interface IortCodeCrawlStats {
 // UTILITAIRES
 // =============================================================================
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-export function generateCodeSectionUrl(codeName: string, sectionTitle: string): string {
-  const codeSlug = codeName
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\u0600-\u06FF-]/g, '')
-    .substring(0, 60)
-  const sectionSlug = sectionTitle
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\u0600-\u06FF-]/g, '')
-    .substring(0, 60)
-  const hash = hashContent(codeName + sectionTitle).substring(0, 8)
-  return `${IORT_SITEIORT_URL}/codes/${codeSlug}/${sectionSlug}-${hash}`
-}
-
-/** Détecte si une URL pointe vers un PDF (à ignorer) */
-function isPdfUrl(url: string): boolean {
-  return /\.pdf($|\?|#)/i.test(url) || url.startsWith('blob:')
-}
-
-function cleanText(text: string): string {
-  return text
-    .replace(/\s+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/WD_ACTION_[^\s]*/g, '')
-    .replace(/جميع الحقوق محفوظة.{0,80}/g, '')
-    .replace(/Copyright.{0,40}IORT/gi, '')
-    .replace(/المطبعة الرسمية.{0,80}/g, '')
-    // Boilerplate navigation IORT siteiort.tn
-    .replace(/الجمهورية التونسية\s*رئاسة الحكومة/g, '')
-    .replace(/إصدارات لقرارات الرائد الرسمي[\s\S]{0,600}/g, '')
-    .replace(/الرائد الرسمي للإعلانات القانونية والشرعية.{0,200}/g, '')
-    .replace(/الجريدة الرسمية للجماعات المحلية.{0,200}/g, '')
-    .replace(/المجلة القضائية.{0,100}/g, '')
-    .replace(/\baطلاع\b/g, '')
-    .trim()
-}
-
-/** Détecte si le texte est du boilerplate navigation IORT (pas du contenu juridique) */
-function isNavigationBoilerplate(text: string): boolean {
-  const cleaned = text.trim()
-  if (cleaned.length < 50) return true
-  // Le contenu est du boilerplate si :
-  // 1. Commence par le header gouvernemental
-  if (/^الجمهورية التونسية/.test(cleaned)) return true
-  // 2. Pattern TOC iort.tn : densité élevée de mots structurels (الباب/الكتاب/العنوان/القسم)
-  // sans contenu légal réel (articles avec verbes juridiques)
-  const structuralWords = (cleaned.match(/\b(الباب|الكتاب|العنوان|القسم|الفرع|اطلاع|التّوطئة|الفهرس)\b/g) || []).length
-  const totalWords = cleaned.split(/\s+/).length
-  if (structuralWords >= 6 && structuralWords / totalWords > 0.04) {
-    // Texte riche en structure : vérifier l'absence de contenu d'article réel
-    const hasRealContent = /يُعدّ|يُعتبر|يُعاقب|يجوز|لا يجوز|يُلزم|يُخضع|يترتّب|تسري|تطبّق|يُحظر|يُمنع|يُعفى|يُعاقب/.test(cleaned)
-    if (!hasRealContent) return true
-  }
-  // 3. Contient les patterns de navigation IORT sans mots-clés juridiques
-  const hasLegalContent = /الفصل\s+\d|المادة\s+\d|أحكام\s+(عامة|خاصة)|يُعدّ|يُعتبر|يُعاقب|يجوز|لا يجوز|يُلزم|يُخضع|ينشر\s+هذا\s+(القانون|المرسوم|الأمر|القرار)/.test(cleaned)
-  const hasNavText = /الرائد الرسمي|إصدارات لقرارات|اطلاع|رئاسة الحكومة/.test(cleaned)
-  return hasNavText && !hasLegalContent
-}
+// sleep, generateCodeSectionUrl, isPdfUrl, cleanText, isNavigationBoilerplate
+// — importés depuis iort-text-utils.ts
 
 // =============================================================================
 // NAVIGATION
@@ -197,7 +148,7 @@ export async function navigateToCodesSelectionPage(session: IortSessionManager):
   const page = session.getPage()
 
   // Stratégie 1 : URL directe (plus fiable)
-  console.log('[IORT Codes] Navigation directe vers page listing codes...')
+  log.info('Navigation directe vers page listing codes...')
   await page.goto(CODES_LISTING_URL, {
     waitUntil: 'load',
     timeout: IORT_RATE_CONFIG.navigationTimeout,
@@ -209,19 +160,19 @@ export async function navigateToCodesSelectionPage(session: IortSessionManager):
   )
 
   if (a1Count > 0) {
-    console.log(`[IORT Codes] OK (URL directe) — ${a1Count} codes dans le looper A1`)
+    log.info(`OK (URL directe) — ${a1Count} codes dans le looper A1`)
     return
   }
 
   // Stratégie 2 : fallback navigation via menu M24 + M180
-  console.log('[IORT Codes] URL directe vide, fallback navigation menu...')
+  log.info('URL directe vide, fallback navigation menu...')
   await page.goto(IORT_SITEIORT_URL, {
     waitUntil: 'load',
     timeout: IORT_RATE_CONFIG.navigationTimeout,
   })
   await sleep(2500)
 
-  console.log(`[IORT Codes] _JCL(${NAV_STEP1_JCL})...`)
+  log.info(`_JCL(${NAV_STEP1_JCL})...`)
   await page.evaluate((menuId: string) => {
     // @ts-expect-error WebDev
     _JCL(clWDUtil.sGetPageActionIE10() + '?' + menuId, '_self', '', '')
@@ -229,7 +180,7 @@ export async function navigateToCodesSelectionPage(session: IortSessionManager):
   await page.waitForLoadState('load')
   await sleep(2500)
 
-  console.log(`[IORT Codes] _JEM(${NAV_STEP2_JEM})...`)
+  log.info(`_JEM(${NAV_STEP2_JEM})...`)
   await page.evaluate((menuId: string) => {
     // @ts-expect-error WebDev
     _JEM(menuId, '_self', '', '')
@@ -237,7 +188,7 @@ export async function navigateToCodesSelectionPage(session: IortSessionManager):
   await page.waitForLoadState('load')
   await sleep(3000)
 
-  console.log(`[IORT Codes] URL après navigation: ${page.url()}`)
+  log.info(`URL après navigation: ${page.url()}`)
 
   a1Count = await page.evaluate(() =>
     document.querySelectorAll('div[id^="A1_"]').length,
@@ -256,7 +207,7 @@ export async function navigateToCodesSelectionPage(session: IortSessionManager):
       `[IORT Codes] Looper A1 vide après navigation. Page: ${JSON.stringify(info)}`,
     )
   }
-  console.log(`[IORT Codes] OK (menu fallback) — ${a1Count} codes dans le looper A1`)
+  log.info(`OK (menu fallback) — ${a1Count} codes dans le looper A1`)
 }
 
 /**
@@ -265,7 +216,7 @@ export async function navigateToCodesSelectionPage(session: IortSessionManager):
  * Le nom du code = texte du div sans le suffixe " اطلاع".
  */
 export async function parseAvailableCodes(page: Page): Promise<IortCode[]> {
-  console.log('[IORT Codes] Parsing des codes (looper A1)...')
+  log.info('Parsing des codes (looper A1)...')
 
   const looperData = await page.evaluate(() => {
     return Array.from(document.querySelectorAll('div[id^="A1_"]')).map(el => {
@@ -283,7 +234,7 @@ export async function parseAvailableCodes(page: Page): Promise<IortCode[]> {
   })
 
   if (looperData.length > 0) {
-    console.log(`[IORT Codes] ${looperData.length} codes dans le looper A1`)
+    log.info(`${looperData.length} codes dans le looper A1`)
     return looperData.map(x => ({
       name: x.name,
       nameFr: IORT_KNOWN_CODES[x.name],
@@ -303,7 +254,7 @@ export async function parseAvailableCodes(page: Page): Promise<IortCode[]> {
     )),
     bodyPreview: (document.body.textContent || '').trim().substring(0, 500),
   }))
-  console.warn('[IORT Codes] ⚠️  Looper A1 vide. Page info:', JSON.stringify(discovery, null, 2))
+  log.warn('⚠️  Looper A1 vide. Page info:', JSON.stringify(discovery, null, 2))
   return []
 }
 
@@ -313,7 +264,7 @@ export async function parseAvailableCodes(page: Page): Promise<IortCode[]> {
  */
 export async function selectCodeAndNavigate(page: Page, code: IortCode): Promise<void> {
   const looperId = code.looperId ?? 'A1'
-  console.log(`[IORT Codes] Clic "اطلاع" sur: "${code.name}" (${looperId}_${code.selectIndex})`)
+  log.info(`Clic "اطلاع" sur: "${code.name}" (${looperId}_${code.selectIndex})`)
 
   // Chercher le bouton "اطلاع" dans le div du code (looperId dynamique)
   const divSelector = `div#${looperId}_${code.selectIndex}`
@@ -332,7 +283,7 @@ export async function selectCodeAndNavigate(page: Page, code: IortCode): Promise
     await page.waitForLoadState('load')
     await sleep(3000)
     const url = page.url()
-    console.log(`[IORT Codes] URL après clic: ${url}`)
+    log.info(`URL après clic: ${url}`)
     return
   }
 
@@ -351,7 +302,7 @@ export async function selectCodeAndNavigate(page: Page, code: IortCode): Promise
   }
 
   // Stratégie 3 : fallback WebDev — définir A1.value et déclencher A17
-  console.warn(`[IORT Codes] Fallback WebDev A1=${code.selectIndex}...`)
+  log.warn(`Fallback WebDev A1=${code.selectIndex}...`)
   await page.evaluate((idx: number) => {
     // @ts-expect-error WebDev
     if (_PAGE_.A1) _PAGE_.A1.value = idx
@@ -362,7 +313,7 @@ export async function selectCodeAndNavigate(page: Page, code: IortCode): Promise
   await sleep(3000)
 
   const url = page.url()
-  console.log(`[IORT Codes] URL après navigation: ${url}`)
+  log.info(`URL après navigation: ${url}`)
 }
 
 // =============================================================================
@@ -485,8 +436,7 @@ async function expandTocHierarchy(
         continue
       }
 
-      console.log(
-        `[IORT Codes] Drill-down ${startPrefix}: clic sur "${item.title.substring(0, 35)}" → ${newItems.length} sous-items`,
+      log.info(`Drill-down ${startPrefix}: clic sur "${item.title.substring(0, 35)}" → ${newItems.length} sous-items`,
       )
 
       const subItems: IortTocItem[] = newItems.map(x => ({
@@ -513,8 +463,7 @@ async function expandTocHierarchy(
       continue
     }
 
-    console.log(
-      `[IORT Codes] ${item.title.substring(0, 40)}: ${subRaw.length} sous-items dans ${bestPrefix}`,
+    log.info(`${item.title.substring(0, 40)}: ${subRaw.length} sous-items dans ${bestPrefix}`,
     )
 
     const subItems: IortTocItem[] = subRaw.map(x => ({
@@ -555,7 +504,7 @@ async function expandViaParentLooper(
   const candidates = Object.keys(snapshot).filter(
     pfx => pfx !== childPrefix && pfx !== 'A1' && !IGNORED_LOOPER_PREFIXES.has(pfx) && snapshot[pfx] >= 2,
   )
-  console.log(`[IORT DEBUG] expandViaParentLooper candidates: ${candidates.join(', ')} (childPrefix=${childPrefix})`)
+  log.debug(`expandViaParentLooper candidates: ${candidates.join(', ')} (childPrefix=${childPrefix})`)
 
   for (const parentPrefix of candidates) {
     // Récupérer items sans filtre arabe (navigation peut être non-arabe)
@@ -573,8 +522,7 @@ async function expandViaParentLooper(
 
     if (!parentRaw || parentRaw.length < 1) continue
 
-    console.log(
-      `[IORT Codes] Test parent ${parentPrefix} (${parentRaw.length} items): ${parentRaw.map(x => x.text.substring(0, 20)).join(' | ')}`,
+    log.info(`Test parent ${parentPrefix} (${parentRaw.length} items): ${parentRaw.map(x => x.text.substring(0, 20)).join(' | ')}`,
     )
 
     // Tester chaque item parent pour détecter celui qui change childPrefix
@@ -595,8 +543,7 @@ async function expandViaParentLooper(
       if (changed) {
         triggerChildItems = afterChild ?? null
         triggerParentIdx = pi
-        console.log(
-          `[IORT Codes] Parent ${parentPrefix}[${parentRaw[pi].index}] ("${parentRaw[pi].text.substring(0, 25)}") → ${childPrefix}: ${initialChildCount}→${afterCount}`,
+        log.info(`Parent ${parentPrefix}[${parentRaw[pi].index}] ("${parentRaw[pi].text.substring(0, 25)}") → ${childPrefix}: ${initialChildCount}→${afterCount}`,
         )
         break
       }
@@ -605,7 +552,7 @@ async function expandViaParentLooper(
     if (!triggerChildItems || triggerParentIdx < 0) continue
 
     // parentPrefix contrôle childPrefix → itérer sur tous les items parent restants
-    console.log(`[IORT Codes] ${parentPrefix} contrôle ${childPrefix} — expansion complète...`)
+    log.info(`${parentPrefix} contrôle ${childPrefix} — expansion complète...`)
     const allItems: IortTocItem[] = []
 
     // Items du parent trigger (déjà chargés)
@@ -635,7 +582,7 @@ async function expandViaParentLooper(
       })))
     }
 
-    console.log(`[IORT Codes] ${parentPrefix}→${childPrefix}: ${allItems.length} items total`)
+    log.info(`${parentPrefix}→${childPrefix}: ${allItems.length} items total`)
     return allItems
   }
 
@@ -703,7 +650,7 @@ async function extractLooperItems(
  *                    Permet de détecter PAGE_CodesJuridiques même si l'URL a changé.
  */
 export async function parseTocItems(page: Page, capturedUrl?: string): Promise<IortTocItem[]> {
-  console.log('[IORT Codes] Parsing table des matières...')
+  log.info('Parsing table des matières...')
 
   // Stratégie 1 : loopers standards PAGE_NavigationCode (A4, B4, C4, D4, E4)
   // Collecter TOUS les loopers non-vides et préférer celui avec le plus d'items
@@ -712,7 +659,7 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
   for (const prefix of ['A4', 'B4', 'C4', 'D4', 'E4']) {
     const items = await extractLooperItems(page, prefix)
     if (items && items.length > 0) {
-      console.log(`[IORT Codes] Looper ${prefix} → ${items.length} items`)
+      log.info(`Looper ${prefix} → ${items.length} items`)
       standardLooperData.push({
         prefix,
         items: items.map(item => ({
@@ -731,20 +678,20 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
     const best =
       standardLooperData.find(l => l.items.length >= 5 && l.items.length <= 300) ??
       standardLooperData.reduce((a, b) => (a.items.length >= b.items.length ? a : b))
-    console.log(`[IORT Codes] Looper retenu: ${best.prefix} (${best.items.length} sections)`)
+    log.info(`Looper retenu: ${best.prefix} (${best.items.length} sections)`)
 
     // Si peu d'items (TOC lazy-loaded), tenter l'expansion hiérarchique
     // Un code juridique avec < 15 items est forcément au niveau livre/chapitre, pas article
     if (best.items.length < 15) {
-      console.log('[IORT Codes] TOC superficielle — expansion hiérarchique (lazy-load)...')
+      log.info('TOC superficielle — expansion hiérarchique (lazy-load)...')
       try {
         const expanded = await expandTocHierarchy(page, best.prefix, best.items)
         if (expanded.length > best.items.length) {
-          console.log(`[IORT Codes] Expansion: ${best.items.length} → ${expanded.length} items`)
+          log.info(`Expansion: ${best.items.length} → ${expanded.length} items`)
           return expanded
         }
       } catch (err) {
-        console.warn('[IORT Codes] Expansion hiérarchique échouée:', err)
+        log.warn('Expansion hiérarchique échouée:', err)
       }
     }
 
@@ -773,7 +720,7 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
 
       if (rawItems.length > 0) {
         const arabicItems = rawItems.filter(i => /[\u0600-\u06FF]/.test(i.text) && i.text.length > 5)
-        console.log(`[IORT Codes] ${prefix}: ${rawItems.length} items, ${arabicItems.length} arabes — ${rawItems.map(i => i.text.substring(0, 25)).join(' | ')}`)
+        log.info(`${prefix}: ${rawItems.length} items, ${arabicItems.length} arabes — ${rawItems.map(i => i.text.substring(0, 25)).join(' | ')}`)
         if (arabicItems.length >= 1) {
           return arabicItems.map(item => ({
             title: item.text,
@@ -801,12 +748,12 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
       .map(([pfx]) => pfx)
   })
 
-  console.log(`[IORT Codes] Découverte loopers: ${discoveredLoopers.join(', ')}`)
+  log.info(`Découverte loopers: ${discoveredLoopers.join(', ')}`)
 
   for (const prefix of discoveredLoopers) {
     const items = await extractLooperItems(page, prefix)
     if (items && items.length >= 2) {
-      console.log(`[IORT Codes] Looper découvert ${prefix} → ${items.length} items arabes`)
+      log.info(`Looper découvert ${prefix} → ${items.length} items arabes`)
       const tocItems = items.map(item => ({
         title: item.text,
         resultIndex: item.index,
@@ -817,23 +764,23 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
 
       // Expansion hiérarchique si le looper découvert a peu d'items (TOC lazy-loaded)
       if (tocItems.length < 15) {
-        console.log(`[IORT Codes] ${prefix} superficiel (${tocItems.length} items) — expansion...`)
+        log.info(`${prefix} superficiel (${tocItems.length} items) — expansion...`)
         try {
           // Stratégie A : expansion directe (drill-down ou looper suivant)
           const expanded = await expandTocHierarchy(page, prefix, tocItems)
           if (expanded.length > tocItems.length) {
-            console.log(`[IORT Codes] Expansion directe ${prefix}: ${tocItems.length} → ${expanded.length} items`)
+            log.info(`Expansion directe ${prefix}: ${tocItems.length} → ${expanded.length} items`)
             return expanded
           }
 
           // Stratégie B : looper parent qui contrôle ce looper (ex: M3 → A2)
           const viaParent = await expandViaParentLooper(page, prefix, tocItems)
           if (viaParent.length > tocItems.length) {
-            console.log(`[IORT Codes] Expansion via parent: ${tocItems.length} → ${viaParent.length} items`)
+            log.info(`Expansion via parent: ${tocItems.length} → ${viaParent.length} items`)
             return viaParent
           }
         } catch (err) {
-          console.warn('[IORT Codes] Expansion looper découvert échouée:', err)
+          log.warn('Expansion looper découvert échouée:', err)
         }
       }
 
@@ -860,7 +807,7 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
   })
 
   if (linkItems.length > 0) {
-    console.log(`[IORT Codes] ${linkItems.length} liens de sections trouvés`)
+    log.info(`${linkItems.length} liens de sections trouvés`)
     return linkItems.map(l => ({
       title: l.text,
       resultIndex: l.index,
@@ -881,7 +828,7 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
     )),
     bodyPreview: (document.body.textContent || '').trim().substring(0, 800),
   }))
-  console.warn('[IORT Codes] ⚠️  TOC vide. Page state:', JSON.stringify(pageState, null, 2))
+  log.warn('⚠️  TOC vide. Page state:', JSON.stringify(pageState, null, 2))
   return []
 }
 
@@ -957,7 +904,7 @@ export async function extractSectionText(
           await popup.waitForLoadState('load')
           await sleep(1500)
           if (isPdfUrl(popup.url())) {
-            console.log(`[IORT Codes] PDF ignoré: ${popup.url()}`)
+            log.info(`PDF ignoré: ${popup.url()}`)
             await popup.close()
             return null
           }
@@ -1297,7 +1244,7 @@ export async function crawlCode(
   )
 
   if (!target) {
-    console.error(`[IORT Codes] "${codeName}" non trouvé parmi:`, availableCodes.map(c => c.name))
+    log.error(`"${codeName}" non trouvé parmi:`, availableCodes.map(c => c.name))
     throw new Error(`Code "${codeName}" non trouvé. Disponibles: ${availableCodes.map(c => c.name).join(', ')}`)
   }
 
@@ -1310,16 +1257,15 @@ export async function crawlCode(
   // brise la détection PAGE_CodesJuridiques dans parseTocItems()
   const urlAfterNav = page.url()
   if (urlAfterNav.includes('PAGE_CodesJuridiques')) {
-    console.log('[IORT Codes] PAGE_CodesJuridiques détectée, attente chargement dynamique (12s)...')
-    await sleep(12000)
-    console.log(`[IORT Codes] URL après attente: ${page.url()}`)
+    log.info('PAGE_CodesJuridiques détectée, attente chargement dynamique...')
+    await waitForStableContent(page, { intervalMs: 2000, timeoutMs: 15000 })
+    log.info(`URL après attente: ${page.url()}`)
 
     // 4a. Navigation 2-niveaux spécifique PAGE_CodesJuridiques
     // T-links → L1 (PAGE_NavigationCode) → T2 sub-links → L2 (td.Texte articles)
     await crawlCodesJuridiquesPage(page, session, sourceId, codeName, dryRun, stats)
     stats.elapsedMs = Date.now() - startTime
-    console.log(
-      `[IORT Codes] ✅ Terminé "${codeName}": ` +
+    log.info(`✅ Terminé "${codeName}": ` +
       `${stats.crawled} nouveaux, ${stats.updated} MAJ, ${stats.skipped} sautés, ${stats.errors} erreurs ` +
       `en ${Math.round(stats.elapsedMs / 1000)}s`,
     )
@@ -1329,7 +1275,7 @@ export async function crawlCode(
   // 4. Parser la table des matières (passe l'URL capturée avant navigation éventuelle)
   const tocItems = await parseTocItems(page, urlAfterNav)
   stats.totalSections = tocItems.length
-  console.log(`[IORT Codes] "${codeName}": ${tocItems.length} sections dans la TOC`)
+  log.info(`"${codeName}": ${tocItems.length} sections dans la TOC`)
 
   if (tocItems.length === 0) {
     throw new Error('[IORT Codes] TOC vide — vérifier la structure de PAGE_NavigationCode')
@@ -1341,7 +1287,7 @@ export async function crawlCode(
 
     try {
       if (dryRun) {
-        console.log(`  [DRY] ${' '.repeat(item.depth * 2)}${item.title.substring(0, 80)}`)
+        log.info(`  [DRY] ${' '.repeat(item.depth * 2)}${item.title.substring(0, 80)}`)
         stats.crawled++
         await sleep(200)
         continue
@@ -1351,7 +1297,7 @@ export async function crawlCode(
 
       if (!textContent || textContent.length < 20 || isNavigationBoilerplate(textContent)) {
         stats.skipped++
-        console.log(`[IORT Codes] Texte vide/boilerplate: "${item.title.substring(0, 60)}"`)
+        log.info(`Texte vide/boilerplate: "${item.title.substring(0, 60)}"`)
         await sleep(1000)
         continue
       }
@@ -1364,10 +1310,10 @@ export async function crawlCode(
         stats.skipped++
       } else if (updated) {
         stats.updated++
-        console.log(`[IORT Codes] ↻ MAJ: ${item.title.substring(0, 70)}`)
+        log.info(`↻ MAJ: ${item.title.substring(0, 70)}`)
       } else {
         stats.crawled++
-        console.log(`[IORT Codes] ✓ ${item.title.substring(0, 70)} (${textContent.length} chars)`)
+        log.info(`✓ ${item.title.substring(0, 70)} (${textContent.length} chars)`)
       }
 
       await sleep(IORT_RATE_CONFIG.minDelay)
@@ -1375,7 +1321,7 @@ export async function crawlCode(
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       stats.errors++
-      console.error(`[IORT Codes] Erreur section "${item.title.substring(0, 40)}":`, msg)
+      log.error(`Erreur section "${item.title.substring(0, 40)}":`, msg)
 
       // Fermer popups orphelins
       try {
@@ -1390,8 +1336,7 @@ export async function crawlCode(
   }
 
   stats.elapsedMs = Date.now() - startTime
-  console.log(
-    `[IORT Codes] ✅ Terminé "${codeName}": ` +
+  log.info(`✅ Terminé "${codeName}": ` +
     `${stats.crawled} nouveaux, ${stats.updated} MAJ, ${stats.skipped} sautés, ${stats.errors} erreurs ` +
     `en ${Math.round(stats.elapsedMs / 1000)}s`,
   )
@@ -1475,7 +1420,7 @@ async function crawlCodesJuridiquesPage(
   dryRun: boolean,
   stats: IortCodeCrawlStats,
 ): Promise<void> {
-  console.log('[IORT Codes] PAGE_CodesJuridiques — navigation T-link → L1 → T2 → L2...')
+  log.info('PAGE_CodesJuridiques — navigation T-link → L1 → T2 → L2...')
 
   const _codesJuridiquesUrl = page.url()
 
@@ -1489,16 +1434,16 @@ async function crawlCodesJuridiquesPage(
   })
 
   if (!firstTLinkText) {
-    console.warn('[IORT Codes] ⚠️  Aucun T-link trouvé sur PAGE_CodesJuridiques')
+    log.warn('⚠️  Aucun T-link trouvé sur PAGE_CodesJuridiques')
     return
   }
 
-  console.log(`[IORT Codes] T-link[0] (découverte): "${firstTLinkText}"`)
+  log.info(`T-link[0] (découverte): "${firstTLinkText}"`)
   await page.waitForLoadState('load')
-  await sleep(10000)
+  await waitForStableContent(page, { intervalMs: 2000, timeoutMs: 12000 })
 
   const l1Url = page.url()
-  console.log(`[IORT Codes] L1 URL: ${l1Url.split('/').pop()}`)
+  log.info(`L1 URL: ${l1Url.split('/').pop()}`)
 
   const t2Links = await page.evaluate(() => {
     const t2 = document.getElementById('T2')
@@ -1511,11 +1456,11 @@ async function crawlCodesJuridiquesPage(
       }))
   })
 
-  console.log(`[IORT Codes] ${t2Links.length} sous-sections T2 découvertes`)
+  log.info(`${t2Links.length} sous-sections T2 découvertes`)
   stats.totalSections = t2Links.length
 
   if (t2Links.length === 0) {
-    console.warn('[IORT Codes] ⚠️  T2 vide sur L1 — vérifier la structure')
+    log.warn('⚠️  T2 vide sur L1 — vérifier la structure')
     return
   }
 
@@ -1526,7 +1471,7 @@ async function crawlCodesJuridiquesPage(
     // Ne pas appeler session.tick() ici : il navigue vers la page de recherche
     // (createContext + navigateToSearch) et ferme le contexte WebDev codes.
     // Le crawl des codes gère sa propre navigation — on incrémente juste le compteur.
-    ;(session as unknown as Record<string, number>).pageCount = ((session as unknown as Record<string, number>).pageCount ?? 0) + 1
+    session.tickWithoutNavigation()
 
     // Navigation fraîche vers L1 (URL de session stable)
     await page.goto(l1Url, { waitUntil: 'load', timeout: 60000 })
@@ -1543,11 +1488,10 @@ async function crawlCodesJuridiquesPage(
     }, t2Link.index)
 
     await page.waitForLoadState('load')
-    await sleep(8000)
+    await waitForStableContent(page, { intervalMs: 1500, timeoutMs: 10000 })
 
     const l2Url = page.url()
-    console.log(
-      `[IORT Codes] T2[${t2Link.index}] "${t2Link.title.substring(0, 40)}" → L2: ${l2Url.split('/').pop()}`,
+    log.info(`T2[${t2Link.index}] "${t2Link.title.substring(0, 40)}" → L2: ${l2Url.split('/').pop()}`,
     )
 
     // Extraire tous les articles de L2 (A2 looper avec pagination)
@@ -1555,7 +1499,7 @@ async function crawlCodesJuridiquesPage(
 
     if (articleText && articleText.length > 20) {
       if (dryRun) {
-        console.log(`  [DRY] ${t2Link.title.substring(0, 80)} (${articleText.length} chars)`)
+        log.info(`  [DRY] ${t2Link.title.substring(0, 80)} (${articleText.length} chars)`)
         stats.crawled++
       } else {
         try {
@@ -1566,19 +1510,19 @@ async function crawlCodesJuridiquesPage(
             stats.skipped++
           } else if (updated) {
             stats.updated++
-            console.log(`[IORT Codes] ↻ MAJ: ${t2Link.title.substring(0, 70)}`)
+            log.info(`↻ MAJ: ${t2Link.title.substring(0, 70)}`)
           } else {
             stats.crawled++
-            console.log(`[IORT Codes] ✓ ${t2Link.title.substring(0, 70)} (${articleText.length} chars)`)
+            log.info(`✓ ${t2Link.title.substring(0, 70)} (${articleText.length} chars)`)
           }
         } catch (err) {
           stats.errors++
-          console.error(`[IORT Codes] Erreur save "${t2Link.title.substring(0, 40)}":`, err)
+          log.error(`Erreur save "${t2Link.title.substring(0, 40)}":`, err)
         }
       }
     } else {
       stats.skipped++
-      console.log(`[IORT Codes] Texte vide: "${t2Link.title.substring(0, 60)}"`)
+      log.info(`Texte vide: "${t2Link.title.substring(0, 60)}"`)
     }
 
     await sleep(IORT_RATE_CONFIG.minDelay)
@@ -1599,7 +1543,7 @@ export async function navigateToRecueilPage(
   language: IortLanguage = 'ar',
 ): Promise<void> {
   const page = session.getPage()
-  console.log(`[IORT Recueil] Navigation M62 → codes+recueils (${language.toUpperCase()})...`)
+  log.info(`Navigation M62 → codes+recueils (${language.toUpperCase()})...`)
 
   await page.goto(IORT_SITEIORT_URL, {
     waitUntil: 'load',
@@ -1608,7 +1552,7 @@ export async function navigateToRecueilPage(
   await sleep(3000)
 
   if (language === 'fr') {
-    console.log('[IORT Recueil] Activation langue FR (M32)...')
+    log.info('Activation langue FR (M32)...')
     await page.evaluate(() => {
       // @ts-expect-error WebDev
       _JEM('M32', '_self', '', '')
@@ -1626,7 +1570,7 @@ export async function navigateToRecueilPage(
   await sleep(6000)
 
   const count = await page.evaluate(() => document.querySelectorAll('[id^="A1_"]').length)
-  console.log(`[IORT Recueil] ${count} items A1 après M62 (${language.toUpperCase()})`)
+  log.info(`${count} items A1 après M62 (${language.toUpperCase()})`)
 }
 
 /**
@@ -1646,11 +1590,11 @@ export async function parseAvailableRecueils(page: Page): Promise<IortCode[]> {
   })
 
   if (allItems.length === 0) {
-    console.warn('[IORT Recueil] Aucun item A1 — M62 n\'a pas chargé la liste')
+    log.warn('Aucun item A1 — M62 n\'a pas chargé la liste')
     return []
   }
 
-  console.log(`[IORT Recueil] ${allItems.length} items A1 totaux (codes + recueils)`)
+  log.info(`${allItems.length} items A1 totaux (codes + recueils)`)
 
   // Filtrer les codes déjà connus (crawlés séparément via crawlCode)
   const knownCodeNames = new Set(Object.keys(IORT_KNOWN_CODES))
@@ -1659,7 +1603,7 @@ export async function parseAvailableRecueils(page: Page): Promise<IortCode[]> {
     return !Array.from(knownCodeNames).some(code => item.name.includes(code) || code.includes(item.name))
   })
 
-  console.log(`[IORT Recueil] ${recueils.length} recueils après filtrage des codes connus`)
+  log.info(`${recueils.length} recueils après filtrage des codes connus`)
   return recueils.map(x => ({ name: x.name, selectIndex: x.index, looperId: 'A1' }))
 }
 
@@ -1697,7 +1641,7 @@ export async function crawlRecueil(
     const available = await parseAvailableRecueils(page)
 
     if (available.length === 0) {
-      console.warn(`[IORT Recueil] Aucun recueil disponible (${lang.toUpperCase()}) — skip`)
+      log.warn(`Aucun recueil disponible (${lang.toUpperCase()}) — skip`)
       continue
     }
 
@@ -1705,18 +1649,18 @@ export async function crawlRecueil(
       ? available.filter(r => r.name.includes(recueilName))
       : available
 
-    console.log(`[IORT Recueil] ${targets.length}/${available.length} recueils à crawler (${lang.toUpperCase()})`)
+    log.info(`${targets.length}/${available.length} recueils à crawler (${lang.toUpperCase()})`)
 
     for (const recueil of targets) {
-      console.log(`[IORT Recueil] → "${recueil.name}" (index ${recueil.selectIndex}, ${lang.toUpperCase()})`)
+      log.info(`→ "${recueil.name}" (index ${recueil.selectIndex}, ${lang.toUpperCase()})`)
 
       try {
         await selectCodeAndNavigate(page, recueil)
-        await sleep(12000)
+        await waitForStableContent(page, { intervalMs: 2000, timeoutMs: 15000 })
 
         const capturedUrl = page.url()
         const tocItems = await parseTocItems(page, capturedUrl)
-        console.log(`[IORT Recueil] ${tocItems.length} sections dans "${recueil.name}"`)
+        log.info(`${tocItems.length} sections dans "${recueil.name}"`)
 
         for (const item of tocItems) {
           try {
@@ -1739,12 +1683,12 @@ export async function crawlRecueil(
 
             await sleep(IORT_RATE_CONFIG.minDelay)
           } catch (err) {
-            console.error(`[IORT Recueil] Erreur section "${item.title}":`, err)
+            log.error(`Erreur section "${item.title}":`, err)
             stats.errors++
           }
         }
       } catch (err) {
-        console.error(`[IORT Recueil] Erreur recueil "${recueil.name}":`, err)
+        log.error(`Erreur recueil "${recueil.name}":`, err)
         stats.errors++
       }
 
@@ -1754,14 +1698,13 @@ export async function crawlRecueil(
     }
 
     if (language === 'both' && lang === 'ar') {
-      console.log('[IORT Recueil] Pause entre AR et FR...')
+      log.info('Pause entre AR et FR...')
       await sleep(5000)
     }
   }
 
   stats.elapsedMs = Date.now() - startTime
-  console.log(
-    `[IORT Recueil] ✅ Terminé: ` +
+  log.info(`✅ Terminé: ` +
     `${stats.crawled} nouveaux, ${stats.updated} MAJ, ${stats.skipped} sautés, ${stats.errors} erreurs ` +
     `en ${Math.round(stats.elapsedMs / 1000)}s`,
   )
