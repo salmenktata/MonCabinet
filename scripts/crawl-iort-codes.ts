@@ -4,6 +4,7 @@
  * Utilisation :
  *   npx tsx scripts/crawl-iort-codes.ts --list
  *   npx tsx scripts/crawl-iort-codes.ts --discover
+ *   npx tsx scripts/crawl-iort-codes.ts --all
  *   npx tsx scripts/crawl-iort-codes.ts --code "المجلة التجارية" --dry
  *   npx tsx scripts/crawl-iort-codes.ts --code "المجلة التجارية"
  *
@@ -21,6 +22,7 @@ import {
   crawlCode,
   getOrCreateIortSource,
   IORT_SITEIORT_URL,
+  type IortCodeCrawlStats,
 } from '../lib/web-scraper/iort-codes-scraper'
 
 // Ajout de la fonction de découverte inline (pour le mode --discover)
@@ -124,11 +126,12 @@ async function main(): Promise<void> {
 
   const listMode = args.includes('--list')
   const discoverMode = args.includes('--discover')
+  const allMode = args.includes('--all')
   const dryRun = args.includes('--dry') || args.includes('--dry-run')
   const codeIdx = args.indexOf('--code')
   const codeName = codeIdx !== -1 ? args[codeIdx + 1] : null
 
-  if (!listMode && !discoverMode && !codeName) {
+  if (!listMode && !discoverMode && !allMode && !codeName) {
     console.log(`
 Usage:
   npx tsx scripts/crawl-iort-codes.ts --list
@@ -136,6 +139,9 @@ Usage:
 
   npx tsx scripts/crawl-iort-codes.ts --discover
       Explore la structure du site (debug/développement)
+
+  npx tsx scripts/crawl-iort-codes.ts --all [--dry]
+      Crawl tous les codes en séquence
 
   npx tsx scripts/crawl-iort-codes.ts --code "المجلة التجارية" --dry
       Test navigation + extraction sans sauvegarde en DB
@@ -146,6 +152,7 @@ Usage:
 Exemples:
   npx tsx scripts/crawl-iort-codes.ts --discover
   npx tsx scripts/crawl-iort-codes.ts --list
+  npx tsx scripts/crawl-iort-codes.ts --all
   npx tsx scripts/crawl-iort-codes.ts --code "مجلة الشغل" --dry
     `)
     process.exit(0)
@@ -170,6 +177,49 @@ Exemples:
       codes.forEach((c, i) => {
         console.log(`  ${String(i + 1).padStart(2)}. ${c.name.padEnd(55)} | ${c.nameFr || '(non mappé)'}`)
       })
+      return
+    }
+
+    if (allMode) {
+      console.log(`\n=== CRAWL DE TOUS LES CODES (dryRun=${dryRun}) ===\n`)
+
+      await navigateToCodesSelectionPage(session)
+      const page = session.getPage()
+      const codes = await parseAvailableCodes(page)
+      console.log(`${codes.length} codes détectés\n`)
+
+      const sourceId = dryRun ? 'dry-run' : await getOrCreateIortSource()
+      const allStats: IortCodeCrawlStats[] = []
+
+      for (const code of codes) {
+        console.log(`\n--- ${code.name} (${code.nameFr || '?'}) ---`)
+        try {
+          const stats = await crawlCode(session, sourceId, code.name, dryRun)
+          allStats.push(stats)
+          console.log(`  ✓ ${stats.crawled} nouveaux, ${stats.updated} MAJ, ${stats.skipped} inchangés, ${stats.errors} erreurs`)
+        } catch (err) {
+          console.error(`  ✗ Erreur: ${err instanceof Error ? err.message : err}`)
+          allStats.push({ codeName: code.name, totalSections: 0, crawled: 0, updated: 0, skipped: 0, errors: 1, elapsedMs: 0 })
+        }
+      }
+
+      console.log('\n=== RÉSUMÉ GLOBAL ===')
+      const totals = allStats.reduce((acc, s) => ({
+        sections: acc.sections + s.totalSections,
+        crawled: acc.crawled + s.crawled,
+        updated: acc.updated + s.updated,
+        skipped: acc.skipped + s.skipped,
+        errors: acc.errors + s.errors,
+        time: acc.time + s.elapsedMs,
+      }), { sections: 0, crawled: 0, updated: 0, skipped: 0, errors: 0, time: 0 })
+
+      console.log(`Codes     : ${allStats.length}`)
+      console.log(`Sections  : ${totals.sections}`)
+      console.log(`Nouveaux  : ${totals.crawled}`)
+      console.log(`MAJ       : ${totals.updated}`)
+      console.log(`Inchangés : ${totals.skipped}`)
+      console.log(`Erreurs   : ${totals.errors}`)
+      console.log(`Temps     : ${Math.round(totals.time / 1000)}s`)
       return
     }
 
