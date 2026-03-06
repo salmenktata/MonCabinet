@@ -1,8 +1,8 @@
 /**
  * POST /api/admin/kb/analyze-quality-batch
  *
- * Soumet un batch de documents KB pour analyse qualité via Groq Batch API.
- * Traitement asynchrone sur 24h, -50% de coût vs API sync.
+ * Soumet un batch de documents KB pour analyse qualité via Ollama (séquentiel).
+ * Migration Mar 6, 2026 : Groq Batch API → Ollama local (gratuit).
  *
  * Body params:
  * - batchSize       (default: 500)   Nombre max de documents par batch
@@ -10,14 +10,14 @@
  * - skipAnalyzed    (default: true)  Ignorer les docs déjà analysés
  * - includeFailedScores (default: false) Inclure les docs avec score=50 (échecs)
  *
- * Retourne: { batchJobId, groqBatchId, totalDocuments }
+ * Retourne: { batchJobId, totalDocuments }
  *
  * ---
  *
  * GET /api/admin/kb/analyze-quality-batch
  *
- * Liste les batches en DB avec leur statut Groq.
- * Avec ?process=true : vérifie les batches en attente et traite les complétés.
+ * Liste les batches en DB avec leur statut.
+ * Avec ?process=true : vérifie les batches en attente.
  */
 
 import { NextRequest, NextResponse } from 'next/server'

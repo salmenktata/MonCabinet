@@ -1,25 +1,15 @@
 /**
- * Service KB Quality Analysis — Mode Batch Groq
+ * Service KB Quality Analysis — Mode Batch Ollama (séquentiel)
  *
- * Remplace les appels sync LLM (90s timeout, rate-limit) par l'API Batch Groq :
- * - Traitement asynchrone sur 24h
- * - -50% de coût (plan Startup)
- * - Aucun impact sur les rate limits standard de l'API sync
+ * Remplace l'ancien mode Groq Batch API par des appels séquentiels
+ * via callLLMWithFallback (route vers Ollama local, gratuit).
  *
  * Flow :
- *   submitKBQualityBatch()         → sélectionne docs → JSONL → upload → createBatch → stocke en DB
- *   checkAndProcessPendingBatches() → poll Groq → si complété → download → saveKBQualityScores
+ *   submitKBQualityBatch()         → sélectionne docs → traite séquentiellement via Ollama
+ *   checkAndProcessPendingBatches() → vérifie les jobs en DB (rétrocompatibilité polling)
  */
 
 import { db } from '@/lib/db/postgres'
-import {
-  uploadBatchFile,
-  createBatch,
-  getBatchStatus,
-  downloadBatchResults,
-  type GroqBatchRequest,
-  type GroqBatchResult,
-} from '@/lib/ai/groq-batch-client'
 import {
   KB_QUALITY_ANALYSIS_SYSTEM_PROMPT,
   KB_QUALITY_ANALYSIS_USER_PROMPT,
@@ -27,6 +17,10 @@ import {
   truncateContent,
 } from '@/lib/ai/prompts/legal-analysis'
 import { parseKBQualityResponse } from '@/lib/ai/kb-quality-analyzer-service'
+import {
+  callLLMWithFallback,
+  type LLMMessage,
+} from '@/lib/ai/llm-fallback-service'
 
 // =============================================================================
 // TYPES
@@ -61,16 +55,13 @@ export interface KBBatchProcessResult {
   message: string
 }
 
-// Préfixe des custom_id pour identifier nos requêtes KB quality
-const CUSTOM_ID_PREFIX = 'kb-quality-'
-
 // =============================================================================
-// SOUMISSION D'UN BATCH
+// SOUMISSION ET TRAITEMENT D'UN BATCH (séquentiel via Ollama)
 // =============================================================================
 
 /**
- * Sélectionne des documents KB, construit les requêtes JSONL,
- * les uploade sur Groq et crée un job batch.
+ * Sélectionne des documents KB et les analyse séquentiellement via Ollama.
+ * Remplace l'ancien flow Groq Batch API (upload JSONL → poll → download).
  */
 export async function submitKBQualityBatch(
   options: KBBatchSubmitOptions = {}
@@ -94,7 +85,6 @@ export async function submitKBQualityBatch(
 
   if (skipAnalyzed) {
     if (includeFailedScores) {
-      // Docs sans score OU avec score = 50 (échecs précédents)
       whereClause += ` AND (quality_score IS NULL OR quality_score = 50)`
     } else {
       whereClause += ` AND quality_score IS NULL`
@@ -126,41 +116,9 @@ export async function submitKBQualityBatch(
     throw new Error('Aucun document à analyser avec les critères fournis')
   }
 
-  console.log(`[KB Batch] ${docs.length} documents sélectionnés pour batch`)
+  console.log(`[KB Batch] ${docs.length} documents sélectionnés pour analyse séquentielle (Ollama)`)
 
-  // 2. Construire les requêtes JSONL
-  const requests: GroqBatchRequest[] = docs.map(doc => {
-    const userPrompt = formatPrompt(KB_QUALITY_ANALYSIS_USER_PROMPT, {
-      title: doc.title || 'Sans titre',
-      category: doc.category || 'autre',
-      language: doc.language || 'ar',
-      description: doc.description || 'Aucune description',
-      tags: (doc.tags || []).join(', ') || 'Aucun tag',
-      content: truncateContent(doc.full_text, 12000),
-    })
-
-    return {
-      custom_id: `${CUSTOM_ID_PREFIX}${doc.id}`,
-      method: 'POST',
-      url: '/v1/chat/completions',
-      body: {
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: KB_QUALITY_ANALYSIS_SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.1,
-        max_tokens: 8000,
-        response_format: { type: 'json_object' },
-      },
-    }
-  })
-
-  // 3. Upload JSONL + créer le batch Groq
-  const fileId = await uploadBatchFile(requests)
-  const batchStatus = await createBatch(fileId)
-
-  // 4. Persister en DB pour tracking
+  // 2. Créer un job en DB pour tracking
   const documentIds = docs.map(d => d.id)
   const insertResult = await db.query<{ id: string }>(
     `INSERT INTO groq_batch_jobs
@@ -168,42 +126,130 @@ export async function submitKBQualityBatch(
      VALUES ($1, $2, 'kb-quality-analysis', $3, $4, $5)
      RETURNING id`,
     [
-      batchStatus.id,
-      fileId,
+      `ollama-batch-${Date.now()}`,
+      'local',
       JSON.stringify(documentIds),
-      batchStatus.status,
+      'in_progress',
       docs.length,
     ]
   )
 
   const batchJobId = insertResult.rows[0].id
-  console.log(`[KB Batch] Job créé en DB: ${batchJobId} → Groq: ${batchStatus.id}`)
+  console.log(`[KB Batch] Job créé en DB: ${batchJobId} → traitement séquentiel Ollama`)
+
+  // 3. Traiter les documents séquentiellement
+  const safeRound = (val: unknown): number =>
+    Math.round(parseFloat(String(val || 0)))
+
+  let succeeded = 0
+  let failed = 0
+
+  for (const doc of docs) {
+    try {
+      const userPrompt = formatPrompt(KB_QUALITY_ANALYSIS_USER_PROMPT, {
+        title: doc.title || 'Sans titre',
+        category: doc.category || 'autre',
+        language: doc.language || 'ar',
+        description: doc.description || 'Aucune description',
+        tags: (doc.tags || []).join(', ') || 'Aucun tag',
+        content: truncateContent(doc.full_text, 12000),
+      })
+
+      const messages: LLMMessage[] = [
+        { role: 'system', content: KB_QUALITY_ANALYSIS_SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ]
+
+      const llmResult = await callLLMWithFallback(messages, {
+        temperature: 0.1,
+        maxTokens: 8000,
+        operationName: 'kb-quality-analysis',
+      })
+
+      const parsed = parseKBQualityResponse(llmResult.answer)
+
+      await db.query(
+        `UPDATE knowledge_base SET
+          quality_score = $1,
+          quality_clarity = $2,
+          quality_structure = $3,
+          quality_completeness = $4,
+          quality_reliability = $5,
+          quality_analysis_summary = $6,
+          quality_detected_issues = $7,
+          quality_recommendations = $8,
+          quality_requires_review = $9,
+          quality_assessed_at = NOW(),
+          quality_llm_provider = $10,
+          quality_llm_model = $11,
+          updated_at = NOW()
+        WHERE id = $12`,
+        [
+          safeRound(parsed.overall_score),
+          safeRound(parsed.clarity_score),
+          safeRound(parsed.structure_score),
+          safeRound(parsed.completeness_score),
+          safeRound(parsed.reliability_score),
+          parsed.analysis_summary,
+          JSON.stringify(parsed.detected_issues || []),
+          JSON.stringify(parsed.recommendations || []),
+          parsed.requires_review || parsed.overall_score < 60,
+          llmResult.provider,
+          llmResult.modelUsed,
+          doc.id,
+        ]
+      )
+
+      succeeded++
+      if (succeeded % 10 === 0) {
+        console.log(`[KB Batch] Progression: ${succeeded}/${docs.length} analysés`)
+      }
+    } catch (error) {
+      console.error(`[KB Batch] Erreur analyse doc ${doc.id}:`, error instanceof Error ? error.message : error)
+      failed++
+    }
+  }
+
+  // 4. Marquer le job comme complété
+  await db.query(
+    `UPDATE groq_batch_jobs SET
+       status = 'completed',
+       completed_at = NOW(),
+       completed_requests = $1,
+       failed_requests = $2
+     WHERE id = $3`,
+    [succeeded, failed, batchJobId]
+  )
+
+  console.log(`[KB Batch] Batch ${batchJobId} terminé: ${succeeded} OK, ${failed} échecs`)
 
   return {
     success: true,
     batchJobId,
-    groqBatchId: batchStatus.id,
+    groqBatchId: `ollama-batch-${Date.now()}`,
     totalDocuments: docs.length,
-    message: `Batch soumis : ${docs.length} documents en cours de traitement (24h window)`,
+    message: `Batch traité : ${succeeded} scores sauvegardés, ${failed} échecs (Ollama séquentiel)`,
   }
 }
 
 // =============================================================================
-// POLLING & TRAITEMENT DES RÉSULTATS
+// POLLING (rétrocompatibilité — les nouveaux batches sont synchrones)
 // =============================================================================
 
 /**
- * Vérifie le statut d'un batch et traite les résultats s'il est complété
+ * Vérifie le statut d'un batch job en DB.
+ * Les nouveaux batches Ollama sont synchrones, donc cette fonction
+ * retourne simplement le statut stocké en DB.
  */
 export async function checkAndProcessBatch(batchJobId: string): Promise<KBBatchProcessResult> {
-  // Récupérer le job en DB
   const jobResult = await db.query<{
     id: string
     groq_batch_id: string
     status: string
-    document_ids: string[]
+    completed_requests: number
+    failed_requests: number
   }>(
-    `SELECT id, groq_batch_id, status, document_ids FROM groq_batch_jobs WHERE id = $1`,
+    `SELECT id, groq_batch_id, status, completed_requests, failed_requests FROM groq_batch_jobs WHERE id = $1`,
     [batchJobId]
   )
 
@@ -213,93 +259,20 @@ export async function checkAndProcessBatch(batchJobId: string): Promise<KBBatchP
 
   const job = jobResult.rows[0]
 
-  if (job.status === 'completed') {
-    return {
-      batchJobId,
-      groqBatchId: job.groq_batch_id,
-      status: 'completed',
-      message: 'Ce batch a déjà été traité',
-    }
-  }
-
-  if (['failed', 'expired', 'cancelled'].includes(job.status)) {
-    return {
-      batchJobId,
-      groqBatchId: job.groq_batch_id,
-      status: job.status,
-      message: `Batch terminé avec statut: ${job.status}`,
-    }
-  }
-
-  // Interroger Groq pour le statut actuel
-  const groqStatus = await getBatchStatus(job.groq_batch_id)
-
-  // Mettre à jour le statut en DB
-  await db.query(
-    `UPDATE groq_batch_jobs SET
-       status = $1,
-       completed_requests = $2,
-       failed_requests = $3,
-       result_file_id = $4,
-       error_file_id = $5
-     WHERE id = $6`,
-    [
-      groqStatus.status,
-      groqStatus.request_counts.completed,
-      groqStatus.request_counts.failed,
-      groqStatus.output_file_id || null,
-      groqStatus.error_file_id || null,
-      batchJobId,
-    ]
-  )
-
-  // Si pas encore terminé → retourner le statut courant
-  if (groqStatus.status !== 'completed') {
-    return {
-      batchJobId,
-      groqBatchId: job.groq_batch_id,
-      status: groqStatus.status,
-      message: `En cours : ${groqStatus.request_counts.completed}/${groqStatus.request_counts.total} complétées`,
-    }
-  }
-
-  // Le batch est complété → télécharger et traiter les résultats
-  if (!groqStatus.output_file_id) {
-    throw new Error(`Batch complété mais pas de fichier résultat: ${job.groq_batch_id}`)
-  }
-
-  const results = await downloadBatchResults(groqStatus.output_file_id)
-  console.log(`[KB Batch] ${results.length} résultats téléchargés`)
-
-  const processingResults = await saveQualityResultsToDB(results)
-
-  // Marquer le job comme complété en DB
-  await db.query(
-    `UPDATE groq_batch_jobs SET
-       status = 'completed',
-       completed_at = NOW(),
-       completed_requests = $1,
-       failed_requests = $2
-     WHERE id = $3`,
-    [processingResults.succeeded, processingResults.failed, batchJobId]
-  )
-
-  console.log(`[KB Batch] ✅ Batch ${batchJobId} traité: ${processingResults.succeeded} OK, ${processingResults.failed} échecs`)
-
   return {
     batchJobId,
     groqBatchId: job.groq_batch_id,
-    status: 'completed',
-    processed: results.length,
-    succeeded: processingResults.succeeded,
-    failed: processingResults.failed,
-    message: `Batch traité : ${processingResults.succeeded} scores sauvegardés, ${processingResults.failed} échecs`,
+    status: job.status,
+    succeeded: job.completed_requests,
+    failed: job.failed_requests,
+    message: job.status === 'completed'
+      ? `Batch terminé : ${job.completed_requests} OK, ${job.failed_requests} échecs`
+      : `Statut: ${job.status}`,
   }
 }
 
 /**
- * Vérifie tous les batches en attente et traite ceux qui sont complétés.
- * Appelé par le cron ou manuellement.
+ * Vérifie tous les batches en attente (rétrocompatibilité).
  */
 export async function checkAndProcessAllPendingBatches(): Promise<KBBatchProcessResult[]> {
   const pendingResult = await db.query<{ id: string }>(
@@ -312,8 +285,6 @@ export async function checkAndProcessAllPendingBatches(): Promise<KBBatchProcess
     console.log('[KB Batch] Aucun batch en attente')
     return []
   }
-
-  console.log(`[KB Batch] ${pendingResult.rows.length} batch(es) en attente à vérifier`)
 
   const results: KBBatchProcessResult[] = []
   for (const row of pendingResult.rows) {
@@ -332,90 +303,4 @@ export async function checkAndProcessAllPendingBatches(): Promise<KBBatchProcess
   }
 
   return results
-}
-
-// =============================================================================
-// SAUVEGARDE DES RÉSULTATS EN DB
-// =============================================================================
-
-async function saveQualityResultsToDB(
-  results: GroqBatchResult[]
-): Promise<{ succeeded: number; failed: number }> {
-  let succeeded = 0
-  let failed = 0
-
-  const safeRound = (val: unknown): number =>
-    Math.round(parseFloat(String(val || 0)))
-
-  for (const result of results) {
-    // Extraire le documentId depuis le custom_id
-    if (!result.custom_id?.startsWith(CUSTOM_ID_PREFIX)) {
-      console.warn('[KB Batch] custom_id inattendu:', result.custom_id)
-      failed++
-      continue
-    }
-
-    const documentId = result.custom_id.slice(CUSTOM_ID_PREFIX.length)
-
-    // Erreur Groq côté requête
-    if (result.error || !result.response) {
-      console.error(`[KB Batch] Requête échouée pour doc ${documentId}:`, result.error)
-      failed++
-      continue
-    }
-
-    if (result.response.status_code !== 200) {
-      console.error(`[KB Batch] Status ${result.response.status_code} pour doc ${documentId}`)
-      failed++
-      continue
-    }
-
-    const content = result.response.body.choices?.[0]?.message?.content
-    if (!content) {
-      console.error(`[KB Batch] Contenu vide pour doc ${documentId}`)
-      failed++
-      continue
-    }
-
-    try {
-      const parsed = parseKBQualityResponse(content)
-
-      await db.query(
-        `UPDATE knowledge_base SET
-          quality_score = $1,
-          quality_clarity = $2,
-          quality_structure = $3,
-          quality_completeness = $4,
-          quality_reliability = $5,
-          quality_analysis_summary = $6,
-          quality_detected_issues = $7,
-          quality_recommendations = $8,
-          quality_requires_review = $9,
-          quality_assessed_at = NOW(),
-          quality_llm_provider = 'groq',
-          quality_llm_model = 'llama-3.3-70b-versatile (batch)',
-          updated_at = NOW()
-        WHERE id = $10`,
-        [
-          safeRound(parsed.overall_score),
-          safeRound(parsed.clarity_score),
-          safeRound(parsed.structure_score),
-          safeRound(parsed.completeness_score),
-          safeRound(parsed.reliability_score),
-          parsed.analysis_summary,
-          JSON.stringify(parsed.detected_issues || []),
-          JSON.stringify(parsed.recommendations || []),
-          parsed.requires_review || parsed.overall_score < 60,
-          documentId,
-        ]
-      )
-
-      succeeded++
-    } catch (error) {
-      console.error(`[KB Batch] Erreur parsing/save pour doc ${documentId}:`, error)
-      failed++
-    }
-  }
-
-  return { succeeded, failed }
 }

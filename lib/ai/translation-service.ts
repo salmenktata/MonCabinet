@@ -1,8 +1,9 @@
 /**
- * Service de traduction AR ↔ FR via Groq
+ * Service de traduction AR ↔ FR via DeepSeek
  *
- * Utilise un modèle rapide (llama-3.1-8b-instant) pour traduire
+ * Utilise DeepSeek (deepseek-chat) pour traduire
  * les questions juridiques entre arabe et français.
+ * Migration Mar 6, 2026 : Groq → DeepSeek (économie Groq)
  */
 
 import OpenAI from 'openai'
@@ -16,24 +17,24 @@ import {
 // CONFIGURATION
 // =============================================================================
 
-const TRANSLATION_MODEL = process.env.TRANSLATION_MODEL || 'llama-3.1-8b-instant'
+const TRANSLATION_MODEL = process.env.TRANSLATION_MODEL || 'deepseek-chat'
 
-// Client Groq
-let groqClient: OpenAI | null = null
+// Client DeepSeek
+let deepseekClient: OpenAI | null = null
 
-function getGroqClient(): OpenAI | null {
-  if (!aiConfig.groq.apiKey) {
+function getTranslationClient(): OpenAI | null {
+  if (!aiConfig.deepseek.apiKey) {
     return null
   }
 
-  if (!groqClient) {
-    groqClient = new OpenAI({
-      apiKey: aiConfig.groq.apiKey,
-      baseURL: aiConfig.groq.baseUrl,
+  if (!deepseekClient) {
+    deepseekClient = new OpenAI({
+      apiKey: aiConfig.deepseek.apiKey,
+      baseURL: aiConfig.deepseek.baseUrl,
     })
   }
 
-  return groqClient
+  return deepseekClient
 }
 
 // =============================================================================
@@ -105,10 +106,10 @@ export async function translateQuery(
     }
   }
 
-  const client = getGroqClient()
+  const client = getTranslationClient()
 
   if (!client) {
-    console.warn('[Translation] Groq non configuré - traduction désactivée')
+    console.warn('[Translation] DeepSeek non configuré - traduction désactivée')
     return {
       originalText: text,
       translatedText: text,
@@ -153,7 +154,7 @@ export async function translateQuery(
     console.log(`[Translation] ${from}→${to}: "${text.substring(0, 50)}..." → "${translatedText.substring(0, 50)}..."`)
 
     // Mettre en cache la traduction
-    await setCachedTranslation(text, translatedText, from, to, 'groq')
+    await setCachedTranslation(text, translatedText, from, to, 'deepseek')
 
     return {
       originalText: text,
@@ -180,7 +181,7 @@ export async function translateQuery(
  * Vérifie si le service de traduction est disponible
  */
 export function isTranslationAvailable(): boolean {
-  return !!aiConfig.groq.apiKey
+  return !!aiConfig.deepseek.apiKey
 }
 
 /**

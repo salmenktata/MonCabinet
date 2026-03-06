@@ -73,7 +73,7 @@ export interface LLMResponse {
 const LLM_FALLBACK_ENABLED = process.env.LLM_FALLBACK_ENABLED === 'true'
 
 /** Ordre de fallback global (quand aucun fallbackChain n'est défini dans operations-config) */
-const FALLBACK_ORDER: LLMProvider[] = ['groq', 'gemini', 'openai', 'ollama']
+const FALLBACK_ORDER: LLMProvider[] = ['deepseek', 'gemini', 'openai', 'ollama']
 
 // =============================================================================
 // CIRCUIT BREAKER
