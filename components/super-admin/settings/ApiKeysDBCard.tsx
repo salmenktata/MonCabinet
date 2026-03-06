@@ -60,21 +60,21 @@ export function ApiKeysDBCard() {
   }
 
   function getProviderColor(provider: string) {
-    return PROVIDER_COLORS[provider] || 'text-slate-400 border-slate-500'
+    return PROVIDER_COLORS[provider] || 'text-muted-foreground border-border'
   }
 
   if (loading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="">
         <CardHeader>
-          <CardTitle className="text-white">🔐 Clés API (Base de Données)</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">🔐 Clés API (Base de Données)</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Chargement des clés...
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <Icons.spinner className="h-8 w-8 animate-spin text-slate-400" />
+            <Icons.spinner className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         </CardContent>
       </Card>
@@ -83,9 +83,9 @@ export function ApiKeysDBCard() {
 
   if (error) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="">
         <CardHeader>
-          <CardTitle className="text-white">🔐 Clés API (Base de Données)</CardTitle>
+          <CardTitle className="text-foreground">🔐 Clés API (Base de Données)</CardTitle>
           <CardDescription className="text-red-400">
             Erreur: {error}
           </CardDescription>
@@ -95,12 +95,12 @@ export function ApiKeysDBCard() {
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-white">🔐 Clés API (Base de Données)</CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardTitle className="text-foreground">🔐 Clés API (Base de Données)</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Clés stockées et chiffrées (AES-256-GCM) - {keys.length} provider(s)
             </CardDescription>
           </div>
@@ -108,7 +108,7 @@ export function ApiKeysDBCard() {
             variant="outline"
             size="sm"
             onClick={fetchKeys}
-            className="border-slate-600 hover:bg-slate-700"
+            className="hover:bg-muted"
           >
             <Icons.refresh className="h-4 w-4 mr-2" />
             Actualiser
@@ -121,7 +121,7 @@ export function ApiKeysDBCard() {
             key={key.id}
             className={cn(
               "p-4 rounded-lg border",
-              key.isActive ? "bg-slate-700/50 border-slate-600" : "bg-slate-700/20 border-slate-700 opacity-60"
+              key.isActive ? "bg-muted/50 border-border" : "bg-muted/20 border-border opacity-60"
             )}
           >
             <div className="flex items-start justify-between">
@@ -153,16 +153,16 @@ export function ApiKeysDBCard() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">{key.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{key.label}</p>
                   </div>
                 </div>
 
                 {/* Clé API */}
                 <div className="flex items-center gap-2">
-                  <code className="text-sm font-mono px-2 py-1 rounded bg-slate-600 text-green-400">
+                  <code className="text-sm font-mono px-2 py-1 rounded bg-muted text-green-500">
                     {key.apiKeyMasked}
                   </code>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted-foreground">
                     Modèle: {key.modelDefault}
                   </span>
                 </div>
@@ -171,20 +171,20 @@ export function ApiKeysDBCard() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                   {key.rpmLimit && (
                     <div className="flex flex-col">
-                      <span className="text-slate-500">RPM</span>
-                      <span className="text-slate-300 font-mono">{key.rpmLimit}/min</span>
+                      <span className="text-muted-foreground">RPM</span>
+                      <span className="text-foreground font-mono">{key.rpmLimit}/min</span>
                     </div>
                   )}
                   {key.monthlyQuota && (
                     <div className="flex flex-col">
-                      <span className="text-slate-500">Quota</span>
-                      <span className="text-slate-300 font-mono">
+                      <span className="text-muted-foreground">Quota</span>
+                      <span className="text-foreground font-mono">
                         {(key.monthlyQuota / 1000000).toFixed(1)}M tokens
                       </span>
                     </div>
                   )}
                   <div className="flex flex-col">
-                    <span className="text-slate-500">Erreurs</span>
+                    <span className="text-muted-foreground">Erreurs</span>
                     <span className={cn(
                       "font-mono",
                       key.errorCount > 0 ? "text-red-400" : "text-green-400"
@@ -194,8 +194,8 @@ export function ApiKeysDBCard() {
                   </div>
                   {key.lastUsedAt && (
                     <div className="flex flex-col">
-                      <span className="text-slate-500">Dernière utilisation</span>
-                      <span className="text-slate-300 font-mono text-xs">
+                      <span className="text-muted-foreground">Dernière utilisation</span>
+                      <span className="text-foreground font-mono text-xs">
                         {format(new Date(key.lastUsedAt), 'dd/MM HH:mm', { locale: fr })}
                       </span>
                     </div>
@@ -216,7 +216,7 @@ export function ApiKeysDBCard() {
         ))}
 
         {keys.length === 0 && (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-muted-foreground">
             Aucune clé API configurée
           </div>
         )}

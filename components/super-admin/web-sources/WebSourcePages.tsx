@@ -37,7 +37,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata }: WebSourcePagesProps) {
   if (pages.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="text-center py-8 text-muted-foreground">
         <Icons.fileText className="h-8 w-8 mx-auto mb-2" />
         <p className="text-sm">Aucune page crawlée</p>
       </div>
@@ -52,21 +52,21 @@ export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata
         return (
           <div
             key={page.id}
-            className="flex items-start gap-3 p-3 rounded-lg bg-slate-900/50 hover:bg-slate-900/70 transition"
+            className="flex items-start gap-3 p-3 rounded-lg bg-card/50 hover:bg-muted/70 transition"
           >
             <div className="shrink-0 mt-0.5">
               {page.is_indexed ? (
                 <Icons.checkCircle className="h-4 w-4 text-green-400" />
               ) : (
-                <Icons.file className="h-4 w-4 text-slate-400" />
+                <Icons.file className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-white truncate" title={page.title || page.url}>
+              <p className="text-sm text-foreground truncate" title={page.title || page.url}>
                 {page.title || extractPath(page.url)}
               </p>
-              <p className="text-xs text-slate-400 truncate">{page.url}</p>
+              <p className="text-xs text-muted-foreground truncate">{page.url}</p>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
@@ -87,7 +87,7 @@ export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata
                 </Badge>
               )}
               {page.chunks_count > 0 && (
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   {page.chunks_count} chunks
                 </span>
               )}
@@ -96,7 +96,7 @@ export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata
                   size="sm"
                   variant="ghost"
                   onClick={() => onViewVersions?.(page.id)}
-                  className="text-slate-400 hover:text-white h-6 px-1.5 text-xs"
+                  className="text-muted-foreground hover:text-foreground h-6 px-1.5 text-xs"
                   title="Historique des versions"
                 >
                   <Icons.clock className="h-3 w-3 mr-0.5" />

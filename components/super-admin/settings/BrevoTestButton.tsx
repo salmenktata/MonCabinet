@@ -17,7 +17,7 @@ export function BrevoTestButton() {
       variant="outline"
       onClick={() => trigger()}
       disabled={loading}
-      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+      className="border-border text-muted-foreground hover:bg-muted"
     >
       {loading ? (
         <Icons.spinner className="h-4 w-4 animate-spin" />

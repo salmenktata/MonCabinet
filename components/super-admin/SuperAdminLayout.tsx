@@ -29,7 +29,7 @@ export function SuperAdminLayout({
   const { isCollapsed, toggle, isMobileOpen, toggleMobile, closeMobile } = useSidebarCollapse('super-admin-sidebar-collapsed', initialSidebarCollapsed)
 
   return (
-    <div className="flex h-screen bg-slate-950">
+    <div className="flex h-screen bg-background">
       {/* Backdrop mobile */}
       {isMobileOpen && (
         <div
@@ -63,8 +63,8 @@ export function SuperAdminLayout({
 
         {/* Page content */}
         <main className={cn(
-          'flex-1 overflow-y-auto bg-slate-950 p-6',
-          'text-slate-100'
+          'flex-1 overflow-y-auto bg-background p-4 sm:p-6',
+          'text-foreground'
         )}>
           {children}
         </main>

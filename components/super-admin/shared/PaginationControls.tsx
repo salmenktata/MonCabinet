@@ -19,13 +19,12 @@ export function PaginationControls({ page, totalPages, prevHref, nextHref }: Pag
           variant="outline"
           size="sm"
           disabled={page <= 1}
-          className="border-slate-600 text-slate-300"
         >
           <Icons.chevronLeft className="h-4 w-4" />
         </Button>
       </Link>
 
-      <span className="text-sm text-slate-400">
+      <span className="text-sm text-muted-foreground">
         Page {page} / {totalPages}
       </span>
 
@@ -34,7 +33,6 @@ export function PaginationControls({ page, totalPages, prevHref, nextHref }: Pag
           variant="outline"
           size="sm"
           disabled={page >= totalPages}
-          className="border-slate-600 text-slate-300"
         >
           <Icons.chevronRight className="h-4 w-4" />
         </Button>

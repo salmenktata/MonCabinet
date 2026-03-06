@@ -366,16 +366,16 @@ export function AddWebSourceWizard() {
               className={`w-8 h-8 rounded-full flex items-center justify-center font-medium ${
                 step >= s
                   ? 'bg-blue-600 text-white'
-                  : 'bg-slate-700 text-slate-400'
+                  : 'bg-muted text-muted-foreground'
               }`}
             >
               {step > s ? <Icons.check className="h-4 w-4" /> : s}
             </div>
-            <span className={`ml-2 text-sm ${step >= s ? 'text-white' : 'text-slate-400'}`}>
+            <span className={`ml-2 text-sm ${step >= s ? 'text-foreground' : 'text-muted-foreground'}`}>
               {s === 1 ? 'Informations' : s === 2 ? 'Configuration' : 'Extraction'}
             </span>
             {s < totalSteps && (
-              <div className={`w-24 h-0.5 mx-4 ${step > s ? 'bg-blue-600' : 'bg-slate-700'}`} />
+              <div className={`w-24 h-0.5 mx-4 ${step > s ? 'bg-blue-600' : 'bg-border'}`} />
             )}
           </div>
         ))}
@@ -383,23 +383,23 @@ export function AddWebSourceWizard() {
 
       {/* Step 1 */}
       {step === 1 && (
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white">Informations de base</CardTitle>
+            <CardTitle className="text-foreground">Informations de base</CardTitle>
             <CardDescription>Identifiez la source et sa catégorie</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Type de source */}
             <div>
-              <Label className="text-slate-300">Type de source *</Label>
+              <Label className="text-foreground">Type de source *</Label>
               <div className="mt-2 grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => updateField('sourceType', 'web')}
                   className={`p-4 rounded-lg border-2 transition-colors ${
                     formData.sourceType === 'web'
-                      ? 'border-blue-500 bg-blue-500/10 text-white'
-                      : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                      ? 'border-blue-500 bg-blue-500/10 text-foreground'
+                      : 'border-border bg-card text-muted-foreground hover:border-border'
                   }`}
                 >
                   <Icons.globe className="h-6 w-6 mx-auto mb-2" />
@@ -411,8 +411,8 @@ export function AddWebSourceWizard() {
                   onClick={() => updateField('sourceType', 'google_drive')}
                   className={`p-4 rounded-lg border-2 transition-colors ${
                     formData.sourceType === 'google_drive'
-                      ? 'border-blue-500 bg-blue-500/10 text-white'
-                      : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                      ? 'border-blue-500 bg-blue-500/10 text-foreground'
+                      : 'border-border bg-card text-muted-foreground hover:border-border'
                   }`}
                 >
                   <Icons.cloud className="h-6 w-6 mx-auto mb-2" />
@@ -423,44 +423,44 @@ export function AddWebSourceWizard() {
             </div>
 
             <div>
-              <Label className="text-slate-300">Nom de la source *</Label>
+              <Label className="text-foreground">Nom de la source *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => updateField('name', e.target.value)}
                 placeholder={formData.sourceType === 'web' ? 'Ex: JORT Tunisie' : 'Ex: Codes Juridiques Cabinet'}
-                className="mt-1 bg-slate-900 border-slate-600 text-white"
+                className="mt-1 bg-card border-border text-foreground"
               />
             </div>
 
             {/* Champs conditionnels selon le type */}
             {formData.sourceType === 'web' ? (
               <div>
-                <Label className="text-slate-300">URL de base *</Label>
+                <Label className="text-foreground">URL de base *</Label>
                 <Input
                   value={formData.baseUrl}
                   onChange={(e) => updateField('baseUrl', e.target.value)}
                   placeholder="https://www.jort.gov.tn"
-                  className="mt-1 bg-slate-900 border-slate-600 text-white"
+                  className="mt-1 bg-card border-border text-foreground"
                 />
               </div>
             ) : (
               <>
                 <div>
-                  <Label className="text-slate-300">URL du dossier Google Drive *</Label>
+                  <Label className="text-foreground">URL du dossier Google Drive *</Label>
                   <Input
                     value={formData.gdriveFolderId}
                     onChange={(e) => updateField('gdriveFolderId', e.target.value)}
                     placeholder="https://drive.google.com/drive/folders/... ou ID direct"
-                    className="mt-1 bg-slate-900 border-slate-600 text-white"
+                    className="mt-1 bg-card border-border text-foreground"
                   />
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Collez l'URL du dossier partagé ou son ID
                   </p>
                 </div>
 
                 {/* Test connexion Google Drive */}
                 {formData.gdriveFolderId && (
-                  <div className="rounded-lg border border-slate-600 bg-slate-900 p-4">
+                  <div className="rounded-lg border border-border bg-card p-4">
                     <Button
                       type="button"
                       onClick={handleGDriveTest}
@@ -505,8 +505,8 @@ export function AddWebSourceWizard() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label className="text-slate-300">Parcourir récursivement</Label>
-                      <p className="text-xs text-slate-400">Inclure les sous-dossiers</p>
+                      <Label className="text-foreground">Parcourir récursivement</Label>
+                      <p className="text-xs text-muted-foreground">Inclure les sous-dossiers</p>
                     </div>
                     <Switch
                       checked={formData.gdriveRecursive}
@@ -515,7 +515,7 @@ export function AddWebSourceWizard() {
                   </div>
 
                   <div>
-                    <Label className="text-slate-300">Types de fichiers *</Label>
+                    <Label className="text-foreground">Types de fichiers *</Label>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {FILE_TYPES.map((type) => (
                         <button
@@ -530,15 +530,15 @@ export function AddWebSourceWizard() {
                           }}
                           className={`p-2 rounded border text-sm transition-colors ${
                             formData.gdriveFileTypes.includes(type.value)
-                              ? 'border-blue-500 bg-blue-500/10 text-white'
-                              : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                              ? 'border-blue-500 bg-blue-500/10 text-foreground'
+                              : 'border-border bg-card text-muted-foreground hover:border-border'
                           }`}
                         >
                           {type.label}
                         </button>
                       ))}
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Sélectionnez au moins un type de fichier
                     </p>
                   </div>
@@ -547,22 +547,22 @@ export function AddWebSourceWizard() {
             )}
 
             <div>
-              <Label className="text-slate-300">Description</Label>
+              <Label className="text-foreground">Description</Label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => updateField('description', e.target.value)}
                 placeholder="Description de la source..."
-                className="mt-1 bg-slate-900 border-slate-600 text-white"
+                className="mt-1 bg-card border-border text-foreground"
                 rows={2}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-slate-300">Catégories RAG *</Label>
-                <div className="mt-1 p-2 bg-slate-900 border border-slate-600 rounded-md max-h-44 overflow-y-auto space-y-1">
+                <Label className="text-foreground">Catégories RAG *</Label>
+                <div className="mt-1 p-2 bg-card border border-border rounded-md max-h-44 overflow-y-auto space-y-1">
                   {categories.map((cat) => (
-                    <label key={cat.value} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-slate-800 cursor-pointer">
+                    <label key={cat.value} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-muted cursor-pointer">
                       <Checkbox
                         checked={formData.categories.includes(cat.value)}
                         onCheckedChange={(checked) => {
@@ -571,9 +571,9 @@ export function AddWebSourceWizard() {
                             : formData.categories.filter((c) => c !== cat.value)
                           updateField('categories', next)
                         }}
-                        className="border-slate-500"
+                        className="border-border"
                       />
-                      <span className="text-sm text-slate-200">{cat.label}</span>
+                      <span className="text-sm text-foreground">{cat.label}</span>
                     </label>
                   ))}
                 </div>
@@ -589,18 +589,18 @@ export function AddWebSourceWizard() {
               </div>
 
               <div>
-                <Label className="text-slate-300">Langue</Label>
+                <Label className="text-foreground">Langue</Label>
                 <Select
                   value={formData.language}
                   onValueChange={(v) => updateField('language', v)}
                 >
-                  <SelectTrigger className="mt-1 bg-slate-900 border-slate-600 text-white">
+                  <SelectTrigger className="mt-1 bg-card border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="fr" className="text-white">Français</SelectItem>
-                    <SelectItem value="ar" className="text-white">Arabe</SelectItem>
-                    <SelectItem value="mixed" className="text-white">Mixte</SelectItem>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="fr" className="text-foreground">Français</SelectItem>
+                    <SelectItem value="ar" className="text-foreground">Arabe</SelectItem>
+                    <SelectItem value="mixed" className="text-foreground">Mixte</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -611,24 +611,24 @@ export function AddWebSourceWizard() {
 
       {/* Step 2 */}
       {step === 2 && (
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white">Configuration du crawl</CardTitle>
+            <CardTitle className="text-foreground">Configuration du crawl</CardTitle>
             <CardDescription>Paramètres de fréquence et limites</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <Label className="text-slate-300">Fréquence de crawl</Label>
+              <Label className="text-foreground">Fréquence de crawl</Label>
               <Select
                 value={formData.crawlFrequency}
                 onValueChange={(v) => updateField('crawlFrequency', v)}
               >
-                <SelectTrigger className="mt-1 bg-slate-900 border-slate-600 text-white">
+                <SelectTrigger className="mt-1 bg-card border-border text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-card border-border">
                   {FREQUENCIES.map((freq) => (
-                    <SelectItem key={freq.value} value={freq.value} className="text-white">
+                    <SelectItem key={freq.value} value={freq.value} className="text-foreground">
                       {freq.label}
                     </SelectItem>
                   ))}
@@ -637,7 +637,7 @@ export function AddWebSourceWizard() {
             </div>
 
             <div>
-              <Label className="text-slate-300">Profondeur max: {formData.maxDepth}</Label>
+              <Label className="text-foreground">Profondeur max: {formData.maxDepth}</Label>
               <Slider
                 value={[formData.maxDepth]}
                 onValueChange={([v]) => updateField('maxDepth', v)}
@@ -646,13 +646,13 @@ export function AddWebSourceWizard() {
                 step={1}
                 className="mt-2"
               />
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Nombre de niveaux de liens à suivre depuis la page d'accueil
               </p>
             </div>
 
             <div>
-              <Label className="text-slate-300">Limite de pages: {formData.maxPages}</Label>
+              <Label className="text-foreground">Limite de pages: {formData.maxPages}</Label>
               <Slider
                 value={[formData.maxPages]}
                 onValueChange={([v]) => updateField('maxPages', v)}
@@ -664,7 +664,7 @@ export function AddWebSourceWizard() {
             </div>
 
             <div>
-              <Label className="text-slate-300">Délai entre requêtes: {formData.rateLimitMs}ms</Label>
+              <Label className="text-foreground">Délai entre requêtes: {formData.rateLimitMs}ms</Label>
               <Slider
                 value={[formData.rateLimitMs]}
                 onValueChange={([v]) => updateField('rateLimitMs', v)}
@@ -678,8 +678,8 @@ export function AddWebSourceWizard() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-slate-300">Site dynamique (JavaScript)</Label>
-                  <p className="text-xs text-slate-400">Utilise Playwright pour les sites SPA</p>
+                  <Label className="text-foreground">Site dynamique (JavaScript)</Label>
+                  <p className="text-xs text-muted-foreground">Utilise Playwright pour les sites SPA</p>
                 </div>
                 <Switch
                   checked={formData.requiresJavascript}
@@ -689,8 +689,8 @@ export function AddWebSourceWizard() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-slate-300">Télécharger les fichiers (PDF, DOCX)</Label>
-                  <p className="text-xs text-slate-400">Indexe les documents liés</p>
+                  <Label className="text-foreground">Télécharger les fichiers (PDF, DOCX)</Label>
+                  <p className="text-xs text-muted-foreground">Indexe les documents liés</p>
                 </div>
                 <Switch
                   checked={formData.downloadFiles}
@@ -700,8 +700,8 @@ export function AddWebSourceWizard() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-slate-300">Respecter robots.txt</Label>
-                  <p className="text-xs text-slate-400">Recommandé pour rester éthique</p>
+                  <Label className="text-foreground">Respecter robots.txt</Label>
+                  <p className="text-xs text-muted-foreground">Recommandé pour rester éthique</p>
                 </div>
                 <Switch
                   checked={formData.respectRobotsTxt}
@@ -711,8 +711,8 @@ export function AddWebSourceWizard() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-slate-300">Utiliser le sitemap</Label>
-                  <p className="text-xs text-slate-400">Découvre les URLs via sitemap.xml</p>
+                  <Label className="text-foreground">Utiliser le sitemap</Label>
+                  <p className="text-xs text-muted-foreground">Découvre les URLs via sitemap.xml</p>
                 </div>
                 <Switch
                   checked={formData.useSitemap}
@@ -722,31 +722,20 @@ export function AddWebSourceWizard() {
 
               {formData.useSitemap && (
                 <div>
-                  <Label className="text-slate-300">URL du sitemap</Label>
+                  <Label className="text-foreground">URL du sitemap</Label>
                   <Input
                     value={formData.sitemapUrl}
                     onChange={(e) => updateField('sitemapUrl', e.target.value)}
                     placeholder="https://example.com/sitemap.xml"
-                    className="mt-1 bg-slate-900 border-slate-600 text-white"
+                    className="mt-1 bg-card border-border text-foreground"
                   />
                 </div>
               )}
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-slate-300">Ignorer les erreurs SSL</Label>
-                  <p className="text-xs text-slate-400">Pour les sites gouvernementaux avec certificats expirés</p>
-                </div>
-                <Switch
-                  checked={formData.ignoreSSLErrors}
-                  onCheckedChange={(v) => updateField('ignoreSSLErrors', v)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className={formData.downloadFiles ? 'text-slate-300' : 'text-slate-500'}>Auto-indexer les fichiers PDF</Label>
-                  <p className="text-xs text-slate-400">Parser et indexer automatiquement les PDFs pendant le crawl</p>
+                  <Label className={formData.downloadFiles ? 'text-foreground' : 'text-muted-foreground'}>Auto-indexer les fichiers PDF</Label>
+                  <p className="text-xs text-muted-foreground">Parser et indexer automatiquement les PDFs pendant le crawl</p>
                 </div>
                 <Switch
                   checked={formData.autoIndexFiles}
@@ -761,9 +750,9 @@ export function AddWebSourceWizard() {
 
       {/* Step 3 */}
       {step === 3 && (
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white">Extraction du contenu</CardTitle>
+            <CardTitle className="text-foreground">Extraction du contenu</CardTitle>
             <CardDescription>Personnalisez l'extraction (optionnel)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

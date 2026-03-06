@@ -413,7 +413,7 @@ export function UnifiedChatPage({
 
           {/* Notice contextuelle — mode Assistant IA conversationnel */}
           {showChatNotice && (
-            <div className={`relative border-b border-l-4 border-l-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30 px-4 py-2.5 pr-10 ${isAr ? 'text-right' : ''}`}>
+            <div className={`relative overflow-hidden border-b border-l-4 border-l-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30 px-4 py-2.5 pr-10 ${isAr ? 'text-right' : ''}`}>
               <button
                 onClick={dismissChatNotice}
                 className="absolute top-2.5 right-3 text-muted-foreground hover:text-foreground"
@@ -436,7 +436,7 @@ export function UnifiedChatPage({
                 <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
                   {isAr ? '💬 محادثة متعددة الأدوار' : '💬 Chat multi-tours'}
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-200">
+                <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-200">
                   {isAr ? '← من: الاستشارة' : '← Depuis: Consultation'}
                 </span>
               </div>

@@ -245,13 +245,13 @@ export function PurgeRAGCard() {
   ) : 0
 
   return (
-    <Card className="bg-slate-800 border-red-900/50">
+    <Card className="bg-card border-red-900/50">
       <CardHeader>
         <CardTitle className="text-red-400 flex items-center gap-2">
           <Icons.alertTriangle className="h-5 w-5" />
           Zone Dangereuse - Purge RAG Sélective
         </CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-muted-foreground">
           Sélectionnez précisément les données à supprimer (base de connaissances et/ou sources web)
         </CardDescription>
       </CardHeader>
@@ -259,7 +259,7 @@ export function PurgeRAGCard() {
         {/* Statistiques actuelles */}
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Icons.loader className="h-6 w-6 animate-spin text-slate-400" />
+            <Icons.loader className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : stats ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

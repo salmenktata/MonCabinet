@@ -40,11 +40,11 @@ export function WebSourcesStats({ stats }: WebSourcesStatsProps) {
       <div className={`p-4 rounded-lg border bg-purple-500/10 text-purple-400 border-purple-500/30`}>
         <div className="flex items-center gap-2 mb-2">
           <Icons.fileText className="h-5 w-5" />
-          <span className="text-sm text-slate-300">Couverture indexation</span>
+          <span className="text-sm text-foreground">Couverture indexation</span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold text-white">{indexationPct}%</span>
-          <span className="text-xs text-slate-400">
+          <span className="text-2xl font-bold text-foreground">{indexationPct}%</span>
+          <span className="text-xs text-muted-foreground">
             {stats.indexedPages.toLocaleString()} / {stats.totalPages.toLocaleString()}
           </span>
         </div>
@@ -92,10 +92,10 @@ function StatCard({ icon, label, value, subValue, color, valueIsText }: StatCard
     <div className={`p-4 rounded-lg border ${colorClasses[color]}`}>
       <div className="flex items-center gap-2 mb-2">
         {icon}
-        <span className="text-sm text-slate-300">{label}</span>
+        <span className="text-sm text-foreground">{label}</span>
       </div>
-      <div className={`${valueIsText ? 'text-lg' : 'text-2xl'} font-bold text-white`}>{value}</div>
-      <div className="text-xs text-slate-400 mt-1">{subValue}</div>
+      <div className={`${valueIsText ? 'text-lg' : 'text-2xl'} font-bold text-foreground`}>{value}</div>
+      <div className="text-xs text-muted-foreground mt-1">{subValue}</div>
     </div>
   )
 }

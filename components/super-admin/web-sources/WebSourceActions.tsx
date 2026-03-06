@@ -329,7 +329,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
 
   if (readOnly) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-400">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Icons.eye className="h-4 w-4" />
         <span>Lecture seule</span>
       </div>
@@ -429,7 +429,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="border-slate-600 text-slate-300"
+              className="border-border text-foreground"
               disabled={loading === 'delete-preview'}
             >
               {loading === 'delete-preview' ? (
@@ -439,11 +439,11 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+          <DropdownMenuContent align="end" className="bg-card border-border">
             <DropdownMenuItem asChild>
               <Link
                 href={`/super-admin/web-sources/${source.id}/edit`}
-                className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                className="text-foreground hover:bg-muted cursor-pointer"
               >
                 <Icons.edit className="h-4 w-4 mr-2" />
                 Modifier
@@ -452,20 +452,20 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
             <DropdownMenuItem asChild>
               <Link
                 href={`/super-admin/web-sources/${source.id}/files`}
-                className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                className="text-foreground hover:bg-muted cursor-pointer"
               >
                 <Icons.file className="h-4 w-4 mr-2" />
                 Voir les fichiers
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-slate-700" />
+            <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
               onClick={handleToggleRag}
               disabled={loading !== null}
               className={
                 source.rag_enabled
-                  ? 'text-red-400 hover:bg-slate-700 cursor-pointer'
-                  : 'text-green-400 hover:bg-slate-700 cursor-pointer'
+                  ? 'text-red-400 hover:bg-muted cursor-pointer'
+                  : 'text-green-400 hover:bg-muted cursor-pointer'
               }
             >
               {source.rag_enabled ? (
@@ -480,14 +480,14 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
                 </>
               )}
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-slate-700" />
+            <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
               onClick={handleClickToggleActive}
               disabled={loading !== null}
               className={
                 source.is_active
-                  ? 'text-yellow-400 hover:bg-slate-700 cursor-pointer'
-                  : 'text-green-400 hover:bg-slate-700 cursor-pointer'
+                  ? 'text-yellow-400 hover:bg-muted cursor-pointer'
+                  : 'text-green-400 hover:bg-muted cursor-pointer'
               }
             >
               {source.is_active ? (
@@ -516,20 +516,20 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
 
       {/* Dialog confirmation désactivation */}
       <AlertDialog open={showDeactivateConfirm} onOpenChange={setShowDeactivateConfirm}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
+        <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Icons.pause className="h-5 w-5 text-yellow-400" />
               Désactiver la source ?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               La source &quot;{source.name}&quot; ne sera plus crawlée automatiquement. Les pages déjà
               indexées restent accessibles.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
-              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
+              className="bg-muted text-foreground border-border hover:bg-muted"
               disabled={loading === 'toggle'}
             >
               Annuler
@@ -548,13 +548,13 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
 
       {/* Dialog suppression (2 étapes) */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
+        <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Icons.trash className="h-5 w-5 text-red-400" />
               Supprimer la source ?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               Cette action est irréversible. La source &quot;{source.name}&quot; et toutes ses données
               associées seront supprimées définitivement.
             </AlertDialogDescription>
@@ -562,24 +562,24 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
 
           {deletePreview && (
             <div className="grid grid-cols-2 gap-3 py-2">
-              <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+              <div className="bg-card/50 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-red-400">
                   {deletePreview.webPages.toLocaleString()}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">pages web</p>
+                <p className="text-xs text-muted-foreground mt-1">pages web</p>
               </div>
-              <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+              <div className="bg-card/50 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-red-400">
                   {deletePreview.knowledgeBaseDocs.toLocaleString()}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">docs KB + chunks</p>
+                <p className="text-xs text-muted-foreground mt-1">docs KB + chunks</p>
               </div>
             </div>
           )}
 
           <AlertDialogFooter>
             <AlertDialogCancel
-              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
+              className="bg-muted text-foreground border-border hover:bg-muted"
               disabled={loading === 'delete'}
             >
               Annuler
@@ -598,13 +598,13 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
 
       {/* Dialog organisation */}
       <AlertDialog open={showOrganize} onOpenChange={setShowOrganize}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+        <AlertDialogContent className="bg-card border-border text-foreground max-w-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Icons.sparkles className="h-5 w-5 text-orange-400" />
               Organiser et classifier les pages
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               Extraction automatique des métadonnées structurées et classification juridique intelligente.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -612,14 +612,14 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
           {organizeStats && (
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-900/50 rounded-lg p-4">
-                  <p className="text-sm text-slate-400">Pages totales</p>
-                  <p className="text-2xl font-bold text-white">
+                <div className="bg-card/50 rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground">Pages totales</p>
+                  <p className="text-2xl font-bold text-foreground">
                     {organizeStats.totalPages.toLocaleString()}
                   </p>
                 </div>
-                <div className="bg-slate-900/50 rounded-lg p-4">
-                  <p className="text-sm text-slate-400">À organiser</p>
+                <div className="bg-card/50 rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground">À organiser</p>
                   <p className="text-2xl font-bold text-orange-400">
                     {organizeStats.pagesWithoutMetadata.toLocaleString()}
                   </p>
@@ -633,7 +633,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
                     <p className="text-blue-300 font-medium">
                       Cette opération va extraire et classifier :
                     </p>
-                    <ul className="text-slate-300 space-y-1 ml-4 list-disc">
+                    <ul className="text-foreground space-y-1 ml-4 list-disc">
                       <li>19 champs de métadonnées juridiques (dates, numéros, références)</li>
                       <li>Classification par domaine (civil, pénal, commercial, etc.)</li>
                       <li>Classification par type (législation, jurisprudence, doctrine)</li>
@@ -641,10 +641,10 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
                     </ul>
                     <p className="text-slate-400 text-xs mt-2">
                       ⏱️ Temps estimé :{' '}
-                      <span className="text-white font-medium">{organizeStats.estimatedTime}</span>
+                      <span className="text-foreground font-medium">{organizeStats.estimatedTime}</span>
                       <br />
                       💰 Coût estimé :{' '}
-                      <span className="text-white font-medium">{organizeStats.estimatedCost}</span>{' '}
+                      <span className="text-foreground font-medium">{organizeStats.estimatedCost}</span>{' '}
                       (Ollama gratuit prioritaire)
                     </p>
                   </div>
@@ -665,7 +665,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
 
           <AlertDialogFooter>
             <AlertDialogCancel
-              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
+              className="bg-muted text-foreground border-border hover:bg-muted"
               disabled={loading === 'organize'}
             >
               Annuler

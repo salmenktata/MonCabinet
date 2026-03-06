@@ -67,12 +67,12 @@ export function UsersFilters({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-400"
+          className="bg-card border-border text-foreground placeholder:text-muted-foreground"
         />
         <Button
           onClick={handleSearch}
           variant="secondary"
-          className="bg-slate-700 hover:bg-slate-600"
+          className="bg-muted hover:bg-muted"
           aria-label="Rechercher"
         >
           <Icons.search className="h-4 w-4" />
@@ -81,41 +81,41 @@ export function UsersFilters({
 
       {/* Filtre Status */}
       <Select value={currentStatus} onValueChange={(v) => updateFilters('status', v)}>
-        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-600 text-white" aria-label="Filtrer par statut">
+        <SelectTrigger className="w-[150px] bg-card border-border text-foreground" aria-label="Filtrer par statut">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
-        <SelectContent className="bg-slate-800 border-slate-600">
-          <SelectItem value="all" className="text-white hover:bg-slate-700">Tous les status</SelectItem>
-          <SelectItem value="pending" className="text-yellow-500 hover:bg-slate-700">En attente</SelectItem>
-          <SelectItem value="approved" className="text-green-500 hover:bg-slate-700">Approuvés</SelectItem>
-          <SelectItem value="suspended" className="text-red-500 hover:bg-slate-700">Suspendus</SelectItem>
-          <SelectItem value="rejected" className="text-slate-400 hover:bg-slate-700">Rejetés</SelectItem>
+        <SelectContent className="bg-card border-border">
+          <SelectItem value="all" className="text-foreground hover:bg-muted">Tous les status</SelectItem>
+          <SelectItem value="pending" className="text-yellow-500 hover:bg-muted">En attente</SelectItem>
+          <SelectItem value="approved" className="text-green-500 hover:bg-muted">Approuvés</SelectItem>
+          <SelectItem value="suspended" className="text-red-500 hover:bg-muted">Suspendus</SelectItem>
+          <SelectItem value="rejected" className="text-muted-foreground hover:bg-muted">Rejetés</SelectItem>
         </SelectContent>
       </Select>
 
       {/* Filtre Rôle */}
       <Select value={currentRole} onValueChange={(v) => updateFilters('role', v)}>
-        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-600 text-white" aria-label="Filtrer par rôle">
+        <SelectTrigger className="w-[150px] bg-card border-border text-foreground" aria-label="Filtrer par rôle">
           <SelectValue placeholder="Rôle" />
         </SelectTrigger>
-        <SelectContent className="bg-slate-800 border-slate-600">
-          <SelectItem value="all" className="text-white hover:bg-slate-700">Tous les rôles</SelectItem>
-          <SelectItem value="user" className="text-white hover:bg-slate-700">Utilisateur</SelectItem>
-          <SelectItem value="admin" className="text-white hover:bg-slate-700">Admin</SelectItem>
-          <SelectItem value="super_admin" className="text-blue-500 hover:bg-slate-700">Super Admin</SelectItem>
+        <SelectContent className="bg-card border-border">
+          <SelectItem value="all" className="text-foreground hover:bg-muted">Tous les rôles</SelectItem>
+          <SelectItem value="user" className="text-foreground hover:bg-muted">Utilisateur</SelectItem>
+          <SelectItem value="admin" className="text-foreground hover:bg-muted">Admin</SelectItem>
+          <SelectItem value="super_admin" className="text-blue-500 hover:bg-muted">Super Admin</SelectItem>
         </SelectContent>
       </Select>
 
       {/* Filtre Plan */}
       <Select value={currentPlan} onValueChange={(v) => updateFilters('plan', v)}>
-        <SelectTrigger className="w-[150px] bg-slate-800 border-slate-600 text-white" aria-label="Filtrer par plan">
+        <SelectTrigger className="w-[150px] bg-card border-border text-foreground" aria-label="Filtrer par plan">
           <SelectValue placeholder="Plan" />
         </SelectTrigger>
-        <SelectContent className="bg-slate-800 border-slate-600">
-          <SelectItem value="all" className="text-white hover:bg-slate-700">Tous les plans</SelectItem>
-          <SelectItem value="free" className="text-slate-400 hover:bg-slate-700">Free</SelectItem>
-          <SelectItem value="pro" className="text-blue-500 hover:bg-slate-700">Pro</SelectItem>
-          <SelectItem value="enterprise" className="text-purple-500 hover:bg-slate-700">Enterprise</SelectItem>
+        <SelectContent className="bg-card border-border">
+          <SelectItem value="all" className="text-foreground hover:bg-muted">Tous les plans</SelectItem>
+          <SelectItem value="free" className="text-muted-foreground hover:bg-muted">Free</SelectItem>
+          <SelectItem value="pro" className="text-blue-500 hover:bg-muted">Pro</SelectItem>
+          <SelectItem value="enterprise" className="text-purple-500 hover:bg-muted">Enterprise</SelectItem>
         </SelectContent>
       </Select>
 
@@ -124,7 +124,7 @@ export function UsersFilters({
         <Button
           variant="ghost"
           onClick={clearFilters}
-          className="text-slate-400 hover:text-white"
+          className="text-muted-foreground hover:text-foreground"
         >
           <Icons.close className="h-4 w-4 mr-2" />
           Effacer filtres

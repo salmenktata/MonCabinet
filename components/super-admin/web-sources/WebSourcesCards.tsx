@@ -173,7 +173,7 @@ export function WebSourcesCards({
 
   if (sources.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-400 bg-slate-800/50 rounded-lg">
+      <div className="text-center py-12 text-muted-foreground bg-card/50 rounded-lg">
         <Icons.globe className="h-12 w-12 mx-auto mb-4" />
         <p>Aucune source trouvee</p>
         {!readOnly && (
@@ -193,7 +193,7 @@ export function WebSourcesCards({
           return (
             <div
               key={source.id}
-              className="flex items-start gap-4 p-4 rounded-lg bg-slate-800/50 hover:bg-slate-800/70 transition"
+              className="flex items-start gap-4 p-4 rounded-lg bg-card/50 hover:bg-muted/70 transition"
             >
               {/* Health + type icon */}
               <div className="shrink-0 pt-0.5">
@@ -206,11 +206,11 @@ export function WebSourcesCards({
                   {sourceType === 'gdrive' ? (
                     <Icons.cloud className="h-4 w-4 text-blue-400 shrink-0" />
                   ) : (
-                    <Icons.globe className="h-4 w-4 text-slate-500 shrink-0" />
+                    <Icons.globe className="h-4 w-4 text-muted-foreground shrink-0" />
                   )}
                   <Link
                     href={`/super-admin/web-sources/${source.id}`}
-                    className="font-medium text-white hover:text-blue-400 transition"
+                    className="font-medium text-foreground hover:text-blue-400 transition"
                   >
                     {source.name}
                   </Link>
@@ -220,7 +220,7 @@ export function WebSourcesCards({
                     </Badge>
                   ))}
                   {!source.is_active && (
-                    <Badge variant="outline" className="border-slate-600 text-slate-400">Inactive</Badge>
+                    <Badge variant="outline" className="border-border text-muted-foreground">Inactive</Badge>
                   )}
                   {!source.rag_enabled && (
                     <Badge variant="outline" className="border-orange-600 text-orange-400 text-[10px] px-1 py-0">RAG OFF</Badge>
@@ -228,19 +228,19 @@ export function WebSourcesCards({
                 </div>
 
                 <div className="flex items-center gap-2 mt-1">
-                  <Icons.link className="h-3 w-3 text-slate-400" />
+                  <Icons.link className="h-3 w-3 text-muted-foreground" />
                   <a
                     href={source.base_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-slate-400 hover:text-blue-400 truncate max-w-md"
+                    className="text-sm text-muted-foreground hover:text-blue-400 truncate max-w-md"
                   >
                     {source.base_url}
                   </a>
                 </div>
 
                 {source.description && (
-                  <p className="text-sm text-slate-400 mt-1 line-clamp-1">{source.description}</p>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{source.description}</p>
                 )}
 
                 <div className="flex items-center gap-6 mt-2">
@@ -257,15 +257,15 @@ export function WebSourcesCards({
                     )}
                     {source.files_count > 0 && (
                       <div className="flex items-center gap-1.5 mt-1">
-                        <Icons.file className="h-3 w-3 text-slate-500 shrink-0" />
-                        <span className="text-xs text-slate-400">
+                        <Icons.file className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <span className="text-xs text-muted-foreground">
                           {Number(source.indexed_files_count).toLocaleString()}/{Number(source.files_count).toLocaleString()} docs
                         </span>
                       </div>
                     )}
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-muted-foreground">
                       Crawl: {formatRelativeTime(source.last_crawl_at)}
                     </span>
                     {source.last_job_status && (
@@ -275,7 +275,7 @@ export function WebSourcesCards({
                           source.last_job_status === 'failed' && source.last_job_pages > 0 ? 'text-amber-400/80' :
                           source.last_job_status === 'failed' ? 'text-red-400/80' :
                           source.last_job_status === 'running' ? 'text-blue-400/80' :
-                          'text-slate-500'
+                          'text-muted-foreground'
                         }`}>
                           {source.last_job_status === 'completed' ? '✓ succès' :
                            source.last_job_status === 'failed' && source.last_job_pages > 0 ? `⚠ partiel (${source.last_job_pages}p)` :
@@ -286,13 +286,13 @@ export function WebSourcesCards({
                       </div>
                     )}
                     {source.last_successful_crawl_at && source.last_successful_crawl_at !== source.last_crawl_at && (
-                      <span className="text-[10px] text-slate-600">
+                      <span className="text-[10px] text-muted-foreground/60">
                         dernier succès: {formatRelativeTime(source.last_successful_crawl_at)}
                       </span>
                     )}
                   </div>
                   {source.next_crawl_at && (
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-muted-foreground">
                       Prochain: {formatRelativeTime(source.next_crawl_at)}
                     </span>
                   )}
@@ -302,7 +302,7 @@ export function WebSourcesCards({
               {/* Actions */}
               <div className="flex items-center gap-1 shrink-0">
                 {readOnly ? (
-                  <Button size="sm" variant="ghost" asChild className="text-slate-400 hover:text-white">
+                  <Button size="sm" variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
                     <Link href={`/super-admin/web-sources/${source.id}`}>
                       <Icons.eye className="h-4 w-4" />
                     </Link>
@@ -326,28 +326,28 @@ export function WebSourcesCards({
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white" aria-label="Actions">
+                        <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground" aria-label="Actions">
                           <Icons.moreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                      <DropdownMenuContent align="end" className="bg-card border-border">
                         <DropdownMenuItem asChild>
-                          <Link href={`/super-admin/web-sources/${source.id}`} className="text-slate-200 hover:bg-slate-700 cursor-pointer">
+                          <Link href={`/super-admin/web-sources/${source.id}`} className="text-foreground hover:bg-muted cursor-pointer">
                             <Icons.eye className="h-4 w-4 mr-2" /> Voir detail
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/super-admin/web-sources/${source.id}/edit`} className="text-slate-200 hover:bg-slate-700 cursor-pointer">
+                          <Link href={`/super-admin/web-sources/${source.id}/edit`} className="text-foreground hover:bg-muted cursor-pointer">
                             <Icons.edit className="h-4 w-4 mr-2" /> Modifier
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleCrawl(source.id)} disabled={!source.is_active} className="text-blue-400 hover:bg-slate-700 cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleCrawl(source.id)} disabled={!source.is_active} className="text-blue-400 hover:bg-muted cursor-pointer">
                           <Icons.refresh className="h-4 w-4 mr-2" /> Lancer crawl
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-slate-700" />
+                        <DropdownMenuSeparator className="bg-border" />
                         <DropdownMenuItem
                           onClick={() => handleToggleActive(source.id, source.is_active)}
-                          className={`cursor-pointer ${source.is_active ? 'text-yellow-400 hover:bg-slate-700' : 'text-green-400 hover:bg-slate-700'}`}
+                          className={`cursor-pointer ${source.is_active ? 'text-yellow-400 hover:bg-muted' : 'text-green-400 hover:bg-muted'}`}
                         >
                           {source.is_active ? (
                             <><Icons.pause className="h-4 w-4 mr-2" /> Desactiver</>
@@ -355,10 +355,10 @@ export function WebSourcesCards({
                             <><Icons.play className="h-4 w-4 mr-2" /> Activer</>
                           )}
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-slate-700" />
+                        <DropdownMenuSeparator className="bg-border" />
                         <DropdownMenuItem
                           onClick={() => handleToggleRagEnabled(source.id, source.rag_enabled)}
-                          className={`cursor-pointer ${source.rag_enabled ? 'text-orange-400 hover:bg-slate-700' : 'text-green-400 hover:bg-slate-700'}`}
+                          className={`cursor-pointer ${source.rag_enabled ? 'text-orange-400 hover:bg-muted' : 'text-green-400 hover:bg-muted'}`}
                         >
                           {source.rag_enabled ? (
                             <><Icons.eyeOff className="h-4 w-4 mr-2" /> Exclure du RAG</>
@@ -382,30 +382,30 @@ export function WebSourcesCards({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-muted-foreground">
             {startItem}-{endItem} sur {totalCount} resultats
           </span>
           <div className="flex items-center gap-2">
             <Link href={buildUrl({ page: 1 })}>
-              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-slate-600 text-slate-300">
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-border text-foreground">
                 <Icons.chevronLeft className="h-3 w-3" /><Icons.chevronLeft className="h-3 w-3 -ml-2" />
               </Button>
             </Link>
             <Link href={buildUrl({ page: Math.max(1, currentPage - 1) })}>
-              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-slate-600 text-slate-300">
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-border text-foreground">
                 <Icons.chevronLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <span className="text-sm text-slate-400 px-2">
+            <span className="text-sm text-muted-foreground px-2">
               {currentPage} / {totalPages}
             </span>
             <Link href={buildUrl({ page: Math.min(totalPages, currentPage + 1) })}>
-              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-slate-600 text-slate-300">
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-border text-foreground">
                 <Icons.chevronRight className="h-4 w-4" />
               </Button>
             </Link>
             <Link href={buildUrl({ page: totalPages })}>
-              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-slate-600 text-slate-300">
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-border text-foreground">
                 <Icons.chevronRight className="h-3 w-3" /><Icons.chevronRight className="h-3 w-3 -ml-2" />
               </Button>
             </Link>
@@ -415,15 +415,15 @@ export function WebSourcesCards({
 
       {/* Delete dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
+        <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               Cette action est irreversible. La source et toutes ses pages crawlees seront supprimees.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">Annuler</AlertDialogCancel>
+            <AlertDialogCancel className="bg-muted text-foreground border-border hover:bg-muted">Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

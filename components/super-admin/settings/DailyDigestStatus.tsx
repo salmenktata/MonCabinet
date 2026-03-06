@@ -51,19 +51,19 @@ export function DailyDigestStatus({ brevoConfigured, cronConfigured }: DailyDige
     <div className="space-y-4">
       {/* Statut de configuration */}
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
           <div>
-            <p className="font-medium text-white">Brevo API</p>
-            <p className="text-sm text-slate-400">Requis pour l'envoi</p>
+            <p className="font-medium text-foreground">Brevo API</p>
+            <p className="text-sm text-muted-foreground">Requis pour l'envoi</p>
           </div>
           <Badge className={brevoConfigured ? 'bg-green-500' : 'bg-red-500'}>
             {brevoConfigured ? 'OK' : 'Manquant'}
           </Badge>
         </div>
-        <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
           <div>
-            <p className="font-medium text-white">CRON_SECRET</p>
-            <p className="text-sm text-slate-400">Sécurité du cron</p>
+            <p className="font-medium text-foreground">CRON_SECRET</p>
+            <p className="text-sm text-muted-foreground">Sécurité du cron</p>
           </div>
           <Badge className={cronConfigured ? 'bg-green-500' : 'bg-red-500'}>
             {cronConfigured ? 'OK' : 'Manquant'}
@@ -76,9 +76,9 @@ export function DailyDigestStatus({ brevoConfigured, cronConfigured }: DailyDige
         <div className="p-4 rounded-lg bg-yellow-900/20 border border-yellow-700">
           <p className="text-yellow-400 text-sm font-medium mb-2">Configuration requise</p>
           <p className="text-yellow-300/80 text-sm">
-            Ajoutez ces variables dans <code className="bg-slate-800 px-1 rounded">.env.local</code> :
+            Ajoutez ces variables dans <code className="bg-card px-1 rounded">.env.local</code> :
           </p>
-          <pre className="mt-2 p-3 bg-slate-800 rounded text-xs text-slate-300 overflow-x-auto">
+          <pre className="mt-2 p-3 bg-card rounded text-xs text-foreground overflow-x-auto">
 {`# Brevo API (obtenir sur https://app.brevo.com/settings/keys/api)
 BREVO_API_KEY=xkeysib-...
 BREVO_SENDER_EMAIL=notifications@qadhya.tn
@@ -90,16 +90,16 @@ CRON_SECRET=votre-secret-32-chars-minimum`}
       )}
 
       {/* Informations cron */}
-      <div className="p-4 rounded-lg bg-slate-700/50">
+      <div className="p-4 rounded-lg bg-muted/50">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium text-white">Planification</p>
-            <p className="text-sm text-slate-400">Tous les jours à 06:00 (Tunis)</p>
+            <p className="font-medium text-foreground">Planification</p>
+            <p className="text-sm text-muted-foreground">Tous les jours à 06:00 (Tunis)</p>
           </div>
           <Badge className="bg-blue-500">Automatique</Badge>
         </div>
-        <div className="mt-3 text-xs text-slate-400">
-          <p>Endpoint: <code className="bg-slate-800 px-1 rounded">POST /api/cron/daily-digest</code></p>
+        <div className="mt-3 text-xs text-muted-foreground">
+          <p>Endpoint: <code className="bg-card px-1 rounded">POST /api/cron/daily-digest</code></p>
           <p className="mt-1">
             Configurez un service cron externe (cron-job.org, Render, etc.) pour appeler cet endpoint.
           </p>
@@ -107,10 +107,10 @@ CRON_SECRET=votre-secret-32-chars-minimum`}
       </div>
 
       {/* Bouton de déclenchement manuel */}
-      <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+      <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
         <div>
-          <p className="font-medium text-white">Déclenchement manuel</p>
-          <p className="text-sm text-slate-400">Envoyer le digest maintenant</p>
+          <p className="font-medium text-foreground">Déclenchement manuel</p>
+          <p className="text-sm text-muted-foreground">Envoyer le digest maintenant</p>
         </div>
         <Button
           onClick={handleManualRun}
@@ -137,16 +137,16 @@ CRON_SECRET=votre-secret-32-chars-minimum`}
           <p className="text-green-400 text-sm font-medium">Dernier envoi réussi</p>
           <div className="mt-2 grid grid-cols-3 gap-4 text-sm">
             <div>
-              <p className="text-slate-400">Envoyés</p>
-              <p className="text-white font-medium">{lastRun.emailsSent}</p>
+              <p className="text-muted-foreground">Envoyés</p>
+              <p className="text-foreground font-medium">{lastRun.emailsSent}</p>
             </div>
             <div>
-              <p className="text-slate-400">Échecs</p>
-              <p className="text-white font-medium">{lastRun.emailsFailed}</p>
+              <p className="text-muted-foreground">Échecs</p>
+              <p className="text-foreground font-medium">{lastRun.emailsFailed}</p>
             </div>
             <div>
-              <p className="text-slate-400">Durée</p>
-              <p className="text-white font-medium">{lastRun.duration}</p>
+              <p className="text-muted-foreground">Durée</p>
+              <p className="text-foreground font-medium">{lastRun.duration}</p>
             </div>
           </div>
         </div>

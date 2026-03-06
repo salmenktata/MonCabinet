@@ -61,7 +61,7 @@ export function DetectionTriggerButton() {
         onClick={handleDetect}
         disabled={isLoading}
         variant="outline"
-        className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+        className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
       >
         {isLoading ? (
           <>
@@ -77,7 +77,7 @@ export function DetectionTriggerButton() {
       </Button>
 
       {lastResult && (
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           {lastResult.succeeded}/{lastResult.processed} pages analysées
           {lastResult.totalFound > 0 && ` · ${lastResult.totalFound} contradiction(s)`}
           {lastResult.remaining > 0 && ` · ${lastResult.remaining} restantes`}

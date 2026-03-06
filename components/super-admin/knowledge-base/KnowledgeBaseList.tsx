@@ -201,7 +201,7 @@ export function KnowledgeBaseList({
 
   if (documents.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-400">
+      <div className="text-center py-12 text-muted-foreground">
         <Icons.bookOpen className="h-12 w-12 mx-auto mb-4" />
         <p>Aucun document trouvé</p>
       </div>
@@ -293,7 +293,7 @@ export function KnowledgeBaseList({
               variant="outline"
               onClick={() => handleBulkAbrogation(false)}
               disabled={bulkLoading}
-              className="border-slate-500/30 text-slate-400"
+              className="border-border text-muted-foreground"
               title="Rejeter la suspicion d'abrogation"
             >
               Rejeter suspicion
@@ -302,7 +302,7 @@ export function KnowledgeBaseList({
               size="sm"
               variant="ghost"
               onClick={() => setSelectedIds(new Set())}
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               Annuler
             </Button>
@@ -315,10 +315,10 @@ export function KnowledgeBaseList({
         <Checkbox
           checked={selectedIds.size === documents.length && documents.length > 0}
           onCheckedChange={toggleSelectAll}
-          className="border-slate-500"
+          className="border-border"
           aria-label="Sélectionner tous les documents"
         />
-        <span className="text-sm text-slate-400">
+        <span className="text-sm text-muted-foreground">
           {documents.length} document(s)
         </span>
       </div>
@@ -330,34 +330,34 @@ export function KnowledgeBaseList({
             className={`flex items-start gap-4 p-4 rounded-lg transition ${
               selectedIds.has(doc.id)
                 ? 'bg-blue-500/10 border border-blue-500/30'
-                : 'bg-slate-700/50 hover:bg-slate-700/70'
+                : 'bg-muted/50 hover:bg-muted/70'
             }`}
           >
             <Checkbox
               checked={selectedIds.has(doc.id)}
               onCheckedChange={() => toggleSelect(doc.id)}
-              className="mt-2 border-slate-500"
+              className="mt-2 border-border"
               aria-label={`Sélectionner ${doc.title}`}
             />
 
             <Link
               href={`/super-admin/knowledge-base/${doc.id}`}
               aria-label="Voir le document"
-              className="h-10 w-10 rounded-lg bg-slate-600 flex items-center justify-center shrink-0 hover:bg-slate-500 transition"
+              className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0 hover:bg-muted/70 transition"
             >
-              <Icons.fileText className="h-5 w-5 text-slate-300" />
+              <Icons.fileText className="h-5 w-5 text-foreground" />
             </Link>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <Link
                   href={`/super-admin/knowledge-base/${doc.id}`}
-                  className="font-medium text-white hover:text-blue-400 transition"
+                  className="font-medium text-foreground hover:text-blue-400 transition"
                 >
                   {doc.title}
                 </Link>
                 {doc.version && doc.version > 1 && (
-                  <span className="text-xs text-slate-400 bg-slate-700 px-1.5 py-0.5 rounded">
+                  <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                     v{doc.version}
                   </span>
                 )}
@@ -366,7 +366,7 @@ export function KnowledgeBaseList({
                   subcategory={doc.subcategory}
                   size="xs"
                 />
-                <Badge variant="outline" className="border-slate-600 text-slate-400 text-xs">
+                <Badge variant="outline" className="border-border text-muted-foreground text-xs">
                   {doc.language === 'ar' ? 'العربية' : 'FR'}
                 </Badge>
                 {doc.is_indexed ? (
@@ -407,7 +407,7 @@ export function KnowledgeBaseList({
                     doc.doc_type === 'PROC' ? 'bg-orange-500/20 text-orange-300 border-orange-500/30' :
                     doc.doc_type === 'TEMPLATES' ? 'bg-teal-500/20 text-teal-300 border-teal-500/30' :
                     doc.doc_type === 'DOCTRINE' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' :
-                    'bg-slate-600/30 text-slate-400 border-slate-500/30'
+                    'bg-muted/30 text-muted-foreground border-border'
                   }`}>
                     {doc.doc_type === 'TEXTES' ? 'Textes' :
                      doc.doc_type === 'JURIS' ? 'Juris.' :
@@ -433,7 +433,7 @@ export function KnowledgeBaseList({
               </div>
 
               {doc.description && (
-                <p className="text-sm text-slate-400 mt-1 line-clamp-1">
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
                   {doc.description}
                 </p>
               )}
@@ -444,7 +444,7 @@ export function KnowledgeBaseList({
                 </div>
               )}
 
-              <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
+              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                 {doc.file_name && (
                   <span className="flex items-center gap-1">
                     <Icons.attachment className="h-3 w-3" />
@@ -465,7 +465,7 @@ export function KnowledgeBaseList({
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-slate-400 hover:text-white hover:bg-slate-600"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted"
                 title="Voir détail"
                 asChild
               >
@@ -478,7 +478,7 @@ export function KnowledgeBaseList({
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-slate-400 hover:text-white hover:bg-slate-600"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted"
                 title="Modifier"
                 asChild
               >
@@ -528,13 +528,13 @@ export function KnowledgeBaseList({
               variant="outline"
               size="sm"
               disabled={currentPage <= 1}
-              className="border-slate-600 text-slate-300"
+              className="border-border text-foreground"
             >
               <Icons.chevronLeft className="h-4 w-4" />
             </Button>
           </Link>
 
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-muted-foreground">
             Page {currentPage} / {totalPages}
           </span>
 
@@ -543,7 +543,7 @@ export function KnowledgeBaseList({
               variant="outline"
               size="sm"
               disabled={currentPage >= totalPages}
-              className="border-slate-600 text-slate-300"
+              className="border-border text-foreground"
             >
               <Icons.chevronRight className="h-4 w-4" />
             </Button>
@@ -553,15 +553,15 @@ export function KnowledgeBaseList({
 
       {/* Dialog de confirmation suppression */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
+        <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               Cette action est irréversible. Le document et tous ses chunks seront supprimés.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">
+            <AlertDialogCancel className="bg-muted text-foreground border-border hover:bg-muted/80">
               Annuler
             </AlertDialogCancel>
             <AlertDialogAction

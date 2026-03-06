@@ -94,20 +94,20 @@ export function KnowledgeBaseUpload() {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-slate-700/50 transition rounded-t-lg">
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition rounded-t-lg">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-foreground flex items-center gap-2">
                   <Icons.upload className="h-5 w-5" />
                   Ajouter un document
                 </CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardDescription className="text-muted-foreground">
                   Cliquez pour ouvrir le formulaire d'upload
                 </CardDescription>
               </div>
-              <Icons.chevronDown className={`h-5 w-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              <Icons.chevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </div>
           </CardHeader>
         </CollapsibleTrigger>
@@ -121,7 +121,7 @@ export function KnowledgeBaseUpload() {
                 variant={uploadMode === 'single' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setUploadMode('single')}
-                className={uploadMode === 'single' ? 'bg-blue-600' : 'text-slate-400'}
+                className={uploadMode === 'single' ? 'bg-blue-600' : 'text-muted-foreground'}
               >
                 <Icons.fileText className="h-4 w-4 mr-1" />
                 Upload unique
@@ -131,7 +131,7 @@ export function KnowledgeBaseUpload() {
                 variant={uploadMode === 'bulk' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setUploadMode('bulk')}
-                className={uploadMode === 'bulk' ? 'bg-blue-600' : 'text-slate-400'}
+                className={uploadMode === 'bulk' ? 'bg-blue-600' : 'text-muted-foreground'}
               >
                 <Icons.layers className="h-4 w-4 mr-1" />
                 Upload groupé
@@ -146,23 +146,23 @@ export function KnowledgeBaseUpload() {
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Titre */}
                 <div>
-                  <Label className="text-slate-300">Titre *</Label>
+                  <Label className="text-foreground">Titre *</Label>
                   <Input
                     name="title"
                     required
                     placeholder="Ex: Code des Obligations et Contrats"
-                    className="mt-1 bg-slate-700 border-slate-600 text-white"
+                    className="mt-1 bg-muted border-border text-foreground"
                   />
                 </div>
 
                 {/* Langue - Arabe uniquement (stratégie RAG) */}
                 <div>
-                  <Label className="text-slate-300">Langue</Label>
-                  <div className="mt-1 h-10 px-3 flex items-center rounded-md bg-slate-700/50 border border-slate-600 text-slate-300">
+                  <Label className="text-foreground">Langue</Label>
+                  <div className="mt-1 h-10 px-3 flex items-center rounded-md bg-muted/50 border border-border text-foreground">
                     العربية (Arabe)
                   </div>
                   <input type="hidden" name="language" value="ar" />
-                  <p className="text-xs text-slate-500 mt-1">La KB du RAG n'accepte que le contenu arabe</p>
+                  <p className="text-xs text-muted-foreground mt-1">La KB du RAG n'accepte que le contenu arabe</p>
                 </div>
               </div>
 
@@ -176,11 +176,11 @@ export function KnowledgeBaseUpload() {
 
               {/* Description */}
               <div>
-                <Label className="text-slate-300">Description</Label>
+                <Label className="text-foreground">Description</Label>
                 <Textarea
                   name="description"
                   placeholder="Description du document..."
-                  className="mt-1 bg-slate-700 border-slate-600 text-white"
+                  className="mt-1 bg-muted border-border text-foreground"
                   rows={2}
                 />
               </div>
@@ -196,48 +196,48 @@ export function KnowledgeBaseUpload() {
               {/* Fichier ou texte */}
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label className="text-slate-300">Fichier (PDF, TXT, DOCX)</Label>
+                  <Label className="text-foreground">Fichier (PDF, TXT, DOCX)</Label>
                   <Input
                     type="file"
                     accept=".pdf,.txt,.docx,.doc"
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="mt-1 bg-slate-700 border-slate-600 text-white file:bg-slate-600 file:text-white file:border-0"
+                    className="mt-1 bg-muted border-border text-foreground file:bg-muted file:text-foreground file:border-0"
                   />
                   {file && (
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {file.name} ({(file.size / 1024).toFixed(1)} Ko)
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <Label className="text-slate-300">Ou coller du texte</Label>
+                  <Label className="text-foreground">Ou coller du texte</Label>
                   <Textarea
                     name="text"
                     placeholder="Collez le texte ici..."
-                    className="mt-1 bg-slate-700 border-slate-600 text-white h-20"
+                    className="mt-1 bg-muted border-border text-foreground h-20"
                   />
                 </div>
               </div>
 
               {/* Auto-indexation */}
               <div>
-                <Label className="text-slate-300">Indexation automatique</Label>
+                <Label className="text-foreground">Indexation automatique</Label>
                 <Select name="autoIndex" defaultValue="true">
-                  <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white w-48">
+                  <SelectTrigger className="mt-1 bg-muted border-border text-foreground w-48">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="true" className="text-white hover:bg-slate-700">Oui (recommandé)</SelectItem>
-                    <SelectItem value="false" className="text-white hover:bg-slate-700">Non</SelectItem>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="true" className="text-foreground hover:bg-muted">Oui (recommandé)</SelectItem>
+                    <SelectItem value="false" className="text-foreground hover:bg-muted">Non</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Métadonnées avancées (accordéon) */}
               <Accordion type="single" collapsible>
-                <AccordionItem value="metadata" className="border-slate-700">
-                  <AccordionTrigger className="text-slate-300 hover:text-white">
+                <AccordionItem value="metadata" className="border-border">
+                  <AccordionTrigger className="text-foreground hover:text-foreground">
                     <span className="flex items-center gap-2">
                       <Icons.settings className="h-4 w-4" />
                       Métadonnées avancées ({category})
@@ -253,12 +253,12 @@ export function KnowledgeBaseUpload() {
                 </AccordionItem>
               </Accordion>
 
-              <div className="flex gap-2 justify-end pt-4 border-t border-slate-700">
+              <div className="flex gap-2 justify-end pt-4 border-t border-border">
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={() => setIsOpen(false)}
-                  className="text-slate-400"
+                  className="text-muted-foreground"
                 >
                   Annuler
                 </Button>

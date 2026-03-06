@@ -193,13 +193,13 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
   const totalSize = files.reduce((acc, f) => acc + f.file.size, 0)
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Icons.upload className="h-5 w-5" />
           Import en masse
         </CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-muted-foreground">
           Glissez-déposez plusieurs fichiers ou cliquez pour sélectionner. Formats acceptés: PDF, DOCX, DOC, TXT.
         </CardDescription>
       </CardHeader>
@@ -216,13 +216,13 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
             border-2 border-dashed rounded-lg cursor-pointer transition-colors
             ${isDragOver
               ? 'border-blue-500 bg-blue-500/10'
-              : 'border-slate-600 bg-slate-900/50 hover:border-slate-500 hover:bg-slate-900/70'
+              : 'border-border bg-card/50 hover:border-border/70 hover:bg-card/70'
             }
           `}
         >
-          <Icons.upload className={`h-10 w-10 ${isDragOver ? 'text-blue-400' : 'text-slate-400'}`} />
+          <Icons.upload className={`h-10 w-10 ${isDragOver ? 'text-blue-400' : 'text-muted-foreground'}`} />
           <div className="text-center">
-            <p className={`text-sm font-medium ${isDragOver ? 'text-blue-300' : 'text-slate-300'}`}>
+            <p className={`text-sm font-medium ${isDragOver ? 'text-blue-300' : 'text-foreground'}`}>
               {isDragOver ? 'Déposez les fichiers ici' : 'Glissez-déposez vos fichiers ici'}
             </p>
             <p className="text-xs text-slate-400 mt-1">

@@ -38,7 +38,7 @@ export function NotificationActions({ unreadCount, adminId }: NotificationAction
       onClick={handleMarkAllRead}
       disabled={loading || unreadCount === 0}
       variant="outline"
-      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+      className="border-border text-muted-foreground hover:bg-muted"
     >
       {loading ? (
         <Icons.loader className="h-4 w-4 mr-2 animate-spin" />

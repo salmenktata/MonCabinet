@@ -144,50 +144,50 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
         <div className="flex items-center gap-2">
           <Link
             href={`/super-admin/knowledge-base/${document.id}`}
-            className="text-slate-400 hover:text-white transition"
+            className="text-muted-foreground hover:text-foreground transition"
           >
             <Icons.arrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-white">Modifier le document</h1>
+          <h1 className="text-2xl font-bold text-foreground">Modifier le document</h1>
         </div>
       </div>
 
       {/* Formulaire principal */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Colonne gauche: Métadonnées */}
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white">Informations générales</CardTitle>
+            <CardTitle className="text-foreground">Informations générales</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Titre */}
             <div>
-              <Label className="text-slate-300">Titre *</Label>
+              <Label className="text-foreground">Titre *</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 bg-slate-700 border-slate-600 text-white"
+                className="mt-1 bg-muted border-border text-foreground"
               />
             </div>
 
             {/* Description */}
             <div>
-              <Label className="text-slate-300">Description</Label>
+              <Label className="text-foreground">Description</Label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="mt-1 bg-slate-700 border-slate-600 text-white"
+                className="mt-1 bg-muted border-border text-foreground"
               />
             </div>
 
             {/* Langue - Arabe uniquement (stratégie RAG) */}
             <div>
-              <Label className="text-slate-300">Langue</Label>
-              <div className="mt-1 h-10 px-3 flex items-center rounded-md bg-slate-700/50 border border-slate-600 text-slate-300">
+              <Label className="text-foreground">Langue</Label>
+              <div className="mt-1 h-10 px-3 flex items-center rounded-md bg-muted/50 border border-border text-foreground">
                 العربية (Arabe)
               </div>
-              <p className="text-xs text-slate-500 mt-1">La KB du RAG n'accepte que le contenu arabe</p>
+              <p className="text-xs text-muted-foreground mt-1">La KB du RAG n'accepte que le contenu arabe</p>
             </div>
 
             {/* Catégorie et sous-catégorie */}
@@ -229,10 +229,10 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
         <div className="space-y-6">
           {/* Métadonnées spécifiques */}
           <Accordion type="single" collapsible defaultValue="metadata">
-            <AccordionItem value="metadata" className="border-slate-700">
-              <Card className="bg-slate-800 border-slate-700">
+            <AccordionItem value="metadata" className="border-border">
+              <Card className="bg-card border-border">
                 <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                  <CardTitle className="text-white text-base">
+                  <CardTitle className="text-foreground text-base">
                     Métadonnées spécifiques ({category})
                   </CardTitle>
                 </AccordionTrigger>
@@ -250,30 +250,30 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
           </Accordion>
 
           {/* Mise à jour du contenu */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white text-base flex items-center gap-2">
+              <CardTitle className="text-foreground text-base flex items-center gap-2">
                 <Icons.fileText className="h-4 w-4" />
                 Remplacer le contenu
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted-foreground">
                 Téléchargez un nouveau fichier ou collez du texte pour remplacer le contenu actuel.
                 Une nouvelle version sera créée.
               </p>
 
               {/* Fichier */}
               <div>
-                <Label className="text-slate-300">Nouveau fichier (PDF, TXT, DOCX)</Label>
+                <Label className="text-foreground">Nouveau fichier (PDF, TXT, DOCX)</Label>
                 <Input
                   type="file"
                   accept=".pdf,.txt,.docx,.doc"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="mt-1 bg-slate-700 border-slate-600 text-white file:bg-slate-600 file:text-white file:border-0"
+                  className="mt-1 bg-muted border-border text-foreground file:bg-muted file:text-foreground file:border-0"
                 />
                 {file && (
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {file.name} ({(file.size / 1024).toFixed(1)} Ko)
                   </p>
                 )}
@@ -281,24 +281,24 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
 
               {/* Texte */}
               <div>
-                <Label className="text-slate-300">Ou nouveau texte</Label>
+                <Label className="text-foreground">Ou nouveau texte</Label>
                 <Textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   rows={4}
                   placeholder="Collez le nouveau contenu ici..."
-                  className="mt-1 bg-slate-700 border-slate-600 text-white"
+                  className="mt-1 bg-muted border-border text-foreground"
                 />
               </div>
 
               {/* Raison du changement */}
               <div>
-                <Label className="text-slate-300">Raison du changement</Label>
+                <Label className="text-foreground">Raison du changement</Label>
                 <Input
                   value={changeReason}
                   onChange={(e) => setChangeReason(e.target.value)}
                   placeholder="Ex: Correction d'erreurs, mise à jour..."
-                  className="mt-1 bg-slate-700 border-slate-600 text-white"
+                  className="mt-1 bg-muted border-border text-foreground"
                 />
               </div>
 
@@ -309,9 +309,9 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
                   id="reindex"
                   checked={reindex}
                   onChange={(e) => setReindex(e.target.checked)}
-                  className="rounded border-slate-600"
+                  className="rounded border-border"
                 />
-                <Label htmlFor="reindex" className="text-slate-300 cursor-pointer">
+                <Label htmlFor="reindex" className="text-foreground cursor-pointer">
                   Ré-indexer automatiquement après la mise à jour
                 </Label>
               </div>
@@ -338,13 +338,13 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
           </Card>
 
           {/* Aperçu du contenu actuel */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white text-base">Contenu actuel</CardTitle>
+              <CardTitle className="text-foreground text-base">Contenu actuel</CardTitle>
             </CardHeader>
             <CardContent>
               <div
-                className="text-slate-400 text-sm whitespace-pre-wrap max-h-[200px] overflow-auto bg-slate-900 p-3 rounded line-clamp-6"
+                className="text-muted-foreground text-sm whitespace-pre-wrap max-h-[200px] overflow-auto bg-card p-3 rounded line-clamp-6"
                 dir={document.language === 'ar' ? 'rtl' : 'ltr'}
               >
                 {document.fullText
@@ -352,7 +352,7 @@ export function KnowledgeBaseEdit({ document }: KnowledgeBaseEditProps) {
                   : 'Aucun contenu'}
               </div>
               {document.fullText && (
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   {document.fullText.length.toLocaleString()} caractères au total
                 </p>
               )}

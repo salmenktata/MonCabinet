@@ -105,10 +105,10 @@ const OperationsConfigPanel: React.FC = () => {
    */
   if (loading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-          <span className="ml-3 text-slate-400">Chargement des configurations...</span>
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="ml-3 text-muted-foreground">Chargement des configurations...</span>
         </CardContent>
       </Card>
     )
@@ -121,7 +121,7 @@ const OperationsConfigPanel: React.FC = () => {
     return (
       <Alert className="bg-red-500/10 border-red-500/50">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription className="text-white">
+        <AlertDescription className="text-foreground">
           Erreur lors du chargement des configurations: {error}
         </AlertDescription>
       </Alert>
@@ -133,8 +133,8 @@ const OperationsConfigPanel: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-bold text-white">Configuration par Opération</h3>
-          <p className="text-sm text-slate-400 mt-1">
+          <h3 className="text-xl font-bold text-foreground">Configuration par Opération</h3>
+          <p className="text-sm text-muted-foreground mt-1">
             Gérer les providers, fallback et timeouts par type d'opération métier
           </p>
         </div>
@@ -152,43 +152,43 @@ const OperationsConfigPanel: React.FC = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-white">{operations.length}</p>
-              <p className="text-sm text-slate-400 mt-1">Opérations configurées</p>
+              <p className="text-3xl font-bold text-foreground">{operations.length}</p>
+              <p className="text-sm text-muted-foreground mt-1">Opérations configurées</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-white">
+              <p className="text-3xl font-bold text-foreground">
                 {operations.filter((op) => op.source === 'database').length}
               </p>
-              <p className="text-sm text-slate-400 mt-1">Configs personnalisées</p>
+              <p className="text-sm text-muted-foreground mt-1">Configs personnalisées</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-white">
+              <p className="text-3xl font-bold text-foreground">
                 {operations.filter((op) => op.source === 'static').length}
               </p>
-              <p className="text-sm text-slate-400 mt-1">Configs par défaut</p>
+              <p className="text-sm text-muted-foreground mt-1">Configs par défaut</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Accordion */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Opérations métier</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">Opérations métier</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Cliquez sur une opération pour configurer ses providers et timeouts
           </CardDescription>
         </CardHeader>
@@ -201,15 +201,15 @@ const OperationsConfigPanel: React.FC = () => {
 
               return (
                 <AccordionItem key={operationName} value={operationName}>
-                  <AccordionTrigger className="hover:bg-slate-700/50 px-4 rounded">
+                  <AccordionTrigger className="hover:bg-muted/50 px-4 rounded">
                     <div className="flex items-center gap-3 w-full">
                       <Badge className={`${categoryColor} text-white`}>
                         {operation.category}
                       </Badge>
 
                       <div className="flex-1 text-left">
-                        <p className="font-semibold text-white">{label.fr}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{operation.description}</p>
+                        <p className="font-semibold text-foreground">{label.fr}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{operation.description}</p>
                       </div>
 
                       {operation.source === 'database' && (
@@ -247,10 +247,10 @@ const OperationsConfigPanel: React.FC = () => {
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-yellow-500" />
               <div>
-                <p className="font-semibold text-white">
+                <p className="font-semibold text-foreground">
                   {Object.keys(pendingChanges).length} modification(s) non sauvegardée(s)
                 </p>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-muted-foreground">
                   Opérations:{' '}
                   {Object.keys(pendingChanges)
                     .map((op) => OPERATION_LABELS[op as OperationName].fr)

@@ -39,7 +39,7 @@ const CATEGORY_STYLES: Record<string, { icon: string; color: string }> = {
   jurisprudence: { icon: '⚖️', color: 'text-purple-400' },
   doctrine: { icon: '📚', color: 'text-green-400' },
   codes: { icon: '📖', color: 'text-cyan-400' },
-  autre: { icon: '📄', color: 'text-slate-400' },
+  autre: { icon: '📄', color: 'text-muted-foreground' },
   null: { icon: '❓', color: 'text-orange-400' },
 }
 
@@ -80,16 +80,16 @@ export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) 
           const isExpanded = expandedCategories.has(category)
 
           return (
-            <div key={category} className="border border-slate-700 rounded-lg overflow-hidden">
+            <div key={category} className="border border-border rounded-lg overflow-hidden">
               {/* Niveau 1 : Catégorie juridique */}
               <button
                 onClick={() => toggleCategory(category)}
-                className="w-full px-4 py-3 bg-slate-800 hover:bg-slate-750 flex items-center justify-between transition-colors"
+                className="w-full px-4 py-3 bg-card hover:bg-muted flex items-center justify-between transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <Icons.chevronRight
                     className={cn(
-                      'h-4 w-4 text-slate-400 transition-transform',
+                      'h-4 w-4 text-muted-foreground transition-transform',
                       isExpanded && 'rotate-90'
                     )}
                   />

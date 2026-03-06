@@ -254,7 +254,7 @@ export function WebSourcesTable({
 
   if (sources.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-400 bg-slate-800/50 rounded-lg">
+      <div className="text-center py-12 text-muted-foreground bg-card/50 rounded-lg">
         <Icons.globe className="h-12 w-12 mx-auto mb-4" />
         <p>Aucune source trouvee</p>
         {!readOnly && (
@@ -309,7 +309,7 @@ export function WebSourcesTable({
             size="sm"
             variant="ghost"
             onClick={() => setSelectedIds(new Set())}
-            className="text-slate-400 hover:text-white ml-auto"
+            className="text-muted-foreground hover:text-foreground ml-auto"
           >
             <Icons.close className="h-3.5 w-3.5" />
           </Button>
@@ -317,10 +317,10 @@ export function WebSourcesTable({
       )}
 
       {/* Table */}
-      <div className="rounded-lg border border-slate-700 overflow-hidden">
+      <div className="rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="border-slate-700 bg-slate-800/50 hover:bg-slate-800/50">
+            <TableRow className="border-border bg-card/50 hover:bg-card/50">
               {!readOnly && (
                 <TableHead className="w-[40px]">
                   <Checkbox
@@ -329,43 +329,43 @@ export function WebSourcesTable({
                       if (el) (el as unknown as HTMLInputElement).indeterminate = someSelected
                     }}
                     onCheckedChange={toggleAll}
-                    className="border-slate-600"
+                    className="border-border"
                   />
                 </TableHead>
               )}
-              <TableHead className="w-[80px] text-slate-400">Sante</TableHead>
-              <TableHead className="text-slate-400">
-                <button onClick={() => handleSort('name')} className="flex items-center hover:text-white transition">
+              <TableHead className="w-[80px] text-muted-foreground">Sante</TableHead>
+              <TableHead className="text-muted-foreground">
+                <button onClick={() => handleSort('name')} className="flex items-center hover:text-foreground transition">
                   Source <SortIcon field="name" />
                 </button>
               </TableHead>
-              <TableHead className="text-slate-400 w-[140px]">Categorie</TableHead>
-              <TableHead className="text-slate-400 w-[180px]">
-                <button onClick={() => handleSort('pages_count')} className="flex items-center hover:text-white transition">
+              <TableHead className="text-muted-foreground w-[140px]">Categorie</TableHead>
+              <TableHead className="text-muted-foreground w-[180px]">
+                <button onClick={() => handleSort('pages_count')} className="flex items-center hover:text-foreground transition">
                   Pages <SortIcon field="pages_count" />
                 </button>
               </TableHead>
-              <TableHead className="text-slate-400 w-[160px]">Docs</TableHead>
-              <TableHead className="text-slate-400 w-[130px]">
-                <button onClick={() => handleSort('last_crawl_at')} className="flex items-center hover:text-white transition">
+              <TableHead className="text-muted-foreground w-[160px]">Docs</TableHead>
+              <TableHead className="text-muted-foreground w-[130px]">
+                <button onClick={() => handleSort('last_crawl_at')} className="flex items-center hover:text-foreground transition">
                   Dernier crawl <SortIcon field="last_crawl_at" />
                 </button>
               </TableHead>
-              <TableHead className="text-slate-400 w-[120px]">Prochain</TableHead>
-              <TableHead className="text-slate-400 w-[80px]">Actions</TableHead>
+              <TableHead className="text-muted-foreground w-[120px]">Prochain</TableHead>
+              <TableHead className="text-muted-foreground w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sources.map((source) => {
               const sourceType = getSourceType(source.drive_config)
               return (
-                <TableRow key={source.id} className="border-slate-700/50 hover:bg-slate-800/30">
+                <TableRow key={source.id} className="border-border/50 hover:bg-muted/30">
                   {!readOnly && (
                     <TableCell>
                       <Checkbox
                         checked={selectedIds.has(source.id)}
                         onCheckedChange={() => toggleOne(source.id)}
-                        className="border-slate-600"
+                        className="border-border"
                       />
                     </TableCell>
                   )}
@@ -378,16 +378,16 @@ export function WebSourcesTable({
                         {sourceType === 'gdrive' ? (
                           <Icons.cloud className="h-3.5 w-3.5 text-blue-400 shrink-0" />
                         ) : (
-                          <Icons.globe className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                          <Icons.globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                         )}
                         <Link
                           href={`/super-admin/web-sources/${source.id}`}
-                          className="font-medium text-white hover:text-blue-400 transition truncate"
+                          className="font-medium text-foreground hover:text-blue-400 transition truncate"
                         >
                           {source.name}
                         </Link>
                         {!source.is_active && (
-                          <Badge variant="outline" className="border-slate-600 text-slate-500 text-[10px] px-1 py-0">
+                          <Badge variant="outline" className="border-border text-muted-foreground text-[10px] px-1 py-0">
                             OFF
                           </Badge>
                         )}
@@ -401,7 +401,7 @@ export function WebSourcesTable({
                         href={source.base_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-slate-500 hover:text-blue-400 truncate block max-w-[300px]"
+                        className="text-xs text-muted-foreground hover:text-blue-400 truncate block max-w-[300px]"
                       >
                         {source.base_url}
                       </a>
@@ -433,7 +433,7 @@ export function WebSourcesTable({
                   <TableCell>
                     {source.files_count > 0 ? (
                       <div className="flex items-center gap-1.5">
-                        <Icons.file className="h-3 w-3 text-slate-500 shrink-0" />
+                        <Icons.file className="h-3 w-3 text-muted-foreground shrink-0" />
                         <IndexationProgress
                           indexed={Number(source.indexed_files_count)}
                           total={Number(source.files_count)}
@@ -441,12 +441,12 @@ export function WebSourcesTable({
                         />
                       </div>
                     ) : (
-                      <span className="text-xs text-slate-600">—</span>
+                      <span className="text-xs text-muted-foreground/60">—</span>
                     )}
                   </TableCell>
                   <TableCell>
                     <div className="space-y-0.5">
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         {formatRelativeTime(source.last_crawl_at)}
                       </span>
                       {source.last_job_status && (
@@ -456,7 +456,7 @@ export function WebSourcesTable({
                             source.last_job_status === 'failed' && source.last_job_pages > 0 ? 'text-amber-400/80' :
                             source.last_job_status === 'failed' ? 'text-red-400/80' :
                             source.last_job_status === 'running' ? 'text-blue-400/80' :
-                            'text-slate-500'
+                            'text-muted-foreground'
                           }`}>
                             {source.last_job_status === 'completed' ? '✓' :
                              source.last_job_status === 'failed' && source.last_job_pages > 0 ? '⚠ partiel' :
@@ -468,21 +468,21 @@ export function WebSourcesTable({
                         </div>
                       )}
                       {source.last_successful_crawl_at && source.last_successful_crawl_at !== source.last_crawl_at && (
-                        <span className="text-[10px] text-slate-600">
+                        <span className="text-[10px] text-muted-foreground/60">
                           succès: {formatRelativeTime(source.last_successful_crawl_at)}
                         </span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-muted-foreground">
                       {formatRelativeTime(source.next_crawl_at)}
                     </span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-0.5">
                       {readOnly ? (
-                        <Button size="sm" variant="ghost" asChild className="text-slate-400 hover:text-white h-9 w-9 sm:h-7 sm:w-7 p-0">
+                        <Button size="sm" variant="ghost" asChild className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-7 sm:w-7 p-0">
                           <Link href={`/super-admin/web-sources/${source.id}`}>
                             <Icons.eye className="h-3.5 w-3.5" />
                           </Link>
@@ -506,28 +506,28 @@ export function WebSourcesTable({
 
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white h-9 w-9 sm:h-7 sm:w-7 p-0" aria-label="Actions">
+                              <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-7 sm:w-7 p-0" aria-label="Actions">
                                 <Icons.moreVertical className="h-3.5 w-3.5" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                            <DropdownMenuContent align="end" className="bg-card border-border">
                               <DropdownMenuItem asChild>
-                                <Link href={`/super-admin/web-sources/${source.id}`} className="text-slate-200 hover:bg-slate-700 cursor-pointer">
+                                <Link href={`/super-admin/web-sources/${source.id}`} className="text-foreground hover:bg-muted cursor-pointer">
                                   <Icons.eye className="h-4 w-4 mr-2" /> Voir detail
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link href={`/super-admin/web-sources/${source.id}/edit`} className="text-slate-200 hover:bg-slate-700 cursor-pointer">
+                                <Link href={`/super-admin/web-sources/${source.id}/edit`} className="text-foreground hover:bg-muted cursor-pointer">
                                   <Icons.edit className="h-4 w-4 mr-2" /> Modifier
                                 </Link>
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleCrawl(source.id)} disabled={!source.is_active} className="text-blue-400 hover:bg-slate-700 cursor-pointer">
+                              <DropdownMenuItem onClick={() => handleCrawl(source.id)} disabled={!source.is_active} className="text-blue-400 hover:bg-muted cursor-pointer">
                                 <Icons.refresh className="h-4 w-4 mr-2" /> Lancer crawl
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-slate-700" />
+                              <DropdownMenuSeparator className="bg-border" />
                               <DropdownMenuItem
                                 onClick={() => handleToggleActive(source.id, source.is_active)}
-                                className={`cursor-pointer ${source.is_active ? 'text-yellow-400 hover:bg-slate-700' : 'text-green-400 hover:bg-slate-700'}`}
+                                className={`cursor-pointer ${source.is_active ? 'text-yellow-400 hover:bg-muted' : 'text-green-400 hover:bg-muted'}`}
                               >
                                 {source.is_active ? (
                                   <><Icons.pause className="h-4 w-4 mr-2" /> Desactiver</>
@@ -535,10 +535,10 @@ export function WebSourcesTable({
                                   <><Icons.play className="h-4 w-4 mr-2" /> Activer</>
                                 )}
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-slate-700" />
+                              <DropdownMenuSeparator className="bg-border" />
                               <DropdownMenuItem
                                 onClick={() => handleToggleRagEnabled(source.id, source.rag_enabled)}
-                                className={`cursor-pointer ${source.rag_enabled ? 'text-orange-400 hover:bg-slate-700' : 'text-green-400 hover:bg-slate-700'}`}
+                                className={`cursor-pointer ${source.rag_enabled ? 'text-orange-400 hover:bg-muted' : 'text-green-400 hover:bg-muted'}`}
                               >
                                 {source.rag_enabled ? (
                                   <><Icons.eyeOff className="h-4 w-4 mr-2" /> Exclure du RAG</>
@@ -565,19 +565,19 @@ export function WebSourcesTable({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-muted-foreground">
             {startItem}-{endItem} sur {totalCount} resultats
           </span>
           <div className="flex items-center gap-1">
             {/* First */}
             <Link href={buildUrl({ page: 1 })}>
-              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-slate-600 text-slate-300 h-10 w-10 sm:h-8 sm:w-8 p-0">
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-border text-foreground h-10 w-10 sm:h-8 sm:w-8 p-0">
                 <Icons.chevronLeft className="h-3 w-3" /><Icons.chevronLeft className="h-3 w-3 -ml-2" />
               </Button>
             </Link>
             {/* Prev */}
             <Link href={buildUrl({ page: Math.max(1, currentPage - 1) })}>
-              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-slate-600 text-slate-300 h-10 w-10 sm:h-8 sm:w-8 p-0">
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} className="border-border text-foreground h-10 w-10 sm:h-8 sm:w-8 p-0">
                 <Icons.chevronLeft className="h-4 w-4" />
               </Button>
             </Link>
@@ -585,13 +585,13 @@ export function WebSourcesTable({
             {/* Page numbers */}
             {getPageNumbers(currentPage, totalPages).map((p, i) => (
               p === '...' ? (
-                <span key={`ellipsis-${i}`} className="text-slate-500 px-1">...</span>
+                <span key={`ellipsis-${i}`} className="text-muted-foreground px-1">...</span>
               ) : (
                 <Link key={p} href={buildUrl({ page: p as number })}>
                   <Button
                     variant={currentPage === p ? 'default' : 'outline'}
                     size="sm"
-                    className={`h-10 w-10 sm:h-8 sm:w-8 p-0 ${currentPage === p ? 'bg-blue-600 text-white' : 'border-slate-600 text-slate-300'}`}
+                    className={`h-10 w-10 sm:h-8 sm:w-8 p-0 ${currentPage === p ? 'bg-blue-600 text-foreground' : 'border-border text-foreground'}`}
                   >
                     {p}
                   </Button>
@@ -601,13 +601,13 @@ export function WebSourcesTable({
 
             {/* Next */}
             <Link href={buildUrl({ page: Math.min(totalPages, currentPage + 1) })}>
-              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-slate-600 text-slate-300 h-10 w-10 sm:h-8 sm:w-8 p-0">
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-border text-foreground h-10 w-10 sm:h-8 sm:w-8 p-0">
                 <Icons.chevronRight className="h-4 w-4" />
               </Button>
             </Link>
             {/* Last */}
             <Link href={buildUrl({ page: totalPages })}>
-              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-slate-600 text-slate-300 h-10 w-10 sm:h-8 sm:w-8 p-0">
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} className="border-border text-foreground h-10 w-10 sm:h-8 sm:w-8 p-0">
                 <Icons.chevronRight className="h-3 w-3" /><Icons.chevronRight className="h-3 w-3 -ml-2" />
               </Button>
             </Link>
@@ -617,15 +617,15 @@ export function WebSourcesTable({
 
       {/* Delete dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
+        <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               Cette action est irreversible. La source et toutes ses pages crawlees seront supprimees.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">Annuler</AlertDialogCancel>
+            <AlertDialogCancel className="bg-muted text-foreground border-border hover:bg-muted">Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -92,7 +92,7 @@ export function ProviderTestButton({
       onClick={handleTest}
       disabled={disabled || loading}
       className={cn(
-        'border-slate-600 text-slate-300 hover:bg-slate-700',
+        'border-border text-muted-foreground hover:bg-muted',
         className
       )}
     >

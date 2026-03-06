@@ -28,7 +28,7 @@ export function AuditLogsFilters({ currentAction, currentTarget }: AuditLogsFilt
       <label htmlFor="audit-action-filter" className="sr-only">Filtrer par action</label>
       <select
         id="audit-action-filter"
-        className="bg-slate-700 border-slate-600 text-white rounded-md px-3 py-2"
+        className="bg-muted border-border text-foreground rounded-md px-3 py-2"
         value={currentAction}
         onChange={(e) => updateFilter('action', e.target.value)}
       >
@@ -57,7 +57,7 @@ export function AuditLogsFilters({ currentAction, currentTarget }: AuditLogsFilt
       <label htmlFor="audit-target-filter" className="sr-only">Filtrer par cible</label>
       <select
         id="audit-target-filter"
-        className="bg-slate-700 border-slate-600 text-white rounded-md px-3 py-2"
+        className="bg-muted border-border text-foreground rounded-md px-3 py-2"
         value={currentTarget}
         onChange={(e) => updateFilter('target', e.target.value)}
       >

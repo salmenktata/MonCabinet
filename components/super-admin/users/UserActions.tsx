@@ -220,7 +220,7 @@ export function UserActions({ user }: UserActionsProps) {
 
   return (
     <>
-      <div className="flex flex-wrap gap-3 p-4 rounded-lg bg-slate-800 border border-slate-700">
+      <div className="flex flex-wrap gap-3 p-4 rounded-lg bg-card border border-border">
         {/* Actions selon le status */}
         {user.status === 'pending' && (
           <>
@@ -270,7 +270,7 @@ export function UserActions({ user }: UserActionsProps) {
           onClick={() => setShowRoleDialog(true)}
           disabled={loading}
           variant="outline"
-          className="border-slate-600 text-slate-300 hover:bg-slate-700"
+          className="border-border text-muted-foreground hover:bg-muted"
         >
           <Icons.shield className="h-4 w-4 mr-2" />
           Changer le rôle
@@ -293,7 +293,7 @@ export function UserActions({ user }: UserActionsProps) {
           onClick={() => setShowPlanDialog(true)}
           disabled={loading}
           variant="outline"
-          className="border-slate-600 text-slate-300 hover:bg-slate-700"
+          className="border-border text-muted-foreground hover:bg-muted"
         >
           <Icons.creditCard className="h-4 w-4 mr-2" />
           Changer le plan
@@ -328,21 +328,21 @@ export function UserActions({ user }: UserActionsProps) {
 
       {/* Dialog Rejet */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>Rejeter la demande</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Rejeter la demande d'inscription de {user.email}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-slate-300">Raison du rejet (optionnel)</Label>
+              <Label className="text-foreground">Raison du rejet (optionnel)</Label>
               <Textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Expliquez la raison du rejet..."
-                className="mt-2 bg-slate-700 border-slate-600 text-white"
+                className="mt-2 bg-muted border-border text-foreground"
               />
             </div>
           </div>
@@ -350,7 +350,7 @@ export function UserActions({ user }: UserActionsProps) {
             <Button
               variant="ghost"
               onClick={() => setShowRejectDialog(false)}
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               Annuler
             </Button>
@@ -367,21 +367,21 @@ export function UserActions({ user }: UserActionsProps) {
 
       {/* Dialog Suspension */}
       <Dialog open={showSuspendDialog} onOpenChange={setShowSuspendDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>Suspendre le compte</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Suspendre le compte de {user.email}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-slate-300">Raison de la suspension (optionnel)</Label>
+              <Label className="text-foreground">Raison de la suspension (optionnel)</Label>
               <Textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Expliquez la raison de la suspension..."
-                className="mt-2 bg-slate-700 border-slate-600 text-white"
+                className="mt-2 bg-muted border-border text-foreground"
               />
             </div>
           </div>
@@ -389,7 +389,7 @@ export function UserActions({ user }: UserActionsProps) {
             <Button
               variant="ghost"
               onClick={() => setShowSuspendDialog(false)}
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               Annuler
             </Button>
@@ -406,28 +406,28 @@ export function UserActions({ user }: UserActionsProps) {
 
       {/* Dialog Changement de rôle */}
       <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>Changer le rôle</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Modifier le rôle de {user.email}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-slate-300">Nouveau rôle</Label>
+              <Label className="text-foreground">Nouveau rôle</Label>
               <Select value={newRole} onValueChange={setNewRole}>
-                <SelectTrigger className="mt-2 bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="mt-2 bg-muted border-border text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600">
-                  <SelectItem value="user" className="text-white hover:bg-slate-700">
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="user" className="text-foreground hover:bg-muted">
                     Utilisateur
                   </SelectItem>
-                  <SelectItem value="admin" className="text-white hover:bg-slate-700">
+                  <SelectItem value="admin" className="text-foreground hover:bg-muted">
                     Admin
                   </SelectItem>
-                  <SelectItem value="super_admin" className="text-blue-500 hover:bg-slate-700">
+                  <SelectItem value="super_admin" className="text-blue-500 hover:bg-muted">
                     Super Admin
                   </SelectItem>
                 </SelectContent>
@@ -438,7 +438,7 @@ export function UserActions({ user }: UserActionsProps) {
             <Button
               variant="ghost"
               onClick={() => setShowRoleDialog(false)}
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               Annuler
             </Button>
@@ -455,28 +455,28 @@ export function UserActions({ user }: UserActionsProps) {
 
       {/* Dialog Changement de plan */}
       <Dialog open={showPlanDialog} onOpenChange={setShowPlanDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>Changer le plan</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Modifier le plan d'abonnement de {user.email}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-slate-300">Nouveau plan</Label>
+              <Label className="text-foreground">Nouveau plan</Label>
               <Select value={newPlan} onValueChange={setNewPlan}>
-                <SelectTrigger className="mt-2 bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="mt-2 bg-muted border-border text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600">
-                  <SelectItem value="free" className="text-slate-400 hover:bg-slate-700">
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="free" className="text-muted-foreground hover:bg-muted">
                     Free - Gratuit
                   </SelectItem>
-                  <SelectItem value="pro" className="text-blue-500 hover:bg-slate-700">
+                  <SelectItem value="pro" className="text-blue-500 hover:bg-muted">
                     Pro - Professionnel
                   </SelectItem>
-                  <SelectItem value="enterprise" className="text-purple-500 hover:bg-slate-700">
+                  <SelectItem value="enterprise" className="text-purple-500 hover:bg-muted">
                     Enterprise - Entreprise
                   </SelectItem>
                 </SelectContent>
@@ -487,7 +487,7 @@ export function UserActions({ user }: UserActionsProps) {
             <Button
               variant="ghost"
               onClick={() => setShowPlanDialog(false)}
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               Annuler
             </Button>
@@ -507,10 +507,10 @@ export function UserActions({ user }: UserActionsProps) {
         setShowImpersonateDialog(open)
         if (!open) setImpersonationReason('')
       }}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle className="text-orange-400">Action Sensible - Impersonnalisation</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Vous allez voir l'application en tant que {user.email}
             </DialogDescription>
           </DialogHeader>
@@ -533,17 +533,17 @@ export function UserActions({ user }: UserActionsProps) {
 
             {/* Raison obligatoire */}
             <div>
-              <Label className="text-slate-300">
+              <Label className="text-foreground">
                 Raison de l'impersonnalisation <span className="text-red-400">*</span>
               </Label>
               <Textarea
                 value={impersonationReason}
                 onChange={(e) => setImpersonationReason(e.target.value)}
                 placeholder="Expliquez la raison (support client, débogage, test UX, etc.)&#10;Minimum 10 caractères..."
-                className="mt-2 bg-slate-700 border-slate-600 text-white min-h-[100px]"
+                className="mt-2 bg-muted border-border text-foreground min-h-[100px]"
                 maxLength={500}
               />
-              <div className="mt-1 text-xs text-slate-500">
+              <div className="mt-1 text-xs text-muted-foreground">
                 {impersonationReason.length}/10 caractères minimum
               </div>
             </div>
@@ -555,7 +555,7 @@ export function UserActions({ user }: UserActionsProps) {
                 setShowImpersonateDialog(false)
                 setImpersonationReason('')
               }}
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               Annuler
             </Button>
@@ -591,10 +591,10 @@ export function UserActions({ user }: UserActionsProps) {
         setShowDeleteDialog(open)
         if (!open) setConfirmEmail('')
       }}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle className="text-red-500">Supprimer le compte</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Cette action est irréversible. Toutes les données de l'utilisateur seront supprimées.
             </DialogDescription>
           </DialogHeader>
@@ -610,14 +610,14 @@ export function UserActions({ user }: UserActionsProps) {
               </ul>
             </div>
             <div>
-              <Label className="text-slate-300">
+              <Label className="text-foreground">
                 Tapez <span className="font-mono text-red-400">{user.email}</span> pour confirmer
               </Label>
               <Input
                 value={confirmEmail}
                 onChange={(e) => setConfirmEmail(e.target.value)}
                 placeholder="Entrez l'email pour confirmer"
-                className="mt-2 bg-slate-700 border-slate-600 text-white"
+                className="mt-2 bg-muted border-border text-foreground"
               />
             </div>
           </div>
@@ -628,7 +628,7 @@ export function UserActions({ user }: UserActionsProps) {
                 setShowDeleteDialog(false)
                 setConfirmEmail('')
               }}
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               Annuler
             </Button>

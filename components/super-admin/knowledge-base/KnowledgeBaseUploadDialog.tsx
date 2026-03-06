@@ -24,10 +24,10 @@ export function KnowledgeBaseUploadDialog() {
           Ajouter document
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700 text-white">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-white">Ajouter un document</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-foreground">Ajouter un document</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Uploadez des fichiers PDF, DOCX ou TXT pour enrichir la base de connaissances
           </DialogDescription>
         </DialogHeader>

@@ -12,18 +12,18 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
-    <nav className="flex items-center gap-1 text-sm text-slate-400" aria-label="Fil d'Ariane">
+    <nav className="flex items-center gap-1 text-sm text-muted-foreground" aria-label="Fil d'Ariane">
       {items.map((item, index) => {
         const isLast = index === items.length - 1
         return (
           <span key={index} className="flex items-center gap-1">
-            {index > 0 && <Icons.chevronRight className="h-3 w-3 text-slate-600" />}
+            {index > 0 && <Icons.chevronRight className="h-3 w-3 text-muted-foreground/50" />}
             {item.href && !isLast ? (
-              <Link href={item.href} className="hover:text-white transition">
+              <Link href={item.href} className="hover:text-foreground transition">
                 {item.label}
               </Link>
             ) : (
-              <span className={isLast ? 'text-white font-medium' : ''}>{item.label}</span>
+              <span className={isLast ? 'text-foreground font-medium' : ''}>{item.label}</span>
             )}
           </span>
         )

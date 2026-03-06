@@ -16,14 +16,14 @@ export function KnowledgeBaseViewToggle() {
   }
 
   return (
-    <div className="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg p-1">
+    <div className="flex items-center gap-1 bg-card border border-border rounded-lg p-1">
       <button
         onClick={() => setView('list')}
         className={cn(
           'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm transition-colors',
           currentView === 'list'
-            ? 'bg-slate-700 text-white'
-            : 'text-slate-400 hover:text-white'
+            ? 'bg-muted text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
         )}
       >
         <Icons.list className="h-4 w-4" />
@@ -34,8 +34,8 @@ export function KnowledgeBaseViewToggle() {
         className={cn(
           'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm transition-colors',
           currentView === 'tree'
-            ? 'bg-slate-700 text-white'
-            : 'text-slate-400 hover:text-white'
+            ? 'bg-muted text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
         )}
       >
         <Icons.folder className="h-4 w-4" />

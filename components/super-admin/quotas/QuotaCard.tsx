@@ -52,7 +52,7 @@ export function QuotaCard({
   tier,
 }: QuotaCardProps) {
   const Icon = Icons[PROVIDER_ICONS[provider] || 'circle']
-  const colorClass = PROVIDER_COLORS[provider] || 'border-slate-500 bg-slate-500/10'
+  const colorClass = PROVIDER_COLORS[provider] || 'border-border bg-muted/10'
 
   const formatCost = (usd: number) => {
     const tnd = usd * 3.09
@@ -66,7 +66,7 @@ export function QuotaCard({
       case 'paid':
         return <Badge variant="secondary" className="bg-blue-500/20 text-blue-500">Payant</Badge>
       case 'local':
-        return <Badge variant="secondary" className="bg-slate-500/20 text-slate-400">Local</Badge>
+        return <Badge variant="secondary" className="bg-muted text-muted-foreground">Local</Badge>
     }
   }
 

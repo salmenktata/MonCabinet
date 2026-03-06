@@ -10,7 +10,7 @@ const COLOR_MAP: Record<string, { text: string; icon: string; ring: string }> = 
   blue:   { text: 'text-blue-500',   icon: 'text-blue-500/20',   ring: 'ring-blue-500' },
   orange: { text: 'text-orange-500', icon: 'text-orange-500/20', ring: 'ring-orange-500' },
   purple: { text: 'text-purple-500', icon: 'text-purple-500/20', ring: 'ring-purple-500' },
-  slate:  { text: 'text-slate-400',  icon: 'text-slate-400/20',  ring: 'ring-slate-500' },
+  slate:  { text: 'text-muted-foreground',  icon: 'text-muted-foreground/20',  ring: 'ring-border' },
 }
 
 interface KPICardProps {
@@ -30,8 +30,8 @@ export function KPICard({ value, label, icon, color = 'slate', href, isActive, p
   const card = (
     <Card
       className={cn(
-        'bg-slate-800 border-slate-700 transition',
-        href && 'cursor-pointer hover:bg-slate-750',
+        'transition',
+        href && 'cursor-pointer hover:bg-muted',
         isActive && `ring-2 ${colors.ring}`
       )}
     >
@@ -39,13 +39,13 @@ export function KPICard({ value, label, icon, color = 'slate', href, isActive, p
         <div className="flex items-center justify-between">
           <div>
             <p className={cn('text-2xl font-bold', colors.text)}>{value}</p>
-            <p className="text-sm text-slate-400">{label}</p>
+            <p className="text-sm text-muted-foreground">{label}</p>
           </div>
           <Icon className={cn('h-8 w-8', colors.icon)} />
         </div>
         {progress !== undefined && (
           <div className="mt-3">
-            <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className={cn('h-full rounded-full transition-all', colors.text.replace('text-', 'bg-'))}
                 style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}

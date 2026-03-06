@@ -161,7 +161,7 @@ export function KnowledgeBaseTreeView() {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-14 bg-slate-800 animate-pulse rounded-lg" />
+          <div key={i} className="h-14 bg-card animate-pulse rounded-lg" />
         ))}
       </div>
     )
@@ -169,7 +169,7 @@ export function KnowledgeBaseTreeView() {
 
   if (categories.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-400">
+      <div className="text-center py-12 text-muted-foreground">
         <Icons.folder className="h-12 w-12 mx-auto mb-4 opacity-50" />
         <p>Aucun document dans la base de connaissances</p>
       </div>
@@ -186,36 +186,36 @@ export function KnowledgeBaseTreeView() {
           : 0
 
         return (
-          <div key={cat.category} className="border border-slate-700 rounded-lg overflow-hidden">
+          <div key={cat.category} className="border border-border rounded-lg overflow-hidden">
             {/* Niveau 1 : Catégorie */}
-            <div className="flex items-center bg-slate-800 hover:bg-slate-750 transition-colors">
+            <div className="flex items-center bg-card hover:bg-muted transition-colors">
               <button
                 onClick={() => toggleCategory(cat.category)}
                 className="flex-1 px-4 py-3 flex items-center gap-3"
               >
                 <Icons.chevronRight
                   className={cn(
-                    'h-4 w-4 text-slate-400 transition-transform',
+                    'h-4 w-4 text-muted-foreground transition-transform',
                     isExpanded && 'rotate-90'
                   )}
                 />
                 <span className="text-lg">{icon}</span>
-                <span className="font-medium text-white" dir="rtl">
+                <span className="font-medium text-foreground" dir="rtl">
                   {getCategoryLabel(cat.category, 'ar')}
                 </span>
-                <span className="text-sm text-slate-500">
+                <span className="text-sm text-muted-foreground">
                   ({getCategoryLabel(cat.category, 'fr')})
                 </span>
-                <Badge variant="outline" className="bg-slate-700 border-slate-600 text-slate-300">
+                <Badge variant="outline" className="bg-muted border-border text-muted-foreground">
                   {cat.doc_count} doc{cat.doc_count > 1 ? 's' : ''}
                 </Badge>
                 <Badge
                   variant="outline"
                   className={cn(
-                    'border-slate-600',
+                    'border-border',
                     indexedPercent === 100 ? 'bg-green-900/20 text-green-400 border-green-700' :
                     indexedPercent > 0 ? 'bg-blue-900/20 text-blue-400 border-blue-700' :
-                    'bg-slate-700 text-slate-400'
+                    'bg-muted text-muted-foreground'
                   )}
                 >
                   {indexedPercent}% indexé
@@ -233,7 +233,7 @@ export function KnowledgeBaseTreeView() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-slate-400 hover:text-blue-400 h-8"
+                    className="text-muted-foreground hover:text-blue-400 h-8"
                     onClick={() => handleReindexCategory(cat.category)}
                     disabled={reindexing.has(cat.category)}
                   >
@@ -250,7 +250,7 @@ export function KnowledgeBaseTreeView() {
 
             {/* Niveau 2 : Sous-catégories */}
             {isExpanded && (
-              <div className="bg-slate-800/50">
+              <div className="bg-card/50">
                 {cat.subcategories.map(sub => {
                   const subKey = `${cat.category}:${sub.subcategory || '_null'}`
                   const isSubExpanded = expandedSubcategories.has(subKey)
@@ -264,27 +264,27 @@ export function KnowledgeBaseTreeView() {
                     : 'Non classé'
 
                   return (
-                    <div key={subKey} className="border-t border-slate-700/50">
+                    <div key={subKey} className="border-t border-border/50">
                       <button
                         onClick={() => toggleSubcategory(subKey)}
-                        className="w-full px-8 py-2.5 hover:bg-slate-700/30 flex items-center justify-between transition-colors"
+                        className="w-full px-8 py-2.5 hover:bg-muted/30 flex items-center justify-between transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <Icons.chevronRight
                             className={cn(
-                              'h-3 w-3 text-slate-500 transition-transform',
+                              'h-3 w-3 text-muted-foreground transition-transform',
                               isSubExpanded && 'rotate-90'
                             )}
                           />
-                          <span className="text-sm font-medium text-slate-200" dir="rtl">
+                          <span className="text-sm font-medium text-foreground" dir="rtl">
                             {subLabel}
                           </span>
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-muted-foreground">
                             ({subLabelFr})
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs">
-                          <Badge variant="outline" className="bg-slate-700/50 border-slate-600 text-slate-300">
+                          <Badge variant="outline" className="bg-muted/50 border-border text-muted-foreground">
                             {sub.doc_count} doc{sub.doc_count > 1 ? 's' : ''}
                           </Badge>
                           {sub.indexed_count > 0 && (
@@ -300,14 +300,14 @@ export function KnowledgeBaseTreeView() {
 
                       {/* Niveau 3 : Documents */}
                       {isSubExpanded && (
-                        <div className="bg-slate-900/50 px-8 py-2">
+                        <div className="bg-muted/50 px-8 py-2">
                           {isLoadingDocs ? (
-                            <div className="flex items-center gap-2 py-4 text-slate-400 text-sm">
+                            <div className="flex items-center gap-2 py-4 text-muted-foreground text-sm">
                               <Icons.loader className="h-4 w-4 animate-spin" />
                               Chargement des documents...
                             </div>
                           ) : subDocs.length === 0 ? (
-                            <p className="py-4 text-slate-500 text-sm">Aucun document</p>
+                            <p className="py-4 text-muted-foreground text-sm">Aucun document</p>
                           ) : (
                             <div className="space-y-1">
                               {subDocs.map(doc => (
@@ -349,20 +349,20 @@ function DocumentRow({ doc }: { doc: TreeDocument }) {
   return (
     <Link
       href={`/super-admin/knowledge-base/${doc.id}`}
-      className="flex items-center justify-between px-3 py-2 rounded hover:bg-slate-800/50 transition-colors group"
+      className="flex items-center justify-between px-3 py-2 rounded hover:bg-card/50 transition-colors group"
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <Icons.fileText className="h-4 w-4 text-slate-500 flex-shrink-0" />
-        <span className="text-sm text-slate-300 truncate group-hover:text-white" dir="rtl">
+        <Icons.fileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <span className="text-sm text-muted-foreground truncate group-hover:text-foreground" dir="rtl">
           {doc.title}
         </span>
         {doc.version > 1 && (
-          <span className="text-xs text-slate-500">v{doc.version}</span>
+          <span className="text-xs text-muted-foreground">v{doc.version}</span>
         )}
       </div>
       <div className="flex items-center gap-2 flex-shrink-0 ml-3">
         {doc.chunkCount > 0 && (
-          <span className="text-xs text-slate-500">{doc.chunkCount} chunks</span>
+          <span className="text-xs text-muted-foreground">{doc.chunkCount} chunks</span>
         )}
         {doc.isIndexed ? (
           <Icons.checkCircle className="h-3.5 w-3.5 text-green-500" />
@@ -375,7 +375,7 @@ function DocumentRow({ doc }: { doc: TreeDocument }) {
         {doc.qualityScore != null && (
           <QualityBadge score={doc.qualityScore} />
         )}
-        <Icons.chevronRight className="h-3 w-3 text-slate-600 group-hover:text-slate-400" />
+        <Icons.chevronRight className="h-3 w-3 text-muted-foreground group-hover:text-foreground" />
       </div>
     </Link>
   )

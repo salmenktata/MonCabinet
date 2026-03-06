@@ -71,16 +71,16 @@ export function TagsInput({
 
   return (
     <div className="space-y-2">
-      {label && <Label className="text-slate-300">{label}</Label>}
+      {label && <Label className="text-muted-foreground">{label}</Label>}
 
       {/* Tags affichés */}
       {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 p-2 bg-slate-700/50 rounded-md min-h-[40px]">
+        <div className="flex flex-wrap gap-1.5 p-2 bg-muted/50 rounded-md min-h-[40px]">
           {tags.map((tag) => (
             <Badge
               key={tag}
               variant="secondary"
-              className="bg-slate-600 text-slate-200 hover:bg-slate-500 cursor-pointer flex items-center gap-1 px-2 py-0.5"
+              className="bg-muted text-foreground hover:bg-muted/80 cursor-pointer flex items-center gap-1 px-2 py-0.5"
             >
               {tag}
               {!disabled && (
@@ -112,18 +112,18 @@ export function TagsInput({
             tags.length >= maxTags ? `Maximum ${maxTags} tags` : placeholder
           }
           disabled={disabled || tags.length >= maxTags}
-          className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+          className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
         />
 
         {/* Suggestions dropdown */}
         {showSuggestions && filteredSuggestions.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-lg max-h-40 overflow-auto">
+          <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-40 overflow-auto">
             {filteredSuggestions.map((suggestion) => (
               <button
                 key={suggestion}
                 type="button"
                 onClick={() => addTag(suggestion)}
-                className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 transition"
+                className="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:bg-muted transition"
               >
                 {suggestion}
               </button>
@@ -132,7 +132,7 @@ export function TagsInput({
         )}
       </div>
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-muted-foreground">
         Appuyez sur Entrée pour ajouter un tag ({tags.length}/{maxTags})
       </p>
     </div>
@@ -156,7 +156,7 @@ export function TagsList({ tags, size = 'sm' }: { tags: string[]; size?: 'xs' | 
       {tags.map((tag) => (
         <span
           key={tag}
-          className={`inline-flex items-center rounded-full bg-slate-600/50 text-slate-300 ${sizeClasses[size]}`}
+          className={`inline-flex items-center rounded-full bg-muted text-muted-foreground ${sizeClasses[size]}`}
         >
           #{tag}
         </span>

@@ -50,21 +50,21 @@ export function CategorySelector({
     <div className="space-y-4">
       {/* Catégorie principale */}
       <div>
-        <Label className="text-slate-300">Catégorie *</Label>
+        <Label className="text-muted-foreground">Catégorie *</Label>
         <Select
           value={category}
           onValueChange={(val) => onCategoryChange(val as KnowledgeCategory)}
           disabled={disabled}
         >
-          <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white">
+          <SelectTrigger className="mt-1 bg-muted border-border text-foreground">
             <SelectValue placeholder="Sélectionner une catégorie" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-600 max-h-80">
+          <SelectContent className="bg-card border-border max-h-80">
             {getCategoriesForContext('knowledge_base', lang).map((cat) => (
               <SelectItem
                 key={cat.value}
                 value={cat.value}
-                className="text-white hover:bg-slate-700"
+                className="text-foreground hover:bg-muted"
               >
                 {cat.label}
               </SelectItem>
@@ -76,24 +76,24 @@ export function CategorySelector({
       {/* Sous-catégorie */}
       {availableSubcategories.length > 0 && (
         <div>
-          <Label className="text-slate-300">Sous-catégorie</Label>
+          <Label className="text-muted-foreground">Sous-catégorie</Label>
           <Select
             value={subcategory || '__none__'}
             onValueChange={(val) => onSubcategoryChange(val === '__none__' ? null : val)}
             disabled={disabled}
           >
-            <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="mt-1 bg-muted border-border text-foreground">
               <SelectValue placeholder="Sélectionner une sous-catégorie (optionnel)" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-600 max-h-60">
-              <SelectItem value="__none__" className="text-slate-400 hover:bg-slate-700">
+            <SelectContent className="bg-card border-border max-h-60">
+              <SelectItem value="__none__" className="text-muted-foreground hover:bg-muted">
                 Aucune sous-catégorie
               </SelectItem>
               {availableSubcategories.map((sub) => (
                 <SelectItem
                   key={sub.id}
                   value={sub.id}
-                  className="text-white hover:bg-slate-700"
+                  className="text-foreground hover:bg-muted"
                 >
                   {lang === 'fr' ? sub.labelFr : sub.labelAr}
                 </SelectItem>
@@ -124,12 +124,12 @@ export function SimpleCategorySelect({
 }) {
   return (
     <Select value={value || '__all__'} onValueChange={(val) => onChange(val === '__all__' ? '' : val)} disabled={disabled}>
-      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+      <SelectTrigger className="bg-muted border-border text-foreground">
         <SelectValue placeholder="Catégorie" />
       </SelectTrigger>
-      <SelectContent className="bg-slate-800 border-slate-600 max-h-80">
+      <SelectContent className="bg-card border-border max-h-80">
         {includeAll && (
-          <SelectItem value="__all__" className="text-slate-400 hover:bg-slate-700">
+          <SelectItem value="__all__" className="text-muted-foreground hover:bg-muted">
             Toutes les catégories
           </SelectItem>
         )}
@@ -137,7 +137,7 @@ export function SimpleCategorySelect({
           <SelectItem
             key={cat.value}
             value={cat.value}
-            className="text-white hover:bg-slate-700"
+            className="text-foreground hover:bg-muted"
           >
             {cat.label}
           </SelectItem>
@@ -178,7 +178,7 @@ export function CategoryBadge({
       </span>
       {subcategory && (
         <span
-          className={`inline-flex items-center rounded-full border bg-slate-600/50 text-slate-300 border-slate-500/30 ${sizeClasses[size]}`}
+          className={`inline-flex items-center rounded-full border bg-muted text-muted-foreground border-border ${sizeClasses[size]}`}
         >
           {getSubcategoryLabel(subcategory, lang)}
         </span>

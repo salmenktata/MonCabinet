@@ -377,10 +377,10 @@ function QualityBar({ label, value }: { label: string; value?: number }) {
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-slate-400">{label}</span>
-        <span className="text-slate-200">{value}/100</span>
+        <span className="text-muted-foreground">{label}</span>
+        <span className="text-foreground">{value}/100</span>
       </div>
-      <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
         <div className={`h-full ${color} rounded-full`} style={{ width: `${value}%` }} />
       </div>
     </div>
@@ -449,13 +449,13 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
   return (
     <div className="min-h-screen">
       {/* ── Sticky action bar ─────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur border-b border-slate-700/60 px-6 py-3">
+      <div className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-6 py-3">
         <div className="flex items-center justify-between gap-4 max-w-[1400px] mx-auto">
           {/* Left: breadcrumb + title */}
           <div className="flex items-center gap-3 min-w-0">
             <Link
               href="/super-admin/knowledge-base"
-              className="text-slate-400 hover:text-white transition flex-shrink-0"
+              className="text-muted-foreground hover:text-foreground transition flex-shrink-0"
             >
               <Icons.arrowLeft className="h-5 w-5" />
             </Link>
@@ -466,7 +466,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
               </Badge>
               {document.docType && (
                 <span
-                  className={`text-xs px-2 py-0.5 rounded border font-medium ${DOC_TYPE_COLORS[document.docType] ?? 'bg-slate-600/30 text-slate-300'}`}
+                  className={`text-xs px-2 py-0.5 rounded border font-medium ${DOC_TYPE_COLORS[document.docType] ?? 'bg-muted/30 text-foreground'}`}
                 >
                   {DOC_TYPE_LABELS[document.docType] ?? document.docType}
                 </span>
@@ -477,7 +477,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                 </span>
               )}
               {document.sourceOrigin && (
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-600/40 text-slate-300 border border-slate-500/30">
+                <span className="text-xs px-2 py-0.5 rounded bg-muted/40 text-foreground border border-border">
                   {SOURCE_ORIGIN_LABELS[document.sourceOrigin] ?? document.sourceOrigin}
                 </span>
               )}
@@ -492,12 +492,12 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                 </span>
               )}
               {!document.ragEnabled && (
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-600/30 text-slate-400 border border-slate-500/20 line-through">
+                <span className="text-xs px-2 py-0.5 rounded bg-muted/30 text-muted-foreground border border-border line-through">
                   RAG off
                 </span>
               )}
               <VersionBadge version={document.version} />
-              <span className="text-slate-500 text-xs truncate max-w-[300px]" title={document.title}>
+              <span className="text-muted-foreground text-xs truncate max-w-[300px]" title={document.title}>
                 {document.title}
               </span>
             </div>
@@ -531,7 +531,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
               {document.isIndexed ? 'Réindexer' : 'Indexer'}
             </Button>
             <Link href={`/super-admin/knowledge-base/${document.id}/edit`}>
-              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 h-8 text-xs">
+              <Button size="sm" variant="outline" className="border-border text-foreground h-8 text-xs">
                 <Icons.edit className="h-3 w-3 mr-1" />
                 Modifier
               </Button>
@@ -554,16 +554,16 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
         {/* ── Document viewer (colonne principale) ── */}
         <div className="flex-1 min-w-0 space-y-4">
           {/* En-tête du document */}
-          <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-6">
+          <div className="bg-card/60 border border-border rounded-xl p-6">
             <h1
-              className={`text-2xl font-bold text-white mb-2 ${isRtl ? 'text-right' : ''}`}
+              className={`text-2xl font-bold text-foreground mb-2 ${isRtl ? 'text-right' : ''}`}
               dir={isRtl ? 'rtl' : 'ltr'}
             >
               {document.title}
             </h1>
             {document.description && (
               <p
-                className={`text-slate-400 text-sm leading-relaxed mt-2 ${isRtl ? 'text-right' : ''}`}
+                className={`text-muted-foreground text-sm leading-relaxed mt-2 ${isRtl ? 'text-right' : ''}`}
                 dir={isRtl ? 'rtl' : 'ltr'}
               >
                 {document.description}
@@ -579,12 +579,12 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
           {/* Contenu complet — style page publique */}
           <div className="rounded-xl overflow-hidden shadow-sm border border-slate-200/10">
             {/* Barre supérieure du viewer */}
-            <div className="bg-slate-100 dark:bg-slate-700/50 border-b border-slate-300 dark:border-slate-600/40 px-5 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+            <div className="bg-slate-100 dark:bg-muted/50 border-b border-slate-300 dark:border-border px-5 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-muted-foreground">
                 <Icons.fileText className="h-4 w-4" />
                 <span>Contenu du document</span>
                 {document.fullText && (
-                  <span className="text-slate-500 dark:text-slate-500">
+                  <span className="text-slate-500 dark:text-muted-foreground">
                     · {document.fullText.length.toLocaleString('fr-FR')} caractères
                   </span>
                 )}
@@ -593,7 +593,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                 size="sm"
                 variant="ghost"
                 onClick={handleCopy}
-                className="h-7 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                className="h-7 text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-foreground"
               >
                 {copied ? (
                   <>
@@ -632,34 +632,34 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
         {/* ── Panneau latéral (sidebar sticky) ── */}
         <div className="w-72 flex-shrink-0 space-y-4 sticky top-[72px]">
           {/* Informations */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-white text-sm">Informations</CardTitle>
+              <CardTitle className="text-foreground text-sm">Informations</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-400">Créé</span>
-                <span className="text-slate-200" title={format(createdAt, 'PPpp', { locale: fr })}>
+                <span className="text-muted-foreground">Créé</span>
+                <span className="text-foreground" title={format(createdAt, 'PPpp', { locale: fr })}>
                   {formatDistanceToNow(createdAt, { addSuffix: true, locale: fr })}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Modifié</span>
-                <span className="text-slate-200" title={format(updatedAt, 'PPpp', { locale: fr })}>
+                <span className="text-muted-foreground">Modifié</span>
+                <span className="text-foreground" title={format(updatedAt, 'PPpp', { locale: fr })}>
                   {formatDistanceToNow(updatedAt, { addSuffix: true, locale: fr })}
                 </span>
               </div>
               {document.uploadedByEmail && (
                 <div className="flex justify-between gap-2">
-                  <span className="text-slate-400 flex-shrink-0">Par</span>
-                  <span className="text-slate-200 truncate">{document.uploadedByEmail}</span>
+                  <span className="text-muted-foreground flex-shrink-0">Par</span>
+                  <span className="text-foreground truncate">{document.uploadedByEmail}</span>
                 </div>
               )}
               {document.sourceFile && (
                 <div className="flex justify-between gap-2">
-                  <span className="text-slate-400 flex-shrink-0">Fichier</span>
+                  <span className="text-muted-foreground flex-shrink-0">Fichier</span>
                   <span
-                    className="text-slate-200 truncate"
+                    className="text-foreground truncate"
                     title={document.sourceFile}
                   >
                     {document.sourceFile.split('/').pop()}
@@ -667,20 +667,20 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-slate-400">RAG</span>
+                <span className="text-muted-foreground">RAG</span>
                 <span className={document.ragEnabled ? 'text-green-400' : 'text-slate-500'}>
                   {document.ragEnabled ? 'Activé' : 'Désactivé'}
                 </span>
               </div>
               {document.isAbroge && (
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Statut</span>
+                  <span className="text-muted-foreground">Statut</span>
                   <span className="text-red-400">Abrogé</span>
                 </div>
               )}
               {!document.isAbroge && document.abrogeSuspected && (
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Abrogation</span>
+                  <span className="text-muted-foreground">Abrogation</span>
                   <span className="text-yellow-400">
                     Suspectée ({document.abrogeConfidence})
                   </span>
@@ -691,9 +691,9 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
 
           {/* Métadonnées */}
           {Object.keys(document.metadata || {}).length > 0 && (
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-2 pt-4 px-4">
-                <CardTitle className="text-white text-sm">Métadonnées</CardTitle>
+                <CardTitle className="text-foreground text-sm">Métadonnées</CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <MetadataDisplay
@@ -705,9 +705,9 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
           )}
 
           {/* Qualité */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-white text-sm flex items-center justify-between">
+              <CardTitle className="text-foreground text-sm flex items-center justify-between">
                 <span>Qualité</span>
                 {document.qualityScore != null && (
                   <span
@@ -739,7 +739,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                   )}
                   {document.qualityDetectedIssues && document.qualityDetectedIssues.length > 0 && (
                     <div className="pt-1">
-                      <p className="text-xs text-slate-400 mb-1">Problèmes :</p>
+                      <p className="text-xs text-muted-foreground mb-1">Problèmes :</p>
                       <ul className="text-xs text-yellow-400 space-y-0.5">
                         {document.qualityDetectedIssues.slice(0, 3).map((issue, i) => (
                           <li key={i}>· {issue}</li>
@@ -749,16 +749,16 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                   )}
                 </>
               ) : (
-                <p className="text-slate-400 text-xs">Analyse non effectuée</p>
+                <p className="text-muted-foreground text-xs">Analyse non effectuée</p>
               )}
             </CardContent>
           </Card>
 
           {/* Relations */}
           {relations.length > 0 && (
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-2 pt-4 px-4">
-                <CardTitle className="text-white text-sm">Relations</CardTitle>
+                <CardTitle className="text-foreground text-sm">Relations</CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <ContradictionsList relations={relations} currentDocumentId={document.id} />
@@ -783,16 +783,16 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
 
       {/* ── Dialog suppression ─────────────────────────────────────────────── */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Supprimer ce document ?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogTitle className="text-foreground">Supprimer ce document ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               Cette action est irréversible. Le document &quot;{document.title}&quot; et tous ses chunks seront
               définitivement supprimés.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600">
+            <AlertDialogCancel className="bg-muted text-foreground border-border">
               Annuler
             </AlertDialogCancel>
             <AlertDialogAction

@@ -136,8 +136,8 @@ const NavLink = memo(function NavLink({ item, isActive, isCollapsed, onCloseMobi
             <div
               className={cn(
                 'relative flex items-center justify-center rounded-lg p-2 transition-colors',
-                'hover:bg-slate-800 hover:text-white',
-                isActive && 'bg-slate-800 text-white border-l-4 border-blue-500'
+                'hover:bg-muted hover:text-foreground',
+                isActive && 'bg-muted text-foreground border-l-4 border-primary'
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
@@ -169,8 +169,8 @@ const NavLink = memo(function NavLink({ item, isActive, isCollapsed, onCloseMobi
       <div
         className={cn(
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-          'hover:bg-slate-800 hover:text-white',
-          isActive && 'bg-slate-800 text-white border-l-4 border-blue-500'
+          'hover:bg-muted hover:text-foreground',
+          isActive && 'bg-muted text-foreground border-l-4 border-primary'
         )}
       >
         <Icon className="h-5 w-5 shrink-0" />
@@ -243,7 +243,7 @@ function SuperAdminSidebarComponent({
   const sidebarContent = (collapsed: boolean, showCloseBtn: boolean) => (
     <>
       {/* Header */}
-      <div className="flex h-16 items-center border-b border-slate-700 px-3">
+      <div className="flex h-16 items-center border-b border-border px-3">
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -262,14 +262,14 @@ function SuperAdminSidebarComponent({
             </Link>
             <div className="flex items-center gap-1">
               {process.env.NEXT_PUBLIC_APP_VERSION && (
-                <span className="ml-1 shrink-0 font-mono text-[10px] text-white select-none" title="Version de build">
+                <span className="ml-1 shrink-0 font-mono text-[10px] text-muted-foreground select-none" title="Version de build">
                   v{process.env.NEXT_PUBLIC_APP_VERSION}
                 </span>
               )}
               {showCloseBtn && (
                 <button
                   onClick={onCloseMobile}
-                  className="ml-2 flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+                  className="ml-2 flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                   aria-label="Fermer le menu"
                 >
                   <Icons.close className="h-4 w-4" />
@@ -284,7 +284,7 @@ function SuperAdminSidebarComponent({
       {onToggleCollapse && !showCloseBtn && (
         <button
           onClick={onToggleCollapse}
-          className="mx-auto my-2 flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          className="mx-auto my-2 flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           title={collapsed ? 'Étendre le menu' : 'Réduire le menu'}
         >
           <ToggleIcon className="h-4 w-4" />
@@ -296,11 +296,11 @@ function SuperAdminSidebarComponent({
         {groupsWithState.map((group, groupIndex) => (
           <div key={group.group} className="space-y-1">
             {!collapsed && (
-              <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {group.group}
               </h3>
             )}
-            {collapsed && groupIndex > 0 && <Separator className="my-2 bg-slate-700" />}
+            {collapsed && groupIndex > 0 && <Separator className="my-2" />}
             {group.items.map((item) => (
               <NavLink
                 key={item.href}
@@ -311,19 +311,19 @@ function SuperAdminSidebarComponent({
               />
             ))}
             {!collapsed && groupIndex < groupsWithState.length - 1 && (
-              <Separator className="my-4 bg-slate-700" />
+              <Separator className="my-4" />
             )}
           </div>
         ))}
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-slate-700 p-2">
+      <div className="border-t border-border p-2">
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <Link href="/dashboard" prefetch={true} onClick={onCloseMobile}>
-                <div className="flex items-center justify-center rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+                <div className="flex items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
                   <Icons.arrowLeft className="h-5 w-5 shrink-0" />
                 </div>
               </Link>
@@ -332,7 +332,7 @@ function SuperAdminSidebarComponent({
           </Tooltip>
         ) : (
           <Link href="/dashboard" prefetch={true} onClick={onCloseMobile}>
-            <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+            <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
               <Icons.arrowLeft className="h-5 w-5 shrink-0" />
               <span>Retour au Dashboard</span>
             </div>
@@ -347,7 +347,7 @@ function SuperAdminSidebarComponent({
       {/* Sidebar desktop – comportement inchangé */}
       <aside
         className={cn(
-          'hidden md:flex h-screen flex-col border-r border-slate-700 bg-slate-900 text-slate-300 transition-all duration-300 ease-in-out',
+          'hidden md:flex h-screen flex-col border-r border-border bg-card text-foreground transition-all duration-300 ease-in-out',
           isCollapsed ? 'w-16' : 'w-64'
         )}
       >
@@ -357,8 +357,8 @@ function SuperAdminSidebarComponent({
       {/* Sidebar mobile – drawer */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex h-screen w-72 flex-col md:hidden',
-          'border-r border-slate-700 bg-slate-900 text-slate-300',
+          'fixed inset-y-0 left-0 z-50 flex h-screen w-[280px] max-w-[85vw] flex-col md:hidden',
+          'border-r border-border bg-card text-foreground',
           'transition-transform duration-300 ease-in-out',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}

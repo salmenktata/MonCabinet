@@ -226,12 +226,12 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
   )
 
   return (
-    <Card className="bg-slate-700/50 border-slate-600">
+    <Card className="border-border">
       <CardContent className="p-6 space-y-6">
         {/* Providers List */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <Label className="text-white font-semibold">Providers Chat (Ordre de fallback)</Label>
+            <Label className="text-foreground font-semibold">Providers Chat (Ordre de fallback)</Label>
             <Button size="sm" variant="outline" onClick={handleTestAllProviders} disabled={testingAll}>
               {testingAll ? (
                 <>
@@ -258,7 +258,7 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
                 <div
                   key={provider}
                   className={`flex items-center gap-3 p-3 border rounded ${
-                    isEnabled ? 'bg-slate-600/50 border-slate-500' : 'bg-slate-800/50 border-slate-700'
+                    isEnabled ? 'bg-muted/50 border-border' : 'bg-background/50 border-border opacity-60'
                   }`}
                 >
                   {/* Enable/Disable Switch */}
@@ -281,7 +281,7 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
                     )}
 
                     {isEnabled && !isPrimary && (
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         Fallback #{providerIndex}
                       </span>
                     )}
@@ -347,7 +347,7 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
           <div className="grid grid-cols-3 gap-4">
             {operation.timeoutEmbedding !== null && (
               <div>
-                <Label className="text-xs text-slate-400">Embedding</Label>
+                <Label className="text-xs text-muted-foreground">Embedding</Label>
                 <Input
                   type="number"
                   value={localTimeouts.embedding || ''}
@@ -360,14 +360,14 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
                   min={1000}
                   max={60000}
                   step={1000}
-                  className="mt-1 bg-slate-800 border-slate-600 text-white"
+                  className="mt-1"
                 />
-                <p className="text-xs text-slate-400 mt-1">1s - 60s</p>
+                <p className="text-xs text-muted-foreground mt-1">1s - 60s</p>
               </div>
             )}
 
             <div>
-              <Label className="text-xs text-slate-400">Chat</Label>
+              <Label className="text-xs text-muted-foreground">Chat</Label>
               <Input
                 type="number"
                 value={localTimeouts.chat}
@@ -377,13 +377,13 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
                 min={5000}
                 max={120000}
                 step={5000}
-                className="mt-1 bg-slate-800 border-slate-600 text-white"
+                className="mt-1"
               />
-              <p className="text-xs text-slate-400 mt-1">5s - 120s</p>
+              <p className="text-xs text-muted-foreground mt-1">5s - 120s</p>
             </div>
 
             <div>
-              <Label className="text-xs text-slate-400">Total</Label>
+              <Label className="text-xs text-muted-foreground">Total</Label>
               <Input
                 type="number"
                 value={localTimeouts.total}
@@ -393,9 +393,9 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
                 min={10000}
                 max={180000}
                 step={5000}
-                className="mt-1 bg-slate-800 border-slate-600 text-white"
+                className="mt-1"
               />
-              <p className="text-xs text-slate-400 mt-1">10s - 180s</p>
+              <p className="text-xs text-muted-foreground mt-1">10s - 180s</p>
             </div>
           </div>
         </div>
@@ -404,7 +404,7 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
         {validationErrors.length > 0 && (
           <Alert className="bg-red-500/10 border-red-500/50">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-white">
+            <AlertDescription className="text-foreground">
               <p className="font-semibold mb-1">Erreurs de configuration:</p>
               <ul className="list-disc list-inside text-sm">
                 {validationErrors.map((error, i) => (
@@ -419,7 +419,7 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
         {pendingChanges && Object.keys(pendingChanges).length > 0 && (
           <Alert className="bg-yellow-500/10 border-yellow-500/50">
             <CheckCircle className="h-4 w-4" />
-            <AlertDescription className="text-white">
+            <AlertDescription className="text-foreground">
               <p className="text-sm">
                 {Object.keys(pendingChanges).length} modification(s) en attente de sauvegarde
               </p>

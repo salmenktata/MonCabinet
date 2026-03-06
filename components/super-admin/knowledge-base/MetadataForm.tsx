@@ -45,7 +45,7 @@ export function MetadataForm({
 
   if (fields.length === 0) {
     return (
-      <div className="text-sm text-slate-400 italic py-2">
+      <div className="text-sm text-muted-foreground italic py-2">
         Aucun champ de métadonnées spécifique pour cette catégorie.
       </div>
     )
@@ -103,7 +103,7 @@ function MetadataField({
     case 'text':
       return (
         <div>
-          <Label className="text-slate-300">
+          <Label className="text-muted-foreground">
             {label}
             {isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -113,7 +113,7 @@ function MetadataField({
             placeholder={field.placeholder}
             disabled={disabled}
             required={isRequired}
-            className="mt-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+            className="mt-1 bg-muted border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
       )
@@ -121,7 +121,7 @@ function MetadataField({
     case 'textarea':
       return (
         <div className="md:col-span-2">
-          <Label className="text-slate-300">
+          <Label className="text-muted-foreground">
             {label}
             {isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -132,7 +132,7 @@ function MetadataField({
             disabled={disabled}
             required={isRequired}
             rows={3}
-            className="mt-1 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+            className="mt-1 bg-muted border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
       )
@@ -140,7 +140,7 @@ function MetadataField({
     case 'date':
       return (
         <div>
-          <Label className="text-slate-300">
+          <Label className="text-muted-foreground">
             {label}
             {isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -150,7 +150,7 @@ function MetadataField({
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
             required={isRequired}
-            className="mt-1 bg-slate-700 border-slate-600 text-white"
+            className="mt-1 bg-muted border-border text-foreground"
           />
         </div>
       )
@@ -158,7 +158,7 @@ function MetadataField({
     case 'number':
       return (
         <div>
-          <Label className="text-slate-300">
+          <Label className="text-muted-foreground">
             {label}
             {isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -168,7 +168,7 @@ function MetadataField({
             onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
             disabled={disabled}
             required={isRequired}
-            className="mt-1 bg-slate-700 border-slate-600 text-white"
+            className="mt-1 bg-muted border-border text-foreground"
           />
         </div>
       )
@@ -176,7 +176,7 @@ function MetadataField({
     case 'boolean':
       return (
         <div className="flex items-center justify-between py-2">
-          <Label className="text-slate-300">{label}</Label>
+          <Label className="text-muted-foreground">{label}</Label>
           <Switch
             checked={!!value}
             onCheckedChange={(checked) => onChange(checked)}
@@ -188,7 +188,7 @@ function MetadataField({
     case 'select':
       return (
         <div>
-          <Label className="text-slate-300">
+          <Label className="text-muted-foreground">
             {label}
             {isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -197,12 +197,12 @@ function MetadataField({
             onValueChange={(val) => onChange(val === '__none__' ? null : val)}
             disabled={disabled}
           >
-            <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="mt-1 bg-muted border-border text-foreground">
               <SelectValue placeholder={`Sélectionner ${label.toLowerCase()}`} />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-600 max-h-60">
+            <SelectContent className="bg-card border-border max-h-60">
               {!isRequired && (
-                <SelectItem value="__none__" className="text-slate-400 hover:bg-slate-700">
+                <SelectItem value="__none__" className="text-muted-foreground hover:bg-muted">
                   Non spécifié
                 </SelectItem>
               )}
@@ -210,7 +210,7 @@ function MetadataField({
                 <SelectItem
                   key={opt.value}
                   value={opt.value}
-                  className="text-white hover:bg-slate-700"
+                  className="text-foreground hover:bg-muted"
                 >
                   {lang === 'fr' ? opt.labelFr : opt.labelAr}
                 </SelectItem>
@@ -225,7 +225,7 @@ function MetadataField({
       // Dans une implémentation plus avancée, utiliser un composant multi-select
       return (
         <div>
-          <Label className="text-slate-300">
+          <Label className="text-muted-foreground">
             {label}
             {isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -234,15 +234,15 @@ function MetadataField({
             onValueChange={(val) => onChange(val ? [val] : [])}
             disabled={disabled}
           >
-            <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="mt-1 bg-muted border-border text-foreground">
               <SelectValue placeholder={`Sélectionner ${label.toLowerCase()}`} />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-600 max-h-60">
+            <SelectContent className="bg-card border-border max-h-60">
               {options.map((opt) => (
                 <SelectItem
                   key={opt.value}
                   value={opt.value}
-                  className="text-white hover:bg-slate-700"
+                  className="text-foreground hover:bg-muted"
                 >
                   {lang === 'fr' ? opt.labelFr : opt.labelAr}
                 </SelectItem>
@@ -299,10 +299,10 @@ export function MetadataDisplay({
 
         return (
           <div key={field.key} className="flex">
-            <span className="text-slate-400 min-w-[140px]">
+            <span className="text-muted-foreground min-w-[140px]">
               {lang === 'fr' ? field.labelFr : field.labelAr}:
             </span>
-            <span className="text-slate-200">{displayValue}</span>
+            <span className="text-foreground">{displayValue}</span>
           </div>
         )
       })}

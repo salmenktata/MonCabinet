@@ -23,7 +23,7 @@ interface WebSourceLogsProps {
 export function WebSourceLogs({ logs }: WebSourceLogsProps) {
   if (logs.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="text-center py-8 text-muted-foreground">
         <Icons.history className="h-8 w-8 mx-auto mb-2" />
         <p className="text-sm">Aucun historique</p>
       </div>
@@ -43,10 +43,10 @@ export function WebSourceLogs({ logs }: WebSourceLogsProps) {
         return (
           <div
             key={log.id}
-            className="p-3 rounded-lg bg-slate-900/50"
+            className="p-3 rounded-lg bg-card/50"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-300">
+              <span className="text-sm text-foreground">
                 {new Date(log.started_at).toLocaleString('fr-FR', { timeZone: 'Africa/Tunis' })}
               </span>
               <Badge className={statusColors[log.status] || statusColors.running}>
@@ -56,7 +56,7 @@ export function WebSourceLogs({ logs }: WebSourceLogsProps) {
               </Badge>
             </div>
 
-            <div className="flex items-center gap-4 text-xs text-slate-400">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Icons.fileText className="h-3 w-3" />
                 {log.pages_crawled} pages

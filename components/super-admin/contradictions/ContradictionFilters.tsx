@@ -37,12 +37,12 @@ export function ContradictionFilters({
   }
 
   return (
-    <div className="flex items-center gap-4 p-4 bg-slate-900/50 border border-slate-700 rounded-lg">
+    <div className="flex items-center gap-4 p-4 bg-card border border-border rounded-lg">
       <div className="flex items-center gap-2">
-        <label htmlFor="contradiction-status-filter" className="text-sm text-slate-400">Statut:</label>
+        <label htmlFor="contradiction-status-filter" className="text-sm text-muted-foreground">Statut:</label>
         <select
           id="contradiction-status-filter"
-          className="bg-slate-800 border border-slate-600 rounded px-3 py-1 text-sm text-white"
+          className="bg-muted border border-border rounded px-3 py-1 text-sm text-foreground"
           value={currentStatus || ''}
           onChange={(e) => handleStatusChange(e.target.value)}
         >
@@ -54,10 +54,10 @@ export function ContradictionFilters({
         </select>
       </div>
       <div className="flex items-center gap-2">
-        <label htmlFor="contradiction-severity-filter" className="text-sm text-slate-400">Severite:</label>
+        <label htmlFor="contradiction-severity-filter" className="text-sm text-muted-foreground">Severite:</label>
         <select
           id="contradiction-severity-filter"
-          className="bg-slate-800 border border-slate-600 rounded px-3 py-1 text-sm text-white"
+          className="bg-muted border border-border rounded px-3 py-1 text-sm text-foreground"
           value={currentSeverity || ''}
           onChange={(e) => handleSeverityChange(e.target.value)}
         >

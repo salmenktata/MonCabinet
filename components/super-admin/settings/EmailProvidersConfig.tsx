@@ -114,29 +114,29 @@ export function EmailProvidersConfig() {
 
   if (loading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="flex items-center justify-center py-8">
-          <Icons.spinner className="h-6 w-6 animate-spin text-slate-400" />
+          <Icons.spinner className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     )
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Icons.mail className="h-5 w-5 text-blue-500" />
-          <CardTitle className="text-white">Providers Email</CardTitle>
+          <CardTitle className="text-foreground">Providers Email</CardTitle>
         </div>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-muted-foreground">
           Configurez le mode d&apos;envoi des emails et les clés API des providers
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Mode de fonctionnement */}
         <div className="space-y-4">
-          <Label className="text-white text-sm font-medium">Mode de fonctionnement</Label>
+          <Label className="text-foreground text-sm font-medium">Mode de fonctionnement</Label>
           <RadioGroup
             value={mode}
             onValueChange={(v: string) => setMode(v as EmailProviderMode)}
@@ -144,14 +144,14 @@ export function EmailProvidersConfig() {
           >
             <div className={cn(
               'flex items-center space-x-3 p-3 rounded-lg border transition-colors',
-              mode === 'auto' ? 'border-blue-500 bg-blue-500/10' : 'border-slate-600 bg-slate-700/50'
+              mode === 'auto' ? 'border-blue-500 bg-blue-500/10' : 'border-border bg-muted/50'
             )}>
               <RadioGroupItem value="auto" id="auto" />
               <div className="flex-1">
-                <Label htmlFor="auto" className="text-white font-medium cursor-pointer">
+                <Label htmlFor="auto" className="text-foreground font-medium cursor-pointer">
                   Auto (Failover)
                 </Label>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Essaie Brevo en premier, puis Resend si échec
                 </p>
               </div>
@@ -162,14 +162,14 @@ export function EmailProvidersConfig() {
 
             <div className={cn(
               'flex items-center space-x-3 p-3 rounded-lg border transition-colors',
-              mode === 'brevo' ? 'border-blue-500 bg-blue-500/10' : 'border-slate-600 bg-slate-700/50'
+              mode === 'brevo' ? 'border-blue-500 bg-blue-500/10' : 'border-border bg-muted/50'
             )}>
               <RadioGroupItem value="brevo" id="brevo" />
               <div className="flex-1">
-                <Label htmlFor="brevo" className="text-white font-medium cursor-pointer">
+                <Label htmlFor="brevo" className="text-foreground font-medium cursor-pointer">
                   Brevo uniquement
                 </Label>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Utilise exclusivement Brevo (ex-Sendinblue)
                 </p>
               </div>
@@ -177,14 +177,14 @@ export function EmailProvidersConfig() {
 
             <div className={cn(
               'flex items-center space-x-3 p-3 rounded-lg border transition-colors',
-              mode === 'resend' ? 'border-blue-500 bg-blue-500/10' : 'border-slate-600 bg-slate-700/50'
+              mode === 'resend' ? 'border-blue-500 bg-blue-500/10' : 'border-border bg-muted/50'
             )}>
               <RadioGroupItem value="resend" id="resend" />
               <div className="flex-1">
-                <Label htmlFor="resend" className="text-white font-medium cursor-pointer">
+                <Label htmlFor="resend" className="text-foreground font-medium cursor-pointer">
                   Resend uniquement
                 </Label>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Utilise exclusivement Resend
                 </p>
               </div>
@@ -193,10 +193,10 @@ export function EmailProvidersConfig() {
         </div>
 
         {/* Configuration Brevo */}
-        <div className="space-y-3 p-4 rounded-lg bg-slate-700/50 border border-slate-600">
+        <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h4 className="text-white font-medium">Brevo</h4>
+              <h4 className="text-foreground font-medium">Brevo</h4>
               <Badge className={config?.brevo.configured ? 'bg-green-500' : 'bg-red-500'}>
                 {config?.brevo.configured ? 'Configuré' : 'Non configuré'}
               </Badge>
@@ -208,7 +208,7 @@ export function EmailProvidersConfig() {
           </div>
 
           {config?.brevo.apiKeyMasked && (
-            <div className="text-xs text-slate-400 font-mono">
+            <div className="text-xs text-muted-foreground font-mono">
               Clé actuelle: {config.brevo.apiKeyMasked}
             </div>
           )}
@@ -220,13 +220,13 @@ export function EmailProvidersConfig() {
                 placeholder="Nouvelle clé API Brevo"
                 value={brevoApiKey}
                 onChange={(e) => setBrevoApiKey(e.target.value)}
-                className="bg-slate-600 border-slate-500 text-white pr-10"
+                className="bg-muted border-border text-foreground pr-10"
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-slate-400 hover:text-white"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
                 onClick={() => setShowBrevoKey(!showBrevoKey)}
               >
                 {showBrevoKey ? (
@@ -240,10 +240,10 @@ export function EmailProvidersConfig() {
         </div>
 
         {/* Configuration Resend */}
-        <div className="space-y-3 p-4 rounded-lg bg-slate-700/50 border border-slate-600">
+        <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h4 className="text-white font-medium">Resend</h4>
+              <h4 className="text-foreground font-medium">Resend</h4>
               <Badge className={config?.resend.configured ? 'bg-green-500' : 'bg-red-500'}>
                 {config?.resend.configured ? 'Configuré' : 'Non configuré'}
               </Badge>
@@ -255,7 +255,7 @@ export function EmailProvidersConfig() {
           </div>
 
           {config?.resend.apiKeyMasked && (
-            <div className="text-xs text-slate-400 font-mono">
+            <div className="text-xs text-muted-foreground font-mono">
               Clé actuelle: {config.resend.apiKeyMasked}
             </div>
           )}
@@ -267,13 +267,13 @@ export function EmailProvidersConfig() {
                 placeholder="Nouvelle clé API Resend"
                 value={resendApiKey}
                 onChange={(e) => setResendApiKey(e.target.value)}
-                className="bg-slate-600 border-slate-500 text-white pr-10"
+                className="bg-muted border-border text-foreground pr-10"
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-slate-400 hover:text-white"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
                 onClick={() => setShowResendKey(!showResendKey)}
               >
                 {showResendKey ? (

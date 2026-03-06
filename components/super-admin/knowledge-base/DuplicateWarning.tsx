@@ -42,7 +42,7 @@ export function DuplicateWarning({ duplicates, onDismiss }: DuplicateWarningProp
                 ? 'Documents en doublon détectés'
                 : 'Documents similaires détectés'}
             </h4>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {duplicates.length} document(s) similaire(s) trouvé(s) dans la base
             </p>
           </div>
@@ -51,7 +51,7 @@ export function DuplicateWarning({ duplicates, onDismiss }: DuplicateWarningProp
           size="sm"
           variant="ghost"
           onClick={() => { setDismissed(true); onDismiss?.() }}
-          className="text-slate-400 hover:text-white"
+          className="text-muted-foreground hover:text-foreground"
         >
           <Icons.x className="h-4 w-4" />
         </Button>

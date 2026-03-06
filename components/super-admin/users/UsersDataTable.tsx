@@ -44,7 +44,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
       case 'suspended':
         return <Badge className="bg-red-500/20 text-red-500 border-red-500/30">Suspendu</Badge>
       case 'rejected':
-        return <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30">Rejeté</Badge>
+        return <Badge className="bg-muted text-muted-foreground border-border">Rejeté</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
     }
@@ -53,7 +53,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
   const getPlanBadge = (plan: string) => {
     switch (plan) {
       case 'free':
-        return <Badge variant="secondary" className="bg-slate-600 text-slate-300">Free</Badge>
+        return <Badge variant="secondary" className="bg-muted text-muted-foreground">Free</Badge>
       case 'pro':
         return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30">Pro</Badge>
       case 'enterprise':
@@ -70,13 +70,13 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
       case 'admin':
         return <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Admin</Badge>
       default:
-        return <Badge variant="outline" className="border-slate-600 text-slate-400">User</Badge>
+        return <Badge variant="outline" className="border-border text-muted-foreground">User</Badge>
     }
   }
 
   if (users.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-400">
+      <div className="text-center py-12 text-muted-foreground">
         <Icons.users className="h-12 w-12 mx-auto mb-4" />
         <p>Aucun utilisateur trouvé</p>
       </div>
@@ -87,10 +87,10 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-slate-700 hover:bg-transparent">
-            <TableHead className="text-slate-400">Utilisateur</TableHead>
+          <TableRow className="border-border hover:bg-transparent">
+            <TableHead className="text-muted-foreground">Utilisateur</TableHead>
             <TableHead className="text-slate-400 hidden sm:table-cell">Rôle</TableHead>
-            <TableHead className="text-slate-400">Status</TableHead>
+            <TableHead className="text-muted-foreground">Status</TableHead>
             <TableHead className="text-slate-400 hidden md:table-cell">Plan</TableHead>
             <TableHead className="text-slate-400 hidden lg:table-cell">Dernière connexion</TableHead>
             <TableHead className="text-slate-400 hidden lg:table-cell">Inscrit le</TableHead>
@@ -99,13 +99,13 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
         </TableHeader>
         <TableBody>
           {users.map((user) => (
-            <TableRow key={user.id} className="border-slate-700 hover:bg-slate-700/50">
+            <TableRow key={user.id} className="border-border hover:bg-muted/50">
               <TableCell>
                 <div>
-                  <p className="font-medium text-white">
+                  <p className="font-medium text-foreground">
                     {user.prenom} {user.nom}
                   </p>
-                  <p className="text-sm text-slate-400">{user.email}</p>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
                   {/* Résumé condensé visible sur mobile uniquement */}
                   <div className="sm:hidden mt-1 flex flex-wrap gap-1">
                     {getRoleBadge(user.role)}
@@ -125,17 +125,17 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
                   )}
                 </div>
               </TableCell>
-              <TableCell className="text-slate-400 hidden lg:table-cell">
+              <TableCell className="text-muted-foreground hidden lg:table-cell">
                 {user.last_login_at ? (
                   <div>
                     <p>{new Date(user.last_login_at).toLocaleDateString('fr-FR')}</p>
-                    <p className="text-xs text-slate-400">{user.login_count} connexions</p>
+                    <p className="text-xs text-muted-foreground">{user.login_count} connexions</p>
                   </div>
                 ) : (
-                  <span className="text-slate-400">Jamais</span>
+                  <span className="text-muted-foreground">Jamais</span>
                 )}
               </TableCell>
-              <TableCell className="text-slate-400 hidden lg:table-cell">
+              <TableCell className="text-muted-foreground hidden lg:table-cell">
                 {new Date(user.created_at).toLocaleDateString('fr-FR')}
               </TableCell>
               <TableCell className="text-right">
@@ -143,7 +143,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-slate-400 hover:text-white hover:bg-slate-700"
+                    className="text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
                     <Icons.eye className="h-4 w-4 mr-1" />
                     Voir
