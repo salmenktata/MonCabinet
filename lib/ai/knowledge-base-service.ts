@@ -1694,8 +1694,8 @@ export async function searchKnowledgeBaseHybrid(
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Ollama embedding timeout (${ollamaTimeoutMs}ms)`)), ollamaTimeoutMs)),
   ])
   const [openaiEmbResult, ollamaEmbResult] = await Promise.allSettled([
-    generateEmbedding(query, { operationName: operationName as any }),       // Provider principal (Ollama 768-dim en prod+dev)
-    ollamaWithTimeout,                                                        // Ollama forcé (768-dim nomic, timeout configurable)
+    generateEmbedding(query, { forceOpenai: true }),                          // OpenAI text-embedding-3-small 1536-dim → colonne embedding_openai
+    ollamaWithTimeout,                                                        // Ollama forcé (768-dim nomic, timeout configurable) → colonne embedding
   ])
 
   // Log providers disponibles
@@ -1742,8 +1742,8 @@ export async function searchKnowledgeBaseHybrid(
   //          vector-only (vecSim=0.40) → 0.40×1.50=0.60 < JORT 0.84 → FILTERED ✅
   // FR 1.60: maintenu (régression FR si réduit)
   const shouldForceCodes = !category || category !== 'codes'
-  // codes-forced : utilise l'embedding principal disponible (Ollama prioritaire, OpenAI si turbo)
-  const primaryEmbResult = ollamaEmbResult.status === 'fulfilled' ? ollamaEmbResult : openaiEmbResult
+  // codes-forced : utilise l'embedding principal disponible (OpenAI prioritaire, Ollama fallback)
+  const primaryEmbResult = openaiEmbResult.status === 'fulfilled' ? openaiEmbResult : ollamaEmbResult
   const primaryProvider = primaryEmbResult.status === 'fulfilled' ? primaryEmbResult.value.provider : null
   if (shouldForceCodes && primaryEmbResult.status === 'fulfilled' && primaryProvider) {
     const embStr = formatEmbeddingForPostgres(primaryEmbResult.value.embedding)
