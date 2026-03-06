@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, memo } from 'react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -183,7 +183,7 @@ function getSectionStyle(text: string): SectionStyle | null {
 }
 
 export const MarkdownMessage = memo(function MarkdownMessage({ content, sources = [], className }: MarkdownMessageProps) {
-  const markdownComponents = useMemo(() => ({
+  const markdownComponents = useMemo<Components>(() => ({
           // Personnalisation des liens
           a: ({ node, ...props }) => (
             <a
