@@ -17,6 +17,8 @@ import {
   Loader2,
   FileText,
   Sparkles,
+  Layers,
+  Crown,
 } from 'lucide-react'
 
 // =============================================================================
@@ -59,6 +61,35 @@ interface ChunksHealthData {
     likelyFailures: number
     distribution: Array<{ range: string; count: number }>
   }
+  crossSourceDedup?: {
+    totalPairs: number
+    resolvedPairs: number
+    affectedDocs: number
+    bySourcePair: Array<{ pairLabel: string; count: number }>
+    recentPairs: Array<{
+      idA: string
+      titleA: string
+      originA: string
+      idB: string
+      titleB: string
+      originB: string
+      similarity: number
+      canonicalId: string
+    }>
+  }
+}
+
+interface ScanPair {
+  idA: string
+  titleA: string
+  originA: string
+  idB: string
+  titleB: string
+  originB: string
+  similarity: number
+  canonicalId: string
+  nonCanonicalId: string
+  reason: string
 }
 
 type ActionResult = { type: 'success' | 'error'; message: string }
@@ -109,6 +140,10 @@ export function ChunksHealthClient() {
   const [analyzeLoading, setAnalyzeLoading] = useState(false)
   const [reanalyzeLoading, setReanalyzeLoading] = useState(false)
   const [enrichLoading, setEnrichLoading] = useState(false)
+  const [dedupScanLoading, setDedupScanLoading] = useState(false)
+  const [dedupResolveLoading, setDedupResolveLoading] = useState(false)
+  const [scanPairs, setScanPairs] = useState<ScanPair[] | null>(null)
+  const [dedupResolveConfirm, setDedupResolveConfirm] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -209,6 +244,84 @@ export function ChunksHealthClient() {
       (j) => (j.message as string) || `${j.enriched ?? 0} docs enrichis`
     )
 
+  const handleDedupScan = async () => {
+    setDedupScanLoading(true)
+    setActionResult(null)
+    setScanPairs(null)
+    try {
+      const res = await fetch('/api/admin/kb/cross-source-dedup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'scan' }),
+      })
+      const json = await res.json() as Record<string, unknown>
+      if (res.ok && json.success !== false) {
+        setScanPairs((json.pairs as ScanPair[]) ?? [])
+        setActionResult({
+          type: 'success',
+          message: `${json.duplicatesFound ?? 0} doublon(s) détecté(s) sur ${json.scanned ?? 0} documents analysés (dry-run, aucune modification)`,
+        })
+      } else {
+        setActionResult({ type: 'error', message: (json.error as string) || 'Erreur scan' })
+      }
+    } catch {
+      setActionResult({ type: 'error', message: 'Erreur réseau' })
+    } finally {
+      setDedupScanLoading(false)
+    }
+  }
+
+  const handleDedupResolve = async () => {
+    if (!dedupResolveConfirm) {
+      setDedupResolveConfirm(true)
+      return
+    }
+    setDedupResolveLoading(true)
+    setDedupResolveConfirm(false)
+    setActionResult(null)
+    try {
+      const res = await fetch('/api/admin/kb/cross-source-dedup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'resolve' }),
+      })
+      const json = await res.json() as Record<string, unknown>
+      if (res.ok && json.success !== false) {
+        setActionResult({
+          type: 'success',
+          message: `${json.resolved ?? 0} doublon(s) résolu(s) — copies non-canoniques désactivées du RAG`,
+        })
+        setScanPairs(null)
+        await fetchData()
+      } else {
+        setActionResult({ type: 'error', message: (json.error as string) || 'Erreur résolution' })
+      }
+    } catch {
+      setActionResult({ type: 'error', message: 'Erreur réseau' })
+    } finally {
+      setDedupResolveLoading(false)
+    }
+  }
+
+  const handleDedupRevert = async (docId: string) => {
+    try {
+      const res = await fetch('/api/admin/kb/cross-source-dedup', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docId }),
+      })
+      const json = await res.json() as Record<string, unknown>
+      if (res.ok && json.success !== false) {
+        setActionResult({ type: 'success', message: `Déduplication annulée pour le document` })
+        await fetchData()
+      } else {
+        setActionResult({ type: 'error', message: (json.error as string) || 'Erreur revert' })
+      }
+    } catch {
+      setActionResult({ type: 'error', message: 'Erreur réseau' })
+    }
+  }
+
   // --- États de chargement ---
   if (loading && !data) {
     return (
@@ -235,7 +348,7 @@ export function ChunksHealthClient() {
 
   if (!data) return null
 
-  const { embedding, chunks, quality } = data
+  const { embedding, chunks, quality, crossSourceDedup } = data
 
   return (
     <div className="space-y-6 p-6">
@@ -271,7 +384,7 @@ export function ChunksHealthClient() {
       )}
 
       {/* KPIs globaux */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Chunks totaux</CardTitle>
@@ -334,11 +447,26 @@ export function ChunksHealthClient() {
             )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Doublons cross-source</CardTitle>
+            <Layers className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${(crossSourceDedup?.affectedDocs ?? 0) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+              {crossSourceDedup?.affectedDocs ?? 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {crossSourceDedup?.totalPairs ?? 0} paire(s) détectée(s)
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="embeddings" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="embeddings" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Embeddings
@@ -363,6 +491,15 @@ export function ChunksHealthClient() {
             {quality.withoutScore > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 px-1 text-xs">
                 {quality.withoutScore}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="doublons" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            Doublons
+            {(crossSourceDedup?.affectedDocs ?? 0) > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1 text-xs">
+                {crossSourceDedup?.affectedDocs}
               </Badge>
             )}
           </TabsTrigger>
@@ -670,6 +807,221 @@ export function ChunksHealthClient() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        {/* ------------------------------------------------------------------ */}
+        {/* ONGLET DOUBLONS CROSS-SOURCE                                        */}
+        {/* ------------------------------------------------------------------ */}
+        <TabsContent value="doublons" className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Doublons Cross-Source</h2>
+              <p className="text-sm text-muted-foreground">
+                Détecte les textes juridiques indexés depuis plusieurs sources et conserve la version officielle (IORT &gt; cassation &gt; 9anoun)
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={handleDedupScan}
+                disabled={dedupScanLoading}
+                variant="outline"
+                size="sm"
+              >
+                <Layers className={`h-4 w-4 mr-2 ${dedupScanLoading ? 'animate-spin' : ''}`} />
+                {dedupScanLoading ? 'Analyse...' : 'Analyser (dry-run)'}
+              </Button>
+              {dedupResolveConfirm ? (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleDedupResolve}
+                    disabled={dedupResolveLoading}
+                    size="sm"
+                    variant="destructive"
+                  >
+                    {dedupResolveLoading ? 'Résolution...' : 'Confirmer la résolution'}
+                  </Button>
+                  <Button
+                    onClick={() => setDedupResolveConfirm(false)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    Annuler
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleDedupResolve}
+                  disabled={dedupResolveLoading || (crossSourceDedup?.totalPairs === 0 && !scanPairs?.length)}
+                  size="sm"
+                >
+                  <CheckCircle2 className={`h-4 w-4 mr-2 ${dedupResolveLoading ? 'animate-spin' : ''}`} />
+                  Résoudre automatiquement
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* KPIs */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardContent className="pt-6">
+                <div className={`text-2xl font-bold ${(crossSourceDedup?.totalPairs ?? 0) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                  {crossSourceDedup?.totalPairs ?? 0}
+                </div>
+                <p className="text-sm text-muted-foreground">Paires de doublons détectées</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className={`text-2xl font-bold ${(crossSourceDedup?.affectedDocs ?? 0) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                  {crossSourceDedup?.affectedDocs ?? 0}
+                </div>
+                <p className="text-sm text-muted-foreground">Docs non-canoniques désactivés du RAG</p>
+                {(crossSourceDedup?.affectedDocs ?? 0) > 0 && (
+                  <Badge variant="secondary" className="mt-2">rag_enabled=false</Badge>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-blue-600">
+                  {crossSourceDedup?.resolvedPairs ?? 0}
+                </div>
+                <p className="text-sm text-muted-foreground">Paires confirmées/résolues</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Répartition par paire de sources */}
+          {(crossSourceDedup?.bySourcePair?.length ?? 0) > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Par paire de sources</CardTitle>
+                <CardDescription>Sources concernées par les doublons détectés</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {crossSourceDedup?.bySourcePair.map((pair) => (
+                    <div key={pair.pairLabel} className="flex items-center justify-between text-sm">
+                      <span className="font-mono text-muted-foreground">{pair.pairLabel}</span>
+                      <Badge variant="outline">{pair.count} paire(s)</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Résultats du scan dry-run */}
+          {scanPairs !== null && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Résultats de l'analyse (dry-run)</CardTitle>
+                <CardDescription>
+                  {scanPairs.length === 0
+                    ? 'Aucun doublon cross-source détecté avec similarité ≥ 0.90'
+                    : `${scanPairs.length} paire(s) — la version canonique (source officielle) est indiquée`}
+                </CardDescription>
+              </CardHeader>
+              {scanPairs.length > 0 && (
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-muted-foreground">
+                          <th className="pb-2 text-left font-medium">Canonique</th>
+                          <th className="pb-2 text-left font-medium">Doublon (à désactiver)</th>
+                          <th className="pb-2 text-right font-medium">Sim.</th>
+                          <th className="pb-2 text-left font-medium">Raison</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {scanPairs.slice(0, 30).map((pair, i) => (
+                          <tr key={i} className="border-b last:border-0">
+                            <td className="py-2 pr-4">
+                              <div className="flex items-center gap-1">
+                                <Crown className="h-3 w-3 text-yellow-500 shrink-0" />
+                                <span className="truncate max-w-[180px]" title={pair.titleA}>{pair.titleA}</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">{pair.originA}</span>
+                            </td>
+                            <td className="py-2 pr-4">
+                              <span className="truncate max-w-[180px] text-muted-foreground" title={pair.titleB}>{pair.titleB}</span>
+                              <br />
+                              <span className="text-xs text-muted-foreground">{pair.originB}</span>
+                            </td>
+                            <td className="py-2 text-right font-mono">
+                              {(pair.similarity * 100).toFixed(1)}%
+                            </td>
+                            <td className="py-2 text-xs text-muted-foreground">{pair.reason}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {scanPairs.length > 30 && (
+                      <p className="mt-2 text-xs text-muted-foreground text-center">
+                        Affichage limité à 30 / {scanPairs.length} paires
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
+
+          {/* Paires récentes résolues */}
+          {(crossSourceDedup?.recentPairs?.length ?? 0) > 0 && !scanPairs && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Doublons résolus récemment</CardTitle>
+                <CardDescription>Documents non-canoniques désactivés du RAG</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="pb-2 text-left font-medium">Canonique</th>
+                        <th className="pb-2 text-left font-medium">Désactivé</th>
+                        <th className="pb-2 text-right font-medium">Sim.</th>
+                        <th className="pb-2 text-right font-medium">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {crossSourceDedup?.recentPairs.map((pair, i) => (
+                        <tr key={i} className="border-b last:border-0">
+                          <td className="py-2 pr-4">
+                            <div className="flex items-center gap-1">
+                              <Crown className="h-3 w-3 text-yellow-500 shrink-0" />
+                              <span className="truncate max-w-[180px]" title={pair.titleA}>{pair.titleA}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{pair.originA}</span>
+                          </td>
+                          <td className="py-2 pr-4">
+                            <span className="truncate max-w-[180px] text-muted-foreground" title={pair.titleB}>{pair.titleB}</span>
+                            <br />
+                            <span className="text-xs text-muted-foreground">{pair.originB}</span>
+                          </td>
+                          <td className="py-2 text-right font-mono">
+                            {(pair.similarity * 100).toFixed(1)}%
+                          </td>
+                          <td className="py-2 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => handleDedupRevert(pair.idB)}
+                            >
+                              Annuler
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

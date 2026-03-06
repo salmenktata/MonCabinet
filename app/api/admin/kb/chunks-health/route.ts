@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { getErrorMessage } from '@/lib/utils/error-utils'
 import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
+import { getCrossSourceDupStats } from '@/lib/kb/cross-source-dedup-service'
 
 /**
  * GET /api/admin/kb/chunks-health
@@ -14,7 +15,7 @@ import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
  */
 export const GET = withAdminApiAuth(async () => {
   try {
-    const [embeddingResult, chunkResult, qualityResult] = await Promise.all([
+    const [embeddingResult, chunkResult, qualityResult, dedupStats] = await Promise.all([
       // --- Embeddings ---
       db.query(`
         WITH emb AS (
@@ -107,6 +108,9 @@ export const GET = withAdminApiAuth(async () => {
           json_agg(json_build_object('range', range, 'count', count) ORDER BY range) AS distribution
         FROM dist
       `),
+
+      // --- Déduplication cross-source ---
+      getCrossSourceDupStats(),
     ])
 
     const emb = embeddingResult.rows[0]
@@ -142,6 +146,7 @@ export const GET = withAdminApiAuth(async () => {
         likelyFailures: qual.likely_failures ?? 0,
         distribution: qual.distribution ?? [],
       },
+      crossSourceDedup: dedupStats,
     })
   } catch (error) {
     console.error('[ChunksHealth] Erreur:', error)
