@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ interface EnrichedMessageProps {
   message: ChatMessage
 }
 
-export function EnrichedMessage({ message }: EnrichedMessageProps) {
+export const EnrichedMessage = memo(function EnrichedMessage({ message }: EnrichedMessageProps) {
   const router = useRouter()
   const t = useTranslations('qadhyaIA.enriched')
 
@@ -34,7 +34,7 @@ export function EnrichedMessage({ message }: EnrichedMessageProps) {
     default:
       return <ChatMessageView message={message} />
   }
-}
+})
 
 // Badge de posture stratégique (défense / attaque)
 function StanceBadge({ stance, defenseLabel, attackLabel }: { stance: string | undefined; defenseLabel: string; attackLabel: string }) {

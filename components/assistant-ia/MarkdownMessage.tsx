@@ -1,15 +1,28 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo, memo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript'
+import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
+import python from 'react-syntax-highlighter/dist/esm/languages/prism/python'
+import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash'
+import json from 'react-syntax-highlighter/dist/esm/languages/prism/json'
+import sql from 'react-syntax-highlighter/dist/esm/languages/prism/sql'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { useState } from 'react'
 import { InlineCitation } from './InlineCitation'
 import type { ChatSource } from './ChatMessages'
+
+SyntaxHighlighter.registerLanguage('javascript', javascript)
+SyntaxHighlighter.registerLanguage('typescript', typescript)
+SyntaxHighlighter.registerLanguage('python', python)
+SyntaxHighlighter.registerLanguage('bash', bash)
+SyntaxHighlighter.registerLanguage('json', json)
+SyntaxHighlighter.registerLanguage('sql', sql)
 
 interface MarkdownMessageProps {
   content: string
@@ -169,12 +182,8 @@ function getSectionStyle(text: string): SectionStyle | null {
   return null
 }
 
-export function MarkdownMessage({ content, sources = [], className }: MarkdownMessageProps) {
-  return (
-    <div dir="auto" className={cn('chat-ai-content prose dark:prose-invert max-w-none prose-p:first:mt-0 prose-headings:first:mt-0', className)}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
+export const MarkdownMessage = memo(function MarkdownMessage({ content, sources = [], className }: MarkdownMessageProps) {
+  const markdownComponents = useMemo(() => ({
           // Personnalisation des liens
           a: ({ node, ...props }) => (
             <a
@@ -440,13 +449,20 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
               </p>
             )
           },
-        }}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [sources])
+
+  return (
+    <div dir="auto" className={cn('chat-ai-content prose dark:prose-invert max-w-none prose-p:first:mt-0 prose-headings:first:mt-0', className)}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={markdownComponents}
       >
         {content}
       </ReactMarkdown>
     </div>
   )
-}
+})
 
 // Composant Code Block avec bouton copier
 function CodeBlock({ language, code }: { language: string; code: string }) {

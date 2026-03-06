@@ -11,6 +11,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
+import dynamic from 'next/dynamic'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,7 +20,11 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { FeatureErrorBoundary } from '@/components/providers/FeatureErrorBoundary'
 import { ActionButtons, type ActionType } from '@/components/qadhya-ia/ActionButtons'
-import { EnrichedMessage } from '@/components/qadhya-ia/EnrichedMessage'
+
+const EnrichedMessage = dynamic(
+  () => import('@/components/qadhya-ia/EnrichedMessage').then(m => m.EnrichedMessage),
+  { ssr: false }
+)
 import { StanceSelector } from '@/components/qadhya-ia/StanceSelector'
 import { SuggestionChips } from '@/components/qadhya-ia/SuggestionChips'
 import { ChatActions } from '@/components/assistant-ia/ChatActions'
