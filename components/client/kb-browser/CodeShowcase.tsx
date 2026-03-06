@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { BookOpen, ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -93,9 +94,29 @@ interface CodeShowcaseProps {
 
 export function CodeShowcase({ className = '' }: CodeShowcaseProps) {
   const router = useRouter()
+  const [resolvedIds, setResolvedIds] = useState<Record<string, string>>({})
 
-  const handleCodeClick = (query: string) => {
-    router.push(`/client/knowledge-base?mode=general&cat=codes&q=${encodeURIComponent(query)}`)
+  useEffect(() => {
+    LEGAL_CODES.forEach((code) => {
+      fetch(`/api/client/kb/browse?category=codes&q=${encodeURIComponent(code.fr)}&limit=1`)
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          const firstDoc = data?.results?.[0]
+          if (firstDoc?.kbId) {
+            setResolvedIds((prev) => ({ ...prev, [code.key]: firstDoc.kbId }))
+          }
+        })
+        .catch(() => {/* fallback silencieux */})
+    })
+  }, [])
+
+  const handleCodeClick = (key: string, query: string) => {
+    const kbId = resolvedIds[key]
+    if (kbId) {
+      router.push(`/client/knowledge-base/${kbId}`)
+    } else {
+      router.push(`/client/knowledge-base?mode=general&cat=codes&q=${encodeURIComponent(query)}`)
+    }
   }
 
   return (
@@ -118,25 +139,33 @@ export function CodeShowcase({ className = '' }: CodeShowcaseProps) {
 
       {/* Scroll horizontal sur mobile, grille sur desktop */}
       <div className="flex md:grid md:grid-cols-4 gap-3 overflow-x-auto pb-2 md:overflow-visible md:pb-0 snap-x snap-mandatory md:snap-none">
-        {LEGAL_CODES.map((code) => (
-          <button
-            key={code.key}
-            onClick={() => handleCodeClick(code.query)}
-            className={`snap-start shrink-0 w-44 md:w-auto text-left border rounded-xl p-3 transition-all hover:shadow-sm cursor-pointer ${code.colorClass}`}
-          >
-            <div className="space-y-1.5">
-              <div className="text-sm font-semibold leading-snug line-clamp-2">
-                {code.fr}
+        {LEGAL_CODES.map((code) => {
+          const isResolved = !!resolvedIds[code.key]
+          return (
+            <button
+              key={code.key}
+              onClick={() => handleCodeClick(code.key, code.query)}
+              className={`snap-start shrink-0 w-44 md:w-auto text-left border rounded-xl p-3 transition-all hover:shadow-sm cursor-pointer ${code.colorClass}`}
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-start justify-between gap-1">
+                  <div className="text-sm font-semibold leading-snug line-clamp-2 flex-1">
+                    {code.fr}
+                  </div>
+                  {isResolved && (
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 mt-0.5 opacity-50" />
+                  )}
+                </div>
+                <div className="text-xs opacity-70 font-medium" dir="rtl">
+                  {code.ar}
+                </div>
+                <Badge className={`text-xs mt-1 ${code.badgeClass}`} variant="outline">
+                  {code.year}
+                </Badge>
               </div>
-              <div className="text-xs opacity-70 font-medium" dir="rtl">
-                {code.ar}
-              </div>
-              <Badge className={`text-xs mt-1 ${code.badgeClass}`} variant="outline">
-                {code.year}
-              </Badge>
-            </div>
-          </button>
-        ))}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

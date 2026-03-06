@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get('category')
   const normLevel = searchParams.get('norm_level')
   const docType = searchParams.get('doc_type')
+  const q = searchParams.get('q')?.trim() || null
   const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
   const offset = parseInt(searchParams.get('offset') || '0', 10)
   const sort = searchParams.get('sort') || 'date'
@@ -48,6 +49,10 @@ export async function GET(request: NextRequest) {
   if (docType) {
     whereParams.push(docType)
     whereClauses.push(`kb.doc_type = $${whereParams.length}::document_type`)
+  }
+  if (q) {
+    whereParams.push(`%${q}%`)
+    whereClauses.push(`kb.title ILIKE $${whereParams.length}`)
   }
 
   const whereSQL = whereClauses.join(' AND ')

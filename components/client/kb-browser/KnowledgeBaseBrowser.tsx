@@ -15,6 +15,7 @@ import { useKBStats } from '@/lib/hooks/useKBStats'
 import { DocumentExplorer } from './DocumentExplorer'
 import { LegalPortalCard } from './LegalPortalCard'
 import { CodeShowcase } from './CodeShowcase'
+import { JortBrowser } from './JortBrowser'
 
 // =============================================================================
 // DONNÉES STATIQUES
@@ -142,7 +143,7 @@ export function KnowledgeBaseBrowser() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const urlMode = searchParams.get('mode') as 'textes' | 'general' | null
+  const urlMode = searchParams.get('mode') as 'textes' | 'general' | 'jort' | null
   const urlDomain = searchParams.get('domain') || undefined
   const urlCat = searchParams.get('cat') || undefined
   const urlQ = searchParams.get('q') || ''
@@ -185,7 +186,9 @@ export function KnowledgeBaseBrowser() {
   }, [router])
 
   const handlePortalClick = useCallback((portal: typeof PORTALS[0]) => {
-    if (portal.cat) {
+    if (portal.key === 'jort') {
+      router.push('/client/knowledge-base?mode=jort')
+    } else if (portal.cat) {
       router.push(`/client/knowledge-base?mode=${portal.mode}&cat=${portal.cat}`)
     } else {
       router.push(`/client/knowledge-base?mode=general`)
@@ -198,7 +201,11 @@ export function KnowledgeBaseBrowser() {
 
   return (
     <AnimatePresence mode="wait">
-      {mode === 'textes' || mode === 'general' ? (
+      {mode === 'jort' ? (
+        <motion.div key="jort" {...fadeSlide} className="container mx-auto">
+          <JortBrowser onBack={handleBack} />
+        </motion.div>
+      ) : mode === 'textes' || mode === 'general' ? (
         <motion.div key="results" {...fadeSlide} className="container mx-auto">
           {mode === 'textes' ? (
             <DocumentExplorer

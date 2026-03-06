@@ -11,6 +11,7 @@ import type { SearchResultItem } from '@/components/client/kb-browser/DocumentEx
 
 interface PageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ article?: string }>
 }
 
 interface FullTextChunk {
@@ -230,13 +231,14 @@ function DocumentPageSkeleton() {
   )
 }
 
-export default async function DocumentDetailRoute({ params }: PageProps) {
+export default async function DocumentDetailRoute({ params, searchParams }: PageProps) {
   const session = await getSession()
   if (!session?.user) {
     redirect('/auth/signin')
   }
 
   const { id } = await params
+  const { article } = await searchParams
 
   const data = await fetchAllDocumentData(id)
   if (!data) {
@@ -252,6 +254,7 @@ export default async function DocumentDetailRoute({ params }: PageProps) {
         initialDocument={document}
         initialChunks={chunks}
         initialRelations={relations}
+        initialArticle={article}
       />
     </Suspense>
   )

@@ -34,6 +34,7 @@ interface DocumentDetailPageProps {
   initialDocument?: SearchResultItem
   initialChunks?: FullTextChunk[]
   initialRelations?: NonNullable<SearchResultItem['relations']>
+  initialArticle?: string
 }
 
 // =============================================================================
@@ -72,23 +73,43 @@ function ChunkBlock({
   chunk,
   isActive,
   chunkRef,
+  documentId,
 }: {
   chunk: FullTextChunk
   isActive: boolean
   chunkRef: (el: HTMLDivElement | null) => void
+  documentId: string
 }) {
   const lines = chunk.content.trim().split('\n')
   const firstLine = lines[0].trim()
   const restLines = lines.slice(1).join('\n').trim()
   const heading = getHeadingTag(chunk.content)
   const dir = ARABIC_REGEX.test(firstLine) ? 'rtl' : 'ltr'
+  const articleNumber = chunk.metadata.article_number as string | undefined
+
+  const handleCopyArticleLink = () => {
+    if (!articleNumber) return
+    const url = `${window.location.origin}/client/knowledge-base/${documentId}?article=${encodeURIComponent(articleNumber)}`
+    navigator.clipboard.writeText(url)
+    toast.success('Lien vers l\'article copié')
+  }
 
   return (
     <div
       ref={chunkRef}
       id={`chunk-${chunk.index}`}
-      className={`transition-colors scroll-mt-6 ${isActive ? 'bg-primary/5 rounded-lg' : ''}`}
+      className={`group relative transition-colors scroll-mt-6 ${isActive ? 'bg-primary/5 rounded-lg' : ''}`}
     >
+      {articleNumber && heading?.tag === 'article' && (
+        <button
+          type="button"
+          onClick={handleCopyArticleLink}
+          title="Copier le lien direct vers cet article"
+          className="absolute right-1 top-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted print:hidden"
+        >
+          <Link2 className="h-3.5 w-3.5" />
+        </button>
+      )}
       {heading ? (
         <div className={`py-3 ${heading.tag === 'h2' ? 'pt-8' : ''}`} dir={dir}>
           {heading.tag === 'h2' && (
@@ -134,6 +155,7 @@ export function DocumentDetailPage({
   initialDocument,
   initialChunks,
   initialRelations,
+  initialArticle,
 }: DocumentDetailPageProps) {
   const router = useRouter()
 
@@ -201,6 +223,18 @@ export function DocumentDetailPage({
       .catch((err) => setChunksError(err.message))
       .finally(() => setChunksLoading(false))
   }, [documentId, initialChunks])
+
+  // Scroll vers l'article cible quand les chunks sont chargés
+  useEffect(() => {
+    if (!chunks || chunks.length === 0 || !initialArticle) return
+    const target = chunks.find(
+      (c) => String(c.metadata.article_number) === String(initialArticle)
+    )
+    if (target !== undefined) {
+      // Léger délai pour que le DOM soit prêt
+      setTimeout(() => scrollToChunk(target.index), 300)
+    }
+  }, [chunks, initialArticle, scrollToChunk])
 
   // IntersectionObserver pour suivre la section active
   useEffect(() => {
@@ -543,6 +577,7 @@ export function DocumentDetailPage({
                       chunk={chunk}
                       isActive={chunk.index === activeChunkIndex}
                       chunkRef={(el) => { chunkRefs.current[chunk.index] = el }}
+                      documentId={documentId}
                     />
                   ))}
                 </div>
