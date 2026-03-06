@@ -252,11 +252,13 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 4. ANALYSE QUALITÉ KB (tous documents, courts et longs)
   // ---------------------------------------------------------------------------
   'kb-quality-analysis': {
-    model: { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }, // Ollama en dev ET prod (batch, pas temps réel)
+    model: isDev
+      ? { provider: 'ollama', name: OLLAMA_QUALITY_MODEL }
+      : { provider: 'deepseek', name: 'deepseek-chat' }, // DeepSeek prod pour accélérer indexation batch (~10x vs Ollama)
 
     timeouts: {
-      chat: 60000, // Ollama plus lent que Groq, marge élargie
-      total: 120000,
+      chat: 30000,
+      total: 60000,
     },
 
     llmConfig: {
@@ -265,7 +267,9 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'log', severity: 'warning' }, // Log seulement (batch non-critique)
-    description: `Analyse qualité documents KB - Ollama ${OLLAMA_QUALITY_MODEL} (gratuit, batch)`,
+    description: isDev
+      ? `Analyse qualité documents KB - Ollama ${OLLAMA_QUALITY_MODEL} (gratuit, batch)`
+      : 'Analyse qualité documents KB - DeepSeek (batch rapide)',
   },
 
   // ---------------------------------------------------------------------------
