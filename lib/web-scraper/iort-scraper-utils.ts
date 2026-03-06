@@ -97,13 +97,15 @@ export const IORT_TEXT_TYPE_LABELS: Record<IortLanguage, Record<IortTextType, st
 
 /** Configuration rate limiting */
 export const IORT_RATE_CONFIG = {
-  minDelay: 5000,
-  longPauseEvery: 50,
-  longPauseMs: 15000,
-  comboPauseMs: 10000,
-  refreshEvery: 150,
+  minDelay: 6000,
+  longPauseEvery: 20,
+  longPauseMs: 20000,
+  comboPauseMs: 12000,
+  refreshEvery: 100,
   navigationTimeout: 60000,
   selectorTimeout: 30000,
+  errorBackoffMs: 15000,
+  maxErrorBackoffMs: 60000,
 } as const
 
 /** Textes JORT sans valeur juridique pour un avocat — skip au crawl */
@@ -139,6 +141,22 @@ const CHROMIUM_ARGS = [
   '--disable-software-rasterizer',
   '--disable-images',
   '--js-flags=--max-old-space-size=256',
+]
+
+/** Pool de User-Agents Chrome récents pour rotation par contexte */
+const IORT_USER_AGENT_POOL = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
+]
+
+/** Viewports courants pour varier l'empreinte du contexte */
+const IORT_VIEWPORTS = [
+  { width: 1920, height: 1080 },
+  { width: 1440, height: 900 },
+  { width: 1366, height: 768 },
+  { width: 1536, height: 864 },
 ]
 
 /** Résultat parsé d'une entrée de recherche */
@@ -207,8 +225,11 @@ export class IortSessionManager {
     if (this.context) {
       await this.context.close().catch(() => {})
     }
+    const userAgent = IORT_USER_AGENT_POOL[Math.floor(Math.random() * IORT_USER_AGENT_POOL.length)]
+    const viewport = IORT_VIEWPORTS[Math.floor(Math.random() * IORT_VIEWPORTS.length)]
     this.context = await this.browser!.newContext({
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+      userAgent,
+      viewport,
       locale: 'ar-TN',
       extraHTTPHeaders: {
         'Accept-Language': 'ar-TN,ar;q=0.9,fr-TN;q=0.8,fr;q=0.7',
@@ -216,6 +237,15 @@ export class IortSessionManager {
     })
     this.page = await this.context.newPage()
     this.page.setDefaultTimeout(IORT_RATE_CONFIG.navigationTimeout)
+    // Masquer les fingerprints headless (navigator.webdriver, plugins, chrome runtime)
+    await this.page.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined })
+      Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] })
+      Object.defineProperty(navigator, 'languages', { get: () => ['ar-TN', 'ar', 'fr'] })
+      if (!(window as any).chrome) {
+        (window as any).chrome = { runtime: {} }
+      }
+    })
     this.pageCount = 0
   }
 
@@ -244,8 +274,12 @@ export class IortSessionManager {
   async isSessionValid(): Promise<boolean> {
     try {
       const page = this.getPage()
-      const content = await page.content()
-      return content.includes('WD_ACTION_')
+      const url = page.url()
+      // Redirect vers la homepage = session expirée côté serveur WebDev
+      if (url === IORT_BASE_URL || url === IORT_BASE_URL + '/') return false
+      // Le formulaire de recherche (select A8) doit être présent
+      const hasForm = await page.$('select[name="A8"]')
+      return hasForm !== null
     } catch {
       return false
     }
@@ -1151,6 +1185,8 @@ export async function crawlYearType(
   let consecutiveErrors = 0
   /** Page atteinte avant le dernier crash — permet de fast-forward après recovery */
   let lastSuccessfulPage = 0
+  /** Délai adaptatif : augmente après erreurs, revient à minDelay après succès */
+  let currentDelay = IORT_RATE_CONFIG.minDelay
 
   while (hasNextPage) {
     if (signal?.aborted) {
@@ -1178,7 +1214,7 @@ export async function crawlYearType(
         if (IORT_ADMIN_NOISE_PATTERNS.some(p => p.test(result.title))) {
           log.info(` skip bruit admin: "${result.title.substring(0, 70)}"`)
           stats.skipped++
-          await sleep(IORT_RATE_CONFIG.minDelay)
+          await sleep(currentDelay)
           continue
         }
 
@@ -1190,8 +1226,9 @@ export async function crawlYearType(
               stats.skipped++
             } else {
               stats.errors++
+              currentDelay = Math.min(currentDelay * 1.5, IORT_RATE_CONFIG.maxErrorBackoffMs)
             }
-            await sleep(IORT_RATE_CONFIG.minDelay)
+            await sleep(currentDelay)
             continue
           }
 
@@ -1209,7 +1246,9 @@ export async function crawlYearType(
             log.info(` ✓ ${result.title.substring(0, 60)}...`)
           }
 
-          await sleep(IORT_RATE_CONFIG.minDelay)
+          // Succès : réinitialiser le délai
+          currentDelay = IORT_RATE_CONFIG.minDelay
+          await sleep(currentDelay)
           await session.tick()
 
           if ((stats.crawled + stats.skipped) % IORT_RATE_CONFIG.longPauseEvery === 0 && stats.crawled > 0) {
@@ -1220,6 +1259,7 @@ export async function crawlYearType(
           const errMsg = err instanceof Error ? err.message : String(err)
           stats.errors++
           log.error(` Erreur traitement "${result.title.substring(0, 40)}":`, errMsg)
+          currentDelay = Math.min(currentDelay * 1.5, IORT_RATE_CONFIG.maxErrorBackoffMs)
 
           // Si le browser a crashé, récupérer et sortir de la boucle des résultats
           if (errMsg.includes('Target page') || errMsg.includes('browser has been closed') || errMsg.includes('context has been closed')) {
@@ -1240,7 +1280,7 @@ export async function crawlYearType(
             }
           } catch { /* context may be dead */ }
 
-          await sleep(IORT_RATE_CONFIG.minDelay)
+          await sleep(currentDelay)
         }
       }
 
