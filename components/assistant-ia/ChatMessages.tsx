@@ -750,7 +750,7 @@ const MessageBubble = memo(function MessageBubble({ message, progressSteps, rend
 
           {/* Barre d'actions - en bas de la carte */}
           {!message.isStreaming && (
-            <div className="flex items-center justify-between gap-0.5 px-3 py-1.5 border-t border-border/20 opacity-0 group-hover:opacity-100 transition-all duration-300">
+            <div className="flex items-center justify-between gap-0.5 px-3 py-1.5 border-t border-border/20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300">
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={handleCopyResponse}

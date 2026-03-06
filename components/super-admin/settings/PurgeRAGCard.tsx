@@ -264,21 +264,21 @@ export function PurgeRAGCard() {
         ) : stats ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Knowledge Base */}
-            <div className="p-4 rounded-lg bg-slate-700/50 border border-slate-600">
+            <div className="p-4 rounded-lg bg-muted/50 border border-border">
               <div className="flex items-center gap-2 mb-3">
                 <Icons.database className="h-4 w-4 text-blue-400" />
-                <span className="font-medium text-white">Base de connaissances</span>
+                <span className="font-medium text-foreground">Base de connaissances</span>
               </div>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Documents</span>
                   <span className="font-mono">{stats.knowledgeBase.documents}</span>
                 </div>
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Chunks (embeddings)</span>
                   <span className="font-mono">{stats.knowledgeBase.chunks}</span>
                 </div>
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Versions</span>
                   <span className="font-mono">{stats.knowledgeBase.versions}</span>
                 </div>
@@ -286,21 +286,21 @@ export function PurgeRAGCard() {
             </div>
 
             {/* Web Sources */}
-            <div className="p-4 rounded-lg bg-slate-700/50 border border-slate-600">
+            <div className="p-4 rounded-lg bg-muted/50 border border-border">
               <div className="flex items-center gap-2 mb-3">
                 <Icons.globe className="h-4 w-4 text-green-400" />
-                <span className="font-medium text-white">Sources Web</span>
+                <span className="font-medium text-foreground">Sources Web</span>
               </div>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Sources configurées</span>
                   <span className="font-mono">{stats.webSources.sources}</span>
                 </div>
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Pages crawlées</span>
                   <span className="font-mono">{stats.webSources.pages}</span>
                 </div>
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Fichiers téléchargés</span>
                   <span className="font-mono">{stats.webSources.files}</span>
                 </div>
@@ -308,21 +308,21 @@ export function PurgeRAGCard() {
             </div>
 
             {/* Content Review */}
-            <div className="p-4 rounded-lg bg-slate-700/50 border border-slate-600">
+            <div className="p-4 rounded-lg bg-muted/50 border border-border">
               <div className="flex items-center gap-2 mb-3">
                 <Icons.clipboardCheck className="h-4 w-4 text-orange-400" />
-                <span className="font-medium text-white">Revue de contenu</span>
+                <span className="font-medium text-foreground">Revue de contenu</span>
               </div>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>File de revue</span>
                   <span className="font-mono">{stats.contentReview.reviewQueue}</span>
                 </div>
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Classifications</span>
                   <span className="font-mono">{stats.contentReview.classifications}</span>
                 </div>
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Contradictions</span>
                   <span className="font-mono">{stats.contentReview.contradictions}</span>
                 </div>
@@ -330,17 +330,17 @@ export function PurgeRAGCard() {
             </div>
 
             {/* Stockage */}
-            <div className="p-4 rounded-lg bg-slate-700/50 border border-slate-600">
+            <div className="p-4 rounded-lg bg-muted/50 border border-border">
               <div className="flex items-center gap-2 mb-3">
                 <Icons.hardDrive className="h-4 w-4 text-purple-400" />
-                <span className="font-medium text-white">Stockage MinIO</span>
+                <span className="font-medium text-foreground">Stockage MinIO</span>
               </div>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Fichiers KB</span>
                   <span className="font-mono">{stats.storage.knowledgeBaseFiles}</span>
                 </div>
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Fichiers Web</span>
                   <span className="font-mono">{stats.storage.webFiles}</span>
                 </div>
@@ -358,7 +358,7 @@ export function PurgeRAGCard() {
         )}
 
         {/* Bouton de purge */}
-        <div className="pt-4 border-t border-slate-700">
+        <div className="pt-4 border-t border-border">
           <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
             <DialogTrigger asChild>
               <Button
@@ -373,13 +373,13 @@ export function PurgeRAGCard() {
                 )}
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-700 sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="bg-card border-border sm:max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-red-400 flex items-center gap-2">
                   <Icons.alertTriangle className="h-5 w-5" />
                   Purge RAG Sélective
                 </DialogTitle>
-                <DialogDescription className="text-slate-400">
+                <DialogDescription className="text-muted-foreground">
                   Sélectionnez les données à supprimer. Cette action est <strong className="text-red-400">IRRÉVERSIBLE</strong>.
                 </DialogDescription>
               </DialogHeader>
@@ -402,7 +402,7 @@ export function PurgeRAGCard() {
                     <AlertTitle className={result.success ? 'text-green-400' : 'text-red-400'}>
                       {result.success ? 'Purge terminée' : 'Erreur'}
                     </AlertTitle>
-                    <AlertDescription className="text-slate-300">
+                    <AlertDescription className="text-foreground">
                       {result.message}
                       {result.success && result.deletedCounts && (
                         <div className="mt-2 text-sm">
@@ -469,7 +469,7 @@ export function PurgeRAGCard() {
                         variant="outline"
                         size="sm"
                         onClick={selectAll}
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                        className="border-border text-muted-foreground hover:bg-muted"
                       >
                         Tout sélectionner
                       </Button>
@@ -477,14 +477,14 @@ export function PurgeRAGCard() {
                         variant="outline"
                         size="sm"
                         onClick={deselectAll}
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                        className="border-border text-muted-foreground hover:bg-muted"
                       >
                         Tout désélectionner
                       </Button>
                     </div>
 
                     {/* Base de connaissances */}
-                    <div className="p-4 rounded-lg bg-slate-800 border border-blue-900/50">
+                    <div className="p-4 rounded-lg bg-card border border-blue-900/50">
                       <div className="flex items-center gap-2 mb-3">
                         <Icons.database className="h-4 w-4 text-blue-400" />
                         <span className="font-medium text-blue-400">BASE DE CONNAISSANCES</span>
@@ -537,7 +537,7 @@ export function PurgeRAGCard() {
                     </div>
 
                     {/* Sources Web */}
-                    <div className="p-4 rounded-lg bg-slate-800 border border-green-900/50">
+                    <div className="p-4 rounded-lg bg-card border border-green-900/50">
                       <div className="flex items-center gap-2 mb-3">
                         <Icons.globe className="h-4 w-4 text-green-400" />
                         <span className="font-medium text-green-400">SOURCES WEB</span>
@@ -599,7 +599,7 @@ export function PurgeRAGCard() {
                     </div>
 
                     {/* Content Review */}
-                    <div className="p-4 rounded-lg bg-slate-800 border border-orange-900/50">
+                    <div className="p-4 rounded-lg bg-card border border-orange-900/50">
                       <div className="flex items-center gap-2 mb-3">
                         <Icons.clipboardCheck className="h-4 w-4 text-orange-400" />
                         <span className="font-medium text-orange-400">REVUE DE CONTENU</span>
@@ -623,7 +623,7 @@ export function PurgeRAGCard() {
                     <Alert className="border-yellow-500/50 bg-yellow-900/20">
                       <Icons.alertTriangle className="h-4 w-4 text-yellow-400" />
                       <AlertTitle className="text-yellow-400">Dépendances FK</AlertTitle>
-                      <AlertDescription className="text-slate-300">
+                      <AlertDescription className="text-foreground">
                         <ul className="list-disc list-inside mt-1">
                           {warnings.map((w, i) => (
                             <li key={i}>{w}</li>
@@ -662,15 +662,15 @@ export function PurgeRAGCard() {
 
                   {/* Texte de confirmation */}
                   <div className="space-y-2">
-                    <Label htmlFor="confirm-text" className="text-sm text-slate-300">
-                      Tapez <code className="px-1.5 py-0.5 rounded bg-slate-700 text-red-400 font-mono text-xs">{CONFIRMATION_TEXT}</code> pour confirmer :
+                    <Label htmlFor="confirm-text" className="text-sm text-foreground">
+                      Tapez <code className="px-1.5 py-0.5 rounded bg-muted text-red-400 font-mono text-xs">{CONFIRMATION_TEXT}</code> pour confirmer :
                     </Label>
                     <Input
                       id="confirm-text"
                       value={confirmText}
                       onChange={(e) => setConfirmText(e.target.value)}
                       placeholder="Tapez PURGE pour confirmer..."
-                      className="bg-slate-800 border-slate-600 text-white font-mono"
+                      className="bg-card border-border text-foreground font-mono"
                       disabled={purging || !hasAnySelection}
                     />
                   </div>
@@ -692,7 +692,7 @@ export function PurgeRAGCard() {
                   <Button
                     variant="outline"
                     onClick={() => handleDialogOpenChange(false)}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                    className="border-border text-muted-foreground hover:bg-muted"
                   >
                     Fermer
                   </Button>
@@ -702,7 +702,7 @@ export function PurgeRAGCard() {
                       variant="outline"
                       onClick={() => handleDialogOpenChange(false)}
                       disabled={purging}
-                      className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                      className="border-border text-muted-foreground hover:bg-muted"
                     >
                       Annuler
                     </Button>
@@ -763,7 +763,7 @@ function SelectionItem({
   return (
     <div className={cn(
       "flex items-start space-x-3 p-2 rounded-lg transition-colors",
-      checked && !warning && "bg-slate-700/30",
+      checked && !warning && "bg-muted/30",
       checked && warning && "bg-yellow-900/20",
       forced && "opacity-70"
     )}>
@@ -779,7 +779,7 @@ function SelectionItem({
           htmlFor={id}
           className={cn(
             "text-sm font-medium cursor-pointer flex items-center gap-2",
-            checked ? "text-white" : "text-slate-400",
+            checked ? "text-foreground" : "text-muted-foreground",
             warning && checked && "text-yellow-300"
           )}
         >
@@ -788,7 +788,7 @@ function SelectionItem({
             <span className="text-xs text-blue-400 font-normal">(forcé par dépendance)</span>
           )}
         </Label>
-        <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
       </div>
     </div>
   )

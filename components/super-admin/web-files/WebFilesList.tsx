@@ -236,10 +236,10 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
     <div className="space-y-6">
       {/* Stats Dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-          <p className="text-xs text-slate-400 mb-1">Total fichiers</p>
-          <p className="text-2xl font-bold text-white">{stats.totalFiles}</p>
-          <p className="text-xs text-slate-400 mt-1">{formatFileSize(stats.totalSize)}</p>
+        <div className="bg-card/50 rounded-lg p-4 border border-border">
+          <p className="text-xs text-muted-foreground mb-1">Total fichiers</p>
+          <p className="text-2xl font-bold text-foreground">{stats.totalFiles}</p>
+          <p className="text-xs text-muted-foreground mt-1">{formatFileSize(stats.totalSize)}</p>
         </div>
         <div className="bg-green-500/10 rounded-lg p-4 border border-green-500/20">
           <p className="text-xs text-green-400 mb-1">Indexés</p>
@@ -269,7 +269,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
             <Badge
               key={type}
               variant="outline"
-              className="border-slate-600 text-slate-300"
+              className="border-border text-muted-foreground"
             >
               {type.toUpperCase()}: {count}
             </Badge>
@@ -279,44 +279,44 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
 
       {/* Section fichiers archivés (sources inactives) */}
       {stats.archived.totalFiles > 0 && (
-        <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+        <div className="border border-border/50 rounded-lg overflow-hidden">
           <button
             onClick={() => setShowArchived(v => !v)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-slate-800/30 hover:bg-slate-800/50 transition-colors text-left"
+            className="w-full flex items-center justify-between px-4 py-3 bg-card/30 hover:bg-card/50 transition-colors text-left"
           >
             <div className="flex items-center gap-2">
-              <Icons.archive className="h-4 w-4 text-slate-500" />
-              <span className="text-sm text-slate-400">
+              <Icons.archive className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
                 Fichiers archivés — sources inactives
               </span>
-              <Badge variant="outline" className="border-slate-600 text-slate-500 text-xs">
+              <Badge variant="outline" className="border-border text-muted-foreground text-xs">
                 {stats.archived.totalFiles} fichiers · {formatFileSize(stats.archived.totalSize)}
               </Badge>
-              <span className="text-xs text-slate-600">Non accessibles dans le RAG</span>
+              <span className="text-xs text-muted-foreground">Non accessibles dans le RAG</span>
             </div>
             {showArchived ? (
-              <Icons.chevronUp className="h-4 w-4 text-slate-500" />
+              <Icons.chevronUp className="h-4 w-4 text-muted-foreground" />
             ) : (
-              <Icons.chevronDown className="h-4 w-4 text-slate-500" />
+              <Icons.chevronDown className="h-4 w-4 text-muted-foreground" />
             )}
           </button>
           {showArchived && (
-            <div className="px-4 py-3 bg-slate-900/30 space-y-3">
+            <div className="px-4 py-3 bg-muted/30 space-y-3">
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-slate-800/40 rounded p-3 border border-slate-700/30">
-                  <p className="text-xs text-slate-500 mb-1">Total</p>
-                  <p className="text-lg font-semibold text-slate-400">{stats.archived.totalFiles}</p>
-                  <p className="text-xs text-slate-600">{formatFileSize(stats.archived.totalSize)}</p>
+                <div className="bg-card/40 rounded p-3 border border-border/30">
+                  <p className="text-xs text-muted-foreground mb-1">Total</p>
+                  <p className="text-lg font-semibold text-muted-foreground">{stats.archived.totalFiles}</p>
+                  <p className="text-xs text-muted-foreground">{formatFileSize(stats.archived.totalSize)}</p>
                 </div>
-                <div className="bg-slate-800/40 rounded p-3 border border-slate-700/30">
-                  <p className="text-xs text-slate-500 mb-1">Indexés (désactivés)</p>
-                  <p className="text-lg font-semibold text-slate-400">{stats.archived.indexed}</p>
+                <div className="bg-card/40 rounded p-3 border border-border/30">
+                  <p className="text-xs text-muted-foreground mb-1">Indexés (désactivés)</p>
+                  <p className="text-lg font-semibold text-muted-foreground">{stats.archived.indexed}</p>
                 </div>
-                <div className="bg-slate-800/40 rounded p-3 border border-slate-700/30">
-                  <p className="text-xs text-slate-500 mb-1">Types</p>
+                <div className="bg-card/40 rounded p-3 border border-border/30">
+                  <p className="text-xs text-muted-foreground mb-1">Types</p>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {Object.entries(stats.archived.byType).map(([type, count]) => (
-                      <span key={type} className="text-xs text-slate-500">{type.toUpperCase()}: {count}</span>
+                      <span key={type} className="text-xs text-muted-foreground">{type.toUpperCase()}: {count}</span>
                     ))}
                   </div>
                 </div>
@@ -329,17 +329,17 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
-          <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher un fichier..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+            className="pl-9 bg-card border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
 
         <Select value={filters.source_id || 'all'} onValueChange={(v) => setFilter('source_id', v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par source">
+          <SelectTrigger className="w-[180px] bg-card border-border text-foreground" aria-label="Filtrer par source">
             <SelectValue placeholder="Toutes les sources" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-700">
@@ -353,7 +353,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         </Select>
 
         <Select value={filters.file_type || 'all'} onValueChange={(v) => setFilter('file_type', v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-[140px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par type">
+          <SelectTrigger className="w-[140px] bg-card border-border text-foreground" aria-label="Filtrer par type">
             <SelectValue placeholder="Tous types" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-700">
@@ -365,7 +365,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
         </Select>
 
         <Select value={filters.status || 'all'} onValueChange={(v) => setFilter('status', v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par état">
+          <SelectTrigger className="w-[160px] bg-card border-border text-foreground" aria-label="Filtrer par état">
             <SelectValue placeholder="Tous états" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-700">
@@ -382,7 +382,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="text-slate-400 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
           >
             <Icons.x className="h-4 w-4 mr-1" />
             Effacer
@@ -394,7 +394,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
           size="sm"
           onClick={() => fetchFiles()}
           disabled={loading}
-          className="border-slate-600 text-slate-300"
+          className="border-border text-muted-foreground"
         >
           <Icons.refresh className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
           Actualiser
@@ -404,13 +404,13 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
       {/* Loading state */}
       {loading && files.length === 0 && (
         <div className="flex items-center justify-center py-12">
-          <Icons.loader className="h-6 w-6 animate-spin text-slate-400" />
+          <Icons.loader className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
 
       {/* Empty state */}
       {!loading && files.length === 0 && (
-        <div className="text-center py-12 text-slate-400 bg-slate-800/30 rounded-lg">
+        <div className="text-center py-12 text-muted-foreground bg-card/30 rounded-lg">
           <Icons.file className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p className="text-lg">Aucun fichier trouvé</p>
           {hasFilters && (
@@ -423,18 +423,18 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
 
       {/* Table */}
       {files.length > 0 && (
-        <div className="overflow-x-auto bg-slate-800/30 rounded-lg border border-slate-700">
+        <div className="overflow-x-auto bg-card/30 rounded-lg border border-border">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-700">
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-400">Fichier</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-400">Source</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-400">Type</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-400">Taille</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-400">État</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-400">Chunks</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-400">Date</th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-400">Actions</th>
+              <tr className="border-b border-border">
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Fichier</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Source</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Type</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Taille</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">État</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Chunks</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Date</th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -445,13 +445,13 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
                 return (
                   <tr
                     key={file.id}
-                    className="border-b border-slate-800 hover:bg-slate-800/50 transition"
+                    className="border-b border-border hover:bg-card/50 transition"
                   >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <IconComponent className="h-4 w-4 text-slate-400 shrink-0" />
+                        <IconComponent className="h-4 w-4 text-muted-foreground shrink-0" />
                         <div className="min-w-0">
-                          <p className="text-sm text-white truncate max-w-[250px]" title={file.filename}>
+                          <p className="text-sm text-foreground truncate max-w-[250px]" title={file.filename}>
                             {file.filename}
                           </p>
                           {(file.downloadError || file.parseError) && (
@@ -471,10 +471,10 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
                       </Link>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-xs text-slate-400 uppercase">{file.fileType}</span>
+                      <span className="text-xs text-muted-foreground uppercase">{file.fileType}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-sm text-slate-300">{formatFileSize(file.fileSize)}</span>
+                      <span className="text-sm text-muted-foreground">{formatFileSize(file.fileSize)}</span>
                     </td>
                     <td className="py-3 px-4">
                       <Badge className={statusConfig.color + ' text-xs'}>
@@ -482,12 +482,12 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
                       </Badge>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-sm text-slate-300">
+                      <span className="text-sm text-muted-foreground">
                         {file.chunksCount > 0 ? file.chunksCount : '-'}
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         {formatDate(file.indexedAt || file.downloadedAt || file.createdAt)}
                       </span>
                     </td>
@@ -508,24 +508,24 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
                             )}
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                        <DropdownMenuContent align="end" className="bg-card border-border">
                           <DropdownMenuItem
                             onClick={() => router.push(`/super-admin/web-files/${file.id}`)}
-                            className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                            className="text-foreground hover:bg-muted cursor-pointer"
                           >
                             <Icons.eye className="h-4 w-4 mr-2" />
                             Voir les détails
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDownload(file)}
-                            className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                            className="text-foreground hover:bg-muted cursor-pointer"
                           >
                             <Icons.download className="h-4 w-4 mr-2" />
                             Télécharger
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => router.push(`/super-admin/web-sources/${file.webSourceId}/files`)}
-                            className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                            className="text-foreground hover:bg-muted cursor-pointer"
                           >
                             <Icons.folder className="h-4 w-4 mr-2" />
                             Voir la source
@@ -533,7 +533,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
                           {file.isDownloaded && (
                             <DropdownMenuItem
                               onClick={() => handleReindex(file)}
-                              className="text-purple-400 hover:bg-slate-700 cursor-pointer"
+                              className="text-purple-400 hover:bg-muted cursor-pointer"
                             >
                               <Icons.refresh className="h-4 w-4 mr-2" />
                               Réindexer
@@ -560,7 +560,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
       {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Page {pagination.page} sur {pagination.totalPages} ({pagination.total} fichiers)
           </p>
           <div className="flex gap-2">
@@ -590,16 +590,16 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
 
       {/* Delete Dialog */}
       <AlertDialog open={deleteDialog.open} onOpenChange={(o) => !o && deleteDialog.close()}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
+        <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le fichier ?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               Le fichier "{deleteDialog.item?.filename}" sera supprimé du stockage et de l'index.
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">
+            <AlertDialogCancel className="bg-muted text-foreground border-border hover:bg-muted/80">
               Annuler
             </AlertDialogCancel>
             <AlertDialogAction

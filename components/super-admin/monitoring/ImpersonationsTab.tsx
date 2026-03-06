@@ -107,10 +107,10 @@ export function ImpersonationsTab() {
 
   if (loading) {
     return (
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-card border-border">
         <CardContent className="p-8 text-center">
-          <Icons.spinner className="h-8 w-8 animate-spin mx-auto text-slate-500" />
-          <p className="text-slate-400 mt-4">Chargement des impersonnalisations...</p>
+          <Icons.spinner className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-muted-foreground mt-4">Chargement des impersonnalisations...</p>
         </CardContent>
       </Card>
     )
@@ -118,9 +118,9 @@ export function ImpersonationsTab() {
 
   if (impersonations.length === 0) {
     return (
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Icons.eye className="h-5 w-5 text-orange-400" />
             Impersonnalisations Actives
           </CardTitle>
@@ -129,10 +129,10 @@ export function ImpersonationsTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center p-8 bg-slate-800/50 rounded-lg">
+          <div className="text-center p-8 bg-muted/50 rounded-lg">
             <Icons.checkCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
-            <p className="text-slate-300">Aucune session d'impersonnalisation active</p>
-            <p className="text-slate-500 text-sm mt-2">
+            <p className="text-foreground">Aucune session d'impersonnalisation active</p>
+            <p className="text-muted-foreground text-sm mt-2">
               Les impersonnalisations apparaîtront ici en temps réel
             </p>
           </div>
@@ -142,11 +142,11 @@ export function ImpersonationsTab() {
   }
 
   return (
-    <Card className="bg-slate-900 border-slate-800">
+    <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <Icons.eye className="h-5 w-5 text-orange-400" />
               Impersonnalisations Actives
               <Badge variant="destructive" className="ml-2">
@@ -161,7 +161,7 @@ export function ImpersonationsTab() {
             onClick={fetchImpersonations}
             variant="outline"
             size="sm"
-            className="border-slate-700"
+            className="border-border"
           >
             <Icons.refresh className="h-4 w-4 mr-2" />
             Actualiser
@@ -172,13 +172,13 @@ export function ImpersonationsTab() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-800">
-                <TableHead className="text-slate-400">Admin</TableHead>
-                <TableHead className="text-slate-400">Utilisateur cible</TableHead>
-                <TableHead className="text-slate-400">Raison</TableHead>
-                <TableHead className="text-slate-400">Durée</TableHead>
-                <TableHead className="text-slate-400">IP</TableHead>
-                <TableHead className="text-slate-400 text-right">Actions</TableHead>
+              <TableRow className="border-border">
+                <TableHead className="text-muted-foreground">Admin</TableHead>
+                <TableHead className="text-muted-foreground">Utilisateur cible</TableHead>
+                <TableHead className="text-muted-foreground">Raison</TableHead>
+                <TableHead className="text-muted-foreground">Durée</TableHead>
+                <TableHead className="text-muted-foreground">IP</TableHead>
+                <TableHead className="text-muted-foreground text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -187,24 +187,24 @@ export function ImpersonationsTab() {
                 const isWarning = progress > 75
 
                 return (
-                  <TableRow key={imp.id} className="border-slate-800">
+                  <TableRow key={imp.id} className="border-border">
                     <TableCell>
                       <div>
-                        <p className="text-white font-medium">{imp.admin_name}</p>
-                        <p className="text-slate-500 text-sm">{imp.admin_email}</p>
+                        <p className="text-foreground font-medium">{imp.admin_name}</p>
+                        <p className="text-muted-foreground text-sm">{imp.admin_email}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="text-white">{imp.target_name}</p>
-                        <p className="text-slate-500 text-sm">{imp.target_email}</p>
+                        <p className="text-foreground">{imp.target_name}</p>
+                        <p className="text-muted-foreground text-sm">{imp.target_email}</p>
                         <Badge variant="outline" className="mt-1 text-xs">
                           {imp.target_role}
                         </Badge>
                       </div>
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      <p className="text-slate-300 text-sm truncate" title={imp.reason}>
+                      <p className="text-foreground text-sm truncate" title={imp.reason}>
                         {imp.reason}
                       </p>
                     </TableCell>
@@ -212,12 +212,12 @@ export function ImpersonationsTab() {
                       <div className="space-y-1">
                         <p
                           className={`font-mono text-sm ${
-                            isWarning ? 'text-orange-400 animate-pulse' : 'text-slate-300'
+                            isWarning ? 'text-orange-400 animate-pulse' : 'text-foreground'
                           }`}
                         >
                           {formatDuration(imp.started_at)}
                         </p>
-                        <div className="w-32 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
                             className={`h-full transition-all duration-1000 ${
                               isWarning ? 'bg-orange-500' : 'bg-green-500'
@@ -225,13 +225,13 @@ export function ImpersonationsTab() {
                             style={{ width: `${progress}%` }}
                           />
                         </div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           Expire : {new Date(imp.expires_at).toLocaleTimeString('fr-FR')}
                         </p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <p className="text-slate-400 text-sm font-mono">{imp.ip_address}</p>
+                      <p className="text-muted-foreground text-sm font-mono">{imp.ip_address}</p>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button

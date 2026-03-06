@@ -343,7 +343,7 @@ const OperationConfigCard: React.FC<OperationConfigCardProps> = ({
 
         {/* Timeouts */}
         <div>
-          <Label className="text-white font-semibold mb-3 block">Timeouts (millisecondes)</Label>
+          <Label className="text-foreground font-semibold mb-3 block">Timeouts (millisecondes)</Label>
           <div className="grid grid-cols-3 gap-4">
             {operation.timeoutEmbedding !== null && (
               <div>

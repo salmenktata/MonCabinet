@@ -61,7 +61,7 @@ export function ContradictionsList({ relations, currentDocumentId }: Contradicti
 
   if (relations.length === 0) {
     return (
-      <div className="text-center py-6 text-slate-400 text-sm">
+      <div className="text-center py-6 text-muted-foreground text-sm">
         Aucune relation détectée
       </div>
     )
@@ -71,17 +71,17 @@ export function ContradictionsList({ relations, currentDocumentId }: Contradicti
     <div className="space-y-4">
       {duplicates.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-slate-300 mb-2">
+          <h4 className="text-sm font-medium text-foreground mb-2">
             Doublons ({duplicates.length})
           </h4>
           <div className="space-y-2">
             {duplicates.map((dup) => (
-              <div key={dup.id} className="p-3 rounded-lg bg-slate-700/50 flex items-center justify-between">
+              <div key={dup.id} className="p-3 rounded-lg bg-muted/50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="border-yellow-500/30 text-yellow-400 text-xs">
                     {Math.round(dup.similarityScore * 100)}%
                   </Badge>
-                  <span className="text-sm text-slate-300">
+                  <span className="text-sm text-foreground">
                     {dup.relationType === 'duplicate' ? 'Doublon exact' : 'Quasi-doublon'}
                   </span>
                 </div>
@@ -98,7 +98,7 @@ export function ContradictionsList({ relations, currentDocumentId }: Contradicti
 
       {contradictions.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-slate-300 mb-2">
+          <h4 className="text-sm font-medium text-foreground mb-2">
             Contradictions ({contradictions.length})
           </h4>
           <div className="space-y-3">
@@ -108,14 +108,14 @@ export function ContradictionsList({ relations, currentDocumentId }: Contradicti
                 : SEVERITY_CONFIG.medium
 
               return (
-                <div key={c.id} className="p-3 rounded-lg bg-slate-700/50 space-y-2">
+                <div key={c.id} className="p-3 rounded-lg bg-muted/50 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Badge className={`${severity.color} text-xs`}>
                         {severity.label}
                       </Badge>
                       {c.contradictionType && (
-                        <span className="text-xs text-slate-400">{c.contradictionType}</span>
+                        <span className="text-xs text-muted-foreground">{c.contradictionType}</span>
                       )}
                     </div>
                     <StatusActions
@@ -126,21 +126,21 @@ export function ContradictionsList({ relations, currentDocumentId }: Contradicti
                   </div>
 
                   {c.description && (
-                    <p className="text-sm text-slate-300">{c.description}</p>
+                    <p className="text-sm text-foreground">{c.description}</p>
                   )}
 
                   {(c.sourceExcerpt || c.targetExcerpt) && (
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       {c.sourceExcerpt && (
-                        <div className="p-2 bg-slate-800 rounded">
-                          <div className="text-slate-400 mb-1">Source</div>
-                          <div className="text-slate-300 line-clamp-3">{c.sourceExcerpt}</div>
+                        <div className="p-2 bg-card rounded">
+                          <div className="text-muted-foreground mb-1">Source</div>
+                          <div className="text-foreground line-clamp-3">{c.sourceExcerpt}</div>
                         </div>
                       )}
                       {c.targetExcerpt && (
-                        <div className="p-2 bg-slate-800 rounded">
-                          <div className="text-slate-400 mb-1">Cible</div>
-                          <div className="text-slate-300 line-clamp-3">{c.targetExcerpt}</div>
+                        <div className="p-2 bg-card rounded">
+                          <div className="text-muted-foreground mb-1">Cible</div>
+                          <div className="text-foreground line-clamp-3">{c.targetExcerpt}</div>
                         </div>
                       )}
                     </div>
@@ -172,7 +172,7 @@ function StatusActions({
 }) {
   if (status !== 'pending') {
     return (
-      <Badge variant="outline" className="border-slate-600 text-slate-400 text-xs">
+      <Badge variant="outline" className="border-border text-muted-foreground text-xs">
         {status === 'confirmed' ? 'Confirmé' : status === 'dismissed' ? 'Rejeté' : 'Résolu'}
       </Badge>
     )
@@ -181,13 +181,13 @@ function StatusActions({
   return (
     <div className="flex items-center gap-1">
       {loading ? (
-        <Icons.loader className="h-4 w-4 animate-spin text-slate-400" />
+        <Icons.loader className="h-4 w-4 animate-spin text-muted-foreground" />
       ) : (
         <>
           <Button size="sm" variant="ghost" onClick={() => onUpdate('confirmed')} className="text-green-400 hover:bg-green-500/10 h-9 sm:h-7 px-2 text-xs">
             Confirmer
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => onUpdate('dismissed')} className="text-slate-400 hover:bg-slate-600 h-9 sm:h-7 px-2 text-xs">
+          <Button size="sm" variant="ghost" onClick={() => onUpdate('dismissed')} className="text-muted-foreground hover:bg-muted h-9 sm:h-7 px-2 text-xs">
             Rejeter
           </Button>
         </>

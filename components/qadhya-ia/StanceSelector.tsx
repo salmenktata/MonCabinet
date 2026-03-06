@@ -54,7 +54,7 @@ export function StanceSelector({ stance, onChange, disabled = false }: StanceSel
       <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">
         {t('label')}
       </span>
-      <div className="flex gap-1">
+      <div className="flex flex-wrap gap-1">
         {STANCE_OPTIONS.map((option) => {
           const Icon = Icons[option.icon]
           const isActive = stance === option.value

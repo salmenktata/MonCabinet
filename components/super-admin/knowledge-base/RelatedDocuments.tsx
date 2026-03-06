@@ -67,14 +67,14 @@ export function RelatedDocuments({
     if (similarity >= 80) return 'bg-green-500/20 text-green-300 border-green-500/30'
     if (similarity >= 70) return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
     if (similarity >= 60) return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
-    return 'bg-slate-500/20 text-slate-300 border-slate-500/30'
+    return 'bg-muted text-muted-foreground border-border'
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-3">
-        <CardTitle className="text-white text-base flex items-center gap-2">
-          <Icons.link className="h-4 w-4 text-slate-400" />
+        <CardTitle className="text-foreground text-base flex items-center gap-2">
+          <Icons.link className="h-4 w-4 text-muted-foreground" />
           Documents similaires
         </CardTitle>
       </CardHeader>
@@ -83,27 +83,27 @@ export function RelatedDocuments({
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex items-center gap-2">
-                <Skeleton className="h-4 w-4 rounded bg-slate-700" />
-                <Skeleton className="h-4 flex-1 bg-slate-700" />
-                <Skeleton className="h-5 w-12 bg-slate-700" />
+                <Skeleton className="h-4 w-4 rounded bg-muted" />
+                <Skeleton className="h-4 flex-1 bg-muted" />
+                <Skeleton className="h-5 w-12 bg-muted" />
               </div>
             ))}
           </div>
         ) : error ? (
-          <p className="text-sm text-slate-400">{error}</p>
+          <p className="text-sm text-muted-foreground">{error}</p>
         ) : documents.length === 0 ? (
-          <p className="text-sm text-slate-400">Aucun document similaire trouvé</p>
+          <p className="text-sm text-muted-foreground">Aucun document similaire trouvé</p>
         ) : (
           <ul className="space-y-3">
             {documents.map((doc) => (
               <li key={doc.id}>
                 <Link
                   href={`/super-admin/knowledge-base/${doc.id}`}
-                  className="group flex items-start gap-2 p-2 -mx-2 rounded-md hover:bg-slate-700/50 transition"
+                  className="group flex items-start gap-2 p-2 -mx-2 rounded-md hover:bg-muted/50 transition"
                 >
-                  <Icons.fileText className="h-4 w-4 mt-0.5 text-slate-400 group-hover:text-blue-400 transition flex-shrink-0" />
+                  <Icons.fileText className="h-4 w-4 mt-0.5 text-muted-foreground group-hover:text-blue-400 transition flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-200 group-hover:text-white transition line-clamp-1">
+                    <p className="text-sm text-foreground group-hover:text-foreground transition line-clamp-1">
                       {doc.title}
                     </p>
                     <div className="flex items-center gap-2 mt-1">

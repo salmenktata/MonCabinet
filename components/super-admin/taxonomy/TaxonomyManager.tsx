@@ -246,7 +246,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
             <div className={`p-2 rounded-lg ${config.color}`}>
               <Icon className="h-4 w-4" />
             </div>
-            <span className="font-medium text-white">{config.ar} ({config.fr})</span>
+            <span className="font-medium text-foreground">{config.ar} ({config.fr})</span>
             <Badge variant="secondary" className="ml-2">
               {filteredItems.length}
             </Badge>
@@ -256,15 +256,15 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
           <div className="space-y-2 mt-2">
             {rootItems.map(item => (
               <div key={item.id}>
-                <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors">
+                <div className="flex items-center justify-between p-3 bg-card/50 rounded-lg hover:bg-card transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-white" dir="rtl">{item.labelAr}</span>
-                        <span className="text-slate-400">({item.labelFr})</span>
+                        <span className="font-medium text-foreground" dir="rtl">{item.labelAr}</span>
+                        <span className="text-muted-foreground">({item.labelFr})</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <code className="bg-slate-700 px-1 rounded">{item.code}</code>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <code className="bg-muted px-1 rounded">{item.code}</code>
                         {item.isSystem && (
                           <Badge variant="outline" className="text-xs">Système</Badge>
                         )}
@@ -302,18 +302,18 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                 </div>
                 {/* Enfants */}
                 {childrenByParent.has(item.code) && (
-                  <div className="ml-6 mt-1 space-y-1 border-l-2 border-slate-700 pl-4">
+                  <div className="ml-6 mt-1 space-y-1 border-l-2 border-border pl-4">
                     {childrenByParent.get(item.code)!.map(child => (
                       <div
                         key={child.id}
-                        className="flex items-center justify-between p-2 bg-slate-900/50 rounded-lg hover:bg-slate-800/50 transition-colors"
+                        className="flex items-center justify-between p-2 bg-card/50 rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-white" dir="rtl">{child.labelAr}</span>
-                            <span className="text-sm text-slate-400">({child.labelFr})</span>
+                            <span className="text-sm text-foreground" dir="rtl">{child.labelAr}</span>
+                            <span className="text-sm text-muted-foreground">({child.labelFr})</span>
                           </div>
-                          <code className="text-xs text-slate-600">{child.code}</code>
+                          <code className="text-xs text-muted-foreground">{child.code}</code>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
@@ -344,7 +344,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
               </div>
             ))}
             {filteredItems.length === 0 && (
-              <p className="text-slate-400 text-center py-4">
+              <p className="text-muted-foreground text-center py-4">
                 Aucun élément trouvé
               </p>
             )}
@@ -356,12 +356,12 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
 
   return (
     <>
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white">Gestion de la taxonomie</CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardTitle className="text-foreground">Gestion de la taxonomie</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Catégories, domaines, types de documents et juridictions
               </CardDescription>
             </div>
@@ -375,12 +375,12 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
           {/* Recherche */}
           <div className="mb-4">
             <div className="relative">
-              <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-slate-900 border-slate-700"
+                className="pl-10 bg-card border-border"
               />
             </div>
           </div>
@@ -398,10 +398,10 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
 
       {/* Dialog de création */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Nouvel élément de taxonomie</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-foreground">Nouvel élément de taxonomie</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Créez un nouvel élément dans la taxonomie juridique
             </DialogDescription>
           </DialogHeader>
@@ -414,7 +414,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                   value={formData.type}
                   onValueChange={(value) => setFormData({ ...formData, type: value })}
                 >
-                  <SelectTrigger className="bg-slate-900 border-slate-700">
+                  <SelectTrigger className="bg-card border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -432,7 +432,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
                   placeholder="ex: droit_numerique"
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-card border-border"
                 />
               </div>
             </div>
@@ -443,7 +443,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                 value={formData.parentCode || '__none__'}
                 onValueChange={(value) => setFormData({ ...formData, parentCode: value === '__none__' ? '' : value })}
               >
-                <SelectTrigger className="bg-slate-900 border-slate-700">
+                <SelectTrigger className="bg-card border-border">
                   <SelectValue placeholder="Aucun parent" />
                 </SelectTrigger>
                 <SelectContent>
@@ -464,7 +464,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                   value={formData.labelFr}
                   onChange={(e) => setFormData({ ...formData, labelFr: e.target.value })}
                   placeholder="Droit numérique"
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-card border-border"
                 />
               </div>
               <div>
@@ -473,7 +473,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                   value={formData.labelAr}
                   onChange={(e) => setFormData({ ...formData, labelAr: e.target.value })}
                   placeholder="القانون الرقمي"
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-card border-border"
                   dir="rtl"
                 />
               </div>
@@ -485,7 +485,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Description de cet élément..."
-                className="bg-slate-900 border-slate-700"
+                className="bg-card border-border"
               />
             </div>
 
@@ -495,7 +495,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                 type="number"
                 value={formData.sortOrder}
                 onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value, 10) || 0 })}
-                className="bg-slate-900 border-slate-700 w-24"
+                className="bg-card border-border w-24"
               />
             </div>
           </div>
@@ -514,10 +514,10 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
 
       {/* Dialog d'édition */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Modifier l'élément</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-foreground">Modifier l'élément</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Code: {selectedItem?.code}
             </DialogDescription>
           </DialogHeader>
@@ -529,7 +529,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                 <Input
                   value={formData.labelFr}
                   onChange={(e) => setFormData({ ...formData, labelFr: e.target.value })}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-card border-border"
                 />
               </div>
               <div>
@@ -537,7 +537,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                 <Input
                   value={formData.labelAr}
                   onChange={(e) => setFormData({ ...formData, labelAr: e.target.value })}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-card border-border"
                   dir="rtl"
                 />
               </div>
@@ -548,7 +548,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="bg-slate-900 border-slate-700"
+                className="bg-card border-border"
               />
             </div>
 
@@ -558,7 +558,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                 type="number"
                 value={formData.sortOrder}
                 onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value, 10) || 0 })}
-                className="bg-slate-900 border-slate-700 w-24"
+                className="bg-card border-border w-24"
               />
             </div>
           </div>

@@ -48,7 +48,7 @@ export function WebSourcePipelineView({ category, search, isActive }: WebSourceP
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-64 bg-slate-800 animate-pulse rounded-lg" />
+          <div key={i} className="h-64 bg-card animate-pulse rounded-lg" />
         ))}
       </div>
     )
@@ -56,10 +56,10 @@ export function WebSourcePipelineView({ category, search, isActive }: WebSourceP
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+      <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
         <Icons.alertCircle className="h-8 w-8 text-red-400" />
         <p className="text-sm">{error}</p>
-        <Button variant="outline" size="sm" onClick={fetchStats} className="bg-slate-800 border-slate-700 text-slate-300">
+        <Button variant="outline" size="sm" onClick={fetchStats} className="bg-card border-border text-foreground">
           Réessayer
         </Button>
       </div>
@@ -68,7 +68,7 @@ export function WebSourcePipelineView({ category, search, isActive }: WebSourceP
 
   if (stats.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+      <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
         <Icons.gitBranch className="h-8 w-8" />
         <p className="text-sm">Aucune source trouvée</p>
       </div>
@@ -79,12 +79,12 @@ export function WebSourcePipelineView({ category, search, isActive }: WebSourceP
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex justify-between items-center">
-        <p className="text-sm text-slate-400">{stats.length} source{stats.length > 1 ? 's' : ''}</p>
+        <p className="text-sm text-muted-foreground">{stats.length} source{stats.length > 1 ? 's' : ''}</p>
         <Button
           variant="outline"
           size="sm"
           onClick={fetchStats}
-          className="bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white"
+          className="bg-card border-border text-foreground hover:bg-muted hover:text-foreground"
         >
           <Icons.refresh className="h-3.5 w-3.5 mr-1.5" />
           Actualiser
@@ -113,16 +113,16 @@ function PipelineSourceCard({ source }: { source: SourcePipelineStats }) {
       ? 'border-l-yellow-500'
       : source.health_status === 'failing'
       ? 'border-l-red-500'
-      : 'border-l-slate-600'
+      : 'border-l-border'
 
   return (
-    <div className={`bg-slate-800 rounded-lg border border-slate-700 border-l-4 ${borderColor} overflow-hidden`}>
+    <div className={`bg-card rounded-lg border border-border border-l-4 ${borderColor} overflow-hidden`}>
       {/* Header */}
-      <div className="p-4 border-b border-slate-700/50">
+      <div className="p-4 border-b border-border/50">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-white truncate">{source.name}</h3>
-            <p className="text-xs text-slate-500 truncate mt-0.5">{source.base_url}</p>
+            <h3 className="text-sm font-semibold text-foreground truncate">{source.name}</h3>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">{source.base_url}</p>
           </div>
           <HealthBadge status={source.health_status} consecutiveFailures={source.consecutive_failures} size="sm" />
         </div>
@@ -135,7 +135,7 @@ function PipelineSourceCard({ source }: { source: SourcePipelineStats }) {
               Actif
             </span>
           ) : (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground border border-border">
               Inactif
             </span>
           )}
@@ -202,16 +202,16 @@ function PipelineSourceCard({ source }: { source: SourcePipelineStats }) {
           <div className="flex gap-4">
             <div className="flex items-center gap-1.5">
               <Icons.database className="h-3.5 w-3.5 text-purple-400" />
-              <span className="text-xs text-slate-300">
+              <span className="text-xs text-foreground">
                 <span className="font-semibold">{source.kb.docs_count.toLocaleString('fr-FR')}</span>
-                <span className="text-slate-500 ml-1">docs KB</span>
+                <span className="text-muted-foreground ml-1">docs KB</span>
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <Icons.layers className="h-3.5 w-3.5 text-indigo-400" />
-              <span className="text-xs text-slate-300">
+              <span className="text-xs text-foreground">
                 <span className="font-semibold">{source.kb.total_chunks.toLocaleString('fr-FR')}</span>
-                <span className="text-slate-500 ml-1">chunks</span>
+                <span className="text-muted-foreground ml-1">chunks</span>
               </span>
             </div>
           </div>
@@ -219,7 +219,7 @@ function PipelineSourceCard({ source }: { source: SourcePipelineStats }) {
       </div>
 
       {/* Footer : dernier & prochain crawl */}
-      <div className="px-4 py-3 border-t border-slate-700/50 space-y-1">
+      <div className="px-4 py-3 border-t border-border/50 space-y-1">
         <CrawlFooter source={source} />
       </div>
     </div>
@@ -242,14 +242,14 @@ function PipelineSection({
   if (!hasContent) {
     return (
       <div>
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{title}</p>
-        <p className="text-xs text-slate-600 italic">Aucun élément</p>
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{title}</p>
+        <p className="text-xs text-muted-foreground italic">Aucun élément</p>
       </div>
     )
   }
   return (
     <div>
-      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{title}</p>
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{title}</p>
       <div className="space-y-1">{children}</div>
     </div>
   )
@@ -267,13 +267,13 @@ function ProgressBar({
   const pct = total > 0 ? Math.round((value / total) * 100) : 0
   return (
     <div className="flex items-center gap-2 mb-1.5">
-      <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
         <div
           className={`h-full ${colorClass} rounded-full transition-all`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-[10px] font-medium text-slate-400 w-8 text-right">{pct}%</span>
+      <span className="text-[10px] font-medium text-muted-foreground w-8 text-right">{pct}%</span>
     </div>
   )
 }
@@ -283,7 +283,7 @@ function StatusRow({
   label,
   count,
   total,
-  colorClass = 'text-slate-300',
+  colorClass = 'text-foreground',
 }: {
   icon: string
   label: string
@@ -294,13 +294,13 @@ function StatusRow({
   const pct = total > 0 ? Math.round((count / total) * 100) : 0
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-xs text-slate-400 flex items-center gap-1.5">
+      <span className="text-xs text-muted-foreground flex items-center gap-1.5">
         <span>{icon}</span>
         <span>{label}</span>
       </span>
       <span className={`text-xs font-medium tabular-nums ${colorClass}`}>
         {count.toLocaleString('fr-FR')}
-        <span className="text-slate-600 ml-1 font-normal">{pct}%</span>
+        <span className="text-muted-foreground ml-1 font-normal">{pct}%</span>
       </span>
     </div>
   )

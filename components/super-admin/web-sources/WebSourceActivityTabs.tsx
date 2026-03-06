@@ -17,13 +17,13 @@ export function WebSourceActivityTabs({ pages, logs, sourceId }: WebSourceActivi
       {/* Dernières pages */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
-            <Icons.fileText className="h-4 w-4 text-slate-400" />
+          <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+            <Icons.fileText className="h-4 w-4 text-muted-foreground" />
             Dernières pages
           </h3>
           <Link
             href={`/super-admin/web-sources/${sourceId}/pages`}
-            className="text-xs text-slate-400 hover:text-blue-400 flex items-center gap-1 transition-colors"
+            className="text-xs text-muted-foreground hover:text-blue-400 flex items-center gap-1 transition-colors"
           >
             Voir tout
             <Icons.chevronRight className="h-3 w-3" />
@@ -33,9 +33,9 @@ export function WebSourceActivityTabs({ pages, logs, sourceId }: WebSourceActivi
       </div>
 
       {/* Historique crawls */}
-      <div className="border-t border-slate-700/50 pt-5">
-        <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2 mb-3">
-          <Icons.history className="h-4 w-4 text-slate-400" />
+      <div className="border-t border-border/50 pt-5">
+        <h3 className="text-sm font-medium text-foreground flex items-center gap-2 mb-3">
+          <Icons.history className="h-4 w-4 text-muted-foreground" />
           Historique crawls
         </h3>
         <WebSourceLogs logs={logs} />

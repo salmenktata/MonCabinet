@@ -15,10 +15,10 @@ export function IndexationProgress({ indexed, total, compact = false }: Indexati
   if (compact) {
     return (
       <div className="flex items-center gap-2 min-w-[100px]">
-        <span className="text-xs text-slate-300 tabular-nums whitespace-nowrap">
+        <span className="text-xs text-foreground tabular-nums whitespace-nowrap">
           {indexed.toLocaleString()}/{total.toLocaleString()}
         </span>
-        <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden min-w-[40px]">
+        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden min-w-[40px]">
           <div
             className={`h-full rounded-full transition-all ${barColor}`}
             style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -31,12 +31,12 @@ export function IndexationProgress({ indexed, total, compact = false }: Indexati
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-slate-300 tabular-nums">
+        <span className="text-foreground tabular-nums">
           {indexed.toLocaleString()} / {total.toLocaleString()}
         </span>
-        <span className="text-slate-400">{percentage}%</span>
+        <span className="text-muted-foreground">{percentage}%</span>
       </div>
-      <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${Math.min(percentage, 100)}%` }}

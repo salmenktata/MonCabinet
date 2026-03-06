@@ -27,11 +27,11 @@ interface WebSourcePagesProps {
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'En attente', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+  pending: { label: 'En attente', color: 'bg-muted text-muted-foreground border-border' },
   crawled: { label: 'Crawlée', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   indexed: { label: 'Indexée', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
   failed: { label: 'Erreur', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
-  unchanged: { label: 'Inchangée', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+  unchanged: { label: 'Inchangée', color: 'bg-muted text-muted-foreground border-border' },
 }
 
 export function WebSourcePages({ pages, sourceId, onViewVersions, onViewMetadata }: WebSourcePagesProps) {

@@ -85,8 +85,8 @@ export function WebSourcesQuickActions() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-slate-800/40 border border-slate-700/50">
-        <span className="text-xs text-slate-400 mr-1 shrink-0">Actions :</span>
+      <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-card/40 border border-border/50">
+        <span className="text-xs text-muted-foreground mr-1 shrink-0">Actions :</span>
         {actions.map((action) => {
           const Icon = Icons[action.icon]
           return (
@@ -96,7 +96,7 @@ export function WebSourcesQuickActions() {
               variant="outline"
               onClick={() => setSelectedCron(action)}
               disabled={action.isRunning}
-              className="h-7 px-2.5 text-xs gap-1.5 border-slate-600 text-slate-300 hover:text-white hover:border-slate-400 disabled:opacity-60"
+              className="h-7 px-2.5 text-xs gap-1.5 border-border text-foreground hover:text-foreground hover:border-border disabled:opacity-60"
             >
               {action.isRunning ? (
                 <Icons.loader className="h-3 w-3 animate-spin" />

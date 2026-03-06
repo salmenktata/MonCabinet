@@ -104,9 +104,9 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
 
   if (error) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Top Utilisateurs - Consommation IA</CardTitle>
+          <CardTitle className="text-foreground">Top Utilisateurs - Consommation IA</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-red-400">
@@ -120,14 +120,14 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
 
   if (isLoading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Top Utilisateurs - Consommation IA</CardTitle>
+          <CardTitle className="text-foreground">Top Utilisateurs - Consommation IA</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-slate-700/50 animate-pulse rounded-lg" />
+              <div key={i} className="h-16 bg-muted/50 animate-pulse rounded-lg" />
             ))}
           </div>
         </CardContent>
@@ -136,16 +136,16 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="text-white">Top Utilisateurs - Consommation IA</CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-muted-foreground">
           {days} derniers jours • Cliquez sur une ligne pour filtrer
         </CardDescription>
       </CardHeader>
       <CardContent>
         {!data?.users || data.users.length === 0 ? (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-muted-foreground">
             <Icons.users className="h-12 w-12 mx-auto mb-2" />
             <p>Aucune utilisation IA pour cette période</p>
           </div>
@@ -186,7 +186,7 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
                           <p className="font-medium text-white">
                             {user.prenom} {user.nom}
                           </p>
-                          <p className="text-xs text-slate-400">{user.email}</p>
+                          <p className="text-xs text-muted-foreground">{user.email}</p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -205,7 +205,7 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
                           <p className="text-green-500 font-medium">
                             {formatCurrency(user.totalCost, 'TND')}
                           </p>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             ${user.totalCost.toFixed(2)}
                           </p>
                         </div>
@@ -227,7 +227,7 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
                             handleUserClick(user.id)
                           }}
                         >
-                          <Icons.eye className="h-4 w-4 text-slate-400" />
+                          <Icons.eye className="h-4 w-4 text-muted-foreground" />
                           <span className="sr-only">Filtrer par cet utilisateur</span>
                         </Button>
                       </TableCell>

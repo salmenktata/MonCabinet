@@ -61,7 +61,7 @@ export function DuplicateWarning({ duplicates, onDismiss }: DuplicateWarningProp
         {duplicates.map((dup) => (
           <div
             key={dup.documentId}
-            className="flex items-center justify-between p-2 rounded bg-slate-800/50"
+            className="flex items-center justify-between p-2 rounded bg-card/50"
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className={`text-xs px-1.5 py-0.5 rounded ${
@@ -80,7 +80,7 @@ export function DuplicateWarning({ duplicates, onDismiss }: DuplicateWarningProp
                 {dup.title}
               </Link>
             </div>
-            <span className="text-xs text-slate-400 shrink-0 ml-2">
+            <span className="text-xs text-muted-foreground shrink-0 ml-2">
               {dup.category}
             </span>
           </div>

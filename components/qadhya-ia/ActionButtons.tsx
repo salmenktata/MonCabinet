@@ -50,7 +50,7 @@ export function ActionButtons({ selected, onSelect, disabled }: ActionButtonsPro
               disabled={disabled}
               onClick={() => onSelect(action.type)}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium',
                 'transition-all duration-200 ease-out',
                 'disabled:opacity-50 disabled:pointer-events-none',
                 isSelected

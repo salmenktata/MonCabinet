@@ -639,7 +639,7 @@ export function WebSourceActions({ source, readOnly = false }: WebSourceActionsP
                       <li>Classification par type (législation, jurisprudence, doctrine)</li>
                       <li>Validation stricte contre listes de référence</li>
                     </ul>
-                    <p className="text-slate-400 text-xs mt-2">
+                    <p className="text-muted-foreground text-xs mt-2">
                       ⏱️ Temps estimé :{' '}
                       <span className="text-foreground font-medium">{organizeStats.estimatedTime}</span>
                       <br />

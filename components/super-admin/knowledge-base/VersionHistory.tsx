@@ -99,16 +99,16 @@ export function VersionHistory({
 
   return (
     <>
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center gap-2">
+          <CardTitle className="text-foreground text-base flex items-center gap-2">
             <Icons.history className="h-4 w-4" />
             {lang === 'fr' ? 'Historique des versions' : 'سجل النسخ'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {versions.length === 0 ? (
-            <p className="text-slate-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               {lang === 'fr' ? 'Aucune version enregistrée.' : 'لا توجد نسخ مسجلة.'}
             </p>
           ) : (
@@ -121,12 +121,12 @@ export function VersionHistory({
                   <div
                     key={version.id}
                     className={`flex items-start justify-between p-3 rounded-lg ${
-                      isCurrent ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-slate-700/50'
+                      isCurrent ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-muted/50'
                     }`}
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-white font-medium">
+                        <span className="text-foreground font-medium">
                           v{version.version}
                         </span>
                         <Badge className={typeInfo.color}>
@@ -140,12 +140,12 @@ export function VersionHistory({
                       </div>
 
                       {version.changeReason && (
-                        <p className="text-sm text-slate-400 mb-1">
+                        <p className="text-sm text-muted-foreground mb-1">
                           {version.changeReason}
                         </p>
                       )}
 
-                      <div className="flex items-center gap-3 text-xs text-slate-400">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span>{formatDate(version.changedAt)}</span>
                         {version.changedByEmail && (
                           <>
@@ -164,7 +164,7 @@ export function VersionHistory({
                           setSelectedVersion(version)
                           setRestoreDialogOpen(true)
                         }}
-                        className="text-slate-400 hover:text-white hover:bg-slate-600"
+                        className="text-muted-foreground hover:text-foreground hover:bg-muted"
                       >
                         <Icons.undo className="h-4 w-4 mr-1" />
                         {lang === 'fr' ? 'Restaurer' : 'استعادة'}
@@ -180,14 +180,14 @@ export function VersionHistory({
 
       {/* Dialog de confirmation de restauration */}
       <Dialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>
               {lang === 'fr'
                 ? `Restaurer la version ${selectedVersion?.version}`
                 : `استعادة النسخة ${selectedVersion?.version}`}
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               {lang === 'fr'
                 ? 'Cette action va remplacer le contenu actuel par celui de la version sélectionnée. Une sauvegarde de la version actuelle sera créée.'
                 : 'سيحل هذا الإجراء محل المحتوى الحالي بمحتوى النسخة المحددة. سيتم إنشاء نسخة احتياطية من النسخة الحالية.'}
@@ -196,7 +196,7 @@ export function VersionHistory({
 
           <div className="space-y-4 py-4">
             <div>
-              <Label className="text-slate-300">
+              <Label className="text-muted-foreground">
                 {lang === 'fr' ? 'Raison de la restauration (optionnel)' : 'سبب الاستعادة (اختياري)'}
               </Label>
               <Textarea
@@ -207,7 +207,7 @@ export function VersionHistory({
                     ? 'Ex: Restauration suite à une erreur...'
                     : 'مثال: استعادة بسبب خطأ...'
                 }
-                className="mt-1 bg-slate-700 border-slate-600 text-white"
+                className="mt-1 bg-muted border-border text-foreground"
               />
             </div>
           </div>
@@ -220,7 +220,7 @@ export function VersionHistory({
                 setSelectedVersion(null)
                 setRestoreReason('')
               }}
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               {lang === 'fr' ? 'Annuler' : 'إلغاء'}
             </Button>
@@ -253,7 +253,7 @@ export function VersionHistory({
  */
 export function VersionBadge({ version }: { version: number }) {
   return (
-    <span className="inline-flex items-center text-xs text-slate-400 bg-slate-700 px-2 py-0.5 rounded">
+    <span className="inline-flex items-center text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
       v{version}
     </span>
   )

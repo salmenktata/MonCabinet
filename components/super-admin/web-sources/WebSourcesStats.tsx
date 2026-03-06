@@ -85,7 +85,7 @@ function StatCard({ icon, label, value, subValue, color, valueIsText }: StatCard
     yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
     orange: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
     red: 'bg-red-500/10 text-red-400 border-red-500/30',
-    slate: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+    slate: 'bg-muted text-muted-foreground border-border',
   }
 
   return (

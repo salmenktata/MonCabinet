@@ -142,30 +142,30 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
   return (
     <div className="max-w-3xl mx-auto">
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="bg-slate-800 border-slate-700">
-          <TabsTrigger value="general" className="data-[state=active]:bg-slate-700">
+        <TabsList className="bg-card border-border">
+          <TabsTrigger value="general" className="data-[state=active]:bg-muted">
             Informations
           </TabsTrigger>
-          <TabsTrigger value="crawl" className="data-[state=active]:bg-slate-700">
+          <TabsTrigger value="crawl" className="data-[state=active]:bg-muted">
             Configuration
           </TabsTrigger>
-          <TabsTrigger value="extraction" className="data-[state=active]:bg-slate-700">
+          <TabsTrigger value="extraction" className="data-[state=active]:bg-muted">
             Extraction
           </TabsTrigger>
         </TabsList>
 
         {/* Tab Général */}
         <TabsContent value="general">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Informations de base</CardTitle>
+              <CardTitle className="text-foreground">Informations de base</CardTitle>
               <CardDescription>Identifiez la source et sa catégorie</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                 <div>
-                  <Label className="text-slate-300">Source active</Label>
-                  <p className="text-xs text-slate-400">Désactivez pour arrêter le crawl</p>
+                  <Label className="text-foreground">Source active</Label>
+                  <p className="text-xs text-muted-foreground">Désactivez pour arrêter le crawl</p>
                 </div>
                 <Switch
                   checked={formData.isActive}
@@ -174,42 +174,42 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
               </div>
 
               <div>
-                <Label className="text-slate-300">Nom de la source *</Label>
+                <Label className="text-foreground">Nom de la source *</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => updateField('name', e.target.value)}
                   placeholder="Ex: JORT Tunisie"
-                  className="mt-1 bg-slate-900 border-slate-600 text-white"
+                  className="mt-1 bg-card border-border text-foreground"
                 />
               </div>
 
               <div>
-                <Label className="text-slate-300">URL de base *</Label>
+                <Label className="text-foreground">URL de base *</Label>
                 <Input
                   value={formData.baseUrl}
                   onChange={(e) => updateField('baseUrl', e.target.value)}
                   placeholder="https://www.jort.gov.tn"
-                  className="mt-1 bg-slate-900 border-slate-600 text-white"
+                  className="mt-1 bg-card border-border text-foreground"
                 />
               </div>
 
               <div>
-                <Label className="text-slate-300">Description</Label>
+                <Label className="text-foreground">Description</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => updateField('description', e.target.value)}
                   placeholder="Description de la source..."
-                  className="mt-1 bg-slate-900 border-slate-600 text-white"
+                  className="mt-1 bg-card border-border text-foreground"
                   rows={2}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-300">Catégories RAG *</Label>
-                  <div className="mt-1 p-2 bg-slate-900 border border-slate-600 rounded-md max-h-44 overflow-y-auto space-y-1">
+                  <Label className="text-foreground">Catégories RAG *</Label>
+                  <div className="mt-1 p-2 bg-card border border-border rounded-md max-h-44 overflow-y-auto space-y-1">
                     {CATEGORIES.map((cat) => (
-                      <label key={cat.value} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-slate-800 cursor-pointer">
+                      <label key={cat.value} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-muted cursor-pointer">
                         <Checkbox
                           checked={formData.categories.includes(cat.value)}
                           onCheckedChange={(checked) => {
@@ -218,9 +218,9 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                               : formData.categories.filter((c) => c !== cat.value)
                             updateField('categories', next)
                           }}
-                          className="border-slate-500"
+                          className="border-border"
                         />
-                        <span className="text-sm text-slate-200">{cat.label}</span>
+                        <span className="text-sm text-foreground">{cat.label}</span>
                       </label>
                     ))}
                   </div>
@@ -236,18 +236,18 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                 </div>
 
                 <div>
-                  <Label className="text-slate-300">Langue</Label>
+                  <Label className="text-foreground">Langue</Label>
                   <Select
                     value={formData.language}
                     onValueChange={(v) => updateField('language', v)}
                   >
-                    <SelectTrigger className="mt-1 bg-slate-900 border-slate-600 text-white">
+                    <SelectTrigger className="mt-1 bg-card border-border text-foreground">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700">
-                      <SelectItem value="fr" className="text-white">Français</SelectItem>
-                      <SelectItem value="ar" className="text-white">Arabe</SelectItem>
-                      <SelectItem value="mixed" className="text-white">Mixte</SelectItem>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="fr" className="text-foreground">Français</SelectItem>
+                      <SelectItem value="ar" className="text-foreground">Arabe</SelectItem>
+                      <SelectItem value="mixed" className="text-foreground">Mixte</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -258,24 +258,24 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
 
         {/* Tab Configuration */}
         <TabsContent value="crawl">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Configuration du crawl</CardTitle>
+              <CardTitle className="text-foreground">Configuration du crawl</CardTitle>
               <CardDescription>Paramètres de fréquence et limites</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label className="text-slate-300">Fréquence de crawl</Label>
+                <Label className="text-foreground">Fréquence de crawl</Label>
                 <Select
                   value={formData.crawlFrequency}
                   onValueChange={(v) => updateField('crawlFrequency', v)}
                 >
-                  <SelectTrigger className="mt-1 bg-slate-900 border-slate-600 text-white">
+                  <SelectTrigger className="mt-1 bg-card border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-card border-border">
                     {FREQUENCIES.map((freq) => (
-                      <SelectItem key={freq.value} value={freq.value} className="text-white">
+                      <SelectItem key={freq.value} value={freq.value} className="text-foreground">
                         {freq.label}
                       </SelectItem>
                     ))}
@@ -284,7 +284,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
               </div>
 
               <div>
-                <Label className="text-slate-300">Profondeur max: {formData.maxDepth}</Label>
+                <Label className="text-foreground">Profondeur max: {formData.maxDepth}</Label>
                 <Slider
                   value={[formData.maxDepth]}
                   onValueChange={([v]) => updateField('maxDepth', v)}
@@ -293,13 +293,13 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                   step={1}
                   className="mt-2"
                 />
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Nombre de niveaux de liens à suivre depuis la page d'accueil
                 </p>
               </div>
 
               <div>
-                <Label className="text-slate-300">Limite de pages: {formData.maxPages}</Label>
+                <Label className="text-foreground">Limite de pages: {formData.maxPages}</Label>
                 <Slider
                   value={[formData.maxPages]}
                   onValueChange={([v]) => updateField('maxPages', v)}
@@ -311,7 +311,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
               </div>
 
               <div>
-                <Label className="text-slate-300">Délai entre requêtes: {formData.rateLimitMs}ms</Label>
+                <Label className="text-foreground">Délai entre requêtes: {formData.rateLimitMs}ms</Label>
                 <Slider
                   value={[formData.rateLimitMs]}
                   onValueChange={([v]) => updateField('rateLimitMs', v)}
@@ -325,8 +325,8 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-300">Site dynamique (JavaScript)</Label>
-                    <p className="text-xs text-slate-400">Utilise Playwright pour les sites SPA</p>
+                    <Label className="text-foreground">Site dynamique (JavaScript)</Label>
+                    <p className="text-xs text-muted-foreground">Utilise Playwright pour les sites SPA</p>
                   </div>
                   <Switch
                     checked={formData.requiresJavascript}
@@ -336,8 +336,8 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-300">Télécharger les fichiers (PDF, DOCX)</Label>
-                    <p className="text-xs text-slate-400">Indexe les documents liés</p>
+                    <Label className="text-foreground">Télécharger les fichiers (PDF, DOCX)</Label>
+                    <p className="text-xs text-muted-foreground">Indexe les documents liés</p>
                   </div>
                   <Switch
                     checked={formData.downloadFiles}
@@ -347,8 +347,8 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-300">Respecter robots.txt</Label>
-                    <p className="text-xs text-slate-400">Recommandé pour rester éthique</p>
+                    <Label className="text-foreground">Respecter robots.txt</Label>
+                    <p className="text-xs text-muted-foreground">Recommandé pour rester éthique</p>
                   </div>
                   <Switch
                     checked={formData.respectRobotsTxt}
@@ -358,8 +358,8 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-300">Utiliser le sitemap</Label>
-                    <p className="text-xs text-slate-400">Découvre les URLs via sitemap.xml</p>
+                    <Label className="text-foreground">Utiliser le sitemap</Label>
+                    <p className="text-xs text-muted-foreground">Découvre les URLs via sitemap.xml</p>
                   </div>
                   <Switch
                     checked={formData.useSitemap}
@@ -369,20 +369,20 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
 
                 {formData.useSitemap && (
                   <div>
-                    <Label className="text-slate-300">URL du sitemap</Label>
+                    <Label className="text-foreground">URL du sitemap</Label>
                     <Input
                       value={formData.sitemapUrl}
                       onChange={(e) => updateField('sitemapUrl', e.target.value)}
                       placeholder="https://example.com/sitemap.xml"
-                      className="mt-1 bg-slate-900 border-slate-600 text-white"
+                      className="mt-1 bg-card border-border text-foreground"
                     />
                   </div>
                 )}
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-300">Ignorer les erreurs SSL</Label>
-                    <p className="text-xs text-slate-400">Pour les sites gouvernementaux avec certificats expirés</p>
+                    <Label className="text-foreground">Ignorer les erreurs SSL</Label>
+                    <p className="text-xs text-muted-foreground">Pour les sites gouvernementaux avec certificats expirés</p>
                   </div>
                   <Switch
                     checked={formData.ignoreSSLErrors}
@@ -392,8 +392,8 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className={formData.downloadFiles ? 'text-slate-300' : 'text-slate-500'}>Auto-indexer les fichiers PDF</Label>
-                    <p className="text-xs text-slate-400">Parser et indexer automatiquement les PDFs pendant le crawl</p>
+                    <Label className={formData.downloadFiles ? 'text-foreground' : 'text-muted-foreground'}>Auto-indexer les fichiers PDF</Label>
+                    <p className="text-xs text-muted-foreground">Parser et indexer automatiquement les PDFs pendant le crawl</p>
                   </div>
                   <Switch
                     checked={formData.autoIndexFiles}
@@ -408,53 +408,53 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
 
         {/* Tab Extraction */}
         <TabsContent value="extraction">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Extraction du contenu</CardTitle>
+              <CardTitle className="text-foreground">Extraction du contenu</CardTitle>
               <CardDescription>Personnalisez l'extraction (optionnel)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label className="text-slate-300">Sélecteurs CSS pour le contenu</Label>
+                <Label className="text-foreground">Sélecteurs CSS pour le contenu</Label>
                 <Input
                   value={formData.contentSelector}
                   onChange={(e) => updateField('contentSelector', e.target.value)}
                   placeholder="article, .content, #main-content"
-                  className="mt-1 bg-slate-900 border-slate-600 text-white"
+                  className="mt-1 bg-card border-border text-foreground"
                 />
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Séparez par des virgules. Laissez vide pour la détection auto.
                 </p>
               </div>
 
               <div>
-                <Label className="text-slate-300">Éléments à exclure</Label>
+                <Label className="text-foreground">Éléments à exclure</Label>
                 <Input
                   value={formData.excludeSelectors}
                   onChange={(e) => updateField('excludeSelectors', e.target.value)}
                   placeholder=".ads, .sidebar, .comments"
-                  className="mt-1 bg-slate-900 border-slate-600 text-white"
+                  className="mt-1 bg-card border-border text-foreground"
                 />
               </div>
 
               <div>
-                <Label className="text-slate-300">Patterns d'URL à inclure (regex)</Label>
+                <Label className="text-foreground">Patterns d'URL à inclure (regex)</Label>
                 <Textarea
                   value={formData.urlPatterns}
                   onChange={(e) => updateField('urlPatterns', e.target.value)}
                   placeholder="Un pattern par ligne, ex:\n/articles/.*\n/lois/.*"
-                  className="mt-1 bg-slate-900 border-slate-600 text-white"
+                  className="mt-1 bg-card border-border text-foreground"
                   rows={3}
                 />
               </div>
 
               <div>
-                <Label className="text-slate-300">Patterns d'URL à exclure (regex)</Label>
+                <Label className="text-foreground">Patterns d'URL à exclure (regex)</Label>
                 <Textarea
                   value={formData.excludedPatterns}
                   onChange={(e) => updateField('excludedPatterns', e.target.value)}
                   placeholder="Un pattern par ligne, ex:\n/login\n/admin/.*"
-                  className="mt-1 bg-slate-900 border-slate-600 text-white"
+                  className="mt-1 bg-card border-border text-foreground"
                   rows={3}
                 />
               </div>
@@ -462,9 +462,9 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
           </Card>
 
           {/* Règles de catégorie par URL */}
-          <Card className="bg-slate-800 border-slate-700 mt-4">
+          <Card className="bg-card border-border mt-4">
             <CardHeader>
-              <CardTitle className="text-white text-sm">Règles de catégorie par URL</CardTitle>
+              <CardTitle className="text-foreground text-sm">Règles de catégorie par URL</CardTitle>
               <CardDescription>
                 Associer automatiquement une catégorie aux pages selon leur URL.
                 Priorité : ces règles &gt; auto-détection &gt; catégorie par défaut de la source.
@@ -481,7 +481,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                       updateField('categoryRules', rules)
                     }}
                     placeholder="Ex: /kb/codes/ ou /modeles/"
-                    className="flex-1 bg-slate-900 border-slate-600 text-white text-xs"
+                    className="flex-1 bg-card border-border text-foreground text-xs"
                   />
                   <Select
                     value={rule.type}
@@ -491,7 +491,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                       updateField('categoryRules', rules)
                     }}
                   >
-                    <SelectTrigger className="w-32 bg-slate-900 border-slate-600 text-white text-xs">
+                    <SelectTrigger className="w-32 bg-card border-border text-foreground text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -508,7 +508,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
                       updateField('categoryRules', rules)
                     }}
                   >
-                    <SelectTrigger className="w-36 bg-slate-900 border-slate-600 text-white text-xs">
+                    <SelectTrigger className="w-36 bg-card border-border text-foreground text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -534,7 +534,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
               <Button
                 variant="outline"
                 size="sm"
-                className="border-slate-600 text-slate-300 text-xs"
+                className="border-border text-foreground text-xs"
                 onClick={() => updateField('categoryRules', [
                   ...formData.categoryRules,
                   { pattern: '', type: 'contains', category: formData.categories[0] || 'legislation' },
@@ -552,7 +552,7 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
       <div className="flex items-center justify-end gap-4 mt-6">
         <Button
           variant="outline"
-          className="border-slate-600 text-slate-300"
+          className="border-border text-foreground"
           onClick={() => router.push(`/super-admin/web-sources/${sourceId}`)}
         >
           Annuler

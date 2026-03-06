@@ -80,12 +80,12 @@ export function FixTitlesButton() {
       </Button>
 
       <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">
+            <AlertDialogTitle className="text-foreground">
               Correction des titres non-significatifs
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               {previewCount !== null && previewCount > 0 ? (
                 <>
                   <strong className="text-amber-400">{previewCount} document(s)</strong> ont un titre
@@ -93,7 +93,7 @@ export function FixTitlesButton() {
                   <br /><br />
                   L&apos;IA (Ollama) va générer un titre pertinent pour chacun à partir du contenu.
                   <br />
-                  Cette opération peut prendre <strong className="text-white">1 à 2 minutes</strong>.
+                  Cette opération peut prendre <strong className="text-foreground">1 à 2 minutes</strong>.
                 </>
               ) : (
                 <strong className="text-emerald-400">Aucun titre problématique trouvé.</strong>
@@ -101,7 +101,7 @@ export function FixTitlesButton() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-600 text-slate-300">
+            <AlertDialogCancel className="border-border text-foreground">
               Annuler
             </AlertDialogCancel>
             {previewCount !== null && previewCount > 0 && (

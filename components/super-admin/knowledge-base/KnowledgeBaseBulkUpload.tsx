@@ -225,7 +225,7 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
             <p className={`text-sm font-medium ${isDragOver ? 'text-blue-300' : 'text-foreground'}`}>
               {isDragOver ? 'Déposez les fichiers ici' : 'Glissez-déposez vos fichiers ici'}
             </p>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               ou cliquez pour parcourir - PDF, DOCX, DOC, TXT
             </p>
           </div>
@@ -243,9 +243,9 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
         {files.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-slate-300">
+              <Label className="text-foreground">
                 {files.length} fichier(s) sélectionné(s)
-                <span className="text-slate-400 ml-2">
+                <span className="text-muted-foreground ml-2">
                   ({(totalSize / 1024 / 1024).toFixed(2)} Mo)
                 </span>
               </Label>
@@ -254,7 +254,7 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
                 variant="ghost"
                 size="sm"
                 onClick={() => setFiles([])}
-                className="text-slate-400 hover:text-red-400"
+                className="text-muted-foreground hover:text-red-400"
               >
                 <Icons.trash className="h-4 w-4 mr-1" />
                 Tout supprimer
@@ -265,16 +265,16 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
               {files.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50"
+                  className="flex items-center gap-2 p-2 rounded-lg bg-card/50"
                 >
-                  <Icons.fileText className="h-4 w-4 text-slate-400 shrink-0" />
+                  <Icons.fileText className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     value={entry.title}
                     onChange={(e) => updateFileTitle(entry.id, e.target.value)}
-                    className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
+                    className="flex-1 bg-muted border-border text-foreground text-sm h-8"
                     placeholder="Titre du document"
                   />
-                  <span className="text-xs text-slate-400 shrink-0 w-16 text-right">
+                  <span className="text-xs text-muted-foreground shrink-0 w-16 text-right">
                     {(entry.file.size / 1024).toFixed(0)} Ko
                   </span>
                   <Button
@@ -282,7 +282,7 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
                     variant="ghost"
                     size="sm"
                     onClick={() => removeFile(entry.id)}
-                    className="text-slate-400 hover:text-red-400 h-8 w-8 p-0 shrink-0"
+                    className="text-muted-foreground hover:text-red-400 h-8 w-8 p-0 shrink-0"
                   >
                     <Icons.x className="h-4 w-4" />
                   </Button>
@@ -293,8 +293,8 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
         )}
 
         {/* Default settings */}
-        <div className="space-y-4 pt-4 border-t border-slate-700">
-          <p className="text-sm font-medium text-slate-300">
+        <div className="space-y-4 pt-4 border-t border-border">
+          <p className="text-sm font-medium text-foreground">
             Paramètres par défaut pour tous les fichiers
           </p>
 
@@ -308,14 +308,14 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
 
           {/* Language */}
           <div>
-            <Label className="text-slate-300">Langue</Label>
+            <Label className="text-foreground">Langue</Label>
             <Select value={defaultLanguage} onValueChange={setDefaultLanguage}>
-              <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="mt-1 bg-muted border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
-                <SelectItem value="ar" className="text-white hover:bg-slate-700">العربية (Arabe)</SelectItem>
-                <SelectItem value="fr" className="text-white hover:bg-slate-700">Français</SelectItem>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="ar" className="text-foreground hover:bg-muted">العربية (Arabe)</SelectItem>
+                <SelectItem value="fr" className="text-foreground hover:bg-muted">Français</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -332,8 +332,8 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
           {/* Auto-index */}
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-slate-300">Indexation automatique</Label>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <Label className="text-foreground">Indexation automatique</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Indexer automatiquement les documents après l'upload
               </p>
             </div>
@@ -345,7 +345,7 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
         </div>
 
         {/* Submit */}
-        <div className="flex gap-2 justify-end pt-4 border-t border-slate-700">
+        <div className="flex gap-2 justify-end pt-4 border-t border-border">
           <Button
             type="button"
             variant="ghost"
@@ -354,7 +354,7 @@ export function KnowledgeBaseBulkUpload({ onComplete }: KnowledgeBaseBulkUploadP
               setDefaultTags([])
             }}
             disabled={uploading}
-            className="text-slate-400"
+            className="text-muted-foreground"
           >
             Réinitialiser
           </Button>

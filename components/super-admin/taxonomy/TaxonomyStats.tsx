@@ -74,15 +74,15 @@ export function TaxonomyStats({ stats }: TaxonomyStatsProps) {
       {statItems.map((stat) => {
         const Icon = Icons[stat.icon]
         return (
-          <Card key={stat.label} className="bg-slate-800 border-slate-700">
+          <Card key={stat.label} className="bg-card border-border">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${stat.bgColor}`}>
                   <Icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{stat.value}</p>
-                  <p className="text-xs text-slate-400">{stat.label}</p>
+                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
                 </div>
               </div>
             </CardContent>

@@ -75,7 +75,7 @@ export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) 
         .sort((a, b) => b.total_pages - a.total_pages)
         .map(group => {
           const category = group.legal_domain || 'null'
-          const style = CATEGORY_STYLES[category] || { icon: '📄', color: 'text-slate-400' }
+          const style = CATEGORY_STYLES[category] || { icon: '📄', color: 'text-muted-foreground' }
           const labelAr = category === 'null' ? 'غير مصنف' : getUnifiedLabel(category, 'ar')
           const isExpanded = expandedCategories.has(category)
 
@@ -94,15 +94,15 @@ export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) 
                     )}
                   />
                   <span className={cn('text-lg', style.color)}>{style.icon}</span>
-                  <span className="font-medium text-white">{labelAr}</span>
-                  <Badge variant="outline" className="bg-slate-700 border-slate-600 text-slate-300">
+                  <span className="font-medium text-foreground">{labelAr}</span>
+                  <Badge variant="outline" className="bg-muted border-border text-foreground">
                     {group.codes.length} code{group.codes.length > 1 ? 's' : ''}
                   </Badge>
-                  <Badge variant="outline" className="bg-slate-700 border-slate-600 text-slate-300">
+                  <Badge variant="outline" className="bg-muted border-border text-foreground">
                     {group.total_pages} page{group.total_pages > 1 ? 's' : ''}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>
                     {group.codes.reduce((sum, c) => sum + c.indexed, 0)} indexées
                   </span>
@@ -111,7 +111,7 @@ export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) 
 
               {/* Niveau 2 : Codes */}
               {isExpanded && (
-                <div className="bg-slate-800/50">
+                <div className="bg-card/50">
                   {group.codes
                     .sort((a, b) => b.total_pages - a.total_pages)
                     .map(code => {
@@ -123,31 +123,31 @@ export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) 
                       return (
                         <div
                           key={code.code_slug}
-                          className="border-t border-slate-700/50"
+                          className="border-t border-border/50"
                         >
                           <button
                             onClick={() => toggleCode(code.code_slug)}
-                            className="w-full px-6 py-2.5 hover:bg-slate-700/30 flex items-center justify-between transition-colors"
+                            className="w-full px-6 py-2.5 hover:bg-muted/30 flex items-center justify-between transition-colors"
                           >
                             <div className="flex items-center gap-3">
                               <Icons.chevronRight
                                 className={cn(
-                                  'h-3 w-3 text-slate-500 transition-transform',
+                                  'h-3 w-3 text-muted-foreground transition-transform',
                                   isCodeExpanded && 'rotate-90'
                                 )}
                               />
-                              <span className="text-sm font-medium text-slate-200">
+                              <span className="text-sm font-medium text-foreground">
                                 {code.code_name}
                               </span>
                             </div>
                             <div className="flex items-center gap-3">
                               {/* Barre de progression */}
                               <div className="flex items-center gap-2">
-                                <div className="w-32 h-2 bg-slate-700 rounded-full overflow-hidden">
+                                <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
                                   <div
                                     className={cn(
                                       'h-full transition-all',
-                                      progress === 0 && 'bg-slate-600',
+                                      progress === 0 && 'bg-muted-foreground/30',
                                       progress > 0 && progress < 50 && 'bg-yellow-500',
                                       progress >= 50 && progress < 100 && 'bg-blue-500',
                                       progress === 100 && 'bg-green-500'
@@ -155,14 +155,14 @@ export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) 
                                     style={{ width: `${progress}%` }}
                                   />
                                 </div>
-                                <span className="text-xs text-slate-400 w-12 text-right">
+                                <span className="text-xs text-muted-foreground w-12 text-right">
                                   {progress}%
                                 </span>
                               </div>
 
                               {/* Stats */}
                               <div className="flex items-center gap-2 text-xs">
-                                <Badge variant="outline" className="bg-slate-700/50 border-slate-600 text-slate-300">
+                                <Badge variant="outline" className="bg-muted/50 border-border text-foreground">
                                   {code.total_pages} pages
                                 </Badge>
                                 {code.indexed > 0 && (
@@ -186,29 +186,29 @@ export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) 
 
                           {/* Niveau 3 : Détails du code (expandable) */}
                           {isCodeExpanded && (
-                            <div className="px-6 py-3 bg-slate-900/50 text-xs text-slate-400 space-y-2">
+                            <div className="px-6 py-3 bg-card/50 text-xs text-muted-foreground space-y-2">
                               <div className="grid grid-cols-4 gap-4">
                                 <div>
-                                  <span className="text-slate-500">En attente</span>
-                                  <p className="text-slate-300 font-medium">{code.pending}</p>
+                                  <span className="text-muted-foreground">En attente</span>
+                                  <p className="text-foreground font-medium">{code.pending}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-500">Crawlées</span>
-                                  <p className="text-slate-300 font-medium">{code.crawled}</p>
+                                  <span className="text-muted-foreground">Crawlées</span>
+                                  <p className="text-foreground font-medium">{code.crawled}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-500">Inchangées</span>
-                                  <p className="text-slate-300 font-medium">{code.unchanged}</p>
+                                  <span className="text-muted-foreground">Inchangées</span>
+                                  <p className="text-foreground font-medium">{code.unchanged}</p>
                                 </div>
                                 <div>
-                                  <span className="text-slate-500">Indexées</span>
-                                  <p className="text-slate-300 font-medium">{code.indexed}</p>
+                                  <span className="text-muted-foreground">Indexées</span>
+                                  <p className="text-foreground font-medium">{code.indexed}</p>
                                 </div>
                               </div>
                               {code.last_crawl_at && (
                                 <div>
-                                  <span className="text-slate-500">Dernier crawl : </span>
-                                  <span className="text-slate-300">
+                                  <span className="text-muted-foreground">Dernier crawl : </span>
+                                  <span className="text-foreground">
                                     {new Date(code.last_crawl_at).toLocaleString('fr-FR', { timeZone: 'Africa/Tunis' })}
                                   </span>
                                 </div>

@@ -115,9 +115,9 @@ export function SchedulerDashboard() {
 
   if (loading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="py-8 flex items-center justify-center">
-          <Icons.loader className="h-6 w-6 text-slate-400 animate-spin" />
+          <Icons.loader className="h-6 w-6 text-muted-foreground animate-spin" />
         </CardContent>
       </Card>
     )
@@ -155,17 +155,17 @@ export function SchedulerDashboard() {
       </div>
 
       {/* Configuration */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Configuration du Scheduler</CardTitle>
+          <CardTitle className="text-foreground">Configuration du Scheduler</CardTitle>
           <CardDescription>Paramètres globaux de planification automatique</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Toggle global */}
-          <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div>
-              <Label className="text-slate-300 text-base">Scheduler actif</Label>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <Label className="text-foreground text-base">Scheduler actif</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Active/désactive le crawl automatique global
               </p>
             </div>
@@ -175,7 +175,7 @@ export function SchedulerDashboard() {
           <div className="grid md:grid-cols-2 gap-6">
             {/* Concurrent crawls */}
             <div>
-              <Label className="text-slate-300">
+              <Label className="text-foreground">
                 Crawls simultanés max: {maxConcurrent}
               </Label>
               <Slider
@@ -190,7 +190,7 @@ export function SchedulerDashboard() {
 
             {/* Max per hour */}
             <div>
-              <Label className="text-slate-300">
+              <Label className="text-foreground">
                 Crawls par heure max: {maxPerHour}
               </Label>
               <Slider
@@ -206,14 +206,14 @@ export function SchedulerDashboard() {
 
           {/* Default frequency */}
           <div>
-            <Label className="text-slate-300">Fréquence par défaut</Label>
+            <Label className="text-foreground">Fréquence par défaut</Label>
             <Select value={defaultFrequency} onValueChange={setDefaultFrequency}>
-              <SelectTrigger className="mt-1 bg-slate-900 border-slate-600 text-white w-64">
+              <SelectTrigger className="mt-1 bg-card border-border text-foreground w-64">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-card border-border">
                 {FREQUENCIES.map((f) => (
-                  <SelectItem key={f.value} value={f.value} className="text-white">
+                  <SelectItem key={f.value} value={f.value} className="text-foreground">
                     {f.label}
                   </SelectItem>
                 ))}
@@ -224,7 +224,7 @@ export function SchedulerDashboard() {
           {/* Schedule window */}
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <Label className="text-slate-300">
+              <Label className="text-foreground">
                 Heure de début: {startHour}h
               </Label>
               <Slider
@@ -237,7 +237,7 @@ export function SchedulerDashboard() {
               />
             </div>
             <div>
-              <Label className="text-slate-300">
+              <Label className="text-foreground">
                 Heure de fin: {endHour}h
               </Label>
               <Slider
@@ -253,13 +253,13 @@ export function SchedulerDashboard() {
 
           {/* Last run info */}
           {status?.config?.lastRunAt && (
-            <div className="p-3 bg-slate-900/50 rounded-lg text-sm">
-              <span className="text-slate-400">Dernière exécution: </span>
-              <span className="text-slate-200">
+            <div className="p-3 bg-muted/50 rounded-lg text-sm">
+              <span className="text-muted-foreground">Dernière exécution: </span>
+              <span className="text-foreground">
                 {new Date(status.config.lastRunAt).toLocaleString('fr-FR')}
               </span>
               {status.config.lastRunResult && (
-                <span className="text-slate-400 ml-2">
+                <span className="text-muted-foreground ml-2">
                   ({status.config.lastRunResult})
                 </span>
               )}
@@ -267,7 +267,7 @@ export function SchedulerDashboard() {
           )}
 
           {/* Save */}
-          <div className="flex justify-end pt-4 border-t border-slate-700">
+          <div className="flex justify-end pt-4 border-t border-border">
             <Button
               onClick={handleSave}
               disabled={saving}
@@ -305,17 +305,17 @@ function StatusCard({
     blue: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
     orange: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
     purple: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-    slate: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+    slate: 'bg-muted/50 text-muted-foreground border-border',
   }
 
   return (
     <div className={`p-3 rounded-lg border ${colorClasses[color]}`}>
       <div className="flex items-center gap-1.5 mb-1">
         {icon}
-        <span className="text-xs text-slate-300">{label}</span>
+        <span className="text-xs text-foreground">{label}</span>
       </div>
-      <div className="text-lg font-bold text-white">{value}</div>
-      {subValue && <div className="text-xs text-slate-400 mt-0.5">{subValue}</div>}
+      <div className="text-lg font-bold text-foreground">{value}</div>
+      {subValue && <div className="text-xs text-muted-foreground mt-0.5">{subValue}</div>}
     </div>
   )
 }

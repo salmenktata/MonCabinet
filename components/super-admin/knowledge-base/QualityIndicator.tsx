@@ -32,7 +32,7 @@ export function QualityIndicator({
 }: QualityIndicatorProps) {
   if (score === null || score === undefined) {
     return (
-      <Badge variant="outline" className="border-slate-600 text-slate-400 text-xs">
+      <Badge variant="outline" className="border-border text-muted-foreground text-xs">
         Non analysé
       </Badge>
     )
@@ -63,32 +63,32 @@ export function QualityIndicator({
         <TooltipTrigger asChild>{badge}</TooltipTrigger>
         <TooltipContent
           side="bottom"
-          className="bg-slate-800 border-slate-700 text-white max-w-xs"
+          className="bg-card border-border text-foreground max-w-xs"
         >
           <div className="space-y-2">
             <div className="font-medium">Score qualité : {score}/100</div>
             {details.summary && (
-              <p className="text-xs text-slate-300">{details.summary}</p>
+              <p className="text-xs text-muted-foreground">{details.summary}</p>
             )}
             <div className="grid grid-cols-2 gap-1 text-xs">
               {details.clarity !== undefined && (
-                <div className="text-slate-400">
-                  Clarté: <span className="text-white">{details.clarity}</span>
+                <div className="text-muted-foreground">
+                  Clarté: <span className="text-foreground">{details.clarity}</span>
                 </div>
               )}
               {details.structure !== undefined && (
-                <div className="text-slate-400">
-                  Structure: <span className="text-white">{details.structure}</span>
+                <div className="text-muted-foreground">
+                  Structure: <span className="text-foreground">{details.structure}</span>
                 </div>
               )}
               {details.completeness !== undefined && (
-                <div className="text-slate-400">
-                  Complétude: <span className="text-white">{details.completeness}</span>
+                <div className="text-muted-foreground">
+                  Complétude: <span className="text-foreground">{details.completeness}</span>
                 </div>
               )}
               {details.reliability !== undefined && (
-                <div className="text-slate-400">
-                  Fiabilité: <span className="text-white">{details.reliability}</span>
+                <div className="text-muted-foreground">
+                  Fiabilité: <span className="text-foreground">{details.reliability}</span>
                 </div>
               )}
             </div>

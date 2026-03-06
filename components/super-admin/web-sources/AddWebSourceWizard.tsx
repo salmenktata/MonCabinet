@@ -757,57 +757,57 @@ export function AddWebSourceWizard() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="text-slate-300">Sélecteurs CSS pour le contenu</Label>
+              <Label className="text-foreground">Sélecteurs CSS pour le contenu</Label>
               <Input
                 value={formData.contentSelector}
                 onChange={(e) => updateField('contentSelector', e.target.value)}
                 placeholder="article, .content, #main-content"
-                className="mt-1 bg-slate-900 border-slate-600 text-white"
+                className="mt-1 bg-card border-border text-foreground"
               />
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Séparez par des virgules. Laissez vide pour la détection auto.
               </p>
             </div>
 
             <div>
-              <Label className="text-slate-300">Éléments à exclure</Label>
+              <Label className="text-foreground">Éléments à exclure</Label>
               <Input
                 value={formData.excludeSelectors}
                 onChange={(e) => updateField('excludeSelectors', e.target.value)}
                 placeholder=".ads, .sidebar, .comments"
-                className="mt-1 bg-slate-900 border-slate-600 text-white"
+                className="mt-1 bg-card border-border text-foreground"
               />
             </div>
 
             <div>
-              <Label className="text-slate-300">Patterns d'URL à inclure (regex)</Label>
+              <Label className="text-foreground">Patterns d'URL à inclure (regex)</Label>
               <Textarea
                 value={formData.urlPatterns}
                 onChange={(e) => updateField('urlPatterns', e.target.value)}
                 placeholder="Un pattern par ligne, ex:\n/articles/.*\n/lois/.*"
-                className="mt-1 bg-slate-900 border-slate-600 text-white"
+                className="mt-1 bg-card border-border text-foreground"
                 rows={3}
               />
             </div>
 
             <div>
-              <Label className="text-slate-300">Patterns d'URL à exclure (regex)</Label>
+              <Label className="text-foreground">Patterns d'URL à exclure (regex)</Label>
               <Textarea
                 value={formData.excludedPatterns}
                 onChange={(e) => updateField('excludedPatterns', e.target.value)}
                 placeholder="Un pattern par ligne, ex:\n/login\n/admin/.*"
-                className="mt-1 bg-slate-900 border-slate-600 text-white"
+                className="mt-1 bg-card border-border text-foreground"
                 rows={3}
               />
             </div>
 
             {/* Bouton de test */}
-            <div className="pt-4 border-t border-slate-700">
+            <div className="pt-4 border-t border-border">
               <Button
                 onClick={handleTest}
                 disabled={loading || !formData.baseUrl}
                 variant="outline"
-                className="w-full border-slate-600 text-slate-300"
+                className="w-full border-border text-foreground"
               >
                 {loading ? (
                   <Icons.loader className="h-4 w-4 animate-spin mr-2" />
@@ -824,13 +824,13 @@ export function AddWebSourceWizard() {
                   {testResult.success ? (
                     <div className="space-y-2">
                       <p className="text-green-400 font-medium">Extraction réussie</p>
-                      <p className="text-sm text-slate-300">
+                      <p className="text-sm text-foreground">
                         <strong>Titre:</strong> {testResult.extraction?.title}
                       </p>
-                      <p className="text-sm text-slate-400">
+                      <p className="text-sm text-muted-foreground">
                         {testResult.extraction?.linksCount} liens, {testResult.extraction?.filesCount} fichiers
                       </p>
-                      <p className="text-xs text-slate-400 line-clamp-3">
+                      <p className="text-xs text-muted-foreground line-clamp-3">
                         {testResult.extraction?.contentPreview}
                       </p>
                     </div>
@@ -850,7 +850,7 @@ export function AddWebSourceWizard() {
           onClick={handlePrev}
           disabled={step === 1}
           variant="outline"
-          className="border-slate-600 text-slate-300"
+          className="border-border text-foreground"
         >
           <Icons.chevronLeft className="h-4 w-4 mr-2" />
           Précédent

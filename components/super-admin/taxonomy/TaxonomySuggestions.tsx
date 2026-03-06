@@ -149,7 +149,7 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
     <>
       <div className="space-y-4">
         {suggestions.map((suggestion) => (
-          <Card key={suggestion.id} className="bg-slate-800 border-slate-700">
+          <Card key={suggestion.id} className="bg-card border-border">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -168,28 +168,28 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
 
                   <div className="mb-3">
                     <div className="flex items-center gap-2 text-lg">
-                      <span className="font-medium text-white">{suggestion.suggestedLabelFr}</span>
+                      <span className="font-medium text-foreground">{suggestion.suggestedLabelFr}</span>
                       {suggestion.suggestedLabelAr && (
                         <>
-                          <span className="text-slate-400">/</span>
-                          <span className="text-slate-400" dir="rtl">{suggestion.suggestedLabelAr}</span>
+                          <span className="text-muted-foreground">/</span>
+                          <span className="text-muted-foreground" dir="rtl">{suggestion.suggestedLabelAr}</span>
                         </>
                       )}
                     </div>
-                    <code className="text-xs text-slate-400 bg-slate-700 px-2 py-0.5 rounded">
+                    <code className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
                       {suggestion.suggestedCode}
                     </code>
                   </div>
 
                   {suggestion.reason && (
-                    <p className="text-sm text-slate-400 mb-3">
+                    <p className="text-sm text-muted-foreground mb-3">
                       <Icons.info className="h-4 w-4 inline mr-1" />
                       {suggestion.reason}
                     </p>
                   )}
 
                   {suggestion.sampleUrls.length > 0 && (
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-muted-foreground">
                       <p className="mb-1">URLs d'exemple:</p>
                       <ul className="list-disc list-inside">
                         {suggestion.sampleUrls.slice(0, 3).map((url, i) => (
@@ -242,14 +242,14 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
 
       {/* Dialog d'action */}
       <Dialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               {action === 'approve' && 'Approuver la suggestion'}
               {action === 'reject' && 'Rejeter la suggestion'}
               {action === 'merge' && 'Fusionner avec un élément existant'}
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               {selectedSuggestion?.suggestedLabelFr} ({selectedSuggestion?.suggestedCode})
             </DialogDescription>
           </DialogHeader>
@@ -259,7 +259,7 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
               <div>
                 <Label>Parent (optionnel)</Label>
                 <Select value={parentCode || '__none__'} onValueChange={(value) => setParentCode(value === '__none__' ? '' : value)}>
-                  <SelectTrigger className="bg-slate-900 border-slate-700">
+                  <SelectTrigger className="bg-card border-border">
                     <SelectValue placeholder="Aucun parent" />
                   </SelectTrigger>
                   <SelectContent>
@@ -278,7 +278,7 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
               <div>
                 <Label>Fusionner avec</Label>
                 <Select value={mergeWithCode} onValueChange={setMergeWithCode}>
-                  <SelectTrigger className="bg-slate-900 border-slate-700">
+                  <SelectTrigger className="bg-card border-border">
                     <SelectValue placeholder="Sélectionner un élément" />
                   </SelectTrigger>
                   <SelectContent>
@@ -298,7 +298,7 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Raison de cette décision..."
-                className="bg-slate-900 border-slate-700"
+                className="bg-card border-border"
               />
             </div>
           </div>

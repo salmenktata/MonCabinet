@@ -56,7 +56,7 @@ const FILE_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   success: { label: 'Succès', color: 'text-green-400' },
   failed: { label: 'Erreur', color: 'text-red-400' },
   processing: { label: 'En cours', color: 'text-blue-400' },
-  pending: { label: 'En attente', color: 'text-slate-400' },
+  pending: { label: 'En attente', color: 'text-muted-foreground' },
 }
 
 export function BulkImportProgress({ batchId, onComplete }: BulkImportProgressProps) {
@@ -117,11 +117,11 @@ export function BulkImportProgress({ batchId, onComplete }: BulkImportProgressPr
 
   if (loading && !batch) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="py-8">
           <div className="flex flex-col items-center gap-3">
-            <Icons.loader className="h-8 w-8 text-slate-400 animate-spin" />
-            <p className="text-sm text-slate-400">Chargement du statut...</p>
+            <Icons.loader className="h-8 w-8 text-muted-foreground animate-spin" />
+            <p className="text-sm text-muted-foreground">Chargement du statut...</p>
           </div>
         </CardContent>
       </Card>
@@ -130,7 +130,7 @@ export function BulkImportProgress({ batchId, onComplete }: BulkImportProgressPr
 
   if (error && !batch) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="py-8">
           <div className="flex flex-col items-center gap-3">
             <Icons.alertCircle className="h-8 w-8 text-red-400" />
@@ -144,10 +144,10 @@ export function BulkImportProgress({ batchId, onComplete }: BulkImportProgressPr
   if (!batch) return null
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-base flex items-center gap-2">
+          <CardTitle className="text-foreground text-base flex items-center gap-2">
             <Icons.layers className="h-4 w-4" />
             Import en masse
           </CardTitle>
@@ -166,14 +166,14 @@ export function BulkImportProgress({ batchId, onComplete }: BulkImportProgressPr
         {/* Progress bar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">
+            <span className="text-muted-foreground">
               {batch.processedFiles} / {batch.totalFiles} fichier(s)
             </span>
-            <span className="text-white font-medium">{progressPercent}%</span>
+            <span className="text-foreground font-medium">{progressPercent}%</span>
           </div>
           <Progress
             value={progressPercent}
-            className="h-2 bg-slate-700"
+            className="h-2 bg-muted"
           />
         </div>
 
@@ -192,7 +192,7 @@ export function BulkImportProgress({ batchId, onComplete }: BulkImportProgressPr
             </span>
           )}
           {batch.totalFiles - batch.processedFiles > 0 && batch.status === 'processing' && (
-            <span className="flex items-center gap-1 text-slate-400">
+            <span className="flex items-center gap-1 text-muted-foreground">
               <Icons.clock className="h-3 w-3" />
               {batch.totalFiles - batch.processedFiles} en attente
             </span>
@@ -208,7 +208,7 @@ export function BulkImportProgress({ batchId, onComplete }: BulkImportProgressPr
               return (
                 <div
                   key={`${file.filename}-${index}`}
-                  className="flex items-start gap-2 p-2 rounded bg-slate-900/50"
+                  className="flex items-start gap-2 p-2 rounded bg-muted/50"
                 >
                   <div className="shrink-0 mt-0.5">
                     {file.status === 'success' && (
@@ -226,11 +226,11 @@ export function BulkImportProgress({ batchId, onComplete }: BulkImportProgressPr
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white truncate" title={file.title || file.filename}>
+                    <p className="text-sm text-foreground truncate" title={file.title || file.filename}>
                       {file.title || file.filename}
                     </p>
                     {file.filename !== file.title && (
-                      <p className="text-xs text-slate-400 truncate">{file.filename}</p>
+                      <p className="text-xs text-muted-foreground truncate">{file.filename}</p>
                     )}
                     {file.error && (
                       <p className="text-xs text-red-400 mt-0.5">{file.error}</p>

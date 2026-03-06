@@ -393,7 +393,7 @@ const ConversationItem = memo(function ConversationItem({
           variant="ghost"
           size="icon"
           aria-label={t('deleteConfirmTitle')}
-          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          className="h-8 w-8 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0"
           onClick={(e) => {
             e.stopPropagation()
             onDelete(conv.id)

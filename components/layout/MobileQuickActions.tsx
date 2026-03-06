@@ -97,7 +97,7 @@ export function MobileQuickActions({ open, onOpenChange, userRole }: MobileQuick
           </SheetHeader>
 
           {/* Grille 3 colonnes */}
-          <div className="grid grid-cols-3 gap-3 px-6 pb-5">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 px-4 sm:px-6 pb-5">
             {QUICK_ACTIONS.map((action) => {
               const Icon = Icons[action.icon]
               return (

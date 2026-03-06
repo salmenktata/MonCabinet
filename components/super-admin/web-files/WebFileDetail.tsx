@@ -86,7 +86,7 @@ function StatusBadge({ status }: { status: WebFileData['status'] }) {
   const config = {
     indexed: { label: 'Indexé', className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
     downloaded: { label: 'Téléchargé', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-    pending: { label: 'En attente', className: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+    pending: { label: 'En attente', className: 'bg-muted text-muted-foreground border-border' },
     error: { label: 'Erreur', className: 'bg-red-500/20 text-red-400 border-red-500/30' },
   }
   const c = config[status]
@@ -134,12 +134,12 @@ export default function WebFileDetail({ file, chunks }: Props) {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-slate-400">
-        <Link href="/super-admin/web-files" className="hover:text-slate-200 transition-colors">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/super-admin/web-files" className="hover:text-foreground transition-colors">
           Fichiers Web
         </Link>
         <Icons.chevronRight className="h-4 w-4" />
-        <span className="text-slate-200 truncate max-w-xs">{file.filename}</span>
+        <span className="text-foreground truncate max-w-xs">{file.filename}</span>
       </div>
 
       {/* Header */}
@@ -147,17 +147,17 @@ export default function WebFileDetail({ file, chunks }: Props) {
         <div className="flex items-start gap-3 min-w-0">
           <span className="text-3xl mt-1">{fileTypeIcon}</span>
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-slate-100 break-words">
+            <h1 className="text-2xl font-bold text-foreground break-words">
               {file.extractedTitle || file.filename}
             </h1>
             {file.extractedTitle && (
-              <p className="text-sm text-slate-400 mt-0.5 break-all">{file.filename}</p>
+              <p className="text-sm text-muted-foreground mt-0.5 break-all">{file.filename}</p>
             )}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <StatusBadge status={file.status} />
-              <Badge className="bg-slate-700 text-slate-300 uppercase text-xs">{file.fileType}</Badge>
+              <Badge className="bg-muted text-muted-foreground uppercase text-xs">{file.fileType}</Badge>
               {file.sourceName && (
-                <Badge className="bg-slate-700/50 text-slate-400 text-xs">{file.sourceName}</Badge>
+                <Badge className="bg-muted/50 text-muted-foreground text-xs">{file.sourceName}</Badge>
               )}
             </div>
           </div>
@@ -169,7 +169,7 @@ export default function WebFileDetail({ file, chunks }: Props) {
             variant="outline"
             size="sm"
             onClick={() => window.open(file.url, '_blank')}
-            className="border-slate-700 text-slate-300 hover:bg-slate-700"
+            className="border-border text-muted-foreground hover:bg-muted"
           >
             <Icons.externalLink className="h-4 w-4 mr-2" />
             Voir l&apos;original
@@ -221,14 +221,14 @@ export default function WebFileDetail({ file, chunks }: Props) {
           )}
 
           {/* Tabs contenu */}
-          <div className="bg-slate-800/50 rounded-lg border border-slate-700">
-            <div className="flex border-b border-slate-700">
+          <div className="bg-card/50 rounded-lg border border-border">
+            <div className="flex border-b border-border">
               <button
                 onClick={() => setActiveTab('preview')}
                 className={`px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === 'preview'
-                    ? 'text-slate-100 border-b-2 border-blue-500'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'text-foreground border-b-2 border-blue-500'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Aperçu du texte
@@ -237,13 +237,13 @@ export default function WebFileDetail({ file, chunks }: Props) {
                 onClick={() => setActiveTab('chunks')}
                 className={`px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === 'chunks'
-                    ? 'text-slate-100 border-b-2 border-blue-500'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'text-foreground border-b-2 border-blue-500'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Chunks KB
                 {chunks.length > 0 && (
-                  <span className="ml-2 bg-slate-700 text-slate-300 text-xs px-1.5 py-0.5 rounded">
+                  <span className="ml-2 bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded">
                     {chunks.length}
                   </span>
                 )}
@@ -254,11 +254,11 @@ export default function WebFileDetail({ file, chunks }: Props) {
               {activeTab === 'preview' && (
                 <div>
                   {file.textContent ? (
-                    <pre className="text-sm text-slate-300 whitespace-pre-wrap font-sans leading-relaxed max-h-[600px] overflow-y-auto">
+                    <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans leading-relaxed max-h-[600px] overflow-y-auto">
                       {file.textContent}
                     </pre>
                   ) : (
-                    <div className="text-center py-12 text-slate-500">
+                    <div className="text-center py-12 text-muted-foreground">
                       <Icons.fileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
                       <p>Aucun texte extrait disponible</p>
                     </div>
@@ -269,7 +269,7 @@ export default function WebFileDetail({ file, chunks }: Props) {
               {activeTab === 'chunks' && (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
                   {chunks.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500">
+                    <div className="text-center py-12 text-muted-foreground">
                       <Icons.database className="h-12 w-12 mx-auto mb-3 opacity-30" />
                       <p>Aucun chunk — document non indexé</p>
                     </div>
@@ -277,15 +277,15 @@ export default function WebFileDetail({ file, chunks }: Props) {
                     chunks.map((chunk) => (
                       <div
                         key={chunk.id}
-                        className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50"
+                        className="bg-muted/50 rounded-lg p-3 border border-border/50"
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-slate-500 font-mono">
+                          <span className="text-xs text-muted-foreground font-mono">
                             Chunk #{chunk.chunkIndex + 1}
                           </span>
-                          <span className="text-xs text-slate-500">{chunk.tokenCount} tokens</span>
+                          <span className="text-xs text-muted-foreground">{chunk.tokenCount} tokens</span>
                         </div>
-                        <p className="text-sm text-slate-300 leading-relaxed">{chunk.content}</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{chunk.content}</p>
                       </div>
                     ))
                   )}
@@ -298,82 +298,82 @@ export default function WebFileDetail({ file, chunks }: Props) {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Informations fichier */}
-          <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4">
-            <h3 className="text-sm font-semibold text-slate-200 mb-3">Informations</h3>
+          <div className="bg-card/50 rounded-lg border border-border p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Informations</h3>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-slate-400">Taille</dt>
-                <dd className="text-slate-200">{formatBytes(file.fileSize)}</dd>
+                <dt className="text-muted-foreground">Taille</dt>
+                <dd className="text-foreground">{formatBytes(file.fileSize)}</dd>
               </div>
               {file.pageCount && (
                 <div className="flex justify-between">
-                  <dt className="text-slate-400">Pages</dt>
-                  <dd className="text-slate-200">{file.pageCount}</dd>
+                  <dt className="text-muted-foreground">Pages</dt>
+                  <dd className="text-foreground">{file.pageCount}</dd>
                 </div>
               )}
               {file.wordCount && (
                 <div className="flex justify-between">
-                  <dt className="text-slate-400">Mots</dt>
-                  <dd className="text-slate-200">{file.wordCount.toLocaleString('fr-FR')}</dd>
+                  <dt className="text-muted-foreground">Mots</dt>
+                  <dd className="text-foreground">{file.wordCount.toLocaleString('fr-FR')}</dd>
                 </div>
               )}
               {file.chunksCount !== null && (
                 <div className="flex justify-between">
-                  <dt className="text-slate-400">Chunks</dt>
-                  <dd className="text-slate-200">{file.chunksCount}</dd>
+                  <dt className="text-muted-foreground">Chunks</dt>
+                  <dd className="text-foreground">{file.chunksCount}</dd>
                 </div>
               )}
               {file.extractedAuthor && (
                 <div className="flex justify-between">
-                  <dt className="text-slate-400">Auteur</dt>
-                  <dd className="text-slate-200 text-right max-w-[60%] truncate">{file.extractedAuthor}</dd>
+                  <dt className="text-muted-foreground">Auteur</dt>
+                  <dd className="text-foreground text-right max-w-[60%] truncate">{file.extractedAuthor}</dd>
                 </div>
               )}
               {file.extractedDate && (
                 <div className="flex justify-between">
-                  <dt className="text-slate-400">Date doc.</dt>
-                  <dd className="text-slate-200">{new Date(file.extractedDate).toLocaleDateString('fr-FR')}</dd>
+                  <dt className="text-muted-foreground">Date doc.</dt>
+                  <dd className="text-foreground">{new Date(file.extractedDate).toLocaleDateString('fr-FR')}</dd>
                 </div>
               )}
               {file.contentHash && (
                 <div className="flex justify-between">
-                  <dt className="text-slate-400">Hash</dt>
-                  <dd className="text-slate-400 font-mono text-xs">{file.contentHash.slice(0, 12)}…</dd>
+                  <dt className="text-muted-foreground">Hash</dt>
+                  <dd className="text-muted-foreground font-mono text-xs">{file.contentHash.slice(0, 12)}…</dd>
                 </div>
               )}
             </dl>
           </div>
 
           {/* Dates */}
-          <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4">
-            <h3 className="text-sm font-semibold text-slate-200 mb-3">Historique</h3>
+          <div className="bg-card/50 rounded-lg border border-border p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Historique</h3>
             <dl className="space-y-2 text-sm">
               <div>
-                <dt className="text-slate-400">Créé le</dt>
-                <dd className="text-slate-300 text-xs mt-0.5">{formatDate(file.createdAt)}</dd>
+                <dt className="text-muted-foreground">Créé le</dt>
+                <dd className="text-muted-foreground text-xs mt-0.5">{formatDate(file.createdAt)}</dd>
               </div>
               {file.downloadedAt && (
                 <div>
-                  <dt className="text-slate-400">Téléchargé le</dt>
-                  <dd className="text-slate-300 text-xs mt-0.5">{formatDate(file.downloadedAt)}</dd>
+                  <dt className="text-muted-foreground">Téléchargé le</dt>
+                  <dd className="text-muted-foreground text-xs mt-0.5">{formatDate(file.downloadedAt)}</dd>
                 </div>
               )}
               {file.indexedAt && (
                 <div>
-                  <dt className="text-slate-400">Indexé le</dt>
-                  <dd className="text-slate-300 text-xs mt-0.5">{formatDate(file.indexedAt)}</dd>
+                  <dt className="text-muted-foreground">Indexé le</dt>
+                  <dd className="text-muted-foreground text-xs mt-0.5">{formatDate(file.indexedAt)}</dd>
                 </div>
               )}
             </dl>
           </div>
 
           {/* Source */}
-          <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4">
-            <h3 className="text-sm font-semibold text-slate-200 mb-3">Provenance</h3>
+          <div className="bg-card/50 rounded-lg border border-border p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Provenance</h3>
             <div className="space-y-3 text-sm">
               {file.sourceName && (
                 <div>
-                  <p className="text-slate-400 mb-1">Source web</p>
+                  <p className="text-muted-foreground mb-1">Source web</p>
                   <Link
                     href={`/super-admin/web-sources/${file.webSourceId}/files`}
                     className="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
@@ -385,7 +385,7 @@ export default function WebFileDetail({ file, chunks }: Props) {
               )}
               {file.pageUrl && (
                 <div>
-                  <p className="text-slate-400 mb-1">Page d&apos;origine</p>
+                  <p className="text-muted-foreground mb-1">Page d&apos;origine</p>
                   <a
                     href={file.pageUrl}
                     target="_blank"
@@ -399,7 +399,7 @@ export default function WebFileDetail({ file, chunks }: Props) {
               )}
               {file.knowledgeBaseId && (
                 <div>
-                  <p className="text-slate-400 mb-1">Document KB</p>
+                  <p className="text-muted-foreground mb-1">Document KB</p>
                   <Link
                     href={`/super-admin/knowledge-base/${file.knowledgeBaseId}`}
                     className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
@@ -416,16 +416,16 @@ export default function WebFileDetail({ file, chunks }: Props) {
 
       {/* Dialog suppression */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-slate-100">Supprimer ce fichier ?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
-              Le fichier <strong className="text-slate-200">{file.filename}</strong> sera supprimé
+            <AlertDialogTitle className="text-foreground">Supprimer ce fichier ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Le fichier <strong className="text-foreground">{file.filename}</strong> sera supprimé
               du stockage ainsi que ses chunks KB. Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-slate-200 border-slate-600 hover:bg-slate-600">
+            <AlertDialogCancel className="bg-muted text-foreground border-border hover:bg-muted/80">
               Annuler
             </AlertDialogCancel>
             <AlertDialogAction

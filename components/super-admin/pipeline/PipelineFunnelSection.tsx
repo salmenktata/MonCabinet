@@ -9,7 +9,7 @@ interface PipelineFunnelSectionProps {
 
 // Couleur par stage
 const STAGE_COLORS: Record<string, string> = {
-  source_configured: 'bg-slate-400',
+  source_configured: 'bg-muted-foreground',
   crawled:           'bg-blue-400',
   content_reviewed:  'bg-cyan-400',
   classified:        'bg-violet-400',
@@ -21,7 +21,7 @@ const STAGE_COLORS: Record<string, string> = {
 }
 
 const STAGE_TEXT_COLORS: Record<string, string> = {
-  source_configured: 'text-slate-400',
+  source_configured: 'text-muted-foreground',
   crawled:           'text-blue-400',
   content_reviewed:  'text-cyan-400',
   classified:        'text-violet-400',
@@ -59,8 +59,8 @@ export default function PipelineFunnelSection({ stats }: PipelineFunnelSectionPr
         <div className="space-y-3">
           {stages.map((stage: any) => {
             const barWidth = stage.count === 0 ? 0 : Math.max((stage.count / maxCount) * 100, 0.5)
-            const color = STAGE_COLORS[stage.stage] ?? 'bg-slate-400'
-            const textColor = STAGE_TEXT_COLORS[stage.stage] ?? 'text-slate-400'
+            const color = STAGE_COLORS[stage.stage] ?? 'bg-muted-foreground'
+            const textColor = STAGE_TEXT_COLORS[stage.stage] ?? 'text-muted-foreground'
 
             return (
               <div key={stage.stage} className="space-y-1">

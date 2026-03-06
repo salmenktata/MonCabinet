@@ -577,14 +577,14 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
           </div>
 
           {/* Contenu complet — style page publique */}
-          <div className="rounded-xl overflow-hidden shadow-sm border border-slate-200/10">
+          <div className="rounded-xl overflow-hidden shadow-sm border border-border/10">
             {/* Barre supérieure du viewer */}
-            <div className="bg-slate-100 dark:bg-muted/50 border-b border-slate-300 dark:border-border px-5 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-muted-foreground">
+            <div className="bg-muted/30 dark:bg-muted/50 border-b border-border dark:border-border px-5 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-muted-foreground">
                 <Icons.fileText className="h-4 w-4" />
                 <span>Contenu du document</span>
                 {document.fullText && (
-                  <span className="text-slate-500 dark:text-muted-foreground">
+                  <span className="text-muted-foreground dark:text-muted-foreground">
                     · {document.fullText.length.toLocaleString('fr-FR')} caractères
                   </span>
                 )}
@@ -593,7 +593,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                 size="sm"
                 variant="ghost"
                 onClick={handleCopy}
-                className="h-7 text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-foreground"
+                className="h-7 text-xs text-muted-foreground dark:text-muted-foreground hover:text-foreground dark:hover:text-foreground"
               >
                 {copied ? (
                   <>
@@ -610,7 +610,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
             </div>
 
             {/* Zone de lecture — fond adaptatif dark/light */}
-            <div className="bg-white dark:bg-slate-900 rounded-b-xl px-10 py-10">
+            <div className="bg-white dark:bg-card rounded-b-xl px-10 py-10">
               {document.fullText ? (() => {
                 const nodes = parseDocumentNodes(document.fullText)
                 if (nodes.length > 0) return renderDocumentNodes(nodes, isRtl)
@@ -621,7 +621,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                   </p>
                 )
               })() : (
-                <p className="text-gray-400 dark:text-slate-500 italic text-center py-16">
+                <p className="text-gray-400 dark:text-muted-foreground italic text-center py-16">
                   Aucun contenu disponible
                 </p>
               )}
@@ -668,7 +668,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
               )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">RAG</span>
-                <span className={document.ragEnabled ? 'text-green-400' : 'text-slate-500'}>
+                <span className={document.ragEnabled ? 'text-green-400' : 'text-muted-foreground'}>
                   {document.ragEnabled ? 'Activé' : 'Désactivé'}
                 </span>
               </div>

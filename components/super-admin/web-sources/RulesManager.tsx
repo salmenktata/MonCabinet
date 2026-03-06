@@ -345,12 +345,12 @@ export function RulesManager({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Règles de la source */}
         <div className="lg:col-span-2">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-white">Règles de {sourceName}</CardTitle>
-                  <CardDescription className="text-slate-400">
+                  <CardTitle className="text-foreground">Règles de {sourceName}</CardTitle>
+                  <CardDescription className="text-muted-foreground">
                     {rules.length} règle(s) configurée(s)
                   </CardDescription>
                 </div>
@@ -368,7 +368,7 @@ export function RulesManager({
             </CardHeader>
             <CardContent>
               {rules.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
+                <div className="text-center py-12 text-muted-foreground">
                   <Icons.filter className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Aucune règle configurée</p>
                   <p className="text-sm">Créez votre première règle pour classifier automatiquement les pages</p>
@@ -380,14 +380,14 @@ export function RulesManager({
                       key={rule.id}
                       className={`p-4 rounded-lg border ${
                         rule.isActive
-                          ? 'bg-slate-800/50 border-slate-700'
-                          : 'bg-slate-900/50 border-slate-800 opacity-60'
+                          ? 'bg-card/50 border-border'
+                          : 'bg-muted/50 border-border opacity-60'
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="font-medium text-white">{rule.name}</span>
+                            <span className="font-medium text-foreground">{rule.name}</span>
                             <Badge variant={rule.isActive ? 'default' : 'secondary'}>
                               {rule.isActive ? 'Actif' : 'Inactif'}
                             </Badge>
@@ -395,7 +395,7 @@ export function RulesManager({
                           </div>
 
                           {rule.description && (
-                            <p className="text-sm text-slate-400 mb-2">{rule.description}</p>
+                            <p className="text-sm text-muted-foreground mb-2">{rule.description}</p>
                           )}
 
                           <div className="flex flex-wrap gap-1 mb-2">
@@ -404,7 +404,7 @@ export function RulesManager({
                             ))}
                           </div>
 
-                          <div className="flex items-center gap-4 text-xs text-slate-400">
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             {rule.targetCategory && (
                               <span>
                                 <Icons.tag className="h-3 w-3 inline mr-1" />
@@ -466,16 +466,16 @@ export function RulesManager({
 
         {/* Règles globales */}
         <div>
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Règles globales</CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardTitle className="text-foreground text-lg">Règles globales</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Règles appliquées à toutes les sources
               </CardDescription>
             </CardHeader>
             <CardContent>
               {globalRules.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-4">
+                <p className="text-sm text-muted-foreground text-center py-4">
                   Aucune règle globale
                 </p>
               ) : (
@@ -483,9 +483,9 @@ export function RulesManager({
                   {globalRules.map((rule) => (
                     <div
                       key={rule.id}
-                      className="p-3 bg-slate-900/50 rounded-lg border border-slate-700"
+                      className="p-3 bg-muted/50 rounded-lg border border-border"
                     >
-                      <p className="font-medium text-white text-sm">{rule.name}</p>
+                      <p className="font-medium text-foreground text-sm">{rule.name}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {rule.conditions.slice(0, 2).map((condition, i) => (
                           <span key={i}>{renderConditionBadge(condition)}</span>
@@ -496,7 +496,7 @@ export function RulesManager({
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {rule.timesMatched} match(es)
                       </p>
                     </div>
@@ -517,12 +517,12 @@ export function RulesManager({
           resetForm()
         }
       }}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               {isEditDialogOpen ? 'Modifier la règle' : 'Nouvelle règle'}
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Configurez les conditions et la classification cible
             </DialogDescription>
           </DialogHeader>
@@ -536,7 +536,7 @@ export function RulesManager({
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="ex: Jurisprudence Cassation"
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-card border-border"
                 />
               </div>
               <div>
@@ -545,7 +545,7 @@ export function RulesManager({
                   type="number"
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value, 10) || 0 })}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-card border-border"
                 />
               </div>
             </div>
@@ -556,7 +556,7 @@ export function RulesManager({
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Description de la règle..."
-                className="bg-slate-900 border-slate-700"
+                className="bg-card border-border"
               />
             </div>
 
@@ -572,13 +572,13 @@ export function RulesManager({
 
               <div className="space-y-3">
                 {formData.conditions.map((condition, index) => (
-                  <div key={index} className="flex gap-2 items-start p-3 bg-slate-900/50 rounded-lg">
+                  <div key={index} className="flex gap-2 items-start p-3 bg-muted/50 rounded-lg">
                     <div className="flex-1 grid grid-cols-3 gap-2">
                       <Select
                         value={condition.type}
                         onValueChange={(value) => updateCondition(index, { type: value })}
                       >
-                        <SelectTrigger className="bg-slate-900 border-slate-700">
+                        <SelectTrigger className="bg-card border-border">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -603,7 +603,7 @@ export function RulesManager({
                           value={condition.position || 0}
                           onChange={(e) => updateCondition(index, { position: parseInt(e.target.value, 10) || 0 })}
                           placeholder="Position"
-                          className="bg-slate-900 border-slate-700"
+                          className="bg-card border-border"
                         />
                       )}
                     </div>
@@ -628,12 +628,12 @@ export function RulesManager({
               <Label className="mb-2 block">Classification cible</Label>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label className="text-xs text-slate-400">Catégorie</Label>
+                  <Label className="text-xs text-muted-foreground">Catégorie</Label>
                   <Select
                     value={formData.targetCategory}
                     onValueChange={(value) => setFormData({ ...formData, targetCategory: value })}
                   >
-                    <SelectTrigger className="bg-slate-900 border-slate-700">
+                    <SelectTrigger className="bg-card border-border">
                       <SelectValue placeholder="Aucune" />
                     </SelectTrigger>
                     <SelectContent>
@@ -648,12 +648,12 @@ export function RulesManager({
                 </div>
 
                 <div>
-                  <Label className="text-xs text-slate-400">Domaine</Label>
+                  <Label className="text-xs text-muted-foreground">Domaine</Label>
                   <Select
                     value={formData.targetDomain}
                     onValueChange={(value) => setFormData({ ...formData, targetDomain: value })}
                   >
-                    <SelectTrigger className="bg-slate-900 border-slate-700">
+                    <SelectTrigger className="bg-card border-border">
                       <SelectValue placeholder="Aucun" />
                     </SelectTrigger>
                     <SelectContent>
@@ -668,12 +668,12 @@ export function RulesManager({
                 </div>
 
                 <div>
-                  <Label className="text-xs text-slate-400">Type de document</Label>
+                  <Label className="text-xs text-muted-foreground">Type de document</Label>
                   <Select
                     value={formData.targetDocumentType}
                     onValueChange={(value) => setFormData({ ...formData, targetDocumentType: value })}
                   >
-                    <SelectTrigger className="bg-slate-900 border-slate-700">
+                    <SelectTrigger className="bg-card border-border">
                       <SelectValue placeholder="Aucun" />
                     </SelectTrigger>
                     <SelectContent>
@@ -702,7 +702,7 @@ export function RulesManager({
                   onChange={(e) => setFormData({ ...formData, confidenceBoost: parseFloat(e.target.value) || 0.2 })}
                   className="bg-slate-900 border-slate-700 w-24"
                 />
-                <span className="text-sm text-slate-400">
+                <span className="text-sm text-muted-foreground">
                   Ajouté au score de confiance (0-1)
                 </span>
               </div>
@@ -731,10 +731,10 @@ export function RulesManager({
 
       {/* Dialog de test */}
       <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Tester les règles</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-foreground">Tester les règles</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Entrez une URL pour voir quelles règles matchent
             </DialogDescription>
           </DialogHeader>
@@ -747,7 +747,7 @@ export function RulesManager({
                   value={testUrl}
                   onChange={(e) => setTestUrl(e.target.value)}
                   placeholder={`${sourceBaseUrl}/...`}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-card border-border"
                 />
                 <Button onClick={handleTestUrl} disabled={isLoading}>
                   {isLoading ? <Icons.spinner className="h-4 w-4 animate-spin" /> : <Icons.play className="h-4 w-4" />}
@@ -759,20 +759,20 @@ export function RulesManager({
               <div>
                 <Label>Résultats</Label>
                 {testResults.length === 0 ? (
-                  <p className="text-sm text-slate-400 py-4 text-center">
+                  <p className="text-sm text-muted-foreground py-4 text-center">
                     Aucune règle ne matche cette URL
                   </p>
                 ) : (
                   <div className="space-y-2 mt-2">
                     {(testResults as Array<{ rule: Rule; confidence: number; matchedConditions: number; totalConditions: number }>).map((result, i) => (
-                      <div key={i} className="p-3 bg-slate-900/50 rounded-lg">
+                      <div key={i} className="p-3 bg-muted/50 rounded-lg">
                         <div className="flex items-center justify-between">
-                          <span className="font-medium text-white">{result.rule.name}</span>
+                          <span className="font-medium text-foreground">{result.rule.name}</span>
                           <Badge variant="default">
                             {(result.confidence * 100).toFixed(0)}% confiance
                           </Badge>
                         </div>
-                        <p className="text-xs text-slate-400 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           {result.matchedConditions}/{result.totalConditions} conditions matchées
                         </p>
                       </div>
