@@ -1471,12 +1471,15 @@ async function crawlCodesJuridiquesPage(
   })
 
   log.info(`${t2Links.length} sous-sections T2 découvertes`)
-  stats.totalSections = t2Links.length
 
   if (t2Links.length === 0) {
-    log.warn('⚠️  T2 vide sur L1 — vérifier la structure')
+    // Fallback : structure COC / Code Pénal — div#T3 (arbre persistant, pas de T2)
+    log.info('div#T2 absent — tentative div#T3 (structure COC/Code Pénal)')
+    await crawlT3StructurePage(page, session, sourceId, codeName, dryRun, stats)
     return
   }
+
+  stats.totalSections = t2Links.length
 
   // ─── Phase 2 : crawl de chaque T2 sub-link avec navigation fraîche ────────
   // On navigue directement vers l1Url (stable dans la session WebDev), puis on clique T2[i].
@@ -1542,6 +1545,146 @@ async function crawlCodesJuridiquesPage(
     // Jitter aléatoire (3-8s) + pause longue tous les 30 items
     const jitter = IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 5000)
     await sleep(jitter)
+
+    const processed = stats.crawled + stats.skipped + stats.updated + stats.errors
+    if (processed > 0 && processed % 30 === 0) {
+      log.info(`Pause anti-ban (${processed} items traités)...`)
+      await sleep(30000)
+    }
+  }
+}
+
+// ─── Structure T3 (COC, Code Pénal — pas de div#T2) ───────────────────────────
+
+/**
+ * Extrait le contenu textuel de div#A31_ (zone article des codes sans looper A2).
+ * Utilisé pour les codes dont la structure est COC-style : arbre T3 + A31_ comme
+ * zone de contenu mise à jour après clic d'un lien terminal.
+ */
+async function extractContentFromA31(page: Page): Promise<string | null> {
+  const text = await page.evaluate(() => {
+    const el = document.getElementById('A31_')
+    if (!el) return null
+    const raw = (el.textContent || '').trim().replace(/\s+/g, ' ')
+    return raw.length > 100 ? raw : null
+  })
+  if (!text) return null
+  const cleaned = cleanText(text)
+  return isNavigationBoilerplate(cleaned) ? null : cleaned
+}
+
+/**
+ * Crawl spécifique pour les codes dont la structure est arbre T3 (COC, Code Pénal…).
+ *
+ * Structure :
+ *   PAGE_CodesJuridiques → clic T-link[0] → PAGE_NavigationCode (L1)
+ *   L1 : div#T3 = arbre TOC complet (161 liens pour le COC)
+ *        div#A31_ = zone de contenu article (se met à jour après clic T3 leaf)
+ *
+ * Stratégie :
+ *   1. Récupérer tous les liens de div#T3 (nœuds parents + feuilles)
+ *   2. Pour chaque lien, cliquer directement sur T3[i] (T3 reste visible après navigation)
+ *   3. Extraire le contenu de div#A31_
+ *   4. Dédupliquer par hash (nœuds parents = même contenu que leur premier enfant)
+ */
+async function crawlT3StructurePage(
+  page: Page,
+  session: IortSessionManager,
+  sourceId: string,
+  codeName: string,
+  dryRun: boolean,
+  stats: IortCodeCrawlStats,
+): Promise<void> {
+  const t3Links = await page.evaluate(() => {
+    const t3 = document.getElementById('T3')
+    if (!t3) return []
+    return Array.from(t3.querySelectorAll('a'))
+      .filter(a => /[\u0600-\u06FF]/.test(a.textContent || ''))
+      .map((a, i) => ({
+        index: i,
+        title: (a.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 120),
+      }))
+  })
+
+  if (t3Links.length === 0) {
+    log.warn('⚠️  T3 vide — structure inconnue, abandon')
+    return
+  }
+
+  log.info(`${t3Links.length} liens T3 à parcourir (nœuds + feuilles)`)
+  stats.totalSections = t3Links.length
+
+  const seenHashes = new Set<string>()
+  const l1Url = page.url()
+
+  for (const t3Link of t3Links) {
+    session.tickWithoutNavigation()
+
+    // Clic sur T3[i] — T3 reste visible dans le panneau droit après navigation
+    await page.evaluate((idx: number) => {
+      const t3 = document.getElementById('T3')
+      if (!t3) return
+      const links = Array.from(t3.querySelectorAll('a'))
+        .filter(a => /[\u0600-\u06FF]/.test(a.textContent || ''))
+      const el = links[idx] as HTMLElement | null
+      if (el) el.click()
+    }, t3Link.index)
+
+    await page.waitForLoadState('load')
+    await waitForStableContent(page, { intervalMs: 1500, timeoutMs: 10000 })
+
+    log.info(`T3[${t3Link.index}] "${t3Link.title.substring(0, 50)}"`)
+
+    // Extraire le contenu de A31_ (zone article COC)
+    const articleText = await extractContentFromA31(page)
+
+    if (!articleText || articleText.length < 50) {
+      stats.skipped++
+      continue
+    }
+
+    // Dédupliquer — les nœuds parents affichent le même contenu que leur premier enfant
+    const hash = hashContent(articleText.substring(0, 500))
+    if (seenHashes.has(hash)) {
+      stats.skipped++
+      log.info(`  Doublon ignoré: "${t3Link.title.substring(0, 50)}"`)
+      continue
+    }
+    seenHashes.add(hash)
+
+    if (dryRun) {
+      log.info(`  [DRY] ${t3Link.title.substring(0, 80)} (${articleText.length} chars)`)
+      stats.crawled++
+    } else {
+      try {
+        const { skipped, updated } = await saveCodeSection(
+          sourceId, codeName, t3Link.title, articleText, 1,
+        )
+        if (skipped) {
+          stats.skipped++
+        } else if (updated) {
+          stats.updated++
+          log.info(`↻ MAJ: ${t3Link.title.substring(0, 70)}`)
+        } else {
+          stats.crawled++
+          log.info(`✓ ${t3Link.title.substring(0, 70)} (${articleText.length} chars)`)
+        }
+      } catch (err) {
+        stats.errors++
+        log.error(`Erreur save "${t3Link.title.substring(0, 40)}":`, err)
+      }
+    }
+
+    // Si T3 a disparu (rare), recharger L1
+    const t3Still = await page.evaluate(() => !!document.getElementById('T3'))
+    if (!t3Still) {
+      log.info('T3 disparu — rechargement L1...')
+      await page.goto(l1Url, { waitUntil: 'load', timeout: 60000 })
+      await sleep(5000)
+    }
+
+    // Jitter anti-ban (2-6s)
+    await sleep(IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 4000))
 
     const processed = stats.crawled + stats.skipped + stats.updated + stats.errors
     if (processed > 0 && processed % 30 === 0) {
