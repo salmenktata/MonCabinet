@@ -691,7 +691,7 @@ export function GoldDatasetTab() {
                 onClick={() => setFilterDomain(filterDomain === domain ? '' : domain)}
                 className={`text-xs px-2 py-1 rounded-full border transition-colors ${
                   filterDomain === domain
-                    ? 'bg-blue-600 text-white border-blue-600'
+                    ? 'bg-blue-600 text-foreground border-blue-600'
                     : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
                 }`}
               >

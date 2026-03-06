@@ -32,10 +32,10 @@ export function AbrogationBadge({
   if (abrogeSuspected) {
     const colorClass =
       abrogeConfidence === 'high'
-        ? 'bg-orange-600 hover:bg-orange-700 text-white'
+        ? 'bg-orange-600 hover:bg-orange-700 text-foreground'
         : abrogeConfidence === 'medium'
-          ? 'bg-orange-400 hover:bg-orange-500 text-white'
-          : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+          ? 'bg-orange-400 hover:bg-orange-500 text-foreground'
+          : 'bg-yellow-500 hover:bg-yellow-600 text-foreground'
 
     const label =
       abrogeConfidence === 'high'

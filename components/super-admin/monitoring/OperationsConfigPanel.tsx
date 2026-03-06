@@ -62,7 +62,7 @@ function ProviderBadge({ provider, active }: { provider: string; active: boolean
   const colorClass = active
     ? (label?.color ?? 'bg-gray-500')
     : 'bg-gray-200 dark:bg-gray-700'
-  const textClass = active ? 'text-white' : 'text-muted-foreground'
+  const textClass = active ? 'text-foreground' : 'text-muted-foreground'
 
   return (
     <span

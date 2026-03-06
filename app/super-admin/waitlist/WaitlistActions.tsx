@@ -43,7 +43,7 @@ function InviteAllButton({ pendingIds }: { pendingIds: string[] }) {
       onClick={handleInviteAll}
       disabled={loading}
       size="sm"
-      className="bg-blue-600 hover:bg-blue-500 text-white"
+      className="bg-blue-600 hover:bg-blue-500 text-foreground"
     >
       {loading ? 'Envoi...' : `Tout inviter (${pendingIds.length})`}
     </Button>

@@ -107,7 +107,7 @@ export function FixTitlesButton() {
             {previewCount !== null && previewCount > 0 && (
               <AlertDialogAction
                 onClick={handleApply}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
+                className="bg-amber-600 hover:bg-amber-700 text-foreground"
               >
                 Corriger {previewCount} document(s)
               </AlertDialogAction>

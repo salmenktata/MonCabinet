@@ -60,9 +60,9 @@ interface GDriveData {
 }
 
 function ScoreBadge({ score }: { score: number }) {
-  if (score >= 80) return <Badge className="bg-green-600 text-white">{score}/100 — Excellent</Badge>
-  if (score >= 60) return <Badge className="bg-blue-600 text-white">{score}/100 — Bon</Badge>
-  if (score >= 40) return <Badge className="bg-yellow-500 text-white">{score}/100 — Moyen</Badge>
+  if (score >= 80) return <Badge className="bg-green-600 text-foreground">{score}/100 — Excellent</Badge>
+  if (score >= 60) return <Badge className="bg-blue-600 text-foreground">{score}/100 — Bon</Badge>
+  if (score >= 40) return <Badge className="bg-yellow-500 text-foreground">{score}/100 — Moyen</Badge>
   return <Badge variant="destructive">{score}/100 — Faible</Badge>
 }
 
@@ -228,9 +228,9 @@ export function GDriveQualityPanel() {
             <p className="text-xs text-muted-foreground">Score moyen</p>
             <p className="text-2xl font-bold">{stats.avgScore || '—'}{stats.avgScore ? '/100' : ''}</p>
             {stats.avgScore >= 70 ? (
-              <Badge className="mt-2 bg-green-600 text-white text-xs">Bonne qualité</Badge>
+              <Badge className="mt-2 bg-green-600 text-foreground text-xs">Bonne qualité</Badge>
             ) : stats.avgScore >= 50 ? (
-              <Badge className="mt-2 bg-yellow-500 text-white text-xs">Qualité moyenne</Badge>
+              <Badge className="mt-2 bg-yellow-500 text-foreground text-xs">Qualité moyenne</Badge>
             ) : stats.avgScore > 0 ? (
               <Badge variant="destructive" className="mt-2 text-xs">Qualité faible</Badge>
             ) : null}

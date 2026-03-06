@@ -14,17 +14,17 @@ import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 // Dynamic imports pour réduire le bundle initial
 const TaxonomyManager = nextDynamic(
   () => import('@/components/super-admin/taxonomy/TaxonomyManager').then(m => ({ default: m.TaxonomyManager })),
-  { loading: () => <div className="h-96 bg-slate-800 animate-pulse rounded-lg" /> }
+  { loading: () => <div className="h-96 bg-card animate-pulse rounded-lg" /> }
 )
 
 const TaxonomySuggestions = nextDynamic(
   () => import('@/components/super-admin/taxonomy/TaxonomySuggestions').then(m => ({ default: m.TaxonomySuggestions })),
-  { loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" /> }
+  { loading: () => <div className="h-64 bg-card animate-pulse rounded-lg" /> }
 )
 
 const TaxonomyStats = nextDynamic(
   () => import('@/components/super-admin/taxonomy/TaxonomyStats').then(m => ({ default: m.TaxonomyStats })),
-  { loading: () => <div className="h-32 bg-slate-800 animate-pulse rounded-lg" /> }
+  { loading: () => <div className="h-32 bg-card animate-pulse rounded-lg" /> }
 )
 
 export const dynamic = 'force-dynamic'
@@ -126,18 +126,18 @@ export default async function TaxonomyPage() {
       />
 
       {/* Statistiques */}
-      <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>
+      <Suspense fallback={<div className="h-24 bg-card animate-pulse rounded-lg" />}>
         <TaxonomyStats stats={data.stats} />
       </Suspense>
 
       {/* Onglets */}
       <Tabs defaultValue="taxonomy" className="space-y-4">
-        <TabsList className="bg-slate-800 border-slate-700">
-          <TabsTrigger value="taxonomy" className="data-[state=active]:bg-slate-700">
+        <TabsList className="bg-card border-border">
+          <TabsTrigger value="taxonomy" className="data-[state=active]:bg-muted">
             <Icons.folder className="h-4 w-4 mr-2" />
             Taxonomie
           </TabsTrigger>
-          <TabsTrigger value="suggestions" className="data-[state=active]:bg-slate-700">
+          <TabsTrigger value="suggestions" className="data-[state=active]:bg-muted">
             <Icons.lightbulb className="h-4 w-4 mr-2" />
             Suggestions IA
             {data.suggestions.length > 0 && (
@@ -154,10 +154,10 @@ export default async function TaxonomyPage() {
 
         <TabsContent value="suggestions" className="space-y-4">
           {data.suggestions.length === 0 ? (
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Icons.check className="h-12 w-12 text-green-500 mb-4" />
-                <p className="text-slate-400 text-center">
+                <p className="text-muted-foreground text-center">
                   Aucune suggestion en attente
                 </p>
               </CardContent>

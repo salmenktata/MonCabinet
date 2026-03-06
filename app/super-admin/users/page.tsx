@@ -123,10 +123,10 @@ export default async function UsersPage({ searchParams }: PageProps) {
         currentSearch={search}
       />
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Utilisateurs ({total})</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">Utilisateurs ({total})</CardTitle>
+          <CardDescription className="text-muted-foreground">
             {status !== 'all' && `Filtre: ${status} | `}
             Page {page} sur {totalPages || 1}
           </CardDescription>

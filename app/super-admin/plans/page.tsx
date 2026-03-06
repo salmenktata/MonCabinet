@@ -57,16 +57,16 @@ async function RevenueStats() {
       label: 'Demandes upgrade',
       value: s.pending_upgrades,
       sub: 'En attente d\'approbation',
-      color: parseInt(s.pending_upgrades) > 0 ? 'text-orange-400' : 'text-slate-400',
-      bg: parseInt(s.pending_upgrades) > 0 ? 'bg-orange-500/10' : 'bg-slate-700/50',
+      color: parseInt(s.pending_upgrades) > 0 ? 'text-orange-400' : 'text-muted-foreground',
+      bg: parseInt(s.pending_upgrades) > 0 ? 'bg-orange-500/10' : 'bg-muted/50',
       icon: 'arrowUpCircle',
     },
     {
       label: 'Expirations < 30j',
       value: s.expiring_soon,
       sub: 'Plans à renouveler',
-      color: parseInt(s.expiring_soon) > 0 ? 'text-yellow-400' : 'text-slate-400',
-      bg: parseInt(s.expiring_soon) > 0 ? 'bg-yellow-500/10' : 'bg-slate-700/50',
+      color: parseInt(s.expiring_soon) > 0 ? 'text-yellow-400' : 'text-muted-foreground',
+      bg: parseInt(s.expiring_soon) > 0 ? 'bg-yellow-500/10' : 'bg-muted/50',
       icon: 'clock',
     },
     {
@@ -82,11 +82,11 @@ async function RevenueStats() {
   return (
     <div className="grid gap-4 md:grid-cols-5">
       {metrics.map((m) => (
-        <Card key={m.label} className={`border-slate-700 ${m.bg}`}>
+        <Card key={m.label} className={`border-border ${m.bg}`}>
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-slate-400 mb-1">{m.label}</p>
+            <p className="text-xs text-muted-foreground mb-1">{m.label}</p>
             <p className={`text-2xl font-bold ${m.color}`}>{m.value}</p>
-            <p className="text-xs text-slate-500 mt-1">{m.sub}</p>
+            <p className="text-xs text-muted-foreground mt-1">{m.sub}</p>
           </CardContent>
         </Card>
       ))}
@@ -111,13 +111,13 @@ async function UpcomingRenewals() {
   if (result.rows.length === 0) return null
 
   return (
-    <Card className="bg-slate-800 border-slate-700 border-yellow-500/30">
+    <Card className="bg-card border-border border-yellow-500/30">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Icons.clock className="h-4 w-4 text-yellow-400" />
-          <CardTitle className="text-white">Renouvellements à venir</CardTitle>
+          <CardTitle className="text-foreground">Renouvellements à venir</CardTitle>
         </div>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-muted-foreground">
           Plans expirant dans les 30 prochains jours — {result.rows.length} abonné(s)
         </CardDescription>
       </CardHeader>
@@ -143,15 +143,15 @@ async function UpcomingRenewals() {
                 }`}
               >
                 <div>
-                  <p className="font-medium text-white text-sm">{user.prenom} {user.nom}</p>
-                  <p className="text-xs text-slate-400">{user.email}</p>
+                  <p className="font-medium text-foreground text-sm">{user.prenom} {user.nom}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
                 <div className="flex items-center gap-3 text-right">
                   <Badge className={user.plan === 'pro' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-purple-500/20 text-purple-400 border-purple-500/30'}>
                     {user.plan === 'pro' ? 'Pro' : 'Expert'}
                   </Badge>
                   <div>
-                    <p className="text-xs text-slate-400">Expire le</p>
+                    <p className="text-xs text-muted-foreground">Expire le</p>
                     <p className={`text-sm font-medium ${isUrgent ? 'text-red-400' : 'text-yellow-400'}`}>
                       {new Date(user.plan_expires_at).toLocaleDateString('fr-FR')} ({daysLeft}j)
                     </p>
@@ -190,7 +190,7 @@ async function PlansStats() {
     pro: { label: 'Pro', color: 'text-blue-400', bg: 'bg-blue-500/20', limits: '200 req IA/mois' },
     enterprise: { label: 'Expert', color: 'text-purple-400', bg: 'bg-purple-500/20', limits: 'Illimité' },
     expired_trial: { label: 'Essai expiré', color: 'text-red-400', bg: 'bg-red-500/20', limits: 'Accès limité' },
-    free: { label: 'Gratuit (legacy)', color: 'text-slate-400', bg: 'bg-slate-600', limits: '5 req IA/mois' },
+    free: { label: 'Gratuit (legacy)', color: 'text-muted-foreground', bg: 'bg-muted', limits: '5 req IA/mois' },
   }
 
   const plans = ['enterprise', 'pro', 'trial', 'expired_trial', 'free']
@@ -202,20 +202,20 @@ async function PlansStats() {
         const stats = result.rows.find(r => r.plan === plan) || { count: '0' }
 
         return (
-          <Card key={plan} className="bg-slate-800 border-slate-700">
+          <Card key={plan} className="bg-card border-border">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className={`text-sm ${info.color}`}>{info.label}</CardTitle>
                 <Badge className={`text-xs ${info.bg}`}>{info.label}</Badge>
               </div>
-              <CardDescription className="text-slate-400 text-xs">
+              <CardDescription className="text-muted-foreground text-xs">
                 {info.limits}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <div className="text-3xl font-bold text-white">{stats.count}</div>
-                <p className="text-xs text-slate-400">utilisateurs</p>
+                <div className="text-3xl font-bold text-foreground">{stats.count}</div>
+                <p className="text-xs text-muted-foreground">utilisateurs</p>
               </div>
             </CardContent>
           </Card>
@@ -247,10 +247,10 @@ async function ConversionStats() {
   const conversionRate = totalTrials > 0 ? Math.round((paidUsers / totalTrials) * 100) : 0
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white">Entonnoir de conversion</CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardTitle className="text-foreground">Entonnoir de conversion</CardTitle>
+        <CardDescription className="text-muted-foreground">
           Trial → Payant
         </CardDescription>
       </CardHeader>
@@ -258,31 +258,31 @@ async function ConversionStats() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-2xl font-bold text-emerald-400">{stats.active_trials}</p>
-            <p className="text-xs text-slate-400 mt-1">Trials actifs</p>
+            <p className="text-xs text-muted-foreground mt-1">Trials actifs</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-red-400">{stats.expired_trials}</p>
-            <p className="text-xs text-slate-400 mt-1">Essais expirés</p>
+            <p className="text-xs text-muted-foreground mt-1">Essais expirés</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-blue-400">{stats.paid_users}</p>
-            <p className="text-xs text-slate-400 mt-1">Abonnés payants</p>
+            <p className="text-xs text-muted-foreground mt-1">Abonnés payants</p>
           </div>
           <div className="text-center">
             <p className={`text-2xl font-bold ${conversionRate >= 15 ? 'text-emerald-400' : conversionRate >= 8 ? 'text-yellow-400' : 'text-red-400'}`}>
               {conversionRate}%
             </p>
-            <p className="text-xs text-slate-400 mt-1">Taux conversion</p>
+            <p className="text-xs text-muted-foreground mt-1">Taux conversion</p>
           </div>
         </div>
 
         {/* Barre de progression */}
         <div className="mt-4">
-          <div className="flex justify-between text-xs text-slate-400 mb-1">
+          <div className="flex justify-between text-xs text-muted-foreground mb-1">
             <span>Conversion globale</span>
             <span>Objectif : 15%</span>
           </div>
-          <div className="w-full bg-slate-700 rounded-full h-2">
+          <div className="w-full bg-muted rounded-full h-2">
             <div
               className={`h-2 rounded-full transition-all ${conversionRate >= 15 ? 'bg-emerald-500' : 'bg-blue-500'}`}
               style={{ width: `${Math.min(conversionRate, 100)}%` }}
@@ -308,16 +308,16 @@ async function ActiveTrials() {
   `)
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white">Trials en cours</CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardTitle className="text-foreground">Trials en cours</CardTitle>
+        <CardDescription className="text-muted-foreground">
           Utilisateurs en période d'essai active
         </CardDescription>
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-muted-foreground">
             <Icons.clock className="h-12 w-12 mx-auto mb-2" />
             <p>Aucun trial actif</p>
           </div>
@@ -338,18 +338,18 @@ async function ActiveTrials() {
                 <div
                   key={user.id}
                   className={`flex items-center justify-between p-3 rounded-lg ${
-                    isLow ? 'bg-orange-500/10 border border-orange-500/30' : 'bg-slate-700/50'
+                    isLow ? 'bg-orange-500/10 border border-orange-500/30' : 'bg-muted/50'
                   }`}
                 >
                   <div>
-                    <p className="font-medium text-white text-sm">
+                    <p className="font-medium text-foreground text-sm">
                       {user.prenom} {user.nom}
                     </p>
-                    <p className="text-xs text-slate-400">{user.email}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                   <div className="flex items-center gap-3 text-right">
                     <div>
-                      <p className="text-xs text-slate-400">IA restante</p>
+                      <p className="text-xs text-muted-foreground">IA restante</p>
                       <p className={`text-sm font-medium ${isLow ? 'text-orange-400' : 'text-emerald-400'}`}>
                         {usesLeft}/30
                       </p>
@@ -389,14 +389,14 @@ async function PaidPlans() {
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white">Abonnés payants</CardTitle>
-        <CardDescription className="text-slate-400">Pro et Expert</CardDescription>
+        <CardTitle className="text-foreground">Abonnés payants</CardTitle>
+        <CardDescription className="text-muted-foreground">Pro et Expert</CardDescription>
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-muted-foreground">
             <Icons.creditCard className="h-12 w-12 mx-auto mb-2" />
             <p>Aucun abonné payant</p>
           </div>
@@ -418,23 +418,23 @@ async function PaidPlans() {
                 <div
                   key={user.id}
                   className={`flex items-center justify-between p-3 rounded-lg ${
-                    isExpiringSoon ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-slate-700/50'
+                    isExpiringSoon ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-muted/50'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div>
-                      <p className="font-medium text-white text-sm">
+                      <p className="font-medium text-foreground text-sm">
                         {user.prenom} {user.nom}
                       </p>
-                      <p className="text-xs text-slate-400">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     {getPlanBadge(user.plan)}
                     {user.plan_expires_at && (
                       <div className="text-right">
-                        <p className="text-xs text-slate-400">Expire le</p>
-                        <p className="text-sm text-white">
+                        <p className="text-xs text-muted-foreground">Expire le</p>
+                        <p className="text-sm text-foreground">
                           {new Date(user.plan_expires_at).toLocaleDateString('fr-FR')}
                         </p>
                       </div>
@@ -456,7 +456,7 @@ export default function PlansPage() {
       <PageHeader title="Plans & Abonnements" description="Gérer les plans utilisateurs et suivre les conversions" />
 
       {/* Métriques revenus */}
-      <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>
+      <Suspense fallback={<div className="h-24 bg-card animate-pulse rounded-lg" />}>
         <RevenueStats />
       </Suspense>
 
@@ -466,20 +466,20 @@ export default function PlansPage() {
       </Suspense>
 
       {/* Stats par plan */}
-      <Suspense fallback={<div className="h-32 bg-slate-800 animate-pulse rounded-lg" />}>
+      <Suspense fallback={<div className="h-32 bg-card animate-pulse rounded-lg" />}>
         <PlansStats />
       </Suspense>
 
       {/* Entonnoir de conversion */}
-      <Suspense fallback={<div className="h-40 bg-slate-800 animate-pulse rounded-lg" />}>
+      <Suspense fallback={<div className="h-40 bg-card animate-pulse rounded-lg" />}>
         <ConversionStats />
       </Suspense>
 
       {/* Limites des plans */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Limites des Plans</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">Limites des Plans</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Configuration actuelle
           </CardDescription>
         </CardHeader>
@@ -487,45 +487,45 @@ export default function PlansPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-700">
-                  <th className="text-left py-3 px-4 text-slate-400 font-medium">Fonctionnalité</th>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Fonctionnalité</th>
                   <th className="text-center py-3 px-4 text-emerald-400 font-medium">Essai</th>
                   <th className="text-center py-3 px-4 text-blue-400 font-medium">Pro</th>
                   <th className="text-center py-3 px-4 text-purple-400 font-medium">Expert</th>
                 </tr>
               </thead>
-              <tbody className="text-white">
-                <tr className="border-b border-slate-700/50">
+              <tbody className="text-foreground">
+                <tr className="border-b border-border/50">
                   <td className="py-3 px-4">Durée</td>
                   <td className="text-center py-3 px-4 text-emerald-400">Sans limite</td>
                   <td className="text-center py-3 px-4">Illimité</td>
                   <td className="text-center py-3 px-4">Illimité</td>
                 </tr>
-                <tr className="border-b border-slate-700/50">
+                <tr className="border-b border-border/50">
                   <td className="py-3 px-4">Dossiers</td>
                   <td className="text-center py-3 px-4">10</td>
                   <td className="text-center py-3 px-4">Illimité</td>
                   <td className="text-center py-3 px-4">Illimité</td>
                 </tr>
-                <tr className="border-b border-slate-700/50">
+                <tr className="border-b border-border/50">
                   <td className="py-3 px-4">Clients</td>
                   <td className="text-center py-3 px-4">20</td>
                   <td className="text-center py-3 px-4">Illimité</td>
                   <td className="text-center py-3 px-4">Illimité</td>
                 </tr>
-                <tr className="border-b border-slate-700/50">
+                <tr className="border-b border-border/50">
                   <td className="py-3 px-4">Assistant IA</td>
                   <td className="text-center py-3 px-4 text-emerald-400">30 req (total)</td>
                   <td className="text-center py-3 px-4">200 req/mois</td>
                   <td className="text-center py-3 px-4">Illimité</td>
                 </tr>
-                <tr className="border-b border-slate-700/50">
+                <tr className="border-b border-border/50">
                   <td className="py-3 px-4">Stockage</td>
                   <td className="text-center py-3 px-4">500 Mo</td>
                   <td className="text-center py-3 px-4">10 Go</td>
                   <td className="text-center py-3 px-4">Illimité</td>
                 </tr>
-                <tr className="border-b border-slate-700/50">
+                <tr className="border-b border-border/50">
                   <td className="py-3 px-4">Prix</td>
                   <td className="text-center py-3 px-4 text-emerald-400">Gratuit</td>
                   <td className="text-center py-3 px-4">89 DT/mois</td>
@@ -545,11 +545,11 @@ export default function PlansPage() {
 
       {/* Grille 2 colonnes */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Suspense fallback={<div className="h-64 bg-slate-800 animate-pulse rounded-lg" />}>
+        <Suspense fallback={<div className="h-64 bg-card animate-pulse rounded-lg" />}>
           <ActiveTrials />
         </Suspense>
 
-        <Suspense fallback={<div className="h-64 bg-slate-800 animate-pulse rounded-lg" />}>
+        <Suspense fallback={<div className="h-64 bg-card animate-pulse rounded-lg" />}>
           <PaidPlans />
         </Suspense>
       </div>

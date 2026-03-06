@@ -75,7 +75,7 @@ export function DuplicateWarning({ duplicates, onDismiss }: DuplicateWarningProp
               </span>
               <Link
                 href={`/super-admin/knowledge-base/${dup.documentId}`}
-                className="text-sm text-white hover:text-blue-400 truncate"
+                className="text-sm text-foreground hover:text-blue-400 truncate"
               >
                 {dup.title}
               </Link>

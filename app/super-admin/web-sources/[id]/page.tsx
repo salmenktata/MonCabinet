@@ -207,7 +207,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
     healthy: 'bg-green-500',
     degraded: 'bg-yellow-500',
     failing: 'bg-red-500',
-    unknown: 'bg-slate-500',
+    unknown: 'bg-muted',
   }
 
   return (
@@ -216,7 +216,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4 min-w-0">
           <Link href="/super-admin/web-sources">
-            <Button variant="ghost" size="sm" className="text-slate-400 shrink-0">
+            <Button variant="ghost" size="sm" className="text-muted-foreground shrink-0">
               <Icons.arrowLeft className="h-4 w-4 mr-2" />
               Retour
             </Button>
@@ -224,12 +224,12 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${healthDotColor[source.health_status]}`} />
-              <h1 className="text-xl font-bold text-white">{source.name}</h1>
+              <h1 className="text-xl font-bold text-foreground">{source.name}</h1>
               {(source.categories || []).map((cat: string) => (
                 <CategoryBadge key={cat} category={cat} />
               ))}
               {!source.is_active && (
-                <Badge variant="outline" className="border-slate-600 text-slate-400 text-xs">
+                <Badge variant="outline" className="border-border text-muted-foreground text-xs">
                   Inactive
                 </Badge>
               )}
@@ -243,7 +243,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
               href={source.base_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-1 mt-0.5"
+              className="text-muted-foreground hover:text-blue-400 text-sm flex items-center gap-1 mt-0.5"
             >
               <Icons.externalLink className="h-3 w-3" />
               {source.base_url}
@@ -320,8 +320,8 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
               <WebSourceTreeView groups={treeData} sourceId={id} />
             </CollapsibleSection>
           ) : (
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="py-12 text-center text-slate-400">
+            <Card className="bg-card border-border">
+              <CardContent className="py-12 text-center text-muted-foreground">
                 <Icons.fileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
                 <p className="text-sm">Aucune page crawlée</p>
               </CardContent>
@@ -332,9 +332,9 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
         {/* Colonne droite : Activité + Config */}
         <div className="lg:col-span-2 space-y-4">
           {/* Activité récente */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white text-base">Activité récente</CardTitle>
+              <CardTitle className="text-foreground text-base">Activité récente</CardTitle>
             </CardHeader>
             <CardContent>
               <WebSourceActivityTabs pages={pages} logs={logs} sourceId={id} />
@@ -376,22 +376,22 @@ const colorMap = {
   green: 'text-green-400',
   purple: 'text-purple-400',
   red: 'text-red-400',
-  slate: 'text-slate-400',
+  slate: 'text-muted-foreground',
   orange: 'text-orange-400',
 }
 
 function StatCell({ label, value, text, icon, color = 'blue', subtitle }: StatCellProps) {
   const colorClass = colorMap[color]
   return (
-    <div className="bg-slate-800/50 rounded-lg p-3">
+    <div className="bg-card/50 rounded-lg p-3">
       <div className={`flex items-center gap-1.5 mb-1 ${colorClass}`}>
         {icon}
-        <span className="text-xs text-slate-400 truncate">{label}</span>
+        <span className="text-xs text-muted-foreground truncate">{label}</span>
       </div>
       {value !== undefined ? (
         <div className="flex items-baseline gap-1.5">
-          <p className="text-xl font-bold text-white">{value.toLocaleString()}</p>
-          {subtitle && <span className="text-xs text-slate-500">{subtitle}</span>}
+          <p className="text-xl font-bold text-foreground">{value.toLocaleString()}</p>
+          {subtitle && <span className="text-xs text-muted-foreground">{subtitle}</span>}
         </div>
       ) : (
         <p className={`text-sm font-medium ${colorClass} truncate`}>{text}</p>
@@ -403,8 +403,8 @@ function StatCell({ label, value, text, icon, color = 'blue', subtitle }: StatCe
 function ConfigItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="text-slate-400 text-xs">{label}</span>
-      <p className="text-white text-sm">{value}</p>
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <p className="text-foreground text-sm">{value}</p>
     </div>
   )
 }

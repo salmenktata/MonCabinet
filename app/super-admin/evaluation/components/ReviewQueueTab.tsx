@@ -255,7 +255,7 @@ export function ReviewQueueTab() {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        className="bg-green-600 hover:bg-green-700 text-foreground"
                         disabled={updatingId === item.id}
                         onClick={() => updateItem(item.id, 'reviewed', validatedAnswers[item.id])}
                       >

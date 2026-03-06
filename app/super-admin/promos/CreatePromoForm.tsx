@@ -35,21 +35,21 @@ export function CreatePromoForm() {
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
       <div className="space-y-1">
-        <Label className="text-slate-400 text-xs">Code *</Label>
+        <Label className="text-muted-foreground text-xs">Code *</Label>
         <Input
           name="code"
           placeholder="QADHYA20"
           required
           maxLength={30}
-          className="bg-slate-700 border-slate-600 text-white font-mono uppercase"
+          className="bg-muted border-border text-foreground font-mono uppercase"
           onChange={(e) => e.target.value = e.target.value.toUpperCase()}
         />
       </div>
 
       <div className="space-y-1">
-        <Label className="text-slate-400 text-xs">Type remise *</Label>
+        <Label className="text-muted-foreground text-xs">Type remise *</Label>
         <Select value={discountType} onValueChange={setDiscountType}>
-          <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+          <SelectTrigger className="bg-muted border-border text-foreground">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -60,7 +60,7 @@ export function CreatePromoForm() {
       </div>
 
       <div className="space-y-1">
-        <Label className="text-slate-400 text-xs">Valeur *</Label>
+        <Label className="text-muted-foreground text-xs">Valeur *</Label>
         <Input
           name="discount_value"
           type="number"
@@ -68,14 +68,14 @@ export function CreatePromoForm() {
           max={discountType === 'percent' ? 100 : 10000}
           required
           placeholder={discountType === 'percent' ? '20' : '30'}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-muted border-border text-foreground"
         />
       </div>
 
       <div className="space-y-1">
-        <Label className="text-slate-400 text-xs">Applicable à</Label>
+        <Label className="text-muted-foreground text-xs">Applicable à</Label>
         <Select value={appliesTo} onValueChange={setAppliesTo}>
-          <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+          <SelectTrigger className="bg-muted border-border text-foreground">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -87,23 +87,23 @@ export function CreatePromoForm() {
       </div>
 
       <div className="space-y-1">
-        <Label className="text-slate-400 text-xs">Max utilisations</Label>
+        <Label className="text-muted-foreground text-xs">Max utilisations</Label>
         <Input
           name="max_uses"
           type="number"
           min={1}
           placeholder="Illimité"
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-muted border-border text-foreground"
         />
       </div>
 
       <div className="space-y-1">
-        <Label className="text-slate-400 text-xs">Expire le</Label>
+        <Label className="text-muted-foreground text-xs">Expire le</Label>
         <Input
           name="expires_at"
           type="date"
           min={new Date().toISOString().split('T')[0]}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-muted border-border text-foreground"
         />
       </div>
 

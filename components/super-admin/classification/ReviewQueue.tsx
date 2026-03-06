@@ -396,7 +396,7 @@ export function ReviewQueue() {
             size="sm"
             onClick={() => bulkValidateMutation.mutate(Array.from(selectedIds))}
             disabled={bulkValidateMutation.isPending}
-            className="bg-green-600 hover:bg-green-700 text-white rounded-full"
+            className="bg-green-600 hover:bg-green-700 text-foreground rounded-full"
           >
             {bulkValidateMutation.isPending
               ? <Loader2 className="h-4 w-4 animate-spin mr-2" />

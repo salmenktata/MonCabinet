@@ -68,13 +68,13 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return <Badge className="bg-red-500 text-white animate-pulse">Urgent</Badge>
+        return <Badge className="bg-red-500 text-foreground animate-pulse">Urgent</Badge>
       case 'high':
         return <Badge className="bg-orange-500/20 text-orange-500 border-orange-500/30">Haute</Badge>
       case 'normal':
         return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30">Normale</Badge>
       case 'low':
-        return <Badge variant="outline" className="border-slate-600 text-slate-400">Basse</Badge>
+        return <Badge variant="outline" className="border-border text-muted-foreground">Basse</Badge>
       default:
         return null
     }
@@ -87,7 +87,7 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
       case 'system_alert':     return <Icons.alertTriangle className="h-5 w-5 text-yellow-500" />
       case 'kb_update':        return <Icons.bookOpen className="h-5 w-5 text-purple-500" />
       case 'plan_expiring':    return <Icons.creditCard className="h-5 w-5 text-orange-500" />
-      default:                 return <Icons.bell className="h-5 w-5 text-slate-400" />
+      default:                 return <Icons.bell className="h-5 w-5 text-muted-foreground" />
     }
   }
 
@@ -113,10 +113,10 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
           href="/super-admin/notifications" isActive={type === 'all' && read === 'all'} />
       </div>
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Notifications ({total})</CardTitle>
-          <CardDescription className="text-slate-400">Page {page} sur {totalPages || 1}</CardDescription>
+          <CardTitle className="text-foreground">Notifications ({total})</CardTitle>
+          <CardDescription className="text-muted-foreground">Page {page} sur {totalPages || 1}</CardDescription>
         </CardHeader>
         <CardContent>
           {notifsResult.rows.length === 0 ? (
@@ -142,15 +142,15 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
                 <div
                   key={notif.id}
                   className={`flex items-start gap-4 p-4 rounded-lg transition ${
-                    notif.is_read ? 'bg-slate-700/30' : 'bg-slate-700/50 border-l-4 border-blue-500'
+                    notif.is_read ? 'bg-muted/30' : 'bg-muted/50 border-l-4 border-blue-500'
                   }`}
                 >
-                  <div className="h-10 w-10 rounded-full bg-slate-600 flex items-center justify-center shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
                     {getTypeIcon(notif.notification_type)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className={`font-medium ${notif.is_read ? 'text-slate-400' : 'text-white'}`}>
+                      <p className={`font-medium ${notif.is_read ? 'text-muted-foreground' : 'text-foreground'}`}>
                         {notif.title}
                       </p>
                       {getPriorityBadge(notif.priority)}
@@ -161,7 +161,7 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
                         </Badge>
                       )}
                     </div>
-                    <p className={`text-sm mt-1 ${notif.is_read ? 'text-slate-400' : 'text-slate-300'}`}>
+                    <p className={`text-sm mt-1 ${notif.is_read ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
                       {notif.message}
                     </p>
                     {notif.target_type === 'user' && notif.target_email && (
@@ -175,10 +175,10 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-muted-foreground">
                       {new Date(notif.created_at).toLocaleDateString('fr-FR')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                       {new Date(notif.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>

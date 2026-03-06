@@ -131,7 +131,7 @@ export function ApiKeysDBCard() {
                   <span className="text-2xl">{getProviderIcon(key.provider)}</span>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-semibold text-white capitalize">{key.provider}</h4>
+                      <h4 className="font-semibold text-foreground capitalize">{key.provider}</h4>
                       {key.isPrimary && (
                         <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-400">
                           🏆 Primaire

@@ -137,7 +137,7 @@ function getAmendmentTypeBadge(type: string | null) {
       )
     default:
       return (
-        <Badge variant="outline" className="text-slate-400 border-slate-600 text-xs">
+        <Badge variant="outline" className="text-muted-foreground border-border text-xs">
           {type ?? '—'}
         </Badge>
       )
@@ -152,9 +152,9 @@ function KPIsSkeleton() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="rounded-xl bg-slate-800 border border-slate-700 p-5 animate-pulse">
-          <div className="h-7 w-16 bg-slate-700 rounded mb-2" />
-          <div className="h-3 w-24 bg-slate-700 rounded" />
+        <div key={i} className="rounded-xl bg-card border border-border p-5 animate-pulse">
+          <div className="h-7 w-16 bg-muted rounded mb-2" />
+          <div className="h-3 w-24 bg-muted rounded" />
         </div>
       ))}
     </div>
@@ -597,7 +597,7 @@ export function AmendmentsDashboardClient() {
             {/* Matrice de confusion */}
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="text-green-400 font-medium">TP: {benchmarkData.detection.tp}</span>
-              <span className="text-slate-400">TN: {benchmarkData.detection.tn}</span>
+              <span className="text-muted-foreground">TN: {benchmarkData.detection.tn}</span>
               <span className="text-red-400 font-medium">FP: {benchmarkData.detection.fp}</span>
               <span className="text-amber-400 font-medium">FN: {benchmarkData.detection.fn}</span>
               <span className="ml-auto text-[10px]">
@@ -630,21 +630,21 @@ export function AmendmentsDashboardClient() {
                           {c.expected.isAmending ? (
                             <span className="text-blue-400">{c.expected.code} [{c.expected.articles?.join(', ')}]</span>
                           ) : (
-                            <span className="text-slate-500">Non-modif.</span>
+                            <span className="text-muted-foreground">Non-modif.</span>
                           )}
                         </td>
                         <td className="py-2 pr-3">
                           {c.detected.isAmending ? (
                             <span className="text-green-400">{c.detected.code} [{c.detected.articles?.join(', ')}]</span>
                           ) : (
-                            <span className="text-slate-500">Non-modif.</span>
+                            <span className="text-muted-foreground">Non-modif.</span>
                           )}
                         </td>
                         <td className="py-2 pr-3">
                           <span className={cn(
                             'font-bold',
                             c.outcome === 'TP' ? 'text-green-400' :
-                            c.outcome === 'TN' ? 'text-slate-400' :
+                            c.outcome === 'TN' ? 'text-muted-foreground' :
                             c.outcome === 'FP' ? 'text-red-400' :
                             'text-amber-400'
                           )}>
@@ -704,7 +704,7 @@ export function AmendmentsDashboardClient() {
                         {r.detectedAmending ? (
                           <Badge variant="outline" className="text-green-400 border-green-500/30 bg-green-500/10 text-[10px]">Oui</Badge>
                         ) : (
-                          <Badge variant="outline" className="text-slate-400 border-slate-600 text-[10px]">Non</Badge>
+                          <Badge variant="outline" className="text-muted-foreground border-border text-[10px]">Non</Badge>
                         )}
                       </td>
                       <td className="py-2 pr-3 font-semibold">{r.detectedCode ?? '—'}</td>

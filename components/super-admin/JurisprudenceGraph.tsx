@@ -224,7 +224,7 @@ export default function JurisprudenceGraph({
               className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800"
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-foreground">
                   {i + 1}
                 </span>
                 <span className="text-sm">{precedent.title.substring(0, 80)}...</span>
@@ -347,7 +347,7 @@ function TimelineFilters({
 
       <button
         onClick={onApply}
-        className="mt-3 rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+        className="mt-3 rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-foreground hover:bg-blue-700"
       >
         Appliquer filtres
       </button>

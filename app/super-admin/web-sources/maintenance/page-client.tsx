@@ -48,7 +48,7 @@ export function MaintenancePageClient() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-8">
+    <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -57,7 +57,7 @@ export function MaintenancePageClient() {
               onClick={() => router.push('/super-admin/web-sources')}
               variant="outline"
               size="sm"
-              className="border-slate-700"
+              className="border-border"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour
@@ -67,7 +67,7 @@ export function MaintenancePageClient() {
                 <Database className="h-8 w-8 text-blue-500" />
                 Maintenance Sources Web
               </h1>
-              <p className="text-slate-400 mt-1">
+              <p className="text-muted-foreground mt-1">
                 Actions de nettoyage et réindexation
               </p>
             </div>
@@ -75,14 +75,14 @@ export function MaintenancePageClient() {
         </div>
 
         {/* Sélection source */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
-          <label className="block text-sm font-medium text-white mb-2">
+        <Card className="p-6 bg-card border-border">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Source Web
           </label>
           <select
             value={selectedSourceId}
             onChange={(e) => setSelectedSourceId(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={loading}
           >
             {loading ? (
@@ -103,8 +103,8 @@ export function MaintenancePageClient() {
         )}
 
         {!selectedSourceId && !loading && (
-          <Card className="p-12 bg-slate-800 border-slate-700 text-center">
-            <p className="text-slate-400">Aucune source web disponible</p>
+          <Card className="p-12 bg-card border-border text-center">
+            <p className="text-muted-foreground">Aucune source web disponible</p>
           </Card>
         )}
       </div>

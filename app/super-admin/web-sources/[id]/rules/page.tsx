@@ -15,7 +15,7 @@ import { Breadcrumb } from '@/components/super-admin/shared/Breadcrumb'
 const RulesManager = nextDynamic(
   () => import('@/components/super-admin/web-sources/RulesManager').then(mod => ({ default: mod.RulesManager })),
   {
-    loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" />
+    loading: () => <div className="h-64 bg-card animate-pulse rounded-lg" />
   }
 )
 
@@ -152,12 +152,12 @@ export default async function RulesPage({ params }: PageProps) {
       />
 
       {/* Statistiques */}
-      <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>
+      <Suspense fallback={<div className="h-24 bg-card animate-pulse rounded-lg" />}>
         <RulesStats stats={data.stats} />
       </Suspense>
 
       {/* Gestionnaire de règles */}
-      <Suspense fallback={<div className="h-64 bg-slate-800 animate-pulse rounded-lg" />}>
+      <Suspense fallback={<div className="h-64 bg-card animate-pulse rounded-lg" />}>
         <RulesManager
           sourceId={data.source.id}
           sourceName={data.source.name}

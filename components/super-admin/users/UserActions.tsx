@@ -281,7 +281,7 @@ export function UserActions({ user }: UserActionsProps) {
           <Button
             onClick={handleApproveUpgrade}
             disabled={loading}
-            className="bg-orange-600 hover:bg-orange-500 text-white font-semibold"
+            className="bg-orange-600 hover:bg-orange-500 text-foreground font-semibold"
           >
             <Icons.checkCircle className="h-4 w-4 mr-2" />
             ✅ Approuver → {user.upgrade_requested_plan === 'solo' ? 'Pro' : 'Expert'}

@@ -85,7 +85,7 @@ export default async function WebSourceFilesPage({ params }: PageProps) {
         backHref={`/super-admin/web-sources/${id}`}
         action={
           <Link href="/super-admin/web-files">
-            <Button variant="outline" className="border-slate-600 text-slate-300">
+            <Button variant="outline" className="border-border text-muted-foreground">
               <Icons.globe className="h-4 w-4 mr-2" />
               Vue globale
             </Button>
@@ -94,27 +94,27 @@ export default async function WebSourceFilesPage({ params }: PageProps) {
       />
 
       {/* Stats résumé */}
-      <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+      <div className="bg-card/50 rounded-lg p-4 border border-border">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
           <div>
-            <p className="text-2xl font-bold text-white">{stats.total_files}</p>
-            <p className="text-xs text-slate-400">Fichiers</p>
+            <p className="text-2xl font-bold text-foreground">{stats.total_files}</p>
+            <p className="text-xs text-muted-foreground">Fichiers</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-green-400">{indexationRate}%</p>
-            <p className="text-xs text-slate-400">Taux indexation</p>
+            <p className="text-xs text-muted-foreground">Taux indexation</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-blue-400">{stats.total_chunks}</p>
-            <p className="text-xs text-slate-400">Chunks</p>
+            <p className="text-xs text-muted-foreground">Chunks</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-red-400">{stats.error_files}</p>
-            <p className="text-xs text-slate-400">Erreurs</p>
+            <p className="text-xs text-muted-foreground">Erreurs</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-purple-400">{formatBytes(parseInt(stats.total_size, 10))}</p>
-            <p className="text-xs text-slate-400">Stockage</p>
+            <p className="text-xs text-muted-foreground">Stockage</p>
           </div>
         </div>
       </div>

@@ -71,7 +71,7 @@ function TabVueGlobale() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="font-mono text-xs bg-slate-950 text-slate-200 rounded-lg p-6 overflow-x-auto leading-relaxed">
+          <pre className="font-mono text-xs bg-background text-foreground rounded-lg p-6 overflow-x-auto leading-relaxed">
 {`USER QUERY
     │
     ▼
@@ -255,7 +255,7 @@ function TabIndexation() {
                 { label: 'Colonne DB', value: 'embedding_gemini' },
               ]} />
             </div>
-            <div className="border rounded-lg p-4 border-slate-200 bg-slate-50/30">
+            <div className="border rounded-lg p-4 border-border bg-muted/20">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold text-sm">Ollama</span>
                 <BadgeFallback>Dev/Legacy</BadgeFallback>
@@ -277,7 +277,7 @@ function TabIndexation() {
           <CardTitle>Schéma DB — knowledge_base_chunks</CardTitle>
         </CardHeader>
         <CardContent>
-          <pre className="font-mono text-xs bg-slate-950 text-slate-200 rounded-lg p-4 overflow-x-auto">
+          <pre className="font-mono text-xs bg-background text-foreground rounded-lg p-4 overflow-x-auto">
 {`knowledge_base_chunks
 ├── id                 UUID  PK
 ├── knowledge_base_id  UUID  FK → knowledge_base.id
@@ -764,7 +764,7 @@ function TabGenerationLLM() {
               )
             ))}
           </div>
-          <div className="mt-4 bg-slate-50 border rounded-lg p-3">
+          <div className="mt-4 bg-muted/20 border rounded-lg p-3">
             <p className="text-xs text-muted-foreground">
               <span className="font-medium">En mode No-Fallback</span> (configuration actuelle) : le fallback cascade est désactivé.
               Chaque opération utilise 1 modèle fixe. En cas d'échec → alerte email critique.

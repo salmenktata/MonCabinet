@@ -365,7 +365,7 @@ export function AddWebSourceWizard() {
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center font-medium ${
                 step >= s
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-foreground'
                   : 'bg-muted text-muted-foreground'
               }`}
             >

@@ -13,7 +13,7 @@ import { buildDynamicWhere } from '@/lib/db/query-builder'
 
 const AuditLogsFilters = dynamic(
   () => import('@/components/super-admin/AuditLogsFilters').then(m => ({ default: m.AuditLogsFilters })),
-  { loading: () => <div className="h-16 bg-slate-800 animate-pulse rounded-lg" /> }
+  { loading: () => <div className="h-16 bg-card animate-pulse rounded-lg" /> }
 )
 
 interface PageProps {
@@ -85,7 +85,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
       impersonation_expired: '⏱️ Impersonation expirée',
     }
     return (
-      <Badge className={colors[actionType] || 'bg-slate-500/20 text-slate-400'}>
+      <Badge className={colors[actionType] || 'bg-muted/20 text-muted-foreground'}>
         {labels[actionType] || actionType}
       </Badge>
     )
@@ -100,7 +100,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
       case 'config':
         return <Badge variant="outline" className="border-yellow-500/30 text-yellow-400">Config</Badge>
       default:
-        return <Badge variant="outline" className="border-slate-500/30 text-slate-400">{targetType}</Badge>
+        return <Badge variant="outline" className="border-border/30 text-muted-foreground">{targetType}</Badge>
     }
   }
 
@@ -108,27 +108,27 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <PageHeader title="Audit Logs" description="Historique des actions administratives" />
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-4 items-center">
             <AuditLogsFilters currentAction={action} currentTarget={target} />
             {(action !== 'all' || target !== 'all') && (
               <Link href="/super-admin/audit-logs">
-                <Button variant="ghost" className="text-slate-400">
+                <Button variant="ghost" className="text-muted-foreground">
                   <Icons.close className="h-4 w-4 mr-2" />
                   Effacer filtres
                 </Button>
               </Link>
             )}
-            <div className="ml-auto text-sm text-slate-400">{total} entrées</div>
+            <div className="ml-auto text-sm text-muted-foreground">{total} entrées</div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Logs ({total})</CardTitle>
-          <CardDescription className="text-slate-400">Page {page} sur {totalPages || 1}</CardDescription>
+          <CardTitle className="text-foreground">Logs ({total})</CardTitle>
+          <CardDescription className="text-muted-foreground">Page {page} sur {totalPages || 1}</CardDescription>
         </CardHeader>
         <CardContent>
           {logsResult.rows.length === 0 ? (
@@ -150,24 +150,24 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
               }) => (
                 <div
                   key={log.id}
-                  className="flex items-start gap-4 p-4 rounded-lg bg-slate-700/50 hover:bg-slate-700/70 transition"
+                  className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted/70 transition"
                 >
-                  <div className="h-10 w-10 rounded-full bg-slate-600 flex items-center justify-center shrink-0">
-                    <Icons.shield className="h-5 w-5 text-slate-300" />
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <Icons.shield className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {getActionBadge(log.action_type)}
                       {getTargetBadge(log.target_type)}
                     </div>
-                    <p className="text-white mt-1">
-                      <span className="text-slate-400">Par</span> {log.admin_email}
+                    <p className="text-foreground mt-1">
+                      <span className="text-muted-foreground">Par</span> {log.admin_email}
                     </p>
                     {log.target_identifier && (
-                      <p className="text-sm text-slate-400">Cible: {log.target_identifier}</p>
+                      <p className="text-sm text-muted-foreground">Cible: {log.target_identifier}</p>
                     )}
                     {(log.old_value || log.new_value) && (
-                      <div className="mt-2 text-xs text-slate-400 font-mono bg-slate-800 rounded p-2 overflow-x-auto">
+                      <div className="mt-2 text-xs text-muted-foreground font-mono bg-card rounded p-2 overflow-x-auto">
                         {log.old_value && (
                           <div><span className="text-red-400">-</span> {JSON.stringify(log.old_value)}</div>
                         )}
@@ -178,14 +178,14 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm text-white">
+                    <p className="text-sm text-foreground">
                       {new Date(log.created_at).toLocaleDateString('fr-FR')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                       {new Date(log.created_at).toLocaleTimeString('fr-FR')}
                     </p>
                     {log.ip_address && (
-                      <p className="text-xs text-slate-600 mt-1">{log.ip_address}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{log.ip_address}</p>
                     )}
                   </div>
                 </div>

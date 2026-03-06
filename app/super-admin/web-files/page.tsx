@@ -8,7 +8,7 @@ import { db } from '@/lib/db/postgres'
 // Dynamic import pour réduire le bundle initial
 const WebFilesList = nextDynamic(
   () => import('@/components/super-admin/web-files/WebFilesList').then(m => ({ default: m.WebFilesList })),
-  { loading: () => <div className="h-96 bg-slate-800 animate-pulse rounded-lg" /> }
+  { loading: () => <div className="h-96 bg-card animate-pulse rounded-lg" /> }
 )
 
 export const dynamic = 'force-dynamic'
@@ -27,8 +27,8 @@ export default async function WebFilesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Fichiers Web</h1>
-        <p className="text-slate-400 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Fichiers Web</h1>
+        <p className="text-muted-foreground mt-1">
           Vue globale de tous les fichiers (PDF, DOCX) récupérés depuis les sources web
         </p>
       </div>

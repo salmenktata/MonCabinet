@@ -33,14 +33,14 @@ export default function NewWebSourcePage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/super-admin/web-sources">
-          <Button variant="ghost" size="sm" className="text-slate-400">
+          <Button variant="ghost" size="sm" className="text-muted-foreground">
             <Icons.arrowLeft className="h-4 w-4 mr-2" />
             Retour
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-white">Ajouter une source web</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Ajouter une source web</h1>
+          <p className="text-muted-foreground mt-1">
             Configurez une nouvelle source pour l'ingestion automatique
           </p>
         </div>

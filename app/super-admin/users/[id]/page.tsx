@@ -63,7 +63,7 @@ export default async function UserDetailPage({ params }: PageProps) {
       case 'suspended':
         return <Badge className="bg-red-500/20 text-red-500 border-red-500/30">Suspendu</Badge>
       case 'rejected':
-        return <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30">Rejeté</Badge>
+        return <Badge className="bg-muted/20 text-muted-foreground border-border/30">Rejeté</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
     }
@@ -72,7 +72,7 @@ export default async function UserDetailPage({ params }: PageProps) {
   const getPlanBadge = (plan: string) => {
     switch (plan) {
       case 'free':
-        return <Badge variant="secondary" className="bg-slate-600">Free</Badge>
+        return <Badge variant="secondary" className="bg-muted">Free</Badge>
       case 'pro':
         return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30">Pro</Badge>
       case 'enterprise':
@@ -123,23 +123,23 @@ export default async function UserDetailPage({ params }: PageProps) {
 
       {/* Infos principales */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white">Informations</CardTitle>
+            <CardTitle className="text-foreground">Informations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-slate-400">Email</p>
-                <p className="text-white">{user.email}</p>
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="text-foreground">{user.email}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-400">Rôle</p>
-                <p className="text-white capitalize">{user.role || 'user'}</p>
+                <p className="text-sm text-muted-foreground">Rôle</p>
+                <p className="text-foreground capitalize">{user.role || 'user'}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-400">Inscrit le</p>
-                <p className="text-white">
+                <p className="text-sm text-muted-foreground">Inscrit le</p>
+                <p className="text-foreground">
                   {new Date(user.created_at).toLocaleDateString('fr-FR', {
                     day: '2-digit',
                     month: 'long',
@@ -148,8 +148,8 @@ export default async function UserDetailPage({ params }: PageProps) {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-slate-400">Dernière connexion</p>
-                <p className="text-white">
+                <p className="text-sm text-muted-foreground">Dernière connexion</p>
+                <p className="text-foreground">
                   {user.last_login_at
                     ? new Date(user.last_login_at).toLocaleString('fr-FR')
                     : 'Jamais'
@@ -157,12 +157,12 @@ export default async function UserDetailPage({ params }: PageProps) {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-slate-400">Nombre de connexions</p>
-                <p className="text-white">{user.login_count || 0}</p>
+                <p className="text-sm text-muted-foreground">Nombre de connexions</p>
+                <p className="text-foreground">{user.login_count || 0}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-400">Email vérifié</p>
-                <p className="text-white">
+                <p className="text-sm text-muted-foreground">Email vérifié</p>
+                <p className="text-foreground">
                   {user.email_verified ? (
                     <Icons.checkCircle className="h-5 w-5 text-green-500" />
                   ) : (
@@ -174,9 +174,9 @@ export default async function UserDetailPage({ params }: PageProps) {
 
             {/* Infos d'approbation */}
             {user.approved_at && (
-              <div className="pt-4 border-t border-slate-700">
-                <p className="text-sm text-slate-400 mb-2">Approbation</p>
-                <p className="text-white">
+              <div className="pt-4 border-t border-border">
+                <p className="text-sm text-muted-foreground mb-2">Approbation</p>
+                <p className="text-foreground">
                   Approuvé le {new Date(user.approved_at).toLocaleDateString('fr-FR')}
                   {user.approved_by_email && ` par ${user.approved_by_email}`}
                 </p>
@@ -184,25 +184,25 @@ export default async function UserDetailPage({ params }: PageProps) {
             )}
 
             {user.rejected_at && (
-              <div className="pt-4 border-t border-slate-700">
-                <p className="text-sm text-slate-400 mb-2">Rejet</p>
-                <p className="text-white">
+              <div className="pt-4 border-t border-border">
+                <p className="text-sm text-muted-foreground mb-2">Rejet</p>
+                <p className="text-foreground">
                   Rejeté le {new Date(user.rejected_at).toLocaleDateString('fr-FR')}
                 </p>
                 {user.rejection_reason && (
-                  <p className="text-slate-400 mt-1">Raison: {user.rejection_reason}</p>
+                  <p className="text-muted-foreground mt-1">Raison: {user.rejection_reason}</p>
                 )}
               </div>
             )}
 
             {user.suspended_at && (
-              <div className="pt-4 border-t border-slate-700">
-                <p className="text-sm text-slate-400 mb-2">Suspension</p>
-                <p className="text-white">
+              <div className="pt-4 border-t border-border">
+                <p className="text-sm text-muted-foreground mb-2">Suspension</p>
+                <p className="text-foreground">
                   Suspendu le {new Date(user.suspended_at).toLocaleDateString('fr-FR')}
                 </p>
                 {user.suspension_reason && (
-                  <p className="text-slate-400 mt-1">Raison: {user.suspension_reason}</p>
+                  <p className="text-muted-foreground mt-1">Raison: {user.suspension_reason}</p>
                 )}
               </div>
             )}
@@ -210,48 +210,48 @@ export default async function UserDetailPage({ params }: PageProps) {
         </Card>
 
         {/* Stats d'utilisation */}
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white">Utilisation</CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardTitle className="text-foreground">Utilisation</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Statistiques du compte
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg bg-slate-700/50 text-center">
+              <div className="p-4 rounded-lg bg-muted/50 text-center">
                 <Icons.users className="h-8 w-8 mx-auto mb-2 text-blue-500" />
-                <p className="text-2xl font-bold text-white">{stats.clients_count}</p>
-                <p className="text-sm text-slate-400">Clients</p>
+                <p className="text-2xl font-bold text-foreground">{stats.clients_count}</p>
+                <p className="text-sm text-muted-foreground">Clients</p>
               </div>
-              <div className="p-4 rounded-lg bg-slate-700/50 text-center">
+              <div className="p-4 rounded-lg bg-muted/50 text-center">
                 <Icons.dossiers className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                <p className="text-2xl font-bold text-white">{stats.dossiers_count}</p>
-                <p className="text-sm text-slate-400">Dossiers</p>
+                <p className="text-2xl font-bold text-foreground">{stats.dossiers_count}</p>
+                <p className="text-sm text-muted-foreground">Dossiers</p>
               </div>
-              <div className="p-4 rounded-lg bg-slate-700/50 text-center">
+              <div className="p-4 rounded-lg bg-muted/50 text-center">
                 <Icons.fileText className="h-8 w-8 mx-auto mb-2 text-purple-500" />
-                <p className="text-2xl font-bold text-white">{stats.factures_count}</p>
-                <p className="text-sm text-slate-400">Factures</p>
+                <p className="text-2xl font-bold text-foreground">{stats.factures_count}</p>
+                <p className="text-sm text-muted-foreground">Factures</p>
               </div>
-              <div className="p-4 rounded-lg bg-slate-700/50 text-center">
+              <div className="p-4 rounded-lg bg-muted/50 text-center">
                 <Icons.documents className="h-8 w-8 mx-auto mb-2 text-orange-500" />
-                <p className="text-2xl font-bold text-white">{stats.documents_count}</p>
-                <p className="text-sm text-slate-400">Documents</p>
+                <p className="text-2xl font-bold text-foreground">{stats.documents_count}</p>
+                <p className="text-sm text-muted-foreground">Documents</p>
               </div>
             </div>
 
             {/* Plan */}
-            <div className="mt-6 p-4 rounded-lg bg-slate-700/50">
+            <div className="mt-6 p-4 rounded-lg bg-muted/50">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Plan actuel</p>
-                  <p className="text-lg font-semibold text-white capitalize">{user.plan || 'free'}</p>
+                  <p className="text-sm text-muted-foreground">Plan actuel</p>
+                  <p className="text-lg font-semibold text-foreground capitalize">{user.plan || 'free'}</p>
                 </div>
                 {user.plan_expires_at && (
                   <div className="text-right">
-                    <p className="text-sm text-slate-400">Expire le</p>
-                    <p className="text-white">
+                    <p className="text-sm text-muted-foreground">Expire le</p>
+                    <p className="text-foreground">
                       {new Date(user.plan_expires_at).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
@@ -263,16 +263,16 @@ export default async function UserDetailPage({ params }: PageProps) {
       </div>
 
       {/* Historique d'audit */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Historique des actions</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">Historique des actions</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Actions administratives sur ce compte
           </CardDescription>
         </CardHeader>
         <CardContent>
           {auditResult.rows.length === 0 ? (
-            <div className="text-center py-6 text-slate-400">
+            <div className="text-center py-6 text-muted-foreground">
               <Icons.activity className="h-12 w-12 mx-auto mb-2" />
               <p>Aucun historique</p>
             </div>
@@ -288,25 +288,25 @@ export default async function UserDetailPage({ params }: PageProps) {
               }) => (
                 <div
                   key={log.id}
-                  className="flex items-start gap-4 p-3 rounded-lg bg-slate-700/50"
+                  className="flex items-start gap-4 p-3 rounded-lg bg-muted/50"
                 >
-                  <div className="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center shrink-0">
-                    <Icons.shield className="h-4 w-4 text-slate-300" />
+                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <Icons.shield className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-foreground">
                       {log.action_type.replace(/_/g, ' ')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                       Par {log.admin_email}
                     </p>
                     {log.new_value && (
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {JSON.stringify(log.new_value)}
                       </p>
                     )}
                   </div>
-                  <span className="text-xs text-slate-400 shrink-0">
+                  <span className="text-xs text-muted-foreground shrink-0">
                     {new Date(log.created_at).toLocaleString('fr-FR')}
                   </span>
                 </div>

@@ -292,7 +292,7 @@ export function SilverDatasetTab() {
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-green-600 hover:bg-green-700 text-foreground"
                             disabled={updatingId === sc.id}
                             onClick={() => reviewCase(sc.id, 'validated')}
                           >

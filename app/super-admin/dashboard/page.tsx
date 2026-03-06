@@ -106,17 +106,17 @@ async function KnowledgeBaseStats() {
   const indexRate = total > 0 ? Math.round((indexed / total) * 100) : 0
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Database className="h-4 w-4 text-blue-400" />
             Base de Connaissances
           </CardTitle>
-          <CardDescription className="text-slate-400">Documents et indexation RAG</CardDescription>
+          <CardDescription className="text-muted-foreground">Documents et indexation RAG</CardDescription>
         </div>
         <Link href="/super-admin/knowledge-base">
-          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white text-xs">
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground text-xs">
             Gérer →
           </Button>
         </Link>
@@ -124,26 +124,26 @@ async function KnowledgeBaseStats() {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <div className="text-2xl font-bold text-white">{total.toLocaleString('fr-FR')}</div>
-            <p className="text-xs text-slate-400">Documents</p>
+            <div className="text-2xl font-bold text-foreground">{total.toLocaleString('fr-FR')}</div>
+            <p className="text-xs text-muted-foreground">Documents</p>
           </div>
           <div>
             <div className="text-2xl font-bold text-green-400">{indexed.toLocaleString('fr-FR')}</div>
-            <p className="text-xs text-slate-400">Indexés</p>
+            <p className="text-xs text-muted-foreground">Indexés</p>
           </div>
           <div>
             <div className="text-2xl font-bold text-blue-400">{chunks.toLocaleString('fr-FR')}</div>
-            <p className="text-xs text-slate-400">Chunks</p>
+            <p className="text-xs text-muted-foreground">Chunks</p>
           </div>
         </div>
 
         {/* Barre de progression d'indexation */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-slate-400">Taux d'indexation</span>
-            <span className="text-xs font-medium text-slate-300">{indexRate}%</span>
+            <span className="text-xs text-muted-foreground">Taux d'indexation</span>
+            <span className="text-xs font-medium text-muted-foreground">{indexRate}%</span>
           </div>
-          <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-green-500 rounded-full transition-all"
               style={{ width: `${indexRate}%` }}
@@ -152,11 +152,11 @@ async function KnowledgeBaseStats() {
         </div>
 
         {categoryResult.rows.length > 0 && (
-          <div className="pt-2 border-t border-slate-700">
-            <p className="text-xs text-slate-400 mb-2">Par catégorie</p>
+          <div className="pt-2 border-t border-border">
+            <p className="text-xs text-muted-foreground mb-2">Par catégorie</p>
             <div className="flex flex-wrap gap-1.5">
               {categoryResult.rows.map((cat: { category: string; count: string }) => (
-                <Badge key={cat.category} variant="secondary" className="bg-slate-700 text-slate-300 text-xs">
+                <Badge key={cat.category} variant="secondary" className="bg-muted text-muted-foreground text-xs">
                   {cat.category}: {cat.count}
                 </Badge>
               ))}
@@ -187,19 +187,19 @@ async function AICostsStats() {
   const costTND = (costUSD * USD_TO_TND).toFixed(3)
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-green-400" />
             Coûts IA (30 jours)
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-muted-foreground">
             DeepSeek + OpenAI embeddings (Groq/Ollama = gratuit)
           </CardDescription>
         </div>
         <Link href="/super-admin/monitoring?tab=costs">
-          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white text-xs">
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground text-xs">
             Détail →
           </Button>
         </Link>
@@ -207,16 +207,16 @@ async function AICostsStats() {
       <CardContent>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <div className="text-2xl font-bold text-white">${costUSD.toFixed(2)}</div>
-            <p className="text-xs text-slate-400">{costTND} TND</p>
+            <div className="text-2xl font-bold text-foreground">${costUSD.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">{costTND} TND</p>
           </div>
           <div>
             <div className="text-2xl font-bold text-blue-400">{parseInt(s.total_operations).toLocaleString('fr-FR')}</div>
-            <p className="text-xs text-slate-400">Opérations</p>
+            <p className="text-xs text-muted-foreground">Opérations</p>
           </div>
           <div>
             <div className="text-2xl font-bold text-purple-400">{parseInt(s.unique_users).toLocaleString('fr-FR')}</div>
-            <p className="text-xs text-slate-400">Utilisateurs</p>
+            <p className="text-xs text-muted-foreground">Utilisateurs</p>
           </div>
         </div>
       </CardContent>
@@ -237,23 +237,23 @@ async function PendingRegistrations() {
   `)
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-white">Inscriptions en attente</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">Inscriptions en attente</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Utilisateurs attendant approbation
           </CardDescription>
         </div>
         <Link href="/super-admin/users?status=pending">
-          <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+          <Button variant="outline" size="sm" className="border-border text-muted-foreground hover:bg-muted">
             Voir tout
           </Button>
         </Link>
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
-          <div className="text-center py-6 text-slate-400">
+          <div className="text-center py-6 text-muted-foreground">
             <Icons.checkCircle className="h-10 w-10 mx-auto mb-2 text-green-500" />
             <p className="text-sm">Aucune demande en attente</p>
           </div>
@@ -268,16 +268,16 @@ async function PendingRegistrations() {
             }) => (
               <div
                 key={user.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors"
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
               >
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-foreground">
                     {user.prenom} {user.nom}
                   </p>
-                  <p className="text-xs text-slate-400">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted-foreground">
                     {new Date(user.created_at).toLocaleDateString('fr-FR')}
                   </span>
                   <Link href={`/super-admin/users/${user.id}`}>
@@ -330,23 +330,23 @@ async function RecentActivity() {
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-white">Activité récente</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">Activité récente</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Dernières actions administratives
           </CardDescription>
         </div>
         <Link href="/super-admin/audit-logs">
-          <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+          <Button variant="outline" size="sm" className="border-border text-muted-foreground hover:bg-muted">
             Voir tout
           </Button>
         </Link>
       </CardHeader>
       <CardContent>
         {result.rows.length === 0 ? (
-          <div className="text-center py-6 text-slate-400">
+          <div className="text-center py-6 text-muted-foreground">
             <Icons.activity className="h-10 w-10 mx-auto mb-2" />
             <p className="text-sm">Aucune activité récente</p>
           </div>
@@ -361,22 +361,22 @@ async function RecentActivity() {
             }) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-7 w-7 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+                  <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <Icons.shield className={`h-3.5 w-3.5 ${getActionColor(log.action_type)}`} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-white truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {getActionLabel(log.action_type)}
                     </p>
-                    <p className="text-xs text-slate-400 truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       {log.target_identifier} · {log.admin_email}
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-slate-500 shrink-0 ml-2">
+                <span className="text-xs text-muted-foreground shrink-0 ml-2">
                   {new Date(log.created_at).toLocaleString('fr-FR', {
                     day: '2-digit',
                     month: '2-digit',
@@ -400,7 +400,7 @@ const SHORTCUTS = [
   { label: 'Pipeline', href: '/super-admin/pipeline', icon: GitBranch, desc: 'Validation documents', color: 'text-blue-400' },
   { label: 'Évaluation RAG', href: '/super-admin/evaluation', icon: FlaskConical, desc: 'Benchmarks & métriques', color: 'text-purple-400' },
   { label: 'Monitoring', href: '/super-admin/monitoring', icon: BarChart2, desc: 'Santé système', color: 'text-green-400' },
-  { label: 'Configuration', href: '/super-admin/settings', icon: Settings, desc: 'Paramètres globaux', color: 'text-slate-400' },
+  { label: 'Configuration', href: '/super-admin/settings', icon: Settings, desc: 'Paramètres globaux', color: 'text-muted-foreground' },
 ] as const
 
 function QuickShortcuts() {
@@ -408,11 +408,11 @@ function QuickShortcuts() {
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {SHORTCUTS.map((s) => (
         <Link key={s.href} href={s.href}>
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all cursor-pointer group">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border hover:bg-muted hover:border-border transition-all cursor-pointer group">
             <s.icon className={`h-5 w-5 shrink-0 ${s.color} group-hover:scale-110 transition-transform`} />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{s.label}</p>
-              <p className="text-xs text-slate-400 truncate">{s.desc}</p>
+              <p className="text-sm font-medium text-foreground truncate">{s.label}</p>
+              <p className="text-xs text-muted-foreground truncate">{s.desc}</p>
             </div>
           </div>
         </Link>
@@ -436,7 +436,7 @@ export default function SuperAdminDashboard() {
       <Suspense fallback={
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-28 bg-slate-800 animate-pulse rounded-xl border border-slate-700" />
+            <div key={i} className="h-28 bg-card animate-pulse rounded-xl border border-border" />
           ))}
         </div>
       }>
@@ -445,27 +445,27 @@ export default function SuperAdminDashboard() {
 
       {/* KB + Coûts */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Suspense fallback={<div className="h-56 bg-slate-800 animate-pulse rounded-xl border border-slate-700" />}>
+        <Suspense fallback={<div className="h-56 bg-card animate-pulse rounded-xl border border-border" />}>
           <KnowledgeBaseStats />
         </Suspense>
-        <Suspense fallback={<div className="h-56 bg-slate-800 animate-pulse rounded-xl border border-slate-700" />}>
+        <Suspense fallback={<div className="h-56 bg-card animate-pulse rounded-xl border border-border" />}>
           <AICostsStats />
         </Suspense>
       </div>
 
       {/* Inscriptions + Activité */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Suspense fallback={<div className="h-72 bg-slate-800 animate-pulse rounded-xl border border-slate-700" />}>
+        <Suspense fallback={<div className="h-72 bg-card animate-pulse rounded-xl border border-border" />}>
           <PendingRegistrations />
         </Suspense>
-        <Suspense fallback={<div className="h-72 bg-slate-800 animate-pulse rounded-xl border border-slate-700" />}>
+        <Suspense fallback={<div className="h-72 bg-card animate-pulse rounded-xl border border-border" />}>
           <RecentActivity />
         </Suspense>
       </div>
 
       {/* Raccourcis rapides */}
       <div>
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">Raccourcis</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Raccourcis</p>
         <QuickShortcuts />
       </div>
     </div>

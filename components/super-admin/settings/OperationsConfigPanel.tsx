@@ -203,7 +203,7 @@ const OperationsConfigPanel: React.FC = () => {
                 <AccordionItem key={operationName} value={operationName}>
                   <AccordionTrigger className="hover:bg-muted/50 px-4 rounded">
                     <div className="flex items-center gap-3 w-full">
-                      <Badge className={`${categoryColor} text-white`}>
+                      <Badge className={`${categoryColor} text-foreground`}>
                         {operation.category}
                       </Badge>
 

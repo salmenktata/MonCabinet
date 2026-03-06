@@ -82,8 +82,8 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Sources Web</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Sources Web</h1>
+          <p className="text-muted-foreground mt-1">
             {isSuperAdmin
               ? 'Gerez les sources web pour l\'ingestion automatique dans le RAG'
               : 'Consultez les sources web utilisees pour le RAG'
@@ -101,7 +101,7 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
       </div>
 
       {/* Stats */}
-      <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>
+      <Suspense fallback={<div className="h-24 bg-card animate-pulse rounded-lg" />}>
         <WebSourcesStats stats={data.stats} />
       </Suspense>
 
@@ -127,7 +127,7 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
           isActive={effectiveStatus === 'active' ? true : effectiveStatus === 'inactive' ? false : undefined}
         />
       ) : (
-        <Suspense fallback={<div className="h-64 bg-slate-800 animate-pulse rounded-lg" />}>
+        <Suspense fallback={<div className="h-64 bg-card animate-pulse rounded-lg" />}>
           {viewMode === 'cards' ? (
             <WebSourcesCards {...sharedListProps} />
           ) : (

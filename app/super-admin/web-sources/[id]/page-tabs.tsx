@@ -39,7 +39,7 @@ export function WebSourceTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-5 bg-slate-800 border-slate-700">
+      <TabsList className="grid w-full grid-cols-5 bg-card border-border">
         <TabsTrigger value="overview" className="gap-2">
           <LayoutGrid className="h-4 w-4" />
           Aperçu

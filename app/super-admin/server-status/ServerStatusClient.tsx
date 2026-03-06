@@ -45,14 +45,14 @@ function formatBytes(mb: number, decimals = 1): string {
 }
 
 function getStatusColor(value: number | null, warn = 70, crit = 90): string {
-  if (value === null) return 'text-slate-400'
+  if (value === null) return 'text-muted-foreground'
   if (value >= crit) return 'text-red-400'
   if (value >= warn) return 'text-yellow-400'
   return 'text-green-400'
 }
 
 function getGaugeBarColor(value: number | null, warn = 70, crit = 90): string {
-  if (value === null) return 'bg-slate-600'
+  if (value === null) return 'bg-muted'
   if (value >= crit) return 'bg-red-500'
   if (value >= warn) return 'bg-yellow-500'
   return 'bg-green-500'
@@ -84,22 +84,22 @@ function GaugeCard({ label, value, unit = '%', subtitle, thresholds }: GaugeProp
   const barWidth = value !== null ? Math.min(100, value) : 0
 
   return (
-    <Card className="bg-slate-900 border-slate-700">
+    <Card className="bg-background border-border">
       <CardContent className="pt-4 pb-3 px-4">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">{label}</span>
+          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{label}</span>
           <span className={`text-2xl font-bold font-mono ${getStatusColor(value, warn, crit)}`}>
             {displayValue}
           </span>
         </div>
         {/* Barre de progression */}
-        <div className="w-full bg-slate-700 rounded-full h-2 mt-2 mb-2">
+        <div className="w-full bg-muted rounded-full h-2 mt-2 mb-2">
           <div
             className={`h-2 rounded-full transition-all duration-700 ${getGaugeBarColor(value, warn, crit)}`}
             style={{ width: `${barWidth}%` }}
           />
         </div>
-        {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
       </CardContent>
     </Card>
   )
@@ -119,10 +119,10 @@ interface ServiceCardProps {
 
 function ServiceCard({ name, status, latencyMs, details, error }: ServiceCardProps) {
   return (
-    <Card className="bg-slate-900 border-slate-700">
+    <Card className="bg-background border-border">
       <CardContent className="pt-4 pb-3 px-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="font-semibold text-slate-200 text-sm">{name}</span>
+          <span className="font-semibold text-foreground text-sm">{name}</span>
           <div className="flex items-center gap-2">
             {latencyMs !== null && (
               <span className={`text-xs font-mono ${latencyMs < 100 ? 'text-green-400' : latencyMs < 500 ? 'text-yellow-400' : 'text-red-400'}`}>
@@ -135,7 +135,7 @@ function ServiceCard({ name, status, latencyMs, details, error }: ServiceCardPro
         {error ? (
           <p className="text-xs text-red-400 truncate">{error}</p>
         ) : (
-          <div className="text-xs text-slate-400 space-y-0.5">{details}</div>
+          <div className="text-xs text-muted-foreground space-y-0.5">{details}</div>
         )}
       </CardContent>
     </Card>
@@ -154,7 +154,7 @@ interface HistoryChartProps {
 function HistoryChart({ data, range }: HistoryChartProps) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-500 text-sm">
+      <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
         Pas encore de données — les graphiques se rempliront au fil des actualisations.
       </div>
     )
@@ -338,20 +338,20 @@ export default function ServerStatusClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Statut Serveur</h1>
-          <p className="text-slate-400 text-sm mt-0.5">
+          <h1 className="text-2xl font-bold text-foreground">Statut Serveur</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             {snap ? `${snap.platform === 'linux' ? 'VPS Linux' : snap.platform} · Hôte actif ${formatUptime(snap.hostUptimeSeconds)} · ${snap.cpu.cores} vCPU` : 'Chargement...'}
           </p>
         </div>
         <div className="flex items-center gap-3">
           {lastUpdated > 0 && (
-            <span className="text-xs text-slate-500">{formatTimeAgo(lastUpdated)}</span>
+            <span className="text-xs text-muted-foreground">{formatTimeAgo(lastUpdated)}</span>
           )}
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefreshAll}
-            className="border-slate-700 text-slate-300 hover:bg-slate-800"
+            className="border-border text-muted-foreground hover:bg-card"
           >
             Actualiser
           </Button>
@@ -362,13 +362,13 @@ export default function ServerStatusClient() {
       {/* SECTION 1 : Vitals temps réel                                      */}
       {/* ================================================================== */}
       <div>
-        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          Ressources — temps réel <span className="text-slate-600 font-normal normal-case">(actualisation auto. 15s)</span>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Ressources — temps réel <span className="text-muted-foreground font-normal normal-case">(actualisation auto. 15s)</span>
         </h2>
         {loadingCurrent && !snap ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 rounded-lg bg-slate-800 animate-pulse" />
+              <div key={i} className="h-24 rounded-lg bg-card animate-pulse" />
             ))}
           </div>
         ) : (
@@ -404,28 +404,28 @@ export default function ServerStatusClient() {
       {/* Process info row */}
       {snap && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-background/50 border-border">
             <CardContent className="pt-3 pb-3 px-4">
-              <p className="text-xs text-slate-500 mb-0.5">Uptime process</p>
-              <p className="text-sm font-mono text-slate-200">{formatUptime(snap.process.uptimeSeconds)}</p>
+              <p className="text-xs text-muted-foreground mb-0.5">Uptime process</p>
+              <p className="text-sm font-mono text-foreground">{formatUptime(snap.process.uptimeSeconds)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-background/50 border-border">
             <CardContent className="pt-3 pb-3 px-4">
-              <p className="text-xs text-slate-500 mb-0.5">Heap Node.js</p>
-              <p className="text-sm font-mono text-slate-200">{formatBytes(snap.process.heapUsedMb)} / {formatBytes(snap.process.heapTotalMb)}</p>
+              <p className="text-xs text-muted-foreground mb-0.5">Heap Node.js</p>
+              <p className="text-sm font-mono text-foreground">{formatBytes(snap.process.heapUsedMb)} / {formatBytes(snap.process.heapTotalMb)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-background/50 border-border">
             <CardContent className="pt-3 pb-3 px-4">
-              <p className="text-xs text-slate-500 mb-0.5">RSS mémoire</p>
-              <p className="text-sm font-mono text-slate-200">{formatBytes(snap.process.rssMb)}</p>
+              <p className="text-xs text-muted-foreground mb-0.5">RSS mémoire</p>
+              <p className="text-sm font-mono text-foreground">{formatBytes(snap.process.rssMb)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-background/50 border-border">
             <CardContent className="pt-3 pb-3 px-4">
-              <p className="text-xs text-slate-500 mb-0.5">Node.js</p>
-              <p className="text-sm font-mono text-slate-200">{snap.process.nodeVersion}</p>
+              <p className="text-xs text-muted-foreground mb-0.5">Node.js</p>
+              <p className="text-sm font-mono text-foreground">{snap.process.nodeVersion}</p>
             </CardContent>
           </Card>
         </div>
@@ -436,7 +436,7 @@ export default function ServerStatusClient() {
       {/* ================================================================== */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             Historique CPU &amp; RAM
           </h2>
           <div className="flex gap-1">
@@ -446,8 +446,8 @@ export default function ServerStatusClient() {
                 onClick={() => handleRangeChange(h)}
                 className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
                   historyRange === h
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    ? 'bg-blue-600 text-foreground'
+                    : 'bg-card text-muted-foreground hover:bg-muted'
                 }`}
               >
                 {h}h
@@ -455,7 +455,7 @@ export default function ServerStatusClient() {
             ))}
           </div>
         </div>
-        <Card className="bg-slate-900 border-slate-700">
+        <Card className="bg-background border-border">
           <CardContent className="pt-4 pr-2 pb-2 pl-2">
             {loadingHistory && history.length === 0 ? (
               <div className="h-48 flex items-center justify-center">
@@ -472,13 +472,13 @@ export default function ServerStatusClient() {
       {/* SECTION 3 : Services                                               */}
       {/* ================================================================== */}
       <div>
-        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          Services <span className="text-slate-600 font-normal normal-case">(actualisation auto. 30s)</span>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Services <span className="text-muted-foreground font-normal normal-case">(actualisation auto. 30s)</span>
         </h2>
         {loadingServices && !svc ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-20 rounded-lg bg-slate-800 animate-pulse" />
+              <div key={i} className="h-20 rounded-lg bg-card animate-pulse" />
             ))}
           </div>
         ) : svc ? (
@@ -493,13 +493,13 @@ export default function ServerStatusClient() {
                 <>
                   <div className="flex justify-between">
                     <span>Connexions actives</span>
-                    <span className="text-slate-300 font-mono">
+                    <span className="text-muted-foreground font-mono">
                       {svc.postgres.activeConnections ?? '?'} / {svc.postgres.maxConnections ?? '?'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Taille DB</span>
-                    <span className="text-slate-300 font-mono">
+                    <span className="text-muted-foreground font-mono">
                       {svc.postgres.dbSizeMb ? formatBytes(svc.postgres.dbSizeMb) : '?'}
                     </span>
                   </div>
@@ -511,7 +511,7 @@ export default function ServerStatusClient() {
                   </div>
                   <div className="flex justify-between">
                     <span>Locks en attente</span>
-                    <span className={`font-mono ${svc.postgres.activeLocks === 0 ? 'text-slate-300' : 'text-red-400'}`}>
+                    <span className={`font-mono ${svc.postgres.activeLocks === 0 ? 'text-muted-foreground' : 'text-red-400'}`}>
                       {svc.postgres.activeLocks ?? '?'}
                     </span>
                   </div>
@@ -529,7 +529,7 @@ export default function ServerStatusClient() {
                 <>
                   <div className="flex justify-between">
                     <span>Mémoire</span>
-                    <span className="text-slate-300 font-mono">
+                    <span className="text-muted-foreground font-mono">
                       {svc.redis.memoryUsedMb !== null ? formatBytes(svc.redis.memoryUsedMb) : '?'}
                       {svc.redis.memoryMaxMb ? ` / ${formatBytes(svc.redis.memoryMaxMb)}` : ''}
                     </span>
@@ -542,11 +542,11 @@ export default function ServerStatusClient() {
                   </div>
                   <div className="flex justify-between">
                     <span>Clients</span>
-                    <span className="text-slate-300 font-mono">{svc.redis.connectedClients ?? '?'}</span>
+                    <span className="text-muted-foreground font-mono">{svc.redis.connectedClients ?? '?'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Clés / ops·s⁻¹</span>
-                    <span className="text-slate-300 font-mono">
+                    <span className="text-muted-foreground font-mono">
                       {svc.redis.keyCount ?? '?'} / {svc.redis.opsPerSec ?? '?'}
                     </span>
                   </div>
@@ -580,13 +580,13 @@ export default function ServerStatusClient() {
                 <>
                   <div className="flex justify-between">
                     <span>Modèles chargés</span>
-                    <span className="text-slate-300 font-mono">{svc.ollama.models.length}</span>
+                    <span className="text-muted-foreground font-mono">{svc.ollama.models.length}</span>
                   </div>
                   {svc.ollama.models.slice(0, 3).map((m) => (
-                    <div key={m} className="text-slate-500 truncate">— {m}</div>
+                    <div key={m} className="text-muted-foreground truncate">— {m}</div>
                   ))}
                   {svc.ollama.models.length > 3 && (
-                    <div className="text-slate-600">... +{svc.ollama.models.length - 3} autres</div>
+                    <div className="text-muted-foreground">... +{svc.ollama.models.length - 3} autres</div>
                   )}
                 </>
               }
@@ -602,15 +602,15 @@ export default function ServerStatusClient() {
                 <>
                   <div className="flex justify-between">
                     <span>Uptime process</span>
-                    <span className="text-slate-300 font-mono">{formatUptime(svc.nextjs.uptimeSeconds)}</span>
+                    <span className="text-muted-foreground font-mono">{formatUptime(svc.nextjs.uptimeSeconds)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Heap utilisé</span>
-                    <span className="text-slate-300 font-mono">{formatBytes(svc.nextjs.heapUsedMb)}</span>
+                    <span className="text-muted-foreground font-mono">{formatBytes(svc.nextjs.heapUsedMb)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Version</span>
-                    <span className="text-slate-300 font-mono">{svc.nextjs.details.version ?? '?'}</span>
+                    <span className="text-muted-foreground font-mono">{svc.nextjs.details.version ?? '?'}</span>
                   </div>
                 </>
               }
@@ -625,9 +625,9 @@ export default function ServerStatusClient() {
       {svc && svc.postgres.status !== 'unreachable' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* PostgreSQL stats */}
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-background border-border">
             <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-sm text-slate-300 font-semibold">Base de données — PostgreSQL</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground font-semibold">Base de données — PostgreSQL</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-2 text-sm">
               <StatRow label="Taille totale" value={svc.postgres.dbSizeMb ? formatBytes(svc.postgres.dbSizeMb) : 'N/A'} />
@@ -653,9 +653,9 @@ export default function ServerStatusClient() {
           </Card>
 
           {/* Redis stats */}
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-background border-border">
             <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-sm text-slate-300 font-semibold">Cache — Redis</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground font-semibold">Cache — Redis</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-2 text-sm">
               <StatRow
@@ -694,12 +694,12 @@ function StatRow({
   highlightColor?: 'red' | 'yellow'
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-      <span className="text-slate-400">{label}</span>
+    <div className="flex items-center justify-between border-b border-border pb-1.5">
+      <span className="text-muted-foreground">{label}</span>
       <span className={`font-mono text-sm ${
         highlight
           ? highlightColor === 'red' ? 'text-red-400' : 'text-yellow-400'
-          : 'text-slate-200'
+          : 'text-foreground'
       }`}>
         {value}
       </span>

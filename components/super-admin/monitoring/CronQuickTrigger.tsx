@@ -113,7 +113,7 @@ export function CronQuickTrigger() {
                         ~{formatDuration(cron.estimatedDuration)}
                       </Badge>
                       {cron.isRunning && (
-                        <Badge className="bg-blue-500 text-white text-xs">
+                        <Badge className="bg-blue-500 text-foreground text-xs">
                           En cours
                         </Badge>
                       )}

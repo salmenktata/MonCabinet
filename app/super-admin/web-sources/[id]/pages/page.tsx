@@ -21,11 +21,11 @@ interface PageProps {
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'En attente', color: 'bg-slate-500' },
+  pending: { label: 'En attente', color: 'bg-muted' },
   crawled: { label: 'Crawlée', color: 'bg-blue-500' },
   indexed: { label: 'Indexée', color: 'bg-green-500' },
   failed: { label: 'Erreur', color: 'bg-red-500' },
-  unchanged: { label: 'Inchangée', color: 'bg-slate-400' },
+  unchanged: { label: 'Inchangée', color: 'bg-muted-foreground' },
   removed: { label: 'Supprimée', color: 'bg-orange-500' },
   blocked: { label: 'Bloquée', color: 'bg-yellow-500' },
 }
@@ -186,17 +186,17 @@ export default async function WebSourcePagesPage({
       </div>
 
       {/* Liste des pages */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-lg">Pages crawlées</CardTitle>
+          <CardTitle className="text-foreground text-lg">Pages crawlées</CardTitle>
         </CardHeader>
         <CardContent>
           <PagesList pages={pages} />
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-700">
-              <p className="text-sm text-slate-400">
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">
                 Page {pagination.page} sur {pagination.totalPages}
               </p>
               <div className="flex gap-2">
@@ -232,7 +232,7 @@ export default async function WebSourcePagesPage({
 function PagesList({ pages }: { pages: ReturnType<typeof Object.assign>[] }) {
   if (pages.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="text-center py-8 text-muted-foreground">
         <Icons.fileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
         <p>Aucune page trouvée</p>
       </div>
@@ -242,13 +242,13 @@ function PagesList({ pages }: { pages: ReturnType<typeof Object.assign>[] }) {
   return (
     <div className="space-y-2">
       {pages.map((page: any) => {
-        const statusInfo = STATUS_LABELS[page.status] || { label: page.status, color: 'bg-slate-500' }
+        const statusInfo = STATUS_LABELS[page.status] || { label: page.status, color: 'bg-muted' }
         return (
-          <div key={page.id} className="rounded-lg p-4 bg-slate-700/50">
+          <div key={page.id} className="rounded-lg p-4 bg-muted/50">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <Badge className={`${statusInfo.color} text-white text-xs`}>{statusInfo.label}</Badge>
+                  <Badge className={`${statusInfo.color} text-foreground text-xs`}>{statusInfo.label}</Badge>
                   {page.is_indexed && (
                     <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
                       <Icons.checkCircle className="h-3 w-3 mr-1" />Indexée
@@ -263,12 +263,12 @@ function PagesList({ pages }: { pages: ReturnType<typeof Object.assign>[] }) {
                     </a>
                   )}
                 </div>
-                <h3 className="text-white font-medium truncate">{page.title || 'Sans titre'}</h3>
+                <h3 className="text-foreground font-medium truncate">{page.title || 'Sans titre'}</h3>
                 <a
                   href={page.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-slate-400 text-sm hover:text-blue-400 truncate block"
+                  className="text-muted-foreground text-sm hover:text-blue-400 truncate block"
                 >
                   {page.url}
                 </a>
@@ -278,7 +278,7 @@ function PagesList({ pages }: { pages: ReturnType<typeof Object.assign>[] }) {
                   </p>
                 )}
               </div>
-              <div className="text-right text-sm text-slate-400 shrink-0">
+              <div className="text-right text-sm text-muted-foreground shrink-0">
                 {page.word_count > 0 && <div>{page.word_count.toLocaleString()} mots</div>}
                 {page.chunks_count > 0 && <div>{page.chunks_count} chunks</div>}
                 {page.last_crawled_at && (
@@ -306,8 +306,8 @@ function FilterBadge({ href, active, count, label }: FilterBadgeProps) {
       <Badge
         className={`cursor-pointer transition-colors ${
           active
-            ? 'bg-blue-500 text-white hover:bg-blue-600'
-            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            ? 'bg-blue-500 text-foreground hover:bg-blue-600'
+            : 'bg-muted text-muted-foreground hover:bg-muted'
         }`}
       >
         {label} ({count})

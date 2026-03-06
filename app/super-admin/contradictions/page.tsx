@@ -65,7 +65,7 @@ const STATUS_COLORS: Record<ContradictionStatus, string> = {
   pending: 'bg-yellow-500/20 text-yellow-400',
   under_review: 'bg-blue-500/20 text-blue-400',
   resolved: 'bg-green-500/20 text-green-400',
-  dismissed: 'bg-slate-500/20 text-slate-400',
+  dismissed: 'bg-muted/20 text-muted-foreground',
   escalated: 'bg-purple-500/20 text-purple-400',
 }
 
@@ -140,7 +140,7 @@ export default async function ContradictionsPage({ searchParams }: PageProps) {
           label="Total"
           value={stats.total}
           icon={Icons.alertTriangle}
-          color="text-slate-400"
+          color="text-muted-foreground"
         />
         <StatCard
           label="En attente"
@@ -175,22 +175,22 @@ export default async function ContradictionsPage({ searchParams }: PageProps) {
       />
 
       {/* Liste */}
-      <div className="rounded-lg border border-slate-700 overflow-hidden">
+      <div className="rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="border-slate-700 hover:bg-transparent">
-              <TableHead className="text-slate-400">Type</TableHead>
-              <TableHead className="text-slate-400">Sévérité</TableHead>
-              <TableHead className="text-slate-400">Documents</TableHead>
-              <TableHead className="text-slate-400">Description</TableHead>
-              <TableHead className="text-slate-400">Statut</TableHead>
-              <TableHead className="text-slate-400 text-right">Actions</TableHead>
+            <TableRow className="border-border hover:bg-transparent">
+              <TableHead className="text-muted-foreground">Type</TableHead>
+              <TableHead className="text-muted-foreground">Sévérité</TableHead>
+              <TableHead className="text-muted-foreground">Documents</TableHead>
+              <TableHead className="text-muted-foreground">Description</TableHead>
+              <TableHead className="text-muted-foreground">Statut</TableHead>
+              <TableHead className="text-muted-foreground text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {contradictionsData.items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-slate-400">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   <Icons.check className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   Aucune contradiction trouvée
                 </TableCell>
@@ -199,7 +199,7 @@ export default async function ContradictionsPage({ searchParams }: PageProps) {
               contradictionsData.items.map((contradiction) => (
                 <TableRow
                   key={contradiction.id}
-                  className="border-slate-700 hover:bg-slate-800/50"
+                  className="border-border hover:bg-card/50"
                 >
                   <TableCell className="text-sm">
                     {TYPE_LABELS[contradiction.contradictionType] || contradiction.contradictionType}
@@ -214,11 +214,11 @@ export default async function ContradictionsPage({ searchParams }: PageProps) {
                   </TableCell>
                   <TableCell className="max-w-xs">
                     <div className="text-sm">
-                      <div className="text-white truncate">
+                      <div className="text-foreground truncate">
                         {pageTitles[contradiction.sourcePageId] || 'Page source'}
                       </div>
                       {contradiction.targetPageId && (
-                        <div className="text-slate-400 truncate flex items-center gap-1">
+                        <div className="text-muted-foreground truncate flex items-center gap-1">
                           <Icons.arrowRight className="h-3 w-3" />
                           {pageTitles[contradiction.targetPageId] || 'Page cible'}
                         </div>
@@ -226,7 +226,7 @@ export default async function ContradictionsPage({ searchParams }: PageProps) {
                     </div>
                   </TableCell>
                   <TableCell className="max-w-md">
-                    <p className="text-sm text-slate-300 truncate">
+                    <p className="text-sm text-muted-foreground truncate">
                       {contradiction.description}
                     </p>
                   </TableCell>
@@ -277,12 +277,12 @@ function StatCard({
   color: string
 }) {
   return (
-    <div className="p-4 bg-slate-900/50 border border-slate-700 rounded-lg">
+    <div className="p-4 bg-background/50 border border-border rounded-lg">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-400">{label}</span>
+        <span className="text-sm text-muted-foreground">{label}</span>
         <Icon className={`h-4 w-4 ${color}`} />
       </div>
-      <div className="text-2xl font-bold text-white mt-1">{value}</div>
+      <div className="text-2xl font-bold text-foreground mt-1">{value}</div>
     </div>
   )
 }

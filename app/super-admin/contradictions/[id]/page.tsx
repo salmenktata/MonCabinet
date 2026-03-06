@@ -39,7 +39,7 @@ const STATUS_COLORS: Record<ContradictionStatus, string> = {
   pending: 'bg-yellow-500/20 text-yellow-400',
   under_review: 'bg-blue-500/20 text-blue-400',
   resolved: 'bg-green-500/20 text-green-400',
-  dismissed: 'bg-slate-500/20 text-slate-400',
+  dismissed: 'bg-muted/20 text-muted-foreground',
   escalated: 'bg-purple-500/20 text-purple-400',
 }
 
@@ -151,7 +151,7 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="outline" className="text-slate-300 border-slate-600">
+            <Badge variant="outline" className="text-muted-foreground border-border">
               {TYPE_LABELS[c.contradiction_type] || c.contradiction_type}
             </Badge>
             <Badge variant="outline" className={SEVERITY_COLORS[c.severity]}>
@@ -161,8 +161,8 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
               {STATUS_LABELS[c.status]}
             </Badge>
           </div>
-          <p className="text-slate-300 text-sm leading-relaxed">{c.description}</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-muted-foreground text-sm leading-relaxed">{c.description}</p>
+          <p className="text-xs text-muted-foreground">
             Détecté le{' '}
             {new Date(c.created_at).toLocaleDateString('fr-FR', {
               day: 'numeric',
@@ -172,7 +172,7 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
           </p>
         </div>
         <Link href="/super-admin/contradictions">
-          <Button variant="outline" size="sm" className="border-slate-600 text-slate-400 hover:text-white shrink-0">
+          <Button variant="outline" size="sm" className="border-border text-muted-foreground hover:text-foreground shrink-0">
             <Icons.chevronLeft className="h-3.5 w-3.5 mr-1" />
             Retour
           </Button>
@@ -190,15 +190,15 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
       />
 
       {/* Documents impliqués */}
-      <section className="rounded-lg border border-slate-700 overflow-hidden">
-        <div className="px-4 py-3 bg-slate-800/50 border-b border-slate-700">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Icons.fileText className="h-4 w-4 text-slate-400" />
+      <section className="rounded-lg border border-border overflow-hidden">
+        <div className="px-4 py-3 bg-card/50 border-b border-border">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Icons.fileText className="h-4 w-4 text-muted-foreground" />
             Documents impliqués
           </h2>
         </div>
 
-        <div className="divide-y divide-slate-700">
+        <div className="divide-y divide-border">
           {/* Source */}
           <DocumentCard
             label="Source"
@@ -208,12 +208,12 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
           />
 
           {/* Séparateur avec icône */}
-          <div className="flex items-center justify-center py-2 bg-slate-900/30">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center justify-center py-2 bg-background/30">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Icons.arrowDown className="h-3 w-3" />
               <span>Contradiction détectée</span>
               {similarityPct != null && (
-                <span className="text-slate-400 font-medium">
+                <span className="text-muted-foreground font-medium">
                   — similitude {similarityPct}%
                 </span>
               )}
@@ -230,7 +230,7 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
               color="orange"
             />
           ) : (
-            <div className="px-4 py-3 text-sm text-slate-500 italic">
+            <div className="px-4 py-3 text-sm text-muted-foreground italic">
               Aucun document cible (contradiction interne)
             </div>
           )}
@@ -238,10 +238,10 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
       </section>
 
       {/* Analyse */}
-      <section className="rounded-lg border border-slate-700 overflow-hidden">
-        <div className="px-4 py-3 bg-slate-800/50 border-b border-slate-700">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Icons.zap className="h-4 w-4 text-slate-400" />
+      <section className="rounded-lg border border-border overflow-hidden">
+        <div className="px-4 py-3 bg-card/50 border-b border-border">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Icons.zap className="h-4 w-4 text-muted-foreground" />
             Analyse automatique
           </h2>
         </div>
@@ -250,20 +250,20 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
           {/* Impact légal */}
           {c.legal_impact && (
             <div>
-              <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                 Impact légal
               </dt>
-              <dd className="text-sm text-slate-300">{c.legal_impact}</dd>
+              <dd className="text-sm text-muted-foreground">{c.legal_impact}</dd>
             </div>
           )}
 
           {/* Résolution suggérée */}
           {c.suggested_resolution && (
             <div>
-              <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                 Résolution suggérée par le LLM
               </dt>
-              <dd className="text-sm text-slate-300 bg-slate-800/50 rounded p-3 border border-slate-700">
+              <dd className="text-sm text-muted-foreground bg-card/50 rounded p-3 border border-border">
                 {c.suggested_resolution}
               </dd>
             </div>
@@ -272,14 +272,14 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
           {/* Références affectées */}
           {affectedRefs.length > 0 && (
             <div>
-              <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                 Références affectées ({affectedRefs.length})
               </dt>
               <dd className="flex flex-wrap gap-2">
                 {affectedRefs.map((ref: any, i: number) => (
                   <span
                     key={i}
-                    className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-800 border border-slate-700 text-slate-300"
+                    className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-card border border-border text-muted-foreground"
                   >
                     {ref.article || ref.code || ref.text || JSON.stringify(ref)}
                   </span>
@@ -291,17 +291,17 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
           {/* Score similarité */}
           {similarityPct != null && (
             <div>
-              <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                 Score de similarité
               </dt>
               <dd className="flex items-center gap-3">
-                <div className="flex-1 max-w-xs bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div className="flex-1 max-w-xs bg-card rounded-full h-2 overflow-hidden">
                   <div
                     className="h-full bg-blue-500 rounded-full transition-all"
                     style={{ width: `${similarityPct}%` }}
                   />
                 </div>
-                <span className="text-sm font-medium text-slate-300">{similarityPct}%</span>
+                <span className="text-sm font-medium text-muted-foreground">{similarityPct}%</span>
               </dd>
             </div>
           )}
@@ -309,17 +309,17 @@ export default async function ContradictionDetailPage({ params }: PageProps) {
           {/* LLM */}
           {(c.llm_provider || c.llm_model) && (
             <div>
-              <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                 Modèle IA utilisé
               </dt>
-              <dd className="text-xs text-slate-400">
+              <dd className="text-xs text-muted-foreground">
                 {[c.llm_provider, c.llm_model].filter(Boolean).join(' / ')}
               </dd>
             </div>
           )}
 
           {!c.legal_impact && !c.suggested_resolution && similarityPct == null && (
-            <p className="text-sm text-slate-500 italic">
+            <p className="text-sm text-muted-foreground italic">
               Aucune analyse automatique disponible pour cette contradiction.
             </p>
           )}
@@ -360,7 +360,7 @@ function DocumentCard({
             href={page.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-slate-400 hover:text-white transition-colors truncate max-w-sm"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors truncate max-w-sm"
             title={page.url}
           >
             {page.title || page.url}
@@ -368,11 +368,11 @@ function DocumentCard({
           </a>
         )}
         {!page && (
-          <span className="text-xs text-slate-500 italic">Page non trouvée</span>
+          <span className="text-xs text-muted-foreground italic">Page non trouvée</span>
         )}
       </div>
       {snippet && (
-        <blockquote className={`text-xs text-slate-300 leading-relaxed rounded p-3 border ${colorClasses[color].split(' ').slice(1).join(' ')} line-clamp-4`}>
+        <blockquote className={`text-xs text-muted-foreground leading-relaxed rounded p-3 border ${colorClasses[color].split(' ').slice(1).join(' ')} line-clamp-4`}>
           {snippet.length > 400 ? snippet.slice(0, 400) + '…' : snippet}
         </blockquote>
       )}

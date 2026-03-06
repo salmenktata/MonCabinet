@@ -84,7 +84,7 @@ export function SuperAdminTopbar({
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-                <Icons.shield className="h-4 w-4 text-white" />
+                <Icons.shield className="h-4 w-4 text-foreground" />
               </div>
               <span className="hidden max-w-[150px] truncate sm:inline">{displayName}</span>
               <Icons.chevronDown className="h-4 w-4" />
@@ -95,7 +95,7 @@ export function SuperAdminTopbar({
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium text-foreground">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
-                <Badge variant="secondary" className="w-fit mt-1 bg-blue-600 text-white">
+                <Badge variant="secondary" className="w-fit mt-1 bg-blue-600 text-foreground">
                   Super Admin
                 </Badge>
               </div>

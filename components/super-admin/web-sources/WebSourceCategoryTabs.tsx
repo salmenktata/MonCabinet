@@ -54,7 +54,7 @@ export function WebSourceCategoryTabs({
           'px-4 py-2 rounded-lg text-sm font-medium transition-all',
           'border border-border',
           activeCategory === null
-            ? 'bg-blue-600 text-white border-blue-500'
+            ? 'bg-blue-600 text-foreground border-blue-500'
             : 'bg-card text-foreground hover:bg-muted hover:text-foreground'
         )}
       >
@@ -64,7 +64,7 @@ export function WebSourceCategoryTabs({
             className={cn(
               'px-2 py-0.5 rounded-full text-xs',
               activeCategory === null
-                ? 'bg-blue-500 text-white'
+                ? 'bg-blue-500 text-foreground'
                 : 'bg-muted text-foreground'
             )}
           >
@@ -91,7 +91,7 @@ export function WebSourceCategoryTabs({
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all',
                 'border border-border',
                 isActive
-                  ? 'bg-blue-600 text-white border-blue-500'
+                  ? 'bg-blue-600 text-foreground border-blue-500'
                   : 'bg-card text-foreground hover:bg-muted hover:text-foreground'
               )}
             >
@@ -103,7 +103,7 @@ export function WebSourceCategoryTabs({
                   className={cn(
                     'px-2 py-0.5 rounded-full text-xs',
                     isActive
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-blue-500 text-foreground'
                       : 'bg-muted text-foreground'
                   )}
                 >

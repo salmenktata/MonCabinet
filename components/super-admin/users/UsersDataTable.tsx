@@ -66,7 +66,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'super_admin':
-        return <Badge className="bg-blue-600 text-white">Super Admin</Badge>
+        return <Badge className="bg-blue-600 text-foreground">Super Admin</Badge>
       case 'admin':
         return <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Admin</Badge>
       default:

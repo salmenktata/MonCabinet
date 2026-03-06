@@ -48,17 +48,17 @@ export default async function SettingsPage() {
       <PageHeader title="Paramètres" description="Configuration globale de la plateforme" />
 
       <Tabs defaultValue="ai-architecture" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-slate-800 border-slate-700">
-          <TabsTrigger value="ai-architecture" className="data-[state=active]:bg-slate-700">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-card border-border">
+          <TabsTrigger value="ai-architecture" className="data-[state=active]:bg-muted">
             ⚡ Architecture IA
           </TabsTrigger>
-          <TabsTrigger value="email" className="data-[state=active]:bg-slate-700">
+          <TabsTrigger value="email" className="data-[state=active]:bg-muted">
             📧 Email
           </TabsTrigger>
-          <TabsTrigger value="system" className="data-[state=active]:bg-slate-700">
+          <TabsTrigger value="system" className="data-[state=active]:bg-muted">
             🗄️ Système
           </TabsTrigger>
-          <TabsTrigger value="danger-zone" className="data-[state=active]:bg-slate-700">
+          <TabsTrigger value="danger-zone" className="data-[state=active]:bg-muted">
             ⚠️ Zone Dangereuse
           </TabsTrigger>
         </TabsList>
@@ -78,31 +78,31 @@ export default async function SettingsPage() {
         {/* Tab 2 : Email */}
         <TabsContent value="email" className="space-y-6 mt-6">
           {/* Configuration Email */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Icons.mail className="h-5 w-5" />
                 Configuration Email
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 Paramètres Resend / Brevo
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                   <div>
-                    <p className="font-medium text-white">Resend API</p>
-                    <p className="text-sm text-slate-400">Service d'envoi d'emails transactionnels</p>
+                    <p className="font-medium text-foreground">Resend API</p>
+                    <p className="text-sm text-muted-foreground">Service d'envoi d'emails transactionnels</p>
                   </div>
                   <Badge className={resendConfigured ? 'bg-green-500' : 'bg-red-500'}>
                     {resendConfigured ? 'Configuré' : 'Non configuré'}
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                   <div className="flex-1">
-                    <p className="font-medium text-white">Brevo API</p>
-                    <p className="text-sm text-slate-400">Service de notifications quotidiennes</p>
+                    <p className="font-medium text-foreground">Brevo API</p>
+                    <p className="text-sm text-muted-foreground">Service de notifications quotidiennes</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge className={brevoConfigured ? 'bg-green-500' : 'bg-red-500'}>
@@ -116,13 +116,13 @@ export default async function SettingsPage() {
           </Card>
 
           {/* Notifications Quotidiennes */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Icons.bell className="h-5 w-5" />
                 Notifications Quotidiennes
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 Daily Digest - Récapitulatif quotidien envoyé aux utilisateurs
               </CardDescription>
             </CardHeader>
@@ -138,21 +138,21 @@ export default async function SettingsPage() {
         {/* Tab 3 : Système */}
         <TabsContent value="system" className="space-y-6 mt-6">
           {/* Configuration Plans */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Icons.creditCard className="h-5 w-5" />
                 Configuration des Plans
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 Définir les limites par plan
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-slate-400 text-center py-8">
-                <Icons.settings className="h-12 w-12 mx-auto mb-4 text-slate-600" />
+              <div className="text-muted-foreground text-center py-8">
+                <Icons.settings className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p>Configuration des plans à venir</p>
-                <p className="text-sm text-slate-400 mt-2">
+                <p className="text-sm text-muted-foreground mt-2">
                   Les limites sont actuellement codées en dur dans l'application
                 </p>
               </div>
@@ -160,29 +160,29 @@ export default async function SettingsPage() {
           </Card>
 
           {/* Configuration Base de données */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Icons.layers className="h-5 w-5" />
                 Base de Données
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 PostgreSQL avec pgvector
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                   <div>
-                    <p className="font-medium text-white">PostgreSQL</p>
-                    <p className="text-sm text-slate-400">Base de données principale</p>
+                    <p className="font-medium text-foreground">PostgreSQL</p>
+                    <p className="text-sm text-muted-foreground">Base de données principale</p>
                   </div>
                   <Badge className="bg-green-500">Connecté</Badge>
                 </div>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                   <div>
-                    <p className="font-medium text-white">pgvector</p>
-                    <p className="text-sm text-slate-400">Extension pour embeddings</p>
+                    <p className="font-medium text-foreground">pgvector</p>
+                    <p className="text-sm text-muted-foreground">Extension pour embeddings</p>
                   </div>
                   <Badge className="bg-green-500">Activé</Badge>
                 </div>
@@ -191,30 +191,30 @@ export default async function SettingsPage() {
           </Card>
 
           {/* Informations système */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Icons.info className="h-5 w-5" />
                 Informations Système
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="p-4 rounded-lg bg-slate-700/50">
-                  <p className="text-sm text-slate-400">Version</p>
-                  <p className="text-white font-medium">Qadhya v1.0.0</p>
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground">Version</p>
+                  <p className="text-foreground font-medium">Qadhya v1.0.0</p>
                 </div>
-                <div className="p-4 rounded-lg bg-slate-700/50">
-                  <p className="text-sm text-slate-400">Environnement</p>
-                  <p className="text-white font-medium">{process.env.NODE_ENV}</p>
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground">Environnement</p>
+                  <p className="text-foreground font-medium">{process.env.NODE_ENV}</p>
                 </div>
-                <div className="p-4 rounded-lg bg-slate-700/50">
-                  <p className="text-sm text-slate-400">URL de l'application</p>
-                  <p className="text-white font-medium">{process.env.NEXT_PUBLIC_APP_URL || 'Non défini'}</p>
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground">URL de l'application</p>
+                  <p className="text-foreground font-medium">{process.env.NEXT_PUBLIC_APP_URL || 'Non défini'}</p>
                 </div>
-                <div className="p-4 rounded-lg bg-slate-700/50">
-                  <p className="text-sm text-slate-400">Timezone</p>
-                  <p className="text-white font-medium">Africa/Tunis (UTC+1)</p>
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground">Timezone</p>
+                  <p className="text-foreground font-medium">Africa/Tunis (UTC+1)</p>
                 </div>
               </div>
             </CardContent>

@@ -431,7 +431,7 @@ export default function WebFileDetail({ file, chunks }: Props) {
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteLoading}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700 text-foreground"
             >
               {deleteLoading ? (
                 <Icons.loader className="h-4 w-4 mr-2 animate-spin" />

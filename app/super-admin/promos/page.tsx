@@ -31,7 +31,7 @@ export default async function PromosPage() {
         title="Codes Promo"
         description="Gérer les codes promotionnels"
         action={
-          <div className="flex gap-4 text-sm text-slate-400">
+          <div className="flex gap-4 text-sm text-muted-foreground">
             <span>{activeCount} actif{activeCount > 1 ? 's' : ''}</span>
             <span>{totalUses} utilisation{totalUses > 1 ? 's' : ''} total</span>
           </div>
@@ -39,10 +39,10 @@ export default async function PromosPage() {
       />
 
       {/* Formulaire de création */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-base">Créer un code promo</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground text-base">Créer un code promo</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Les codes sont automatiquement mis en majuscules
           </CardDescription>
         </CardHeader>
@@ -52,13 +52,13 @@ export default async function PromosPage() {
       </Card>
 
       {/* Liste des codes */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-base">Codes existants ({promos.length})</CardTitle>
+          <CardTitle className="text-foreground text-base">Codes existants ({promos.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {promos.length === 0 ? (
-            <p className="text-slate-400 text-sm text-center py-8">Aucun code promo créé</p>
+            <p className="text-muted-foreground text-sm text-center py-8">Aucun code promo créé</p>
           ) : (
             <div className="space-y-2">
               {promos.map((promo) => {
@@ -70,12 +70,12 @@ export default async function PromosPage() {
                     key={promo.id}
                     className={`flex items-center justify-between p-3 rounded-lg border ${
                       !promo.is_active || isExpired || isExhausted
-                        ? 'bg-slate-700/30 border-slate-700 opacity-60'
-                        : 'bg-slate-700/50 border-slate-600'
+                        ? 'bg-muted/30 border-border opacity-60'
+                        : 'bg-muted/50 border-border'
                     }`}
                   >
                     <div className="flex items-center gap-4">
-                      <code className="text-white font-mono font-bold text-sm">{promo.code}</code>
+                      <code className="text-foreground font-mono font-bold text-sm">{promo.code}</code>
 
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge className={
@@ -89,7 +89,7 @@ export default async function PromosPage() {
                         </Badge>
 
                         {promo.applies_to !== 'all' && (
-                          <Badge variant="outline" className="text-slate-300 border-slate-500 text-xs">
+                          <Badge variant="outline" className="text-muted-foreground border-border text-xs">
                             {promo.applies_to === 'pro' ? 'Pro uniquement' : 'Expert uniquement'}
                           </Badge>
                         )}
@@ -104,7 +104,7 @@ export default async function PromosPage() {
                     </div>
 
                     <div className="flex items-center gap-4 text-right">
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-muted-foreground">
                         <p>{promo.used_count}{promo.max_uses !== null ? `/${promo.max_uses}` : ''} utilisations</p>
                         {promo.expires_at && (
                           <p>Expire le {new Date(promo.expires_at).toLocaleDateString('fr-FR')}</p>

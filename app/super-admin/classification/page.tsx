@@ -38,7 +38,7 @@ export default function ClassificationPage() {
             <FileCheck className="w-4 h-4" />
             À Revoir
             {urgentCount > 0 && (
-              <span className="ml-1 bg-red-500 text-white text-xs font-semibold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center leading-none">
+              <span className="ml-1 bg-red-500 text-foreground text-xs font-semibold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center leading-none">
                 {urgentCount}
               </span>
             )}

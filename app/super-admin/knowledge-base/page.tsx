@@ -17,22 +17,22 @@ const KnowledgeBaseUploadDialog = nextDynamic(
 
 const KnowledgeBaseList = nextDynamic(
   () => import('@/components/super-admin/knowledge-base/KnowledgeBaseList').then(m => ({ default: m.KnowledgeBaseList })),
-  { loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" /> }
+  { loading: () => <div className="h-64 bg-card animate-pulse rounded-lg" /> }
 )
 
 const KnowledgeBaseTreeView = nextDynamic(
   () => import('@/components/super-admin/knowledge-base/KnowledgeBaseTreeView').then(m => ({ default: m.KnowledgeBaseTreeView })),
-  { loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" /> }
+  { loading: () => <div className="h-64 bg-card animate-pulse rounded-lg" /> }
 )
 
 const KnowledgeBaseViewToggle = nextDynamic(
   () => import('@/components/super-admin/knowledge-base/KnowledgeBaseViewToggle').then(m => ({ default: m.KnowledgeBaseViewToggle })),
-  { loading: () => <div className="h-9 w-40 bg-slate-800 animate-pulse rounded-lg" /> }
+  { loading: () => <div className="h-9 w-40 bg-card animate-pulse rounded-lg" /> }
 )
 
 const FixTitlesButton = nextDynamic(
   () => import('@/components/super-admin/knowledge-base/FixTitlesButton').then(m => ({ default: m.FixTitlesButton })),
-  { loading: () => <div className="h-9 w-40 bg-slate-800 animate-pulse rounded-lg" /> }
+  { loading: () => <div className="h-9 w-40 bg-card animate-pulse rounded-lg" /> }
 )
 
 interface PageProps {
@@ -71,48 +71,48 @@ async function KnowledgeBaseStats() {
 
   return (
     <div className="grid gap-4 md:grid-cols-4">
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-white">{stats.total_docs}</p>
-              <p className="text-sm text-slate-400">Total documents</p>
+              <p className="text-2xl font-bold text-foreground">{stats.total_docs}</p>
+              <p className="text-sm text-muted-foreground">Total documents</p>
             </div>
             <Icons.bookOpen className="h-8 w-8 text-blue-500/20" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-2xl font-bold text-emerald-500">{stats.approved_docs}</p>
-              <p className="text-sm text-slate-400">Approuvés ({approvedPercentage}%)</p>
+              <p className="text-sm text-muted-foreground">Approuvés ({approvedPercentage}%)</p>
             </div>
             <Icons.shield className="h-8 w-8 text-emerald-500/20" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-2xl font-bold text-green-500">{stats.indexed_docs}</p>
-              <p className="text-sm text-slate-400">Indexés ({indexedPercentage}%)</p>
+              <p className="text-sm text-muted-foreground">Indexés ({indexedPercentage}%)</p>
             </div>
             <Icons.checkCircle className="h-8 w-8 text-green-500/20" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-2xl font-bold text-purple-500">{stats.total_chunks}</p>
-              <p className="text-sm text-slate-400">Chunks vectoriels</p>
+              <p className="text-sm text-muted-foreground">Chunks vectoriels</p>
             </div>
             <Icons.layers className="h-8 w-8 text-purple-500/20" />
           </div>
@@ -217,24 +217,24 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Base de Connaissances</h1>
-          <p className="text-slate-400 mt-1">Gérer les documents juridiques pour l&apos;IA</p>
+          <h1 className="text-2xl font-bold text-foreground">Base de Connaissances</h1>
+          <p className="text-muted-foreground mt-1">Gérer les documents juridiques pour l&apos;IA</p>
         </div>
         <div className="flex items-center gap-2">
-          <Suspense fallback={<div className="h-9 w-40 bg-slate-800 animate-pulse rounded-lg" />}>
+          <Suspense fallback={<div className="h-9 w-40 bg-card animate-pulse rounded-lg" />}>
             <FixTitlesButton />
           </Suspense>
           <Suspense fallback={<Button disabled className="bg-blue-600"><Icons.plus className="h-4 w-4 mr-2" />Ajouter</Button>}>
             <KnowledgeBaseUploadDialog />
           </Suspense>
-          <Suspense fallback={<div className="h-9 w-40 bg-slate-800 animate-pulse rounded-lg" />}>
+          <Suspense fallback={<div className="h-9 w-40 bg-card animate-pulse rounded-lg" />}>
             <KnowledgeBaseViewToggle />
           </Suspense>
         </div>
       </div>
 
       {/* Stats */}
-      <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>
+      <Suspense fallback={<div className="h-24 bg-card animate-pulse rounded-lg" />}>
         <KnowledgeBaseStats />
       </Suspense>
 
@@ -243,17 +243,17 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
       ) : (
         <>
           {/* Filtres */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="pt-4 pb-4">
               <form className="flex flex-wrap items-center gap-3">
                 <div className="flex-1 min-w-[250px]">
                   <div className="relative">
-                    <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       name="search"
                       defaultValue={search}
                       placeholder="Rechercher un document..."
-                      className="pl-9 bg-slate-700 border-slate-600 text-white h-9"
+                      className="pl-9 bg-muted border-border text-foreground h-9"
                     />
                   </div>
                 </div>
@@ -261,7 +261,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
                 <select
                   name="category"
                   defaultValue={category}
-                  className="h-9 px-3 rounded-md bg-slate-700 border border-slate-600 text-white text-sm min-w-[150px]"
+                  className="h-9 px-3 rounded-md bg-muted border border-border text-foreground text-sm min-w-[150px]"
                 >
                   {getCategoriesForContext('knowledge_base', 'fr', true).map((cat) => (
                     <option key={cat.value} value={cat.value}>
@@ -273,7 +273,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
                 <select
                   name="indexed"
                   defaultValue={indexed}
-                  className="h-9 px-3 rounded-md bg-slate-700 border border-slate-600 text-white text-sm min-w-[130px]"
+                  className="h-9 px-3 rounded-md bg-muted border border-border text-foreground text-sm min-w-[130px]"
                 >
                   <option value="all">Indexation</option>
                   <option value="true">Indexés</option>
@@ -283,7 +283,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
                 <select
                   name="approved"
                   defaultValue={approved}
-                  className="h-9 px-3 rounded-md bg-slate-700 border border-slate-600 text-white text-sm min-w-[130px]"
+                  className="h-9 px-3 rounded-md bg-muted border border-border text-foreground text-sm min-w-[130px]"
                 >
                   <option value="all">Approbation</option>
                   <option value="true">Approuvés</option>
@@ -293,7 +293,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
                 <select
                   name="abroge"
                   defaultValue={abroge}
-                  className="h-9 px-3 rounded-md bg-slate-700 border border-slate-600 text-white text-sm min-w-[130px]"
+                  className="h-9 px-3 rounded-md bg-muted border border-border text-foreground text-sm min-w-[130px]"
                 >
                   <option value="all">Abrogation</option>
                   <option value="true">Abrogés</option>
@@ -306,7 +306,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
                 </Button>
 
                 <Link href="/super-admin/knowledge-base">
-                  <Button type="button" size="sm" variant="ghost" className="text-slate-400 h-9">
+                  <Button type="button" size="sm" variant="ghost" className="text-muted-foreground h-9">
                     Réinitialiser
                   </Button>
                 </Link>
@@ -315,10 +315,10 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
           </Card>
 
           {/* Liste */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Documents ({total})</CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardTitle className="text-foreground">Documents ({total})</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Page {page} sur {totalPages || 1}
               </CardDescription>
             </CardHeader>

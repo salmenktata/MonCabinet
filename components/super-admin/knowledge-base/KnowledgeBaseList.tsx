@@ -495,7 +495,7 @@ export function KnowledgeBaseList({
                 disabled={loading === doc.id}
                 className={doc.is_indexed
                   ? "border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
-                  : "bg-blue-600 hover:bg-blue-700 text-white"}
+                  : "bg-blue-600 hover:bg-blue-700 text-foreground"}
                 title={doc.is_indexed ? "Réindexer" : "Indexer"}
               >
                 {loading === doc.id ? (

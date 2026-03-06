@@ -7,10 +7,10 @@ function PipelinePageSkeleton() {
       {/* Header skeleton */}
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <div className="h-7 w-36 bg-slate-800 rounded" />
-          <div className="h-4 w-64 bg-slate-800 rounded" />
+          <div className="h-7 w-36 bg-card rounded" />
+          <div className="h-4 w-64 bg-card rounded" />
         </div>
-        <div className="h-8 w-28 bg-slate-800 rounded" />
+        <div className="h-8 w-28 bg-card rounded" />
       </div>
       {/* Stats cards skeleton — 5 colonnes */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
