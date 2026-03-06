@@ -191,9 +191,18 @@ Exemples:
       const sourceId = dryRun ? 'dry-run' : await getOrCreateIortSource()
       const allStats: IortCodeCrawlStats[] = []
 
-      for (const code of codes) {
-        console.log(`\n--- ${code.name} (${code.nameFr || '?'}) ---`)
+      for (let i = 0; i < codes.length; i++) {
+        const code = codes[i]
+        console.log(`\n--- [${i + 1}/${codes.length}] ${code.name} (${code.nameFr || '?'}) ---`)
         try {
+          // Réinitialiser la session entre les codes pour éviter l'expiration WebDev
+          if (i > 0) {
+            console.log('  Réinitialisation session Playwright...')
+            await session.close().catch(() => {})
+            await new Promise(r => setTimeout(r, 5000))
+            await session.init()
+          }
+
           const stats = await crawlCode(session, sourceId, code.name, dryRun)
           allStats.push(stats)
           console.log(`  ✓ ${stats.crawled} nouveaux, ${stats.updated} MAJ, ${stats.skipped} inchangés, ${stats.errors} erreurs`)

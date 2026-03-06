@@ -146,25 +146,29 @@ export interface IortCodeCrawlStats {
 export async function navigateToCodesSelectionPage(session: IortSessionManager): Promise<void> {
   const page = session.getPage()
 
-  // Stratégie 1 : URL directe (plus fiable)
+  // Stratégie 1 : URL directe (timeout court — URL de session expire souvent)
   log.info('Navigation directe vers page listing codes...')
-  await page.goto(CODES_LISTING_URL, {
-    waitUntil: 'load',
-    timeout: IORT_RATE_CONFIG.navigationTimeout,
-  })
-  await sleep(2500)
+  try {
+    await page.goto(CODES_LISTING_URL, {
+      waitUntil: 'load',
+      timeout: 15000,
+    })
+    await sleep(2500)
 
-  let a1Count = await page.evaluate(() =>
-    document.querySelectorAll('div[id^="A1_"]').length,
-  )
+    const a1Direct = await page.evaluate(() =>
+      document.querySelectorAll('div[id^="A1_"]').length,
+    )
 
-  if (a1Count > 0) {
-    log.info(`OK (URL directe) — ${a1Count} codes dans le looper A1`)
-    return
+    if (a1Direct > 0) {
+      log.info(`OK (URL directe) — ${a1Direct} codes dans le looper A1`)
+      return
+    }
+  } catch {
+    log.info('URL directe timeout/erreur, fallback menu...')
   }
 
-  // Stratégie 2 : fallback navigation via menu M24 + M180
-  log.info('URL directe vide, fallback navigation menu...')
+  // Stratégie 2 : navigation via menu M24 + M180 (toujours fiable)
+  log.info('Navigation via menu homepage...')
   await page.goto(IORT_SITEIORT_URL, {
     waitUntil: 'load',
     timeout: IORT_RATE_CONFIG.navigationTimeout,
@@ -189,7 +193,7 @@ export async function navigateToCodesSelectionPage(session: IortSessionManager):
 
   log.info(`URL après navigation: ${page.url()}`)
 
-  a1Count = await page.evaluate(() =>
+  const a1Count = await page.evaluate(() =>
     document.querySelectorAll('div[id^="A1_"]').length,
   )
   if (a1Count === 0) {
