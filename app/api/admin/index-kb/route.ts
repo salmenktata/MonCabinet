@@ -24,8 +24,8 @@ export const GET = withAdminApiAuth(async (_request: NextRequest, _ctx, _session
   const batchSize = isTurbo
     ? EMBEDDING_TURBO_CONFIG.batchSize
     : parseInt(process.env.KB_BATCH_SIZE || '5', 10)
-  const maxBatches = isTurbo ? 100 : 50
-  const batchDelay = isTurbo ? 100 : 500
+  const maxBatches = isTurbo ? 200 : 50
+  const batchDelay = isTurbo ? 50 : 500
 
   const mode = isTurbo ? 'TURBO (OpenAI)' : 'normal (Ollama)'
   console.log(`[IndexKB] Démarrage indexation knowledge_base - mode ${mode}, batch de ${batchSize}`)
