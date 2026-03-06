@@ -199,20 +199,40 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
  */
 export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
   try {
-    const stats = await db.query<{
-      total_docs: number
-      with_score: number
-      without_score: number
-      avg_score: number
-    }>(`
-      SELECT
-        COUNT(*) as total_docs,
-        COUNT(*) FILTER (WHERE quality_score IS NOT NULL) as with_score,
-        COUNT(*) FILTER (WHERE quality_score IS NULL) as without_score,
-        ROUND(AVG(quality_score)) as avg_score
-      FROM knowledge_base
-      WHERE is_active = true
-    `)
+    const [stats, dist] = await Promise.all([
+      db.query<{
+        total_docs: number
+        with_score: number
+        without_score: number
+        avg_score: number
+      }>(`
+        SELECT
+          COUNT(*) as total_docs,
+          COUNT(*) FILTER (WHERE quality_score IS NOT NULL) as with_score,
+          COUNT(*) FILTER (WHERE quality_score IS NULL) as without_score,
+          ROUND(AVG(quality_score)) as avg_score
+        FROM knowledge_base
+        WHERE is_active = true
+      `),
+      db.query<{
+        not_analyzed: number
+        low: number
+        medium: number
+        good: number
+        excellent: number
+        likely_failures: number
+      }>(`
+        SELECT
+          COUNT(*) FILTER (WHERE quality_score IS NULL)::int as not_analyzed,
+          COUNT(*) FILTER (WHERE quality_score IS NOT NULL AND quality_score < 70)::int as low,
+          COUNT(*) FILTER (WHERE quality_score >= 70 AND quality_score < 80)::int as medium,
+          COUNT(*) FILTER (WHERE quality_score >= 80 AND quality_score < 90)::int as good,
+          COUNT(*) FILTER (WHERE quality_score >= 90)::int as excellent,
+          COUNT(*) FILTER (WHERE quality_score = 50)::int as likely_failures
+        FROM knowledge_base
+        WHERE is_active = true
+      `),
+    ])
 
     return NextResponse.json({
       success: true,
@@ -224,6 +244,14 @@ export const GET = withAdminApiAuth(async (request, _ctx, _session) => {
         coverage: stats.rows[0].total_docs > 0
           ? Math.round((stats.rows[0].with_score / stats.rows[0].total_docs) * 100)
           : 0,
+        distribution: {
+          notAnalyzed: dist.rows[0].not_analyzed,
+          low: dist.rows[0].low,
+          medium: dist.rows[0].medium,
+          good: dist.rows[0].good,
+          excellent: dist.rows[0].excellent,
+          likelyFailures: dist.rows[0].likely_failures,
+        },
       },
     })
   } catch (error) {

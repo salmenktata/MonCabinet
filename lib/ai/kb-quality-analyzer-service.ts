@@ -81,14 +81,14 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
 
   if (content.length < 100) {
     const result: KBQualityResult = {
-      qualityScore: 20,
-      clarity: 20,
-      structure: 20,
-      completeness: 20,
-      reliability: 20,
-      analysisSummary: 'Contenu trop court pour une analyse significative',
-      detectedIssues: ['Contenu insuffisant (moins de 100 caractères)'],
-      recommendations: ['Ajouter du contenu au document'],
+      qualityScore: 75,
+      clarity: 75,
+      structure: 75,
+      completeness: 75,
+      reliability: 75,
+      analysisSummary: 'Document court (article de code ou fasl) — score par défaut',
+      detectedIssues: [],
+      recommendations: [],
       requiresReview: false,
       llmProvider: 'none',
       llmModel: 'none',
@@ -129,7 +129,10 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
 
   // Protection triple: String → parseFloat → Math.round pour garantir INTEGER
   // Fix: "invalid input syntax for type integer: '4.5'" en production
-  const safeRound = (val: any): number => Math.round(parseFloat(String(val || 0)))
+  const safeRound = (val: any): number => {
+    const n = Math.round(parseFloat(String(val || 0)))
+    return Math.max(0, Math.min(100, isNaN(n) ? 0 : n))
+  }
 
   const result: KBQualityResult = {
     qualityScore: safeRound(parsed.overall_score),
