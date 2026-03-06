@@ -292,6 +292,8 @@ const KNOWN_DYNAMIC_DOMAINS = [
   '9anoun.tn',          // Laravel Livewire
   'legislation.tn',     // JORT (Angular)
   'e-justice.tn',
+  // ⚠️ iort.gov.tn utilise WebDev/WinDev — NE PAS scraper via crawlSource().
+  // Utiliser IortSessionManager via /api/admin/iort/* uniquement.
   'iort.gov.tn',
 ]
 

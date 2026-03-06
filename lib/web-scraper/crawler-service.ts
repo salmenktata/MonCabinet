@@ -146,6 +146,21 @@ export async function crawlSource(
     return crawlGoogleDriveFolder(source, options)
   }
 
+  // Router: IORT (iort.gov.tn / iort.tn) → crawlers dédiés uniquement
+  // Le framework WebDev/WinDev d'IORT nécessite IortSessionManager (navigation _JSL(), sessions stateful)
+  // Le crawler générique Playwright ne sait pas naviguer ce framework.
+  const isIortSource =
+    baseUrl?.includes('iort.gov.tn') || baseUrl?.includes('iort.tn/siteiort')
+  if (isIortSource) {
+    throw new Error(
+      `[Crawler] Source IORT détectée (${baseUrl}). ` +
+        `Utiliser les routes dédiées : /api/admin/iort/crawl-year-type, ` +
+        `/api/admin/iort/crawl-codes, /api/admin/iort/crawl-recueil, ` +
+        `/api/admin/iort/crawl-constitution. ` +
+        `Le crawler générique ne supporte pas le framework WebDev/WinDev d'IORT.`,
+    )
+  }
+
   // Support snake_case (DB) et camelCase (types)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sourceMaxPages = s.maxPages ?? s.max_pages ?? 100
