@@ -16,11 +16,12 @@ interface AppLayoutProps {
     prenom?: string
     role?: string
   }
+  initialSidebarCollapsed?: boolean
 }
 
-function AppLayoutComponent({ children, user }: AppLayoutProps) {
+function AppLayoutComponent({ children, user, initialSidebarCollapsed }: AppLayoutProps) {
   const isMobile = useIsMobile()
-  const { isCollapsed, toggle } = useSidebarCollapse('dashboard-sidebar-collapsed')
+  const { isCollapsed, toggle } = useSidebarCollapse('dashboard-sidebar-collapsed', initialSidebarCollapsed)
 
   return (
     <div className="relative flex min-h-[100dvh]">

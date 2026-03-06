@@ -16,15 +16,17 @@ interface SuperAdminLayoutProps {
   }
   pendingCount?: number
   pendingTaxonomySuggestions?: number
+  initialSidebarCollapsed?: boolean
 }
 
 export function SuperAdminLayout({
   children,
   user,
   pendingCount = 0,
-  pendingTaxonomySuggestions = 0
+  pendingTaxonomySuggestions = 0,
+  initialSidebarCollapsed,
 }: SuperAdminLayoutProps) {
-  const { isCollapsed, toggle, isMobileOpen, toggleMobile, closeMobile } = useSidebarCollapse()
+  const { isCollapsed, toggle, isMobileOpen, toggleMobile, closeMobile } = useSidebarCollapse('super-admin-sidebar-collapsed', initialSidebarCollapsed)
 
   return (
     <div className="flex h-screen bg-slate-950">

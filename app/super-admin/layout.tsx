@@ -23,7 +23,7 @@ export default async function SuperAdminRootLayout({
 
   // Vérifier le rôle
   const userResult = await query(
-    'SELECT id, email, nom, prenom, role FROM users WHERE id = $1',
+    'SELECT id, email, nom, prenom, role, ui_preferences FROM users WHERE id = $1',
     [session.user.id]
   )
   const user = userResult.rows[0]
@@ -64,6 +64,8 @@ export default async function SuperAdminRootLayout({
     // Table n'existe pas encore, ignorer
   }
 
+  const initialSidebarCollapsed = user.ui_preferences?.['super-admin-sidebar-collapsed'] === true
+
   return (
     <>
       <SuperAdminLayout
@@ -75,6 +77,7 @@ export default async function SuperAdminRootLayout({
         }}
         pendingCount={pendingCount}
         pendingTaxonomySuggestions={pendingTaxonomySuggestions}
+        initialSidebarCollapsed={initialSidebarCollapsed}
       >
         {children}
       </SuperAdminLayout>

@@ -1,24 +1,20 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 
-export function useSidebarCollapse(storageKey = 'super-admin-sidebar-collapsed') {
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const [isHydrated, setIsHydrated] = useState(false)
+export function useSidebarCollapse(storageKey = 'super-admin-sidebar-collapsed', initialValue?: boolean) {
+  const [isCollapsed, setIsCollapsed] = useState(() => initialValue ?? false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
-
-  useEffect(() => {
-    const stored = localStorage.getItem(storageKey)
-    if (stored === 'true') {
-      setIsCollapsed(true)
-    }
-    setIsHydrated(true)
-  }, [storageKey])
 
   const toggle = useCallback(() => {
     setIsCollapsed(prev => {
       const next = !prev
-      localStorage.setItem(storageKey, String(next))
+      // Persister en DB (fire-and-forget)
+      fetch('/api/user/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [storageKey]: next }),
+      }).catch(() => {})
       return next
     })
   }, [storageKey])
@@ -26,5 +22,5 @@ export function useSidebarCollapse(storageKey = 'super-admin-sidebar-collapsed')
   const toggleMobile = useCallback(() => setIsMobileOpen(prev => !prev), [])
   const closeMobile = useCallback(() => setIsMobileOpen(false), [])
 
-  return { isCollapsed, toggle, isHydrated, isMobileOpen, toggleMobile, closeMobile }
+  return { isCollapsed, toggle, isMobileOpen, toggleMobile, closeMobile }
 }

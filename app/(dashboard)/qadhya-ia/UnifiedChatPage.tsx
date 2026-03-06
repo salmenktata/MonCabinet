@@ -51,12 +51,14 @@ interface UnifiedChatPageProps {
   userId: string
   initialAction?: ActionType  // 'chat' | 'structure' | 'ariida'
   hideActionButtons?: boolean // Masquer les boutons si page dédiée
+  initialHistoryCollapsed?: boolean // État initial du panneau d'historique (depuis DB)
 }
 
 export function UnifiedChatPage({
   userId,
   initialAction = 'chat',
-  hideActionButtons = false
+  hideActionButtons = false,
+  initialHistoryCollapsed,
 }: UnifiedChatPageProps) {
   const t = useTranslations('qadhyaIA')
   const tCommon = useTranslations('common')
@@ -75,7 +77,7 @@ export function UnifiedChatPage({
   const locale = useLocale()
   const isAr = locale === 'ar'
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => initialHistoryCollapsed ?? true)
   const [showChatNotice, setShowChatNotice] = useState(() => {
     if (!hideActionButtons) return false // Notice uniquement sur la page dédiée /chat
     if (typeof window === 'undefined') return false
@@ -387,7 +389,15 @@ export function UnifiedChatPage({
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={() => setSidebarCollapsed((c) => !c)}
+              onClick={() => setSidebarCollapsed((c) => {
+                const next = !c
+                fetch('/api/user/preferences', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 'chat-history-collapsed': next }),
+                }).catch(() => {})
+                return next
+              })}
               title={sidebarCollapsed ? t('openSidebar') : t('closeSidebar')}
             >
               <Icons.chevronLeft className={cn(

@@ -24,12 +24,13 @@ export default async function DashboardLayout({
   // Récupérer le profil cabinet et les infos user
   const [profileResult, userResult] = await Promise.all([
     query('SELECT * FROM profiles WHERE user_id = $1', [session.user.id]),
-    query('SELECT role, nom, prenom FROM users WHERE id = $1', [session.user.id])
+    query('SELECT role, nom, prenom, ui_preferences FROM users WHERE id = $1', [session.user.id])
   ])
 
   const profile = profileResult.rows[0]
   const userRow = userResult.rows[0]
   const userRole = userRow?.role || 'user'
+  const initialSidebarCollapsed = userRow?.ui_preferences?.['dashboard-sidebar-collapsed'] === true
 
   return (
     <GlobalErrorBoundary>
@@ -43,6 +44,7 @@ export default async function DashboardLayout({
             prenom: userRow?.prenom || profile?.prenom || '',
             role: userRole,
           }}
+          initialSidebarCollapsed={initialSidebarCollapsed}
         >
           {children}
         </AppLayout>
