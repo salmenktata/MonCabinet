@@ -372,7 +372,7 @@ jobs:
 
       - name: Set version
         run: |
-          VERSION="$(node -p "require('./package.json').version" | cut -d. -f1-2).${{ github.run_number }}"
+          VERSION="$(node -p "require('./package.json').version" | cut -d. -f1-2).$(( ${{ github.run_number }} % 100 ))"
           echo "NEXT_PUBLIC_APP_VERSION=$VERSION" >> $GITHUB_ENV
           echo "Version: $VERSION"
 
@@ -609,7 +609,7 @@ jobs:
 
       - name: Set version
         run: |
-          VERSION="$(node -p "require('./package.json').version" | cut -d. -f1-2).${{ github.run_number }}"
+          VERSION="$(node -p "require('./package.json').version" | cut -d. -f1-2).$(( ${{ github.run_number }} % 100 ))"
           echo "NEXT_PUBLIC_APP_VERSION=$VERSION" >> $GITHUB_ENV
           echo "Version: $VERSION"
 

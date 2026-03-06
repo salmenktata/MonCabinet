@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { MobileBottomNav } from './MobileBottomNav'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useSidebarCollapse } from '@/hooks/use-sidebar-collapse'
 import { cn } from '@/lib/utils'
 
 interface AppLayoutProps {
@@ -19,12 +20,13 @@ interface AppLayoutProps {
 
 function AppLayoutComponent({ children, user }: AppLayoutProps) {
   const isMobile = useIsMobile()
+  const { isCollapsed, toggle } = useSidebarCollapse('dashboard-sidebar-collapsed')
 
   return (
     <div className="relative flex min-h-[100dvh]">
-      {/* Desktop Sidebar - Toujours étendu */}
+      {/* Desktop Sidebar */}
       {isMobile === false && (
-        <Sidebar userRole={user.role} />
+        <Sidebar userRole={user.role} isCollapsed={isCollapsed} onToggleCollapse={toggle} />
       )}
 
       {/* Main Content */}
