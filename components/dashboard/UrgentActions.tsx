@@ -21,7 +21,7 @@ interface UrgentActionsProps {
 }
 
 export function UrgentActions({ echeances }: UrgentActionsProps) {
-  const t = useTranslations('dashboard')
+  const _t = useTranslations('dashboard')
   const tUrgent = useTranslations('urgentActions')
 
   const getJoursRestants = (dateEcheance: string) => {
@@ -99,6 +99,7 @@ export function UrgentActions({ echeances }: UrgentActionsProps) {
                     )}
                   </div>
                   <Badge
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     variant={urgency.badge as any}
                     className="shrink-0 text-xs h-5 px-1.5"
                   >

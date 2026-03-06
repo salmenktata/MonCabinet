@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/sheet'
 
 interface DocumentCardProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   document: any
 }
 
