@@ -82,7 +82,7 @@ export const POST = withAdminApiAuth(async (req, _ctx, _session) => {
       try {
         // Générer l'embedding OpenAI
         const embeddingResult = await generateEmbedding(chunk.content, {
-          operationName: 'assistant-ia', // Utilise OpenAI embeddings
+          forceOpenai: true, // Force OpenAI text-embedding-3-small 1536-dim
         })
 
         // Vérifier que c'est bien un embedding OpenAI (1536 dimensions)

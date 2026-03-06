@@ -41,6 +41,8 @@ export interface EmbeddingOptions {
   forceOllama?: boolean
   /** Force Gemini (gemini-embedding-001, 768-dim) pour triple-provider search */
   forceGemini?: boolean
+  /** Force OpenAI (text-embedding-3-small, 1536-dim) pour réindexation colonne embedding_openai */
+  forceOpenai?: boolean
 }
 
 interface OllamaEmbeddingResponse {
@@ -57,6 +59,9 @@ const isDev = process.env.NODE_ENV === 'development'
  * Détermine le provider d'embeddings pour une opération donnée
  */
 function resolveEmbeddingProvider(options?: EmbeddingOptions): 'ollama' | 'openai' | 'gemini' {
+  // Force OpenAI explicitement (reindex embedding_openai 1536-dim)
+  if (options?.forceOpenai && aiConfig.openai.apiKey) return 'openai'
+
   // Force Gemini explicitement (triple-provider search : chunks 768-dim)
   if (options?.forceGemini && aiConfig.gemini.apiKey) return 'gemini'
 

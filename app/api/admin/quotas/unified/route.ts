@@ -122,8 +122,9 @@ const PROVIDER_PRICING: Record<string, { input: number; output: number }> = {
 }
 
 // ─── Statut de limite ──────────────────────────────────────────────────────────
-function getLimitStatus(percent: number, limitValue: number | null): 'ok' | 'warning' | 'critical' | 'unlimited' {
+function getLimitStatus(percent: number, limitValue: number | null, noData = false): 'ok' | 'warning' | 'critical' | 'unlimited' | 'no_data' {
   if (limitValue === null) return 'unlimited'
+  if (noData) return 'no_data'
   if (percent >= 80) return 'critical'
   if (percent >= 50) return 'warning'
   return 'ok'
@@ -281,7 +282,7 @@ export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
 
       if (limit.type === 'Budget') {
         // Budget mensuel
-        if (provider === 'deepseek') usedToday = deepseekTodayCost * 30 // extrapolation mensuelle simplifiée
+        if (provider === 'deepseek') usedToday = costByProvider['deepseek'] || 0
         else if (provider === 'openai') usedToday = openaiMonthCost
         else if (provider === 'gemini') usedToday = costByProvider['gemini'] || 0
       } else if (limit.type === 'RPD') {
@@ -296,8 +297,8 @@ export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
           usedToday = u ? u.tokensIn + u.tokensOut : 0
         }
       } else if (limit.type === 'RPM') {
-        // RPM pas facilement disponible sans compteur temps réel → 0
-        usedToday = 0
+        // RPM : pas de compteur temps réel disponible
+        usedToday = -1
       }
 
       const percentUsed = limit.value !== null ? Math.min(100, (usedToday / limit.value) * 100) : 0

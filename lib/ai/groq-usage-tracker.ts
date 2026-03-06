@@ -16,8 +16,8 @@ const log = createLogger('GroqUsageTracker')
 
 const TTL_SECONDS = 35 * 24 * 3600
 
-// Seuil d'alerte = 80% du free tier Groq pour llama-3.3-70b (14 400 req/jour)
-const GROQ_70B_ALERT_THRESHOLD = 11_500
+// Seuil d'alerte = 80% du free tier Groq pour llama-3.3-70b (1 000 req/jour)
+const GROQ_70B_ALERT_THRESHOLD = 800
 // Anti-spam : une alerte par modèle toutes les 12h
 const ALERT_COOLDOWN_SECONDS = 12 * 3600
 
@@ -79,7 +79,7 @@ async function checkFreeTierAlert(
   // Alerte console (visible dans les logs VPS)
   log.warn(
     `[Groq Free Tier] ⚠️ ${calls} appels aujourd'hui pour ${model}` +
-    ` (${Math.round(calls / 14400 * 100)}% du free tier — seuil ${GROQ_70B_ALERT_THRESHOLD})`
+    ` (${Math.round(calls / 1000 * 100)}% du free tier — seuil ${GROQ_70B_ALERT_THRESHOLD})`
   )
 }
 
