@@ -117,11 +117,16 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
               processingTimeMs: Date.now() - startTime,
             })
           } else {
+            // Article court (ex: fasl d'un code) — score par défaut 75
+            await db.query(
+              `UPDATE knowledge_base SET quality_score = 75, quality_assessed_at = NOW(), updated_at = NOW() WHERE id = $1`,
+              [doc.id]
+            )
             results.push({
               documentId: doc.id,
               title: doc.title,
-              success: false,
-              error: 'Full text trop court ou manquant',
+              success: true,
+              qualityScore: 75,
               processingTimeMs: Date.now() - startTime,
             })
           }

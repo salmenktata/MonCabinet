@@ -102,7 +102,7 @@ for i in $(seq 1 $ACTUAL_BATCHES); do
     BATCH_DURATION=$((BATCH_END - BATCH_START))
 
     # Calculer score moyen du batch si disponible
-    AVG_SCORE=$(echo "$RESULT" | jq -r '[.results[] | select(.success == true) | .qualityScore] | add / length | round')
+    AVG_SCORE=$(echo "$RESULT" | jq -r '[.results[] | select(.success == true) | .qualityScore] | if length > 0 then (add / length | round) else "N/A" end')
 
     echo "   ✅ Analysés: $ANALYZED | Réussis: $SUCCEEDED | Échoués: $FAILED"
     if [ "$AVG_SCORE" != "null" ] && [ "$AVG_SCORE" != "" ]; then
