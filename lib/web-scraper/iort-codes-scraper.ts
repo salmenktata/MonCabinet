@@ -1318,7 +1318,15 @@ export async function crawlCode(
         log.info(`✓ ${item.title.substring(0, 70)} (${textContent.length} chars)`)
       }
 
-      await sleep(IORT_RATE_CONFIG.minDelay)
+      // Jitter aléatoire (minDelay + 0-5s) + pause longue tous les 30 items
+      const jitter = IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 5000)
+      await sleep(jitter)
+
+      const processed = stats.crawled + stats.skipped + stats.updated + stats.errors
+      if (processed > 0 && processed % 30 === 0) {
+        log.info(`Pause anti-ban (${processed} items traités)...`)
+        await sleep(30000)
+      }
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -1527,7 +1535,15 @@ async function crawlCodesJuridiquesPage(
       log.info(`Texte vide: "${t2Link.title.substring(0, 60)}"`)
     }
 
-    await sleep(IORT_RATE_CONFIG.minDelay)
+    // Jitter aléatoire (3-8s) + pause longue tous les 30 items
+    const jitter = IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 5000)
+    await sleep(jitter)
+
+    const processed = stats.crawled + stats.skipped + stats.updated + stats.errors
+    if (processed > 0 && processed % 30 === 0) {
+      log.info(`Pause anti-ban (${processed} items traités)...`)
+      await sleep(30000)
+    }
   }
 }
 

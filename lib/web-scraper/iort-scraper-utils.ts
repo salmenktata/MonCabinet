@@ -97,9 +97,9 @@ export const IORT_TEXT_TYPE_LABELS: Record<IortLanguage, Record<IortTextType, st
 
 /** Configuration rate limiting */
 export const IORT_RATE_CONFIG = {
-  minDelay: 2000,
-  longPauseEvery: 200,
-  longPauseMs: 10000,
+  minDelay: 5000,
+  longPauseEvery: 50,
+  longPauseMs: 15000,
   comboPauseMs: 10000,
   refreshEvery: 150,
   navigationTimeout: 60000,
