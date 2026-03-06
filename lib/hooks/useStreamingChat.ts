@@ -11,6 +11,7 @@ export interface StreamingMessage {
   isStreaming?: boolean
   isError?: boolean
   abrogationAlerts?: AbrogationAlert[] // Phase 3.4
+  clarifyingOptions?: { question: string; options: string[] }
 }
 
 export interface ChatSource {
@@ -37,7 +38,7 @@ export interface ProgressStep {
 }
 
 interface StreamChunk {
-  type: 'metadata' | 'content' | 'done' | 'error' | 'thinking' | 'progress'
+  type: 'metadata' | 'content' | 'done' | 'error' | 'thinking' | 'progress' | 'clarifying_options'
   content?: string
   conversationId?: string
   sources?: ChatSource[]
@@ -50,6 +51,10 @@ interface StreamChunk {
   count?: number
   avgSimilarity?: number
   quality?: string
+  // clarification interactif
+  clarifyingOptions?: { question: string; options: string[] }
+  // structure/ariida streaming: résultat JSON complet
+  result?: string
 }
 
 interface UseStreamingChatOptions {
@@ -138,6 +143,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
             sources: data.sources,
             tokensUsed: data.tokensUsed?.total,
             abrogationAlerts: data.abrogationAlerts, // Phase 3.4
+            clarifyingOptions: data.clarifyingOptions,
           }
           // Créer metadata à partir du JSON pour que onComplete ait le conversationId
           const jsonMetadata: StreamMetadata | undefined = data.conversationId
@@ -170,6 +176,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
     let buffer = ''
     let fullContent = ''
     let metadata: StreamMetadata | null = null
+    let pendingClarifyingOptions: { question: string; options: string[] } | undefined
 
     try {
       while (true) {
@@ -208,13 +215,22 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
                 setStreamingContent(fullContent)
                 break
 
+              case 'clarifying_options':
+                // Stocker les options en attente pour les attacher au message final
+                pendingClarifyingOptions = chunk.clarifyingOptions
+                break
+
               case 'done': {
-                // Streaming terminé
+                // Pour structure/ariida : le résultat JSON est dans chunk.result
+                // Pour chat : le texte est accumulé dans fullContent
+                const finalContent = chunk.result ?? fullContent
+                const finalSources = chunk.sources ?? metadata?.sources
                 const finalMessage: StreamingMessage = {
                   role: 'assistant',
-                  content: fullContent,
-                  sources: metadata?.sources,
+                  content: finalContent,
+                  sources: finalSources,
                   tokensUsed: chunk.tokensUsed?.total,
+                  clarifyingOptions: pendingClarifyingOptions,
                 }
                 setMessages((prev) => [...prev, finalMessage])
                 options.onComplete?.(finalMessage, metadata || undefined)

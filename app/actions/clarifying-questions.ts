@@ -12,9 +12,11 @@ RÈGLES STRICTES:
 - Question: 1 phrase courte (max 15 mots)
 - Hint: max 10 mots
 - Répondre en français même si le récit est en arabe
+- Pour chaque question, génère 2-4 options de réponse courtes et claires (max 8 mots chacune)
+- Les options doivent couvrir les cas les plus fréquents ; l'utilisateur pourra aussi taper librement
 
 JSON UNIQUEMENT (pas de markdown):
-[{"id":"q1","question":"...","hint":"...","required":true}]`
+[{"id":"q1","question":"...","hint":"...","required":true,"options":["option1","option2","option3"]}]`
 
 const PROMPT_AR = `مساعد قانوني تونسي. حدّد 3-4 معلومات ناقصة في هذه الرواية.
 
@@ -22,9 +24,11 @@ const PROMPT_AR = `مساعد قانوني تونسي. حدّد 3-4 معلوما
 - أقصى 4 أسئلة
 - السؤال: جملة قصيرة (أقصى 15 كلمة)
 - التلميح: أقصى 10 كلمات
+- لكل سؤال، أنشئ 2-4 خيارات إجابة قصيرة وواضحة (أقصى 8 كلمات لكل خيار)
+- يجب أن تغطي الخيارات الحالات الأكثر شيوعاً
 
 JSON فقط (بدون markdown):
-[{"id":"q1","question":"...","hint":"...","required":true}]`
+[{"id":"q1","question":"...","hint":"...","required":true,"options":["خيار1","خيار2","خيار3"]}]`
 
 export async function generateClarifyingQuestions(
   narratif: string
@@ -86,6 +90,9 @@ export async function generateClarifyingQuestions(
         question: q.question,
         hint: q.hint || '',
         required: q.required ?? false,
+        options: Array.isArray(q.options)
+          ? q.options.filter((o) => typeof o === 'string' && o.trim()).slice(0, 4)
+          : undefined,
       }))
 
     if (validated.length === 0) {

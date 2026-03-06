@@ -1148,6 +1148,15 @@
         "description": "إنشاء عريضة دعوى قانونية كاملة"
       }
     },
+    "domains": {
+      "all": "الكل",
+      "famille": "الأسرة",
+      "commercial": "تجاري",
+      "pénal": "جنائي",
+      "travail": "عمل",
+      "immobilier": "عقاري",
+      "administratif": "إداري"
+    },
     "enriched": {
       "structure": {
         "title": "ملف منظم",
@@ -1515,6 +1524,7 @@
       "title": "أسئلة توضيحية",
       "subtitle": "حدد الذكاء الاصطناعي معلومات ناقصة لتحليل أفضل. أجب على الأسئلة أدناه.",
       "answerPlaceholder": "إجابتك...",
+      "otherAnswer": "إجابة أخرى...",
       "required": "مطلوب",
       "optional": "اختياري",
       "skip": "تخطي",

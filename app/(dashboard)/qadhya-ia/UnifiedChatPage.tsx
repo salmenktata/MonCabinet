@@ -193,6 +193,7 @@ export function UnifiedChatPage({
           abrogationAlerts: m.metadata?.abrogationAlerts,
           qualityIndicator: m.metadata?.qualityIndicator,
           model: (m.metadata as any)?.model,
+          clarifyingOptions: (m.metadata as any)?.clarifyingOptions,
           metadata: m.metadata,
         } as any
       })
@@ -448,6 +449,7 @@ export function UnifiedChatPage({
                 onResendMessage={(content) => handleSendMessage(content)}
                 onRegenerate={handleRegenerate}
                 canProvideFeedback={true}
+                onOptionSelect={handleSendMessage}
               />
             </div>
           </div>

@@ -1859,3 +1859,38 @@ function mapPriorite(
       return 'NORMALE'
   }
 }
+
+// =============================================================================
+// STREAMING: Generator SSE pour feedback temps réel
+// =============================================================================
+
+export type StructuringStreamEvent =
+  | { type: 'progress'; step: 'searching' | 'generating' }
+  | { type: 'done'; result: string; tokensUsed: { input: number; output: number; total: number } }
+  | { type: 'error'; error: string }
+
+/**
+ * Version streaming de structurerDossier().
+ * Émet des événements SSE de progression avant d'appeler le LLM.
+ */
+export async function* structurerDossierStream(
+  narratif: string,
+  userId: string
+): AsyncGenerator<StructuringStreamEvent> {
+  yield { type: 'progress', step: 'searching' }
+  yield { type: 'progress', step: 'generating' }
+
+  try {
+    const result = await structurerDossier(narratif, userId)
+    yield {
+      type: 'done',
+      result: JSON.stringify(result, null, 2),
+      tokensUsed: { input: 0, output: 0, total: 0 },
+    }
+  } catch (error) {
+    yield {
+      type: 'error',
+      error: error instanceof Error ? error.message : 'Erreur lors de la structuration',
+    }
+  }
+}

@@ -122,3 +122,81 @@ export async function genererAriida(narratif: string, userId: string): Promise<A
 
   return ariida
 }
+
+// =============================================================================
+// STREAMING: Generator SSE pour feedback temps réel
+// =============================================================================
+
+export type AriidaStreamEvent =
+  | { type: 'progress'; step: 'searching' | 'sources_found' | 'generating'; count?: number }
+  | { type: 'done'; result: string; sources: ChatSource[]; tokensUsed: { input: number; output: number; total: number } }
+  | { type: 'error'; error: string }
+
+/**
+ * Version streaming de genererAriida().
+ * Émet des événements de progression : recherche KB → génération LLM → résultat.
+ */
+export async function* genererAriidaStream(
+  narratif: string,
+  userId: string
+): AsyncGenerator<AriidaStreamEvent> {
+  yield { type: 'progress', step: 'searching' }
+
+  let sources: ChatSource[] = []
+  let sourcesContext = ''
+
+  try {
+    const searchResult = await searchRelevantContext(narratif, userId, {
+      includeJurisprudence: false,
+      includeKnowledgeBase: true,
+      maxContextChunks: 5,
+    })
+    sources = searchResult.sources
+
+    if (sources.length > 0) {
+      sourcesContext = await buildContextFromSources(sources, 'ar')
+      log.info(`[Ariida Stream] ${sources.length} source(s) KB trouvée(s)`)
+    }
+
+    yield { type: 'progress', step: 'sources_found', count: sources.length }
+  } catch (err) {
+    log.error('[Ariida Stream] Erreur recherche KB (non bloquante):', err)
+    yield { type: 'progress', step: 'sources_found', count: 0 }
+  }
+
+  yield { type: 'progress', step: 'generating' }
+
+  try {
+    const userPrompt = buildAriidaUserPrompt(narratif, sourcesContext)
+    const llmResponse = await callLLMWithFallback(
+      [
+        { role: 'system', content: ARIIDA_SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+      {
+        operationName: 'ariida-generation',
+        temperature: 0.2,
+        maxTokens: 3000,
+      }
+    )
+
+    const rawText = llmResponse.answer?.trim() ?? ''
+    const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]+?)\s*```/)
+    const jsonStr = jsonMatch ? jsonMatch[1] : rawText
+    const ariida: AriidaDocument = JSON.parse(jsonStr)
+    const { sources: _srcs, ...ariidaWithoutSources } = ariida
+
+    yield {
+      type: 'done',
+      result: JSON.stringify(ariidaWithoutSources, null, 2),
+      sources,
+      tokensUsed: { input: 0, output: 0, total: 0 },
+    }
+  } catch (error) {
+    log.error('[Ariida Stream] Erreur génération:', error)
+    yield {
+      type: 'error',
+      error: error instanceof Error ? error.message : 'Impossible de générer la عريضة',
+    }
+  }
+}

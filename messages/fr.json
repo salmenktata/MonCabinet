@@ -1148,6 +1148,15 @@
         "description": "Rédiger une عريضة دعوى tunisienne complète"
       }
     },
+    "domains": {
+      "all": "Tous",
+      "famille": "Famille",
+      "commercial": "Commercial",
+      "pénal": "Pénal",
+      "travail": "Travail",
+      "immobilier": "Immobilier",
+      "administratif": "Administratif"
+    },
     "enriched": {
       "structure": {
         "title": "Dossier Structuré",
@@ -1515,6 +1524,7 @@
       "title": "Questions clarificatrices",
       "subtitle": "L'IA a identifié des informations manquantes pour une meilleure analyse. Répondez aux questions ci-dessous.",
       "answerPlaceholder": "Votre réponse...",
+      "otherAnswer": "Autre réponse...",
       "required": "Requis",
       "optional": "Optionnel",
       "skip": "Passer",

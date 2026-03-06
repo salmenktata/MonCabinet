@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, memo } from 'react'
+import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -15,6 +15,8 @@ import { MessageFeedback } from '@/components/chat/MessageFeedback'
 import type { AbrogationAlert } from '@/types/abrogation-alerts' // Phase 3.4
 import type { ModeConfig } from '@/app/(dashboard)/qadhya-ia/mode-config'
 import type { ProgressStep } from '@/lib/hooks/useStreamingChat'
+import { useSuggestions } from '@/lib/hooks/useSuggestions'
+import { ALL_DOMAINS, DOMAIN_COLORS, DOMAIN_DOT_COLORS, type SuggestionDomain } from '@/lib/data/suggestions'
 
 const MarkdownMessage = dynamic(
   () => import('./MarkdownMessage').then(mod => mod.MarkdownMessage),
@@ -46,6 +48,7 @@ export interface ChatMessage {
   abrogationAlerts?: AbrogationAlert[] // Phase 3.4
   qualityIndicator?: 'high' | 'medium' | 'low'
   model?: string
+  clarifyingOptions?: { question: string; options: string[] }
 }
 
 interface ChatMessagesProps {
@@ -61,6 +64,7 @@ interface ChatMessagesProps {
   onResendMessage?: (content: string) => void
   onRegenerate?: (userContent: string) => void
   isStreaming?: boolean
+  onOptionSelect?: (text: string) => void
 }
 
 /** Raccourcit le nom du modèle pour l'affichage */
@@ -86,36 +90,21 @@ function getGreeting(): string {
   return 'Bonsoir'
 }
 
-// Cartes de suggestion par mode
 type ModeSuggestionKey = 'chat' | 'structure' | 'ariida'
-const MODE_SUGGESTION_CARDS: Record<ModeSuggestionKey, Array<{ icon: keyof typeof Icons; title: string; send: string }>> = {
-  chat: [
-    { icon: 'search', title: 'Jurisprudence récente', send: 'Quelles sont les dernières décisions de la Cour de cassation sur la responsabilité délictuelle en droit tunisien ?' },
-    { icon: 'clock', title: 'Délais légaux', send: 'Quels sont les délais de prescription pour une action en réparation du préjudice en droit tunisien ?' },
-    { icon: 'users', title: 'Droits du salarié', send: 'Quels sont les droits d\'un salarié face à un licenciement abusif en droit du travail tunisien ?' },
-    { icon: 'scale', title: 'Procédure d\'appel', send: 'Comment formuler un mémoire d\'appel et quels sont les délais selon le Code de procédure civile ?' },
-  ],
-  structure: [
-    { icon: 'briefcase', title: 'Litige commercial', send: 'Mon client est commerçant et a signé un contrat d\'approvisionnement avec un fournisseur qui n\'a pas livré la marchandise. Préjudice estimé à 50 000 TND.' },
-    { icon: 'users', title: 'Droit de la famille', send: 'Il s\'agit d\'une demande en divorce pour faute, les époux sont mariés depuis 8 ans et ont 2 enfants mineurs âgés de 5 et 7 ans.' },
-    { icon: 'gavel', title: 'Affaire pénale', send: 'Mon client est poursuivi pour abus de confiance portant sur des fonds qu\'il gérait pour le compte d\'un associé. Les faits remontent à 2022.' },
-    { icon: 'home', title: 'Litige locatif', send: 'Un propriétaire souhaite résilier un contrat de bail commercial pour non-paiement de loyers depuis 6 mois et expulser son locataire.' },
-  ],
-  ariida: [
-    { icon: 'fileText', title: 'Résiliation bail', send: 'Rédiger une requête introductive d\'instance pour résiliation de bail commercial pour défaut de paiement de loyers et expulsion du locataire.' },
-    { icon: 'dollar', title: 'Recouvrement créance', send: 'Rédiger une requête pour recouvrement d\'une créance commerciale de 80 000 TND résultant d\'un contrat d\'entreprise non exécuté.' },
-    { icon: 'alertCircle', title: 'Responsabilité civile', send: 'Rédiger une requête introductive pour responsabilité délictuelle et réparation du préjudice suite à un accident de la circulation.' },
-    { icon: 'building', title: 'Litige immobilier', send: 'Rédiger une requête introductive d\'instance pour litige de propriété immobilière suite à une double vente contestée.' },
-  ],
-}
 
-export function ChatMessages({ messages, isLoading, streamingContent, currentMetadata, progressSteps, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false, onResendMessage, onRegenerate, isStreaming }: ChatMessagesProps) {
+export function ChatMessages({ messages, isLoading, streamingContent, currentMetadata, progressSteps, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false, onResendMessage, onRegenerate, isStreaming, onOptionSelect }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
   const tMode = useTranslations('qadhyaIA.modes')
+  const tDomains = useTranslations('qadhyaIA.domains')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [showScrollBottom, setShowScrollBottom] = useState(false)
   const [unreadWhileScrolled, setUnreadWhileScrolled] = useState(0)
   const isAtBottomRef = useRef(true)
+
+  // Domain filter for empty state suggestion cards
+  const [selectedDomain, setSelectedDomain] = useState<SuggestionDomain | 'all'>('all')
+  const modeKeyForSuggestions = (modeConfig?.translationKey || 'chat') as ModeSuggestionKey
+  const { suggestions: emptySuggestions } = useSuggestions({ mode: modeKeyForSuggestions, domain: selectedDomain })
 
   // Convertir les messages pour le hook de virtualisation
   const virtualMessages = useMemo(() =>
@@ -177,11 +166,10 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
   }, [messages, streamingContent, isVirtualized])
 
   if (messages.length === 0 && !isLoading && !streamingContent) {
-    const modeKey = (modeConfig?.translationKey || 'chat') as ModeSuggestionKey
+    const modeKey = modeKeyForSuggestions
     const ModeIcon = modeConfig ? Icons[modeConfig.icon] : Icons.messageSquare
     const iconBg = modeConfig?.iconBgClass || 'bg-primary/10'
     const iconText = modeConfig?.iconTextClass || 'text-primary'
-    const suggestions = MODE_SUGGESTION_CARDS[modeKey] || MODE_SUGGESTION_CARDS.chat
 
     return (
       <div className="flex-1 flex items-center justify-center p-4 md:p-8 overflow-y-auto">
@@ -209,47 +197,83 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
             </p>
           </div>
 
-          {/* Grille 2×2 de cartes de suggestion */}
+          {/* Cartes de suggestion avec filtre domaine */}
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground/60 mb-3 text-center uppercase tracking-widest">
               {modeConfig ? tMode(`${modeKey}.exampleQuestions`) : t('exampleQuestions')}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {suggestions.map((card, idx) => {
-                const CardIcon = Icons[card.icon]
-                return (
-                  <motion.button
-                    key={idx}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.08 + idx * 0.06, duration: 0.3, ease: 'easeOut' }}
-                    onClick={() => onSendExample?.(card.send)}
-                    className={cn(
-                      'group text-start p-4 rounded-xl border bg-card/60 backdrop-blur-sm',
-                      'hover:bg-card hover:shadow-md hover:border-primary/20',
-                      'transition-all duration-200 ease-out',
-                      'flex items-start gap-3'
-                    )}
-                  >
-                    <div className={cn(
-                      'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5',
-                      iconBg
-                    )}>
-                      <CardIcon className={cn('h-4 w-4', iconText)} />
+
+            {/* Domain filter tabs */}
+            <div className="flex gap-1.5 flex-wrap justify-center mb-4">
+              <button
+                onClick={() => setSelectedDomain('all')}
+                className={cn(
+                  'inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors',
+                  selectedDomain === 'all'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground'
+                )}
+              >
+                {tDomains('all')}
+              </button>
+              {ALL_DOMAINS.map((domain) => (
+                <button
+                  key={domain}
+                  onClick={() => setSelectedDomain(domain)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors',
+                    selectedDomain === domain
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground'
+                  )}
+                >
+                  <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', DOMAIN_DOT_COLORS[domain])} />
+                  {tDomains(domain as Parameters<typeof tDomains>[0])}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
+              {emptySuggestions.map((card, idx) => (
+                <motion.button
+                  key={card.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.08 + idx * 0.06, duration: 0.3, ease: 'easeOut' }}
+                  onClick={() => onSendExample?.(card.send)}
+                  className={cn(
+                    'group text-start p-4 rounded-xl border bg-card/60 backdrop-blur-sm',
+                    'hover:bg-card hover:shadow-md hover:border-primary/20',
+                    'transition-all duration-200 ease-out',
+                    'flex items-start gap-3'
+                  )}
+                >
+                  <div className={cn(
+                    'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5',
+                    iconBg
+                  )}>
+                    <span className={cn('h-2.5 w-2.5 rounded-full', DOMAIN_DOT_COLORS[card.domain])} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-semibold text-foreground">{card.label}</p>
+                      <span className={cn(
+                        'inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium border shrink-0',
+                        DOMAIN_COLORS[card.domain]
+                      )}>
+                        {tDomains(card.domain as Parameters<typeof tDomains>[0])}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground mb-0.5">{card.title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                        {card.send}
-                      </p>
-                    </div>
-                    <Icons.arrowUp className={cn(
-                      'h-4 w-4 shrink-0 rotate-45 opacity-0 group-hover:opacity-50 self-center transition-all duration-200',
-                      iconText
-                    )} />
-                  </motion.button>
-                )
-              })}
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                      {card.send}
+                    </p>
+                  </div>
+                  <Icons.arrowUp className={cn(
+                    'h-4 w-4 shrink-0 rotate-45 opacity-0 group-hover:opacity-50 self-center transition-all duration-200',
+                    iconText
+                  )} />
+                </motion.button>
+              ))}
             </div>
           </div>
         </motion.div>
@@ -313,6 +337,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
               const prevUserContent = message.role === 'assistant'
                 ? messages.slice(0, virtualItem.index).reverse().find(m => m.role === 'user')?.content
                 : undefined
+              const isLastMsg = virtualItem.index === messages.length - 1
               return (
                 <div
                   key={virtualItem.key}
@@ -333,6 +358,8 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
                     canProvideFeedback={canProvideFeedback}
                     onResendMessage={onResendMessage}
                     onRegenerate={prevUserContent && onRegenerate ? () => onRegenerate(prevUserContent) : undefined}
+                    onOptionSelect={onOptionSelect}
+                    optionsDisabled={!isLastMsg || !!isStreaming}
                   />
                 </div>
               )
@@ -377,6 +404,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
             const prevUserContent = message.role === 'assistant'
               ? messages.slice(0, idx).reverse().find(m => m.role === 'user')?.content
               : undefined
+            const isLastMsg = idx === messages.length - 1
             return (
               <motion.div
                 key={message.id}
@@ -391,6 +419,8 @@ export function ChatMessages({ messages, isLoading, streamingContent, currentMet
                   canProvideFeedback={canProvideFeedback}
                   onResendMessage={onResendMessage}
                   onRegenerate={prevUserContent && onRegenerate ? () => onRegenerate(prevUserContent) : undefined}
+                  onOptionSelect={onOptionSelect}
+                  optionsDisabled={!isLastMsg || !!isStreaming}
                 />
               </motion.div>
             )
@@ -536,9 +566,11 @@ interface MessageBubbleProps {
   canProvideFeedback?: boolean
   onResendMessage?: (content: string) => void
   onRegenerate?: () => void
+  onOptionSelect?: (text: string) => void
+  optionsDisabled?: boolean
 }
 
-const MessageBubble = memo(function MessageBubble({ message, progressSteps, renderEnriched, canProvideFeedback = false, onResendMessage, onRegenerate }: MessageBubbleProps) {
+const MessageBubble = memo(function MessageBubble({ message, progressSteps, renderEnriched, canProvideFeedback = false, onResendMessage, onRegenerate, onOptionSelect, optionsDisabled = false }: MessageBubbleProps) {
   const t = useTranslations('assistantIA')
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
@@ -761,6 +793,41 @@ const MessageBubble = memo(function MessageBubble({ message, progressSteps, rend
         {message.sources && message.sources.length > 0 && (
           <div className="mt-3">
             <SourcesPanel sources={message.sources} qualityIndicator={message.qualityIndicator} />
+          </div>
+        )}
+
+        {/* Options de clarification — style VSCode */}
+        {message.clarifyingOptions && !message.isStreaming && onOptionSelect && (
+          <div className="mt-3 rounded-xl border border-border/60 bg-card/60 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border/40">
+              <span className="text-sm font-medium text-foreground/80" dir="auto">
+                {message.clarifyingOptions.question}
+              </span>
+            </div>
+            <div className="p-1.5 space-y-0.5">
+              {message.clarifyingOptions.options.map((option, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  disabled={optionsDisabled}
+                  onClick={() => onOptionSelect(option)}
+                  className={cn(
+                    'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors min-h-[44px]',
+                    optionsDisabled
+                      ? 'cursor-not-allowed opacity-40'
+                      : 'hover:bg-primary/10 hover:text-primary cursor-pointer active:bg-primary/15'
+                  )}
+                >
+                  <span className={cn(
+                    'flex h-6 w-6 shrink-0 items-center justify-center rounded text-[11px] font-bold',
+                    optionsDisabled ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
+                  )}>
+                    {idx + 1}
+                  </span>
+                  <span dir="auto" className="flex-1 leading-snug">{option}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

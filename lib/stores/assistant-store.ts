@@ -9,6 +9,7 @@ export interface ClarifyingQuestion {
   question: string
   hint: string
   required: boolean
+  options?: string[]
 }
 
 interface AssistantState {

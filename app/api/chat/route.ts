@@ -33,8 +33,8 @@ import { scheduleHallucinationCheck } from '@/lib/ai/hallucination-monitor-servi
 import { scheduleQueryLog } from '@/lib/ai/query-log-service'
 import { trackConversationCost } from '@/lib/ai/conversation-cost-service'
 import { detectAbrogations, type AbrogationAlert } from '@/lib/legal/abrogation-detector-service'
-import { structurerDossier } from '@/lib/ai/dossier-structuring-service'
-import { genererAriida } from '@/lib/ai/ariida-generation-service'
+import { structurerDossier, structurerDossierStream } from '@/lib/ai/dossier-structuring-service'
+import { genererAriida, genererAriidaStream } from '@/lib/ai/ariida-generation-service'
 import { RateLimiter } from '@/lib/rate-limiter'
 import { acquireChatSemaphore, releaseChatSemaphore } from '@/lib/ai/chat-semaphore'
 import { checkAndConsumeAiQuota } from '@/lib/plans/check-ai-quota'
@@ -88,6 +88,47 @@ interface ChatApiResponse {
   abrogationAlerts?: AbrogationAlert[] // Phase 3.4 - Alertes abrogations détectées dans la question
   qualityIndicator?: 'high' | 'medium' | 'low'
   averageSimilarity?: number
+  clarifyingOptions?: { question: string; options: string[] }
+}
+
+// =============================================================================
+// HELPER : Parser les options de clarification embarquées dans la réponse LLM
+// =============================================================================
+
+/**
+ * Extrait le bloc QADHYA_CLARIFY du texte de la réponse.
+ * Format : <!--QADHYA_CLARIFY:{"question":"...","options":["a","b"]}-->
+ * Retourne les options extraites et le texte nettoyé du bloc.
+ */
+function extractClarifyingOptions(answer: string): {
+  cleanAnswer: string
+  clarifyingOptions?: { question: string; options: string[] }
+} {
+  const match = answer.match(/<!--QADHYA_CLARIFY:([\s\S]*?)-->/)
+  if (!match) return { cleanAnswer: answer }
+
+  try {
+    const parsed = JSON.parse(match[1].trim())
+    if (
+      parsed &&
+      typeof parsed.question === 'string' &&
+      Array.isArray(parsed.options) &&
+      parsed.options.length >= 2
+    ) {
+      const cleanAnswer = answer.replace(match[0], '').trim()
+      return {
+        cleanAnswer,
+        clarifyingOptions: {
+          question: parsed.question,
+          options: parsed.options.filter((o: unknown) => typeof o === 'string').slice(0, 4),
+        },
+      }
+    }
+  } catch {
+    // JSON invalide — ignorer
+  }
+
+  return { cleanAnswer: answer }
 }
 
 // =============================================================================
@@ -352,20 +393,27 @@ export async function POST(
       // Ne pas bloquer le chat si la détection échoue
     }
 
-    // Si streaming activé, retourner un ReadableStream
-    // Note: streaming désactivé pour structure
-    if (stream && actionType === 'chat') {
-      return handleStreamingResponse(
-        question,
-        userId,
-        activeConversationId,
-        dossierId,
-        includeJurisprudence,
-        usePremiumModel,
-        docType,
-        stance,
-        excludeCategories
-      )
+    // Si streaming activé, retourner un ReadableStream (chat, structure, ariida)
+    if (stream) {
+      if (actionType === 'chat') {
+        return handleStreamingResponse(
+          question,
+          userId,
+          activeConversationId,
+          dossierId,
+          includeJurisprudence,
+          usePremiumModel,
+          docType,
+          stance,
+          excludeCategories
+        )
+      }
+      if (actionType === 'structure') {
+        return handleStreamingStructureResponse(question, userId, activeConversationId)
+      }
+      if (actionType === 'ariida') {
+        return handleStreamingAriidaResponse(question, userId, activeConversationId)
+      }
     }
 
     // Router selon le type d'action
@@ -429,15 +477,22 @@ export async function POST(
       await releaseChatSemaphore()
     }
 
-    // Sauvegarder la réponse assistant avec metadata
+    // Extraire les options de clarification avant de sauvegarder
+    const { cleanAnswer, clarifyingOptions } = extractClarifyingOptions(response.answer)
+    const answerToSave = cleanAnswer
+    const metadataToSave = clarifyingOptions
+      ? { ...response.metadata, clarifyingOptions }
+      : response.metadata
+
+    // Sauvegarder la réponse assistant avec metadata (réponse nettoyée + options si présentes)
     await saveMessage(
       activeConversationId,
       'assistant',
-      response.answer,
+      answerToSave,
       response.sources,
       response.tokensUsed.total,
       response.model,
-      response.metadata // Phase 8: Sauvegarder actionType dans metadata
+      metadataToSave // Phase 8: Sauvegarder actionType dans metadata
     )
 
     // B2: Suivi hallucination asynchrone (10% échantillonnage, fire-and-forget)
@@ -445,7 +500,7 @@ export async function POST(
       activeConversationId,
       undefined,
       question,
-      response.answer,
+      answerToSave,
       response.sources,
       response.model
     )
@@ -493,7 +548,7 @@ export async function POST(
     }
 
     return NextResponse.json({
-      answer: response.answer,
+      answer: cleanAnswer,
       sources: response.sources,
       conversationId: activeConversationId,
       tokensUsed: response.tokensUsed,
@@ -501,6 +556,7 @@ export async function POST(
       qualityIndicator: response.qualityIndicator,
       averageSimilarity: response.averageSimilarity,
       abstentionReason: response.abstentionReason,
+      clarifyingOptions,
     })
   } catch (error) {
     console.error('Erreur chat:', error)
@@ -689,6 +745,106 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 }
 
 // =============================================================================
+// HELPERS: Streaming SSE pour structure et ariida
+// =============================================================================
+
+const SSE_HEADERS = {
+  'Content-Type': 'text/event-stream',
+  'Cache-Control': 'no-cache',
+  Connection: 'keep-alive',
+} as const
+
+async function handleStreamingStructureResponse(
+  narratif: string,
+  userId: string,
+  conversationId: string
+): Promise<Response> {
+  const encoder = new TextEncoder()
+  const send = (obj: object) => encoder.encode(`data: ${JSON.stringify(obj)}\n\n`)
+
+  const body = new ReadableStream({
+    async start(controller) {
+      controller.enqueue(send({ type: 'thinking' }))
+      controller.enqueue(send({ type: 'metadata', conversationId, sources: [], model: 'structuration' }))
+      try {
+        for await (const event of structurerDossierStream(narratif, userId)) {
+          if (event.type === 'progress') {
+            controller.enqueue(send({ type: 'progress', step: event.step }))
+          } else if (event.type === 'done') {
+            controller.enqueue(send({ type: 'done', result: event.result, sources: [], tokensUsed: event.tokensUsed }))
+            controller.close()
+            // Sauvegarder le message en base après fermeture du stream
+            await saveMessage(conversationId, 'assistant', event.result, [], 0, 'structuration', { actionType: 'structure' })
+            await generateAndUpdateTitle(conversationId)
+          } else if (event.type === 'error') {
+            controller.enqueue(send({ type: 'error', error: event.error }))
+            controller.close()
+          }
+        }
+      } catch (error) {
+        controller.enqueue(send({ type: 'error', error: error instanceof Error ? error.message : 'Erreur inconnue' }))
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(body, { headers: SSE_HEADERS })
+}
+
+async function handleStreamingAriidaResponse(
+  narratif: string,
+  userId: string,
+  conversationId: string
+): Promise<Response> {
+  const encoder = new TextEncoder()
+  const send = (obj: object) => encoder.encode(`data: ${JSON.stringify(obj)}\n\n`)
+
+  const body = new ReadableStream({
+    async start(controller) {
+      controller.enqueue(send({ type: 'thinking' }))
+      controller.enqueue(send({ type: 'metadata', conversationId, sources: [], model: 'ariida' }))
+      try {
+        for await (const event of genererAriidaStream(narratif, userId)) {
+          if (event.type === 'progress') {
+            controller.enqueue(send({ type: 'progress', step: event.step, count: event.count }))
+          } else if (event.type === 'done') {
+            controller.enqueue(send({ type: 'done', result: event.result, sources: event.sources, tokensUsed: event.tokensUsed }))
+            controller.close()
+            // Sauvegarder le message en base après fermeture du stream
+            await saveMessage(conversationId, 'assistant', event.result, event.sources, 0, 'ariida', { actionType: 'ariida' })
+            await generateAndUpdateTitle(conversationId)
+          } else if (event.type === 'error') {
+            controller.enqueue(send({ type: 'error', error: event.error }))
+            controller.close()
+          }
+        }
+      } catch (error) {
+        controller.enqueue(send({ type: 'error', error: error instanceof Error ? error.message : 'Erreur inconnue' }))
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(body, { headers: SSE_HEADERS })
+}
+
+async function generateAndUpdateTitle(conversationId: string): Promise<void> {
+  try {
+    const messageCount = await db.query(
+      `SELECT COUNT(*) as count FROM chat_messages WHERE conversation_id = $1`,
+      [conversationId]
+    )
+    const msgCount = parseInt(messageCount.rows[0]?.count || '0', 10) || 0
+    if (msgCount <= 2) {
+      const title = await generateConversationTitle(conversationId)
+      await db.query(`UPDATE chat_conversations SET title = $1 WHERE id = $2`, [title, conversationId])
+    }
+  } catch {
+    // Non bloquant
+  }
+}
+
+// =============================================================================
 // HELPER: Gérer le streaming de la réponse
 // =============================================================================
 
@@ -745,6 +901,13 @@ async function handleStreamingResponse(
             const chunk = { type: 'content', content: event.text }
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
           } else if (event.type === 'done') {
+            // Extraire et envoyer les options de clarification si présentes
+            const { cleanAnswer: streamCleanAnswer, clarifyingOptions: streamClarifyingOptions } = extractClarifyingOptions(fullAnswer)
+            if (streamClarifyingOptions) {
+              fullAnswer = streamCleanAnswer
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'clarifying_options', clarifyingOptions: streamClarifyingOptions })}\n\n`))
+            }
+
             const done = { type: 'done', tokensUsed: event.tokensUsed }
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(done)}\n\n`))
             controller.close()

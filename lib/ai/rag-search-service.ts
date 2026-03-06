@@ -426,9 +426,9 @@ function detectDomainBoost(query: string): { pattern: string; factor: number }[]
     },
     // Douane / مجلة الديوانة
     {
-      keywords: ['مجلة الديوانة', 'الديوانة', 'جمارك', 'معلوم ديواني', 'إجراءات جمركية', 'التهريب الجمركي', 'douane', 'droit douanier', 'droits de douane'],
+      keywords: ['مجلة الديوانة', 'الديوانة', 'جمارك', 'ديواني', 'ديوانية', 'معلوم ديواني', 'إجراءات جمركية', 'التهريب الجمركي', 'douane', 'droit douanier', 'droits de douane'],
       titlePatterns: ['مجلة الديوانة'],
-      factor: 2.0,
+      factor: 2.5,
     },
   ]
 
