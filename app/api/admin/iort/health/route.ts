@@ -70,7 +70,7 @@ export const GET = withAdminApiAuth(
       ? Math.round((now.getTime() - new Date(lastCrawl.started_at).getTime()) / (1000 * 60 * 60 * 24))
       : null
 
-    const errorRate = pageStats.rows.reduce((acc: number, r: Record<string, number>) => {
+    const overallErrorRate = pageStats.rows.reduce((acc: number, r: Record<string, number>) => {
       const total = Number(r.total_pages) || 0
       const errors = Number(r.errors) || 0
       return total > 0 ? acc + errors / total : acc
@@ -88,6 +88,7 @@ export const GET = withAdminApiAuth(
       status: 'ok',
       freshness,
       daysSinceLastCrawl,
+      overallErrorRate: Math.round(overallErrorRate * 10000) / 100,
       sources: sources.rows.map((s: Record<string, string>) => ({
         id: s.id,
         name: s.name,

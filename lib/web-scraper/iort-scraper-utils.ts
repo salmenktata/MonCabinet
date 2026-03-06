@@ -22,8 +22,6 @@ import {
   sleep,
   waitForSelector,
   waitForStableContent,
-  cleanText,
-  isNavigationBoilerplate,
   parseArabicDate,
   generateIortUrl,
   isPdfUrl,

@@ -31,7 +31,6 @@ import type { IortLanguage } from './iort-text-utils'
 import {
   IORT_SITEIORT_URL,
   sleep,
-  waitForSelector,
   waitForStableContent,
   cleanText,
   isNavigationBoilerplate,

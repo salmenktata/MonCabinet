@@ -17,7 +17,6 @@ import {
   detectCodesInText,
   extractArticleNumbers,
   getCodeBySlug,
-  type TunisianCode,
 } from './tunisian-codes-registry'
 import { createLogger } from '@/lib/logger'
 import type { KnowledgeBaseDocument } from '@/lib/ai/knowledge-base-service'
