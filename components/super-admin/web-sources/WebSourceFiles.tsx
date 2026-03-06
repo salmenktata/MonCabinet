@@ -53,7 +53,7 @@ interface WebSourceFilesProps {
 }
 
 const STATUS_CONFIG = {
-  pending: { label: 'En attente', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+  pending: { label: 'En attente', color: 'bg-muted/50 text-muted-foreground border-border' },
   downloaded: { label: 'Téléchargé', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   indexed: { label: 'Indexé', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
   error: { label: 'Erreur', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -193,14 +193,14 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
   if (loading && files.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Icons.loader className="h-6 w-6 animate-spin text-slate-400" />
+        <Icons.loader className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   if (files.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-400">
+      <div className="text-center py-12 text-muted-foreground">
         <Icons.file className="h-12 w-12 mx-auto mb-3 opacity-50" />
         <p className="text-lg">Aucun fichier</p>
         <p className="text-sm mt-1">Les fichiers (PDF, DOCX) apparaîtront ici après le crawl</p>
@@ -212,9 +212,9 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
     <div className="space-y-4">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-slate-800/50 rounded-lg p-3">
-          <p className="text-xs text-slate-400 mb-1">Total</p>
-          <p className="text-xl font-semibold text-white">{stats.totalFiles}</p>
+        <div className="bg-card/50 rounded-lg p-3">
+          <p className="text-xs text-muted-foreground mb-1">Total</p>
+          <p className="text-xl font-semibold text-foreground">{stats.totalFiles}</p>
         </div>
         <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
           <p className="text-xs text-green-400 mb-1">Indexés</p>
@@ -234,14 +234,14 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-700">
-              <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Fichier</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Type</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Taille</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">État</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Chunks</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Date</th>
-              <th className="text-right py-3 px-2 text-xs font-medium text-slate-400">Actions</th>
+            <tr className="border-b border-border">
+              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">Fichier</th>
+              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">Type</th>
+              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">Taille</th>
+              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">État</th>
+              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">Chunks</th>
+              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">Date</th>
+              <th className="text-right py-3 px-2 text-xs font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -252,13 +252,13 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
               return (
                 <tr
                   key={file.id}
-                  className="border-b border-slate-800 hover:bg-slate-800/30 transition"
+                  className="border-b border-border hover:bg-muted/30 transition"
                 >
                   <td className="py-3 px-2">
                     <div className="flex items-center gap-2">
-                      <IconComponent className="h-4 w-4 text-slate-400 shrink-0" />
+                      <IconComponent className="h-4 w-4 text-muted-foreground shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-sm text-white truncate max-w-[200px]" title={file.filename}>
+                        <p className="text-sm text-foreground truncate max-w-[200px]" title={file.filename}>
                           {file.filename}
                         </p>
                         {file.downloadError && (
@@ -275,10 +275,10 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
                     </div>
                   </td>
                   <td className="py-3 px-2">
-                    <span className="text-xs text-slate-400 uppercase">{file.fileType}</span>
+                    <span className="text-xs text-muted-foreground uppercase">{file.fileType}</span>
                   </td>
                   <td className="py-3 px-2">
-                    <span className="text-sm text-slate-300">{formatFileSize(file.fileSize)}</span>
+                    <span className="text-sm text-foreground">{formatFileSize(file.fileSize)}</span>
                   </td>
                   <td className="py-3 px-2">
                     <Badge className={statusConfig.color + ' text-xs'}>
@@ -286,12 +286,12 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
                     </Badge>
                   </td>
                   <td className="py-3 px-2">
-                    <span className="text-sm text-slate-300">
+                    <span className="text-sm text-foreground">
                       {file.chunksCount > 0 ? file.chunksCount : '-'}
                     </span>
                   </td>
                   <td className="py-3 px-2">
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-muted-foreground">
                       {formatDate(file.indexedAt || file.downloadedAt || file.createdAt)}
                     </span>
                   </td>
@@ -311,17 +311,17 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
                           )}
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                      <DropdownMenuContent align="end" className="bg-card border-border">
                         <DropdownMenuItem
                           onClick={() => handleDownload(file)}
-                          className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                          className="text-foreground hover:bg-muted cursor-pointer"
                         >
                           <Icons.download className="h-4 w-4 mr-2" />
                           Télécharger
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => router.push(`/super-admin/web-files/${file.id}`)}
-                          className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                          className="text-foreground hover:bg-muted cursor-pointer"
                         >
                           <Icons.eye className="h-4 w-4 mr-2" />
                           Voir détail
@@ -329,7 +329,7 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
                         {file.isDownloaded && (
                           <DropdownMenuItem
                             onClick={() => handleReindex(file)}
-                            className="text-purple-400 hover:bg-slate-700 cursor-pointer"
+                            className="text-purple-400 hover:bg-muted cursor-pointer"
                           >
                             <Icons.refresh className="h-4 w-4 mr-2" />
                             Réindexer
@@ -355,7 +355,7 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
       {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Page {pagination.page} sur {pagination.totalPages} ({pagination.total} fichiers)
           </p>
           <div className="flex gap-2">
@@ -364,7 +364,7 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
               size="sm"
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
-              className="border-slate-600"
+              className="border-border"
             >
               <Icons.chevronLeft className="h-4 w-4" />
             </Button>
@@ -373,7 +373,7 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
               size="sm"
               onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
               disabled={page === pagination.totalPages || loading}
-              className="border-slate-600"
+              className="border-border"
             >
               <Icons.chevronRight className="h-4 w-4" />
             </Button>
@@ -383,16 +383,16 @@ export function WebSourceFiles({ sourceId, showSourceColumn = false }: WebSource
 
       {/* Delete Dialog */}
       <AlertDialog open={!!deleteFile} onOpenChange={() => setDeleteFile(null)}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
+        <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le fichier ?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               Le fichier "{deleteFile?.filename}" sera supprimé du stockage et de l'index.
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">
+            <AlertDialogCancel className="bg-muted text-foreground border-border hover:bg-muted">
               Annuler
             </AlertDialogCancel>
             <AlertDialogAction

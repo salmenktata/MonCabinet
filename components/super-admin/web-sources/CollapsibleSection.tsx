@@ -23,11 +23,11 @@ export function CollapsibleSection({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-slate-800/50 transition-colors">
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-white text-lg flex items-center gap-2">
+              <CardTitle className="text-foreground text-lg flex items-center gap-2">
                 <Icons.chevronDown
                   className={cn(
                     'h-5 w-5 transition-transform duration-200',
@@ -36,7 +36,7 @@ export function CollapsibleSection({
                 />
                 {title}
                 {subtitle && (
-                  <span className="text-xs text-slate-500 font-normal ml-2">{subtitle}</span>
+                  <span className="text-xs text-muted-foreground font-normal ml-2">{subtitle}</span>
                 )}
               </CardTitle>
             </div>

@@ -89,12 +89,12 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
             <TableHead className="text-muted-foreground">Utilisateur</TableHead>
-            <TableHead className="text-slate-400 hidden sm:table-cell">Rôle</TableHead>
+            <TableHead className="text-muted-foreground hidden sm:table-cell">Rôle</TableHead>
             <TableHead className="text-muted-foreground">Status</TableHead>
-            <TableHead className="text-slate-400 hidden md:table-cell">Plan</TableHead>
-            <TableHead className="text-slate-400 hidden lg:table-cell">Dernière connexion</TableHead>
-            <TableHead className="text-slate-400 hidden lg:table-cell">Inscrit le</TableHead>
-            <TableHead className="text-slate-400 text-right">Actions</TableHead>
+            <TableHead className="text-muted-foreground hidden md:table-cell">Plan</TableHead>
+            <TableHead className="text-muted-foreground hidden lg:table-cell">Dernière connexion</TableHead>
+            <TableHead className="text-muted-foreground hidden lg:table-cell">Inscrit le</TableHead>
+            <TableHead className="text-muted-foreground text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

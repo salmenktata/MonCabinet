@@ -45,7 +45,7 @@ function getHealthConfig(status: string, failures: number) {
       return {
         icon: Icons.alertCircle,
         label: 'Inconnu',
-        classes: 'bg-slate-500/15 text-slate-400 border border-slate-500/30',
+        classes: 'bg-muted/50 text-muted-foreground border border-border',
       }
   }
 }

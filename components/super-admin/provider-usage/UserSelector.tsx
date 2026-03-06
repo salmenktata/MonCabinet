@@ -60,11 +60,11 @@ export function UserSelector({ currentUserId, days }: UserSelectorProps) {
       onValueChange={handleSelect}
       disabled={isLoading}
     >
-      <SelectTrigger className="w-80 bg-slate-800 border-slate-700 text-white">
+      <SelectTrigger className="w-80 bg-card border-border text-foreground">
         <SelectValue placeholder="Sélectionner un utilisateur" />
       </SelectTrigger>
-      <SelectContent className="bg-slate-800 border-slate-700">
-        <SelectItem value="all" className="text-white hover:bg-slate-700">
+      <SelectContent className="bg-card border-border">
+        <SelectItem value="all" className="text-foreground hover:bg-muted">
           <div className="flex items-center gap-2">
             <Icons.users className="h-4 w-4" />
             <span>Tous les utilisateurs</span>
@@ -74,16 +74,16 @@ export function UserSelector({ currentUserId, days }: UserSelectorProps) {
           <SelectItem
             key={user.id}
             value={user.id}
-            className="text-white hover:bg-slate-700"
+            className="text-foreground hover:bg-muted"
           >
             <div className="flex items-center justify-between gap-4 w-full">
               <div className="flex items-center gap-2">
                 <span className="font-medium">
                   {user.prenom} {user.nom}
                 </span>
-                <span className="text-xs text-slate-400">({user.email})</span>
+                <span className="text-xs text-muted-foreground">({user.email})</span>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                 {user.plan}
               </span>
             </div>

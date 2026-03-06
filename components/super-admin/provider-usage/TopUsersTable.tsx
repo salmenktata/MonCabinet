@@ -138,7 +138,7 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
   return (
     <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white">Top Utilisateurs - Consommation IA</CardTitle>
+        <CardTitle className="text-foreground">Top Utilisateurs - Consommation IA</CardTitle>
         <CardDescription className="text-muted-foreground">
           {days} derniers jours • Cliquez sur une ligne pour filtrer
         </CardDescription>
@@ -150,18 +150,18 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
             <p>Aucune utilisation IA pour cette période</p>
           </div>
         ) : (
-          <div className="rounded-md border border-slate-700">
+          <div className="rounded-md border border-border">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent border-slate-700">
-                  <TableHead className="text-slate-300 w-12">#</TableHead>
-                  <TableHead className="text-slate-300">Utilisateur</TableHead>
-                  <TableHead className="text-slate-300">Plan</TableHead>
-                  <TableHead className="text-slate-300 text-right">Opérations</TableHead>
-                  <TableHead className="text-slate-300 text-right">Tokens</TableHead>
-                  <TableHead className="text-slate-300 text-right">Coût</TableHead>
-                  <TableHead className="text-slate-300">Top Provider</TableHead>
-                  <TableHead className="text-slate-300 w-12"></TableHead>
+                <TableRow className="hover:bg-transparent border-border">
+                  <TableHead className="text-muted-foreground w-12">#</TableHead>
+                  <TableHead className="text-muted-foreground">Utilisateur</TableHead>
+                  <TableHead className="text-muted-foreground">Plan</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Opérations</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Tokens</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Coût</TableHead>
+                  <TableHead className="text-muted-foreground">Top Provider</TableHead>
+                  <TableHead className="text-muted-foreground w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -172,10 +172,10 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
                   return (
                     <TableRow
                       key={user.id}
-                      className="cursor-pointer hover:bg-slate-700/50 border-slate-700 transition-colors"
+                      className="cursor-pointer hover:bg-muted/50 border-border transition-colors"
                       onClick={() => handleUserClick(user.id)}
                     >
-                      <TableCell className="font-medium text-white">
+                      <TableCell className="font-medium text-foreground">
                         <div className="flex items-center gap-1">
                           {rankEmoji && <span className="text-lg">{rankEmoji}</span>}
                           <span className={rankEmoji ? 'text-xs' : ''}>{index + 1}</span>
@@ -183,7 +183,7 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium text-white">
+                          <p className="font-medium text-foreground">
                             {user.prenom} {user.nom}
                           </p>
                           <p className="text-xs text-muted-foreground">{user.email}</p>
@@ -194,10 +194,10 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
                           {user.plan}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right text-white">
+                      <TableCell className="text-right text-foreground">
                         {formatNumber(user.totalOperations)}
                       </TableCell>
-                      <TableCell className="text-right text-white">
+                      <TableCell className="text-right text-foreground">
                         {formatNumber(user.totalTokens)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -212,7 +212,7 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
                       </TableCell>
                       <TableCell>
                         {topProvider && (
-                          <Badge variant="outline" className="bg-slate-700/50 text-slate-300 border-slate-600">
+                          <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-border">
                             {topProvider[0]}
                           </Badge>
                         )}
@@ -221,7 +221,7 @@ export function TopUsersTable({ days }: TopUsersTableProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 hover:bg-slate-700"
+                          className="h-8 w-8 p-0 hover:bg-muted"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleUserClick(user.id)

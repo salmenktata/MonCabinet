@@ -52,10 +52,10 @@ export function WebSourceCategoryTabs({
         onClick={() => handleCategoryClick(null)}
         className={cn(
           'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-          'border border-slate-600',
+          'border border-border',
           activeCategory === null
             ? 'bg-blue-600 text-white border-blue-500'
-            : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+            : 'bg-card text-foreground hover:bg-muted hover:text-foreground'
         )}
       >
         <div className="flex items-center gap-2">
@@ -65,7 +65,7 @@ export function WebSourceCategoryTabs({
               'px-2 py-0.5 rounded-full text-xs',
               activeCategory === null
                 ? 'bg-blue-500 text-white'
-                : 'bg-slate-700 text-slate-300'
+                : 'bg-muted text-foreground'
             )}
           >
             {total}
@@ -89,10 +89,10 @@ export function WebSourceCategoryTabs({
               onClick={() => handleCategoryClick(category)}
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                'border border-slate-600',
+                'border border-border',
                 isActive
                   ? 'bg-blue-600 text-white border-blue-500'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+                  : 'bg-card text-foreground hover:bg-muted hover:text-foreground'
               )}
             >
               <div className="flex items-center gap-2">
@@ -104,7 +104,7 @@ export function WebSourceCategoryTabs({
                     'px-2 py-0.5 rounded-full text-xs',
                     isActive
                       ? 'bg-blue-500 text-white'
-                      : 'bg-slate-700 text-slate-300'
+                      : 'bg-muted text-foreground'
                   )}
                 >
                   {stat.count}

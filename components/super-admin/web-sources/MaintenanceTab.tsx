@@ -162,7 +162,7 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
 
   if (!stats) {
     return (
-      <div className="text-center p-12 text-slate-400">
+      <div className="text-center p-12 text-muted-foreground">
         Impossible de charger les statistiques
       </div>
     )
@@ -172,43 +172,43 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
     <div className="space-y-6">
       {/* Statistiques globales */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="p-4 bg-slate-800 border-slate-700">
-          <div className="text-sm text-slate-400">Total Pages</div>
-          <div className="text-2xl font-bold text-white">
+        <Card className="p-4 bg-card border-border">
+          <div className="text-sm text-muted-foreground">Total Pages</div>
+          <div className="text-2xl font-bold text-foreground">
             {stats.totals.total_pages}
           </div>
         </Card>
 
-        <Card className="p-4 bg-slate-800 border-slate-700">
-          <div className="text-sm text-slate-400">Indexées</div>
+        <Card className="p-4 bg-card border-border">
+          <div className="text-sm text-muted-foreground">Indexées</div>
           <div className="text-2xl font-bold text-green-500">
             {stats.totals.total_indexed}
-            <span className="text-sm text-slate-400 ml-2">
+            <span className="text-sm text-muted-foreground ml-2">
               ({stats.totals.total_pages > 0 ? Math.round((stats.totals.total_indexed / stats.totals.total_pages) * 100) : 0}%)
             </span>
           </div>
         </Card>
 
-        <Card className="p-4 bg-slate-800 border-slate-700">
-          <div className="text-sm text-slate-400">Chunks Créés</div>
+        <Card className="p-4 bg-card border-border">
+          <div className="text-sm text-muted-foreground">Chunks Créés</div>
           <div className="text-2xl font-bold text-blue-500">
             {stats.totals.total_chunks?.toLocaleString() || 0}
           </div>
         </Card>
 
-        <Card className="p-4 bg-slate-800 border-slate-700">
-          <div className="text-sm text-slate-400">Erreurs</div>
+        <Card className="p-4 bg-card border-border">
+          <div className="text-sm text-muted-foreground">Erreurs</div>
           <div className="text-2xl font-bold text-red-500">
             {stats.totals.total_failed}
           </div>
         </Card>
 
-        <Card className="p-4 bg-slate-800 border-slate-700 border-l-4 border-l-emerald-500">
-          <div className="text-sm text-slate-400">Chunks RAG Actifs</div>
+        <Card className="p-4 bg-card border-border border-l-4 border-l-emerald-500">
+          <div className="text-sm text-muted-foreground">Chunks RAG Actifs</div>
           <div className="text-2xl font-bold text-emerald-400">
             {stats.totals.active_rag_chunks?.toLocaleString() || 0}
           </div>
-          <div className="text-xs text-slate-500 mt-1">Impact RAG direct</div>
+          <div className="text-xs text-muted-foreground mt-1">Impact RAG direct</div>
         </Card>
       </div>
 
@@ -228,10 +228,10 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
               <XCircle className="h-5 w-5 text-red-500" />
             )}
             <div>
-              <div className="font-medium text-white">
+              <div className="font-medium text-foreground">
                 {lastResult.success ? 'Succès' : 'Erreur'}
               </div>
-              <div className="text-sm text-slate-300">{lastResult.message}</div>
+              <div className="text-sm text-foreground">{lastResult.message}</div>
             </div>
           </div>
         </Card>
@@ -240,20 +240,20 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
       {/* Actions de maintenance */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Cleanup pages insuffisantes */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
+        <Card className="p-6 bg-card border-border">
           <div className="flex items-start gap-4">
             <div className="p-3 bg-orange-900/30 rounded-lg">
               <Trash2 className="h-6 w-6 text-orange-500" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white mb-1">
+              <h3 className="font-semibold text-foreground mb-1">
                 Archiver Pages Insuffisantes
               </h3>
-              <p className="text-sm text-slate-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Archiver les pages avec contenu insuffisant (sous le seuil min_word_count de la source)
               </p>
               <div className="flex items-center justify-between">
-                <div className="text-sm text-slate-300">
+                <div className="text-sm text-foreground">
                   {stats.actions.cleanup_insufficient.count} pages concernées
                 </div>
                 <Button
@@ -284,20 +284,20 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
         </Card>
 
         {/* Cleanup fichiers temporaires */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
+        <Card className="p-6 bg-card border-border">
           <div className="flex items-start gap-4">
             <div className="p-3 bg-yellow-900/30 rounded-lg">
               <FileWarning className="h-6 w-6 text-yellow-500" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white mb-1">
+              <h3 className="font-semibold text-foreground mb-1">
                 Nettoyer Fichiers Temporaires
               </h3>
-              <p className="text-sm text-slate-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Archiver les fichiers temporaires Word (~$*.doc) sans contenu utile
               </p>
               <div className="flex items-center justify-between">
-                <div className="text-sm text-slate-300">Détection automatique</div>
+                <div className="text-sm text-foreground">Détection automatique</div>
                 <Button
                   onClick={() => executeAction('cleanup_temp_files')}
                   disabled={actionLoading !== null}
@@ -323,23 +323,23 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
         </Card>
 
         {/* Réindexer documents longs */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
+        <Card className="p-6 bg-card border-border">
           <div className="flex items-start gap-4">
             <div className="p-3 bg-blue-900/30 rounded-lg">
               <Scissors className="h-6 w-6 text-blue-500" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white mb-1">
+              <h3 className="font-semibold text-foreground mb-1">
                 Réindexer Documents Longs
               </h3>
-              <p className="text-sm text-slate-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Découper et réindexer les documents &gt;50KB avec sections automatiques
               </p>
               <div className="flex items-center justify-between">
-                <div className="text-sm text-slate-300">
+                <div className="text-sm text-foreground">
                   {stats.actions.reindex_long_documents.count} docs trop longs
                   {stats.totals.total_failed > stats.actions.reindex_long_documents.count && (
-                    <span className="text-xs text-slate-500 ml-1">
+                    <span className="text-xs text-muted-foreground ml-1">
                       ({stats.totals.total_failed} failed total)
                     </span>
                   )}
@@ -358,7 +358,7 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
                     }
                     size="sm"
                     variant="outline"
-                    className="border-slate-600 hover:bg-slate-700"
+                    className="border-border hover:bg-muted"
                   >
                     Test (5)
                   </Button>
@@ -393,20 +393,20 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
         </Card>
 
         {/* Retry pages failed */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
+        <Card className="p-6 bg-card border-border">
           <div className="flex items-start gap-4">
             <div className="p-3 bg-purple-900/30 rounded-lg">
               <RefreshCw className="h-6 w-6 text-purple-500" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white mb-1">
+              <h3 className="font-semibold text-foreground mb-1">
                 Réessayer Pages Échouées
               </h3>
-              <p className="text-sm text-slate-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Réinitialiser les pages en erreur pour un nouveau crawl (max 3 tentatives)
               </p>
               <div className="flex items-center justify-between">
-                <div className="text-sm text-slate-300">
+                <div className="text-sm text-foreground">
                   {stats.totals.total_failed} pages failed
                 </div>
                 <Button
@@ -435,20 +435,20 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
           </div>
         </Card>
         {/* Indexer pages prêtes */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
+        <Card className="p-6 bg-card border-border">
           <div className="flex items-start gap-4">
             <div className="p-3 bg-emerald-900/30 rounded-lg">
               <Database className="h-6 w-6 text-emerald-500" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white mb-1">
+              <h3 className="font-semibold text-foreground mb-1">
                 Indexer Pages Prêtes
               </h3>
-              <p className="text-sm text-slate-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Lancer l&apos;indexation RAG des pages crawlées avec contenu suffisant
               </p>
               <div className="flex items-center justify-between">
-                <div className="text-sm text-slate-300">
+                <div className="text-sm text-foreground">
                   {stats.actions.index_pending.count} pages prêtes
                 </div>
                 <Button
@@ -479,20 +479,20 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
         </Card>
 
         {/* Débloquer pages bloquées */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
+        <Card className="p-6 bg-card border-border">
           <div className="flex items-start gap-4">
             <div className="p-3 bg-rose-900/30 rounded-lg">
               <XCircle className="h-6 w-6 text-rose-500" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white mb-1">
+              <h3 className="font-semibold text-foreground mb-1">
                 Débloquer Pages Bloquées
               </h3>
-              <p className="text-sm text-slate-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Réinitialiser les pages avec 3+ erreurs (bloquées définitivement)
               </p>
               <div className="flex items-center justify-between">
-                <div className={`text-sm ${stats.totals.stuck_count > 0 ? 'text-rose-400' : 'text-slate-300'}`}>
+                <div className={`text-sm ${stats.totals.stuck_count > 0 ? 'text-rose-400' : 'text-foreground'}`}>
                   {stats.totals.stuck_count} pages bloquées
                 </div>
                 <Button
@@ -524,8 +524,8 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
       </div>
 
       {/* Répartition par status */}
-      <Card className="p-6 bg-slate-800 border-slate-700">
-        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+      <Card className="p-6 bg-card border-border">
+        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-blue-500" />
           Répartition par Status
         </h3>
@@ -533,13 +533,13 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
           {stats.byStatus.map((item) => (
             <div
               key={item.status}
-              className="flex items-center justify-between p-3 bg-slate-900 rounded-lg"
+              className="flex items-center justify-between p-3 bg-muted rounded-lg"
             >
               <div className="flex items-center gap-4">
-                <div className="text-sm font-medium text-white min-w-[120px]">
+                <div className="text-sm font-medium text-foreground min-w-[120px]">
                   {item.status}
                 </div>
-                <div className="text-sm text-slate-400">
+                <div className="text-sm text-muted-foreground">
                   {item.count.toLocaleString()} pages
                 </div>
                 {item.indexed > 0 && (
@@ -548,7 +548,7 @@ export function MaintenanceTab({ sourceId }: MaintenanceTabProps) {
                   </div>
                 )}
               </div>
-              <div className="text-sm text-slate-400">
+              <div className="text-sm text-muted-foreground">
                 Moy: {Math.round(item.avg_text_length || 0).toLocaleString()} chars
               </div>
             </div>

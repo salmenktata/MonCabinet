@@ -68,7 +68,7 @@ interface WebFilesListProps {
 }
 
 const STATUS_CONFIG = {
-  pending: { label: 'En attente', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+  pending: { label: 'En attente', color: 'bg-muted text-muted-foreground border-border' },
   downloaded: { label: 'Téléchargé', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   indexed: { label: 'Indexé', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
   error: { label: 'Erreur', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -252,9 +252,9 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
           <p className="text-xs text-blue-400 mb-1">Téléchargés</p>
           <p className="text-2xl font-bold text-blue-400">{stats.byStatus.downloaded}</p>
         </div>
-        <div className="bg-slate-500/10 rounded-lg p-4 border border-slate-500/20">
-          <p className="text-xs text-slate-400 mb-1">En attente</p>
-          <p className="text-2xl font-bold text-slate-400">{stats.byStatus.pending}</p>
+        <div className="bg-muted/10 rounded-lg p-4 border border-border">
+          <p className="text-xs text-muted-foreground mb-1">En attente</p>
+          <p className="text-2xl font-bold text-muted-foreground">{stats.byStatus.pending}</p>
         </div>
         <div className="bg-red-500/10 rounded-lg p-4 border border-red-500/20">
           <p className="text-xs text-red-400 mb-1">Erreurs</p>
@@ -342,10 +342,10 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
           <SelectTrigger className="w-[180px] bg-card border-border text-foreground" aria-label="Filtrer par source">
             <SelectValue placeholder="Toutes les sources" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700">
-            <SelectItem value="all" className="text-slate-200">Toutes les sources</SelectItem>
+          <SelectContent className="bg-card border-border">
+            <SelectItem value="all" className="text-foreground">Toutes les sources</SelectItem>
             {sources.map((source) => (
-              <SelectItem key={source.id} value={source.id} className="text-slate-200">
+              <SelectItem key={source.id} value={source.id} className="text-foreground">
                 {source.name}
               </SelectItem>
             ))}
@@ -356,11 +356,11 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
           <SelectTrigger className="w-[140px] bg-card border-border text-foreground" aria-label="Filtrer par type">
             <SelectValue placeholder="Tous types" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700">
-            <SelectItem value="all" className="text-slate-200">Tous types</SelectItem>
-            <SelectItem value="pdf" className="text-slate-200">PDF</SelectItem>
-            <SelectItem value="docx" className="text-slate-200">DOCX</SelectItem>
-            <SelectItem value="doc" className="text-slate-200">DOC</SelectItem>
+          <SelectContent className="bg-card border-border">
+            <SelectItem value="all" className="text-foreground">Tous types</SelectItem>
+            <SelectItem value="pdf" className="text-foreground">PDF</SelectItem>
+            <SelectItem value="docx" className="text-foreground">DOCX</SelectItem>
+            <SelectItem value="doc" className="text-foreground">DOC</SelectItem>
           </SelectContent>
         </Select>
 
@@ -368,11 +368,11 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
           <SelectTrigger className="w-[160px] bg-card border-border text-foreground" aria-label="Filtrer par état">
             <SelectValue placeholder="Tous états" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700">
-            <SelectItem value="all" className="text-slate-200">Tous états</SelectItem>
+          <SelectContent className="bg-card border-border">
+            <SelectItem value="all" className="text-foreground">Tous états</SelectItem>
             <SelectItem value="indexed" className="text-green-400">Indexé</SelectItem>
             <SelectItem value="downloaded" className="text-blue-400">Téléchargé</SelectItem>
-            <SelectItem value="pending" className="text-slate-400">En attente</SelectItem>
+            <SelectItem value="pending" className="text-muted-foreground">En attente</SelectItem>
             <SelectItem value="error" className="text-red-400">Erreur</SelectItem>
           </SelectContent>
         </Select>
@@ -569,7 +569,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
               size="sm"
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1 || loading}
-              className="border-slate-600"
+              className="border-border"
               aria-label="Page précédente"
             >
               <Icons.chevronLeft className="h-4 w-4" />
@@ -579,7 +579,7 @@ export function WebFilesList({ sources = [] }: WebFilesListProps) {
               size="sm"
               onClick={() => setPage(Math.min(pagination.totalPages, page + 1))}
               disabled={page === pagination.totalPages || loading}
-              className="border-slate-600"
+              className="border-border"
               aria-label="Page suivante"
             >
               <Icons.chevronRight className="h-4 w-4" />

@@ -594,7 +594,7 @@ export function RulesManager({
                         value={condition.value}
                         onChange={(e) => updateCondition(index, { value: e.target.value })}
                         placeholder="Valeur..."
-                        className="bg-slate-900 border-slate-700 col-span-2"
+                        className="bg-card border-border col-span-2"
                       />
 
                       {(condition.type === 'url_segment' || condition.type === 'breadcrumb_level') && (
@@ -700,7 +700,7 @@ export function RulesManager({
                   max="1"
                   value={formData.confidenceBoost}
                   onChange={(e) => setFormData({ ...formData, confidenceBoost: parseFloat(e.target.value) || 0.2 })}
-                  className="bg-slate-900 border-slate-700 w-24"
+                  className="bg-card border-border w-24"
                 />
                 <span className="text-sm text-muted-foreground">
                   Ajouté au score de confiance (0-1)

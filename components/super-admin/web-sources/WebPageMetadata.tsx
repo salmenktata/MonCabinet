@@ -61,7 +61,7 @@ const DOCUMENT_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   },
   other: {
     label: 'Autre',
-    color: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+    color: 'bg-muted text-muted-foreground border-border',
   },
 }
 
@@ -69,8 +69,8 @@ function MetadataField({ label, value }: { label: string; value: string | null |
   if (!value) return null
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-slate-400">{label}</span>
-      <span className="text-sm text-white">{value}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm text-foreground">{value}</span>
     </div>
   )
 }
@@ -78,7 +78,7 @@ function MetadataField({ label, value }: { label: string; value: string | null |
 function MetadataSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
-      <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
         {title}
       </h4>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -101,7 +101,7 @@ function ConfidenceIndicator({ confidence }: { confidence: number }) {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${
             percent >= 80
@@ -182,11 +182,11 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
 
   if (loading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="py-8">
           <div className="flex flex-col items-center gap-3">
-            <Icons.loader className="h-8 w-8 text-slate-400 animate-spin" />
-            <p className="text-sm text-slate-400">Chargement des métadonnées...</p>
+            <Icons.loader className="h-8 w-8 text-muted-foreground animate-spin" />
+            <p className="text-sm text-muted-foreground">Chargement des métadonnées...</p>
           </div>
         </CardContent>
       </Card>
@@ -195,15 +195,15 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
 
   if (!metadata) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center gap-2">
+          <CardTitle className="text-foreground text-base flex items-center gap-2">
             <Icons.fileSearch className="h-4 w-4" />
             Métadonnées
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6 text-slate-400">
+          <div className="text-center py-6 text-muted-foreground">
             <Icons.fileSearch className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm mb-3">Aucune métadonnée extraite pour cette page.</p>
             <Button
@@ -245,10 +245,10 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
     metadata.author || metadata.publicationName || (metadata.keywords && metadata.keywords.length > 0) || metadata.abstract
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-base flex items-center gap-2">
+          <CardTitle className="text-foreground text-base flex items-center gap-2">
             <Icons.fileSearch className="h-4 w-4" />
             Métadonnées
           </CardTitle>
@@ -257,7 +257,7 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
             size="sm"
             onClick={handleReExtract}
             disabled={extracting}
-            className="text-slate-400 hover:text-white hover:bg-slate-600"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             {extracting ? (
               <Icons.loader className="h-4 w-4 mr-1 animate-spin" />
@@ -274,7 +274,7 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
         <div className="flex items-center gap-2">
           <Badge className={typeConfig.color}>{typeConfig.label}</Badge>
           {metadata.language && (
-            <Badge className="bg-slate-600/50 text-slate-300 border-slate-500/30">
+            <Badge className="bg-muted text-muted-foreground border-border">
               {metadata.language === 'ar' ? 'العربية' : metadata.language === 'fr' ? 'Français' : metadata.language}
             </Badge>
           )}
@@ -283,7 +283,7 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
         {/* Confidence indicator */}
         {metadata.confidence != null && (
           <div className="space-y-1">
-            <span className="text-xs text-slate-400">Confiance d'extraction</span>
+            <span className="text-xs text-muted-foreground">Confiance d'extraction</span>
             <ConfidenceIndicator confidence={metadata.confidence} />
           </div>
         )}
@@ -328,12 +328,12 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
             <MetadataField label="Publication" value={metadata.publicationName} />
             {metadata.keywords && metadata.keywords.length > 0 && (
               <div className="flex flex-col gap-1 sm:col-span-2">
-                <span className="text-xs text-slate-400">Mots-clés</span>
+                <span className="text-xs text-muted-foreground">Mots-clés</span>
                 <div className="flex flex-wrap gap-1">
                   {metadata.keywords.map((kw) => (
                     <span
                       key={kw}
-                      className="inline-flex items-center rounded-full bg-slate-600/50 text-slate-300 text-xs px-2 py-0.5"
+                      className="inline-flex items-center rounded-full bg-muted text-muted-foreground text-xs px-2 py-0.5"
                     >
                       {kw}
                     </span>
@@ -343,8 +343,8 @@ export function WebPageMetadata({ sourceId, pageId }: WebPageMetadataProps) {
             )}
             {metadata.abstract && (
               <div className="flex flex-col gap-0.5 sm:col-span-2">
-                <span className="text-xs text-slate-400">Résumé</span>
-                <p className="text-sm text-white leading-relaxed">{metadata.abstract}</p>
+                <span className="text-xs text-muted-foreground">Résumé</span>
+                <p className="text-sm text-foreground leading-relaxed">{metadata.abstract}</p>
               </div>
             )}
           </MetadataSection>

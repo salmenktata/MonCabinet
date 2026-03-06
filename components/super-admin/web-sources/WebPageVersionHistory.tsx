@@ -40,7 +40,7 @@ const CHANGE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   },
   minor_update: {
     label: 'Mise à jour mineure',
-    color: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+    color: 'bg-muted text-muted-foreground border-border',
   },
 }
 
@@ -120,11 +120,11 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
 
   if (loading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="py-8">
           <div className="flex flex-col items-center gap-3">
-            <Icons.loader className="h-8 w-8 text-slate-400 animate-spin" />
-            <p className="text-sm text-slate-400">Chargement des versions...</p>
+            <Icons.loader className="h-8 w-8 text-muted-foreground animate-spin" />
+            <p className="text-sm text-muted-foreground">Chargement des versions...</p>
           </div>
         </CardContent>
       </Card>
@@ -133,15 +133,15 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
 
   if (versions.length === 0) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center gap-2">
+          <CardTitle className="text-foreground text-base flex items-center gap-2">
             <Icons.history className="h-4 w-4" />
             Historique des versions
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6 text-slate-400">
+          <div className="text-center py-6 text-muted-foreground">
             <Icons.history className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm">Aucune version enregistrée pour cette page.</p>
           </div>
@@ -151,12 +151,12 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-3">
-        <CardTitle className="text-white text-base flex items-center gap-2">
+        <CardTitle className="text-foreground text-base flex items-center gap-2">
           <Icons.history className="h-4 w-4" />
           Historique des versions
-          <span className="text-xs text-slate-400 font-normal ml-1">
+          <span className="text-xs text-muted-foreground font-normal ml-1">
             ({versions.length})
           </span>
         </CardTitle>
@@ -166,7 +166,7 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
         {/* Timeline */}
         <div className="relative">
           {/* Vertical timeline line */}
-          <div className="absolute left-[11px] top-3 bottom-3 w-px bg-slate-700" />
+          <div className="absolute left-[11px] top-3 bottom-3 w-px bg-muted" />
 
           <div className="space-y-4">
             {versions.map((version, index) => {
@@ -185,11 +185,11 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
                       relative z-10 shrink-0 w-6 h-6 rounded-full flex items-center justify-center
                       ${isLatest
                         ? 'bg-blue-500/30 border-2 border-blue-500'
-                        : 'bg-slate-700 border-2 border-slate-600'
+                        : 'bg-muted border-2 border-border'
                       }
                     `}
                   >
-                    <span className="text-[9px] font-bold text-white">
+                    <span className="text-[9px] font-bold text-foreground">
                       {version.versionNumber}
                     </span>
                   </div>
@@ -200,13 +200,13 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
                       flex-1 p-3 rounded-lg transition
                       ${isLatest
                         ? 'bg-blue-500/10 border border-blue-500/30'
-                        : 'bg-slate-900/50 hover:bg-slate-900/70'
+                        : 'bg-muted/50 hover:bg-muted/70'
                       }
                     `}
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-white font-medium text-sm">
+                        <span className="text-foreground font-medium text-sm">
                           Version {version.versionNumber}
                         </span>
                         <Badge className={changeInfo.color + ' text-xs'}>
@@ -225,7 +225,7 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
                           size="sm"
                           onClick={() => handleRestore(version.id, version.versionNumber)}
                           disabled={isRestoring}
-                          className="text-slate-400 hover:text-white hover:bg-slate-600 h-7 text-xs"
+                          className="text-muted-foreground hover:text-foreground hover:bg-muted h-7 text-xs"
                         >
                           {isRestoring ? (
                             <Icons.loader className="h-3 w-3 mr-1 animate-spin" />
@@ -237,7 +237,7 @@ export function WebPageVersionHistory({ sourceId, pageId }: WebPageVersionHistor
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-slate-400">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1" title={version.contentHash}>
                         <Icons.hash className="h-3 w-3" />
                         {truncateHash(version.contentHash)}

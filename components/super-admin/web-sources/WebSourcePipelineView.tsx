@@ -312,7 +312,7 @@ function CrawlFooter({ source }: { source: SourcePipelineStats }) {
   return (
     <div className="space-y-1">
       {/* Dernier crawl */}
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <Icons.clock className="h-3 w-3" />
           Dernier crawl
@@ -326,7 +326,7 @@ function CrawlFooter({ source }: { source: SourcePipelineStats }) {
 
       {/* Métriques du dernier log */}
       {log && (
-        <div className="flex gap-3 text-[10px] text-slate-500">
+        <div className="flex gap-3 text-[10px] text-muted-foreground">
           {log.pages_new > 0 && (
             <span className="text-green-500">+{log.pages_new} nouv.</span>
           )}
@@ -344,7 +344,7 @@ function CrawlFooter({ source }: { source: SourcePipelineStats }) {
 
       {/* Prochain crawl */}
       {source.next_crawl_at && (
-        <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Icons.calendar className="h-3 w-3" />
             Prochain crawl
