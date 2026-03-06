@@ -224,18 +224,6 @@ export function DocumentDetailPage({
       .finally(() => setChunksLoading(false))
   }, [documentId, initialChunks])
 
-  // Scroll vers l'article cible quand les chunks sont chargés
-  useEffect(() => {
-    if (!chunks || chunks.length === 0 || !initialArticle) return
-    const target = chunks.find(
-      (c) => String(c.metadata.article_number) === String(initialArticle)
-    )
-    if (target !== undefined) {
-      // Léger délai pour que le DOM soit prêt
-      setTimeout(() => scrollToChunk(target.index), 300)
-    }
-  }, [chunks, initialArticle, scrollToChunk])
-
   // IntersectionObserver pour suivre la section active
   useEffect(() => {
     if (!chunks || chunks.length === 0) return
@@ -269,6 +257,17 @@ export function DocumentDetailPage({
       setActiveChunkIndex(chunkIndex)
     }
   }, [])
+
+  // Scroll vers l'article cible quand les chunks sont chargés
+  useEffect(() => {
+    if (!chunks || chunks.length === 0 || !initialArticle) return
+    const target = chunks.find(
+      (c) => String(c.metadata.article_number) === String(initialArticle)
+    )
+    if (target !== undefined) {
+      setTimeout(() => scrollToChunk(target.index), 300)
+    }
+  }, [chunks, initialArticle, scrollToChunk])
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href)
