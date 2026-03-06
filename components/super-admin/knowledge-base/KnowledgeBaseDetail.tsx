@@ -402,6 +402,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [], prevDo
   const router = useRouter()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [indexing, setIndexing] = useState(false)
+  const [indexQualityGateBlocked, setIndexQualityGateBlocked] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -409,16 +410,38 @@ export function KnowledgeBaseDetail({ document, versions, relations = [], prevDo
 
   const handleIndex = async () => {
     setIndexing(true)
+    setIndexQualityGateBlocked(false)
     try {
       const result = await indexKnowledgeDocumentAction(document.id)
       if (result.error) {
         toast.error(result.error)
+        if (result.error.includes('Quality gate') || result.error.includes('quality gate')) {
+          setIndexQualityGateBlocked(true)
+        }
       } else {
         toast.success(`Document indexé — ${result.chunksCreated} chunks créés.`)
         router.refresh()
       }
     } catch {
       toast.error("Erreur lors de l'indexation")
+    } finally {
+      setIndexing(false)
+    }
+  }
+
+  const handleForceIndex = async () => {
+    setIndexing(true)
+    setIndexQualityGateBlocked(false)
+    try {
+      const result = await indexKnowledgeDocumentAction(document.id, { skipQualityGate: true })
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success(`Document forcé — ${result.chunksCreated} chunks créés.`)
+        router.refresh()
+      }
+    } catch {
+      toast.error("Erreur lors de l'indexation forcée")
     } finally {
       setIndexing(false)
     }
@@ -559,13 +582,30 @@ export function KnowledgeBaseDetail({ document, versions, relations = [], prevDo
               variant="outline"
               className="border-blue-500 text-blue-400 hover:bg-blue-500/20 h-8 text-xs"
             >
-              {indexing ? (
+              {indexing && !indexQualityGateBlocked ? (
                 <Icons.loader className="h-3 w-3 mr-1 animate-spin" />
               ) : (
                 <Icons.zap className="h-3 w-3 mr-1" />
               )}
               {document.isIndexed ? 'Réindexer' : 'Indexer'}
             </Button>
+            {indexQualityGateBlocked && (
+              <Button
+                onClick={handleForceIndex}
+                disabled={indexing}
+                size="sm"
+                variant="outline"
+                className="border-orange-500 text-orange-400 hover:bg-orange-500/20 h-8 text-xs"
+                title="Forcer l'indexation malgré le score de qualité faible"
+              >
+                {indexing ? (
+                  <Icons.loader className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Icons.alertTriangle className="h-3 w-3 mr-1" />
+                )}
+                Forcer
+              </Button>
+            )}
             <Link href={`/super-admin/knowledge-base/${document.id}/edit`}>
               <Button size="sm" variant="outline" className="border-border text-foreground h-8 text-xs">
                 <Icons.edit className="h-3 w-3 mr-1" />

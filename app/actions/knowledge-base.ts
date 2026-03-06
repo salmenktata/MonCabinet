@@ -135,7 +135,10 @@ export async function uploadKnowledgeDocumentAction(formData: FormData) {
 /**
  * Indexer un document
  */
-export async function indexKnowledgeDocumentAction(documentId: string) {
+export async function indexKnowledgeDocumentAction(
+  documentId: string,
+  options?: { skipQualityGate?: boolean }
+) {
   try {
     const authCheck = await checkAdminAccessAction()
     if ('error' in authCheck) {
@@ -143,7 +146,7 @@ export async function indexKnowledgeDocumentAction(documentId: string) {
     }
 
     const { indexKnowledgeDocument } = await getKnowledgeBaseService()
-    const result = await indexKnowledgeDocument(documentId)
+    const result = await indexKnowledgeDocument(documentId, options)
 
     if (!result.success) {
       return { error: result.error || 'Erreur indexation' }

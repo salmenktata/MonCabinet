@@ -62,8 +62,9 @@ export async function POST(
 
     const doc = docResult.rows[0]
 
-    // Indexer le document
-    const result = await indexKnowledgeDocument(id)
+    // Indexer le document (skipQualityGate=true pour forcer malgré score faible)
+    const skipQualityGate = request.nextUrl.searchParams.get('skipQualityGate') === 'true'
+    const result = await indexKnowledgeDocument(id, { skipQualityGate })
 
     if (!result.success) {
       return NextResponse.json(
