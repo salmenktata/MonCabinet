@@ -10,6 +10,7 @@ import { normalizeText, detectTextLanguage } from './content-extractor'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
 import { NINEANOUN_KB_SECTIONS, NINEANOUN_CODE_DOMAINS, NINEANOUN_OTHER_SECTIONS } from './9anoun-code-domains'
 import type { NormLevel } from '@/lib/categories/norm-levels'
+import { withRetry, isRetryableError } from './retry-utils'
 
 // Concurrence pour l'indexation de pages (1 = séquentiel, safe pour Ollama)
 const WEB_INDEXING_CONCURRENCY = parseInt(process.env.WEB_INDEXING_CONCURRENCY || '1', 10)
@@ -355,23 +356,19 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
         ? 'article'
         : 'adaptive'
 
-  // Pour les stratégies article et page, préserver les '\n' pour la détection des marqueurs.
-  // normalizeText() collapse TOUS les whitespace (dont \n) en un seul espace, ce qui casse
-  // la regex (?:^|\n) de chunkTextByArticles et les marqueurs --- Page X ---.
-  //
-  // PIÈGE IORT : le scraper extrait les textes sans \n (tout sur une ligne), ex:
-  //   "...الفصل الأول ـ تحدث...الفصل 2 ـ تسهر...الفصل 3 ـ تتولى..."
-  // → la regex (?:^|\n)(الفصل|Article) ne trouve rien → fallback adaptive → 3 chunks.
-  // Fix : pour les sources IORT avec stratégie 'article', injecter des \n avant chaque الفصل/Article.
-  let rawText = (row.extracted_text || '').replace(/\r\n/g, '\n').replace(/[^\S\n]+/g, ' ').trim()
+  // Pour les stratégies article et page, préserver les '\n' via normalizeText({ preserveNewlines: true })
+  // pour la détection des marqueurs الفصل/Article et --- Page X ---.
+  // PIÈGE IORT : le scraper extrait les textes sans \n → injecter des \n avant chaque الفصل/Article.
+  const needsNewlines = chunkingStrategy === 'article' || chunkingStrategy === 'page'
+  let textForChunking = normalizeText(
+    (row.extracted_text || '').replace(/\r\n/g, '\n'),
+    { preserveNewlines: needsNewlines }
+  )
   if (chunkingStrategy === 'article' && sourceOrigin === 'iort_gov_tn') {
-    rawText = rawText
+    textForChunking = textForChunking
       .replace(/(?<!\n)(الفصل\s+)/g, '\n$1')
       .replace(/(?<!\n)(Article\s+)/g, '\n$1')
   }
-  const textForChunking = (chunkingStrategy === 'article' || chunkingStrategy === 'page')
-    ? rawText
-    : normalizedText
 
   const chunks = chunkText(textForChunking, {
     chunkSize: aiConfig.rag.chunkSize,
@@ -547,17 +544,33 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       }
     }
 
-    // Générer les embeddings (OpenAI uniquement — Gemini supprimé pour réduire les coûts)
+    // Générer les embeddings avec retry (résilience si Ollama tombe temporairement)
+    const EMBEDDING_RETRY_CONFIG = {
+      maxRetries: 2,
+      initialDelayMs: 3000,
+      maxDelayMs: 15000,
+      retryableStatusCodes: [429, 503, 504],
+      retryableErrors: ['TIMEOUT', 'ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED'],
+    }
     const chunkContents = chunks.map(c => c.content)
-    const embeddingsResult = await generateEmbeddingsBatch(chunkContents, { operationName: 'indexation' })
+    const embeddingsResult = await withRetry(
+      () => generateEmbeddingsBatch(chunkContents, { operationName: 'indexation' }),
+      (error) => isRetryableError(error),
+      EMBEDDING_RETRY_CONFIG,
+      (attempt, delay) => console.log(`[WebIndexer] Retry embedding batch (tentative ${attempt + 1}, délai ${delay}ms)`)
+    )
 
     const primaryEmbeddings = embeddingsResult
 
     // Générer l'embedding du document (titre + description)
     const docSummary = `${row.title || ''}. ${row.meta_description || ''}`.trim()
-    const docEmbeddingResult = await generateEmbedding(
-      docSummary || normalizedText.substring(0, 500),
-      { operationName: 'indexation' }
+    const docEmbeddingResult = await withRetry(
+      () => generateEmbedding(
+        docSummary || normalizedText.substring(0, 500),
+        { operationName: 'indexation' }
+      ),
+      (error) => isRetryableError(error),
+      EMBEDDING_RETRY_CONFIG,
     )
 
     // Déterminer la colonne d'embedding selon le provider utilisé
@@ -580,34 +593,55 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       }
     }
 
-    // Insérer les chunks avec embedding primaire uniquement
-    for (let i = 0; i < chunks.length; i++) {
-      // Trouver l'en-tête de section le plus proche avant ce chunk (contexte hiérarchique)
-      const chunkStart = chunks[i].metadata?.startPosition ?? 0
-      const nearestHeading = headingLines
-        .filter((h) => h.position <= chunkStart)
-        .at(-1) // Dernier heading avant ce chunk
+    // Batch INSERT des chunks (réduction N requêtes → 1 par batch de 50)
+    const CHUNK_BATCH_SIZE = 50
+    for (let batchStart = 0; batchStart < chunks.length; batchStart += CHUNK_BATCH_SIZE) {
+      const batchEnd = Math.min(batchStart + CHUNK_BATCH_SIZE, chunks.length)
+      const batchChunks = chunks.slice(batchStart, batchEnd)
 
-      const meta = JSON.stringify({
-        wordCount: chunks[i].metadata.wordCount,
-        charCount: chunks[i].metadata.charCount,
-        sourceUrl: row.url,
-        sourceOrigin,
-        ...(normLevel ? { normLevel } : {}),
-        ...(nearestHeading ? { sectionHeader: nearestHeading.text } : {}),
-      })
+      const values: unknown[] = []
+      const placeholders: string[] = []
+
+      for (let i = 0; i < batchChunks.length; i++) {
+        const chunkIndex = batchStart + i
+
+        // Trouver l'en-tête de section le plus proche avant ce chunk (contexte hiérarchique)
+        const chunkStart = batchChunks[i].metadata?.startPosition ?? 0
+        const nearestHeading = headingLines
+          .filter((h) => h.position <= chunkStart)
+          .at(-1)
+
+        const chunkMeta = batchChunks[i].metadata
+        const meta = JSON.stringify({
+          wordCount: chunkMeta.wordCount,
+          charCount: chunkMeta.charCount,
+          sourceUrl: row.url,
+          sourceOrigin,
+          chunkingStrategy: chunkMeta.chunkingStrategy || chunkingStrategy,
+          ...(chunkMeta.chunkType ? { chunkType: chunkMeta.chunkType } : {}),
+          ...(chunkMeta.articleNumber ? { articleNumber: chunkMeta.articleNumber } : {}),
+          ...(chunkMeta.overlapWithPrevious ? { overlapPrev: true } : {}),
+          ...(chunkMeta.overlapWithNext ? { overlapNext: true } : {}),
+          ...(normLevel ? { normLevel } : {}),
+          ...(nearestHeading ? { sectionHeader: nearestHeading.text } : {}),
+        })
+
+        const offset = i * 5
+        placeholders.push(
+          `($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}::vector, $${offset+5})`
+        )
+        values.push(
+          knowledgeBaseId,
+          batchChunks[i].index,
+          batchChunks[i].content,
+          formatEmbeddingForPostgres(primaryEmbeddings.embeddings[chunkIndex]),
+          meta,
+        )
+      }
 
       await client.query(
-        `INSERT INTO knowledge_base_chunks
-         (knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata)
-         VALUES ($1, $2, $3, $4::vector, $5)`,
-        [
-          knowledgeBaseId,
-          chunks[i].index,
-          chunks[i].content,
-          formatEmbeddingForPostgres(primaryEmbeddings.embeddings[i]),
-          meta,
-        ]
+        `INSERT INTO knowledge_base_chunks (knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata) VALUES ${placeholders.join(', ')}`,
+        values
       )
     }
 
@@ -787,8 +821,12 @@ export async function indexSourcePages(
     : WEB_INDEXING_CONCURRENCY
 
   // Traitement par lots avec concurrence configurable
+  const MAX_CONSECUTIVE_FAILURES = 5
+  let consecutiveFailures = 0
+  let stopped = false
+
   const pageIds = pagesResult.rows.map(r => r.id)
-  for (let i = 0; i < pageIds.length; i += concurrency) {
+  for (let i = 0; i < pageIds.length && !stopped; i += concurrency) {
     const batch = pageIds.slice(i, i + concurrency)
 
     if (concurrency <= 1) {
@@ -796,19 +834,41 @@ export async function indexSourcePages(
       for (const pageId of batch) {
         const result = await indexWebPage(pageId)
         results.push({ pageId, success: result.success, error: result.error })
+        if (result.success) {
+          consecutiveFailures = 0
+        } else {
+          consecutiveFailures++
+          if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+            console.warn(`[WebIndexer] ${MAX_CONSECUTIVE_FAILURES} échecs consécutifs — arrêt indexation source ${sourceId}`)
+            stopped = true
+            break
+          }
+        }
       }
     } else {
       // Mode parallèle (turbo / OpenAI)
       const batchResults = await Promise.allSettled(
         batch.map(pageId => indexWebPage(pageId))
       )
+      let batchFailures = 0
       for (let j = 0; j < batch.length; j++) {
         const settled = batchResults[j]
         if (settled.status === 'fulfilled') {
           results.push({ pageId: batch[j], success: settled.value.success, error: settled.value.error })
+          if (!settled.value.success) batchFailures++
         } else {
           results.push({ pageId: batch[j], success: false, error: settled.reason?.message || 'Erreur inconnue' })
+          batchFailures++
         }
+      }
+      if (batchFailures === batch.length) {
+        consecutiveFailures += batchFailures
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          console.warn(`[WebIndexer] ${MAX_CONSECUTIVE_FAILURES} échecs consécutifs — arrêt indexation source ${sourceId}`)
+          stopped = true
+        }
+      } else {
+        consecutiveFailures = 0
       }
     }
   }
@@ -861,9 +921,13 @@ export async function indexWebPages(
     ? EMBEDDING_TURBO_CONFIG.concurrency
     : WEB_INDEXING_CONCURRENCY
 
-  // Traitement par lots avec concurrence configurable
+  // Traitement par lots avec concurrence configurable + circuit-breaker
+  const MAX_CONSECUTIVE_FAILURES = 5
+  let consecutiveFailures = 0
+  let stopped = false
+
   const pageIds = pagesResult.rows.map(r => r.id)
-  for (let i = 0; i < pageIds.length; i += concurrency) {
+  for (let i = 0; i < pageIds.length && !stopped; i += concurrency) {
     const batch = pageIds.slice(i, i + concurrency)
 
     if (concurrency <= 1) {
@@ -871,19 +935,41 @@ export async function indexWebPages(
       for (const pageId of batch) {
         const result = await indexWebPage(pageId)
         results.push({ pageId, success: result.success, error: result.error })
+        if (result.success) {
+          consecutiveFailures = 0
+        } else {
+          consecutiveFailures++
+          if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+            console.warn(`[WebIndexer] ${MAX_CONSECUTIVE_FAILURES} échecs consécutifs — arrêt indexation batch`)
+            stopped = true
+            break
+          }
+        }
       }
     } else {
       // Mode parallèle (turbo / OpenAI)
       const batchResults = await Promise.allSettled(
         batch.map(pageId => indexWebPage(pageId))
       )
+      let batchFailures = 0
       for (let j = 0; j < batch.length; j++) {
         const settled = batchResults[j]
         if (settled.status === 'fulfilled') {
           results.push({ pageId: batch[j], success: settled.value.success, error: settled.value.error })
+          if (!settled.value.success) batchFailures++
         } else {
           results.push({ pageId: batch[j], success: false, error: settled.reason?.message || 'Erreur inconnue' })
+          batchFailures++
         }
+      }
+      if (batchFailures === batch.length) {
+        consecutiveFailures += batchFailures
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          console.warn(`[WebIndexer] ${MAX_CONSECUTIVE_FAILURES} échecs consécutifs — arrêt indexation batch`)
+          stopped = true
+        }
+      } else {
+        consecutiveFailures = 0
       }
     }
   }

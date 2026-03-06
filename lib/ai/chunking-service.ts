@@ -288,6 +288,38 @@ function chunkByPageMarkers(text: string, pagesPerChunk = PAGES_PER_CHUNK): Chun
   return chunks
 }
 
+// =============================================================================
+// VALIDATION QUALITÉ DES CHUNKS
+// =============================================================================
+
+const MIN_VALID_WORDS = 10
+const MIN_ALPHA_CHARS = 5
+
+/**
+ * Vérifie qu'un chunk contient du contenu significatif
+ * Filtre les en-têtes orphelins, fragments de navigation, chunks sans texte utile
+ */
+function isChunkValid(chunk: Chunk): boolean {
+  if (chunk.metadata.wordCount < MIN_VALID_WORDS) return false
+  // Au moins 5 caractères alphabétiques (arabes ou latins)
+  const alphaCount = (chunk.content.match(/[\u0600-\u06FFa-zA-Z]/g) || []).length
+  return alphaCount >= MIN_ALPHA_CHARS
+}
+
+/**
+ * Filtre les chunks invalides, ré-indexe et logge les rejets
+ */
+function filterInvalidChunks(chunks: Chunk[]): Chunk[] {
+  const filtered = chunks.filter((chunk, idx) => {
+    if (!isChunkValid(chunk)) {
+      console.log(`[Chunking] Chunk ${idx} rejeté (${chunk.metadata.wordCount} mots, contenu insuffisant) — "${chunk.content.substring(0, 60).replace(/\n/g, ' ')}..."`)
+      return false
+    }
+    return true
+  })
+  return filtered.map((c, i) => ({ ...c, index: i }))
+}
+
 /**
  * Découpe un texte en chunks avec chevauchement
  * @param text - Texte à découper
@@ -347,7 +379,7 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
       }
     }
 
-    return allChunks.map((c, i) => ({ ...c, index: i }))
+    return filterInvalidChunks(allChunks.map((c, i) => ({ ...c, index: i })))
   }
 
   // Nettoyer le texte
@@ -358,7 +390,7 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
     const pageChunks = chunkByPageMarkers(cleanedText)
     if (pageChunks.length > 0) {
       console.log(`[Chunking] Stratégie page-aware: ${pageChunks.length} chunks depuis marqueurs --- Page X ---`)
-      return pageChunks
+      return filterInvalidChunks(pageChunks)
     }
     console.log(`[Chunking] Aucun marqueur de page détecté, fallback vers chunking adaptive`)
   }
@@ -374,7 +406,7 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
 
     if (articleChunks.length > 0) {
       console.log(`[Chunking] Stratégie article-level: ${articleChunks.length} articles détectés (catégorie: ${category})`)
-      return articleChunks
+      return filterInvalidChunks(articleChunks)
     }
 
     // Fallback adaptive si aucun article détecté (pas de marqueurs الفصل/Article dans le texte)
