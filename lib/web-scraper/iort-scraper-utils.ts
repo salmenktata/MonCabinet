@@ -1186,7 +1186,7 @@ export async function crawlYearType(
   /** Page atteinte avant le dernier crash — permet de fast-forward après recovery */
   let lastSuccessfulPage = 0
   /** Délai adaptatif : augmente après erreurs, revient à minDelay après succès */
-  let currentDelay = IORT_RATE_CONFIG.minDelay
+  let currentDelay: number = IORT_RATE_CONFIG.minDelay
 
   while (hasNextPage) {
     if (signal?.aborted) {
