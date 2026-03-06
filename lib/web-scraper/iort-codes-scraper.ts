@@ -1161,12 +1161,15 @@ export async function saveCodeSection(
   if (existing.rows.length > 0) {
     const row = existing.rows[0]
     if (row.content_hash === contentHash) {
-      await db.query('UPDATE web_pages SET last_crawled_at = NOW() WHERE id = $1', [row.id])
+      await db.query(
+        `UPDATE web_pages SET status = 'crawled', last_crawled_at = NOW() WHERE id = $1`,
+        [row.id],
+      )
       return { id: row.id as string, skipped: true, updated: false }
     }
     await db.query(
       `UPDATE web_pages SET extracted_text = $1, content_hash = $2, word_count = $3,
-       updated_at = NOW(), last_crawled_at = NOW() WHERE id = $4`,
+       status = 'crawled', updated_at = NOW(), last_crawled_at = NOW() WHERE id = $4`,
       [textContent, contentHash, wordCount, row.id],
     )
     return { id: row.id as string, skipped: false, updated: true }
