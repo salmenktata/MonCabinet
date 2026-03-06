@@ -397,7 +397,7 @@ async function expandTocHierarchy(
     const before = await snapshotLoopers(page)
 
     await clickLooperItem(page, startPrefix, item.resultIndex)
-    await sleep(2500)
+    await sleep(1000)
 
     const after = await snapshotLoopers(page)
 
@@ -535,7 +535,7 @@ async function expandViaParentLooper(
 
     for (let pi = 0; pi < parentRaw.length; pi++) {
       await clickLooperItem(page, parentPrefix, parentRaw[pi].index)
-      await sleep(2500)
+      await sleep(1000)
 
       const afterChild = await extractLooperItems(page, childPrefix)
       const afterCount = afterChild?.length ?? 0
@@ -571,7 +571,7 @@ async function expandViaParentLooper(
     for (let pi = 0; pi < parentRaw.length; pi++) {
       if (pi === triggerParentIdx) continue  // déjà traité
       await clickLooperItem(page, parentPrefix, parentRaw[pi].index)
-      await sleep(2500)
+      await sleep(1000)
 
       const items = await extractLooperItems(page, childPrefix)
       if (!items || items.length < 2) continue
@@ -899,13 +899,13 @@ export async function extractSectionText(
       const href = await linkHandle.getAttribute('href') || ''
       if (!isPdfUrl(href)) {
         // Attendre popup avec timeout court — si pas de popup → contenu inline
-        const popupPromise = page.context().waitForEvent('page', { timeout: 8000 }).catch(() => null)
+        const popupPromise = page.context().waitForEvent('page', { timeout: 3000 }).catch(() => null)
         await linkHandle.click()
         const popup = await popupPromise
 
         if (popup) {
           await popup.waitForLoadState('load')
-          await sleep(1500)
+          await sleep(700)
           if (isPdfUrl(popup.url())) {
             log.info(`PDF ignoré: ${popup.url()}`)
             await popup.close()
@@ -916,7 +916,7 @@ export async function extractSectionText(
           if (text && text.length > 80 && !isNavigationBoilerplate(text)) return text
         } else {
           // Pas de popup → contenu potentiellement mis à jour inline
-          await sleep(2000)
+          await sleep(800)
           const text = await extractInlineContent(page)
           if (text && text.length > 80 && !isNavigationBoilerplate(text)) return text
         }
@@ -943,7 +943,7 @@ export async function extractSectionText(
           }, [item.resultIndex, item.looperId, btnId] as [number, string, string]),
         ])
         await detailPage.waitForLoadState('load')
-        await sleep(2000)
+        await sleep(800)
         if (isPdfUrl(detailPage.url())) { await detailPage.close(); return null }
         const text = await extractTextFromPage(detailPage)
         await detailPage.close()
@@ -968,7 +968,7 @@ export async function extractSectionText(
         }, [item.resultIndex, item.looperId, btn] as [number, string, string]),
       ])
       await detailPage.waitForLoadState('load')
-      await sleep(2000)
+      await sleep(800)
       if (isPdfUrl(detailPage.url())) {
         await detailPage.close()
         return null
@@ -1144,6 +1144,22 @@ async function extractTextFromPage(page: Page): Promise<string> {
 // SAUVEGARDE EN DB
 // =============================================================================
 
+/**
+ * Charge en une seule query tous les url_hash des sections déjà crawlées pour ce code.
+ * Permet un skip instantané (sans Playwright) des sections inchangées en re-crawl.
+ */
+async function loadExistingCodeSectionHashes(
+  sourceId: string,
+  codeName: string,
+): Promise<Set<string>> {
+  const result = await db.query(
+    `SELECT url_hash FROM web_pages
+     WHERE web_source_id = $1 AND structured_data->>'codeName' = $2`,
+    [sourceId, codeName],
+  )
+  return new Set(result.rows.map((r: { url_hash: string }) => r.url_hash as string))
+}
+
 export async function saveCodeSection(
   sourceId: string,
   codeName: string,
@@ -1287,6 +1303,12 @@ export async function crawlCode(
     throw new Error('[IORT Codes] TOC vide — vérifier la structure de PAGE_NavigationCode')
   }
 
+  // Pré-charger les sections déjà en DB — skip instantané sans Playwright en re-crawl
+  const existingHashes = dryRun ? new Set<string>() : await loadExistingCodeSectionHashes(sourceId, codeName)
+  if (!dryRun) {
+    log.info(`${existingHashes.size} sections déjà en DB sur ${tocItems.length} dans la TOC`)
+  }
+
   // 5. Extraire le texte de chaque section
   for (const item of tocItems) {
     await session.tick()
@@ -1296,6 +1318,13 @@ export async function crawlCode(
         log.info(`  [DRY] ${' '.repeat(item.depth * 2)}${item.title.substring(0, 80)}`)
         stats.crawled++
         await sleep(200)
+        continue
+      }
+
+      // Skip instantané si déjà en DB (évite toute navigation Playwright)
+      const expectedHash = hashUrl(generateCodeSectionUrl(codeName, item.title))
+      if (existingHashes.has(expectedHash)) {
+        stats.skipped++
         continue
       }
 
@@ -1322,14 +1351,14 @@ export async function crawlCode(
         log.info(`✓ ${item.title.substring(0, 70)} (${textContent.length} chars)`)
       }
 
-      // Jitter aléatoire (minDelay + 0-5s) + pause longue tous les 30 items
-      const jitter = IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 5000)
+      // Jitter aléatoire (minDelay + 0-3s) + pause longue tous les 50 items
+      const jitter = IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 3000)
       await sleep(jitter)
 
       const processed = stats.crawled + stats.skipped + stats.updated + stats.errors
-      if (processed > 0 && processed % 30 === 0) {
+      if (processed > 0 && processed % 50 === 0) {
         log.info(`Pause anti-ban (${processed} items traités)...`)
-        await sleep(30000)
+        await sleep(15000)
       }
 
     } catch (err) {
@@ -1454,7 +1483,7 @@ async function crawlCodesJuridiquesPage(
 
   log.info(`T-link[0] (découverte): "${firstTLinkText}"`)
   await page.waitForLoadState('load')
-  await waitForStableContent(page, { intervalMs: 2000, timeoutMs: 12000 })
+  await waitForStableContent(page, { intervalMs: 1000, timeoutMs: 8000 })
 
   const l1Url = page.url()
   log.info(`L1 URL: ${l1Url.split('/').pop()}`)
@@ -1492,7 +1521,7 @@ async function crawlCodesJuridiquesPage(
 
     // Navigation fraîche vers L1 (URL de session stable)
     await page.goto(l1Url, { waitUntil: 'load', timeout: 60000 })
-    await sleep(5000)
+    await sleep(2000)
 
     // Clic T2[i] → L2
     await page.evaluate((idx: number) => {
@@ -1542,14 +1571,14 @@ async function crawlCodesJuridiquesPage(
       log.info(`Texte vide: "${t2Link.title.substring(0, 60)}"`)
     }
 
-    // Jitter aléatoire (3-8s) + pause longue tous les 30 items
-    const jitter = IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 5000)
+    // Jitter aléatoire (3-6s) + pause longue tous les 50 items
+    const jitter = IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 3000)
     await sleep(jitter)
 
     const processed = stats.crawled + stats.skipped + stats.updated + stats.errors
-    if (processed > 0 && processed % 30 === 0) {
+    if (processed > 0 && processed % 50 === 0) {
       log.info(`Pause anti-ban (${processed} items traités)...`)
-      await sleep(30000)
+      await sleep(15000)
     }
   }
 }
@@ -1680,16 +1709,16 @@ async function crawlT3StructurePage(
     if (!t3Still) {
       log.info('T3 disparu — rechargement L1...')
       await page.goto(l1Url, { waitUntil: 'load', timeout: 60000 })
-      await sleep(5000)
+      await sleep(2000)
     }
 
-    // Jitter anti-ban (2-6s)
-    await sleep(IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 4000))
+    // Jitter anti-ban (3-6s)
+    await sleep(IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 3000))
 
     const processed = stats.crawled + stats.skipped + stats.updated + stats.errors
-    if (processed > 0 && processed % 30 === 0) {
+    if (processed > 0 && processed % 50 === 0) {
       log.info(`Pause anti-ban (${processed} items traités)...`)
-      await sleep(30000)
+      await sleep(15000)
     }
   }
 }
