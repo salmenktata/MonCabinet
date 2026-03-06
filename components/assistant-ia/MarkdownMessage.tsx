@@ -17,6 +17,9 @@ import { useState } from 'react'
 import { InlineCitation } from './InlineCitation'
 import type { ChatSource } from './ChatMessages'
 
+// Helper type pour les composants react-markdown (node vient de hast, non utilisé)
+type MDProps<T extends HTMLElement = HTMLElement> = React.HTMLAttributes<T> & { node?: unknown }
+
 SyntaxHighlighter.registerLanguage('javascript', javascript)
 SyntaxHighlighter.registerLanguage('typescript', typescript)
 SyntaxHighlighter.registerLanguage('python', python)
@@ -183,9 +186,9 @@ function getSectionStyle(text: string): SectionStyle | null {
 }
 
 export const MarkdownMessage = memo(function MarkdownMessage({ content, sources = [], className }: MarkdownMessageProps) {
-  const markdownComponents = useMemo<Components>(() => ({
+  const markdownComponents = useMemo(() => ({
           // Personnalisation des liens
-          a: ({ node, ...props }) => (
+          a: ({ node: _n, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { node?: unknown }) => (
             <a
               {...props}
               className="text-primary hover:underline font-medium decoration-primary/30 underline-offset-2"
@@ -195,7 +198,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
           ),
 
           // Code blocks avec syntax highlighting
-          code: ({ node, className, children, ...props }) => {
+          code: ({ node: _n, className, children, ...props }: MDProps<HTMLElement>) => {
             const match = /language-(\w+)/.exec(className || '')
             const language = match ? match[1] : ''
 
@@ -219,7 +222,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
           },
 
           // Tables améliorées
-          table: ({ node, ...props }) => (
+          table: ({ node: _n, ...props }: MDProps<HTMLTableElement>) => (
             <div className="overflow-x-auto my-5 rounded-xl border border-border/60 shadow-sm">
               <table
                 className="min-w-full border-collapse"
@@ -228,14 +231,14 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
             </div>
           ),
 
-          th: ({ node, ...props }) => (
+          th: ({ node: _n, ...props }: React.ThHTMLAttributes<HTMLTableCellElement> & { node?: unknown }) => (
             <th
               className="border-b border-border bg-muted/50 px-4 py-2.5 text-start font-semibold text-xs uppercase tracking-wider text-muted-foreground"
               {...props}
             />
           ),
 
-          td: ({ node, ...props }) => (
+          td: ({ node: _n, ...props }: React.TdHTMLAttributes<HTMLTableCellElement> & { node?: unknown }) => (
             <td
               className="border-b border-border/30 px-4 py-2.5 text-[15px]"
               {...props}
@@ -243,7 +246,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
           ),
 
           // Task lists
-          input: ({ node, ...props }) => (
+          input: ({ node: _n, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { node?: unknown }) => (
             <input
               type="checkbox"
               className="mr-2 align-middle accent-primary"
@@ -253,14 +256,14 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
           ),
 
           // Séparateurs - sections 6 Blocs
-          hr: ({ node, ...props }) => (
+          hr: ({ node: _n, ...props }: MDProps<HTMLHRElement>) => (
             <div className="my-6 flex items-center gap-3" {...props}>
               <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
             </div>
           ),
 
           // Blockquotes - notes juridiques
-          blockquote: ({ node, children, ...props }) => {
+          blockquote: ({ node: _n, children, ...props }: MDProps<HTMLQuoteElement>) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
@@ -281,7 +284,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
           },
 
           // H1 - Titre principal
-          h1: ({ node, children, ...props }) => {
+          h1: ({ node: _n, children, ...props }: MDProps<HTMLHeadingElement>) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
@@ -297,7 +300,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
           },
 
           // H2 - Sections principales (6 Blocs Stratégiques ou génériques)
-          h2: ({ node, children, ...props }) => {
+          h2: ({ node: _n, children, ...props }: MDProps<HTMLHeadingElement>) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
@@ -332,7 +335,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
           },
 
           // H3 = sections 6 Blocs ou sous-sections
-          h3: ({ node, children, ...props }) => {
+          h3: ({ node: _n, children, ...props }: MDProps<HTMLHeadingElement>) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
@@ -367,17 +370,17 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
           },
 
           // Listes non-ordonnées
-          ul: ({ node, ...props }) => (
+          ul: ({ node: _n, ...props }: MDProps<HTMLUListElement>) => (
             <ul className="list-none ms-0 my-3 space-y-1.5 [&>li]:before:content-['▸'] [&>li]:before:text-primary/65 [&>li]:before:me-2 [&>li]:before:text-xs [&>li]:ps-1" {...props} />
           ),
 
           // Listes ordonnées
-          ol: ({ node, ...props }) => (
+          ol: ({ node: _n, ...props }: React.OlHTMLAttributes<HTMLOListElement> & { node?: unknown }) => (
             <ol className="list-decimal list-outside ms-5 my-3 space-y-1.5 marker:text-primary/60 marker:font-semibold [&>li]:ps-1" {...props} />
           ),
 
           // List items
-          li: ({ node, children, ...props }) => {
+          li: ({ node: _n, children, ...props }: React.LiHTMLAttributes<HTMLLIElement> & { node?: unknown }) => {
             const parsedChildren = React.Children.map(children, (child) =>
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
@@ -394,7 +397,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
           },
 
           // Texte fort - références juridiques + sections 6 Blocs en bold
-          strong: ({ node, children, ...props }) => {
+          strong: ({ node: _n, children, ...props }: MDProps<HTMLElement>) => {
             const textContent = getTextContent(children)
             const sectionStyle = getSectionStyle(textContent)
 
@@ -425,12 +428,12 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
           },
 
           // Emphase
-          em: ({ node, children, ...props }) => (
+          em: ({ node: _n, children, ...props }: MDProps<HTMLElement>) => (
             <em className="text-muted-foreground italic" {...props}>{children}</em>
           ),
 
           // Paragraphes
-          p: ({ node, children, ...props }) => {
+          p: ({ node: _n, children, ...props }: MDProps<HTMLParagraphElement>) => {
             const parsedChildren = React.Children.map(children, (child) => {
               if (typeof child === 'string') {
                 return parseTextWithCitations(child, sources)
@@ -450,7 +453,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, sources 
             )
           },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [sources])
+  }) as Components, [sources])
 
   return (
     <div dir="auto" className={cn('chat-ai-content prose dark:prose-invert max-w-none prose-p:first:mt-0 prose-headings:first:mt-0', className)}>
