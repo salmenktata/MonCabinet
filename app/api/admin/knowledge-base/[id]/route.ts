@@ -29,6 +29,7 @@ const KnowledgeBasePatchSchema = z.object({
   is_abroge: z.boolean().optional(),
   abroge_suspected: z.boolean().optional(),
   rag_enabled: z.boolean().optional(),
+  doc_type: z.enum(['TEXTES', 'JURIS', 'PROC', 'TEMPLATES', 'DOCTRINE']).optional(),
 })
 import { db } from '@/lib/db/postgres'
 import {
@@ -126,7 +127,7 @@ export async function PATCH(
         { status: 400 }
       )
     }
-    const { title, description, category, metadata, is_abroge, abroge_suspected, rag_enabled } = parseResult.data
+    const { title, description, category, metadata, is_abroge, abroge_suspected, rag_enabled, doc_type } = parseResult.data
 
     // Toggle rag_enabled (contrôle manuel par document — ex: Google Drive)
     if (rag_enabled !== undefined) {
@@ -224,6 +225,23 @@ export async function PATCH(
         message: 'Statut abrogation mis à jour',
         document: updated.rows[0] || null,
       })
+    }
+
+    // Override manuel du doc_type (sans changer la catégorie)
+    if (doc_type !== undefined && !category) {
+      await db.query(
+        `UPDATE knowledge_base SET doc_type = $1::document_type, updated_at = NOW() WHERE id = $2`,
+        [doc_type, id]
+      )
+      await db.query(
+        `UPDATE knowledge_base_chunks SET metadata = metadata || jsonb_build_object('doc_type', $1)
+         WHERE knowledge_base_id = $2`,
+        [doc_type, id]
+      )
+      if (!title && !description && !metadata) {
+        const updated = await getKnowledgeDocument(id)
+        return NextResponse.json({ message: 'doc_type mis à jour', document: updated })
+      }
     }
 
     const document = await updateKnowledgeDocument(id, {

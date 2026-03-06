@@ -8,6 +8,7 @@ import type { WebPage, WebSource } from './types'
 import { isSemanticSearchEnabled, aiConfig, KB_ARABIC_ONLY, EMBEDDING_TURBO_CONFIG } from '@/lib/ai/config'
 import { normalizeText, detectTextLanguage } from './content-extractor'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
+import { getDocumentType } from '@/lib/categories/doc-types'
 import { NINEANOUN_KB_SECTIONS, NINEANOUN_CODE_DOMAINS, NINEANOUN_OTHER_SECTIONS } from './9anoun-code-domains'
 import type { NormLevel } from '@/lib/categories/norm-levels'
 import { withRetry, isRetryableError } from './retry-utils'
@@ -410,8 +411,8 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
         `INSERT INTO knowledge_base (
           category, subcategory, language, title, description,
           metadata, tags, full_text, source_file, is_indexed,
-          rag_enabled, pipeline_stage, pipeline_stage_updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, $10, 'crawled', NOW())
+          rag_enabled, pipeline_stage, pipeline_stage_updated_at, doc_type
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, $10, 'crawled', NOW(), $11::document_type)
         RETURNING id`,
         [
           kbCategory, // ← Classification IA pure (pas de fallback source)
@@ -440,6 +441,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
           normalizedText,
           row.url,
           !isNoise, // rag_enabled = false pour قرارات bruit (nominations, concours, mutations)
+          getDocumentType(kbCategory as LegalCategory),
         ]
       )
       knowledgeBaseId = kbResult.rows[0].id
@@ -503,8 +505,8 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
           `INSERT INTO knowledge_base (
             category, subcategory, language, title, description,
             metadata, tags, full_text, source_file, is_indexed,
-            rag_enabled, pipeline_stage, pipeline_stage_updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, $10, 'crawled', NOW())
+            rag_enabled, pipeline_stage, pipeline_stage_updated_at, doc_type
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, $10, 'crawled', NOW(), $11::document_type)
           RETURNING id`,
           [
             kbCategory,
@@ -532,6 +534,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
             normalizedText,
             row.url,
             !isNoise,
+            getDocumentType(kbCategory as LegalCategory),
           ]
         )
         knowledgeBaseId = kbResult.rows[0].id

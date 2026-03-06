@@ -2363,6 +2363,8 @@ export async function updateKnowledgeDocument(
   if (updates.category !== undefined) {
     setClauses.push(`category = $${paramIndex++}`)
     params.push(updates.category)
+    setClauses.push(`doc_type = $${paramIndex++}::document_type`)
+    params.push(getDocumentType(updates.category))
   }
 
   if (updates.subcategory !== undefined) {
