@@ -301,8 +301,9 @@ export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
         usedToday = -1
       }
 
-      const percentUsed = limit.value !== null ? Math.min(100, (usedToday / limit.value) * 100) : 0
-      const status = getLimitStatus(percentUsed, limit.value)
+      const isNoData = usedToday === -1
+      const percentUsed = limit.value !== null && !isNoData ? Math.min(100, (usedToday / limit.value) * 100) : 0
+      const status = getLimitStatus(percentUsed, limit.value, isNoData)
 
       if (status === 'critical') {
         activeAlerts.push(`${provider}/${model} ${limit.type} > 80%`)

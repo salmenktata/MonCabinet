@@ -15,7 +15,7 @@ interface RateLimit {
   unit?: string
   usedToday: number
   percentUsed: number
-  status: 'ok' | 'warning' | 'critical' | 'unlimited'
+  status: 'ok' | 'warning' | 'critical' | 'unlimited' | 'no_data'
   source: 'redis' | 'db'
 }
 
@@ -39,6 +39,7 @@ const PROVIDER_COLORS: Record<string, string> = {
 
 function StatusBadge({ status }: { status: RateLimit['status'] }) {
   if (status === 'unlimited') return <Badge variant="secondary" className="text-xs">Illimité</Badge>
+  if (status === 'no_data') return <Badge variant="secondary" className="text-xs text-muted-foreground">N/A</Badge>
   if (status === 'critical') return <Badge variant="destructive" className="text-xs">Critique</Badge>
   if (status === 'warning') return <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">Attention</Badge>
   return <Badge variant="outline" className="text-xs text-green-500 border-green-500/30">OK</Badge>
@@ -62,7 +63,7 @@ function formatLimitValue(limit: RateLimit): string {
 }
 
 function formatUsedValue(limit: RateLimit): string {
-  if (limit.status === 'unlimited') return '—'
+  if (limit.status === 'unlimited' || limit.status === 'no_data') return '—'
   if (limit.limitType === 'Budget') return `$${limit.usedToday.toFixed(3)}`
   if (limit.limitType === 'TPD' || limit.limitType === 'TPM') {
     if (limit.usedToday >= 1_000_000) return `${(limit.usedToday / 1_000_000).toFixed(2)}M`
@@ -159,8 +160,8 @@ export function RateLimitsTable({ rateLimits }: { rateLimits: RateLimit[] }) {
                       {formatUsedValue(limit)}
                     </td>
                     <td className="py-3 pl-4">
-                      {limit.status === 'unlimited' ? (
-                        <span className="text-muted-foreground text-xs">Pas de limite</span>
+                      {limit.status === 'unlimited' || limit.status === 'no_data' ? (
+                        <span className="text-muted-foreground text-xs">{limit.status === 'no_data' ? 'Pas de tracking temps réel' : 'Pas de limite'}</span>
                       ) : (
                         <div className="flex items-center gap-2">
                           <div className="flex-1 min-w-[120px] relative">

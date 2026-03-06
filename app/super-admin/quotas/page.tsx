@@ -31,7 +31,7 @@ interface UnifiedQuotaData {
     unit?: string
     usedToday: number
     percentUsed: number
-    status: 'ok' | 'warning' | 'critical' | 'unlimited'
+    status: 'ok' | 'warning' | 'critical' | 'unlimited' | 'no_data'
     source: 'redis' | 'db'
   }>
   dailyTrend: Array<{

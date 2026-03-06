@@ -117,10 +117,8 @@ export async function getGroqDailyStats(days = 7): Promise<Array<{
         const calls = parseInt(data.calls || '0', 10)
         const tokensIn = parseInt(data.tokens_in || '0', 10)
         const tokensOut = parseInt(data.tokens_out || '0', 10)
-        const isSmall = model.includes('8b') || model.includes('instant')
-        const estimatedCostUsd = isSmall
-          ? (tokensIn / 1_000_000) * 0.05 + (tokensOut / 1_000_000) * 0.08
-          : (tokensIn / 1_000_000) * 0.59 + (tokensOut / 1_000_000) * 0.79
+        // Groq free tier = $0 (pas de facturation)
+        const estimatedCostUsd = 0
 
         byModel[model] = { calls, tokensIn, tokensOut, estimatedCostUsd }
       }
