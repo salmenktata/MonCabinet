@@ -15,6 +15,7 @@ import { WebSourcesFilters } from '@/components/super-admin/web-sources/WebSourc
 import { WebSourcesTable } from '@/components/super-admin/web-sources/WebSourcesTable'
 import { WebSourcesCards } from '@/components/super-admin/web-sources/WebSourcesCards'
 import { WebSourcePipelineView } from '@/components/super-admin/web-sources/WebSourcePipelineView'
+import { WebSourcesQuickActions } from '@/components/super-admin/web-sources/WebSourcesQuickActions'
 import type { ViewMode, SortField, SortDirection } from '@/components/super-admin/web-sources/types'
 
 export const dynamic = 'force-dynamic'
@@ -103,6 +104,9 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
       <Suspense fallback={<div className="h-24 bg-slate-800 animate-pulse rounded-lg" />}>
         <WebSourcesStats stats={data.stats} />
       </Suspense>
+
+      {/* Quick Actions */}
+      {isSuperAdmin && <WebSourcesQuickActions />}
 
       {/* Filters */}
       <WebSourcesFilters
