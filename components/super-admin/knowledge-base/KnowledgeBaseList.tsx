@@ -223,6 +223,19 @@ export function KnowledgeBaseList({
     return `${base}?${searchParams.toString()}`
   }
 
+  const buildDocUrl = (docId: string) => {
+    const searchParams = new URLSearchParams()
+    if (category) searchParams.set('category', category)
+    if (subcategory) searchParams.set('subcategory', subcategory)
+    if (indexed) searchParams.set('indexed', indexed)
+    if (approved) searchParams.set('approved', approved)
+    if (search) searchParams.set('search', search)
+    if (abroge && abroge !== 'all') searchParams.set('abroge', abroge)
+    if (currentPage > 1) searchParams.set('page', String(currentPage))
+    const qs = searchParams.toString()
+    return `/super-admin/knowledge-base/${docId}${qs ? `?${qs}` : ''}`
+  }
+
   return (
     <>
       {/* Actions groupées */}
@@ -341,7 +354,7 @@ export function KnowledgeBaseList({
             />
 
             <Link
-              href={`/super-admin/knowledge-base/${doc.id}`}
+              href={buildDocUrl(doc.id)}
               aria-label="Voir le document"
               className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0 hover:bg-muted/70 transition"
             >
@@ -351,7 +364,7 @@ export function KnowledgeBaseList({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <Link
-                  href={`/super-admin/knowledge-base/${doc.id}`}
+                  href={buildDocUrl(doc.id)}
                   className="font-medium text-foreground hover:text-blue-400 transition"
                 >
                   {doc.title}
@@ -469,7 +482,7 @@ export function KnowledgeBaseList({
                 title="Voir détail"
                 asChild
               >
-                <Link href={`/super-admin/knowledge-base/${doc.id}`}>
+                <Link href={buildDocUrl(doc.id)}>
                   <Icons.eye className="h-4 w-4" />
                 </Link>
               </Button>

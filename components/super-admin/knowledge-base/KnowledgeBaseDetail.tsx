@@ -96,10 +96,19 @@ interface Relation {
   status: 'pending' | 'confirmed' | 'dismissed' | 'resolved'
 }
 
+interface AdjacentDoc {
+  id: string
+  title: string
+}
+
 interface KnowledgeBaseDetailProps {
   document: KnowledgeDocument
   versions: Version[]
   relations?: Relation[]
+  prevDoc?: AdjacentDoc | null
+  nextDoc?: AdjacentDoc | null
+  backUrl?: string
+  filterQs?: string
 }
 
 // ─── Parser et rendu de contenu légal structuré ──────────────────────────────
@@ -389,7 +398,7 @@ function QualityBar({ label, value }: { label: string; value?: number }) {
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 
-export function KnowledgeBaseDetail({ document, versions, relations = [] }: KnowledgeBaseDetailProps) {
+export function KnowledgeBaseDetail({ document, versions, relations = [], prevDoc, nextDoc, backUrl, filterQs }: KnowledgeBaseDetailProps) {
   const router = useRouter()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [indexing, setIndexing] = useState(false)
@@ -452,13 +461,27 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
       <div className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-6 py-3">
         <div className="flex items-center justify-between gap-4 max-w-[1400px] mx-auto">
           {/* Left: breadcrumb + title */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <Link
-              href="/super-admin/knowledge-base"
+              href={backUrl ?? '/super-admin/knowledge-base'}
               className="text-muted-foreground hover:text-foreground transition flex-shrink-0"
+              title="Retour à la liste"
             >
               <Icons.arrowLeft className="h-5 w-5" />
             </Link>
+            {prevDoc ? (
+              <Link
+                href={`/super-admin/knowledge-base/${prevDoc.id}${filterQs ? `?${filterQs}` : ''}`}
+                className="text-muted-foreground hover:text-foreground transition flex-shrink-0"
+                title={prevDoc.title}
+              >
+                <Icons.chevronLeft className="h-5 w-5" />
+              </Link>
+            ) : (
+              <span className="text-muted-foreground/30 flex-shrink-0">
+                <Icons.chevronLeft className="h-5 w-5" />
+              </span>
+            )}
             <div className="flex flex-wrap items-center gap-2 min-w-0">
               <CategoryBadge category={document.category} subcategory={document.subcategory} />
               <Badge variant={isRtl ? 'secondary' : 'outline'} className="text-xs">
@@ -501,6 +524,19 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                 {document.title}
               </span>
             </div>
+            {nextDoc ? (
+              <Link
+                href={`/super-admin/knowledge-base/${nextDoc.id}${filterQs ? `?${filterQs}` : ''}`}
+                className="text-muted-foreground hover:text-foreground transition flex-shrink-0"
+                title={nextDoc.title}
+              >
+                <Icons.chevronRight className="h-5 w-5" />
+              </Link>
+            ) : (
+              <span className="text-muted-foreground/30 flex-shrink-0">
+                <Icons.chevronRight className="h-5 w-5" />
+              </span>
+            )}
           </div>
 
           {/* Right: actions */}

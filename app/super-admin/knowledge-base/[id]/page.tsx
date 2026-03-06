@@ -5,8 +5,19 @@ import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 
+interface FilterParams {
+  category?: string
+  subcategory?: string
+  indexed?: string
+  approved?: string
+  search?: string
+  abroge?: string
+  page?: string
+}
+
 interface PageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<FilterParams>
 }
 
 async function getDocument(id: string) {
@@ -66,6 +77,63 @@ async function getDocument(id: string) {
   }
 }
 
+async function getAdjacentDocuments(id: string, filters: FilterParams) {
+  const queryParams: (string | boolean)[] = []
+  let paramIndex = 1
+  let whereClause = 'WHERE kb.is_active = TRUE'
+
+  if (filters.category && filters.category !== 'all') {
+    whereClause += ` AND kb.category = $${paramIndex++}`
+    queryParams.push(filters.category)
+  }
+  if (filters.subcategory) {
+    whereClause += ` AND kb.subcategory = $${paramIndex++}`
+    queryParams.push(filters.subcategory)
+  }
+  if (filters.indexed && filters.indexed !== 'all') {
+    whereClause += ` AND kb.is_indexed = $${paramIndex++}`
+    queryParams.push(filters.indexed === 'true')
+  }
+  if (filters.approved && filters.approved !== 'all') {
+    whereClause += ` AND kb.is_approved = $${paramIndex++}`
+    queryParams.push(filters.approved === 'true')
+  }
+  if (filters.abroge === 'true') {
+    whereClause += ` AND kb.is_abroge = TRUE`
+  } else if (filters.abroge === 'suspected') {
+    whereClause += ` AND kb.abroge_suspected = TRUE AND (kb.is_abroge IS NULL OR kb.is_abroge = FALSE)`
+  }
+  if (filters.search) {
+    whereClause += ` AND (kb.title ILIKE $${paramIndex} OR kb.description ILIKE $${paramIndex})`
+    queryParams.push(`%${filters.search}%`)
+    paramIndex++
+  }
+
+  queryParams.push(id)
+  const idParam = `$${paramIndex}`
+
+  const result = await query(
+    `WITH ordered AS (
+      SELECT kb.id, kb.title,
+        LAG(kb.id) OVER (ORDER BY kb.created_at DESC, kb.id DESC) AS prev_id,
+        LAG(kb.title) OVER (ORDER BY kb.created_at DESC, kb.id DESC) AS prev_title,
+        LEAD(kb.id) OVER (ORDER BY kb.created_at DESC, kb.id DESC) AS next_id,
+        LEAD(kb.title) OVER (ORDER BY kb.created_at DESC, kb.id DESC) AS next_title
+      FROM knowledge_base kb
+      ${whereClause}
+    )
+    SELECT prev_id, prev_title, next_id, next_title FROM ordered WHERE id = ${idParam}`,
+    queryParams
+  )
+
+  if (result.rows.length === 0) return null
+  const row = result.rows[0]
+  return {
+    prevDoc: row.prev_id ? { id: row.prev_id, title: row.prev_title as string } : null,
+    nextDoc: row.next_id ? { id: row.next_id, title: row.next_title as string } : null,
+  }
+}
+
 async function getVersions(documentId: string) {
   const result = await query(
     `SELECT * FROM get_knowledge_base_versions($1, $2, $3)`,
@@ -84,20 +152,41 @@ async function getVersions(documentId: string) {
   }))
 }
 
-export default async function KnowledgeBaseDetailPage({ params }: PageProps) {
+export default async function KnowledgeBaseDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params
+  const filters = await searchParams
 
-  const document = await getDocument(id)
+  const [document, versions, adjacent] = await Promise.all([
+    getDocument(id),
+    getVersions(id),
+    getAdjacentDocuments(id, filters),
+  ])
 
   if (!document) {
     notFound()
   }
 
-  const versions = await getVersions(id)
+  const filterQs = new URLSearchParams()
+  if (filters.category) filterQs.set('category', filters.category)
+  if (filters.subcategory) filterQs.set('subcategory', filters.subcategory)
+  if (filters.indexed) filterQs.set('indexed', filters.indexed)
+  if (filters.approved) filterQs.set('approved', filters.approved)
+  if (filters.search) filterQs.set('search', filters.search)
+  if (filters.abroge && filters.abroge !== 'all') filterQs.set('abroge', filters.abroge)
+  if (filters.page && filters.page !== '1') filterQs.set('page', filters.page)
+  const qs = filterQs.toString()
+  const backUrl = `/super-admin/knowledge-base${qs ? `?${qs}` : ''}`
 
   return (
     <div className="-m-6">
-      <KnowledgeBaseDetail document={document} versions={versions} />
+      <KnowledgeBaseDetail
+        document={document}
+        versions={versions}
+        prevDoc={adjacent?.prevDoc ?? null}
+        nextDoc={adjacent?.nextDoc ?? null}
+        backUrl={backUrl}
+        filterQs={qs}
+      />
     </div>
   )
 }
