@@ -854,18 +854,27 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
     }))
   }
 
-  // Discovery log
-  const pageState = await page.evaluate(() => ({
-    url: location.href,
-    title: document.title,
-    loopers: Array.from(new Set(
+  // Discovery log étendu : dump HTML structure pour diagnostic
+  const pageState = await page.evaluate(() => {
+    const allIds = Array.from(new Set(
       Array.from(document.querySelectorAll('[id]'))
         .map(el => el.id.match(/^([A-Z]\d+)_\d+$/)?.[1])
         .filter(Boolean),
-    )),
-    bodyPreview: (document.body.textContent || '').trim().substring(0, 800),
-  }))
-  log.warn('⚠️  TOC vide. Page state:', JSON.stringify(pageState, null, 2))
+    ))
+    // Capturer les éléments T (T1, T2, T3...) avec leur contenu
+    const tElements = Array.from(document.querySelectorAll('[id^="T"]'))
+      .slice(0, 10).map(el => ({ id: el.id, tag: el.tagName, text: (el.textContent || '').trim().substring(0, 80), linkCount: el.querySelectorAll('a').length }))
+    // Capturer tous les liens arabes pour Stratégie 3
+    const arabicLinks = Array.from(document.querySelectorAll('a'))
+      .filter(a => /[\u0600-\u06FF]/.test(a.textContent || '') && (a.textContent || '').trim().length > 5)
+      .slice(0, 20).map(a => ({ text: (a.textContent || '').trim().substring(0, 60), href: a.getAttribute('href'), onclick: (a.getAttribute('onclick') || '').substring(0, 60) }))
+    // HTML brut du body (premiers 2000 chars)
+    const bodyHtml = document.body.innerHTML.substring(0, 2000)
+    return { url: location.href, title: document.title, loopers: allIds, tElements, arabicLinks, bodyHtml }
+  })
+  log.warn('⚠️  TOC vide. Page state:', JSON.stringify({ url: pageState.url, title: pageState.title, loopers: pageState.loopers, tElements: pageState.tElements }, null, 2))
+  log.warn('⚠️  Liens arabes:', JSON.stringify(pageState.arabicLinks.slice(0, 10), null, 2))
+  log.warn('⚠️  Body HTML (500 chars):', pageState.bodyHtml.substring(0, 500))
   return []
 }
 
