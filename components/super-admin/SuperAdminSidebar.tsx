@@ -51,6 +51,7 @@ const getNavGroups = (
     items: [
       { href: '/super-admin/dashboard', label: 'Tableau de bord', icon: 'dashboard' },
       { href: '/super-admin/monitoring', label: 'Monitoring', icon: 'activity' },
+      { href: '/super-admin/analytics', label: 'Analytics Clients', icon: 'chartBar' },
       { href: '/super-admin/server-status', label: 'Statut Serveur', icon: 'server' },
       { href: '/super-admin/quotas', label: 'Quotas & Limites', icon: 'chartBar' },
     ],
