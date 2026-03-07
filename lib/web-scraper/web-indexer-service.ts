@@ -249,16 +249,34 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   // Dériver l'origine de la source (pour boost fiabilité RAG)
   const sourceOrigin = deriveSourceOrigin(row.source_base_url || '')
 
-  // Dériver le norm_level si source IORT (structured_data.textType)
+  // Dériver le norm_level si source IORT :
+  // - JORT (iort.gov.tn) : depuis structured_data.textType
+  // - siteiort.tn (codes consolidés) : loi_ordinaire par défaut si codeName présent (سيتم override constitution si applicable)
   const iortStructuredData = row.structured_data || {}
   const normLevel = sourceOrigin === 'iort_gov_tn'
-    ? deriveNormLevelFromIortTextType(iortStructuredData.textType as string | undefined)
+    ? (deriveNormLevelFromIortTextType(iortStructuredData.textType as string | undefined)
+        ?? ((iortStructuredData.codeName as string | undefined) ? 'loi_ordinaire' : null))
     : null
 
   // Déterminer la catégorie KB (detected_category → IA → URL pattern → "autre")
-  // Override : IORT textType='دستور' → forcer 'constitution' (classification IA échoue sur OCR brut)
   const { category: rawKbCategory, source: classificationSource } = determineCategoryForKB(classification, row.url, row.detected_category)
-  const kbCategory = (normLevel === 'constitution') ? 'constitution' : rawKbCategory
+  // Override IORT : si la classification échoue (rawKbCategory='autre'), dériver depuis normLevel
+  //   - constitution → 'constitution' (OCR brut, classification IA inefficace)
+  //   - normLevel connu (loi, marsoum, ordre_reg, arrete) → 'legislation'
+  //   - normLevel inconnu → 'jort' (défaut pour les pages IORT non classifiées)
+  // Override IORT siteiort.tn : pages avec codeName → forcer 'codes' (le LLM les classe souvent en
+  // 'doctrine' car le contenu est du texte juridique dense sans structure article évidente).
+  const iortCodeName = (iortStructuredData.codeName as string | undefined) || null
+  let kbCategory: LegalCategory
+  if (normLevel === 'constitution') {
+    kbCategory = 'constitution'
+  } else if (sourceOrigin === 'iort_gov_tn' && iortCodeName) {
+    kbCategory = 'codes'
+  } else if (sourceOrigin === 'iort_gov_tn' && rawKbCategory === 'autre') {
+    kbCategory = normLevel ? 'legislation' : 'jort'
+  } else {
+    kbCategory = rawKbCategory
+  }
 
   // Guard : قرارات et أوامر IORT de bruit (nominations, concours, mutations) → rag_enabled=false
   // Ces actes n'ont aucune valeur juridique pour un avocat mais polluent le RAG.
@@ -289,9 +307,12 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     /\b(والي|معتمد أول)\b/,                                   // grades civils de nomination dans corps
     /\b(شروط الترشح|ملف الترشح)\b/,                          // détails concours dans corps du texte
   ]
-  // S'applique aux قرارات, أوامر ET مراسيم (nominations présidentielles par décret)
-  const isIortNoiseType = sourceOrigin === 'iort_gov_tn' &&
-    ['قرار', 'أمر', 'مرسوم'].includes(iortStructuredData.textType as string)
+  // S'applique aux قرارات/أوامر/مراسيم JORT (textType connu) ET aux pages siteiort sans codeName
+  // (textes administratifs qui se glissent dans le crawl siteiort sans appartenir à un code juridique)
+  const isIortNoiseType = sourceOrigin === 'iort_gov_tn' && (
+    ['قرار', 'أمر', 'مرسوم'].includes(iortStructuredData.textType as string) ||
+    (!iortStructuredData.textType && !iortCodeName)  // siteiort sans codeName ni textType = bruit
+  )
   const contentSnippet = (row.extracted_text || '').slice(0, 600)
   const isNoise = isIortNoiseType && (
     IORT_NOISE_PATTERNS.some(p => p.test(rawPageTitle)) ||
