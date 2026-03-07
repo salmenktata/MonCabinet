@@ -1083,6 +1083,25 @@ const PSC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
   [/حضانة|شروط.*حضانة|الحضانة.*الأم|الحضانة.*الأب|garde.*enfant|droit.*garde|attribution.*garde/i, [56, 63, 67]],
 ]
 
+/** مجلة الشغل (Labor Code) — max 6 articles
+ * Fsl 1 = scope (محلات صناعة/تجارة/فلاحة) | Fsl 6 = contrat durée déterminée | Fsl 14 = licenciement abusif
+ * Numéros vérifiés prod (chunk format: "مجلة الشغل | الفصل N | [codes]")
+ */
+const LABOR_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
+  // Fsl 1: scope / champ d'application (inclut "علاقة الشغل" — Fsl 1 définit le périmètre)
+  [/علاقة الشغل|تعريف.*علاقة|مفهوم.*شغل|الفصل الأول.*مجلة الشغل|مجلة الشغل.*الفصل الأول|champ.*application.*travail|rapport.*travail/i, [1]],
+  // Fsl 6-7: contrat de travail (durée déterminée / indéterminée)
+  [/عقد.*شغل.*محدد.*مدة|عقد.*شغل.*غير.*محدد|contrat.*travail.*durée.*déterminée|CDD|CDI/i, [6, 7]],
+  // Fsl 14: licenciement abusif + causes réelles et sérieuses
+  [/الطرد التعسفي|طرد.*تعسف|فسخ.*عقد.*الشغل|licenciement.*abusif|licenciement.*sans.*cause/i, [14, 23]],
+  // Fsl 89: durée hebdomadaire du travail (48h/semaine)
+  [/مدة العمل.*أسبوعية|ساعات العمل الأسبوعية|durée.*travail.*semaine|temps.*travail.*hebdomadaire/i, [89]],
+  // Fsl 110: congé annuel payé
+  [/إجازة.*سنوية|عطلة.*مدفوعة|congé.*annuel.*payé|congé.*payé/i, [110]],
+  // Fsl 139: salaire minimum garanti (SMIG)
+  [/الأجر الأدنى|أدنى.*أجر|SMIG|salaire.*minimum.*garanti|salaire.*minimum/i, [139]],
+]
+
 /**
  * Cache module-level pour les résultats de pattern matching implicit article maps.
  * Clé: queryText (normalisé), valeur: Set de clés "artNum:titleFrag" matchées.
@@ -1957,6 +1976,29 @@ export async function searchKnowledgeBaseHybrid(
             if (!pscQueuedArticles.has(key)) {
               pscQueuedArticles.add(key)
               searchPromises.push(searchArticleByTextMatch(String(artNum), pscTitleFrag))
+              providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // LABOR_IMPLICIT_ARTICLE_MAP — مجلة الشغل (Code du Travail)
+  {
+    const laborTitleFrag = getTargetCodeTitleFragment(queryText, bm25Language as string)
+    if (laborTitleFrag === 'مجلة الشغل') {
+      const LABOR_MAX_ARTICLES = 6
+      const laborQueuedArticles = new Set<string>()
+      for (const [pattern, articles] of LABOR_IMPLICIT_ARTICLE_MAP) {
+        if (laborQueuedArticles.size >= LABOR_MAX_ARTICLES) break
+        if (pattern.test(queryText)) {
+          for (const artNum of articles) {
+            if (laborQueuedArticles.size >= LABOR_MAX_ARTICLES) break
+            const key = `${artNum}:${laborTitleFrag}`
+            if (!laborQueuedArticles.has(key)) {
+              laborQueuedArticles.add(key)
+              searchPromises.push(searchArticleByTextMatch(String(artNum), laborTitleFrag))
               providerLabels.push('article-text') // sim=1.05 via articleTextChunkIds post-processing
             }
           }
