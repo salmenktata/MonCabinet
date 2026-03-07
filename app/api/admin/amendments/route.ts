@@ -24,6 +24,15 @@ import { extractAmendmentsFromJORT, isLikelyAmendingDocument } from '@/lib/knowl
 import { linkAmendmentToKB } from '@/lib/knowledge-base/amendment-linker'
 import { TUNISIAN_CODES } from '@/lib/knowledge-base/tunisian-codes-registry'
 
+// Condition SQL partagée pour identifier les documents JORT
+const JORT_DOCUMENT_SQL = `(
+  kb.metadata->>'sourceOrigin' = 'iort_gov_tn'
+  OR kb.metadata->>'sourceName' ILIKE '%9anoun%'
+  OR kb.title ILIKE '%الرائد الرسمي%'
+  OR kb.title ILIKE '%جريدة رسمية%'
+  OR kb.title ~* 'Ja[0-9]{3}[0-9]{4}'
+)`
+
 // =============================================================================
 // AUTH
 // =============================================================================
@@ -58,24 +67,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       SELECT
         COUNT(*) FILTER (WHERE sm.is_jort_amendment = true)       AS total_amendments,
         COUNT(DISTINCT sm.amended_code_slug) FILTER (WHERE sm.is_jort_amendment = true) AS codes_covered,
-        COUNT(*) FILTER (WHERE (
-          kb.metadata->>'sourceOrigin' = 'iort_gov_tn'
-          OR kb.metadata->>'sourceName' ILIKE '%9anoun%'
-          OR kb.title ILIKE '%الرائد الرسمي%'
-          OR kb.title ILIKE '%جريدة رسمية%'
-          OR kb.title ~* 'Ja[0-9]{3}[0-9]{4}'
-        ) AND kb.is_indexed = true) AS total_iort_docs,
-        COUNT(*) FILTER (
-          WHERE (
-            kb.metadata->>'sourceOrigin' = 'iort_gov_tn'
-            OR kb.metadata->>'sourceName' ILIKE '%9anoun%'
-            OR kb.title ILIKE '%الرائد الرسمي%'
-            OR kb.title ILIKE '%جريدة رسمية%'
-            OR kb.title ~* 'Ja[0-9]{3}[0-9]{4}'
-          )
-            AND kb.is_indexed = true
-            AND kb.jort_amendments_extracted_at IS NULL
-        ) AS pending_extraction
+        COUNT(*) FILTER (WHERE ${JORT_DOCUMENT_SQL} AND kb.is_indexed = true) AS total_iort_docs,
+        COUNT(*) FILTER (WHERE ${JORT_DOCUMENT_SQL} AND kb.is_indexed = true AND kb.jort_amendments_extracted_at IS NULL) AS pending_extraction
       FROM knowledge_base kb
       LEFT JOIN kb_structured_metadata sm ON sm.knowledge_base_id = kb.id
     `)
@@ -102,6 +95,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const queryParams = codeFilter ? [codeFilter, limit, offset] : [limit, offset]
     const paramOffset = codeFilter ? 2 : 1
+
+    // Count filtré pour la pagination (distinct du total global)
+    let filteredTotal = parseInt(stats.total_amendments, 10)
+    if (codeFilter) {
+      const countResult = await db.query(
+        `SELECT COUNT(*) FROM kb_structured_metadata WHERE is_jort_amendment = true AND amended_code_slug = $1`,
+        [codeFilter]
+      )
+      filteredTotal = parseInt(countResult.rows[0].count, 10)
+    }
 
     const listResult = await db.query(
       `SELECT
@@ -160,7 +163,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       pagination: {
         limit,
         offset,
-        total: parseInt(stats.total_amendments, 10),
+        total: filteredTotal,
       },
     })
   } catch (error) {
@@ -192,16 +195,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const dryRun = body.dryRun === true
 
     // Récupérer les JORT non traités (sourceOrigin iort_gov_tn OU 9anoun.tn OU PDFs IORT Ja[num][année])
+    // Note : JORT_DOCUMENT_SQL utilise l'alias 'kb' — on remplace par la table directe ici
     const pendingResult = await db.query(
       `SELECT id, title
-       FROM knowledge_base
-       WHERE (
-         metadata->>'sourceOrigin' = 'iort_gov_tn'
-         OR metadata->>'sourceName' ILIKE '%9anoun%'
-         OR title ILIKE '%الرائد الرسمي%'
-         OR title ILIKE '%جريدة رسمية%'
-         OR title ~* 'Ja[0-9]{3}[0-9]{4}'
-       )
+       FROM knowledge_base kb
+       WHERE ${JORT_DOCUMENT_SQL}
          AND is_indexed = true
          AND is_active = true
          AND jort_amendments_extracted_at IS NULL

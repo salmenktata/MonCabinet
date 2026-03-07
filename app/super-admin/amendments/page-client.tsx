@@ -194,6 +194,7 @@ export function AmendmentsDashboardClient() {
   const [sampleData, setSampleData] = useState<SampleData | null>(null)
   const [sampleRunning, setSampleRunning] = useState(false)
   const [showBenchmark, setShowBenchmark] = useState(false)
+  const [activeView, setActiveView] = useState<'benchmark' | 'sample'>('benchmark')
 
   const loadData = useCallback(async (code?: string) => {
     setLoading(true)
@@ -257,6 +258,7 @@ export function AmendmentsDashboardClient() {
       if (!res.ok) throw new Error(result.error)
       setBenchmarkData(result)
       setShowBenchmark(true)
+      setActiveView('benchmark')
       toast.success(
         `Benchmark terminé — F1: ${result.detection.f1 !== null ? Math.round(result.detection.f1 * 100) + '%' : 'N/A'}`,
         { id: toastId, description: `${result.meta.totalCases} cas testés` }
@@ -281,6 +283,7 @@ export function AmendmentsDashboardClient() {
       if (!res.ok) throw new Error(result.error)
       setSampleData(result)
       setShowBenchmark(true)
+      setActiveView('sample')
       toast.success(
         `Sampling terminé — ${result.detectedPositives}/${result.count} amendements détectés`,
         { id: toastId }
@@ -529,6 +532,23 @@ export function AmendmentsDashboardClient() {
             Benchmark & Qualité
           </h2>
           <div className="flex items-center gap-2">
+            {/* Toggle vue si les deux résultats sont disponibles */}
+            {benchmarkData && sampleData && (
+              <div className="flex rounded-md border border-border overflow-hidden text-xs">
+                <button
+                  className={cn('px-3 py-1.5 transition-colors', activeView === 'benchmark' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50')}
+                  onClick={() => setActiveView('benchmark')}
+                >
+                  Benchmark
+                </button>
+                <button
+                  className={cn('px-3 py-1.5 transition-colors', activeView === 'sample' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50')}
+                  onClick={() => setActiveView('sample')}
+                >
+                  Sampling
+                </button>
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -558,7 +578,7 @@ export function AmendmentsDashboardClient() {
         </div>
 
         {/* Métriques benchmark */}
-        {benchmarkData && (
+        {benchmarkData && activeView === 'benchmark' && (
           <div className="space-y-4">
             {/* KPIs détection */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -673,7 +693,7 @@ export function AmendmentsDashboardClient() {
         )}
 
         {/* Résultats sampling */}
-        {sampleData && !benchmarkData && (
+        {sampleData && activeView === 'sample' && (
           <div className="space-y-3">
             <div className="flex items-center gap-4 text-sm">
               <span className="text-muted-foreground">{sampleData.count} docs échantillonnés</span>
@@ -741,7 +761,7 @@ export function AmendmentsDashboardClient() {
 
         {!benchmarkData && !sampleData && (
           <p className="text-xs text-muted-foreground py-4 text-center">
-            Lancez le benchmark sur le gold dataset (9 cas) ou échantillonnez des docs aléatoires pour mesurer la qualité de détection.
+            Lancez le benchmark sur le gold dataset (13 cas) ou échantillonnez des docs aléatoires pour mesurer la qualité de détection.
           </p>
         )}
       </div>

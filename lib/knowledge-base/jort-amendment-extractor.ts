@@ -385,12 +385,13 @@ function extractDispositif(text: string): string {
     return text.slice(start, start + 4500) // 4500 chars couvre la plupart des dispositifs
   }
   // Fallback : si pas de الفصل الأول, chercher juste après le dernier "وعلى"
+  // On recule de 50 chars pour ne pas sauter le début du dispositif
   const lastWaala = normalized.lastIndexOf('وعلى')
   if (lastWaala > 200) {
-    const afterRefs = lastWaala + 200
-    return text.slice(afterRefs, afterRefs + 4500)
+    const afterRefs = Math.max(0, lastWaala - 50)
+    return text.slice(afterRefs, afterRefs + 5000)
   }
-  return text.slice(0, 3500)
+  return text.slice(0, 5000)
 }
 
 /**
@@ -690,7 +691,7 @@ export function isLikelyAmendingDocument(text: string, title?: string): boolean 
 
   // ─── Niveau 1 : Dispositif direct (الفصل الأول ـ ينقح / تضاف / يلغى...)
   // C'est l'indicateur le plus fiable d'un texte modificatif
-  if (/الفصل\s+(?:الاول|الاول|1)\s+[ـ\-]\s+(?:ينقح|تنقح|يلغى|تلغى|يضاف|تضاف|يعوض|تعوض|تستبدل|يستبدل)/u.test(normalized)) {
+  if (/الفصل\s+(?:الأول|الاول|1)\s+[ـ\-]\s+(?:ينقح|تنقح|يلغى|تلغى|يضاف|تضاف|يعوض|تعوض|تستبدل|يستبدل)/u.test(normalized)) {
     return true
   }
 

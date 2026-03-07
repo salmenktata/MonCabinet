@@ -104,11 +104,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       error: string | null
     }> = []
 
-    for (const c of runnableCases) {
+    type CaseInput = typeof runnableCases[number]
+    type CaseResult = (typeof caseResults)[number]
+
+    const processCase = async (c: CaseInput): Promise<CaseResult> => {
       try {
         const kbDoc = await getKnowledgeDocument(c.jortKbId!)
         if (!kbDoc) {
-          caseResults.push({
+          return {
             id: c.id,
             title: c.jortTitle,
             expected: { isAmending: c.isAmending, code: c.expectedCode, articles: c.expectedArticles, type: c.expectedType, date: c.expectedDate },
@@ -117,19 +120,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             preFilterOutcome: c.isAmending ? 'FN' : 'TN',
             extractionScores: { codeCorrect: null, articlesJaccard: null, typeCorrect: null, dateCorrect: null },
             error: 'Document introuvable dans la KB',
-          })
-          continue
+          }
         }
 
         const preFilter = isLikelyAmendingDocument(kbDoc.fullText ?? '', kbDoc.title)
 
-        // Pre-filter outcome
         const preFilterOutcome: 'TP' | 'TN' | 'FP' | 'FN' = c.isAmending
           ? preFilter ? 'TP' : 'FN'
           : preFilter ? 'FP' : 'TN'
 
         if (!preFilter) {
-          caseResults.push({
+          return {
             id: c.id,
             title: c.jortTitle,
             expected: { isAmending: c.isAmending, code: c.expectedCode, articles: c.expectedArticles, type: c.expectedType, date: c.expectedDate },
@@ -138,8 +139,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             preFilterOutcome,
             extractionScores: { codeCorrect: null, articlesJaccard: null, typeCorrect: null, dateCorrect: null },
             error: null,
-          })
-          continue
+          }
         }
 
         const extraction = await extractAmendmentsFromJORT(kbDoc)
@@ -151,12 +151,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         const detectedDate = extraction.jortDate || null
         const detectedAmending = extraction.isAmendingDocument
 
-        // Full pipeline outcome
         const outcome: 'TP' | 'TN' | 'FP' | 'FN' = c.isAmending
           ? detectedAmending ? 'TP' : 'FN'
           : detectedAmending ? 'FP' : 'TN'
 
-        // Extraction scores (seulement pour les vrais positifs)
         let extractionScores = { codeCorrect: null as boolean | null, articlesJaccard: null as number | null, typeCorrect: null as boolean | null, dateCorrect: null as boolean | null }
         if (c.isAmending && detectedAmending) {
           extractionScores = {
@@ -169,7 +167,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           }
         }
 
-        caseResults.push({
+        return {
           id: c.id,
           title: c.jortTitle,
           expected: { isAmending: c.isAmending, code: c.expectedCode, articles: c.expectedArticles, type: c.expectedType, date: c.expectedDate },
@@ -178,10 +176,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           preFilterOutcome,
           extractionScores,
           error: null,
-        })
+        }
       } catch (err: any) {
         console.error(`[benchmark] Erreur cas ${c.id}:`, err)
-        caseResults.push({
+        return {
           id: c.id,
           title: c.jortTitle,
           expected: { isAmending: c.isAmending, code: c.expectedCode, articles: c.expectedArticles, type: c.expectedType, date: c.expectedDate },
@@ -190,8 +188,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           preFilterOutcome: c.isAmending ? 'FN' : 'TN',
           extractionScores: { codeCorrect: null, articlesJaccard: null, typeCorrect: null, dateCorrect: null },
           error: String(err?.message ?? err),
-        })
+        }
       }
+    }
+
+    // Traitement parallèle par chunks de 3 pour ne pas saturer Ollama
+    const CONCURRENCY = 3
+    for (let i = 0; i < runnableCases.length; i += CONCURRENCY) {
+      const chunk = runnableCases.slice(i, i + CONCURRENCY)
+      const results = await Promise.all(chunk.map(processCase))
+      caseResults.push(...results)
     }
 
     // ==========================================================================
@@ -216,15 +222,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Extraction scores (sur les TP uniquement)
     const tpCases = caseResults.filter((r) => r.outcome === 'TP')
-    const codeAccuracy = tpCases.length > 0
-      ? tpCases.filter((r) => r.extractionScores.codeCorrect === true).length / tpCases.filter((r) => r.extractionScores.codeCorrect !== null).length || null
+    const codeableTP = tpCases.filter((r) => r.extractionScores.codeCorrect !== null)
+    const codeAccuracy = codeableTP.length > 0
+      ? codeableTP.filter((r) => r.extractionScores.codeCorrect === true).length / codeableTP.length
       : null
     const articlesJaccardValues = tpCases.map((r) => r.extractionScores.articlesJaccard).filter((v) => v !== null) as number[]
     const articlesJaccard = articlesJaccardValues.length > 0
       ? articlesJaccardValues.reduce((a, b) => a + b, 0) / articlesJaccardValues.length
       : null
-    const typeAccuracy = tpCases.length > 0
-      ? tpCases.filter((r) => r.extractionScores.typeCorrect === true).length / tpCases.filter((r) => r.extractionScores.typeCorrect !== null).length || null
+    const typeableTP = tpCases.filter((r) => r.extractionScores.typeCorrect !== null)
+    const typeAccuracy = typeableTP.length > 0
+      ? typeableTP.filter((r) => r.extractionScores.typeCorrect === true).length / typeableTP.length
       : null
     const dateAccuracyValues = tpCases.filter((r) => r.extractionScores.dateCorrect !== null)
     const dateAccuracy = dateAccuracyValues.length > 0
