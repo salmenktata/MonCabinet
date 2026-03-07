@@ -107,6 +107,16 @@ export const IORT_KNOWN_CODES: Record<string, string> = {
   'مجلة البريد':                                               'Code de la Poste',
   'مجلة الصحافة':                                              'Code de la Presse',
   'مدونة سلوك وأخلاقيات العون العمومي':                       'Code de Conduite et d\'Éthique de l\'Agent Public',
+  // 9 codes supplémentaires découverts dans looper A1 (Mars 2026)
+  'مجلة السلامة والوقاية من أخطار الحريق والانفجار والفزع بالبنايات': 'Code de Sécurité et Protection contre les Risques d\'Incendie',
+  'مجلة التهيئة الترابية والتعمير':                           'Code de l\'Aménagement du Territoire et de l\'Urbanisme',
+  'مجلة التحكيم':                                              'Code de l\'Arbitrage',
+  'مجلة التأمين':                                              'Code des Assurances',
+  'مجلة الجباية المحلية':                                      'Code de la Fiscalité Locale',
+  'مجلة الجنسية':                                              'Code de la Nationalité',
+  'مجلة الشغل البحري':                                         'Code du Travail Maritime',
+  'مجلة الطيران المدني':                                       'Code de l\'Aviation Civile',
+  'مجلة الأوسمة':                                              'Code des Décorations',
 }
 
 // =============================================================================
