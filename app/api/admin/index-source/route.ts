@@ -30,6 +30,7 @@ export const POST = withAdminApiAuth(async (request: NextRequest, _ctx, _session
     const result = await indexSourcePages(sourceId, {
       limit: batchSize,
       reindex,
+      timeBudgetMs: 260_000, // 260s — marge de 40s avant maxDuration=300s
     })
 
     const duration = Date.now() - startTime

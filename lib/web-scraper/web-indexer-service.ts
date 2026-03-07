@@ -791,14 +791,15 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
  */
 export async function indexSourcePages(
   sourceId: string,
-  options: { limit?: number; reindex?: boolean } = {}
+  options: { limit?: number; reindex?: boolean; timeBudgetMs?: number } = {}
 ): Promise<{
   processed: number
   succeeded: number
   failed: number
   results: Array<{ pageId: string; success: boolean; error?: string }>
 }> {
-  const { limit = 50, reindex = false } = options
+  const { limit = 50, reindex = false, timeBudgetMs } = options
+  const startTime = Date.now()
 
   // Guard: skip si la source est désactivée pour le RAG
   const sourceRagCheck = await db.query(
@@ -848,6 +849,11 @@ export async function indexSourcePages(
     if (concurrency <= 1) {
       // Mode séquentiel (safe pour Ollama)
       for (const pageId of batch) {
+        if (timeBudgetMs && Date.now() - startTime >= timeBudgetMs) {
+          console.warn(`[WebIndexer] Budget temps atteint (${timeBudgetMs}ms) — arrêt propre après ${results.length} pages`)
+          stopped = true
+          break
+        }
         const result = await indexWebPage(pageId)
         results.push({ pageId, success: result.success, error: result.error })
         if (result.success) {
