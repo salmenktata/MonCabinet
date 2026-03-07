@@ -6243,5 +6243,3710 @@
       "f32f3714-8a54-47b3-8f23-0b0854399f74"
     ],
     "_annotationNote": "Pending annotation — Art.432+ et 452+ MCO. Tests MCO_IMPLICIT_ARTICLE_MAP patterns 'إفلاس' et 'تسوية قضائية'."
+  },
+  {
+    "id": "const_2026_01",
+    "domain": "droit_constitutionnel",
+    "difficulty": "easy",
+    "question": "ما هو تاريخ دخول الدستور التونسي الحالي حيز التنفيذ؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "25 جويلية 2022"
+      ],
+      "mandatoryCitations": [
+        "توطئة دستور الجمهورية التونسية لعام 2022"
+      ],
+      "legalBasis": "توطئة دستور الجمهورية التونسية لعام 2022"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "a169cfdf-02f1-4f63-a4b4-83452f9e6086"
+    ],
+    "goldDocumentIds": [
+      "58f5f8b5-06b5-495a-8d22-f17e53759e74"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "const_2026_02",
+    "domain": "droit_constitutionnel",
+    "difficulty": "easy",
+    "question": "من يمارس الوظيفة التنفيذية بمساعدة رئيس حكومة؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "رئيس الجمهورية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 87 من دستور 2022"
+      ],
+      "legalBasis": "الفصل 87 من دستور 2022"
+    },
+    "expectedArticles": [
+      "الفصل 87"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "const_2026_03",
+    "domain": "droit_constitutionnel",
+    "difficulty": "easy",
+    "question": "هل يتمتع رئيس الجمهورية بالحصانة طيلة رئاسته؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، ولا يسأل عن الأعمال التي قام بها في إطار أداء مهامه"
+      ],
+      "mandatoryCitations": [
+        "الفصل 110 من دستور 2022"
+      ],
+      "legalBasis": "الفصل 110 من دستور 2022"
+    },
+    "expectedArticles": [
+      "الفصل 110"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "const_2026_04",
+    "domain": "droit_constitutionnel",
+    "difficulty": "easy",
+    "question": "أي جهة تختص بالنظر في الطعون ضد القرارات الإدارية؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "المحكمة الإدارية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 120 من دستور 2022",
+        "القانون عدد 40 لسنة 1972"
+      ],
+      "legalBasis": "الفصل 120 من دستور 2022"
+    },
+    "expectedArticles": [
+      "الفصل 120"
+    ],
+    "goldChunkIds": [
+      "b2496fa1-4336-49fe-90f3-10cc373f8fef"
+    ],
+    "goldDocumentIds": [
+      "55932745-a26a-4a5f-b268-b096cc9d7e88"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "const_2026_05",
+    "domain": "droit_constitutionnel",
+    "difficulty": "easy",
+    "question": "ما هي الهيئة التي تشرف على الانتخابات؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الهيئة العليا المستقلة للانتخابات (ISIE)"
+      ],
+      "mandatoryCitations": [
+        "الفصل 134 من دستور 2022",
+        "القانون الأساسي عدد 23 لسنة 2012"
+      ],
+      "legalBasis": "الفصل 134 من دستور 2022"
+    },
+    "expectedArticles": [
+      "الفصل 134"
+    ],
+    "goldChunkIds": [
+      "76f282a6-a321-4528-b655-c64ed924d122"
+    ],
+    "goldDocumentIds": [
+      "5fb99671-90e8-45f1-a149-c129fd233df2"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "const_2026_06",
+    "domain": "droit_constitutionnel",
+    "difficulty": "easy",
+    "question": "كيف يتم تعيين القضاة في تونس؟",
+    "intentType": "procedural",
+    "expectedAnswer": {
+      "keyPoints": [
+        "بأمر من رئيس الجمهورية بناءً على مقترح من المجلس الأعلى للقضاء المعني"
+      ],
+      "mandatoryCitations": [
+        "الفصل 120 من دستور 2022"
+      ],
+      "legalBasis": "الفصل 120 من دستور 2022"
+    },
+    "expectedArticles": [
+      "الفصل 120"
+    ],
+    "goldChunkIds": [
+      "f5e33555-e45f-40e8-90bc-ce66698dd226"
+    ],
+    "goldDocumentIds": [
+      "60d1672b-279f-4b58-9539-2713b5b494b2"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "const_2026_07",
+    "domain": "droit_constitutionnel",
+    "difficulty": "medium",
+    "question": "هل يمكن سحب الثقة من الحكومة في دستور 2022؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، بموافقة ثلثي أعضاء مجلس نواب الشعب والمجلس الوطني للجهات والأقاليم مجتمعين"
+      ],
+      "mandatoryCitations": [
+        "الفصل 115 من دستور 2022",
+        "الفصل 116 من دستور 2022"
+      ],
+      "legalBasis": "الفصل 115 من دستور 2022"
+    },
+    "expectedArticles": [
+      "الفصل 115",
+      "الفصل 116"
+    ],
+    "goldChunkIds": [
+      "8032efc8-d172-4538-a641-ecda627be07b"
+    ],
+    "goldDocumentIds": [
+      "8c3e1fa7-d082-41d3-84ad-db253796b57c"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "const_2026_08",
+    "domain": "droit_constitutionnel",
+    "difficulty": "easy",
+    "question": "ما هي شروط الترشح لرئاسة الجمهورية في دستور 2022؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "تونسي الجنسية، أبوه وأمه تونسيان، دينه الإسلام، وسنه 40 سنة على الأقل"
+      ],
+      "mandatoryCitations": [
+        "الفصل 89 من دستور 2022"
+      ],
+      "legalBasis": "الفصل 89 من دستور 2022"
+    },
+    "expectedArticles": [
+      "الفصل 89"
+    ],
+    "goldChunkIds": [
+      "042553b5-052b-4f89-a2ea-8c43548240c0"
+    ],
+    "goldDocumentIds": [
+      "8c3e1fa7-d082-41d3-84ad-db253796b57c"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "const_2026_09",
+    "domain": "droit_constitutionnel",
+    "difficulty": "easy",
+    "question": "من يسهر على حماية الدستور في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "المحكمة الدستورية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 125 من دستور 2022"
+      ],
+      "legalBasis": "الفصل 125 من دستور 2022"
+    },
+    "expectedArticles": [
+      "الفصل 125"
+    ],
+    "goldChunkIds": [
+      "f605bdea-720b-4f12-ab13-9d95d6119023"
+    ],
+    "goldDocumentIds": [
+      "8c3e1fa7-d082-41d3-84ad-db253796b57c"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "const_2026_10",
+    "domain": "droit_constitutionnel",
+    "difficulty": "easy",
+    "question": "ما هي طبيعة نظام الحكم في تونس حالياً؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نظام رئاسي"
+      ],
+      "mandatoryCitations": [
+        "دستور 2022 (الباب الرابع: الوظيفة التنفيذية)"
+      ],
+      "legalBasis": "دستور 2022 (الباب الرابع: الوظيفة التنفيذية)"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "ad38f2f7-6337-4c4c-bd49-e2decd06c588"
+    ],
+    "goldDocumentIds": [
+      "b4050b94-b1a5-4657-bdf4-f6662970b6f1"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "famille_2026_01",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "question": "هل يمكن للزوج التونسي الزواج بثانية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا، تعدد الزوجات ممنوع ويعاقب بالسجن لمدة عام وبخطية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 18 من مجلة الأحوال الشخصية"
+      ],
+      "legalBasis": "الفصل 18 من مجلة الأحوال الشخصية"
+    },
+    "expectedArticles": [
+      "الفصل 18"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "famille_2026_02",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "question": "ما هو السن القانوني للزواج في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "18 سنة للرجل والمرأة"
+      ],
+      "mandatoryCitations": [
+        "الفصل 5 من مجلة الأحوال الشخصية"
+      ],
+      "legalBasis": "الفصل 5 من مجلة الأحوال الشخصية"
+    },
+    "expectedArticles": [
+      "الفصل 5"
+    ],
+    "goldChunkIds": [
+      "1f4103f4-76b6-4c10-9e08-56b391649890",
+      "3b6e0655-c315-4f97-81c2-eec8df3ceac6"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "8ee853a1-7e0b-4c08-92be-e6fca042af1e"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "famille_2026_03",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "question": "هل يقع الطلاق خارج المحكمة في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا، الطلاق لا يثبت إلا لدى المحكمة"
+      ],
+      "mandatoryCitations": [
+        "الفصل 31 من مجلة الأحوال الشخصية"
+      ],
+      "legalBasis": "الفصل 31 من مجلة الأحوال الشخصية"
+    },
+    "expectedArticles": [
+      "الفصل 31"
+    ],
+    "goldChunkIds": [
+      "aaf929bb-c807-497a-a605-c13d8e5f240f"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "famille_2026_04",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "question": "ما هي أنواع الطلاق في مجلة الأحوال الشخصية؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "بالتراضي، أو بناء على طلب أحد الزوجين للضرر، أو إنشاءً"
+      ],
+      "mandatoryCitations": [
+        "الفصل 31 من مجلة الأحوال الشخصية"
+      ],
+      "legalBasis": "الفصل 31 من مجلة الأحوال الشخصية"
+    },
+    "expectedArticles": [
+      "الفصل 31"
+    ],
+    "goldChunkIds": [
+      "e82c008c-02df-4ac6-a833-8c3cb687bc2e",
+      "6044634e-ec54-44b8-9d6e-6f2ecffb7aa1",
+      "e6c05b36-e503-4631-9a08-0ec73790b3d8",
+      "758de6d1-5162-4d2d-a444-b378b1f0f41d",
+      "8a3683f7-8735-4ad1-b515-b06d4f51fdc5"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "famille_2026_05",
+    "domain": "droit_famille",
+    "difficulty": "medium",
+    "question": "متى تسقط حضانة الأم؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "إذا تزوجت الأم بغير محرم للمحضون",
+        "أو استوطنت بلداً بعيداً يشق معه على الولي القيام بواجباته"
+      ],
+      "mandatoryCitations": [
+        "الفصل 58 من مجلة الأحوال الشخصية",
+        "الفصل 61 من مجلة الأحوال الشخصية"
+      ],
+      "legalBasis": "الفصل 58 من مجلة الأحوال الشخصية"
+    },
+    "expectedArticles": [
+      "الفصل 58",
+      "الفصل 61"
+    ],
+    "goldChunkIds": [
+      "9fde1546-871c-443a-957d-36d28ad1efe2",
+      "4fc8e97c-0be8-4629-88e9-14dd9bf7339c"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "famille_2026_06",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "question": "ما هو مقدار نصيب الزوجة من ميراث زوجها المتوفى وله منه أبناء؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الثمن"
+      ],
+      "mandatoryCitations": [
+        "الفصل 95 من مجلة الأحوال الشخصية"
+      ],
+      "legalBasis": "الفصل 95 من مجلة الأحوال الشخصية"
+    },
+    "expectedArticles": [
+      "الفصل 95"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "famille_2026_07",
+    "domain": "droit_famille",
+    "difficulty": "medium",
+    "question": "ما هي \"الوصية الواجبة\" في القانون التونسي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "تنزيل الأحفاد من الابن أو البنت المتوفين قبل جدهم منزلة والدهم في حدود الثلث"
+      ],
+      "mandatoryCitations": [
+        "الفصل 191 من مجلة الأحوال الشخصية"
+      ],
+      "legalBasis": "الفصل 191 من مجلة الأحوال الشخصية"
+    },
+    "expectedArticles": [
+      "الفصل 191"
+    ],
+    "goldChunkIds": [
+      "28fe64ce-262a-4f74-b0bd-5e6d5460bcec",
+      "89977a9d-0cbd-48a9-ba00-83e5be506378"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "5ea73bfa-63df-487a-92fa-bb4fea374383"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "famille_2026_08",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "question": "هل التبني قانوني في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، بشرط أن يكون المتبني رشيداً"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 27 لسنة 1958 المؤرخ في 4 مارس 1958"
+      ],
+      "legalBasis": "القانون عدد 27 لسنة 1958 المؤرخ في 4 مارس 1958"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "df858a37-2745-409e-8636-971d4b316485"
+    ],
+    "goldDocumentIds": [
+      "1c73ef73-e897-4024-9a77-fd74567905c4"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "famille_2026_09",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "question": "ما هي مدة العدة للمرأة المطلقة؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "ثلاثة قروء (أطهار)"
+      ],
+      "mandatoryCitations": [
+        "الفصل 35 من مجلة الأحوال الشخصية"
+      ],
+      "legalBasis": "الفصل 35 من مجلة الأحوال الشخصية"
+    },
+    "expectedArticles": [
+      "الفصل 35"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "famille_2026_10",
+    "domain": "droit_famille",
+    "difficulty": "medium",
+    "question": "هل يرث القاتل عمداً موروثه في القانون التونسي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا، القتل العمد من موانع الإرث"
+      ],
+      "mandatoryCitations": [
+        "الفصل 88 من مجلة الأحوال الشخصية"
+      ],
+      "legalBasis": "الفصل 88 من مجلة الأحوال الشخصية"
+    },
+    "expectedArticles": [
+      "الفصل 88"
+    ],
+    "goldChunkIds": [
+      "6352c148-cd2f-4c81-83e1-edc4421289d2"
+    ],
+    "goldDocumentIds": [
+      "a966f7e8-caa0-4766-9a75-36746189be4f"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "civil_2026_01",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "question": "ما هو سن الرشد المدني في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "18 سنة كاملة"
+      ],
+      "mandatoryCitations": [
+        "الفصل 7 من مجلة الالتزامات والعقود"
+      ],
+      "legalBasis": "الفصل 7 من مجلة الالتزامات والعقود"
+    },
+    "expectedArticles": [
+      "الفصل 7"
+    ],
+    "goldChunkIds": [
+      "01bdf16a-3018-4cec-b734-260be0bdfc7a"
+    ],
+    "goldDocumentIds": [
+      "163934a2-b950-49c6-b3b3-0300db3e46af"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "civil_2026_02",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "question": "ما هي مدة التقادم المسقط للحقوق الشخصية؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "15 سنة ما لم ينص القانون على خلاف ذلك"
+      ],
+      "mandatoryCitations": [
+        "الفصل 402 من مجلة الالتزامات والعقود"
+      ],
+      "legalBasis": "الفصل 402 من مجلة الالتزامات والعقود"
+    },
+    "expectedArticles": [
+      "الفصل 402"
+    ],
+    "goldChunkIds": [
+      "f80a3ee8-aa01-4710-b863-ed3154d82b10",
+      "0e3e2e96-ec8c-421b-ac71-5183cc550bb8",
+      "5e78596a-290d-4a00-b005-64777a61bc99",
+      "fc63bec1-3e7b-4e8c-b3ea-59a44841063a",
+      "22aee245-d78a-496a-9560-39c178a01f93"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "civil_2026_03",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "question": "هل الكتابة شرط لصحة عقد بيع العقار؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، يجب أن يكون بكتب ثابت التاريخ"
+      ],
+      "mandatoryCitations": [
+        "الفصل 581 من مجلة الالتزامات والعقود"
+      ],
+      "legalBasis": "الفصل 581 من مجلة الالتزامات والعقود"
+    },
+    "expectedArticles": [
+      "الفصل 581"
+    ],
+    "goldChunkIds": [
+      "da0eb0cc-7083-43b1-bdb3-0c0ed0e52c2b",
+      "c79ed9bd-904f-46f9-9e28-235a12b844e2",
+      "490ecf5a-c54d-430e-ab10-0b0ac4b35818",
+      "5f79c4bf-7ee9-4d19-8d4d-077cbf2019b9",
+      "9cad281f-2a20-47e3-bd2e-6501d509c5bf"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "civil_2026_04",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "question": "ما هي عناصر المسؤولية التقصيرية الثلاثة؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الخطأ، الضرر، والعلاقة السببية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 82 من مجلة الالتزامات والعقود",
+        "الفصل 83 من مجلة الالتزامات والعقود"
+      ],
+      "legalBasis": "الفصل 82 من مجلة الالتزامات والعقود"
+    },
+    "expectedArticles": [
+      "الفصل 82",
+      "الفصل 83"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "civil_2026_05",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "question": "هل السكوت يعتبر قبولاً في العقود؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا، السكوت بمجرده لا يعتبر قبولاً إلا إذا وجد تعامل سابق بين الطرفين"
+      ],
+      "mandatoryCitations": [
+        "الفصل 29 من مجلة الالتزامات والعقود"
+      ],
+      "legalBasis": "الفصل 29 من مجلة الالتزامات والعقود"
+    },
+    "expectedArticles": [
+      "الفصل 29"
+    ],
+    "goldChunkIds": [
+      "89091e58-67e5-43ab-bf0b-17120ae5bc0f"
+    ],
+    "goldDocumentIds": [
+      "f9c7fd15-08f4-4d43-81e8-cdb6f485351f"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "civil_2026_06",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "question": "ما هو أثر القوة القاهرة على الالتزام التعاقدي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "تعفي المدين من تنفيذ التزامه دون تحميله التعويض"
+      ],
+      "mandatoryCitations": [
+        "الفصل 283 من مجلة الالتزامات والعقود"
+      ],
+      "legalBasis": "الفصل 283 من مجلة الالتزامات والعقود"
+    },
+    "expectedArticles": [
+      "الفصل 283"
+    ],
+    "goldChunkIds": [
+      "7ced82ea-5d38-4106-a445-75aaca40e920",
+      "2dfbbba3-53d1-4bdf-a6f6-76047ae197d6",
+      "c4fb11de-599d-466f-837e-51395656bb5d",
+      "b68c320a-3dc6-43b3-a2c9-f5b5e551efca",
+      "6e97bcb8-2cfc-4b89-89b6-ab97930dfa79"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "civil_2026_07",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "question": "ما هو \"الرهن الرسمي\"؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "عقد يخصص به عقار لضمان أداء التزام ويكون مسجلاً"
+      ],
+      "mandatoryCitations": [
+        "الفصل 201 من مجلة الحقوق العينية"
+      ],
+      "legalBasis": "الفصل 201 من مجلة الحقوق العينية"
+    },
+    "expectedArticles": [
+      "الفصل 201"
+    ],
+    "goldChunkIds": [
+      "aa99359b-7b3d-460b-bdba-8958c2d2f3a0"
+    ],
+    "goldDocumentIds": [
+      "343ceeaa-c39b-443d-b9fd-a3a101f2bf35"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "civil_2026_08",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "question": "ما هو أجل ممارسة حق الشفعة في تونس؟",
+    "intentType": "procedural",
+    "expectedAnswer": {
+      "keyPoints": [
+        "شهر من تاريخ إعلام الشفيع بالبيع"
+      ],
+      "mandatoryCitations": [
+        "الفصل 115 من مجلة الحقوق العينية"
+      ],
+      "legalBasis": "الفصل 115 من مجلة الحقوق العينية"
+    },
+    "expectedArticles": [
+      "الفصل 115"
+    ],
+    "goldChunkIds": [
+      "6b8a7791-4cea-4922-aa42-b6f1516570f4",
+      "8335e991-556f-4655-b414-67ddb45a050f",
+      "6e9db861-e3df-4874-8ba4-e2892a0c9275",
+      "a9b8b6b9-3a08-4c42-9cba-76c85e7e6f03"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "70e2a054-a8d8-47d9-8230-f49051ca0aff"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "civil_2026_09",
+    "domain": "droit_civil",
+    "difficulty": "medium",
+    "question": "هل يجوز بيع ملك الغير في القانون التونسي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "بيع ملك الغير باطل إلا إذا أقره المالك أو أصبح المبيع ملكاً للبائع لاحقاً"
+      ],
+      "mandatoryCitations": [
+        "الفصل 576 من مجلة الالتزامات والعقود"
+      ],
+      "legalBasis": "الفصل 576 من مجلة الالتزامات والعقود"
+    },
+    "expectedArticles": [
+      "الفصل 576"
+    ],
+    "goldChunkIds": [
+      "1a40ecd6-ab30-40b8-896a-2ed9bdee2dd9"
+    ],
+    "goldDocumentIds": [
+      "5a131435-3a6e-446a-b9ce-ccea44b88c0c"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "civil_2026_10",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "question": "ما هي الغرامة التهديدية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "مبلغ مالي يفرضه القاضي عن كل يوم تأخير لإجبار المدين على التنفيذ"
+      ],
+      "mandatoryCitations": [
+        "الفصل 273 من مجلة الالتزامات والعقود"
+      ],
+      "legalBasis": "الفصل 273 من مجلة الالتزامات والعقود"
+    },
+    "expectedArticles": [
+      "الفصل 273"
+    ],
+    "goldChunkIds": [
+      "4415cac8-490c-4fa7-bf23-e851e7234d7b"
+    ],
+    "goldDocumentIds": [
+      "a966f7e8-caa0-4766-9a75-36746189be4f"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "penal_2026_01",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "ما هي عقوبة الشيك بدون رصيد بعد تعديل 2024؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "تم إلغاء العقوبة السجنية للمبالغ الصغيرة (أقل من 5 آلاف دينار) مع إجراءات تسوية جديدة"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 41 لسنة 2024 المعدل لمجلة التجارة"
+      ],
+      "legalBasis": "القانون عدد 41 لسنة 2024 المعدل لمجلة التجارة"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "6f485315-3dbc-44f8-b670-44a4aa4fb55d",
+      "f335ed2c-04de-4435-8491-cd36f22b0d9c",
+      "6c6c900c-adb2-496a-9827-9dccb9b72e24",
+      "4cee6224-bf26-4056-99bf-a032b368733c",
+      "7af59be3-2ff3-439e-9256-fdc120267b4f"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "penal_2026_02",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "ما هي مدة الاحتفاظ القصوى في الجنح؟",
+    "intentType": "procedural",
+    "expectedAnswer": {
+      "keyPoints": [
+        "48 ساعة قابلة للتمديد مرة واحدة"
+      ],
+      "mandatoryCitations": [
+        "الفصل 13 مكرر من مجلة الإجراءات الجزائية"
+      ],
+      "legalBasis": "الفصل 13 مكرر من مجلة الإجراءات الجزائية"
+    },
+    "expectedArticles": [
+      "الفصل 13 مكرر"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "penal_2026_03",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "ما هي عقوبة القذف العلني عبر وسائل التواصل الاجتماعي؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن لمدة قد تصل إلى 5 سنوات وخطية مالية كبيرة"
+      ],
+      "mandatoryCitations": [
+        "الفصل 24 من المرسوم عدد 54 لسنة 2022"
+      ],
+      "legalBasis": "الفصل 24 من المرسوم عدد 54 لسنة 2022"
+    },
+    "expectedArticles": [
+      "الفصل 24"
+    ],
+    "goldChunkIds": [
+      "50e50071-b6c9-40cf-bb5a-5e2f85dc9474",
+      "6f485315-3dbc-44f8-b670-44a4aa4fb55d",
+      "6c6c900c-adb2-496a-9827-9dccb9b72e24",
+      "4cee6224-bf26-4056-99bf-a032b368733c",
+      "f3eb65de-b030-4d75-95f4-3ca48bff2500"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "penal_2026_04",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "هل تسقط الجريمة بمضي الزمن؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم: 10 سنوات للجنايات، 3 سنوات للجنح، وعام للمخالفات"
+      ],
+      "mandatoryCitations": [
+        "الفصل 5 من مجلة الإجراءات الجزائية"
+      ],
+      "legalBasis": "الفصل 5 من مجلة الإجراءات الجزائية"
+    },
+    "expectedArticles": [
+      "الفصل 5"
+    ],
+    "goldChunkIds": [
+      "486c31f3-f3e3-45a5-9739-a78d147dc0d5",
+      "0d5d0e38-d8cf-4197-b98a-4b5aa903861a",
+      "a73b5c45-ff82-4294-9df0-5c54deac1734",
+      "a3171e1b-f971-4106-b448-8d4e717e1d33"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "penal_2026_05",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "ما هي عقوبة جريمة التحيل في القانون التونسي؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن لمدة 5 سنوات وخطية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 291 من المجلة الجزائية"
+      ],
+      "legalBasis": "الفصل 291 من المجلة الجزائية"
+    },
+    "expectedArticles": [
+      "الفصل 291"
+    ],
+    "goldChunkIds": [
+      "0f45b8a2-1727-4956-9742-3d1470f54b35",
+      "343e440e-34a2-4b98-9e23-7c2b1a2ff0f9",
+      "6f485315-3dbc-44f8-b670-44a4aa4fb55d",
+      "6c6c900c-adb2-496a-9827-9dccb9b72e24",
+      "4cee6224-bf26-4056-99bf-a032b368733c"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "penal_2026_06",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "هل يعاقب القانون التونسي على محاولة الجريمة؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، يعاقب على المحاولة في الجنايات دائماً وفي الجنح بنص خاص"
+      ],
+      "mandatoryCitations": [
+        "الفصل 59 من المجلة الجزائية"
+      ],
+      "legalBasis": "الفصل 59 من المجلة الجزائية"
+    },
+    "expectedArticles": [
+      "الفصل 59"
+    ],
+    "goldChunkIds": [
+      "a73b5c45-ff82-4294-9df0-5c54deac1734",
+      "4ac56a38-967b-4fb0-82e1-cd3141bbd57f",
+      "ae4b084e-0261-4ec9-a63d-f70266f65725",
+      "146dbfe5-6c46-4707-89f4-145e6fbf9e43",
+      "9120a1b2-24bf-4f47-904c-1cb7e3829b15"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "penal_2026_07",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "ما هي \"النيابة العمومية\" في القانون التونسي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "هي الجهة التي تثير الدعوى العمومية وتمثل المجتمع"
+      ],
+      "mandatoryCitations": [
+        "الفصل 20 من مجلة الإجراءات الجزائية"
+      ],
+      "legalBasis": "الفصل 20 من مجلة الإجراءات الجزائية"
+    },
+    "expectedArticles": [
+      "الفصل 20"
+    ],
+    "goldChunkIds": [
+      "59a0be2f-ace1-4a30-92d2-0369e45ffb0a",
+      "81018f09-f72d-428a-b875-a9ac37f0a266"
+    ],
+    "goldDocumentIds": [
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "8b962a29-339d-40cc-8f7f-11032ce38a33"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "penal_2026_08",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "هل يجوز تفتيش المسكن ليلاً؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا يجوز تفتيش المساكن قبل السادسة صباحاً ولا بعد الثامنة مساءً إلا في حالات التلبس أو الضرورة القصوى"
+      ],
+      "mandatoryCitations": [
+        "الفصل 95 من مجلة الإجراءات الجزائية"
+      ],
+      "legalBasis": "الفصل 95 من مجلة الإجراءات الجزائية"
+    },
+    "expectedArticles": [
+      "الفصل 95"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "penal_2026_09",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "ما هي عقوبة الرشوة للموظف العمومي؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن لمدة 10 سنوات لكل موظف عمومي تسلم عطايا لأداء عمله"
+      ],
+      "mandatoryCitations": [
+        "الفصل 83 من المجلة الجزائية"
+      ],
+      "legalBasis": "الفصل 83 من المجلة الجزائية"
+    },
+    "expectedArticles": [
+      "الفصل 83"
+    ],
+    "goldChunkIds": [
+      "50e50071-b6c9-40cf-bb5a-5e2f85dc9474",
+      "6f485315-3dbc-44f8-b670-44a4aa4fb55d",
+      "6c6c900c-adb2-496a-9827-9dccb9b72e24",
+      "4cee6224-bf26-4056-99bf-a032b368733c",
+      "cd69ac41-4cc7-44e0-b2a5-06a71db94a96"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "penal_2026_10",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "هل يحق للمظنون فيه حضور محامٍ أثناء البحث الابتدائي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، حق دستوري وقانوني منذ الساعة الأولى للاحتفاظ"
+      ],
+      "mandatoryCitations": [
+        "الفصل 13 مكرر من مجلة الإجراءات الجزائية"
+      ],
+      "legalBasis": "الفصل 13 مكرر من مجلة الإجراءات الجزائية"
+    },
+    "expectedArticles": [
+      "الفصل 13 مكرر"
+    ],
+    "goldChunkIds": [
+      "80bf9ee6-f65f-45d0-853a-030d7a05d491"
+    ],
+    "goldDocumentIds": [
+      "47dc7fd1-2c26-4847-901c-01abe05540ed"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_2026_01",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "ما هي مدة الراحة الأسبوعية الإجبارية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "24 ساعة متتالية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 95 من مجلة الشغل"
+      ],
+      "legalBasis": "الفصل 95 من مجلة الشغل"
+    },
+    "expectedArticles": [
+      "الفصل 95"
+    ],
+    "goldChunkIds": [
+      "d5e6a7b7-1532-43fc-b607-9cb96279d1f8"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_2026_02",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "ما هو أجل التصريح بحادث شغل؟",
+    "intentType": "procedural",
+    "expectedAnswer": {
+      "keyPoints": [
+        "48 ساعة من وقوع الحادث"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 28 لسنة 1994 المتعلق بحوادث الشغل"
+      ],
+      "legalBasis": "القانون عدد 28 لسنة 1994 المتعلق بحوادث الشغل"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "1b4b1d6b-ffd3-4d3a-8e81-4fa93d5c35db"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_2026_03",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "هل الطرد لسبب نقابي قانوني؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا، يعتبر طرداً تعسفياً ويوجب التعويض"
+      ],
+      "mandatoryCitations": [
+        "الفصل 62 مكرر من مجلة الشغل"
+      ],
+      "legalBasis": "الفصل 62 مكرر من مجلة الشغل"
+    },
+    "expectedArticles": [
+      "الفصل 62 مكرر"
+    ],
+    "goldChunkIds": [
+      "6c0695e0-1a89-4370-bfe8-63471fe2aa01"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_2026_04",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "ما هي مدة عطلة الأمومة وفق قانون 2024؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "3 أشهر في القطاعين العام والخاص"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 42 لسنة 2024 المتعلق بعطل الأمومة والأبوة"
+      ],
+      "legalBasis": "القانون عدد 42 لسنة 2024 المتعلق بعطل الأمومة والأبوة"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "38d066d5-5570-48e1-84b3-052870cd92ae"
+    ],
+    "goldDocumentIds": [
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_2026_05",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "متى يستحق العامل منحة الطرد؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "بعد قضاء عام من العمل الفعلي لدى نفس المشغل"
+      ],
+      "mandatoryCitations": [
+        "الفصل 53 من مجلة الشغل"
+      ],
+      "legalBasis": "الفصل 53 من مجلة الشغل"
+    },
+    "expectedArticles": [
+      "الفصل 53"
+    ],
+    "goldChunkIds": [
+      "cfebcf4b-0548-4654-883f-da3410d9d5d0"
+    ],
+    "goldDocumentIds": [
+      "e20dccfc-d75d-4e30-b737-4294e8d6b53f"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_2026_06",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "ما هي الساعات الإضافية وما هي قواعدها؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الساعات التي تتجاوز المدة القانونية (48 أو 40 ساعة) وتدفع بزيادة"
+      ],
+      "mandatoryCitations": [
+        "الفصل 90 من مجلة الشغل"
+      ],
+      "legalBasis": "الفصل 90 من مجلة الشغل"
+    },
+    "expectedArticles": [
+      "الفصل 90"
+    ],
+    "goldChunkIds": [
+      "544f4946-f9ab-4f91-be54-d53c8f191ade",
+      "e62701c3-3926-4aa3-a170-3fcbdf481895"
+    ],
+    "goldDocumentIds": [
+      "a19cc5f8-1970-4374-a9ac-84cc8f0cf42b"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_2026_07",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "هل يجوز تشغيل الأطفال دون سن 16؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا يجوز تشغيل الأطفال الذين يقل سنهم عن 16 عاماً"
+      ],
+      "mandatoryCitations": [
+        "الفصل 53 من مجلة الشغل"
+      ],
+      "legalBasis": "الفصل 53 من مجلة الشغل"
+    },
+    "expectedArticles": [
+      "الفصل 53"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_2026_08",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "ما هو دور تفقدية الشغل؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "مراقبة تطبيق قانون الشغل ومحاولة الصلح بين الأجير والمشغل"
+      ],
+      "mandatoryCitations": [
+        "الفصل 170 من مجلة الشغل"
+      ],
+      "legalBasis": "الفصل 170 من مجلة الشغل"
+    },
+    "expectedArticles": [
+      "الفصل 170"
+    ],
+    "goldChunkIds": [
+      "76c0c578-1fb6-4f6c-b8b2-bff74f82f5ca"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_2026_09",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "هل يمكن فسخ عقد الشغل أثناء فترة التجربة؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، دون سابق إعلام أو تعويض"
+      ],
+      "mandatoryCitations": [
+        "الفصل 6 من مجلة الشغل"
+      ],
+      "legalBasis": "الفصل 6 من مجلة الشغل"
+    },
+    "expectedArticles": [
+      "الفصل 6"
+    ],
+    "goldChunkIds": [
+      "15a5801c-88b1-4537-9983-1a24e15dac26",
+      "f9c851af-0098-4d15-aa85-fb53a52875ca",
+      "027836c0-58d8-4fd8-89c2-baf6196c80ae",
+      "1763bf8d-a754-47b3-ac10-b854e1aff238",
+      "6b8ed87e-82f5-4136-a732-e01deecdc0af"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "abc08b11-4eb6-4e26-8af9-0b73297da3a7"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_2026_10",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "ما هو \"السميغ\" (SMIG) في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الأجر الأدنى المضمون لمختلف المهن الذي يحدده أمر"
+      ],
+      "mandatoryCitations": [
+        "الفصل 134 من مجلة الشغل"
+      ],
+      "legalBasis": "الفصل 134 من مجلة الشغل"
+    },
+    "expectedArticles": [
+      "الفصل 134"
+    ],
+    "goldChunkIds": [
+      "d29a3659-5564-4311-8f6f-1ffd120d530c"
+    ],
+    "goldDocumentIds": [
+      "eeac2749-06bd-4345-95b6-090da142e591"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "commercial_2026_01",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هي شروط الحصول على علامة \"مؤسسة ناشئة\" (Startup Act)؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الابتكار، نموذج اقتصادي قابل للتوسع، وقوة تكنولوجية"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 20 لسنة 2018 (Startup Act)"
+      ],
+      "legalBasis": "القانون عدد 20 لسنة 2018 (Startup Act)"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "78258104-3c8d-4a96-bf49-7c878be153af",
+      "0d94d4ab-0309-4226-a5d3-50d797c30111",
+      "3f4db468-673d-4e7b-a5cc-9bb630a89f51",
+      "1017f883-4e4b-4fc6-b182-9e2b4947b261",
+      "3ba551b9-9113-4e37-91ed-ebeee8a3b0eb"
+    ],
+    "goldDocumentIds": [
+      "1aead0f1-538a-49f3-bba7-a938b71b3adb"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "commercial_2026_02",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "هل المؤسسة الناشئة الحاصلة على علامة معفاة من الضرائب؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، تعفى من الضريبة على الشركات طوال مدة العلامة (Label)"
+      ],
+      "mandatoryCitations": [
+        "الفصل 12 من القانون عدد 20 لسنة 2018"
+      ],
+      "legalBasis": "الفصل 12 من القانون عدد 20 لسنة 2018"
+    },
+    "expectedArticles": [
+      "الفصل 12"
+    ],
+    "goldChunkIds": [
+      "faa4dc02-1329-4b5a-9a14-d48d89d7c85c"
+    ],
+    "goldDocumentIds": [
+      "f375a55e-ddef-4309-9b55-e48faacc6e85"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "commercial_2026_03",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هو عدد الشركاء الأدنى في شركة خفية الاسم (SA)؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "7 مساهمين على الأقل"
+      ],
+      "mandatoryCitations": [
+        "الفصل 160 من مجلة الشركات التجارية"
+      ],
+      "legalBasis": "الفصل 160 من مجلة الشركات التجارية"
+    },
+    "expectedArticles": [
+      "الفصل 160"
+    ],
+    "goldChunkIds": [
+      "93fddf65-b5f1-43b6-9fcb-8954a067db40",
+      "4a2c8084-5b67-4d12-b7f0-66c2463df29b",
+      "b9c7f91d-6d63-4896-919c-390214eed918"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "commercial_2026_04",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "هل يمكن إنشاء شركة ذات مسؤولية محدودة بشخص واحد؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، تسمى شركة الشخص الواحد (SUARL)"
+      ],
+      "mandatoryCitations": [
+        "الفصل 148 من مجلة الشركات التجارية"
+      ],
+      "legalBasis": "الفصل 148 من مجلة الشركات التجارية"
+    },
+    "expectedArticles": [
+      "الفصل 148"
+    ],
+    "goldChunkIds": [
+      "69d260eb-3fe2-4e64-a995-eb069bd71a9f",
+      "e3c6aec5-d634-43f1-b1e4-b58f28665087"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "commercial_2026_05",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هو السجل الوطني للمؤسسات؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "قاعدة بيانات مركزية تسجل فيها جميع الشركات والمهنيين"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 52 لسنة 2018"
+      ],
+      "legalBasis": "القانون عدد 52 لسنة 2018"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "f6c4f490-f692-4664-ae21-8e378ded4f0c"
+    ],
+    "goldDocumentIds": [
+      "a38d206f-25fe-42f0-9294-461daf40d737"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "commercial_2026_06",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هو أجل تقادم الديون التجارية بين التجار؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "5 سنوات بين التجار"
+      ],
+      "mandatoryCitations": [
+        "الفصل 266 من مجلة التجارة"
+      ],
+      "legalBasis": "الفصل 266 من مجلة التجارة"
+    },
+    "expectedArticles": [
+      "الفصل 266"
+    ],
+    "goldChunkIds": [
+      "ea2f349d-8a1c-40ff-90f2-5a4d84205441"
+    ],
+    "goldDocumentIds": [
+      "5ea73bfa-63df-487a-92fa-bb4fea374383"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "commercial_2026_07",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هو \"الأصل التجاري\"؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "ملكية معنوية تضم عناصر مادية (معدات) ومعنوية (حرفاء، اسم تجاري)"
+      ],
+      "mandatoryCitations": [
+        "قانون 24 أفريل 1930"
+      ],
+      "legalBasis": "قانون 24 أفريل 1930"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "ed3abf14-7311-44f1-812a-cb80c3e08670",
+      "767dd9cf-31b3-4036-8285-8220a11f4319",
+      "4624fdc4-b020-4416-836b-0a30f830edf2"
+    ],
+    "goldDocumentIds": [
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "commercial_2026_08",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "متى تعتبر الشركة في حالة \"توقف عن الدفع\"؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "عندما تعجز عن مواجهة ديونها المستحقة بما لديها من سيولة"
+      ],
+      "mandatoryCitations": [
+        "الفصل 413 من مجلة التجارة"
+      ],
+      "legalBasis": "الفصل 413 من مجلة التجارة"
+    },
+    "expectedArticles": [
+      "الفصل 413"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "commercial_2026_09",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "هل يمكن رهن الأصل التجاري؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، لضمان القروض البنكية ويجب تسجيله"
+      ],
+      "mandatoryCitations": [
+        "قانون 1930 المتعلق بالأصول التجارية"
+      ],
+      "legalBasis": "قانون 1930 المتعلق بالأصول التجارية"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "commercial_2026_10",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هي عقوبة عدم مسك محاسبة قانونية للتاجر؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "خطايا مالية وفقدان الحق في الدفاع ضد التقديرات الإدارية للجباية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 62 من مجلة الضريبة على دخل الأشخاص الطبيعيين"
+      ],
+      "legalBasis": "الفصل 62 من مجلة الضريبة على دخل الأشخاص الطبيعيين"
+    },
+    "expectedArticles": [
+      "الفصل 62"
+    ],
+    "goldChunkIds": [
+      "c0371808-3d0a-4a5e-96b0-aa360e5d5940",
+      "8b21ae89-61fd-46c0-a02a-2e8e9c0d34fb",
+      "9e6203c9-eb7c-41e0-b382-eee9c45b65d0",
+      "4cee6224-bf26-4056-99bf-a032b368733c",
+      "51e2f9b4-1c5e-4254-9b2b-dd8603beb1f8"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "immobilier_2026_01",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "question": "ما هو \"الرسم العقاري\"؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "هو السجل الذي تفتحه إدارة الملكية العقارية لكل عقار مسجل"
+      ],
+      "mandatoryCitations": [
+        "الفصل 305 من مجلة الحقوق العينية"
+      ],
+      "legalBasis": "الفصل 305 من مجلة الحقوق العينية"
+    },
+    "expectedArticles": [
+      "الفصل 305"
+    ],
+    "goldChunkIds": [
+      "f6272585-5e8d-488a-8e5c-1af70e4274af",
+      "0d70dba4-8aa1-4df3-9673-406747de699a",
+      "b1be8943-2b91-4d34-a535-da1c6ff731f2",
+      "02c4c990-308c-4738-b2ae-11f7b67e71c1",
+      "a6b8bffd-22b7-4075-8e19-fa1bd4f1366c"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "immobilier_2026_02",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "question": "هل يمكن للأجانب تملك الأراضي الفلاحية في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا، يمنع على غير التونسيين تملك الأراضي الفلاحية"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 56 لسنة 1969"
+      ],
+      "legalBasis": "القانون عدد 56 لسنة 1969"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "immobilier_2026_03",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "question": "ما هي \"الشهادة الملكية\"؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "وثيقة رسمية تسلمها إدارة الملكية العقارية تثبت صاحب العقار وتحملاته"
+      ],
+      "mandatoryCitations": [
+        "الفصل 391 من مجلة الحقوق العينية"
+      ],
+      "legalBasis": "الفصل 391 من مجلة الحقوق العينية"
+    },
+    "expectedArticles": [
+      "الفصل 391"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "immobilier_2026_04",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "question": "ما هو \"حق الارتفاق\"؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "عبء مفروض على عقار لفائدة عقار آخر (مثل حق المرور)"
+      ],
+      "mandatoryCitations": [
+        "الفصل 165 من مجلة الحقوق العينية"
+      ],
+      "legalBasis": "الفصل 165 من مجلة الحقوق العينية"
+    },
+    "expectedArticles": [
+      "الفصل 165"
+    ],
+    "goldChunkIds": [
+      "0e7ed8cc-16ad-4361-b536-8351e67ead9c",
+      "86ada3a1-ddce-4bb5-a38e-267901d8aa32",
+      "1b5052bc-271c-4d09-832d-e99cdb086b13",
+      "007b369b-decf-4505-9ba3-b100a80da195",
+      "a0290073-2a73-4787-af77-7b91444f25d1"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "immobilier_2026_05",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "question": "ما هو الفرق بين الحوز والملكية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الحوز وضع يد مادي، والملكية حق قانوني مسجل"
+      ],
+      "mandatoryCitations": [
+        "الفصل 38 من مجلة الحقوق العينية"
+      ],
+      "legalBasis": "الفصل 38 من مجلة الحقوق العينية"
+    },
+    "expectedArticles": [
+      "الفصل 38"
+    ],
+    "goldChunkIds": [
+      "a675432e-47bc-4443-a52c-84326b059b43"
+    ],
+    "goldDocumentIds": [
+      "81975fe9-9296-40fd-8bfa-334848b76f9e"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "immobilier_2026_06",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "question": "ما هي \"القيد الاحتياطي\" في مجلة الحقوق العينية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "إجراء مؤقت في السجل العقاري لحفظ حقوق متنازع عليها"
+      ],
+      "mandatoryCitations": [
+        "الفصل 366 من مجلة الحقوق العينية"
+      ],
+      "legalBasis": "الفصل 366 من مجلة الحقوق العينية"
+    },
+    "expectedArticles": [
+      "الفصل 366"
+    ],
+    "goldChunkIds": [
+      "1dcd588b-b606-45d9-a88b-dacf046aa9d9",
+      "fad3563a-9280-4130-b1a7-bacb1472fdf6",
+      "6196e507-7981-4bad-939e-1be1a4ab3f4b",
+      "310460d1-e975-4c85-a01d-83ffc4607fda",
+      "6045915c-f4c4-4262-b89d-a7d1109b291d"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "immobilier_2026_07",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "question": "هل التسجيل العقاري إجباري في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "اختياري عموماً، وإجباري في مناطق المسح العقاري"
+      ],
+      "mandatoryCitations": [
+        "الفصل 306 من مجلة الحقوق العينية"
+      ],
+      "legalBasis": "الفصل 306 من مجلة الحقوق العينية"
+    },
+    "expectedArticles": [
+      "الفصل 306"
+    ],
+    "goldChunkIds": [
+      "f86d4da7-f115-4517-8f39-b187ca864b50",
+      "75872472-fae3-49ab-bedf-d203155628f5",
+      "a6b8bffd-22b7-4075-8e19-fa1bd4f1366c",
+      "7d31a72a-3d1d-4c8e-a1bc-9420a7a8baa8",
+      "6b88061a-e255-45c7-8c7f-8ca07807d924"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "immobilier_2026_08",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "question": "ما هو \"اتحاد الملاكين\" (Syndic)؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "هيكل يدير الأجزاء المشتركة في العمارات السكنية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 42 من مجلة الحقوق العينية"
+      ],
+      "legalBasis": "الفصل 42 من مجلة الحقوق العينية"
+    },
+    "expectedArticles": [
+      "الفصل 42"
+    ],
+    "goldChunkIds": [
+      "f739591e-cc60-4c04-a0de-b9007ae4a6eb"
+    ],
+    "goldDocumentIds": [
+      "15e7381b-be86-4e98-be17-f9d599232880"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "immobilier_2026_09",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "question": "ما هي المحكمة المختصة في الطعون العقارية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "المحكمة العقارية، مختصة في النظر في مطالب التسجيل العقاري والتحيين"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 34 لسنة 1964"
+      ],
+      "legalBasis": "القانون عدد 34 لسنة 1964"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "b1bc72b9-43fe-4f09-a14b-106c5ff7f45c",
+      "75872472-fae3-49ab-bedf-d203155628f5",
+      "540d0d1e-a4de-4bdf-9486-e8518f56f4f6"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "6f41bc8c-4169-4879-aa5d-3d180bfb0407"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "immobilier_2026_10",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "question": "ما هو أجل الطعن في قرارات المحافظ على الملكية العقارية؟",
+    "intentType": "procedural",
+    "expectedAnswer": {
+      "keyPoints": [
+        "شهر من تاريخ التبليغ أمام المحكمة الابتدائية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 397 من مجلة الحقوق العينية"
+      ],
+      "legalBasis": "الفصل 397 من مجلة الحقوق العينية"
+    },
+    "expectedArticles": [
+      "الفصل 397"
+    ],
+    "goldChunkIds": [
+      "eca236f3-ea09-4a60-96b2-562c48c762eb",
+      "f7dd2862-5264-4df4-9f05-e640245cc61b",
+      "c4968eed-940f-4347-82de-18faf9655d79",
+      "3b4f8842-5284-4ea9-8023-f07f8e00532f"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cheque_2026_01",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هي المنصة المعتمدة للتحقق من رصيد الشيك في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "منصة إلكترونية تابعة للبنك المركزي التونسي"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 41 لسنة 2024 (الفصل 410 مكرر)"
+      ],
+      "legalBasis": "القانون عدد 41 لسنة 2024 (الفصل 410 مكرر)"
+    },
+    "expectedArticles": [
+      "الفصل 410 مكرر"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cheque_2026_02",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "هل يمكن للمصرف رفض تسليم دفتر صكوك دون تبرير؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا، يجب أن يكون الرفض معللاً كتابياً"
+      ],
+      "mandatoryCitations": [
+        "الفصل 410 من مجلة التجارة"
+      ],
+      "legalBasis": "الفصل 410 من مجلة التجارة"
+    },
+    "expectedArticles": [
+      "الفصل 410"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cheque_2026_03",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هو السقف المالي للشيك الذي لا يترتب عنه تتبع جزائي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "5 آلاف دينار (شرط التسوية)"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 41 لسنة 2024"
+      ],
+      "legalBasis": "القانون عدد 41 لسنة 2024"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cheque_2026_04",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هي عقوبة إصدار شيك دون رصيد لمبلغ يفوق 5 آلاف دينار؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن لمدة عامين وخطية مالية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 411 من مجلة التجارة (منقح)"
+      ],
+      "legalBasis": "الفصل 411 من مجلة التجارة (منقح)"
+    },
+    "expectedArticles": [
+      "الفصل 411"
+    ],
+    "goldChunkIds": [
+      "6f485315-3dbc-44f8-b670-44a4aa4fb55d",
+      "6c6c900c-adb2-496a-9827-9dccb9b72e24",
+      "31d7e843-2b95-4163-9c29-1be9d7d02f49",
+      "efb824a2-9f5e-4752-b623-1ba65f29c3cd",
+      "732dc84d-3627-484c-8f86-733e50a81953"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cheque_2026_05",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "question": "هل تسقط دعوى الحق العام في الشيك بالخلاص؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، الخلاص قبل الحكم أو أثنائه يوقف التتبعات أو تنفيذ العقاب"
+      ],
+      "mandatoryCitations": [
+        "الفصل 412 مكرر من مجلة التجارة"
+      ],
+      "legalBasis": "الفصل 412 مكرر من مجلة التجارة"
+    },
+    "expectedArticles": [
+      "الفصل 412 مكرر"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cheque_2026_06",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هو \"الشيك المسطر\" (Chèque Barré)؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "شيك لا يمكن قبضه نقداً بل يودع في حساب بنكي فقط"
+      ],
+      "mandatoryCitations": [
+        "الفصل 390 من مجلة التجارة"
+      ],
+      "legalBasis": "الفصل 390 من مجلة التجارة"
+    },
+    "expectedArticles": [
+      "الفصل 390"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cheque_2026_07",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هي مدة تقادم الشيك في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "6 أشهر من تاريخ انتهاء أجل التقديم"
+      ],
+      "mandatoryCitations": [
+        "الفصل 401 من مجلة التجارة"
+      ],
+      "legalBasis": "الفصل 401 من مجلة التجارة"
+    },
+    "expectedArticles": [
+      "الفصل 401"
+    ],
+    "goldChunkIds": [
+      "6c487059-27c7-4c14-b37d-66ba7b4e8912"
+    ],
+    "goldDocumentIds": [
+      "c9ad9aa4-6e2c-49c1-9067-9dfd7af95dfb"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cyber_2026_01",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "ما هي عقوبة نشر أخبار زائفة تهدف للإضرار بالأمن العام؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن لمدة 5 سنوات وخطية بـ 50 ألف دينار",
+        "تضاعف إذا كان المستهدف موظفاً عمومياً"
+      ],
+      "mandatoryCitations": [
+        "الفصل 24 من المرسوم عدد 54 لسنة 2022"
+      ],
+      "legalBasis": "الفصل 24 من المرسوم عدد 54 لسنة 2022"
+    },
+    "expectedArticles": [
+      "الفصل 24"
+    ],
+    "goldChunkIds": [
+      "039f70c8-c85c-4a30-8282-72471eead375",
+      "6f485315-3dbc-44f8-b670-44a4aa4fb55d",
+      "6c6c900c-adb2-496a-9827-9dccb9b72e24",
+      "4cee6224-bf26-4056-99bf-a032b368733c",
+      "31d7e843-2b95-4163-9c29-1be9d7d02f49"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cyber_2026_02",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "هل يجوز اعتراض الاتصالات الإلكترونية دون إذن قضائي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا، يجب صدور إذن كتابي معلل من قاضي التحقيق"
+      ],
+      "mandatoryCitations": [
+        "الفصل 9 من المرسوم عدد 54 لسنة 2022"
+      ],
+      "legalBasis": "الفصل 9 من المرسوم عدد 54 لسنة 2022"
+    },
+    "expectedArticles": [
+      "الفصل 9"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cyber_2026_03",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "ما هي عقوبة الدخول غير المصرح به لأنظمة المعالجة الآلية للمعطيات؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن من شهر إلى عام وخطية مالية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 12 من المرسوم عدد 54 لسنة 2022"
+      ],
+      "legalBasis": "الفصل 12 من المرسوم عدد 54 لسنة 2022"
+    },
+    "expectedArticles": [
+      "الفصل 12"
+    ],
+    "goldChunkIds": [
+      "4cee6224-bf26-4056-99bf-a032b368733c",
+      "6f485315-3dbc-44f8-b670-44a4aa4fb55d",
+      "6c6c900c-adb2-496a-9827-9dccb9b72e24",
+      "31d7e843-2b95-4163-9c29-1be9d7d02f49",
+      "efb824a2-9f5e-4752-b623-1ba65f29c3cd"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cyber_2026_04",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "question": "هل تعتبر الرسائل الإلكترونية وسيلة إثبات قانونية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، إذا كانت موثقة ولم يثبت التلاعب بها"
+      ],
+      "mandatoryCitations": [
+        "الفصل 453 مكرر من مجلة الالتزامات والعقود"
+      ],
+      "legalBasis": "الفصل 453 مكرر من مجلة الالتزامات والعقود"
+    },
+    "expectedArticles": [
+      "الفصل 453 مكرر"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cyber_2026_05",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "من هي الهيئة التي تراقب حماية المعطيات الشخصية في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الهيئة الوطنية لحماية المعطيات الشخصية (INPDP)"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 63 لسنة 2004"
+      ],
+      "legalBasis": "القانون عدد 63 لسنة 2004"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "cyber_2026_06",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "question": "ما هي عقوبة معالجة معطيات شخصية دون تصريح لدى INPDP؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن لمدة عام وخطايا مالية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 90 من القانون عدد 63 لسنة 2004"
+      ],
+      "legalBasis": "الفصل 90 من القانون عدد 63 لسنة 2004"
+    },
+    "expectedArticles": [
+      "الفصل 90"
+    ],
+    "goldChunkIds": [
+      "50e50071-b6c9-40cf-bb5a-5e2f85dc9474",
+      "6f485315-3dbc-44f8-b670-44a4aa4fb55d",
+      "6c6c900c-adb2-496a-9827-9dccb9b72e24",
+      "4cee6224-bf26-4056-99bf-a032b368733c",
+      "31d7e843-2b95-4163-9c29-1be9d7d02f49"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "procedure_2026_01",
+    "domain": "procedure",
+    "difficulty": "easy",
+    "question": "ما هي المحكمة المختصة في قضايا التعويض عن حوادث المرور؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "المحكمة الابتدائية (دائرة حوادث المرور)"
+      ],
+      "mandatoryCitations": [
+        "مجلة التأمين والقانون عدد 67 لسنة 1967"
+      ],
+      "legalBasis": "مجلة التأمين والقانون عدد 67 لسنة 1967"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "4b0448b2-b1b7-4044-bf10-5706108ca1e6",
+      "31d7e843-2b95-4163-9c29-1be9d7d02f49"
+    ],
+    "goldDocumentIds": [
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "procedure_2026_02",
+    "domain": "procedure",
+    "difficulty": "easy",
+    "question": "هل يمكن استئناف أحكام قاضي الناحية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، أمام المحكمة الابتدائية بصفتها الاستئنافية إذا فاقت القيمة 2000 دينار"
+      ],
+      "mandatoryCitations": [
+        "الفصل 40 من مجلة المرافعات المدنية والتجارية"
+      ],
+      "legalBasis": "الفصل 40 من مجلة المرافعات المدنية والتجارية"
+    },
+    "expectedArticles": [
+      "الفصل 40"
+    ],
+    "goldChunkIds": [
+      "f87575ae-beb0-4bb4-9d66-b3d30d09272c",
+      "6008d848-e7f6-4f30-a591-cf2e46901770"
+    ],
+    "goldDocumentIds": [
+      "959129bf-7035-47ae-8e23-de0a52959ebe",
+      "1c73ef73-e897-4024-9a77-fd74567905c4"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "procedure_2026_03",
+    "domain": "procedure",
+    "difficulty": "easy",
+    "question": "ما هو أجل الطعن بالتعقيب في المادة المدنية؟",
+    "intentType": "procedural",
+    "expectedAnswer": {
+      "keyPoints": [
+        "30 يوماً من تاريخ تبليغ الحكم الاستئنافي"
+      ],
+      "mandatoryCitations": [
+        "الفصل 180 من مجلة المرافعات المدنية والتجارية"
+      ],
+      "legalBasis": "الفصل 180 من مجلة المرافعات المدنية والتجارية"
+    },
+    "expectedArticles": [
+      "الفصل 180"
+    ],
+    "goldChunkIds": [
+      "eca236f3-ea09-4a60-96b2-562c48c762eb",
+      "010965ae-e6f4-4328-af58-d63051d088b2",
+      "efc9e743-075d-47da-8c0e-a864eb4678de",
+      "b9254d8a-1795-44f2-a9fc-2ca5b3f719af",
+      "98787d6b-fd73-48b0-ab6e-bac7416a676b"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "67e7dbb2-8488-420a-a78c-a6a0b1c8e284",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "procedure_2026_04",
+    "domain": "procedure",
+    "difficulty": "easy",
+    "question": "من يترأس الدائرة الجنائية في محكمة الاستئناف؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "قاضٍ من الرتبة الثالثة يساعده 4 مستشارين"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 67 لسنة 1967 المتعلق بالنظام الأساسي للقضاة"
+      ],
+      "legalBasis": "القانون عدد 67 لسنة 1967 المتعلق بالنظام الأساسي للقضاة"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "e1eb7e78-2701-46d2-90c4-b0636118c94b",
+      "666ec67c-5dfc-449f-8b11-bf17ce7872df"
+    ],
+    "goldDocumentIds": [
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "procedure_2026_05",
+    "domain": "procedure",
+    "difficulty": "easy",
+    "question": "ما هي مهمة وكيل الجمهورية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "رئاسة النيابة العمومية في دائرة المحكمة الابتدائية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 20 من مجلة الإجراءات الجزائية"
+      ],
+      "legalBasis": "الفصل 20 من مجلة الإجراءات الجزائية"
+    },
+    "expectedArticles": [
+      "الفصل 20"
+    ],
+    "goldChunkIds": [
+      "ae4aca4d-72fd-43a4-943d-0c1b0856624c"
+    ],
+    "goldDocumentIds": [
+      "3130c3d8-abf8-4973-acd7-e538dc683b48"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "procedure_2026_06",
+    "domain": "procedure",
+    "difficulty": "easy",
+    "question": "هل تجوز المحاكمة عن بُعد في تونس؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، باستخدام تقنيات الاتصال السمعي البصري بموافقة المتهم"
+      ],
+      "mandatoryCitations": [
+        "المرسوم عدد 12 لسنة 2020"
+      ],
+      "legalBasis": "المرسوم عدد 12 لسنة 2020"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "6570be54-ceba-4095-8cfe-318798fa138d"
+    ],
+    "goldDocumentIds": [
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "fiscal_2026_01",
+    "domain": "droit_fiscal",
+    "difficulty": "easy",
+    "question": "ما هي نسبة الضريبة على الشركات المصدرة كلياً؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "15% (بعد أن كانت معفاة)"
+      ],
+      "mandatoryCitations": [
+        "قانون المالية لسنة 2021"
+      ],
+      "legalBasis": "قانون المالية لسنة 2021"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "26ed7375-2a9d-4b82-b88f-33f7f99d1688",
+      "0d2fb180-52b7-4be6-a406-5152ac60f02c",
+      "dacb6353-bc6b-4dd7-9c7a-9e24e6fe9f8f",
+      "4ed7352e-fdbf-43d4-a9c7-9e9ee59e3e4b",
+      "6514cc74-b98b-48d8-ad92-9d7a367acd6c"
+    ],
+    "goldDocumentIds": [
+      "015de809-0609-4127-a722-19be9ee8dbc7"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "fiscal_2026_02",
+    "domain": "droit_fiscal",
+    "difficulty": "easy",
+    "question": "ما هو أجل تقديم التصريح السنوي بالدخل لأصحاب المهن غير التجارية؟",
+    "intentType": "procedural",
+    "expectedAnswer": {
+      "keyPoints": [
+        "قبل 25 ماي من كل سنة"
+      ],
+      "mandatoryCitations": [
+        "الفصل 60 من مجلة الضريبة على دخل الأشخاص الطبيعيين"
+      ],
+      "legalBasis": "الفصل 60 من مجلة الضريبة على دخل الأشخاص الطبيعيين"
+    },
+    "expectedArticles": [
+      "الفصل 60"
+    ],
+    "goldChunkIds": [
+      "a91b8949-0832-43c9-a0fe-5bb02b92178a"
+    ],
+    "goldDocumentIds": [
+      "015de809-0609-4127-a722-19be9ee8dbc7"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "fiscal_2026_03",
+    "domain": "droit_fiscal",
+    "difficulty": "easy",
+    "question": "ما هي عقوبات التهرب الجبائي في تونس؟",
+    "intentType": "citation_lookup",
+    "expectedAnswer": {
+      "keyPoints": [
+        "خطايا مالية وعقوبات سلب للحرية في حالات التزوير"
+      ],
+      "mandatoryCitations": [
+        "الفصل 92 من مجلة الحقوق والإجراءات الجبائية"
+      ],
+      "legalBasis": "الفصل 92 من مجلة الحقوق والإجراءات الجبائية"
+    },
+    "expectedArticles": [
+      "الفصل 92"
+    ],
+    "goldChunkIds": [
+      "78957495-0e8a-432a-9755-1401f815795f",
+      "b6380132-a782-446b-b318-32a76f58f2f0"
+    ],
+    "goldDocumentIds": [
+      "5ea73bfa-63df-487a-92fa-bb4fea374383",
+      "be1d4b90-ab64-4110-a403-8bed4da5e7bf"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "fiscal_2026_04",
+    "domain": "droit_fiscal",
+    "difficulty": "medium",
+    "question": "هل يمكن إجراء \"صلح جبائي\" مع الإدارة الجبائية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، بمقتضى قوانين المالية الاستثنائية أو مجلة الحقوق والإجراءات الجبائية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 114 من مجلة الحقوق والإجراءات الجبائية"
+      ],
+      "legalBasis": "الفصل 114 من مجلة الحقوق والإجراءات الجبائية"
+    },
+    "expectedArticles": [
+      "الفصل 114"
+    ],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_avance_2026_01",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "ما هو الحد الأقصى لساعات العمل الإضافية في الأسبوع؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "12 ساعة (بشرط ألا يتجاوز مجموع العمل 60 ساعة)"
+      ],
+      "mandatoryCitations": [
+        "الفصل 93 من مجلة الشغل"
+      ],
+      "legalBasis": "الفصل 93 من مجلة الشغل"
+    },
+    "expectedArticles": [
+      "الفصل 93"
+    ],
+    "goldChunkIds": [
+      "b5ad6f7c-e8b6-40aa-9d65-ed9d0e6d63ac",
+      "3a31e732-dfd2-4a97-a6b9-91af7ffe7a2c",
+      "77d4447b-c10a-4412-af88-45f48b2ede20",
+      "5aba84b0-f91c-474b-94b8-82e6c1e97bfc",
+      "4ee7d12e-ccbe-4abb-8432-4c68559acd86"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "abc08b11-4eb6-4e26-8af9-0b73297da3a7"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_avance_2026_02",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "هل يمكن للأجير الاستقالة دون سابق إعلام؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "لا، يجب احترام مدة الإخطار (Préavis) وإلا وجب التعويض"
+      ],
+      "mandatoryCitations": [
+        "الفصل 14 من مجلة الشغل"
+      ],
+      "legalBasis": "الفصل 14 من مجلة الشغل"
+    },
+    "expectedArticles": [
+      "الفصل 14"
+    ],
+    "goldChunkIds": [
+      "82e2ba5c-0f65-4bd0-be96-a883da2fd878"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_avance_2026_03",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "question": "ما هي \"منحة الأقدمية\" في قانون الشغل التونسي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "زيادة دورية في الأجر تحسب حسب سنوات العمل في المؤسسة"
+      ],
+      "mandatoryCitations": [
+        "الاتفاقية الإطارية المشتركة"
+      ],
+      "legalBasis": "الاتفاقية الإطارية المشتركة"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "travail_avance_2026_04",
+    "domain": "droit_travail",
+    "difficulty": "medium",
+    "question": "هل يحق للمشغل تفتيش أغراض العامل الشخصية؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "نعم، بشروط معينة تحفظ كرامة العامل وبإذن أو وجود مبرر جدي"
+      ],
+      "mandatoryCitations": [
+        "فقه قضاء محكمة التعقيب التونسية"
+      ],
+      "legalBasis": "فقه قضاء محكمة التعقيب التونسية"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "ab459897-4c0e-4fdd-8076-045ff0641b7b"
+    ],
+    "goldDocumentIds": [
+      "eb339039-1ef2-4dc0-bf56-bbdddc20ef96"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "contrat_2026_01",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هو عقد \"الليزينغ\" (Leasing) في القانون التونسي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "عقد إيجار ينتهي بنقل الملكية للمستأجر مقابل ثمن متفق عليه"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 41 لسنة 1994"
+      ],
+      "legalBasis": "القانون عدد 41 لسنة 1994"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "ef40e8ae-24d2-4abc-b570-9d3627eeb4a5",
+      "d321d950-63b4-4461-8c5b-e37dc58264fa",
+      "07a8e45b-0f4b-44f2-997f-367afe155752",
+      "f4e79c2c-41ca-40c8-8b76-08e797e7a575",
+      "c35d3215-24cc-485b-a1dc-58e1f151df03"
+    ],
+    "goldDocumentIds": [
+      "eb0e1910-32b1-432f-b51a-950114b06674",
+      "4891f292-801f-45c9-80d2-10b086d8686d"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "contrat_2026_02",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هو عقد \"الفرانشايز\" (Franchise) في القانون التونسي؟",
+    "intentType": "factual",
+    "expectedAnswer": {
+      "keyPoints": [
+        "عقد يمنح بمقتضاه صاحب علامة تجارية الحق لغيره في استغلالها"
+      ],
+      "mandatoryCitations": [
+        "القانون عدد 69 لسنة 2009"
+      ],
+      "legalBasis": "القانون عدد 69 لسنة 2009"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [],
+    "goldDocumentIds": [],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
+  },
+  {
+    "id": "contrat_2026_03",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "question": "ما هو أجل تسجيل العقود التجارية لدى القباضة؟",
+    "intentType": "procedural",
+    "expectedAnswer": {
+      "keyPoints": [
+        "60 يوماً من تاريخ إبرام العقد"
+      ],
+      "mandatoryCitations": [
+        "مجلة المعاليم والتسجيل والطابع الجبائي"
+      ],
+      "legalBasis": "مجلة المعاليم والتسجيل والطابع الجبائي"
+    },
+    "expectedArticles": [],
+    "goldChunkIds": [
+      "ea2f349d-8a1c-40ff-90f2-5a4d84205441"
+    ],
+    "goldDocumentIds": [
+      "5ea73bfa-63df-487a-92fa-bb4fea374383"
+    ],
+    "evaluationCriteria": {
+      "completeness": 75,
+      "accuracy": 90,
+      "citations": 100,
+      "reasoning": 70
+    },
+    "expertValidation": {
+      "validatorId": "batch_import_2026_03",
+      "credentials": "Batch import — 100 questions juridiques tunisiennes (mars 2026)",
+      "validatedAt": "2026-03-07T00:00:00.000Z",
+      "consensus": 1
+    }
   }
 ]
