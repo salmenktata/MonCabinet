@@ -1320,6 +1320,47 @@ export async function crawlCode(
     // 4a. Navigation 2-niveaux spécifique PAGE_CodesJuridiques
     // T-links → L1 (PAGE_NavigationCode) → T2 sub-links → L2 (td.Texte articles)
     await crawlCodesJuridiquesPage(page, session, sourceId, codeName, dryRun, stats)
+
+    // Fallback : certains codes (ex: المجلة الجزائية) atterrissent sur PAGE_CodesJuridiques
+    // sans T-links — leur TOC est directement dans les loopers M18/M78/etc.
+    if (stats.totalSections === 0) {
+      log.info('PAGE_CodesJuridiques sans T-links — fallback parseTocItems (M18/M78/etc.)...')
+      page = session.getPage()
+      const tocItemsFallback = await parseTocItems(page, urlAfterNav)
+      if (tocItemsFallback.length > 0) {
+        log.info(`Fallback TOC: ${tocItemsFallback.length} sections trouvées`)
+        stats.totalSections = tocItemsFallback.length
+        const existingHashesFb = dryRun ? new Set<string>() : await loadExistingCodeSectionHashes(sourceId, codeName)
+        for (const item of tocItemsFallback) {
+          await session.tick()
+          try {
+            if (dryRun) {
+              log.info(`  [DRY] ${' '.repeat(item.depth * 2)}${item.title.substring(0, 80)}`)
+              stats.crawled++
+              await sleep(200)
+              continue
+            }
+            const expectedHash = hashUrl(generateCodeSectionUrl(codeName, item.title))
+            if (existingHashesFb.has(expectedHash)) { stats.skipped++; continue }
+            const textContent = await extractSectionText(page, item)
+            if (!textContent || textContent.length < 20 || isNavigationBoilerplate(textContent)) {
+              stats.skipped++
+              continue
+            }
+            const { skipped, updated } = await saveCodeSection(sourceId, codeName, item.title, textContent, item.depth)
+            if (skipped) { stats.skipped++ }
+            else if (updated) { stats.updated++; log.info(`↻ MAJ: ${item.title.substring(0, 70)}`) }
+            else { stats.crawled++; log.info(`✓ ${item.title.substring(0, 70)} (${textContent.length} chars)`) }
+            await sleep(IORT_RATE_CONFIG.minDelay + Math.floor(Math.random() * 3000))
+          } catch (err) {
+            stats.errors++
+            log.error(`Erreur section "${item.title.substring(0, 40)}":`, err instanceof Error ? err.message : String(err))
+            await sleep(IORT_RATE_CONFIG.minDelay)
+          }
+        }
+      }
+    }
+
     stats.elapsedMs = Date.now() - startTime
     log.info(`✅ Terminé "${codeName}": ` +
       `${stats.crawled} nouveaux, ${stats.updated} MAJ, ${stats.skipped} sautés, ${stats.errors} erreurs ` +
