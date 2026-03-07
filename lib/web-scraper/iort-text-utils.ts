@@ -116,12 +116,12 @@ export async function waitForStableContent(
  */
 export function normalizeIortName(text: string): string {
   return text
-    .replace(/\u0640/g, '')           // kashida arabe décoratif
-    .replace(/\u200C/g, '')           // ZWNJ (zero-width non-joiner)
-    .replace(/\u200B/g, '')           // ZWSP (zero-width space)
+    .replace(/\u0640/g, ' ')          // kashida arabe : remplacé par espace (WebDev l'injecte entre mots)
+    .replace(/\u200C/g, ' ')          // ZWNJ : remplacé par espace (idem)
+    .replace(/\u200B/g, '')           // ZWSP : supprimé (vrai zero-width, pas de séparateur)
     .replace(/[\u00A0\u202F\u2009]/g, ' ') // espaces insécables → espace normal
     .replace(/\s*اطلاع\s*$/u, '')     // retirer le bouton "اطلاع"
-    .replace(/\s+/g, ' ')             // normaliser espaces multiples
+    .replace(/\s+/g, ' ')             // normaliser espaces multiples résultants
     .trim()
 }
 
