@@ -26,9 +26,9 @@ const MODELS_TO_WARMUP = [
 ]
 
 /**
- * Temps de keep-alive (30min par défaut)
+ * Temps de keep-alive — 2h pour éviter le rechargement du modèle entre crons
  */
-const KEEP_ALIVE_DURATION = '30m'
+const KEEP_ALIVE_DURATION = process.env.OLLAMA_KEEP_ALIVE || '2h'
 
 /**
  * Pré-charger un modèle Ollama

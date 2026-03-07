@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       summary,
       topConversations,
       periodDays: days,
-    })
+    }, { headers: { 'Cache-Control': 'private, max-age=60' } })
   } catch (error) {
     console.error('[Monitoring Costs] Erreur:', error)
     return NextResponse.json(

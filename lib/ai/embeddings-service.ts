@@ -105,7 +105,7 @@ async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResul
       body: JSON.stringify({
         model: aiConfig.ollama.embeddingModel,
         prompt: text,
-        keep_alive: '60m',
+        keep_alive: process.env.OLLAMA_KEEP_ALIVE || '2h',
       }),
       signal: controller.signal,
     })
@@ -169,7 +169,7 @@ async function generateEmbeddingsBatchWithOllama(
         body: JSON.stringify({
           model: aiConfig.ollama.embeddingModel,
           input: batch,
-          keep_alive: '60m',
+          keep_alive: process.env.OLLAMA_KEEP_ALIVE || '2h',
         }),
         signal: controller.signal,
       })

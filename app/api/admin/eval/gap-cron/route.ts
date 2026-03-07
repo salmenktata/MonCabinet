@@ -7,7 +7,7 @@
  * Analyse les abstentions RAG de la semaine écoulée,
  * identifie les lacunes KB, alerte si haute priorité.
  *
- * VPS crontab : 0 10 * * 1 (lundi 10h CET)
+ * VPS crontab : 0 11 * * 1 (lundi 11h CET — décalé de 10h pour espacer drift-detection)
  * curl -s -X POST http://localhost:3000/api/admin/eval/gap-cron \
  *   -H "x-cron-secret: $CRON_SECRET"
  *

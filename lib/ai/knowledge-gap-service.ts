@@ -217,37 +217,58 @@ export async function persistGaps(
  * dans ce domaine depuis la création du gap.
  */
 export async function checkAndResolveGaps(): Promise<number> {
+  // Limiter à 50 gaps par run pour éviter N×2 requêtes séquentielles non bornées
   const openGaps = await db.query(
-    `SELECT id, domain, created_at FROM knowledge_gaps WHERE status = 'open'`
+    `SELECT id, domain, created_at FROM knowledge_gaps WHERE status = 'open' LIMIT 50`
   )
 
-  let resolvedCount = 0
+  if (openGaps.rows.length === 0) return 0
 
-  for (const gap of openGaps.rows) {
-    const newChunks = await db.query(
-      `SELECT COUNT(*) as count FROM knowledge_base_chunks kbc
-       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
-       WHERE kb.is_indexed = true
-         AND kb.rag_enabled = true
-         AND kbc.metadata->>'domain' = $1
-         AND kbc.created_at > $2`,
-      [gap.domain, gap.created_at]
-    )
+  // Une seule requête batch pour compter les nouveaux chunks par gap
+  const gapCountsResult = await db.query(
+    `SELECT
+       kg.id,
+       COUNT(kbc.id) as new_chunk_count
+     FROM knowledge_gaps kg
+     LEFT JOIN knowledge_base_chunks kbc
+       ON kbc.metadata->>'domain' = kg.domain
+       AND kbc.created_at > kg.created_at
+       AND EXISTS (
+         SELECT 1 FROM knowledge_base kb
+         WHERE kb.id = kbc.knowledge_base_id
+           AND kb.is_indexed = true
+           AND kb.rag_enabled = true
+       )
+     WHERE kg.id = ANY($1::uuid[])
+     GROUP BY kg.id`,
+    [openGaps.rows.map(g => g.id)]
+  )
 
-    const count = parseInt(newChunks.rows[0]?.count) || 0
-    if (count >= 5) {
-      await db.query(
-        `UPDATE knowledge_gaps
-         SET status = 'resolved', resolved_at = NOW(),
-             resolution_notes = $1, updated_at = NOW()
-         WHERE id = $2`,
-        [`${count} nouveaux chunks indexés dans ce domaine depuis la détection du gap.`, gap.id]
-      )
-      resolvedCount++
-    }
-  }
+  const countMap = new Map<string, number>(
+    gapCountsResult.rows.map(r => [r.id, parseInt(r.new_chunk_count) || 0])
+  )
 
-  return resolvedCount
+  // Résoudre en batch les gaps avec >= 5 nouveaux chunks
+  const toResolve = openGaps.rows.filter(g => (countMap.get(g.id) || 0) >= 5)
+  if (toResolve.length === 0) return 0
+
+  const ids = toResolve.map(g => g.id)
+  const notes = toResolve.map(g =>
+    `${countMap.get(g.id)} nouveaux chunks indexés dans ce domaine depuis la détection du gap.`
+  )
+
+  await db.query(
+    `UPDATE knowledge_gaps
+     SET status = 'resolved', resolved_at = NOW(),
+         resolution_notes = data.note, updated_at = NOW()
+     FROM (
+       SELECT unnest($1::uuid[]) as id, unnest($2::text[]) as note
+     ) as data
+     WHERE knowledge_gaps.id = data.id`,
+    [ids, notes]
+  )
+
+  return toResolve.length
 }
 
 // =============================================================================

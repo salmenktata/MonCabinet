@@ -46,7 +46,7 @@ export async function GET() {
       stats: statsResult.rows,
       breakdown: breakdownResult.rows,
       timestamp: new Date().toISOString(),
-    })
+    }, { headers: { 'Cache-Control': 'private, max-age=60' } })
   } catch (error) {
     console.error('❌ Erreur récupération stats doc_type:', error)
 

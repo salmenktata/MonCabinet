@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
             : 0,
         },
       },
-    })
+    }, { headers: { 'Cache-Control': 'private, max-age=60' } })
   } catch (error) {
     console.error('[RAG Health API] Error:', error)
     return NextResponse.json(

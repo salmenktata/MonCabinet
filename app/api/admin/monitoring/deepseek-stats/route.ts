@@ -39,5 +39,5 @@ export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
       pricePerMTokenInCache: 0.028,
       pricePerMTokenOut: 0.42,
     },
-  })
+  }, { headers: { 'Cache-Control': 'private, max-age=60' } })
 })

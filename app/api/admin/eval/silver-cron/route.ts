@@ -7,7 +7,7 @@
  * Génère automatiquement des Silver cases depuis les queries prod
  * ayant reçu un feedback positif sur les 7 derniers jours.
  *
- * VPS crontab : 0 11 * * 1 (lundi 11h CET, après gap-cron)
+ * VPS crontab : 0 14 * * 1 (lundi 14h CET — décalé de 11h pour éviter accumulation CPU lundi matin)
  * curl -s -X POST http://localhost:3000/api/admin/eval/silver-cron \
  *   -H "x-cron-secret: $CRON_SECRET"
  *

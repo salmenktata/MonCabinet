@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) FILTER (WHERE quality_llm_provider = 'openai') as openai_count,
         COUNT(*) FILTER (
           WHERE quality_llm_provider = 'openai'
-          AND LENGTH(COALESCE(full_text, '')) < 500
+          AND (chunk_count IS NULL OR chunk_count <= 1)
         ) as openai_short_docs
       FROM knowledge_base
       WHERE is_indexed = true
@@ -181,8 +181,8 @@ export async function GET(request: NextRequest) {
     }>(`
       SELECT
         COUNT(*) as total_failures,
-        COUNT(*) FILTER (WHERE LENGTH(COALESCE(full_text, '')) < 500) as short_failures,
-        COUNT(*) FILTER (WHERE LENGTH(COALESCE(full_text, '')) >= 500) as long_failures
+        COUNT(*) FILTER (WHERE chunk_count IS NULL OR chunk_count <= 1) as short_failures,
+        COUNT(*) FILTER (WHERE chunk_count > 1) as long_failures
       FROM knowledge_base
       WHERE is_indexed = true
         AND is_active = true
@@ -240,7 +240,9 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    return NextResponse.json(response)
+    return NextResponse.json(response, {
+      headers: { 'Cache-Control': 'private, max-age=60' },
+    })
 
   } catch (error) {
     console.error('[Monitoring Metrics] Erreur:', error)

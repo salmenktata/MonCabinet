@@ -44,5 +44,5 @@ export const GET = withAdminApiAuth(async (_request, _ctx, _session) => {
       freeTier70bPerDay: 14_400,
       alertThreshold70b: 11_500,   // 80% du free tier
     },
-  })
+  }, { headers: { 'Cache-Control': 'private, max-age=60' } })
 })
