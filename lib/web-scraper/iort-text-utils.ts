@@ -109,6 +109,23 @@ export async function waitForStableContent(
 }
 
 /**
+ * Normalise un nom de code/recueil extrait depuis un looper IORT.
+ * Le framework WebDev injecte parfois des espaces multiples, des espaces
+ * insécables (U+00A0), du kashida (U+0640) ou des ZWNJ (U+200C) dans le DOM.
+ * Cette fonction normalise côté Node.js après page.evaluate().
+ */
+export function normalizeIortName(text: string): string {
+  return text
+    .replace(/\u0640/g, '')           // kashida arabe décoratif
+    .replace(/\u200C/g, '')           // ZWNJ (zero-width non-joiner)
+    .replace(/\u200B/g, '')           // ZWSP (zero-width space)
+    .replace(/[\u00A0\u202F\u2009]/g, ' ') // espaces insécables → espace normal
+    .replace(/\s*اطلاع\s*$/u, '')     // retirer le bouton "اطلاع"
+    .replace(/\s+/g, ' ')             // normaliser espaces multiples
+    .trim()
+}
+
+/**
  * Nettoie le texte extrait du site IORT : supprime le boilerplate WebDev,
  * les copyrights, les tokens WD_ACTION_, et normalise les espaces.
  */

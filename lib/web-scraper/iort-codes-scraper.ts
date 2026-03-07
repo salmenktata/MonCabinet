@@ -36,6 +36,7 @@ import {
   isNavigationBoilerplate,
   isPdfUrl,
   generateCodeSectionUrl,
+  normalizeIortName,
 } from './iort-text-utils'
 import { hashUrl, hashContent, countWords, detectTextLanguage } from './content-extractor'
 import { createLogger } from '@/lib/logger'
@@ -268,12 +269,15 @@ export async function parseAvailableCodes(page: Page): Promise<IortCode[]> {
 
   if (looperData.length > 0) {
     log.info(`${looperData.length} codes dans le looper A1`)
-    return looperData.map(x => ({
-      name: x.name,
-      nameFr: IORT_KNOWN_CODES[x.name],
-      selectIndex: x.index,
-      selectValue: x.onclick, // on stocke l'onclick pour selectCodeAndNavigate()
-    }))
+    return looperData.map(x => {
+      const name = normalizeIortName(x.name)
+      return {
+        name,
+        nameFr: IORT_KNOWN_CODES[name],
+        selectIndex: x.index,
+        selectValue: x.onclick, // on stocke l'onclick pour selectCodeAndNavigate()
+      }
+    })
   }
 
   // Log de découverte si A1 vide
@@ -1803,28 +1807,32 @@ export async function navigateToRecueilPage(
  * et autres textes non encore crawlés par le scraper codes.
  */
 export async function parseAvailableRecueils(page: Page): Promise<IortCode[]> {
-  const allItems = await page.evaluate(() => {
+  const rawItems = await page.evaluate(() => {
     return Array.from(document.querySelectorAll('[id^="A1_"]'))
       .map(el => ({
         index: parseInt((el.id.split('_')[1] ?? '0'), 10),
-        // Nettoyer le texte : retirer "اطلاع" (bouton), espaces multiples et espaces de fin
-        name: (el.textContent ?? '').trim().replace(/\s*اطلاع\s*$/, '').trim().replace(/\s+/g, ' '),
+        // Retourner le texte brut — la normalisation est faite côté Node.js via normalizeIortName()
+        name: (el.textContent ?? '').trim(),
       }))
       .filter(x => x.index > 0 && x.name.length > 3)
   })
 
-  if (allItems.length === 0) {
+  if (rawItems.length === 0) {
     log.warn('Aucun item A1 — M62 n\'a pas chargé la liste')
     return []
   }
 
+  // Normaliser côté Node.js : kashida, NBSP, espaces multiples, bouton "اطلاع"
+  const allItems = rawItems.map(x => ({ index: x.index, name: normalizeIortName(x.name) }))
+    .filter(x => x.name.length > 3)
+
   log.info(`${allItems.length} items A1 totaux (codes + recueils)`)
 
-  // Filtrer les codes déjà connus (crawlés séparément via crawlCode)
-  const knownCodeNames = new Set(Object.keys(IORT_KNOWN_CODES))
+  // Normaliser aussi les clés de IORT_KNOWN_CODES pour une comparaison robuste
+  const knownNormalized = Object.keys(IORT_KNOWN_CODES).map(k => normalizeIortName(k))
   const recueils = allItems.filter(item => {
-    // Garder si le nom ne correspond à aucun code connu (correspondance partielle)
-    return !Array.from(knownCodeNames).some(code => item.name.includes(code) || code.includes(item.name))
+    // Garder si le nom ne correspond à aucun code connu (correspondance partielle des deux côtés normalisés)
+    return !knownNormalized.some(code => item.name.includes(code) || code.includes(item.name))
   })
 
   log.info(`${recueils.length} recueils après filtrage des codes connus`)
