@@ -87,6 +87,26 @@ export const IORT_KNOWN_CODES: Record<string, string> = {
   'مجلة حماية التراث الأثرى و التاريخى و الفنون التقليدية':  'Code du Patrimoine',
   'النظام الأساسي العام لأعوان الوظيفة العمومية':             'Statut Général de la Fonction Publique',
   'مجموعة النصوص المتعلقة بمهنة المحاماة':                    'Textes sur la Profession d\'Avocat',
+  // Codes ajoutés Mars 2026 (détectés dans looper A1 mais non mappés)
+  'دستور الجمهورية التونسية':                                  'Constitution de la République Tunisienne',
+  'مجلة إسداء الخدمات المالية لغير المقيمين':                  'Code des Services Financiers aux Non-Résidents',
+  'مجلة الموانئ البحرية':                                      'Code des Ports Maritimes',
+  'مجلة الصرف و التجارة الخارجية':                            'Code des Changes et du Commerce Extérieur',
+  'مجلة معاليم التسجيل والطابع الجبائي':                      'Code des Droits d\'Enregistrement et de Timbre',
+  'مجلة الحقوق والإجراءات الجبائية':                          'Code des Droits et Procédures Fiscaux',
+  'مجلة المياه':                                               'Code des Eaux',
+  'مجلة تشجيع الإستثمارات':                                   'Code d\'Incitation aux Investissements',
+  'مجلة الواجبات المهنية للمهندسين المعماريين':               'Code de Déontologie des Architectes',
+  'المجلة التأديبية والجزائية البحرية':                        'Code Disciplinaire et Pénal de la Marine',
+  'مجلة المحروقات':                                            'Code des Hydrocarbures',
+  'مجلة تنطيم الصناعة السينمائية':                            'Code de l\'Organisation de l\'Industrie Cinématographique',
+  'مجلة المناجم':                                              'Code Minier',
+  'مجلة مؤسسات التوظيف الجماعي':                             'Code des Organismes de Placement Collectif',
+  'مجلة الصياد البحري':                                        'Code de la Pêche Maritime',
+  'مجلة التنظيم الإداري للملاحة البحرية':                     'Code de l\'Organisation Administrative de la Navigation Maritime',
+  'مجلة البريد':                                               'Code de la Poste',
+  'مجلة الصحافة':                                              'Code de la Presse',
+  'مدونة سلوك وأخلاقيات العون العمومي':                       'Code de Conduite et d\'Éthique de l\'Agent Public',
 }
 
 // =============================================================================
