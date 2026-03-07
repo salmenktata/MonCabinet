@@ -1181,7 +1181,7 @@ export async function searchKnowledgeBase(
  */
 async function searchHybridSingle(
   queryText: string,
-  embeddingStr: string,
+  embeddingStr: string | null,
   category: string | null,
   docType: string | null,
   limit: number,
