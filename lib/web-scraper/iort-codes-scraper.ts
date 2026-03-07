@@ -1575,10 +1575,16 @@ async function crawlCodesJuridiquesPage(
     })
 
     if (navCodeUrl) {
-      log.info(`Form PAGE_NAVIGATIONCODE trouvé → navigation vers: ${navCodeUrl.split('/').pop()}`)
-      await page.goto(navCodeUrl, { waitUntil: 'load', timeout: 30000 })
-      await waitForStableContent(page, { intervalMs: 1500, timeoutMs: 12000 })
-      log.info(`URL PAGE_NavigationCode: ${page.url()}`)
+      log.info(`Form PAGE_NAVIGATIONCODE trouvé → soumission POST vers: ${navCodeUrl.split('/').pop()}`)
+      // WebDev requiert un POST (pas un GET) pour initialiser correctement la session.
+      // On soumet le formulaire en JavaScript plutôt que de naviguer via page.goto().
+      await page.evaluate(() => {
+        const form = document.querySelector('form[name="PAGE_NAVIGATIONCODE"]') as HTMLFormElement | null
+        if (form) form.submit()
+      })
+      await page.waitForLoadState('load')
+      await waitForStableContent(page, { intervalMs: 1500, timeoutMs: 15000 })
+      log.info(`URL PAGE_NavigationCode après POST: ${page.url()}`)
       // Retourner sans mettre stats.totalSections : le fallback dans crawlCode
       // appellera parseTocItems() sur la page PAGE_NavigationCode maintenant chargée
     }
