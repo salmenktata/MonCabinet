@@ -874,7 +874,8 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
   })
   log.warn('⚠️  TOC vide. Page state:', JSON.stringify({ url: pageState.url, title: pageState.title, loopers: pageState.loopers, tElements: pageState.tElements }, null, 2))
   log.warn('⚠️  Liens arabes:', JSON.stringify(pageState.arabicLinks.slice(0, 10), null, 2))
-  log.warn('⚠️  Body HTML (500 chars):', pageState.bodyHtml.substring(0, 500))
+  log.warn('⚠️  Body HTML 0-1000:', pageState.bodyHtml.substring(0, 1000))
+  log.warn('⚠️  Body HTML 1000-2000:', pageState.bodyHtml.substring(1000, 2000))
   return []
 }
 
