@@ -294,7 +294,7 @@ const CURRENT_YEAR = new Date().getFullYear()
 const TEMPORAL_BOOST_CONFIG = {
   baseYear: 1956,
   maxYearRange: 70,
-  maxBoost: 0.03,
+  maxBoost: 0.15,
   enabledClasses: new Set<HierarchyClass>(['norme', 'jurisprudence']),
 } as const
 

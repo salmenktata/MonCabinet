@@ -251,6 +251,8 @@ export function UnifiedChatPage({
 
   const handleSendMessage = useCallback((content: string) => {
     setPendingUserMessage(content)
+    setSidebarOpen(false)
+    setSidebarCollapsed(true)
     // Streaming SSE uniquement pour le mode 'chat' (structure/consult retournent du JSON)
     const useStream = currentAction === 'chat'
     streamSend(
