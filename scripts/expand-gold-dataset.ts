@@ -35,6 +35,10 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY
 const GROQ_MODEL = 'llama-3.3-70b-versatile'
 const GROQ_RPM = 25 // Stay under 30 RPM limit
 
+// DeepSeek fallback si Groq indisponible
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY
+const USE_DEEPSEEK = !GROQ_API_KEY && !!DEEPSEEK_API_KEY
+
 const args = process.argv.slice(2)
 const DRY_RUN = args.includes('--dry-run')
 const DOMAIN_FILTER = args.find(a => a.startsWith('--domain='))?.split('=')[1] ||
@@ -47,9 +51,12 @@ if (!DB_URL) {
   console.error('  DATABASE_URL="postgres://moncabinet:prod_secure_password_2026@127.0.0.1:5434/qadhya" ...')
   process.exit(1)
 }
-if (!GROQ_API_KEY) {
-  console.error('GROQ_API_KEY requis')
+if (!GROQ_API_KEY && !DEEPSEEK_API_KEY) {
+  console.error('GROQ_API_KEY ou DEEPSEEK_API_KEY requis')
   process.exit(1)
+}
+if (USE_DEEPSEEK) {
+  console.log('ℹ Provider: DeepSeek (fallback)')
 }
 
 // =============================================================================
@@ -200,14 +207,20 @@ interface GeneratedQuestion {
 
 async function callGroq(prompt: string): Promise<GeneratedQuestion | null> {
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const endpoint = USE_DEEPSEEK
+      ? 'https://api.deepseek.com/chat/completions'
+      : 'https://api.groq.com/openai/v1/chat/completions'
+    const apiKey = USE_DEEPSEEK ? DEEPSEEK_API_KEY : GROQ_API_KEY
+    const model = USE_DEEPSEEK ? 'deepseek-chat' : GROQ_MODEL
+
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: GROQ_MODEL,
+        model,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         max_tokens: 800,
@@ -217,11 +230,11 @@ async function callGroq(prompt: string): Promise<GeneratedQuestion | null> {
     if (!res.ok) {
       const err = await res.text()
       if (res.status === 429) {
-        console.warn('  ⚠ Rate limit Groq — attente 60s...')
+        console.warn('  ⚠ Rate limit — attente 60s...')
         await sleep(60_000)
         return null
       }
-      console.error(`  ✗ Groq ${res.status}: ${err.slice(0, 100)}`)
+      console.error(`  ✗ LLM ${res.status}: ${err.slice(0, 100)}`)
       return null
     }
 
