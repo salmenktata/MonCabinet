@@ -200,6 +200,7 @@ const SOURCE_RELIABILITY_BOOST: Record<string, number> = {
   justice_gov_tn: 1.20,    // Ministère de la Justice — codes officiels PDF
   cassation_tn: 1.12,      // Jurisprudence officielle Cour de Cassation
   '9anoun_tn': 1.08,       // Compilation vérifiée mais non-officielle
+  'da5ira_tn': 1.05,       // Blog juridique tunisien — doctrine de qualité mais non officielle
   google_drive: 1.0,       // Documents internes — fiabilité variable
   autre: 1.0,
 }
@@ -655,6 +656,30 @@ async function rerankSources(
     const reliabilityBoost = SOURCE_RELIABILITY_BOOST[sourceOrigin] ?? 1.0
     if (reliabilityBoost !== 1.0) {
       boost *= reliabilityBoost
+    }
+
+    // Boost doc_type : TEXTES prioritaires par défaut + PROC boost si query procédurale
+    // Complète le stance-aware boost (défense/attaque) avec un boost de base pour toutes queries.
+    {
+      const _docTypeRaw = _meta?.doc_type as string | undefined
+      const _categoryRaw = _meta?.category as string | undefined
+      const _FALLBACK_DOCTYPE: Record<string, string> = {
+        codes: 'TEXTES', legislation: 'TEXTES', constitution: 'TEXTES', conventions: 'TEXTES', jort: 'TEXTES',
+        jurisprudence: 'JURIS',
+        procedures: 'PROC', formulaires: 'PROC',
+        modeles: 'TEMPLATES',
+        doctrine: 'DOCTRINE', guides: 'DOCTRINE', actualites: 'DOCTRINE', autre: 'DOCTRINE',
+      }
+      const _effectiveDocType = _docTypeRaw ?? (_categoryRaw ? _FALLBACK_DOCTYPE[_categoryRaw] : undefined)
+      // TEXTES_BASE_BOOST 1.10× : les normes légales (codes, lois, constitution) sont les sources
+      // les plus autoritaires et doivent remonter par défaut face à la doctrine ou aux actualités.
+      if (_effectiveDocType === 'TEXTES') boost *= 1.10
+      // PROC_QUERY_BOOST 1.20× : si la query détecte un contexte procédural (délais, recours, étapes),
+      // favoriser les guides/formulaires procéduraux (PROC) souvent noyés par les TEXTES.
+      const _PROC_KW_AR = ['إجراء', 'خطوات', 'طريقة', 'كيفية', 'مدة', 'أجل', 'طعن', 'استئناف', 'تظلم', 'مهلة']
+      const _PROC_KW_FR = ['procédure', 'délai', 'recours', 'appel', 'démarche', 'étapes', 'comment']
+      const _isProcQuery = [..._PROC_KW_AR, ..._PROC_KW_FR].some(kw => (query || '').toLowerCase().includes(kw))
+      if (_isProcQuery && _effectiveDocType === 'PROC') boost *= 1.20
     }
 
     // P4 fix Feb 25, 2026 : boost spécifique مجلة الالتزامات والعقود (COC)

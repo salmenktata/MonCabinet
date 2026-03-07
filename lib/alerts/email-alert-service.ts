@@ -503,6 +503,77 @@ async function sendAlertEmail(alert: AlertLevel): Promise<boolean> {
 }
 
 /**
+ * Vérifier la santé des doc_type KB.
+ * Alerte si doc_type=NULL, ratio 'autre' > 3%, ou needs_review > 5%.
+ */
+async function checkDocTypeHealth(): Promise<AlertLevel | null> {
+  try {
+    const result = await db.query<{
+      null_count: number
+      autre_count: number
+      review_count: number
+      total: number
+    }>(`
+      SELECT
+        COUNT(*) FILTER (WHERE doc_type IS NULL)                        as null_count,
+        COUNT(*) FILTER (WHERE category = 'autre')                      as autre_count,
+        COUNT(*) FILTER (WHERE metadata->>'needs_review' = 'true')      as review_count,
+        COUNT(*)                                                         as total
+      FROM knowledge_base WHERE is_active = true
+    `)
+    const { null_count, autre_count, review_count, total } = result.rows[0]
+    if (!total) return null
+
+    const autreRatio = (autre_count || 0) / total
+    const reviewRatio = (review_count || 0) / total
+
+    if ((null_count || 0) > 0) {
+      return {
+        level: 'critical',
+        title: 'KB — doc_type NULL détecté',
+        message: `${null_count} document(s) sans doc_type dans la KB. Impact RAG : ces docs ne bénéficient pas des boosts TEXTES/JURIS.`,
+        metrics: { failures: null_count },
+        recommendations: [
+          'Exécuter via tunnel : npx tsx scripts/_fix-doc-types.ts',
+          'Vérifier logs d\'indexation récente',
+        ],
+      }
+    }
+
+    if (autreRatio > 0.03) {
+      return {
+        level: 'warning',
+        title: 'KB — Trop de docs category=\'autre\'',
+        message: `${autre_count} docs (${(autreRatio * 100).toFixed(1)}%) ont category='autre'. Seuil : 3%. Ces docs sont mal classifiés et pénalisent le RAG.`,
+        metrics: { failures: autre_count },
+        recommendations: [
+          'Auditer : npx tsx scripts/audit-doc-types-prod.ts',
+          'Reclassifier les docs IORT : npx tsx scripts/_fix-iort-autre-v3.ts',
+          'Réviser les docs source \'autre\' via ClassificationPanel admin',
+        ],
+      }
+    }
+
+    if (reviewRatio > 0.05) {
+      return {
+        level: 'warning',
+        title: 'KB — Backlog needs_review élevé',
+        message: `${review_count} docs (${(reviewRatio * 100).toFixed(1)}%) ont needs_review=true. Seuil : 5%. La classification automatique est dégradée.`,
+        metrics: { failures: review_count },
+        recommendations: [
+          'Réviser via admin : /super-admin/pipeline → filter "Révision requise"',
+          'Investiguer la source qui génère des erreurs de classification',
+        ],
+      }
+    }
+
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Vérifier et envoyer les alertes nécessaires
  */
 export async function checkAndSendAlerts(): Promise<{
@@ -519,6 +590,10 @@ export async function checkAndSendAlerts(): Promise<{
 
     // Détecter alertes
     const alerts = detectAlerts(metrics)
+
+    // Alertes doc_type santé KB
+    const docTypeAlert = await checkDocTypeHealth()
+    if (docTypeAlert) alerts.push(docTypeAlert)
 
     console.log(`[Alert] ${alerts.length} alerte(s) détectée(s)`)
 

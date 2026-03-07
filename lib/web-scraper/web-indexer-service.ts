@@ -30,6 +30,7 @@ export function deriveSourceOrigin(baseUrl: string): string {
   if (url.includes('justice.gov.tn')) return 'justice_gov_tn'
   if (url.includes('9anoun.tn')) return '9anoun_tn'
   if (url.includes('cassation.tn')) return 'cassation_tn'
+  if (url.includes('da5ira.com')) return 'da5ira_tn'
   if (url.includes('google')) return 'google_drive'
   return 'autre'
 }

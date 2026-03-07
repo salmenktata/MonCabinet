@@ -5,8 +5,17 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
+import { ALL_DOC_TYPES, DOC_TYPE_TRANSLATIONS, type DocumentType } from '@/lib/categories/doc-types'
 
 const CATEGORIES = getCategoriesForContext('knowledge_base').map(c => c.value)
+
+const DOC_TYPE_COLORS: Record<string, string> = {
+  TEXTES: 'bg-blue-100 text-blue-800 border-blue-200',
+  JURIS: 'bg-red-100 text-red-800 border-red-200',
+  PROC: 'bg-green-100 text-green-800 border-green-200',
+  TEMPLATES: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  DOCTRINE: 'bg-gray-100 text-gray-700 border-gray-200',
+}
 
 interface ClassificationPanelProps {
   document: {
@@ -26,6 +35,7 @@ export function ClassificationPanel({ document, onSave, onReplay, isLoading }: C
   const [category, setCategory] = useState(document.category)
   const [subcategory, setSubcategory] = useState(document.subcategory || '')
   const [tagsInput, setTagsInput] = useState((document.tags || []).join(', '))
+  const [docType, setDocType] = useState((document.metadata?.doc_type as string) || '')
 
   const metadata = document.metadata || {}
   const classificationSource = metadata.classification_source as string
@@ -39,6 +49,14 @@ export function ClassificationPanel({ document, onSave, onReplay, isLoading }: C
     if (JSON.stringify(newTags) !== JSON.stringify(document.tags || [])) updates.tags = newTags
     if (Object.keys(updates).length > 0) {
       await onSave(updates as any)
+    }
+    // doc_type override : appel PATCH séparé si modifié
+    if (docType && docType !== (document.metadata?.doc_type as string || '')) {
+      await fetch(`/api/admin/knowledge-base/${document.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doc_type: docType }),
+      })
     }
     setIsEditing(false)
   }
@@ -105,6 +123,35 @@ export function ClassificationPanel({ document, onSave, onReplay, isLoading }: C
         ) : (
           <p className="mt-1">
             <Badge variant="outline">{document.category}</Badge>
+          </p>
+        )}
+      </div>
+
+      {/* Doc type */}
+      <div>
+        <label className="text-sm font-medium">Type de document</label>
+        {isEditing ? (
+          <select
+            value={docType}
+            onChange={(e) => setDocType(e.target.value)}
+            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+          >
+            <option value="">— Auto (depuis catégorie) —</option>
+            {ALL_DOC_TYPES.map(dt => (
+              <option key={dt} value={dt}>
+                {dt} — {DOC_TYPE_TRANSLATIONS[dt as DocumentType]?.fr}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className="mt-1">
+            {docType ? (
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${DOC_TYPE_COLORS[docType] || 'bg-gray-100 text-gray-700'}`}>
+                {docType}
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">Auto</span>
+            )}
           </p>
         )}
       </div>
