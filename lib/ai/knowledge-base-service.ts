@@ -1321,10 +1321,15 @@ export async function searchArticleByTextMatch(
     // Ex: "الاول" → "ال[اأإآ]ول" pour matcher الأول/الاول/الإول/الآول indifféremment.
     // Fix Mar 3 2026: remplacer /ا/g → /[اأإآ]/g pour couvrir tous les variants alef (sans casser
     // les ordinaux comme "الثاني" → l'ancien /ا/g remplaçait TOUS les ا dont ceux non-hamza).
+    // Fix Mar 7 2026 (tashkeel/diacritics): les chunks constitution stockent "الأوّل" (avec shadda ّ
+    // U+0651) ce qui casse le regex exact. Solution : strip tashkeel (U+064B-U+065F,U+0670) du
+    // contenu AVANT le match ~ pour comparer les formes sans diacritiques.
     const artNumRegex = /^\d+$/.test(artNum)
       ? artNum
       : artNum.replace(/[اأإآ]/g, '[اأإآ]')
     const artRegex = `الفصل ${artNumRegex}([^0-9]|$)`
+    // Regex PostgreSQL pour strip tashkeel (harakat) : U+064B–U+065F et U+0670 (alef superscript)
+    const stripDiacriticsExpr = `regexp_replace(kbc.content, '[\u064B-\u065F\u0670]', '', 'g')`
     let sql: string
     let params: (string | string[])[]
 
@@ -1345,7 +1350,7 @@ export async function searchArticleByTextMatch(
         JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
         WHERE kb.is_indexed = true
           AND kb.category = ANY($1::text[])
-          AND kbc.content ~ $2
+          AND ${stripDiacriticsExpr} ~ $2
           AND kb.title ILIKE $3
           AND length(kbc.content) > 100
         ORDER BY kbc.knowledge_base_id, kbc.chunk_index
@@ -1365,7 +1370,7 @@ export async function searchArticleByTextMatch(
         JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
         WHERE kb.is_indexed = true
           AND kb.category = ANY($1::text[])
-          AND kbc.content ~ $2
+          AND ${stripDiacriticsExpr} ~ $2
           AND length(kbc.content) > 100
         ORDER BY kbc.knowledge_base_id, kbc.chunk_index
         LIMIT 3`
@@ -1793,9 +1798,24 @@ export async function searchKnowledgeBaseHybrid(
     const embStr = primaryEmbResult.status === 'fulfilled'
       ? formatEmbeddingForPostgres(primaryEmbResult.value.embedding)
       : null  // BM25-only si embedding Ollama indisponible (chunks sans vecteurs)
+    // Fix Mar 7 2026: convertir ordinals arabes → chiffres dans le BM25 query.
+    // Problème: plainto_tsquery('simple') = AND strict. "الأول" (ordinal) n'est PAS dans les tsvectors
+    // des chunks constitution qui stockent "الفصل 1" (chiffre dans le header). → 0 résultats BM25.
+    // Fix: remplacer "الأول" → "1" dans la query BM25 pour matcher le lexème chiffre dans tsvector.
+    const _CONST_ORDINALS: Record<string, string> = {
+      'الاول': '1', 'الثاني': '2', 'الثالث': '3', 'الرابع': '4', 'الخامس': '5',
+      'السادس': '6', 'السابع': '7', 'الثامن': '8', 'التاسع': '9', 'العاشر': '10',
+    }
+    let constitutionBm25Text = bm25QueryText.replace(/[أإآ]/g, 'ا')
+    for (const [ordinal, digit] of Object.entries(_CONST_ORDINALS)) {
+      if (constitutionBm25Text.includes(ordinal)) {
+        constitutionBm25Text = constitutionBm25Text.replace(ordinal, digit)
+        break
+      }
+    }
     searchPromises.push(
       // threshold bas 0.10 : queries constitutionnelles peuvent avoir sim faible vs chunks Fsl-level
-      searchHybridSingle(bm25QueryText, embStr, 'constitution', null, 10, 0.10, (primaryProvider ?? 'ollama') as 'openai' | 'ollama', bm25Language)
+      searchHybridSingle(constitutionBm25Text, embStr, 'constitution', null, 10, 0.10, (primaryProvider ?? 'ollama') as 'openai' | 'ollama', bm25Language)
     )
     providerLabels.push('constitution-forced')
   }
@@ -1858,6 +1878,14 @@ export async function searchKnowledgeBaseHybrid(
       // Un seul appel couvre les deux formats : si conversion s'est faite, chercher aussi l'ordinal brut.
       if (artSearch !== rawMatch) {
         searchPromises.push(searchArticleByTextMatch(rawMatch, null, ['constitution']))
+        providerLabels.push('article-text-ordinal')
+      }
+      // Fix Mar 7 2026: Fallback robuste par titre "دستور" — couvre le cas où kb.category != 'constitution'
+      // (misconfiguration DB prod). Cherche dans toutes les catégories filtrées par titre ILIKE '%دستور%'.
+      searchPromises.push(searchArticleByTextMatch(artSearch, 'دستور', ['constitution', 'legislation', 'codes', 'autre']))
+      providerLabels.push('article-text')
+      if (artSearch !== rawMatch) {
+        searchPromises.push(searchArticleByTextMatch(rawMatch, 'دستور', ['constitution', 'legislation', 'codes', 'autre']))
         providerLabels.push('article-text-ordinal')
       }
     }
