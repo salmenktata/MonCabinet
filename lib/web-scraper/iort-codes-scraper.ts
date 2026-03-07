@@ -1562,6 +1562,27 @@ async function crawlCodesJuridiquesPage(
 
   if (!firstTLinkText) {
     log.warn('⚠️  Aucun T-link trouvé sur PAGE_CodesJuridiques')
+
+    // Fallback : certains codes (ex: المجلة الجزائية) ont un <form name="PAGE_NAVIGATIONCODE">
+    // dont l'action pointe directement vers PAGE_NavigationCode.
+    // On navigue vers cette URL pour récupérer la TOC standard (A4/B4/C4).
+    const navCodeUrl = await page.evaluate(() => {
+      const form = document.querySelector('form[name="PAGE_NAVIGATIONCODE"]') as HTMLFormElement | null
+      if (!form) return null
+      const action = form.getAttribute('action') || ''
+      if (!action.includes('PAGE_NavigationCode')) return null
+      return action.startsWith('http') ? action : `https://www.iort.tn${action}`
+    })
+
+    if (navCodeUrl) {
+      log.info(`Form PAGE_NAVIGATIONCODE trouvé → navigation vers: ${navCodeUrl.split('/').pop()}`)
+      await page.goto(navCodeUrl, { waitUntil: 'load', timeout: 30000 })
+      await waitForStableContent(page, { intervalMs: 1500, timeoutMs: 12000 })
+      log.info(`URL PAGE_NavigationCode: ${page.url()}`)
+      // Retourner sans mettre stats.totalSections : le fallback dans crawlCode
+      // appellera parseTocItems() sur la page PAGE_NavigationCode maintenant chargée
+    }
+
     return
   }
 
