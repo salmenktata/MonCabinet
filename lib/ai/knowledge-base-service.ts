@@ -1002,6 +1002,9 @@ export function detectQueryType(query: string): {
 
 /** COC (مجلة الالتزامات والعقود) — v19 max 8 articles */
 const COC_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
+  // Capacité contractuelle / الأهلية (AR + FR) — Art 2-7 COC
+  // Fix Mar 7 2026: "شروط الأهلية للتعاقد" ne matchait aucun pattern → articles 2-7 jamais injectés
+  [/أهلية.*تعاقد|شروط.*الأهلية|الأهلية.*للتعاقد|الأهلية.*القانونية|ناقص.*الأهلية|عديم.*الأهلية|capacité.*contracter|incapacité.*légale/i, [2, 3, 4, 5, 6, 7]],
   // Formation du contrat (AR + FR)
   // Fix v14: "شروط.*عقد" trop large → matchait "شروط فسخ" → exiger "صحة" OU "أركان"
   [/شروط.*صح[ةه]|صح[ةه].*عقد|أركان.*عقد|validit.*contrat|condition.*contrat|contrat.*valid/i, [2, 23, 119]],
@@ -1056,6 +1059,9 @@ const MCO_IMPLICIT_ARTICLE_MAP: Array<[RegExp, number[]]> = [
   [/إفلاس|شهر.*إفلاس|شروط.*إفلاس|توقف.*دفع/, [432, 433, 434, 435]],
   // Art.452+: concordat / taysira qadha'iya
   [/تسوية.*قضائية|الصلح.*الواقي/, [452, 453, 454]],
+  // Art.389-391: prescription commerciale — délai 5 ans pour dettes commerciales
+  // Fix Mar 7 2026: "مدة التقادم في الديون التجارية" ne matchait aucun pattern MCO
+  [/تقادم.*تجار|تقادم.*ديون|الديون.*التجارية.*تقادم|مدة.*التقادم.*تجار|prescription.*commerciale|délai.*prescription.*commercial|prescription.*dette.*commercial/i, [389, 390, 391]],
 ]
 
 /** PSC (مجلة الأحوال الشخصية) — max 6 articles
@@ -1761,12 +1767,16 @@ export async function searchKnowledgeBaseHybrid(
   // 40 chunks constitution indexés mais jamais récupérés sans chemin dédié.
   // isConstitutionQuery testé sur patternText (original) pour éviter que l'expansion LLM
   // ajoute des termes qui masquent le mot "دستور" original.
-  const isConstitutionQuery = /دستور|دستوري|دستورية|constitution|constitutionnel/i.test(patternText)
-  if (isConstitutionQuery && primaryEmbResult.status === 'fulfilled' && primaryProvider) {
-    const embStr = formatEmbeddingForPostgres(primaryEmbResult.value.embedding)
+  // Fix Mar 7 2026: élargi aux termes constitutionnels sans "دستور" explicite
+  // (مجلس الشعب, صلاحيات رئيس الجمهورية...) + BM25 fallback si embedding absent.
+  const isConstitutionQuery = /دستور|دستوري|دستورية|constitution|constitutionnel|مجلس.*نواب|مجلس الشعب|مجلس الوطني للجهات|المحكمة الدستورية|صلاحيات.*رئيس الجمهورية|رئيس الجمهورية.*تعيين|أعضاء.*البرلمان|عهدة.*النواب|عهدة.*برلمانية/i.test(patternText)
+  if (isConstitutionQuery) {
+    const embStr = primaryEmbResult.status === 'fulfilled'
+      ? formatEmbeddingForPostgres(primaryEmbResult.value.embedding)
+      : null  // BM25-only si embedding Ollama indisponible (chunks sans vecteurs)
     searchPromises.push(
       // threshold bas 0.10 : queries constitutionnelles peuvent avoir sim faible vs chunks Fsl-level
-      searchHybridSingle(bm25QueryText, embStr, 'constitution', null, 10, 0.10, primaryProvider as 'openai' | 'ollama', bm25Language)
+      searchHybridSingle(bm25QueryText, embStr, 'constitution', null, 10, 0.10, (primaryProvider ?? 'ollama') as 'openai' | 'ollama', bm25Language)
     )
     providerLabels.push('constitution-forced')
   }
