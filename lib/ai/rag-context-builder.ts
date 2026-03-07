@@ -92,9 +92,9 @@ Ils proviennent probablement d'un domaine juridique DIFFÉRENT de la question po
 INSTRUCTIONS STRICTES:
 1. NE CITE PAS ces sources comme si elles répondaient à la question
 2. NE CONSTRUIS PAS de raisonnement juridique basé sur ces sources
-3. Indique clairement que la base de connaissances ne contient pas de documents pertinents
-4. Fournis des orientations GÉNÉRALES basées sur tes connaissances du droit tunisien
-5. Recommande de consulter les textes officiels pour une réponse précise`,
+3. Indique clairement que la base de connaissances ne contient pas de documents pertinents pour cette question
+4. NE FOURNIS PAS de conseils juridiques sur le fond — aucun document directement applicable n'est disponible dans la base de connaissances
+5. Oriente l'avocat vers les textes officiels (JORT sur iort.gov.tn, 9anoun.tn) ou un confrère spécialisé pour obtenir une réponse précise et sourcée`,
   }
 }
 

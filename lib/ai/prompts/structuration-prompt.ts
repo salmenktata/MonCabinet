@@ -503,22 +503,37 @@ NŒUDS DÉCISIFS:
 `
 
 /**
- * Prompt pour enrichir avec la base de connaissances
+ * Prompt pour enrichir les références juridiques depuis la base de connaissances.
+ * Retourne un JSON PARTIEL contenant uniquement les références enrichies.
+ * L'appelant merge ces références dans le dossier complet.
  */
-export const KNOWLEDGE_BASE_ENRICHMENT_PROMPT = `Enrichis l'analyse suivante avec les références juridiques pertinentes trouvées dans la base de connaissances.
+export const KNOWLEDGE_BASE_ENRICHMENT_PROMPT = `Tu es un expert juridique tunisien. Tu reçois des sources KB (base de connaissances) et une analyse juridique préliminaire.
 
-Analyse actuelle:
-{analysis}
+Ta mission UNIQUE : enrichir le champ "references" de l'analyse avec des citations réelles et vérifiables depuis les sources KB fournies.
 
-Références trouvées:
+Sources KB disponibles:
 {references}
 
-Instructions:
-1. Ajoute les références les plus pertinentes
-2. Met à jour les calculs si la jurisprudence donne des fourchettes différentes
-3. Ajoute des alertes dans la timeline si des délais spécifiques sont mentionnés
-4. Augmente le score de confiance si les références confirment l'analyse
-5. Enrichis les qualifications alternatives si la jurisprudence le suggère
-6. Complète les objections anticipées avec des précédents jurisprudentiels
+Type de procédure identifié: {typeProcedure}
+Fondement juridique préliminaire: {fondementJuridique}
 
-Retourne l'analyse enrichie au format JSON.`
+INSTRUCTIONS STRICTES :
+1. Identifie les articles les plus pertinents dans les sources KB pour ce type de procédure
+2. Pour chaque référence pertinente, extrais un extrait EXACT du texte (verbatim, pas de paraphrase)
+3. N'invente AUCUN article, AUCUN numéro, AUCUNE date — uniquement ce qui figure dans les sources KB
+4. Si aucune source KB n'est pertinente, retourne un tableau vide
+
+Retourne UNIQUEMENT ce JSON partiel (rien d'autre) :
+{
+  "references": [
+    {
+      "type": "code" | "jurisprudence" | "doctrine",
+      "titre": "Nom du texte (ex: مجلة الالتزامات والعقود)",
+      "article": "Numéro exact (ex: الفصل 399)",
+      "extrait": "Citation verbatim exacte extraite de la source KB",
+      "pertinence": 85
+    }
+  ],
+  "articlesVisesEnrichis": ["الفصل X م.ا.ع", "الفصل Y م.أ.ش"],
+  "confidenceBoost": 5
+}`
