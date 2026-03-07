@@ -1807,8 +1807,8 @@ export async function parseAvailableRecueils(page: Page): Promise<IortCode[]> {
     return Array.from(document.querySelectorAll('[id^="A1_"]'))
       .map(el => ({
         index: parseInt((el.id.split('_')[1] ?? '0'), 10),
-        // Nettoyer le texte : retirer "اطلاع" (bouton) et espaces
-        name: (el.textContent ?? '').trim().replace(/\s*اطلاع\s*$/, '').trim(),
+        // Nettoyer le texte : retirer "اطلاع" (bouton), espaces multiples et espaces de fin
+        name: (el.textContent ?? '').trim().replace(/\s*اطلاع\s*$/, '').trim().replace(/\s+/g, ' '),
       }))
       .filter(x => x.index > 0 && x.name.length > 3)
   })
