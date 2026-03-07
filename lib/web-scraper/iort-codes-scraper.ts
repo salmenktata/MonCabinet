@@ -868,14 +868,20 @@ export async function parseTocItems(page: Page, capturedUrl?: string): Promise<I
     const arabicLinks = Array.from(document.querySelectorAll('a'))
       .filter(a => /[\u0600-\u06FF]/.test(a.textContent || '') && (a.textContent || '').trim().length > 5)
       .slice(0, 20).map(a => ({ text: (a.textContent || '').trim().substring(0, 60), href: a.getAttribute('href'), onclick: (a.getAttribute('onclick') || '').substring(0, 60) }))
-    // HTML brut du body (premiers 2000 chars)
-    const bodyHtml = document.body.innerHTML.substring(0, 2000)
-    return { url: location.href, title: document.title, loopers: allIds, tElements, arabicLinks, bodyHtml }
+    // HTML brut du body (premiers 3000 chars)
+    const bodyHtml = document.body.innerHTML.substring(0, 3000)
+    // Vérification directe des loopers A4/B4 (TOC standard PAGE_NavigationCode)
+    const a4Count = document.querySelectorAll('[id^="A4_"]').length
+    const b4Count = document.querySelectorAll('[id^="B4_"]').length
+    const c4Count = document.querySelectorAll('[id^="C4_"]').length
+    const a4First = document.getElementById('A4_1')?.textContent?.trim().substring(0, 60) ?? null
+    return { url: location.href, title: document.title, loopers: allIds, tElements, arabicLinks, bodyHtml, a4Count, b4Count, c4Count, a4First }
   })
-  log.warn('⚠️  TOC vide. Page state:', JSON.stringify({ url: pageState.url, title: pageState.title, loopers: pageState.loopers, tElements: pageState.tElements }, null, 2))
+  log.warn('⚠️  TOC vide. Page state:', JSON.stringify({ url: pageState.url, title: pageState.title, loopers: pageState.loopers, tElements: pageState.tElements, a4Count: pageState.a4Count, b4Count: pageState.b4Count, c4Count: pageState.c4Count, a4First: pageState.a4First }, null, 2))
   log.warn('⚠️  Liens arabes:', JSON.stringify(pageState.arabicLinks.slice(0, 10), null, 2))
   log.warn('⚠️  Body HTML 0-1000:', pageState.bodyHtml.substring(0, 1000))
   log.warn('⚠️  Body HTML 1000-2000:', pageState.bodyHtml.substring(1000, 2000))
+  log.warn('⚠️  Body HTML 2000-3000:', pageState.bodyHtml.substring(2000, 3000))
   return []
 }
 
