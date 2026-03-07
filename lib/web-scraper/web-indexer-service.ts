@@ -547,6 +547,19 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       }
     }
 
+    // Contextual Retrieval : préfixer chaque chunk avec titre du document
+    // Miroir de knowledge-base-service.ts lignes 566-577
+    // Guard : éviter double-préfixage (9anoun.tn reconsolidate path déjà préfixé)
+    for (const chunk of chunks) {
+      if (pageTitle && !chunk.content.startsWith(pageTitle)) {
+        const headerParts: string[] = []
+        headerParts.push(pageTitle)
+        if (chunk.metadata?.articleNumber) headerParts.push(`الفصل ${chunk.metadata.articleNumber}`)
+        if (kbCategory) headerParts.push(`[${kbCategory}]`)
+        chunk.content = `${headerParts.join(' | ')}\n---\n${chunk.content}`
+      }
+    }
+
     // Générer les embeddings avec retry (résilience si Ollama tombe temporairement)
     const EMBEDDING_RETRY_CONFIG = {
       maxRetries: 2,
